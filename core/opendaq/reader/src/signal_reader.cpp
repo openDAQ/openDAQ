@@ -44,7 +44,8 @@ SignalReader::SignalReader(const SignalReader& old,
     info = old.info;
 
     port.setListener(listener);
-    readDescriptorFromPort();
+    if (connection.assigned())
+        readDescriptorFromPort();
 }
 
 SignalReader::SignalReader(const SignalInfo& old,
@@ -62,7 +63,8 @@ SignalReader::SignalReader(const SignalInfo& old,
     , commonSampleRate(-1)
 {
     port.setListener(listener);
-    readDescriptorFromPort();
+    if (connection.assigned())
+        readDescriptorFromPort();
 }
 
 void SignalReader::readDescriptorFromPort()
@@ -77,27 +79,6 @@ void SignalReader::readDescriptorFromPort()
             return;
         }
     }
-
-    const auto signal = port.getSignal();
-    if (!signal.assigned())
-    {
-        throw InvalidStateException("Input port must already have a signal assigned");
-    }
-
-    const auto descriptor = signal.getDescriptor();
-    if (!descriptor.assigned())
-    {
-        throw InvalidStateException("Input port connected signal must have a descriptor assigned.");
-    }
-
-    DataDescriptorPtr domainDescriptor;
-    auto domainSignal = signal.getDomainSignal();
-    if (domainSignal.assigned())
-    {
-        domainDescriptor = domainSignal.getDescriptor();
-    }
-
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(descriptor, domainDescriptor));
 }
 
 SizeT SignalReader::getAvailable(bool acrossDescriptorChanges = false) const
@@ -321,8 +302,8 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
                 const auto [valueDescChanged, domainDescChanged, newValueDescriptor, newDomainDescriptor] =
                     parseDataDescriptorEventPacket(eventPacket);
 
-                valueDescriptorChanged |= valueDescChanged;
-                domainDescriptorChanged |= domainDescChanged;
+                valueDescriptorChanged |= static_cast<bool>(valueDescChanged);
+                domainDescriptorChanged |= static_cast<bool>(domainDescChanged);
 
                 if (valueDescChanged)
                     dataDescriptor = newValueDescriptor;

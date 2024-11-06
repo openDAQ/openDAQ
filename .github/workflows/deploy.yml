@@ -635,9 +635,6 @@ jobs:
         run: |
           npm i @asciidoctor/tabs
           npm i @springio/antora-extensions
-          
-      - name: Run Antora playbook version injection
-        run: python docs/version_injector.py
 
       - name: Run Antora to build user guide
         run: >
@@ -647,15 +644,6 @@ jobs:
       - name: Compress user guide Documentation
         working-directory: ${{ env.build_path }}/site/
         run: zip -r ${{ env.build_path }}/user_guide.zip .
-
-      - name: Run Antora to build protocols specs
-        run: >
-          [ "refs/heads/main" != "${{ github.ref }}" ] && npx antora antora-specs-playbook.yml
-          || (export DAQ_DEV_WEBSITE=docs-dev; npx antora antora-specs-playbook-dev.yml)
-
-      - name: Compress protocols specifications
-        working-directory: ${{ env.build_path }}/site_specs/
-        run: zip -r ${{ env.build_path }}/native_protocols_specs.zip .
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -667,11 +655,6 @@ jobs:
         run: |
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'user_guide.zip'
           aws s3 cp ${{ env.build_path }}/user_guide.zip "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
-
-      - name: Upload protocols specifications to S3
-        run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'native_protocols_specs.zip'
-          aws s3 cp ${{ env.build_path }}/native_protocols_specs.zip "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
 
       - name: Call the API to deploy the documentation
         run: |
@@ -686,12 +669,6 @@ jobs:
         with:
           name: openDAQ_SDK_User_Guide
           path: ${{ env.build_path }}/user_guide.zip
-          retention-days: 7
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: openDAQ_SDK_Native_protocols_specifications
-          path: ${{ env.build_path }}/native_protocols_specs.zip
           retention-days: 7
 
   # using reusable workflow

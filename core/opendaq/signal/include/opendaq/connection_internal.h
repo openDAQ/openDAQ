@@ -15,9 +15,26 @@
  */
 
 #pragma once
-#include <coretypes/exceptions.h>
-#include <opendaq/errors.h>
+#include <coretypes/common.h>
+#include <coretypes/baseobject.h>
 
-DEFINE_EXCEPTION(ConnectionLost, OPENDAQ_ERR_CONNECTION_LOST, "Lost connection to the server.")
-DEFINE_EXCEPTION(ConnectionLimitReached, OPENDAQ_ERR_CONNECTION_LIMIT_REACHED, "Connection rejected - connections limit reached")
-DEFINE_EXCEPTION(ServerVersionTooLow, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW, "The client attempted to call a function that requires a newer version of the openDAQ server")
+BEGIN_NAMESPACE_OPENDAQ
+
+/*!
+ * @ingroup opendaq_signal_path
+ * @addtogroup opendaq_connection ConnectionInternal
+ * @{
+ */
+
+DECLARE_OPENDAQ_INTERFACE(IConnectionInternal, IBaseObject)
+{
+    /*!
+     * @brief Enqueues an event packet with the last descriptor at the front of the queue.
+     */
+    virtual ErrCode INTERFACE_FUNC enqueueLastDescriptor() = 0;
+};
+
+/*!@}*/
+
+
+END_NAMESPACE_OPENDAQ

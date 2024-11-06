@@ -173,7 +173,7 @@ void NativeStreamingClientImpl::tryReconnect()
     reconnectionTimer->expires_from_now(reconnectionPeriod);
     reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
 
-    client->connect();
+    client->connect(connectionTimeout);
 }
 
 void NativeStreamingClientImpl::connectionStatusChanged(ClientConnectionStatus status)
@@ -188,7 +188,7 @@ bool NativeStreamingClientImpl::connect(std::string host,
 {
     initClient(host, port, path);
     connectedFuture = connectedPromise.get_future();
-    client->connect();
+    client->connect(connectionTimeout);
 
     if (connectedFuture.wait_for(connectionTimeout) == std::future_status::ready &&
         connectedFuture.get() == ConnectionResult::Connected)

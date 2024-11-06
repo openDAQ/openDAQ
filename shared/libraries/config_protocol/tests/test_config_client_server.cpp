@@ -18,6 +18,7 @@
 #include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/user_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/exceptions.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -318,7 +319,7 @@ TEST_F(ConfigProtocolTest, GetAvailableFunctionBlockTypes)
 
     EXPECT_CALL(device.mock(), getAvailableFunctionBlockTypes(_)).WillOnce(daq::Get<DictPtr<IString, IFunctionBlockType>>(fbTypes));
 
-    const DictPtr<IString, IFunctionBlockType> value = client->getClientComm()->sendComponentCommand("//root", "GetAvailableFunctionBlockTypes");
+    const DictPtr<IString, IFunctionBlockType> value = client->getClientComm()->getAvailableFunctionBlockTypes("//root");
     ASSERT_EQ(fbTypes.get("Id"), value.get("Id"));
     ASSERT_EQ(fbTypes.get("Id").createDefaultConfig().getPropertyValue("Prop"), "value");
 }
@@ -331,7 +332,7 @@ TEST_F(ConfigProtocolTest, GetDeviceInfo)
     StringPtr fbId;
     EXPECT_CALL(device.mock(), getInfo(_)).WillOnce(daq::Get<DeviceInfoPtr>(devInfo));
 
-    const DeviceInfoPtr newDevInfo = client->getClientComm()->sendComponentCommand("//root", "GetInfo");
+    const DeviceInfoPtr newDevInfo = client->getClientComm()->getInfo("//root");
     ASSERT_EQ(newDevInfo.getConnectionString(), devInfo.getConnectionString());
     ASSERT_EQ(newDevInfo.getName(), devInfo.getName());
 }
@@ -358,8 +359,7 @@ TEST_F(ConfigProtocolTest, AddFunctionBlock)
                 return OPENDAQ_SUCCESS;
             });
 
-    auto params = Dict<IString, IBaseObject>({{"TypeId", "fbId"}});
-    const ComponentHolderPtr fbHolder = client->getClientComm()->sendComponentCommand("//root", "AddFunctionBlock", params);
+    const ComponentHolderPtr fbHolder = client->getClientComm()->addFunctionBlock("//root", "fbId");
     ASSERT_EQ(fbHolder.getLocalId(), "fb");
     const FunctionBlockPtr fb = fbHolder.getComponent();
 
@@ -405,11 +405,8 @@ TEST_F(ConfigProtocolTest, RemoveFunctionBlock)
                 return OPENDAQ_NOTFOUND;
             });
 
-    auto params = Dict<IString, IBaseObject>({{"LocalId", "lid"}});
-    ASSERT_NO_THROW(client->getClientComm()->sendComponentCommand("//root", "RemoveFunctionBlock", params));
-
-    params = Dict<IString, IBaseObject>({{"LocalId", "invalid"}});
-    ASSERT_THROW(client->getClientComm()->sendComponentCommand("//root", "RemoveFunctionBlock", params), NotFoundException);
+    ASSERT_NO_THROW(client->getClientComm()->removeFunctionBlock("//root", "lid"));
+    ASSERT_THROW(client->getClientComm()->removeFunctionBlock("//root", "invalid"), NotFoundException);
 }
 
 TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
@@ -426,8 +423,7 @@ TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
     EXPECT_CALL(inputPort.mock(), connect(_)).WillOnce(Return(OPENDAQ_SUCCESS));
     EXPECT_CALL(inputPort.mock(), getParent(_)).WillOnce(Get<ComponentPtr>(nullptr));
 
-    auto params = ParamsDict({{"SignalId", "sig"}});
-    client->getClientComm()->sendComponentCommand("/dev/comp/test", "ConnectSignal", params);
+    client->getClientComm()->connectSignal("/dev/comp/test", "sig");
 }
 
 TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
@@ -441,13 +437,13 @@ TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
     EXPECT_CALL(inputPort.mock(), disconnect()).WillOnce(Return(OPENDAQ_SUCCESS));
     EXPECT_CALL(inputPort.mock(), getParent(_)).WillOnce(Get<ComponentPtr>(nullptr));
 
-    client->getClientComm()->sendComponentCommand("/dev/comp/test", "DisconnectSignal");
+    client->getClientComm()->disconnectSignal("/dev/comp/test");
 }
 
 TEST_F(ConfigProtocolTest, GetTypeManager)
 {
     EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
-    const TypeManagerPtr typeManager = client->getClientComm()->sendCommand("GetTypeManager");
+    const TypeManagerPtr typeManager = client->getClientComm()->getTypeManager();
 }
 
 TEST_F(ConfigProtocolTest, BeginEndUpdate)
@@ -463,10 +459,10 @@ TEST_F(ConfigProtocolTest, BeginEndUpdate)
     device->addProperty(StringPropertyBuilder("PropName", "-").build());
     ASSERT_EQ(device->getPropertyValue("PropName"), "-");
 
-    client->getClientComm()->sendComponentCommand("//root", "BeginUpdate");
+    client->getClientComm()->beginUpdate("//root");
     client->getClientComm()->setPropertyValue("//root", "PropName", "val");
     ASSERT_EQ(device->getPropertyValue("PropName"), "-");
-    client->getClientComm()->sendComponentCommand("//root", "EndUpdate");
+    client->getClientComm()->endUpdate("//root");
     ASSERT_EQ(device->getPropertyValue("PropName"), "val");
 }
 
@@ -483,15 +479,14 @@ TEST_F(ConfigProtocolTest, BeginEndUpdateWithProps)
     device->addProperty(StringPropertyBuilder("PropName", "-").build());
     ASSERT_EQ(device->getPropertyValue("PropName"), "-");
 
-    client->getClientComm()->sendComponentCommand("//root", "BeginUpdate");
+    client->getClientComm()->beginUpdate("//root");
 
     auto prop = Dict<IString, IBaseObject>({{"Name", "PropName"}, {"ProtectedAccess", False}, {"SetValue", True}, {"Value", "val"}});
     auto props = List<IDict>(prop);
-    auto params = Dict<IString, IBaseObject>({{"Props", props}});
 
-    ASSERT_THROW(client->getClientComm()->sendComponentCommand("//root", "EndUpdate", params), NotSupportedException);
+    ASSERT_THROW(client->getClientComm()->endUpdate("//root", "", props), NotSupportedException);
     server->setProtocolVersion(1);
-    client->getClientComm()->sendComponentCommand("//root", "EndUpdate", params);
+    client->getClientComm()->endUpdate("//root", "", props);
 
     ASSERT_EQ(device->getPropertyValue("PropName"), "val");
 }
@@ -540,47 +535,8 @@ TEST_F(ConfigProtocolTest, InputPortAcceptsSignal)
     EXPECT_CALL(inputPort.mock(), getParent(_)).WillRepeatedly(Get(Component(NullContext(), nullptr, "parent")));
     EXPECT_CALL(inputPort.mock(), acceptsSignal(_, _)).WillOnce(Return(OPENDAQ_SUCCESS));
 
-    auto params = ParamsDict({{"SignalId", "sig"}});
-    client->getClientComm()->sendComponentCommand("/dev/comp/test", "AcceptsSignal", params);
+    client->getClientComm()->acceptsSignal("/dev/comp/test", "sig");
 }
-
-TEST_F(ConfigProtocolTest, DeviceGetAvailableDevices)
-{
-    MockDevice::Strict device;
-
-    EXPECT_CALL(device.mock(), isLocked(_))
-    .WillRepeatedly(
-        [](daq::Bool* locked) -> ErrCode
-        {
-            *locked = false;
-            return OPENDAQ_SUCCESS;
-        });
-
-    EXPECT_CALL(getMockComponentFinder(), findComponent(_))
-        .WillOnce(Return(device.ptr.asPtr<IComponent>()));
-
-    EXPECT_CALL(device.mock(), getAvailableDevices(_)).WillOnce(Return(OPENDAQ_SUCCESS));
-
-    client->getClientComm()->sendComponentCommand("/dev", "GetAvailableDevices");
-}
-
-TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
-{
-    const auto defaultConfig = PropertyObject();
-    defaultConfig.addProperty(StringPropertyBuilder("Prop", "value").build());
-    defaultConfig.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
-
-    auto devTypes = Dict<IString, IDeviceType>();
-    devTypes.set("Id", DeviceType("Id", "Name", "Desc", "Prefix", defaultConfig));
-
-    EXPECT_CALL(device.mock(), getAvailableDeviceTypes(_)).WillOnce(daq::Get<DictPtr<IString, IDeviceType>>(devTypes));
-
-    const DictPtr<IString, IDeviceType> value =
-        client->getClientComm()->sendComponentCommand("//root", "GetAvailableDeviceTypes");
-    ASSERT_EQ(devTypes.get("Id"), value.get("Id"));
-    ASSERT_EQ(devTypes.get("Id").createDefaultConfig().getPropertyValue("Prop"), "value");
-}
-
 
 class RejectConnectionTest : public ConfigProtocolTest
 {

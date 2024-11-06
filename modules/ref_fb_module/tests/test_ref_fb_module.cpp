@@ -10,8 +10,6 @@
 #include <ref_fb_module/module_dll.h>
 #include <ref_fb_module/version.h>
 #include <testutils/testutils.h>
-
-#include <future>
 #include <thread>
 #include "testutils/memcheck_listener.h"
 
@@ -67,6 +65,7 @@ public:
         for (size_t i = 0; i < sampleCount; i++)
             *packetData++ = static_cast<double>(i);
 
+        // Send packet
         domainSignal.sendPacket(domainPacket);
         signal.sendPacket(dataPacket);
 

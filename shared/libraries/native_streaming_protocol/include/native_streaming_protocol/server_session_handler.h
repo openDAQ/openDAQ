@@ -32,7 +32,8 @@ public:
                          const std::string& clientId,
                          OnFindSignalCallback findSignalHandler,
                          OnSignalSubscriptionCallback signalSubscriptionHandler,
-                         native_streaming::OnSessionErrorCallback errorHandler);
+                         native_streaming::OnSessionErrorCallback errorHandler,
+                         SizeT streamingPacketSendTimeout);
 
     void sendSignalAvailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
     void sendSignalUnavailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);

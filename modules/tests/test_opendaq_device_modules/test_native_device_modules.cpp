@@ -151,6 +151,45 @@ TEST_F(NativeDeviceModulesTest, UseOldProtocolVersion)
     server.detach();
 }
 
+TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
+{
+    SKIP_TEST_MAC_CI;
+
+    // workaround until exceptionsin opendaq/excpetions.h are correctly registered
+    auto AssertErrorCode = [](const std::function<void()>& func, ErrCode expectedErrorCode)
+    {
+        try
+        {
+            func();
+            ASSERT_TRUE(false);
+        }
+        catch (const DaqException& e)
+        {
+            ASSERT_EQ(e.getErrCode(), expectedErrorCode);
+        }
+    };
+
+    // connect to server with protocol version 2
+
+    const uint16_t negotiateVersion = 2;
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(negotiateVersion);
+
+    const auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), negotiateVersion);
+
+    // call some methods which require protocol version 3 or higher
+
+    AssertErrorCode([&]() { client.lock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    AssertErrorCode([&]() { client.unlock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    AssertErrorCode([&]() { client.getDevices()[0].isLocked(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    AssertErrorCode([&]() { client.getDevices()[0].getAvailableDevices(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    AssertErrorCode([&]() { client.getDevices()[0].getAvailableDeviceTypes(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+}
+
+
 TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
 {
     if (test_helpers::Ipv6IsDisabled())
@@ -495,6 +534,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
                 {
                     "NativeStreamingPort": 1234,
                     "MaxAllowedConfigConnections": 123,
+                    "StreamingPacketSendTimeout": 2000,
                     "Path": "/test/native_configurator/checkDeviceInfoPopulated/"
                 }
             }
@@ -516,6 +556,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_EQ(serverConfig.getPropertyValue("NativeStreamingPort").asPtr<IInteger>(), 1234);
     ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), path);
     ASSERT_EQ(serverConfig.getPropertyValue("MaxAllowedConfigConnections").asPtr<IInteger>(), 123);
+    ASSERT_EQ(serverConfig.getPropertyValue("StreamingPacketSendTimeout").asPtr<IInteger>(), 2000);
 
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
@@ -926,6 +967,7 @@ TEST_F(NativeDeviceModulesTest, DeviceInfo)
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.assigned());
     ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
     ASSERT_EQ(info.getServerCapabilities().getCount(), 2u);
     ASSERT_EQ(info.getServerCapabilities()[0].getProtocolId(), "OpenDAQNativeStreaming");
     ASSERT_EQ(info.getServerCapabilities()[1].getProtocolId(), "OpenDAQNativeConfiguration");
@@ -1074,7 +1116,7 @@ TEST_F(NativeDeviceModulesTest, DISABLED_RendererSimple)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    auto device = client.getDevices()[0].getDevices()[0];
+    auto device = client.getDevices()[0];
     const auto deviceChannel0 = device.getChannels()[0];
     const auto deviceSignal0 = deviceChannel0.getSignals(search::Recursive(search::Visible()))[0];
 
@@ -1586,6 +1628,11 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
         ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
+
+    auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.assigned());
+    ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
 }
 
 TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
@@ -1652,6 +1699,11 @@ TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
         ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
+
+    auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.assigned());
+    ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
 }
 
 TEST_F(NativeDeviceModulesTest, Update)
@@ -2024,16 +2076,17 @@ TEST_F(NativeDeviceModulesTest, LimitConfigConnections)
 TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration)
 {
     StringPtr config;
-    auto server = CreateServerInstance();
-    
+
     {
-        auto client = CreateClientInstance();
+        auto server = CreateServerInstance();
+        auto client = CreateClientInstance(0);
         auto clientFb = client.addFunctionBlock("RefFBModuleStatistics");
         clientFb.addFunctionBlock("RefFBModuleTrigger");
 
         config = client.saveConfiguration();
     }
-    
+
+    auto server = CreateServerInstance();
     auto restoredClient = Instance();
     restoredClient.loadConfiguration(config);
     auto restoredFb = restoredClient.getFunctionBlocks();
@@ -2042,13 +2095,26 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration)
     auto nestedFb = restoredFb[0].getFunctionBlocks();
     ASSERT_EQ(nestedFb.getCount(), 1u);
     ASSERT_EQ(nestedFb[0].getFunctionBlockType().getId(), "RefFBModuleTrigger");
+
+    auto signals = restoredClient.getDevices()[0].getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : signals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
+
+    auto info = restoredClient.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.assigned());
+    ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
 }
 
 TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration2)
 {
     StringPtr config;
     auto server = CreateServerInstance();
-    
+
     {
         auto client = CreateClientInstance();
         auto clientFb = client.addFunctionBlock("RefFBModuleStatistics");
@@ -2056,7 +2122,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration2)
 
         config = client.saveConfiguration();
     }
-    
+
     auto restoredClient = Instance();
     restoredClient.addFunctionBlock("RefFBModuleStatistics");
 
@@ -2073,7 +2139,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration3)
 {
     StringPtr config;
     auto server = CreateServerInstance();
-    
+
     {
         auto client = CreateClientInstance();
         auto clientFb = client.addFunctionBlock("RefFBModuleStatistics");
@@ -2099,7 +2165,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfigurationWithAnotherDevice)
 {
     StringPtr config;
     auto server = CreateServerInstance();
-    
+
     {
         auto client = CreateClientInstance();
         config = client.saveConfiguration();
@@ -2113,7 +2179,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfigurationWithAnotherDevice)
     auto devices = restoredClient.getDevices();
     ASSERT_EQ(devices.getCount(), 2u);
     ASSERT_EQ(devices[0].getInfo().getConnectionString(), "daqref://device0");
-    ASSERT_EQ(devices[1].getInfo().getConnectionString(), "daqmock://client_device");
+    ASSERT_EQ(devices[1].getInfo().getConnectionString(), "daq.nd://127.0.0.1");
     auto serverDevices = devices[1].getDevices();
     ASSERT_EQ(serverDevices.getCount(), 1u);
     ASSERT_EQ(serverDevices[0].getInfo().getConnectionString(), "daqref://device0");

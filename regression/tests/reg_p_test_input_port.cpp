@@ -35,7 +35,7 @@ TEST_F(RegressionTestInputPort, acceptsSignalConnectGetSignalGetConnectionDiscon
     PROTOCOLS("nd")
 
     auto signal1 = device.getSignalsRecursive()[0];
-    ASSERT_THROW_MSG(port.acceptsSignal(signal1), DaqException, "Operation not supported by the protocol version currently in use");
+    ASSERT_THROW_MSG(port.acceptsSignal(signal1), DaqException, "The client attempted to call a function that requires a newer version of the openDAQ server");
     ASSERT_NO_THROW(port.connect(signal1));
     SignalPtr signal2;
     ASSERT_NO_THROW(signal2 = port.getSignal());

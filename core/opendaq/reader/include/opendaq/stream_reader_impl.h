@@ -119,9 +119,6 @@ private:
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;
 
-    DataDescriptorPtr dataDescriptor;
-    DataDescriptorPtr domainDescriptor;
-
     ReadMode readMode;
     ReadTimeoutType timeoutType;
     InputPortConfigPtr inputPort;

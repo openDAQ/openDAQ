@@ -45,7 +45,8 @@ public:
                                 Bool restoreClientConfigOnReconnect,
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
-                                std::thread::id reconnectionProcessingThreadId);
+                                std::thread::id reconnectionProcessingThreadId,
+                                const StringPtr& connectionString);
     ~NativeDeviceHelper();
 
     void setupProtocolClients(const ContextPtr& context);
@@ -86,6 +87,7 @@ private:
     bool acceptNotificationPackets;
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
+    const StringPtr connectionString;
     std::mutex sync;
 };
 
@@ -93,6 +95,7 @@ DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
     virtual void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) = 0;
     virtual void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) = 0;
+    virtual void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) = 0;
 };
 
 class NativeDeviceImpl final : public config_protocol::GenericConfigClientDeviceImpl<config_protocol::ConfigClientDeviceBase<INativeDevicePrivate>>
@@ -111,6 +114,7 @@ public:
     // INativeDevicePrivate
     void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) override;
     void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
+    void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -121,10 +125,8 @@ protected:
 private:
     void initStatuses();
     void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);
-    void updateDeviceInfo(const StringPtr& connectionString);
 
     std::shared_ptr<NativeDeviceHelper> deviceHelper;
-    bool deviceInfoSet;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

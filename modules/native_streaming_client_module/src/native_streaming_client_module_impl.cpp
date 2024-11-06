@@ -209,7 +209,8 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  config.getPropertyValue("RestoreClientConfigOnReconnect"),
                                                                  processingIOContextPtr,
                                                                  reconnectionProcessingIOContextPtr,
-                                                                 reconnectionProcessingThread.get_id());
+                                                                 reconnectionProcessingThread.get_id(),
+                                                                 connectionString);
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
         protocolVersion = deviceHelper->getProtocolVersion();

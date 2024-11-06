@@ -20,10 +20,16 @@ BlockReaderImpl::BlockReaderImpl(const SignalPtr& signal,
     , blockSize(blockSize)
     , overlap(overlap)
 {
-    initOverlap();
-
-    port.setNotificationMethod(PacketReadyNotification::SameThread);
-    packetReceived(port.asPtrOrNull<IInputPort>(true));
+    try
+    {
+        initOverlap();
+        port.setNotificationMethod(PacketReadyNotification::SameThread);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
@@ -37,8 +43,16 @@ BlockReaderImpl::BlockReaderImpl(IInputPortConfig* port,
     , blockSize(blockSize)
     , overlap(overlap)
 {
-    initOverlap();
-    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    try
+    {
+        initOverlap();
+        this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -51,9 +65,15 @@ BlockReaderImpl::BlockReaderImpl(const ReaderConfigPtr& readerConfig,
     , blockSize(blockSize)
     , overlap(overlap)
 {
-    initOverlap();
-
-    readDescriptorFromPort();
+    try
+    {
+        initOverlap();
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
@@ -66,12 +86,16 @@ BlockReaderImpl::BlockReaderImpl(BlockReaderImpl* old,
     , overlap(overlap)
     , info(old->info)
 {
-    initOverlap();
-
-    this->internalAddRef();
-    handleDescriptorChanged(createInitDataDescriptorChangedEventPacket());
-
-    notify.dataReady = false;
+    try
+    {
+        initOverlap();
+        notify.dataReady = false;
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 ErrCode BlockReaderImpl::getBlockSize(SizeT* size)
@@ -390,7 +414,7 @@ ErrCode BlockReaderImpl::read(void* blocks, SizeT* count, SizeT timeoutMs, IBloc
         return OPENDAQ_IGNORED;
     }
 
-    const SizeT samplesToRead = *count * overlappedBlockSizeRemainder + overlappedBlockSize;
+    const SizeT samplesToRead = *count == 0 ? 0 : *count * overlappedBlockSizeRemainder + overlappedBlockSize;
     info.prepare(blocks, samplesToRead, blockSize, milliseconds(timeoutMs));
 
     auto statusPtr = readPackets();
@@ -421,7 +445,7 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
         return OPENDAQ_IGNORED;
     }
 
-    const SizeT samplesToRead = *count * overlappedBlockSizeRemainder + overlappedBlockSize;
+    const SizeT samplesToRead = *count == 0 ? 0 : *count * overlappedBlockSizeRemainder + overlappedBlockSize;
     info.prepareWithDomain(dataBlocks, domainBlocks, samplesToRead, blockSize, milliseconds(timeoutMs));
 
     auto statusPtr = readPackets();

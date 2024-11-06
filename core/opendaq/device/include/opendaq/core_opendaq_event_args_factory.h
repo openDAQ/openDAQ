@@ -148,6 +148,20 @@ inline CoreEventArgsPtr CoreEventArgsDeviceDomainChanged(const DeviceDomainPtr& 
     CoreEventArgsPtr obj(CoreEventArgsDeviceDomainChanged_Create(deviceDomain));
     return obj;
 }
+
+/*!
+ * @brief Creates Core event args that are passed as argument when the device is locked or unlocked.
+ * @param isLocked New lock state of the device.
+ *
+ * The ID of the event is 160, and the event name is "DeviceLockStateChanged".
+ */
+inline CoreEventArgsPtr CoreEventArgsDeviceLockStateChanged(Bool isLocked)
+{
+    CoreEventArgsPtr obj(CoreEventArgsDeviceLockStateChanged_Create(isLocked));
+    return obj;
+}
+
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

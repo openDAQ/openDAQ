@@ -41,6 +41,7 @@
 #include <set>
 #include <optional>
 #include <coreobjects/user_internal_ptr.h>
+#include <opendaq/device_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -106,6 +107,7 @@ public:
     ErrCode INTERFACE_FUNC setDeviceConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC lock(IUser* user) override;
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
+    ErrCode INTERFACE_FUNC isLockedInternal(Bool* locked) override;
 
     // Function block devices
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
@@ -130,7 +132,7 @@ public:
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
-    
+
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -168,7 +170,7 @@ protected:
     void updateFunctionBlock(const std::string& fbId,
                              const SerializedObjectPtr& serializedFunctionBlock,
                              const BaseObjectPtr& context) override;
-    void updateDevice(const std::string& deviceId, 
+    void updateDevice(const std::string& deviceId,
                       const SerializedObjectPtr& serializedDevice,
                       const BaseObjectPtr& context);
     void updateIoFolderItem(const FolderPtr& ioFolder,
@@ -201,6 +203,7 @@ private:
     ErrCode lockInternal(IUser* user);
     ErrCode unlockInternal(IUser* user);
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
+    DevicePtr getParentDevice();
 
     DeviceDomainPtr deviceDomain;
 };
@@ -340,6 +343,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
     if (OPENDAQ_SUCCEEDED(status))
         status = lockInternal(user);
 
+    if (OPENDAQ_SUCCEEDED(status) && !this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(CoreEventArgsDeviceLockStateChanged(true));
+
     return status;
 }
 
@@ -375,6 +381,17 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
         }
     }
 
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(CoreEventArgsDeviceLockStateChanged(false));
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::isLockedInternal(Bool* locked)
+{
+    OPENDAQ_PARAM_NOT_NULL(locked);
+    *locked = this->userLock.has_value();
     return OPENDAQ_SUCCESS;
 }
 
@@ -419,7 +436,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSignals(IList** signals, IS
 
     if (!searchFilter)
         return this->signals->getItems(signals);
-    
+
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
@@ -628,7 +645,7 @@ DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::o
 
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
         return availableTypes;
-    
+
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableFunctionBlockTypes().detach();
 }
@@ -697,7 +714,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getFunctionBlocks(IList** func
 
     if (!searchFilter)
         return this->functionBlocks->getItems(functionBlocks);
-    
+
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
@@ -747,7 +764,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getChannels(IList** channels, 
         *channels = chList.detach();
         return OPENDAQ_SUCCESS;
     }
-    
+
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
@@ -844,8 +861,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLocked(Bool* locked)
     OPENDAQ_PARAM_NOT_NULL(locked);
 
     auto lock = this->getRecursiveConfigLock();
-    *locked = this->userLock.has_value();
-    return OPENDAQ_SUCCESS;
+    return isLockedInternal(locked);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1103,7 +1119,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDevices(IList** subDevices,
 
     if (!searchFilter)
         return devices->getItems(subDevices);
-    
+
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
@@ -1184,6 +1200,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lockInternal(IUser* user)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::unlockInternal(IUser* user)
 {
+    DevicePtr parentDevice = getParentDevice();
+
+    if (parentDevice.assigned() && parentDevice.asPtr<IDevicePrivate>().isLockedInternal())
+        return OPENDAQ_ERR_DEVICE_LOCKED;
+
     if (this->userLock.has_value() && this->userLock != nullptr && this->userLock != user)
         return OPENDAQ_ERR_ACCESSDENIED;
 
@@ -1213,6 +1234,22 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
     }
 
     return status;
+}
+
+template <typename TInterface, typename... Interfaces>
+DevicePtr GenericDevice<TInterface, Interfaces...>::getParentDevice()
+{
+    ComponentPtr current = thisPtr<ComponentPtr>().getParent();
+
+    while (current.assigned())
+    {
+        if (current.asPtrOrNull<IDevice>().assigned())
+            return current;
+
+        current = current.getParent();
+    }
+
+    return nullptr;
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -1397,7 +1434,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
                 serializer.key("connectionString");
                 serializer.writeString(deviceInfo.getConnectionString());
             }
-            
+
             auto manufacturer = deviceInfo.getManufacturer();
             auto serialNumber = deviceInfo.getSerialNumber();
             if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
@@ -1422,6 +1459,9 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         serializer.key("Synchronization");
         syncComponent.serialize(serializer);
     }
+
+    serializer.key("Locked");
+    serializer.writeBool(userLock.has_value());
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1483,7 +1523,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                 availableDevice.getManufacturer()->equals(manufacturer, &deviceFound);
                 if (!deviceFound)
                     continue;
-                
+
                 availableDevice.getSerialNumber()->equals(serialNumber, &deviceFound);
                 if (!deviceFound)
                     continue;
@@ -1579,6 +1619,17 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("Synchronization"))
     {
         this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Synchronization");
+    }
+
+
+    userLock.reset();
+
+    if (serializedObject.hasKey("Locked"))
+    {
+        const bool isLocked = serializedObject.readBool("Locked");
+
+        if (isLocked)
+            userLock = nullptr;
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");

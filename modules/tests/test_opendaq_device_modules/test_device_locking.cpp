@@ -116,29 +116,6 @@ TEST_F(DeviceLockingTest, LockTopDown)
     ASSERT_TRUE(devices[3].isLocked());
 }
 
-TEST_F(DeviceLockingTest, UnlockBottomUp)
-{
-    auto serverInstance = createServerInstance();
-    auto clientInstance = connectClientInstance("tomaz", "tomaz");
-
-    auto devices = clientInstance.getDevices(search::Recursive(search::Any()));
-    ASSERT_EQ(devices.getCount(), 4u);
-
-    clientInstance.lock();
-
-    devices[3].unlock();
-    devices[2].unlock();
-    devices[1].unlock();
-    devices[0].unlock();
-    clientInstance.unlock();
-
-    ASSERT_FALSE(clientInstance.isLocked());
-    ASSERT_FALSE(devices[0].isLocked());
-    ASSERT_FALSE(devices[1].isLocked());
-    ASSERT_FALSE(devices[2].isLocked());
-    ASSERT_FALSE(devices[3].isLocked());
-}
-
 TEST_F(DeviceLockingTest, UnlockTopDown)
 {
     auto serverInstance = createServerInstance();
@@ -382,6 +359,36 @@ TEST_F(DeviceLockingTest, LockedWithAnonymousUser)
 
     ASSERT_FALSE(clientInstance.isLocked());
     ASSERT_FALSE(devices[0].isLocked());
+    ASSERT_FALSE(devices[1].isLocked());
+    ASSERT_FALSE(devices[2].isLocked());
+}
+
+TEST_F(DeviceLockingTest, UnlockChild)
+{
+    auto serverInstance = createServerInstance();
+    auto clientInstance = connectClientInstance("tomaz", "tomaz");
+
+    auto devices = clientInstance.getDevices();
+    ASSERT_EQ(devices.getCount(), 3u);
+    ASSERT_EQ(devices[0].getDevices().getCount(), 1u);
+
+    clientInstance.lock();
+
+    ASSERT_TRUE(clientInstance.isLocked());
+    ASSERT_TRUE(devices[0].isLocked());
+    ASSERT_TRUE(devices[0].getDevices()[0].isLocked());
+    ASSERT_TRUE(devices[1].isLocked());
+    ASSERT_TRUE(devices[2].isLocked());
+
+    ASSERT_THROW(devices[0].getDevices()[0].unlock(), DeviceLockedException);
+    ASSERT_THROW(devices[1].unlock(), DeviceLockedException);
+    ASSERT_THROW(devices[2].unlock(), DeviceLockedException);
+
+    clientInstance.unlock();
+
+    ASSERT_FALSE(clientInstance.isLocked());
+    ASSERT_FALSE(devices[0].isLocked());
+    ASSERT_FALSE(devices[0].getDevices()[0].isLocked());
     ASSERT_FALSE(devices[1].isLocked());
     ASSERT_FALSE(devices[2].isLocked());
 }

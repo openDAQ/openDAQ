@@ -61,7 +61,6 @@ public:
 
     ErrCode INTERFACE_FUNC lock(IUser* user) override;
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
-    ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -73,6 +72,7 @@ private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
     void deviceDomainChanged(const CoreEventArgsPtr& args);
+    void deviceLockStatusChanged(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -212,14 +212,6 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser*
 }
 
 template <class TDeviceBase>
-inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::isLocked(Bool* locked)
-{
-    OPENDAQ_PARAM_NOT_NULL(locked);
-
-    return daqTry([this, &locked] { *locked = this->clientComm->isLocked(this->remoteGlobalId); });
-}
-
-template <class TDeviceBase>
 ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObject* serialized,
                                                                 IBaseObject* context,
                                                                 IFunction* factoryCallback,
@@ -246,6 +238,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
             break;
         case CoreEventId::DeviceDomainChanged:
             deviceDomainChanged(args);
+            break;
+        case CoreEventId::DeviceLockStateChanged:
+            deviceLockStatusChanged(args);
             break;
         case CoreEventId::PropertyValueChanged:
         case CoreEventId::PropertyObjectUpdateEnd:
@@ -381,4 +376,16 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::deviceDomainChanged(const CoreE
     const DeviceDomainPtr domain = args.getParameters().get("DeviceDomain");
     this->setDeviceDomain(domain);
 }
+
+template <class TDeviceBase>
+inline void GenericConfigClientDeviceImpl<TDeviceBase>::deviceLockStatusChanged(const CoreEventArgsPtr& args)
+{
+    const Bool isLocked = args.getParameters().get("IsLocked");
+
+    if (isLocked)
+        this->userLock = nullptr;
+    else
+        this->userLock.reset();
+}
+
 }

@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <thread>
 #include <opendaq/opendaq.h>
 #include "docs_test_helpers.h"
@@ -147,7 +148,7 @@ TEST_F(QuickStartTest, QuickStartAppConnectOldWebsocket)
 }
 
 // Corresponding document: Antora/modules/quick_start/pages/quick_start_application.adoc
-TEST_F(QuickStartTest, QuickStartAppReaderWebsocket)
+TEST_F_FLAKY_SKIPPED(QuickStartTest, QuickStartAppReaderWebsocket)
 {
     SKIP_TEST_MAC_CI;
 

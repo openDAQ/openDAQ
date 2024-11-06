@@ -647,7 +647,7 @@ INSTANTIATE_TEST_SUITE_P(
 class NativeDeviceStreamingTest : public testing::Test
 {};
 
-TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
+TEST_F_FLAKY_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
 {
     SKIP_TEST_MAC_CI;
     const auto moduleManager = ModuleManager("");

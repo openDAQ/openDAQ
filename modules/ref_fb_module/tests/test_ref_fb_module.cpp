@@ -10,13 +10,15 @@
 #include <ref_fb_module/module_dll.h>
 #include <ref_fb_module/version.h>
 #include <testutils/testutils.h>
+
+#include <future>
 #include <thread>
 #include "testutils/memcheck_listener.h"
 
 using RefFbModuleTest = testing::Test;
 using namespace daq;
 
-class RefernceDomainOffsetHelper
+class ReferenceDomainOffsetHelper
 {
 public:
     ModulePtr module;
@@ -27,7 +29,7 @@ public:
     SignalConfigPtr domainSignal;
     ContextPtr context;
 
-    RefernceDomainOffsetHelper(uint64_t count = 5)
+    ReferenceDomainOffsetHelper(uint64_t count = 5)
     {
         // Save desired sample count for later
         sampleCount = count;
@@ -54,7 +56,7 @@ public:
         createModule(&module, context);
     }
 
-    int64_t* sendAndReceive(SignalPtr fbSignal)
+    std::shared_ptr<uint8_t[]> sendAndReceive(SignalPtr fbSignal)
     {
         // Create reader
         auto reader = PacketReader(fbSignal);
@@ -65,11 +67,9 @@ public:
         for (size_t i = 0; i < sampleCount; i++)
             *packetData++ = static_cast<double>(i);
 
-        // Send packet
         domainSignal.sendPacket(domainPacket);
         signal.sendPacket(dataPacket);
 
-        // Receive packet
         PacketPtr receivedPacket;
         while (true)
         {
@@ -80,7 +80,12 @@ public:
 
         context.getScheduler().stop();
 
-        return static_cast<int64_t*>(receivedPacket.asPtr<IDataPacket>().getDomainPacket().getData());
+        auto receivedDomainPacket = receivedPacket.asPtr<IDataPacket>().getDomainPacket();
+        auto* data = receivedDomainPacket.getData();
+        auto dataSize = receivedDomainPacket.getDataSize();
+        auto domainPacketData = std::shared_ptr<uint8_t[]>(new uint8_t[dataSize]);
+        std::memcpy(domainPacketData.get(), data, dataSize);
+        return domainPacketData;
     }
 };
 
@@ -243,7 +248,7 @@ TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
 TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper();
+    auto help = ReferenceDomainOffsetHelper();
 
     // Fix for race condition
     auto config = help.module.getAvailableFunctionBlockTypes().get("RefFBModuleTrigger").createDefaultConfig();
@@ -271,7 +276,7 @@ TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, ScalingWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper();
+    auto help = ReferenceDomainOffsetHelper();
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModuleScaling", nullptr, "FB");
@@ -297,7 +302,7 @@ TEST_F(RefFbModuleTest, ScalingWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, PowerWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper();
+    auto help = ReferenceDomainOffsetHelper();
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModulePower", nullptr, "FB");
@@ -324,7 +329,7 @@ TEST_F(RefFbModuleTest, PowerWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper();
+    auto help = ReferenceDomainOffsetHelper();
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModulePowerReader", nullptr, "FB");
@@ -353,7 +358,7 @@ TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, StatisticsWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper(10);
+    auto help = ReferenceDomainOffsetHelper(10);
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModuleStatistics", nullptr, "FB");
@@ -376,7 +381,7 @@ TEST_F(RefFbModuleTest, StatisticsWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, FFTWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper(2048);
+    auto help = ReferenceDomainOffsetHelper(2048);
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModuleFFT", nullptr, "FB");
@@ -400,7 +405,7 @@ TEST_F(RefFbModuleTest, FFTWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, ClassifierWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper(100);
+    auto help = ReferenceDomainOffsetHelper(100);
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModuleClassifier", nullptr, "FB");

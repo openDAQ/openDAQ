@@ -61,6 +61,8 @@ namespace core_event_args_impl
                 return "TypeRemoved";
             case CoreEventId::DeviceDomainChanged:
                 return "DeviceDomainChanged";
+            case CoreEventId::DeviceLockStateChanged:
+                return "DeviceLockStateChanged";
             default:
                 break;
         }
@@ -228,6 +230,8 @@ inline bool CoreEventArgsImpl::validateParameters() const
             return parameters.hasKey("TypeName");
         case CoreEventId::DeviceDomainChanged:
             return parameters.hasKey("DeviceDomain");
+        case CoreEventId::DeviceLockStateChanged:
+            return parameters.hasKey("IsLocked");
         default:
             break;
     }

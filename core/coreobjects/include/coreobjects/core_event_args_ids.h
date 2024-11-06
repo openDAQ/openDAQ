@@ -43,6 +43,7 @@ enum class CoreEventId : uint32_t
     TypeAdded = 130,
     TypeRemoved = 140,
     DeviceDomainChanged = 150,
+    DeviceLockStateChanged = 160,
 };
 
 /*!@}*/

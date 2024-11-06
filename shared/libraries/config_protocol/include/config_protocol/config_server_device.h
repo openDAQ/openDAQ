@@ -34,7 +34,6 @@ public:
     static BaseObjectPtr getTicksSinceOrigin(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr lock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr unlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr isLocked(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getAvailableDevices(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr addDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr removeDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
@@ -113,12 +112,6 @@ inline BaseObjectPtr ConfigServerDevice::unlock(const RpcContext& context, const
 {
     device.asPtr<IDevicePrivate>().unlock(context.user);
     return nullptr;
-}
-
-inline BaseObjectPtr ConfigServerDevice::isLocked(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
-{
-    const auto locked = device.isLocked();
-    return locked;
 }
 
 inline BaseObjectPtr ConfigServerDevice::getLogFileInfos(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)

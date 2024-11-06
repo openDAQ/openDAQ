@@ -2223,6 +2223,59 @@ TEST_F(NativeDeviceModulesTest, GetAvailableLogFileInfos)
     }
 }
 
+InstancePtr CreateServerSimulator(const StringPtr& name)
+{
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(StringProperty("Name", name));
+
+    auto instance = InstanceBuilder().setRootDevice("daqref://device0", config)
+                                     .addDiscoveryServer("mdns")
+                                     .build();
+
+    instance.addDevice("daqref://device1");
+    instance.addServer("OpenDAQNativeStreaming", nullptr)
+            .enableDiscovery();
+    return instance;
+}
+
+InstancePtr CreateClientConnectedToSimulator(const StringPtr& name)
+{
+    auto instance = Instance();
+    for (const auto & devInfo : instance.getAvailableDevices())
+    {
+        if (devInfo.getName() == name)
+        {
+            instance.addDevice(devInfo.getConnectionString());
+            return instance;
+        }
+    }
+    return nullptr;
+}
+
+TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
+{
+    StringPtr name = "AvailableDevicesCheck";
+    auto server = CreateServerSimulator(name);
+    auto client = CreateClientConnectedToSimulator(name);
+    ASSERT_TRUE(client.assigned());
+    auto clientDevice = client.getDevices()[0];
+    auto availableDevices = clientDevice.getAvailableDevices();
+
+    // if server discovered itself, it should should have server capabilities of itself with address info
+    for (const auto & devInfo : availableDevices)
+    {
+        if (devInfo.getName() == name)
+        {
+            auto capabilities = devInfo.getServerCapabilities();
+            ASSERT_GT(capabilities.getCount(), 0u);
+            for (const auto & cap : capabilities)
+            {
+                ASSERT_GT(cap.getAddressInfo().getCount(), 0u);
+            }
+        }
+    }
+}
+
 using NativeC2DStreamingTest = testing::Test;
 
 TEST_F(NativeC2DStreamingTest, ConnectSignalWithOldProtocolVersion)

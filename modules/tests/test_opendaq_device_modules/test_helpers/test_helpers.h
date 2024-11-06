@@ -38,7 +38,7 @@
 // MAC CI issue
 #if !defined(SKIP_TEST_MAC_CI)
 #   if defined(__clang__)
-#       define SKIP_TEST_MAC_CI return
+#       define SKIP_TEST_MAC_CI GTEST_SKIP() << "Skipping test on MacOs"
 #   else
 #       define SKIP_TEST_MAC_CI
 #   endif
@@ -104,9 +104,15 @@ namespace test_helpers
         return acknowledgementFuture.wait_for(timeout) == std::future_status::ready;
     }
 
+    // Successfully resolving the localhost address confirms that an IPv6 connection is possible with the localhost address.
+    // However, this does not guarantee connectivity via an external IPv6 addresses (e.g., when connecting to a discovered
+    // address of a local simulator).
+    // To verify external IPv6 connectivity as well, resolving a real external address like "ipv6.google.com" is a reliable workaround.
     [[maybe_unused]]
-    static bool Ipv6IsDisabled(std::string hostName = "localhost")
+    static bool Ipv6IsDisabled(bool testExternalAddrConnectivity = false)
     {
+        std::string hostName = testExternalAddrConnectivity ? "ipv6.google.com" : "localhost";
+
         boost::asio::io_service service;
         boost::asio::ip::tcp::resolver resolver(service);
 

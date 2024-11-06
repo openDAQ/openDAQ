@@ -292,7 +292,9 @@ TEST_P(StreamingTest, SetNullDescriptor)
 TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 {
     if (std::get<1>(GetParam()).find("daq.nd://") == 0)
-        return;
+    {
+        GTEST_SKIP();
+    }
 
     SKIP_TEST_MAC_CI;
     SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");

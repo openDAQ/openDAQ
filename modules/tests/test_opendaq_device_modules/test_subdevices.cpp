@@ -278,8 +278,7 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 
     if (std::get<2>(GetParam()) == StreamingProtocolType::WebsocketStreaming)
     {
-        // skip test
-        return;
+        GTEST_SKIP();
     }
 
     auto subdevice1 = CreateSubdeviceInstance(1u);

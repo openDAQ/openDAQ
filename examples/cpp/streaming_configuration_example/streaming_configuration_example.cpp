@@ -47,7 +47,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     PropertyObjectPtr deviceConfig = PropertyObject();
 
     // Add property to allow multiple Streaming protocols with native protocol having the first priority
-    auto prioritizedStreamingProtocols = List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming");
+    auto prioritizedStreamingProtocols = List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
     deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
 
     // Set property to disregard direct Streaming connections for nested Devices,

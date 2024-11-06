@@ -21,10 +21,11 @@ int main(int /*argc*/, const char* /*argv*/[])
     instanceBuilder.addConfigProvider(configProvider);
     instanceBuilder.setAuthenticationProvider(authenticationProvider);
     instanceBuilder.addDiscoveryServer("mdns");
+    instanceBuilder.setRootDevice("daqref://device0");
 
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 
-    auto refDevice = instance.addDevice("daqref://device0");
+    auto refDevice = instance.getRootDevice();
     refDevice.setPropertyValue("EnableProtectedChannel", true);
 
     auto servers = instance.addStandardServers();

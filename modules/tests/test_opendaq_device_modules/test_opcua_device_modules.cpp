@@ -63,7 +63,9 @@ TEST_F(OpcuaDeviceModulesTest, ConnectAndDisconnect)
 TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 {
     if (test_helpers::Ipv6IsDisabled())
-        return;
+    {
+        GTEST_SKIP() << "Ipv6 is disabled";
+    }
 
     auto server = CreateServerInstance();
     auto client = Instance();
@@ -180,7 +182,9 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
 {
     if (test_helpers::Ipv6IsDisabled())
-        return;
+    {
+        GTEST_SKIP() << "Ipv6 is disabled";
+    }
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
@@ -220,7 +224,9 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 {
     if (test_helpers::Ipv6IsDisabled())
-        return;
+    {
+        GTEST_SKIP() << "Ipv6 is disabled";
+    }
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
@@ -286,7 +292,9 @@ DevicePtr FindOpcuaDeviceByPath(const InstancePtr& instance, const std::string& 
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
     if (test_helpers::Ipv6IsDisabled())
-        return;
+    {
+        GTEST_SKIP() << "Ipv6 is disabled";
+    }
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
@@ -1025,7 +1033,9 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
 {
     if (test_helpers::Ipv6IsDisabled())
-        return;
+    {
+        GTEST_SKIP() << "Ipv6 is disabled";
+    }
 
     auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
     server.addServer("OpenDAQNativeStreaming", nullptr);

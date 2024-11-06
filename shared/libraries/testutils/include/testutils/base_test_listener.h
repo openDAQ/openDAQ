@@ -15,31 +15,12 @@
  */
 
 #pragma once
-
-#ifndef NDEBUG
-    #ifdef _MSC_VER
-        #define _CRTDBG_MAP_ALLOC  
-        #include <crtdbg.h> 
-    #endif // _MSC_VER 
-#endif // !NDEBUG
-
+#include <gtest/gtest.h>
 #include <testutils/base_test_listener.h>
 
-class MemCheckListener : public BaseTestListener
+class BaseTestListener : public ::testing::EmptyTestEventListener
 {
-public:
-    static bool expectMemoryLeak;
-
 protected:
     void OnTestStart(const testing::TestInfo& info) override;
     void OnTestEnd(const testing::TestInfo& info) override;
-
-private:
-#ifndef NDEBUG
-    #ifdef _MSC_VER
-        _CrtMemState state1;
-    #elif defined(__MINGW32__)
-        size_t curBytesAllocated;
-    #endif
-#endif
 };

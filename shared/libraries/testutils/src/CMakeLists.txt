@@ -5,11 +5,13 @@ set(SRC_Headers bb_memcheck_listener.h
                 memcheck_listener.h
                 ut_logging.h
                 test_comparators.h
+                base_test_listener.h
 )
 
 set(SRC_Cpp bb_memcheck_listener.cpp
             memcheck_listener.cpp
             test_comparators.cpp
+            base_test_listener.cpp
 )
 
 prepend_include(testutils SRC_Headers)

@@ -2227,6 +2227,7 @@ InstancePtr CreateServerSimulator(const StringPtr& name)
 {
     PropertyObjectPtr config = PropertyObject();
     config.addProperty(StringProperty("Name", name));
+    config.addProperty(StringProperty("SerialNumber", name));
 
     auto instance = InstanceBuilder().setRootDevice("daqref://device0", config)
                                      .addDiscoveryServer("mdns")

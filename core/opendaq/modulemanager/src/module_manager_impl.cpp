@@ -364,6 +364,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     for (const auto & [_, deviceInfo] : groupedDevices)
         availableDevicesPtr.pushBack(deviceInfo);
 
+#ifdef _WIN32
     try
     {
         checkNetworkSettings(availableDevicesPtr);        
@@ -373,6 +374,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
         LOG_W("Failed to check for network settings: {}", e.what());
         // ignore all errors
     }
+#endif
 
     for (const auto& dev : availableDevicesPtr)
     {

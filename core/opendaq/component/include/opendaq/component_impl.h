@@ -1162,6 +1162,8 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
 template <class Intf, class... Intfs>
 bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
 {
+    if (id.find('/') != std::string::npos)
+        throw InvalidParameterException("Component id " + id + " contains '/'");
     return id.find(' ') == std::string::npos;
 }
 

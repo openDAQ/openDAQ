@@ -27,9 +27,6 @@ jobs:
           npm i @asciidoctor/tabs
           npm i @springio/antora-extensions
 
-      - name: Run Antora playbook version injection
-        run: python docs/version_injector.py
-
       - name: Run Antora
         run: >
           npx antora antora-playbook.yml

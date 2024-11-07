@@ -1,0 +1,14 @@
+name: Build and run flaky Tests openDAQ
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Every day at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  run-ci-jobs:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/ci.yml
+    with:
+      cmake_preset: flaky_tests_ci
+      ctest_preset: run_flaky_test_repeatedly

@@ -164,6 +164,17 @@
             }
         },
         {
+            "name": "flaky_tests_ci",
+            "hidden": false,
+            "inherits": [
+                "ci"
+            ],
+            "cacheVariables": {
+                "OPENDAQ_ENABLE_FLAKY_TEST_LABELS": true,
+                "OPENDAQ_SKIP_FLAKY_TESTS": false
+            }
+        },
+        {
             "name": "full/release",
             "hidden": true,
             "displayName": "Full - Release",
@@ -252,6 +263,33 @@
                 "clang",
                 "ninja"
             ]
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "run_tests",
+            "description": "Run all tests excluding flaky ones",
+            "configurePreset": "ci",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "run_flaky_test_repeatedly",
+            "description": "Run only flaky tests multiple times",
+            "configurePreset": "flaky_tests_ci",
+            "output": {
+                "outputOnFailure": true
+            },
+            "environment": {
+                "GTEST_FILTER": "*.FLAKY_SKIPPED_*",
+                "GTEST_REPEAT": "50"
+            },
+            "filter": {
+                "exclude": {
+                    "name": "test_py_opendaq"
+                }
+            }
         }
     ]
 }

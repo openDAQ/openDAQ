@@ -36,12 +36,12 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
         {
             PyTypedReader::checkTypes(valueType, domainType);
             const auto signalPtr = daq::SignalPtr::Borrow(signal);
-            return daq::StreamReaderBuilder()
+            return StreamReaderBuilder()
                     .setSignal(signal)
                     .setValueReadType(valueType)
-                    .setDomainType(domainType)
-                    .setMode(mode)
-                    .setTimeoutType(timeoutType)
+                    .setDomainReadType(domainType)
+                    .setReadMode(mode)
+                    .setReadTimeoutType(timeoutType)
                     .setSkipEvents(skipEvents)
                     .build();
         },

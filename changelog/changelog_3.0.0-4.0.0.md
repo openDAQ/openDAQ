@@ -1,3 +1,11 @@
+# 07.11.2024:
+## Description
+- Improved component updates.
+- Removed generation of local ID for client device in instance.
+
+## Required integration changes:
+- An instance with the client device as the root device no longer generates a unique ID but uses `ClientDevice` as the ID.
+
 # 29.10.2024:
 ## Description
 - Support creating readers with connected input port

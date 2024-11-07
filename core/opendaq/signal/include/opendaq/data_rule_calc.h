@@ -347,7 +347,9 @@ inline void DataRuleCalcTyped<T>::calculateConstantSample(const SizeT sampleInde
         SizeT upToSamples;
         T nextConstantValue{};
         if (currentEntry++ == entryCount)
+        {
             upToSamples = sampleIndex;
+        }
         else
         {
             upToSamples = *(reinterpret_cast<uint32_t*>(entryPtr));

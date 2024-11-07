@@ -68,16 +68,16 @@ inline ComponentPtr ComponentUpdateContextImpl::GetRootComponent(const Component
 
 inline StringPtr ComponentUpdateContextImpl::GetRemoteId(const std::string& globalId)
 {
-    if (globalId.empty())
-        return "";
+    if (globalId.size() < 2)
+        return globalId;
     
     if (globalId[0] != '/')
-        return "";
+        return globalId;
     
     // Find the position of the second slash
     size_t secondSlashPos = globalId.find('/', 1);
     if (secondSlashPos == std::string::npos)
-        return "";
+        return globalId;
 
     // Erase the first segment
     return globalId.substr(secondSlashPos);
@@ -153,12 +153,12 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
 
     *signal = nullptr;
 
-    DictPtr<IString, IString> connections;
-    getInputPortConnections(parentId, &connections);
-    if (!connections.hasKey(portId))
+    DictPtr<IString, IString> signalConnections;
+    getInputPortConnections(parentId, &signalConnections);
+    if (!signalConnections.hasKey(portId))
         return OPENDAQ_NOTFOUND;
     
-    auto signalId = connections.get(portId);
+    auto signalId = signalConnections.get(portId);
 
     Bool isCircle = false;
     for (SizeT i = 0; i < parentDependencies.getCount(); i++)
@@ -216,9 +216,6 @@ inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId
 
 inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* signalId, ISignal** signal)
 {
-    if (signalId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
     // Check that signal has parent
     if (!signalDependencies.hasKey(signalId))
         return OPENDAQ_NOTFOUND;
@@ -243,11 +240,18 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     signalDependencies->deleteItem(signalId);
     
     auto signalIdPtr = StringPtr::Borrow(signalId);
-    StringPtr signalLocalId = signalIdPtr.toStdString().substr(parentId.getLength());
+    StringPtr signalLocalId = signalIdPtr.toStdString().substr(GetRemoteId(parentId).getLength());
     
     ComponentPtr signalComponent;
     parentComponent->findComponent(signalLocalId, &signalComponent);
-    *signal = signalComponent.asPtrOrNull<ISignal>().detach();
+    if (!signalComponent.assigned())
+        return OPENDAQ_NOTFOUND;
+
+    SignalPtr singalPtr = signalComponent.asPtrOrNull<ISignal>();
+    if (!singalPtr.assigned())
+        return OPENDAQ_NOTFOUND;
+
+    *signal = singalPtr.detach();
     return OPENDAQ_SUCCESS;
 }
 

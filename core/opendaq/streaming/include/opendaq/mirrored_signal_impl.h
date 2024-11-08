@@ -348,11 +348,11 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
     if (syncLock)
     {
         std::scoped_lock lock(this->sync);
-        this->lastDataPacket = nullptr;
+        this->lastDataValue = nullptr;
     }
     else
     {
-        this->lastDataPacket = nullptr;
+        this->lastDataValue = nullptr;
     }
 
     if (onUnsubscribeCompleteEvent.hasListeners())

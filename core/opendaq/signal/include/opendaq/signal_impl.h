@@ -133,7 +133,7 @@ protected:
 
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
-    DataPacketPtr lastDataPacket;
+    BaseObjectPtr lastDataValue;
 
 private:
     bool isPublic{};
@@ -186,6 +186,12 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
         throw InvalidSampleTypeException("SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
     setKeepLastPacket();
+
+    if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
+    {
+        auto typeManager = this->context.getTypeManager();
+        addToTypeManagerRecursively(typeManager, dataDescriptor);
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -646,7 +652,10 @@ void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr&
     {
         auto dataPacket = packet.asPtrOrNull<IDataPacket>();
         if (dataPacket.assigned() && dataPacket.getSampleCount() > 0)
-            lastDataPacket = std::move(dataPacket);
+        {
+            auto typeManager = this->context.getTypeManager();
+            lastDataValue = dataPacket.getLastValue(typeManager);
+        }
     }
 }
 
@@ -1177,7 +1186,7 @@ void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
     keepLastPacket = keepLastValue && isPublic && this->visible;
 
     if (!keepLastPacket)
-        lastDataPacket = nullptr;
+        lastDataValue = nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1186,11 +1195,11 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
     OPENDAQ_PARAM_NOT_NULL(value);
     std::scoped_lock lock(this->sync);
 
-    if (!lastDataPacket.assigned() || lastDataPacket.getSampleCount() == 0)
+    if (!lastDataValue.assigned())
         return OPENDAQ_IGNORED;
 
-    auto typeManager = this->context.getTypeManager();
-    return lastDataPacket->getLastValue(value, typeManager);
+    *value = lastDataValue.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -118,12 +118,12 @@ ErrCode UserImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunc
 
     StringPtr username;
     ErrCode err = serializedObj->readString(String("username"), &username);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
+    if (OPENDAQ_FAILED(err))
         return err;
 
     StringPtr passwordHash;
     err = serializedObj->readString(String("passwordHash"), &passwordHash);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
+    if (OPENDAQ_FAILED(err))
         return err;
 
     ListPtr<IUser> groups;

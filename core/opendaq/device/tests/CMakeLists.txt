@@ -11,6 +11,7 @@ set(TEST_SOURCES test_factories.cpp
                  test_server_capability.cpp
                  test_device_domain.cpp
                  test_log_file_info.cpp
+                 test_user_lock.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

@@ -16,6 +16,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_AddressInfoPrivate address_info_private.h)
     rtgen(SRC_LogFileInfo log_file_info.h)
     rtgen(SRC_LogFileInfoBuilder log_file_info_builder.h)
+    rtgen(SRC_UserLock user_lock.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Device_PublicHeaders}
@@ -32,6 +33,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_AddressInfoPrivate_PublicHeaders}
         ${SRC_LogFileInfo_PublicHeaders}
         ${SRC_LogFileInfoBuilder_PublicHeaders}
+        ${SRC_UserLock_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -49,6 +51,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_AddressInfoBuilder_PrivateHeaders}
         ${SRC_LogFileInfo_PrivateHeaders}
         ${SRC_LogFileInfoBuilder_PrivateHeaders}
+        ${SRC_UserLock_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -66,6 +69,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_AddressInfoBuilder_Cpp}
         ${SRC_LogFileInfo_Cpp}
         ${SRC_LogFileInfoBuilder_Cpp}
+        ${SRC_UserLock_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -137,6 +141,13 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/log_file_info_builder_impl.cpp
         ${SDK_SRC_DIR}/log_file_info_impl.cpp
     )
+
+    source_group("device//user_lock" FILES 
+        ${SDK_HEADERS_DIR}/user_lock.h
+        ${SDK_HEADERS_DIR}/user_lock_factory.h
+        ${SDK_HEADERS_DIR}/user_lock_impl.h
+        ${SDK_SRC_DIR}/user_lock_impl.cpp
+    )
     
     source_group("device" FILES 
         ${SDK_HEADERS_DIR}/device_errors.h
@@ -164,6 +175,8 @@ set(SRC_PublicHeaders_Component
     log_file_info.h
     log_file_info_builder.h
     log_file_info_factory.h
+    user_lock.h
+    user_lock_factory.h
     PARENT_SCOPE
 )
 
@@ -175,6 +188,7 @@ set(SRC_PrivateHeaders_Component
     address_info_builder_impl.h
     log_file_info_impl.h
     log_file_info_builder_impl.h
+    user_lock_impl.h
     PARENT_SCOPE
 )
 
@@ -189,6 +203,7 @@ set(SRC_Cpp_Component
     address_info_builder_impl.cpp
     log_file_info_impl.cpp
     log_file_info_builder_impl.cpp
+    user_lock_impl.cpp
     device.natvis
     PARENT_SCOPE
 )

@@ -6,10 +6,7 @@ instance = opendaq.Instance()
 device = instance.add_device('daqref://device0')
 signal = device.signals_recursive[0]
 
-builder = opendaq.StreamReaderBuilder()
-builder.signal = signal
-builder.skip_events = True
-reader = builder.build()
+reader = opendaq.StreamReader(signal)
 
 time.sleep(1.0)
 samples = reader.read(1000)

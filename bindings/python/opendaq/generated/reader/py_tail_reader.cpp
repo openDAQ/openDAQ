@@ -34,14 +34,13 @@ void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISa
         {
             PyTypedReader::checkTypes(valueReadType, domainReadType);
             const auto signalPtr = daq::SignalPtr::Borrow(signal);
-            return daq::TailReaderBuilder()
+            return daq::TailReaderFromBuilder_Create(daq::TailReaderBuilder()
                     .setSignal(signal)
                     .setHistorySize(historySize)
                     .setValueReadType(valueReadType)
                     .setDomainReadType(domainReadType)
                     .setReadMode(mode)
-                    .setSkipEvents(skipEvents)
-                    .build();
+                    .setSkipEvents(skipEvents));
         },
         py::arg("signal"),
         py::arg("history_size"),

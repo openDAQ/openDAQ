@@ -41,14 +41,13 @@ void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::I
 
             const auto signalPtr = daq::SignalPtr::Borrow(signal);
 
-            return daq::BlockReaderBuilder()
+            return daq::BlockReaderFromBuilder_Create(daq::BlockReaderBuilder()
                     .setSignal(signalPtr)
                     .setBlockSize(blockSize)
                     .setValueReadType(valueType)
                     .setDomainReadType(domainType)
                     .setReadMode(mode)
-                    .setSkipEvents(skipEvents)
-                    .build();
+                    .setSkipEvents(skipEvents));
         },
         py::arg("signal"),
         py::arg("block_size"),

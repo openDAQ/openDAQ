@@ -1,5 +1,4 @@
 import opendaq
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -57,7 +56,7 @@ def main():
     signal = read_signal(device)
     print(f"Reading signal: {signal.name}\n")
 
-    reader = opendaq.StreamReader(signal,timeout_type=opendaq.ReadTimeoutType.All)
+    reader = opendaq.StreamReader(signal, timeout_type=opendaq.ReadTimeoutType.All)
     signal_values = [reader.read(100, 100) for _ in range(int(10 / 0.1))]
     signal_values = np.concatenate(signal_values)
 

@@ -305,6 +305,14 @@ void ConfigProtocolClientComm::unlock(const std::string& globalId)
     sendCommand(ClientCommand("Unlock", 3), params);
 }
 
+void ConfigProtocolClientComm::forceUnlock(const std::string& globalId)
+{
+    auto params = Dict<IString, IBaseObject>();
+    params.set("ComponentGlobalId", String(globalId));
+
+    sendCommand(ClientCommand("ForceUnlock", 6), params);
+}
+
 bool ConfigProtocolClientComm::isLocked(const std::string& globalId)
 {
     auto params = Dict<IString, IBaseObject>();

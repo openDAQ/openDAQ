@@ -18,8 +18,8 @@
 
 #include <pybind11/pybind11.h>
 #include <opendaq/opendaq.h>
-#include "py_core_types/py_opendaq_daq.h"
-#include "py_opendaq/py_mock_signal.h"
+#include <py_core_types/py_opendaq_daq.h>
+#include <py_opendaq/py_mock_signal.h>
 
 void wrapDaqComponentOpenDaq(pybind11::module_ m);
 
@@ -32,6 +32,7 @@ PyDaqIntf<daq::IComponent, daq::IPropertyObject> declareIComponent(pybind11::mod
 PyDaqIntf<daq::IFolder, daq::IComponent> declareIFolder(pybind11::module_ m);
 PyDaqIntf<daq::IFolderConfig, daq::IFolder> declareIFolderConfig(pybind11::module_ m);
 PyDaqIntf<daq::IDevice, daq::IFolder> declareIDevice(pybind11::module_ m);
+PyDaqIntf<daq::IDevicePrivate, daq::IBaseObject> declareIDevicePrivate(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceDomain, daq::IBaseObject> declareIDeviceDomain(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> declareIDeviceInfo(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> declareIDeviceInfoConfig(pybind11::module_ m);
@@ -132,6 +133,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
 void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent> cls);
 void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq::IFolder> cls);
 void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cls);
+void defineIDevicePrivate(pybind11::module_ m, PyDaqIntf<daq::IDevicePrivate, daq::IBaseObject> cls);
 void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq::IBaseObject> cls);
 void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> cls);
 void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> cls);

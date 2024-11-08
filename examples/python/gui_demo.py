@@ -3,12 +3,14 @@
 import argparse
 import os
 import enum
+import sys
 
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from tkinter.filedialog import asksaveasfile
 import opendaq as daq
+from tkinter import messagebox
 
 try:
     from ctypes import windll
@@ -664,7 +666,20 @@ class App(tk.Tk):
             device.unlock()
             self._set_node_lock_status_recursive(node)
         except Exception as e:
-            print('Unlock failed: ', e)
+            print('Unlock failed: ', e, file=sys.stderr)
+            msg = str(e) + ". Do you want to forcefully unlock the device?"
+            do_force_unlock = messagebox.askyesno("Unlock failed", msg)
+            if do_force_unlock:
+                self._force_unlock_device(node, component)
+
+    def _force_unlock_device(self, node, component):
+        try:
+            device_private = daq.IDevicePrivate.cast_from(component)
+            device_private.force_unlock()
+            self._set_node_lock_status_recursive(node)
+        except Exception as e:
+            print('Force unlock failed: ', e, file=sys.stderr)
+            messagebox.showerror("Force unlock failed", str(e))
 
     def set_node_update_status(self):
         for node in self.tree.get_children():

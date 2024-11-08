@@ -61,6 +61,7 @@ public:
 
     ErrCode INTERFACE_FUNC lock(IUser* user) override;
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
+    ErrCode INTERFACE_FUNC forceUnlock() override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -209,6 +210,12 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser*
     }
 
     return daqTry([this] { this->clientComm->unlock(this->remoteGlobalId); });
+}
+
+template <class TDeviceBase>
+inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
+{
+    return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
 }
 
 template <class TDeviceBase>
@@ -382,10 +389,10 @@ inline void GenericConfigClientDeviceImpl<TDeviceBase>::deviceLockStatusChanged(
 {
     const Bool isLocked = args.getParameters().get("IsLocked");
 
+    this->userLock.forceUnlock();
+
     if (isLocked)
-        this->userLock = nullptr;
-    else
-        this->userLock.reset();
+        this->userLock.lock();
 }
 
 }

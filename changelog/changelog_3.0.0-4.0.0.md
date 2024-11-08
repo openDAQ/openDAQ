@@ -1,3 +1,16 @@
+# 08.11.2024
+## Description
+- Add support for forcefully unlocking a device over native config protocol
+- Native config protocol bumped to version 6
+
+## Required integration changes
+- Breaks binary compatibility
+
+```
++ [function] IDevicePrivate::forceUnlock()
+```
+
+# 29.10.2024:
 # 8.11.2024
 ## Description
 - Implement thread synchronization mechanism in property objects

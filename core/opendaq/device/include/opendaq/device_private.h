@@ -38,7 +38,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevicePrivate, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) = 0;
     virtual ErrCode INTERFACE_FUNC lock(IUser * user) = 0;
     virtual ErrCode INTERFACE_FUNC unlock(IUser * user) = 0;
-    virtual ErrCode INTERFACE_FUNC isLockedInternal(Bool* locked) = 0;
+    virtual ErrCode INTERFACE_FUNC isLockedInternal(Bool * locked) = 0;
+    virtual ErrCode INTERFACE_FUNC forceUnlock() = 0;
 };
 /*!@}*/
 

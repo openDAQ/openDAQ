@@ -1436,7 +1436,7 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const S
             if (hasProp)
                 merged.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, val);
             else
-                merged.addProperty(prop);
+                merged.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
         }
 
     merged.freeze();

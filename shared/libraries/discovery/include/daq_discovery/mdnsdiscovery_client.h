@@ -413,7 +413,9 @@ inline MdnsDiscoveredDevice MDNSDiscoveryClient::createMdnsDiscoveredDevice(cons
     device.servicePriority = data.SRV.priority;
     device.serviceWeight = data.SRV.weight;
     device.ipv4Address = data.A;
-    device.ipv6Address = "[" + data.AAAA + data.linkLocalInterface + "]";
+    device.ipv6Address = data.AAAA + data.linkLocalInterface;
+    if (!device.ipv6Address.empty())
+        device.ipv6Address = "[" + device.ipv6Address + "]";
 
     for (const auto& prop : data.TXT)
         device.properties.insert({prop.first, prop.second});

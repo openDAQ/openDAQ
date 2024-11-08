@@ -13,7 +13,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         reader = opendaq.StreamReader(mock.signal)
         reader.read(0)
 
-        #check skip
+        # check skip
         mock.add_data(numpy.arange(10))
         self.assertEqual(reader.available_count, 10)
         skip, status = reader.skip_samples(10, return_status=True)
@@ -22,7 +22,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         self.assertEqual(skip, 10)
         self.assertEqual(reader.available_count, 0)
 
-        #check read
+        # check read
         mock.add_data(numpy.arange(10))
         values, status = reader.read(10, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Ok)
@@ -75,12 +75,15 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_read_with_domain_undefined_type(self):
         mock = opendaq.MockSignal()
 
-        reader = opendaq.StreamReader(mock.signal, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Undefined)
+        reader = opendaq.StreamReader(mock.signal,
+                                      value_type=opendaq.SampleType.Undefined,
+                                      domain_type=opendaq.SampleType.Undefined,
+                                      skip_events=False)
         values, domain, status = reader.read_with_domain(0, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Event)
         self.assertEqual(status.event_packet.event_id, 'DATA_DESCRIPTOR_CHANGED')
         self.assertTrue(len(values) == 0 and len(domain) == 0)
-        
+
         mock.add_data(numpy.arange(10))
 
         values, domain, status = reader.read_with_domain(10, return_status=True)
@@ -89,7 +92,6 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
         self.assertTrue(numpy.array_equal(values, numpy.arange(10)))
         self.assertTrue(domain.dtype == numpy.int64)
-        
 
     def test_read_with_timestamps(self):
         mock = opendaq.MockSignal()
@@ -112,25 +114,26 @@ class TestReaderDateTime(opendaq_test.TestCase):
         mock = opendaq.MockSignal(initialize_value_descriptor=False)
         # for descriptor to be created
         mock.add_objects({"first": 0, "second": {"first": -10},
-                        "third": [{"first": 3.5}], "fourth": [0, 1]})
+                          "third": [{"first": 3.5}], "fourth": [0, 1]})
 
         reader = opendaq.StreamReader(
             mock.signal,
-            value_type = opendaq.SampleType.Undefined)
+            value_type=opendaq.SampleType.Undefined,
+            skip_events=False)
 
         data, status = reader.read(0, return_status=True)
 
         mock.add_objects([{"first": 0,
-                        "second": {"first": -10},
-                        "third": [{"first": 3.5}],
-                        "fourth": [0,
-                                    1]},
-                        {"first": 1,
-                        "second": {"first": -11},
-                        "third": [{"first": 4.5}],
-                        "fourth": [1,
-                                    2]}],
-                        False) # do not update descriptor here
+                           "second": {"first": -10},
+                           "third": [{"first": 3.5}],
+                           "fourth": [0,
+                                      1]},
+                          {"first": 1,
+                           "second": {"first": -11},
+                           "third": [{"first": 4.5}],
+                           "fourth": [1,
+                                      2]}],
+                         False)  # do not update descriptor here
 
         data, status = reader.read(2, return_status=True)
         self.assertEqual(status.read_status, opendaq.ReadStatus.Ok)
@@ -202,12 +205,13 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_tail_read_with_domain_undefined_type(self):
         mock = opendaq.MockSignal()
 
-        reader = opendaq.TailReader(mock.signal, 10, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Undefined)
+        reader = opendaq.TailReader(mock.signal, 10, value_type=opendaq.SampleType.Undefined,
+                                    domain_type=opendaq.SampleType.Undefined, skip_events=False)
         values, domain, status = reader.read_with_domain(0, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Event)
         self.assertEqual(status.event_packet.event_id, 'DATA_DESCRIPTOR_CHANGED')
         self.assertTrue(len(values) == 0 and len(domain) == 0)
-        
+
         mock.add_data(numpy.arange(10))
 
         values, domain, status = reader.read_with_domain(10, return_status=True)
@@ -237,23 +241,23 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_tail_read_value_type_struct(self):
         mock = opendaq.MockSignal(initialize_value_descriptor=False)
         mock.add_objects({"first": 0, "second": {"first": -10},
-                        "third": [{"first": 3.5}], "fourth": [0, 1]})
+                          "third": [{"first": 3.5}], "fourth": [0, 1]})
 
-        reader = opendaq.TailReader(mock.signal, 10, value_type = opendaq.SampleType.Undefined)
+        reader = opendaq.TailReader(mock.signal, 10, value_type=opendaq.SampleType.Undefined, skip_events=False)
 
         data, status = reader.read(0, return_status=True)
 
         mock.add_objects([{"first": 0,
-                        "second": {"first": -10},
-                        "third": [{"first": 3.5}],
-                        "fourth": [0,
-                                    1]},
-                        {"first": 1,
-                        "second": {"first": -11},
-                        "third": [{"first": 4.5}],
-                        "fourth": [1,
-                                    2]}],
-                        False)
+                           "second": {"first": -10},
+                           "third": [{"first": 3.5}],
+                           "fourth": [0,
+                                      1]},
+                          {"first": 1,
+                           "second": {"first": -11},
+                           "third": [{"first": 4.5}],
+                           "fourth": [1,
+                                      2]}],
+                         False)
 
         data, status = reader.read(2, return_status=True)
         self.assertEqual(status.read_status, opendaq.ReadStatus.Ok)
@@ -333,12 +337,13 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_block_read_with_domain_undefined_type(self):
         mock = opendaq.MockSignal()
 
-        reader = opendaq.BlockReader(mock.signal, 2, value_type=opendaq.SampleType.Undefined, domain_type=opendaq.SampleType.Undefined)
+        reader = opendaq.BlockReader(mock.signal, 2, value_type=opendaq.SampleType.Undefined,
+                                     domain_type=opendaq.SampleType.Undefined, skip_events=False)
         values, domain, status = reader.read_with_domain(0, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Event)
         self.assertEqual(status.event_packet.event_id, 'DATA_DESCRIPTOR_CHANGED')
         self.assertTrue(len(values) == 0 and len(domain) == 0)
-        
+
         mock.add_data(numpy.arange(10))
 
         values, domain, status = reader.read_with_domain(10, return_status=True)
@@ -372,25 +377,27 @@ class TestReaderDateTime(opendaq_test.TestCase):
     def test_block_read_value_type_struct(self):
         mock = opendaq.MockSignal(initialize_value_descriptor=False)
         mock.add_objects({"first": 0, "second": {"first": -10},
-                        "third": [{"first": 3.5}], "fourth": [0, 1]})
+                          "third": [{"first": 3.5}], "fourth": [0, 1]})
 
         reader = opendaq.BlockReader(
             mock.signal, 2,
-            value_type = opendaq.SampleType.Undefined)
+            value_type=opendaq.SampleType.Undefined,
+            skip_events=False
+        )
 
         data, status = reader.read(0, return_status=True)
 
         mock.add_objects([{"first": 0,
-                        "second": {"first": -10},
-                        "third": [{"first": 3.5}],
-                        "fourth": [0,
-                                    1]},
-                        {"first": 1,
-                        "second": {"first": -11},
-                        "third": [{"first": 4.5}],
-                        "fourth": [1,
-                                    2]}],
-                        False)
+                           "second": {"first": -10},
+                           "third": [{"first": 3.5}],
+                           "fourth": [0,
+                                      1]},
+                          {"first": 1,
+                           "second": {"first": -11},
+                           "third": [{"first": 4.5}],
+                           "fourth": [1,
+                                      2]}],
+                         False)
 
         data, status = reader.read(2, return_status=True)
         self.assertEqual(status.read_status, opendaq.ReadStatus.Ok)
@@ -414,7 +421,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
 
         nparray = numpy.arange(10)
 
-        #check skip
+        # check skip
         sig1.add_data(nparray)
         sig2.add_data(nparray)
         self.assertEqual(reader.available_count, 10)
@@ -424,7 +431,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         self.assertEqual(skip, 10)
         self.assertEqual(reader.available_count, 0)
 
-        #check read
+        # check read
         sig1.add_data(nparray)
         sig2.add_data(nparray)
         values, status = reader.read(10, return_status=True)
@@ -604,7 +611,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
                            "fourth": [0,
                                       1]},
                           {"first": 1,
-                         "second": {"first": -11},
+                           "second": {"first": -11},
                            "third": [{"first": 4.5}],
                            "fourth": [1,
                                       2]}],
@@ -616,7 +623,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
                            "fourth": [1,
                                       2]},
                           {"first": 2,
-                         "second": {"first": -12},
+                           "second": {"first": -12},
                            "third": [{"first": 5.5}],
                            "fourth": [2,
                                       3]}],
@@ -628,12 +635,12 @@ class TestReaderDateTime(opendaq_test.TestCase):
         self.assertEqual(len(data), len(domain))
         self.assertListEqual(data['first'].tolist(), [[0, 1], [1, 2]])
         self.assertListEqual(data['second']['first'].tolist(), [
-                             [-10, -11], [-11, -12]])
+            [-10, -11], [-11, -12]])
         self.assertListEqual(
             data['third'][0]['first'].tolist(), [
                 [3.5], [4.5]])
         self.assertListEqual(data['fourth'].tolist(), [
-                             [[0, 1], [1, 2]], [[1, 2], [2, 3]]])
+            [[0, 1], [1, 2]], [[1, 2], [2, 3]]])
 
     def test_multireader_builder(self):
         epoch = opendaq.MockSignal.current_epoch()

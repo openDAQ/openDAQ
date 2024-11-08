@@ -14,6 +14,9 @@
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/gmock/function_block.h>
 #include <opendaq/device_type_factory.h>
+#include <coreobjects/authentication_provider_factory.h>
+#include <opendaq/module_manager_factory.h>
+#include <opendaq/scheduler_factory.h>
 
 
 using DeviceTest = testing::Test;
@@ -354,4 +357,32 @@ TEST_F(DeviceTest, LockUnlockAnonymousInstance)
     ASSERT_TRUE(device.isLocked());
     device.unlock();
     ASSERT_FALSE(device.isLocked());
+}
+
+TEST_F(DeviceTest, SerializeLocked)
+{
+    const auto tomaz = daq::User("tomaz", "tomaz");
+    auto users = daq::List<daq::IUser>(tomaz);
+
+    auto authenticationProvider = daq::StaticAuthenticationProvider(false, users);
+
+    auto logger = daq::Logger();
+    auto context = daq::Context(daq::Scheduler(logger, 1), logger, daq::TypeManager(), nullptr, authenticationProvider);
+
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    device.asPtr<daq::IDevicePrivate>().lock(tomaz);
+    ASSERT_TRUE(device.isLocked());
+
+    auto serializer = daq::JsonSerializer();
+    device.serialize(serializer);
+    const auto json = serializer.getOutput();
+
+    auto deserializeContext = daq::ComponentDeserializeContext(context, nullptr, nullptr, "dev");
+    auto deserializer = daq::JsonDeserializer();
+    const daq::DevicePtr deviceNew = deserializer.deserialize(json, deserializeContext, nullptr);
+
+    ASSERT_TRUE(deviceNew.isLocked());
+    ASSERT_THROW(deviceNew.asPtr<daq::IDevicePrivate>().unlock(nullptr), daq::AccessDeniedException);
+    deviceNew.asPtr<daq::IDevicePrivate>().unlock(tomaz);
+    ASSERT_FALSE(deviceNew.isLocked());
 }

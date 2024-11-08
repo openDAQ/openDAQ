@@ -33,10 +33,11 @@ public:
     ErrCode INTERFACE_FUNC authenticate(IString* username, IString* password, IUser** userOut) override;
     ErrCode INTERFACE_FUNC isAnonymousAllowed(Bool* allowedOut) override;
     ErrCode INTERFACE_FUNC authenticateAnonymous(IUser** userOut) override;
+    ErrCode INTERFACE_FUNC findUser(IString* username, IUser** userOut) override;
 
 protected:
     void loadUserList(const ListPtr<IUser>& userList);
-    virtual UserPtr findUser(const StringPtr& username);
+    virtual UserPtr findUserInternal(const StringPtr& username);
     bool isPasswordValid(const std::string& hash, const StringPtr& password);
 
     bool allowAnonymous;

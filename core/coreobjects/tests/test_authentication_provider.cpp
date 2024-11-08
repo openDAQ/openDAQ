@@ -155,3 +155,15 @@ TEST_F(AuthenticationProviderTest, AuthanticateAnonymousDisabled)
     ASSERT_THROW(provider.authenticateAnonymous(), AuthenticationFailedException);
 }
 
+TEST_F(AuthenticationProviderTest, FindUser)
+{
+    auto jure = User("jure", "jure");
+    auto tomaz = User("tomaz", "tomaz");
+    auto users = List<IUser>(jure, tomaz);
+
+    auto provider = StaticAuthenticationProvider(false, users);
+
+    ASSERT_EQ(provider.findUser("jure"), jure);
+    ASSERT_EQ(provider.findUser("tomaz"), tomaz);
+    ASSERT_EQ(provider.findUser("missing"), nullptr);
+}

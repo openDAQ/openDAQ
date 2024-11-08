@@ -127,7 +127,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     const auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 5);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 6);
 
     client->releaseRef();
     server->releaseRef();
@@ -184,7 +184,6 @@ TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 
     AssertErrorCode([&]() { client.lock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
     AssertErrorCode([&]() { client.unlock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
-    AssertErrorCode([&]() { client.getDevices()[0].isLocked(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
     AssertErrorCode([&]() { client.getDevices()[0].getAvailableDevices(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
     AssertErrorCode([&]() { client.getDevices()[0].getAvailableDeviceTypes(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
 }

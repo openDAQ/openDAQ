@@ -145,6 +145,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
     addHandler<DevicePtr>("Lock", &ConfigServerDevice::lock);
     addHandler<DevicePtr>("Unlock", &ConfigServerDevice::unlock);
+    addHandler<DevicePtr>("ForceUnlock", &ConfigServerDevice::forceUnlock);
     addHandler<DevicePtr>("getLogFileInfos", &ConfigServerDevice::getLogFileInfos);
     addHandler<DevicePtr>("AddDevice", &ConfigServerDevice::addDevice);
     addHandler<DevicePtr>("RemoveDevice", &ConfigServerDevice::removeDevice);

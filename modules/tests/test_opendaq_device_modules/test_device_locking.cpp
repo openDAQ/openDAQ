@@ -392,3 +392,21 @@ TEST_F(DeviceLockingTest, UnlockChild)
     ASSERT_FALSE(devices[1].isLocked());
     ASSERT_FALSE(devices[2].isLocked());
 }
+
+TEST_F(DeviceLockingTest, ForceUnlock)
+{
+    auto serverInstance = createServerInstance();
+    serverInstance.getRootDevice().asPtr<IDevicePrivate>().lock(UserJure);
+
+    auto clientInstance = connectClientInstance("tomaz", "tomaz");
+
+    auto devices = clientInstance.getDevices();
+    ASSERT_EQ(devices.getCount(), 3u);
+    ASSERT_TRUE(devices[0].isLocked());
+
+    ASSERT_THROW(clientInstance.unlock(), AccessDeniedException);
+
+    clientInstance.getRootDevice().asPtr<IDevicePrivate>().forceUnlock();
+    ASSERT_FALSE(clientInstance.isLocked());
+    ASSERT_FALSE(devices[0].isLocked());
+}

@@ -32,6 +32,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIFolder = declareIFolder(m);
     auto classIFolderConfig = declareIFolderConfig(m);
     auto classIDevice = declareIDevice(m);
+    auto classIDevicePrivate = declareIDevicePrivate(m);
     auto classIInstanceBuilder = declareIInstanceBuilder(m);
     auto classIConfigProvider = declareIConfigProvider(m);
     auto classIInstance = declareIInstance(m);
@@ -128,6 +129,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIFolder(m, classIFolder);
     defineIFolderConfig(m, classIFolderConfig);
     defineIDevice(m, classIDevice);
+    defineIDevicePrivate(m, classIDevicePrivate);
     defineIInstanceBuilder(m, classIInstanceBuilder);
     defineIInstance(m, classIInstance);
     defineIConfigProvider(m, classIConfigProvider);

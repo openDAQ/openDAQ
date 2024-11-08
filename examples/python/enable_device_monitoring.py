@@ -17,8 +17,6 @@ def set_device_config(config: opendaq.IPropertyObject):
     enable_monitoring_on_transport_layer(native_device_config)
 
 def main():
-    # TODO: what server do we need for this to work?
-    
     instance = opendaq.Instance()
     
     device_config = instance.create_default_add_device_config()

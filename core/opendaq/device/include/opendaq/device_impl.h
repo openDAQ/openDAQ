@@ -1273,7 +1273,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
 template <typename TInterface, typename... Interfaces>
 DevicePtr GenericDevice<TInterface, Interfaces...>::getParentDevice()
 {
-    ComponentPtr current = thisPtr<ComponentPtr>().getParent();
+    ComponentPtr current = this->template thisPtr<ComponentPtr>().getParent();
 
     while (current.assigned())
     {

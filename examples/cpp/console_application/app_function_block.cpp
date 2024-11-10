@@ -10,13 +10,13 @@ bool AppFunctionBlock::processCommand(BaseObjectPtr& fb, const std::vector<std::
     if (command.empty())
         return false;
 
-    if (command[0] == "List")
+    if (command[0] == "list")
         return list(fb, command);
-    if (command[0] == "Select")
+    if (command[0] == "select")
         return select(fb, command);
-    if (command[0] == "Print")
+    if (command[0] == "print")
         return print(fb, command);
-    if (command[0] == "Help")
+    if (command[0] == "help")
         return help();
 
     return AppPropertyObject::processCommand(fb, command);
@@ -112,7 +112,7 @@ bool AppFunctionBlock::print(const FunctionBlockPtr& fb, const std::vector<std::
     if (command.size() != 2)
         return false;
 
-    if (command[1] == "Name")
+    if (command[1] == "name")
     {
         const auto name = fb.getFunctionBlockType().getName();
         if (name.assigned() && name.getLength() > 0)
@@ -123,7 +123,7 @@ bool AppFunctionBlock::print(const FunctionBlockPtr& fb, const std::vector<std::
         return true;
     }
 
-    if (command[1] == "Id")
+    if (command[1] == "id")
     {
         const auto id = fb.getFunctionBlockType().getId();
         if (id.assigned() && id.getLength() > 0)
@@ -134,7 +134,7 @@ bool AppFunctionBlock::print(const FunctionBlockPtr& fb, const std::vector<std::
         return true;
     }
 
-    if (command[1] == "Description")
+    if (command[1] == "description")
     {
         const auto desc = fb.getFunctionBlockType().getDescription();
         if (desc.assigned() && desc.getLength() > 0)

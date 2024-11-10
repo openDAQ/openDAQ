@@ -28,7 +28,7 @@ DataDescriptorBuilderPtr setupDescriptorBuilder(SampleType type, const DataRuleP
  */
 void example1(const SignalConfigPtr& signal)
 {
-    auto reader = StreamReader(signal);
+    auto reader = StreamReaderBuilder().setSignal(signal).setValueReadType(SampleType::Float64).setSkipEvents(true).build();
 
     // Signal produces 5 samples
     auto packet = createPacketForSignal(signal, 5);
@@ -65,7 +65,7 @@ void example1(const SignalConfigPtr& signal)
  */
 void example2(const SignalConfigPtr& signal)
 {
-    auto reader = StreamReader(signal);
+    auto reader = StreamReaderBuilder().setSignal(signal).setValueReadType(SampleType::Float64).setSkipEvents(true).build();
 
     // Signal produces 5 samples
     auto packet = createPacketForSignal(signal, 5);

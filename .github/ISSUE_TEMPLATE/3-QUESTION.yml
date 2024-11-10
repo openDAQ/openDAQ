@@ -1,6 +1,6 @@
 name: ❓ Question
 description: Ask a question
-title: "[QUESTION] <title here>"
+title: "[QUESTION] title here"
 labels: ["question"]
 body:
 - type: textarea

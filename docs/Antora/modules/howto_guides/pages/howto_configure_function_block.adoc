@@ -235,7 +235,7 @@ function_block.input_ports[0].connect(device.channels[0].signals[0])
 # Get the output Signal of the Function Block
 output_signal = function_block.signals[0]
 
-print(output_signal.descriptor.name)
+print(output_signal.name)
 ----
 C#::
 +

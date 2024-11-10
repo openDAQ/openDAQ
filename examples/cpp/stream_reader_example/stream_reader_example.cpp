@@ -43,7 +43,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         if (count > 0)
         {
             daq::Float domainValue = (daq::Int) domainSamples[count - 1] * resolution;
-            std::cout << "Value: " << samples[count - 1] << "Domain: " << domainValue << unitSymbol << std::endl;
+            std::cout << "Value: " << samples[count - 1] << " Domain: " << domainValue << unitSymbol << std::endl;
         }
     }
 

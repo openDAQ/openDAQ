@@ -47,18 +47,18 @@ void example2(const SignalConfigPtr& signal)
 {
     // Use the Signal's Sample Types for both value and Domain
     auto reader1 = StreamReader(signal, SampleType::Undefined, SampleType::Undefined);
-    assert(reader1.getValueReadType() == SampleType::Float64);
-    assert(reader1.getDomainReadType() == SampleType::Int64);
+    assert(reader1.getValueReadType() == SampleType::Undefined);
+    assert(reader1.getDomainReadType() == SampleType::Undefined);
 
     // Only for value
     auto reader2 = StreamReader(signal, SampleType::Undefined, SampleType::Int64);
-    assert(reader2.getValueReadType() == SampleType::Float64);
+    assert(reader2.getValueReadType() == SampleType::Undefined);
     assert(reader2.getDomainReadType() == SampleType::Int64);
 
     // Or only for Domain
     auto reader3 = StreamReader(signal, SampleType::Float64, SampleType::Undefined);
     assert(reader3.getValueReadType() == SampleType::Float64);
-    assert(reader3.getDomainReadType() == SampleType::Int64);
+    assert(reader3.getDomainReadType() == SampleType::Undefined);
 }
 
 /*
@@ -66,7 +66,12 @@ void example2(const SignalConfigPtr& signal)
  */
 void example3(const SignalConfigPtr& signal)
 {
-    auto reader = StreamReader<double, Int>(signal);
+    auto reader = StreamReaderBuilder()
+                      .setSignal(signal)
+                      .setValueReadType(SampleType::Float64)
+                      .setDomainReadType(SampleType::Int64)
+                      .setSkipEvents(true)
+                      .build();
 
     // Should return 0
     [[maybe_unused]] auto available = reader.getAvailableCount();
@@ -113,7 +118,12 @@ void example4(const SignalConfigPtr& signal)
     // Signal Sample Type value is `Float64`
     signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
-    auto reader = StreamReader<double, Int>(signal);
+        auto reader = StreamReaderBuilder()
+                      .setSignal(signal)
+                      .setValueReadType(SampleType::Float64)
+                      .setDomainReadType(SampleType::Int64)
+                      .setSkipEvents(true)
+                      .build();
 
     // Signal produces 2 samples { 1.1, 2.2 }
     auto packet1 = createPacketForSignal(signal, 2);
@@ -181,7 +191,12 @@ void example5(const SignalConfigPtr& signal)
 {
     signal.setDescriptor(setupDescriptor(SampleType::Int64));
 
-    auto reader = StreamReader<Int, Int>(signal);
+    auto reader = StreamReaderBuilder()
+                  .setSignal(signal)
+                  .setValueReadType(SampleType::Int64)
+                  .setDomainReadType(SampleType::Int64)
+                  .setSkipEvents(true)
+                  .build();
 
     // Signal produces 5 samples { 1, 2, 3, 4, 5 }
     auto packet1 = createPacketForSignal(signal, 5);

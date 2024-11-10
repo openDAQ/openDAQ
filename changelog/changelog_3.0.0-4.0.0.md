@@ -1,8 +1,17 @@
-# 29.10.2024:
+# 8.11.2024
+
+## Description
+- Block Reader, Tail Reader and Stream Reader now skip events by default in Python
+
+## Required integration changes
+- In Python, you need to explicitly set `skip_events=False` if you don't want to skip the events in Block, Tail and Stream Reader
+
+# 29.10.2024
+
 ## Description
 - Support creating readers with connected input port
 
-## Required integration changes:
+## Required integration changes
 - None
 
 ```
@@ -11,6 +20,7 @@
 ```
 
 # 24.10.2024
+
 ## Description
 - Add a way to view the server protocol version in server capabilities.
 - Fix the path issue in ConfigurationConnectionInfo of device info: If the connection to the device included a path, ensure the path is correctly reflected in the ConfigurationConnectionInfo.
@@ -25,7 +35,8 @@
 + [function] IServerCapabilityConfig::setProtocolVersion(IString* version)
 ```
 
-# 24.10.2024:
+# 24.10.2024
+
 ## Description
 - Implement log file info interface
 
@@ -64,7 +75,8 @@
 + [function] IDevice::getLog(IString** log, IString* id, Int size = -1, Int offset = 0)
 ```
 
-# 21.10.2024:
+# 21.10.2024
+
 ## Description
 - Introduce a new Sample Type "Null"
 - Replace nullptr with a Data Descriptor having SampleType::Null in the "DATA_DESCRIPTOR_CHANGED" event packet when a signal's descriptor is not assigned
@@ -79,6 +91,7 @@
 ```
 
 # 11.10.2024
+
 ## Description
 - Add methods in function block to add/remove nested fb
 
@@ -99,6 +112,7 @@
 ```
 
 # 10.10.2024
+
 ## Description
 - Restoring the device while loading the configuration.
 - Add update parameters to set a flag indicating whether to use the existing device or recreate a new one
@@ -125,6 +139,7 @@
 ```
 
 # 4.10.2024
+
 ## Description
 - Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less
 than "min read count" samples in the queue and there's an event after those samples, it will discard the samples and return event.
@@ -140,18 +155,21 @@ than "min read count" samples in the queue and there's an event after those samp
 ```
 
 # 03.10.2024
+
 ## Description
 - Enable concurrent config connections limit for native server using "MaxAllowedConfigConnections" server config property
 - Introduce a new PacketBuffer type ConnectionRejected in the native configuration protocol
 - Native config protocol bumped to version 3
 
 # 03.10.2024
+
 ## Description
 - Bugfix where onPropertyValueWrite/Read events were available on the native protocol client, but were not fully supported.
 - Said property object events were disabled to reduce probability of misuse.
 - CoreEvents should be used instead of onWrite/Read events where needed.
 
 # 03.10.2024
+
 ## Description
 - Add support for device locking over native config protocol
 
@@ -165,6 +183,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IAuthenticationProvider::authenticateAnonymous(IUser** userOut)
 ```
 # 23.09.2024
+
 ## Description
 - Enable multireader to be manually set inactive to drop data packets
 - Add validation of unit parameters for power-reader function block input voltage signal
@@ -175,12 +194,14 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IMultiReader::getActive(Bool* isActive)
 ```
 # 11.09.2024
+
 ## Description
 - Enable client-to-device streaming feature within the Native protocol
 - Introduce a new PacketBuffer type NoReplyRpc in the native configuration protocol
 - Native config protocol bumped to version 2
 
 # 11.09.2024
+
 ## Description
 - Enable openDAQ servers to be added to the component tree under the device
 
@@ -202,6 +223,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IModuleManagerUtils::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr)
 ```
 # 28.08.2024
+
 ## Description
 - Multi reader returns events on first read
 - Set default skip event for block reader to false
@@ -210,6 +232,7 @@ than "min read count" samples in the queue and there's an event after those samp
 - Multi reader is not losing the first connection event packet. With first read, multi reader now returns event packets which were recieved by signal connection
 
 # 28.08.2024
+
 ## Description
 - Improving save/load mechanism for restoring input ports connection
 ```
@@ -226,6 +249,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IUpdatable::updateInternal(ISerializedObject* update, IBaseObject* context)
 ```
 # 26.08.2024
+
 ## Description
 - Add OPENDAQ_ERR_CONNECTION_LOST error code and ConnectionLostException exception type.
 
@@ -233,6 +257,7 @@ than "min read count" samples in the queue and there's an event after those samp
 - None, however, disconnection errors can now be identified by a specific error type.
 
 #  21.08.2024
+
 ## Description
 - Reference Domain Info was added as an interface that gives additional information about the reference domain
 - Reference Domain Info has getters for:
@@ -283,6 +308,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IDataDescriptorBuilder::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
 ```
 # 12.08.2024
+
 ## Description
 - Changed logic of IProperty::getOnPropertyValue events.
 - Now returns the owner's event when called, if the owner is assigned.
@@ -293,6 +319,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IPropertyInternal::getClassOnPropertyValueReadEvent(IEvent** event)
 ```
 # 12.08.2024
+
 ## Description
 - Integration the Sync Component
 - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
@@ -315,6 +342,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [factory] SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 ```
 # 08.08.2024
+
 ## Description
 - Add get/setValue method to IProperty
 - Helpers allowing easier access to the property's value when iterating through an object's properties
@@ -323,6 +351,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IProperty::setValue(IBaseObject* value)
 ```
 # 26.07.2024
+
 ## Description
 - Add method to IPropertyObject to detect begin/end update status
 ## Required integration changes
@@ -331,6 +360,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IPropertyObject::getUpdating(Bool* updating)
 ```
 # 25.07.2024
+
 ## Description
 - Add user context to json serializer
 ```
@@ -338,6 +368,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] ISerializer::setUser(IBaseObject* user)
 ```
 # 23.07.2024
+
 ## Description
 - Reader improvement
 - Implementing reader builder for all Readers
@@ -433,6 +464,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IConnection::hasGapPacket(Bool* hasGapPacket)
 ```
 # 22.07.2024
+
 ## Description
 - Standardize cases to PascalCase
     - Component IDs
@@ -469,6 +501,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 - Old IDs can still be used when adding new objects to a device via `addDevice`/`addFunctionBlock` or similar calls
 
 # 10.07.2024
+
 ## Description
 - Add address type and address reachability status to server capability
 - Allows easier identification of what address is used, and checks if device is available
@@ -486,6 +519,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IServerCapabilityConfig::setAddressReachabilityStatus(IList* addressReachability)
 ``` 
 # 04.07.2024
+
 ## Description
 - Make device connection string prefix mandatory
 - Remove "accepts connection string" methods from module
@@ -515,6 +549,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 +m [function] IInstanceBuilder::getDiscoveryServers
 ``` 
 # 17.06.2024
+
 ## Description
 - Add StreamingType object
 - Change ComponentType objects to use builder pattern
@@ -534,12 +569,14 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IModuleManagerUtils::createDefaultAddDeviceConfig(IDict** streamingTypes)
 ``` 
 # 30.05.2024
+
 ## Description
 - Supporting reading client's connection info in the deviceInfo
 ```
 + [function] IDeviceInfo::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
 ```
 # 27.05.2024
+
 ## Description
 - Supporting servers to be discovered by mDNS
 ``` 
@@ -570,6 +607,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
                            const DictPtr<IString, IDiscoveryServer> discoveryServices = Dict<IString, IDiscoveryServer>())
 ``` 
 # 17.05.2024
+
 ## Description
 - Add ability to manually connect to streaming for device after device added
 - Create connection string from ServerCapability via modules
@@ -583,6 +621,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IModule::createConnectionString(IString** connectionString, IServerCapability* serverCapability)
 ``` 
 # 16.05.2024
+
 ## Description
 - Add functions for sending and dequeueing multiple packets
 - Add functions with steal reference behaviour for sending packets
@@ -597,6 +636,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] ErrCode IConnection::dequeueAll(IList** packets)()
 ``` 
 # 26.04.2024
+
 ## Description
 - Produce gap packets on request
 ``` 
@@ -607,6 +647,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [packet] IMPLICIT_DOMAIN_GAP_DETECTED
 ``` 
 # 26.04.2024
+
 ## Description
 - Clone property object to create default config from type
 ``` 
@@ -618,6 +659,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 +m [factory] ServerTypePtr ServerType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
 ``` 
 # 25.04.2024
+
 ## Description
 - Add mirrored device base implementation as a general approach to manage streaming sources for configuration enabled devices
 ``` 
@@ -629,6 +671,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IMirroredDeviceConfig::removeStreamingSource(IString* streamingConnectionString)
 ``` 
 # 23.04.2024
+
 ## Description
 - Adding addresses in ServerCapability
 ``` 
@@ -636,6 +679,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IServerCapability::getAddresses(IList** addresses)
 ``` 
 # 22.04.2024
+
 ## Description
 - Fix reserved keyword clashes with Delphi bindings
 ``` 

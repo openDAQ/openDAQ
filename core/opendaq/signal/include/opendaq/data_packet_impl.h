@@ -573,17 +573,14 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr
         }
         return listPtr;
     }
-    else
+    // Not list
+    if (sampleType == SampleType::Struct)
     {
-        // Not list
-        if (sampleType == SampleType::Struct)
-        {
-            // Struct
-            return buildStructFromFields(descriptor, typeManager, addr);
-        }
-        // Not struct
-        return dataToObjAndIncreaseAddr(addr, sampleType);
+        // Struct
+        return buildStructFromFields(descriptor, typeManager, addr);
     }
+    // Not struct
+    return dataToObjAndIncreaseAddr(addr, sampleType);
 }
 
 template <typename TInterface>

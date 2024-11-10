@@ -24,7 +24,11 @@ DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples);
  */
 void example1(const SignalConfigPtr& signal)
 {
-    auto reader = StreamReader(signal);
+    auto reader = StreamReaderBuilder()
+                      .setSignal(signal)
+                      .setValueReadType(SampleType::Float64)
+                      .setSkipEvents(true)
+                      .build();
 
     // Signal produces 2 samples
     auto packet1 = createPacketForSignal(signal, 2);
@@ -68,7 +72,12 @@ void example1(const SignalConfigPtr& signal)
  */
 void example2(const SignalConfigPtr& signal)
 {
-    auto reader = StreamReader(signal, ReadTimeoutType::Any);
+    auto reader = StreamReaderBuilder()
+                      .setSignal(signal)
+                      .setValueReadType(SampleType::Float64)
+                      .setReadTimeoutType(ReadTimeoutType::Any)
+                      .setSkipEvents(true)
+                      .build();
 
     // Signal produces 2 Packets with 3 samples
     // [Packet 1]: { 1 }

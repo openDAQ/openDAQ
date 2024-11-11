@@ -1,17 +1,13 @@
 #include <coretypes/impl.h>
 #include <coretypes/struct_impl.h>
+#include <coretypes/struct_type_impl.h>
 #include <coretypes/version_info_factory.h>
 #include <coretypes/version_info_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-namespace detail
-{
-static const StructTypePtr versionInfoStructType = VersionInfoStructType();
-}
-
 VersionInfoImpl::VersionInfoImpl(SizeT major, SizeT minor, SizeT patch)
-    : GenericStructImpl<IVersionInfo, IStruct>(detail::versionInfoStructType,
+    : GenericStructImpl<IVersionInfo, IStruct>(VersionInfoStructType(),
                                                Dict<IString, IBaseObject>({{"Major", major}, {"Minor", minor}, {"Patch", patch}}))
 {
 }

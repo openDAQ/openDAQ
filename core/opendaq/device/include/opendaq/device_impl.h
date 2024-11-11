@@ -195,6 +195,7 @@ protected:
 
     virtual ListPtr<ILogFileInfo> ongetLogFileInfos();
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
+    DevicePtr getParentDevice();
 
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
@@ -206,7 +207,6 @@ private:
     ErrCode unlockInternal(IUser* user);
     ErrCode forceUnlockInternal();
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
-    DevicePtr getParentDevice();
 
     DeviceDomainPtr deviceDomain;
 };

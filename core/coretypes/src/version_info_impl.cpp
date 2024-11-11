@@ -7,11 +7,11 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace detail
 {
-static const StructTypePtr unitStructType = VersionInfoStructType();
+static const StructTypePtr versionInfoStructType = VersionInfoStructType();
 }
 
 VersionInfoImpl::VersionInfoImpl(SizeT major, SizeT minor, SizeT patch)
-    : GenericStructImpl<IVersionInfo, IStruct>(detail::unitStructType,
+    : GenericStructImpl<IVersionInfo, IStruct>(detail::versionInfoStructType,
                                                Dict<IString, IBaseObject>({{"Major", major}, {"Minor", minor}, {"Patch", patch}}))
 {
 }

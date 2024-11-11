@@ -156,8 +156,6 @@ void AudioDeviceImpl::createAudioChannel()
 
 void AudioDeviceImpl::propertyChanged()
 {
-    std::scoped_lock lock(sync);
-
     stop();
 
     readProperties();

@@ -78,7 +78,6 @@ void ClassifierFbImpl::initProperties()
 
 void ClassifierFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure();
@@ -260,7 +259,7 @@ void ClassifierFbImpl::configure()
 
 void ClassifierFbImpl::processData()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
     while (!linearReader.getEmpty())
     {
         size_t blocksToRead = 1;

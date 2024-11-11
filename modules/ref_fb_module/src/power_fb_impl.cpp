@@ -72,7 +72,6 @@ void PowerFbImpl::initProperties()
 
 void PowerFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure(false);
@@ -118,7 +117,7 @@ void PowerFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& voltag
 
 void PowerFbImpl::processPackets()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     PacketPtr voltagePacket;
     PacketPtr currentPacket;
@@ -460,13 +459,13 @@ void PowerFbImpl::createSignals()
 
 void PowerFbImpl::onConnected(const InputPortPtr& inputPort)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
     LOG_T("Connected to port {}", inputPort.getLocalId())
 }
 
 void PowerFbImpl::onDisconnected(const InputPortPtr& inputPort)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
     LOG_T("Disconnected from port {}", inputPort.getLocalId())
 }
 

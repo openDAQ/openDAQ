@@ -104,7 +104,6 @@ void StatisticsFbImpl::initProperties()
 
 void StatisticsFbImpl::propertyChanged()
 {
-    std::scoped_lock lock(sync);
     readProperties();
     configure();
 }
@@ -669,7 +668,7 @@ void StatisticsFbImpl::onPacketReceived(const InputPortPtr& port)
 
 void StatisticsFbImpl::processTriggerPackets(const InputPortPtr& port)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     const auto conn = port.getConnection();
     if (!conn.assigned())
@@ -703,7 +702,7 @@ void StatisticsFbImpl::processTriggerPackets(const InputPortPtr& port)
 
 void StatisticsFbImpl::processInputPackets(const InputPortPtr& port)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     const auto conn = port.getConnection();
     if (!conn.assigned())

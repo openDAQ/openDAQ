@@ -29,7 +29,7 @@
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/server_capability_config_ptr.h>
 #include <opendaq/custom_log.h>
-#include <opendaq/module_info_ptr.h>
+#include <opendaq/module_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class Module : public ImplementationOf<IModule>
@@ -361,13 +361,14 @@ protected:
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 
-    Module(ModuleInfoPtr info, ContextPtr context)
-        : moduleInfo(std::move(info))
+    Module(StringPtr name, VersionInfoPtr version, ContextPtr context, StringPtr id = nullptr)
+        : moduleInfo(ModuleInfo(std::move(version), std::move(name), std::move(id)))
         , context(std::move(context))
         , logger(this->context.getLogger())
-        , loggerComponent( this->logger.assigned()
+        , loggerComponent(
+              this->logger.assigned()
                   ? this->logger.getOrAddComponent(this->moduleInfo.getName().assigned() ? this->moduleInfo.getName() : "UnknownModule")
-                              : throw ArgumentNullException("Logger must not be null"))
+                  : throw ArgumentNullException("Logger must not be null"))
     {
     }
 

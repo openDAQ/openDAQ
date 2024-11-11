@@ -13,7 +13,6 @@
 #include <chrono>
 #include <coretypes/filesystem.h>
 #include <opendaq/client_type.h>
-#include <opendaq/module_info_factory.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -2102,7 +2101,7 @@ class MockNativeModule : public Module
 {
 public:
     MockNativeModule(const ContextPtr& context)
-        : Module(ModuleInfo(VersionInfo(0, 0, 0), "MockModule", "mock"), context)
+        : Module("mock", VersionInfo(0, 0, 0), context, "MockModule")
     {
     }
 

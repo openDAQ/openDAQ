@@ -23,11 +23,10 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 class RefFBModule final : public Module
 {
 public:
-    explicit RefFBModule(const ContextPtr& ctx);
+    explicit RefFBModule(ContextPtr ctx);
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config) override;
-
 private:
 };
 

@@ -5,7 +5,6 @@
 #include <coretypes/version_info_factory.h>
 #include <miniaudio/miniaudio.h>
 #include <opendaq/custom_log.h>
-#include <opendaq/module_info_factory.h>
 
 #ifdef _WIN32
 #include <combaseapi.h>
@@ -14,12 +13,11 @@
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
-AudioDeviceModule::AudioDeviceModule(const ContextPtr& ctx)
-    : Module(daq::ModuleInfo(
-                 daq::VersionInfo(AUDIO_DEVICE_MODULE_MAJOR_VERSION, AUDIO_DEVICE_MODULE_MINOR_VERSION, AUDIO_DEVICE_MODULE_PATCH_VERSION),
-                 "AudioDeviceModule",
-                 "AudioDeviceModule"),
-             ctx)
+AudioDeviceModule::AudioDeviceModule(const ContextPtr& context)
+    : Module("AudioDeviceModule",
+            daq::VersionInfo(AUDIO_DEVICE_MODULE_MAJOR_VERSION, AUDIO_DEVICE_MODULE_MINOR_VERSION, AUDIO_DEVICE_MODULE_PATCH_VERSION),
+            context,
+            "AudioDeviceModule")
     , maContext(std::make_shared<MiniaudioContext>())
     , deviceIndex(0)
 {

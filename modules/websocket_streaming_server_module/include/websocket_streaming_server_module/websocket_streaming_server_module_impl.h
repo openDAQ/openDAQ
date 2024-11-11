@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 class WebsocketStreamingServerModule final : public Module
 {
 public:
-    WebsocketStreamingServerModule(const ContextPtr & ctx);
+    WebsocketStreamingServerModule(ContextPtr context);
 
     DictPtr<IString, IServerType> onGetAvailableServerTypes() override;
     ServerPtr onCreateServer(const StringPtr& serverType, const PropertyObjectPtr& serverConfig, const DevicePtr& rootDevice) override;

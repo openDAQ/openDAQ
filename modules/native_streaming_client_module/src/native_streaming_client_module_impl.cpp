@@ -16,20 +16,19 @@
 #include <config_protocol/config_protocol_client.h>
 #include <opendaq/address_info_factory.h>
 #include <opendaq/client_type.h>
-#include <opendaq/module_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace discovery;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
-NativeStreamingClientModule::NativeStreamingClientModule(const ContextPtr & ctx)
-    : Module(daq::ModuleInfo(
-                 daq::VersionInfo(
-                     NATIVE_STREAM_CL_MODULE_MAJOR_VERSION, NATIVE_STREAM_CL_MODULE_MINOR_VERSION, NATIVE_STREAM_CL_MODULE_PATCH_VERSION),
-                 "OpenDAQNativeStreamingClientModule",
-                 "OpenDAQNativeStreamingClientModule"),
-             ctx)
+NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
+    : Module("OpenDAQNativeStreamingClientModule",
+            VersionInfo(NATIVE_STREAM_CL_MODULE_MAJOR_VERSION,
+                        NATIVE_STREAM_CL_MODULE_MINOR_VERSION,
+                        NATIVE_STREAM_CL_MODULE_PATCH_VERSION),
+            std::move(context),
+            "OpenDAQNativeStreamingClientModule")
     , pseudoDeviceIndex(0)
     , transportClientIndex(0)
     , discoveryClient(

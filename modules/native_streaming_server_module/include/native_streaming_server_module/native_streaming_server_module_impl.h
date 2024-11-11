@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 class NativeStreamingServerModule final : public Module
 {
 public:
-    explicit NativeStreamingServerModule(const ContextPtr & ctx);
+    explicit NativeStreamingServerModule(ContextPtr context);
 
     DictPtr<IString, IServerType> onGetAvailableServerTypes() override;
     ServerPtr onCreateServer(const StringPtr& serverType, const PropertyObjectPtr& serverConfig, const DevicePtr& rootDevice) override;

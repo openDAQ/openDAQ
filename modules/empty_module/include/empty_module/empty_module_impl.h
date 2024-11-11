@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_EMPTY_MODULE
 class EmptyModule final : public Module
 {
 public:
-    explicit EmptyModule(const ContextPtr& ctx);
+    explicit EmptyModule(ContextPtr context);
 };
 
 END_NAMESPACE_EMPTY_MODULE

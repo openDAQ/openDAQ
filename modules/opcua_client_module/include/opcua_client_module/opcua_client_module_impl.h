@@ -25,7 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 class OpcUaClientModule final : public Module
 {
 public:
-    OpcUaClientModule(const ContextPtr & ctx);
+    OpcUaClientModule(ContextPtr context);
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;

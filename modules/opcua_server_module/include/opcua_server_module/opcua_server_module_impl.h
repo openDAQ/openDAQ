@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_SERVER_MODULE
 class OpcUaServerModule final : public Module
 {
 public:
-    OpcUaServerModule(const ContextPtr & context);
+    OpcUaServerModule(ContextPtr context);
 
     DictPtr<IString, IServerType> onGetAvailableServerTypes() override;
     ServerPtr onCreateServer(const StringPtr& serverType, const PropertyObjectPtr& serverConfig, const DevicePtr& rootDevice) override;

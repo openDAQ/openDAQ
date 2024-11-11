@@ -223,3 +223,27 @@ def get_attributes_of_node(node):
 
 def show_error(title, message, parent=None):
     messagebox.showerror(title, message, parent=parent)
+
+
+def snake_case_to_title(snake_case: str):
+    return snake_case.replace('_', ' ').title()
+
+
+def title_to_snake_case(title: str):
+    return title.lower().replace(' ', '_')
+
+
+def prettify_unit(unit: daq.IStruct):
+    return unit.symbol if unit is not None and unit.symbol is not None else 'None'
+
+
+def prettify_bool(value):
+    return yes_no[value]
+
+
+metadata_converters = {
+    'is_referenced': prettify_bool,
+    'unit': prettify_unit,
+    'read_only': prettify_bool,
+    'visible': prettify_bool
+}

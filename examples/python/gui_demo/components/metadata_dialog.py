@@ -48,8 +48,10 @@ class MetadataDialog(Dialog):
         def fill_tree(key, value, parent=''):
 
             # displaying Nones but not traversing further
+            display_value = utils.metadata_converters[key](
+                value) if key in utils.metadata_converters else value
             id = self.tree.insert(
-                parent, tk.END, text=str(key), values=(str(value), ))
+                parent, tk.END, text=str(key), values=(str(display_value), ))
 
             if value is None:
                 return

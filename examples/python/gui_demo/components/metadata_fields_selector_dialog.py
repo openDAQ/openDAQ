@@ -53,13 +53,13 @@ class MetadataFieldsSelectorDialog(Dialog):
         upper_button_frame.pack(side=tk.BOTTOM, anchor=tk.E, pady=(5, 0))
 
         for field in self.fields:
-            self.tree.insert('', 'end', text=field)
+            self.tree.insert('', 'end', text=utils.snake_case_to_title(field))
             if field in self.context.metadata_fields:
                 self.tree.selection_add(self.tree.get_children()[-1])
 
     def ok(self):
-        self.context.metadata_fields = [self.tree.item(
-            item, 'text') for item in self.tree.selection()]
+        self.context.metadata_fields = [utils.title_to_snake_case(self.tree.item(
+            item, 'text')) for item in self.tree.selection()]
         self.evet_port.emit()
         self.destroy()
 

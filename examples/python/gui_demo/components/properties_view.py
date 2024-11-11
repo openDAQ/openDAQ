@@ -29,7 +29,7 @@ class PropertiesView(ttk.Frame):
                   command=lambda: MetadataFieldsSelectorDialog(
                       self, self.context).show()
                   ).pack(
-            side=tk.RIGHT, padx=30)
+            side=tk.RIGHT, anchor=tk.E)
 
         header_frame.pack(fill=tk.X)
         tree = ttk.Treeview(self, columns=(
@@ -53,7 +53,8 @@ class PropertiesView(ttk.Frame):
         tree.column('#1', anchor=tk.W, minwidth=200)
 
         for field in self.context.metadata_fields:
-            tree.heading(field, anchor=tk.W, text=field)
+            tree.heading(field, anchor=tk.W,
+                         text=utils.snake_case_to_title(field))
             tree.column(field, anchor=tk.W, minwidth=200)
 
         # bind double-click to editing
@@ -108,13 +109,16 @@ class PropertiesView(ttk.Frame):
                 property_value = 'Struct {{{}}}'.format(property_info.name)
             else:
                 property_value = printed_value(
-                    property_info.item_type, node.get_property_value(property_info.name))
+                    property_info.value_type, node.get_property_value(property_info.name))
 
             meta_fields = [None] * len(self.context.metadata_fields)
 
             try:
                 for i, field in enumerate(self.context.metadata_fields):
-                    meta_fields[i] = getattr(property_info, field)
+                    metadata_value = getattr(property_info, field)
+                    metadata_value = utils.metadata_converters[field](
+                        metadata_value) if field in utils.metadata_converters else metadata_value
+                    meta_fields[i] = metadata_value
             except Exception as e:
                 print(e)
 

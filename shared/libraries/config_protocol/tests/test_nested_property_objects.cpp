@@ -499,7 +499,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueInsideCallback)
     serverDevice.addProperty(IntProperty("EditableProperty", 0));
     serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
     {
-        if (arg.getValue() > 0)
+        if ((Int)arg.getValue() > 0)
             obj.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("EditableProperty", 0);
     };
 

@@ -19,9 +19,37 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*!
+ * @ingroup opendaq_modules
+ * @defgroup opendaq_module_info_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates a Module Info with its `versionInfo`, `name`, and `id`
+ * fields configured.
+ *
+ * @param versionInfo The semantic version information.
+ * @param name The module name.
+ * @param id The module id.
+ * @return The ModuleInfo object.
+ */
 inline ModuleInfoPtr ModuleInfo(const VersionInfoPtr& versionInfo, const StringPtr& name, const StringPtr& id)
 {
     return ModuleInfoPtr{ModuleInfo_Create(versionInfo, name, id)};
 }
+
+/*!
+ * @brief Creates the Struct type object that defines the Module Info struct.
+ */
+inline StructTypePtr ModuleInfoStructType()
+{
+    return StructType("ModuleInfo",
+                      List<IString>("VersionInfo", "Name", "Id"),
+                      List<IBaseObject>(VersionInfo(0, 0, 0), "", ""),
+                      List<IType>(VersionInfoStructType(), SimpleType(ctString), SimpleType(ctString)));
+}
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

@@ -15,24 +15,30 @@
  */
 
 #pragma once
-#include <coretypes/intfs.h>
+#include <coretypes/struct_impl.h>
 #include <opendaq/module_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-class ModuleInfoImpl : public ImplementationOf<IModuleInfo>
+class ModuleInfoImpl : public GenericStructImpl<IModuleInfo, IStruct>
 {
 public:
-    ModuleInfoImpl(const VersionInfoPtr& versionInfo, const StringPtr& name, const StringPtr& id);
+    explicit ModuleInfoImpl(const VersionInfoPtr& versionInfo, const StringPtr& name, const StringPtr& id);
 
     ErrCode INTERFACE_FUNC getVersionInfo(IVersionInfo** versionInfo) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getId(IString** id) override;
 
-private:
-    VersionInfoPtr versionInfo;
-    StringPtr name;
-    StringPtr id;
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized,
+                               IBaseObject* context,
+                               IFunction* factoryCallback,
+                               IBaseObject** obj);
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ModuleInfoImpl)
 
 END_NAMESPACE_OPENDAQ

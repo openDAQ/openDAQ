@@ -56,7 +56,9 @@ DECLARE_OPENDAQ_INTERFACE(IModuleInfo, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getId(IString** id) = 0;
 };
-/*!@}*/
+/*!
+ * @}
+ */
 
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, ModuleInfo, IVersionInfo*, versionInfo, IString*, name, IString*, id);
 

@@ -215,7 +215,7 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser*
 
     auto parentDevice = this->getParentDevice();
 
-    if (parentDevice.assigned() && parentDevice.asPtr<IDevicePrivate>().isLockedInternal())
+    if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
         return OPENDAQ_ERR_DEVICE_LOCKED;
 
     return daqTry([this] { this->clientComm->unlock(this->remoteGlobalId); });
@@ -228,7 +228,7 @@ inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::forceU
 
     auto parentDevice = this->getParentDevice();
 
-    if (parentDevice.assigned() && parentDevice.asPtr<IDevicePrivate>().isLockedInternal())
+    if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
         return OPENDAQ_ERR_DEVICE_LOCKED;
 
     return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });

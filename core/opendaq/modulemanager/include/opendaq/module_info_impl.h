@@ -22,7 +22,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class ModuleInfoImpl : public GenericStructImpl<IModuleInfo, IStruct>
 {
 public:
-    explicit ModuleInfoImpl(const VersionInfoPtr& versionInfo, const StringPtr& name, const StringPtr& id);
+    ModuleInfoImpl(const VersionInfoPtr& versionInfo, const StringPtr& name, const StringPtr& id);
 
     ErrCode INTERFACE_FUNC getVersionInfo(IVersionInfo** versionInfo) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;

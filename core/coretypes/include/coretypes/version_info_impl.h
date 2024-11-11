@@ -25,7 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class VersionInfoImpl : public GenericStructImpl<IVersionInfo, IStruct>
 {
 public:
-    explicit VersionInfoImpl(SizeT major, SizeT minor, SizeT patch);
+    VersionInfoImpl(SizeT major, SizeT minor, SizeT patch);
 
     ErrCode INTERFACE_FUNC getMajor(SizeT* major) override;
     ErrCode INTERFACE_FUNC getMinor(SizeT* minor) override;

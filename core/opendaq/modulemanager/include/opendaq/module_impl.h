@@ -362,7 +362,7 @@ protected:
     LoggerComponentPtr loggerComponent;
 
     Module(StringPtr name, VersionInfoPtr version, ContextPtr context, StringPtr id = nullptr)
-        : moduleInfo(ModuleInfo(std::move(version), std::move(name), std::move(id)))
+        : moduleInfo(ModuleInfo(version, name, id))
         , context(std::move(context))
         , logger(this->context.getLogger())
         , loggerComponent(

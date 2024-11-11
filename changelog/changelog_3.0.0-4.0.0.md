@@ -2,12 +2,21 @@
 ## Description
 - Add support for forcefully unlocking a device over native config protocol
 - Native config protocol bumped to version 6
+- Add user lock object to serialized device
 
 ## Required integration changes
 - Breaks binary compatibility
 
 ```
 + [function] IDevicePrivate::forceUnlock()
+
++ [function] IAuthenticationProvider::findUser(IString* username, IUser** userOut)
+
++ [interface] IUserLock : public IBaseObject
++ [function] IUserLock::lock(IUser* user = nullptr)
++ [function] IUserLock::unlock(IUser* user = nullptr)
++ [function] IUserLock::forceUnlock()
++ [function] IUserLock::isLocked(Bool* isLockedOut)
 ```
 
 # 29.10.2024:

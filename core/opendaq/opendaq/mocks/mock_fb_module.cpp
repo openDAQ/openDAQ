@@ -16,7 +16,7 @@ MockFunctionBlockModuleImpl::MockFunctionBlockModuleImpl(daq::ContextPtr ctx)
 {
 }
 
-daq::ErrCode INTERFACE_FUNC MockFunctionBlockModuleImpl::getModuleInfo(daq::IModuleInfo** info)
+ErrCode INTERFACE_FUNC MockFunctionBlockModuleImpl::getModuleInfo(daq::IModuleInfo** info)
 {
     if (info == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;

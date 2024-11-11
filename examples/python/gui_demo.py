@@ -655,7 +655,9 @@ class App(tk.Tk):
             device.lock()
             self._set_node_lock_status_recursive(node)
         except Exception as e:
-            print('Lock failed: ', e)
+            msg = str(e)
+            print('Lock failed: ', msg, file=sys.stderr)
+            messagebox.showerror("Force unlock failed", msg)
 
     def handle_unlock(self):
         node = utils.treeview_get_first_selection(self.tree)

@@ -198,6 +198,8 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* u
         DAQLOGF_I(this->loggerComponent, "The specified user was ignored when locking a remote device. A session user was used instead.");
     }
 
+    std::scoped_lock syncLock(this->sync);
+
     return daqTry([this] { this->clientComm->lock(this->remoteGlobalId); });
 }
 
@@ -209,12 +211,26 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser*
         DAQLOGF_I(this->loggerComponent, "The specified user was ignored when unlocking a remote device. A session user was used instead.");
     }
 
+    std::scoped_lock syncLock(this->sync);
+
+    auto parentDevice = this->getParentDevice();
+
+    if (parentDevice.assigned() && parentDevice.asPtr<IDevicePrivate>().isLockedInternal())
+        return OPENDAQ_ERR_DEVICE_LOCKED;
+
     return daqTry([this] { this->clientComm->unlock(this->remoteGlobalId); });
 }
 
 template <class TDeviceBase>
 inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
 {
+    std::scoped_lock syncLock(this->sync);
+
+    auto parentDevice = this->getParentDevice();
+
+    if (parentDevice.assigned() && parentDevice.asPtr<IDevicePrivate>().isLockedInternal())
+        return OPENDAQ_ERR_DEVICE_LOCKED;
+
     return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
 }
 

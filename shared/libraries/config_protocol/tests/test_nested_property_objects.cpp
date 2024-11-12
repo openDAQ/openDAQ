@@ -463,3 +463,47 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomModeOptions)
     ASSERT_EQ(modeProperty.getSelectionValues(), modeOptions);
     ASSERT_EQ(interfaceClockSync.getPropertySelectionValue("Mode"), "Off");
 }
+
+TEST_F(ConfigNestedPropertyObjectTest, ModifyOnPropertyWrite)
+{
+
+    serverDevice.addProperty(StringProperty("EditableProperty", "defaultValue"));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg) 
+    {
+        if (arg.getValue() == "clientValue")
+            arg.setValue("serverValue");
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), "defaultValue");
+    clientDevice.setPropertyValue("EditableProperty", "clientValue");
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), "serverValue");   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, RestoreOnPropertyWrite)
+{
+
+    serverDevice.addProperty(StringProperty("EditableProperty", "defaultValue"));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg) 
+    {
+        if (arg.getValue() == "clientValue")
+            arg.setValue("defaultValue");
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), "defaultValue");
+    clientDevice.setPropertyValue("EditableProperty", "clientValue");
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), "defaultValue");   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueInsideCallback)
+{
+    serverDevice.addProperty(IntProperty("EditableProperty", 0));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() > 0)
+            obj.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("EditableProperty", 0);
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
+    clientDevice.setPropertyValue("EditableProperty", 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);   
+}

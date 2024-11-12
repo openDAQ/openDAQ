@@ -577,14 +577,12 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
     if (argsValue != newValue)
     {
         setPropertyValueInternal(name, argsValue, false, true, false);
-        BaseObjectPtr valuePtr;
-        PropertyPtr propPtr;
-        getPropertyAndValueInternal(name, valuePtr, propPtr, false);
-
-        return valuePtr;
     }
 
-    return newValue;
+    BaseObjectPtr valuePtr;
+    PropertyPtr propPtr;
+    getPropertyAndValueInternal(name, valuePtr, propPtr, false);
+    return valuePtr;
 }
 
 template <typename PropObjInterface, typename... Interfaces>

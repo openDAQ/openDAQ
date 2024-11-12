@@ -129,11 +129,11 @@ public:
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);
         if (prefix.assigned() && prefix.getLength() != 0)
         {
-            for (const auto& type : types)
+            for (const auto& [_, type] : types)
             {
-                if (type.second.getConnectionStringPrefix() == prefix)
+                if (type.getConnectionStringPrefix() == prefix)
                 {
-                    deviceType = type.second;
+                    deviceType = type;
                     break;
                 }
             }
@@ -256,11 +256,11 @@ public:
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);
         if (prefix.assigned() && prefix.getLength() != 0)
         {
-            for (const auto& type : types)
+            for (const auto& [_, type] : types)
             {
-                if (type.second.getConnectionStringPrefix() == prefix)
+                if (type.getConnectionStringPrefix() == prefix)
                 {
-                    streamingType = type.second;
+                    streamingType = type;
                     break;
                 }
             }

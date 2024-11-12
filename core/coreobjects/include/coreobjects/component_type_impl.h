@@ -19,7 +19,7 @@
 #include <coretypes/string_ptr.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/validation.h>
-#include <coreobjects/property_object_ptr.h>
+#include <coreobjects/property_object_factory.h>
 #include <coretypes/struct_impl.h>
 #include <coretypes/struct_type_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>

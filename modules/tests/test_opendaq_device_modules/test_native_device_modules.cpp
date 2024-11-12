@@ -12,6 +12,7 @@
 #include <opendaq/module_impl.h>
 #include <chrono>
 #include <coretypes/filesystem.h>
+#include <opendaq/client_type.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -320,6 +321,125 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     nativeStreamingConfig.setPropertyValue("Password", "tomaz123");
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
+{
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto createAndConnectClient = [](ClientType clientType)
+    {
+        auto clientInstance = Instance();
+
+        auto config = clientInstance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+        generalConfig.setPropertyValue("ClientType", (Int) clientType);
+
+        auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+        return clientInstance;
+    };
+
+    auto clientInstance = createAndConnectClient(ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+
+    ASSERT_THROW(createAndConnectClient(ClientType::ExclusiveControl), ControlClientRejectedException);
+
+    clientInstance = nullptr; // disconnect
+    clientInstance = createAndConnectClient(ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
+{
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto createAndConnectClient = [](ClientType clientType)
+    {
+        auto clientInstance = Instance();
+
+        auto config = clientInstance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+        generalConfig.setPropertyValue("ClientType", (Int) clientType);
+
+        clientInstance.addDevice("daq.nd://127.0.0.1", config);
+        return clientInstance;
+    };
+
+    auto clientInstance = createAndConnectClient(ClientType::ExclusiveControl);
+    ASSERT_TRUE(clientInstance.getDevices().getCount(), 1u);
+
+    ASSERT_THROW(createAndConnectClient(ClientType::Control), ControlClientRejectedException);
+
+    clientInstance = nullptr; // disconnect
+    clientInstance = createAndConnectClient(ClientType::ExclusiveControl);
+    ASSERT_TRUE(clientInstance.getDevices().getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
+{
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto createAndConnectClient = [](ClientType clientType)
+    {
+        auto clientInstance = Instance();
+
+        auto config = clientInstance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+        generalConfig.setPropertyValue("ClientType", (Int) clientType);
+
+        auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+        return clientInstance;
+    };
+
+    auto clientInstance = createAndConnectClient(ClientType::Control);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+
+    ASSERT_THROW(createAndConnectClient(ClientType::ExclusiveControl), ControlClientRejectedException);
+
+    clientInstance = nullptr; // disconnect
+    clientInstance = createAndConnectClient(ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
+{
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto createAndConnectClient = [](ClientType clientType)
+    {
+        auto clientInstance = Instance();
+
+        auto config = clientInstance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+        generalConfig.setPropertyValue("ClientType", (Int) clientType);
+        generalConfig.setPropertyValue("ExclusiveControlDropOthers", true);
+
+        auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
+        return clientInstance;
+    };
+
+    auto clientInstance1 = createAndConnectClient(ClientType::Control);
+    ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
+
+    auto clientInstance2 = createAndConnectClient(ClientType::Control);
+    ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
+
+    ASSERT_EQ(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    auto clientInstance3 = createAndConnectClient(ClientType::ExclusiveControl);  // should cause all other control clients to disconnect
+
+    ASSERT_EQ(clientInstance3.getDevices().getCount(), 1u);
+    ASSERT_NE(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_NE(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 }
 
 TEST_F(NativeDeviceModulesTest, PartialSerialization)

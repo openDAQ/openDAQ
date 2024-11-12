@@ -43,6 +43,8 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
     , connectedClientIndex(0)
     , maxAllowedConfigConnections(maxAllowedConfigConnections)
     , configConnectionsCount(0)
+    , controlConnectionsCount(0)
+    , exclusiveControlConnectionsCount(0)
     , streamingPacketSendTimeout(streamingPacketSendTimeout)
 {
     for (const auto& signal : signalsList)
@@ -241,9 +243,16 @@ void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, PacketPtr
 
 void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
 {
-    std::shared_ptr<ServerSessionHandler> removedSessionHandler; // keep object outside the scoped lock
+    releaseSessionHandlerInternal(session, true);
+}
+
+void NativeStreamingServerHandler::releaseSessionHandlerInternal(SessionPtr session, bool enableSyncLock)
+{
+    std::shared_ptr<ServerSessionHandler> removedSessionHandler;  // keep object outside the scoped lock
     {
-        std::scoped_lock lock(sync);
+        std::unique_lock lock(sync, std::defer_lock);
+        if (enableSyncLock)
+            lock.lock();
 
         auto clientIter = std::find_if(sessionHandlers.begin(),
                                        sessionHandlers.end(),
@@ -260,9 +269,7 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
             for (const auto& signal : signalsToUnsubscribe)
                 signalUnsubscribedHandler(signal);
 
-            if (removedSessionHandler->isConfigProtocolUsed())
-                configConnectionsCount--;
-
+            decrementConnectionCount(removedSessionHandler);
             sessionHandlers.erase(clientIter);
         }
         else
@@ -339,6 +346,27 @@ void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjec
     {
         LOG_W("Invalid transport layer properties - missing ClientId or Reconnected flag");
     }
+
+    try
+    {
+        const ClientType clientType = parseClientTypeProp(propertyObject);
+        sessionHandler->setClientType(clientType);
+    }
+    catch (const DaqException&)
+    {
+        LOG_I("Invalid or missing transport layer property ClientType - default value \"Control\" assumed");
+        sessionHandler->setClientType(ClientType::Control);
+    }
+
+    try
+    {
+        const bool dropOthers = parseExclusiveControlDropOthersProp(propertyObject);
+        sessionHandler->setExclusiveControlDropOthers(dropOthers);
+    }
+    catch (const DaqException&)
+    {
+        sessionHandler->setExclusiveControlDropOthers(false);
+    }
 }
 
 void NativeStreamingServerHandler::setUpTransportLayerPropsCallback(std::shared_ptr<ServerSessionHandler> sessionHandler)
@@ -385,32 +413,99 @@ void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerS
 
         // Rejects new conenctions in case if count of concurrent config connections exceed the limit
         // defined with "MaxAllowedConfigConnections" property (where 0 value stands for unlimited count)
-        if (maxAllowedConfigConnections != UNLIMITED_CONFIGURATION_CONNECTIONS && configConnectionsCount == maxAllowedConfigConnections)
+        if (isConnectionLimitReached())
         {
-            std::string errorMessage =
+            std::string message =
                 "Native configuration connection rejected - connections limit reached on server; addresses of connected clients:";
+
             for (const auto& [_, handler] : sessionHandlers)
             {
                 if (handler->isConfigProtocolUsed())
-                    errorMessage += " " + handler->getSession()->getEndpointAddress() + ";";
+                    message += " " + handler->getSession()->getEndpointAddress() + ";";
             }
-            auto reply = config_protocol::ConfigProtocolServer::generateConnectionRejectedReply(
-                firstPacketBuffer.getId(),
-                OPENDAQ_ERR_CONNECTION_LIMIT_REACHED,
-                errorMessage,
-                JsonSerializer()
-            );
-            sessionHandler->sendConfigurationPacket(reply);
-            LOG_W("{}", errorMessage)
+
+            reportConnectError(sessionHandler, firstPacketBuffer, OPENDAQ_ERR_CONNECTION_LIMIT_REACHED, message);
             return;
         }
-        else
+
+        if (isTooManyExclusiveControlConnections(sessionHandler))
         {
-            sessionHandler->triggerUseConfigProtocol();
-            configConnectionsCount++;
+            const std::string message = "Connection rejected, exclusive control client already connected";
+            reportConnectError(sessionHandler, firstPacketBuffer, OPENDAQ_ERR_CONTROL_CLIENT_REJECTED, message);
+            return;
         }
+
+        if (isTooManyControlConnections(sessionHandler))
+        {
+            if (sessionHandler->isExclusiveControlDropOthersEnabled())
+            {
+                releaseControlConnectionsInternal();
+                LOG_W("Exclusive control client connected with \"ExclusiveControlDropOthers\" flag enabled, disconnecting other control clients");
+            }
+            else
+            {
+                const std::string message = "Connection rejected, control clients already connected";
+                reportConnectError(sessionHandler, firstPacketBuffer, OPENDAQ_ERR_CONTROL_CLIENT_REJECTED, message);
+                return;
+            }
+        }
+
+        sessionHandler->triggerUseConfigProtocol();
+        incrementConnectionCount(sessionHandler);
     }
+
     this->setUpConfigProtocolCallbacks(sessionHandler, std::move(firstPacketBuffer));
+}
+
+void NativeStreamingServerHandler::reportConnectError(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                                                      config_protocol::PacketBuffer& firstPacketBuffer,
+                                                      ErrCode errorCode,
+                                                      const std::string& message)
+{
+    auto reply = config_protocol::ConfigProtocolServer::generateConnectionRejectedReply(
+        firstPacketBuffer.getId(), errorCode, message, JsonSerializer());
+    sessionHandler->sendConfigurationPacket(reply);
+    LOG_W("{}", message);
+}
+
+bool NativeStreamingServerHandler::isConnectionLimitReached()
+{
+    return maxAllowedConfigConnections != UNLIMITED_CONFIGURATION_CONNECTIONS && configConnectionsCount == maxAllowedConfigConnections;
+}
+
+bool NativeStreamingServerHandler::isTooManyControlConnections(std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
+    return sessionHandler->getClientType() == ClientType::ExclusiveControl && controlConnectionsCount > 0;
+}
+
+bool NativeStreamingServerHandler::isTooManyExclusiveControlConnections(std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
+    const bool isControl = sessionHandler->getClientType() == ClientType::Control;
+    const bool isExclusiveControl = sessionHandler->getClientType() == ClientType::ExclusiveControl;
+    return (isControl || isExclusiveControl) && exclusiveControlConnectionsCount > 0;
+}
+
+void NativeStreamingServerHandler::incrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
+    if (sessionHandler->getClientType() == ClientType::Control)
+        controlConnectionsCount++;
+    if (sessionHandler->getClientType() == ClientType::ExclusiveControl)
+        exclusiveControlConnectionsCount++;
+
+    configConnectionsCount++;
+}
+
+void NativeStreamingServerHandler::decrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
+    if (sessionHandler->isConfigProtocolUsed())
+    {
+        configConnectionsCount--;
+
+        if (sessionHandler->getClientType() == ClientType::Control)
+            controlConnectionsCount--;
+        if (sessionHandler->getClientType() == ClientType::ExclusiveControl)
+            exclusiveControlConnectionsCount--;
+    }
 }
 
 void NativeStreamingServerHandler::setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler)
@@ -452,6 +547,43 @@ void NativeStreamingServerHandler::onSessionError(const std::string& errorMessag
             if (const auto thisPtr = thisWeakPtr.lock())
                 return thisPtr->releaseSessionHandler(session);
         });
+}
+
+void NativeStreamingServerHandler::releaseControlConnectionsInternal()
+{
+    std::vector<SessionPtr> sessionsToRelease;
+
+    for (const auto& [_, sessionHandeler] : sessionHandlers)
+    {
+        if (sessionHandeler->getClientType() == ClientType::Control)
+            sessionsToRelease.push_back(sessionHandeler->getSession());
+    }
+
+    for (const auto& session : sessionsToRelease)
+        releaseSessionHandlerInternal(session, false);
+}
+
+ClientType NativeStreamingServerHandler::parseClientTypeProp(const PropertyObjectPtr& propertyObject)
+{
+    if (!propertyObject.hasProperty("ClientType"))
+        throw NotFoundException();
+
+    if (propertyObject.getProperty("ClientType").getValueType() != ctInt)
+        throw InvalidValueException();
+
+    const Int clientTypeInt = propertyObject.getPropertyValue("ClientType");
+    return ClientTypeTools::IntToClientType(clientTypeInt);
+}
+
+bool NativeStreamingServerHandler::parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject)
+{
+    if (!propertyObject.hasProperty("ExclusiveControlDropOthers"))
+        throw NotFoundException();
+
+    if (propertyObject.getProperty("ExclusiveControlDropOthers").getValueType() != ctBool)
+        throw InvalidValueException();
+
+    return propertyObject.getPropertyValue("ExclusiveControlDropOthers");
 }
 
 void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)

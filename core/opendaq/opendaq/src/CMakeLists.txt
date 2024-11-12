@@ -52,6 +52,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/base_config_provider_impl.h
         ${SDK_HEADERS_DIR}/env_config_provider_impl.h
         ${SDK_HEADERS_DIR}/cmd_line_args_config_provider_impl.h
+        ${SDK_HEADERS_DIR}/client_type.h
         ${SDK_SRC_DIR}/instance_impl.cpp
         ${SDK_SRC_DIR}/client_impl.cpp
         ${SDK_SRC_DIR}/instance_builder_impl.cpp
@@ -59,7 +60,8 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/base_config_provider_impl.cpp
         ${SDK_SRC_DIR}/env_config_provider_impl.cpp
         ${SDK_SRC_DIR}/cmd_line_args_config_provider_impl.cpp
-        ${SDK_SRC_DIR}/path_tool.cpp             
+        ${SDK_SRC_DIR}/path_tool.cpp
+        ${SDK_SRC_DIR}/client_type.cpp
     )
     
     source_group("component_type" FILES 
@@ -76,6 +78,7 @@ set(SRC_PublicHeaders_Component
     exceptions.h
     instance_factory.h
     config_provider_factory.h
+    client_type.h
     PARENT_SCOPE
 )
 
@@ -106,6 +109,7 @@ set(SRC_Cpp_Component
     env_config_provider_impl.cpp
     cmd_line_args_config_provider_impl.cpp
     component_type_builder_impl.cpp
+    client_type.cpp
     opendaq.natvis
     PARENT_SCOPE
 )

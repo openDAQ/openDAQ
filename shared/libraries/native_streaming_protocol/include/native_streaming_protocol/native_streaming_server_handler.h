@@ -65,8 +65,18 @@ protected:
                                       config_protocol::PacketBuffer&& firstPacketBuffer);
     void connectConfigProtocol(std::shared_ptr<ServerSessionHandler> sessionHandler,
                                config_protocol::PacketBuffer&& firstPacketBuffer);
+    void reportConnectError(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                            config_protocol::PacketBuffer& firstPacketBuffer,
+                            ErrCode errorCode,
+                            const std::string& message);
+    bool isConnectionLimitReached();
+    bool isTooManyControlConnections(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    bool isTooManyExclusiveControlConnections(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void incrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void decrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
+    void releaseSessionHandlerInternal(SessionPtr session, bool enableSyncLock);
     void handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
                                   const SignalPtr& signal,
@@ -74,6 +84,9 @@ protected:
                                   const std::string& clientId);
     bool onAuthenticate(const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut);
     void onSessionError(const std::string &errorMessage, SessionPtr session);
+    void releaseControlConnectionsInternal();
+    ClientType parseClientTypeProp(const PropertyObjectPtr& propertyObject);
+    bool parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject);
 
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
@@ -95,7 +108,8 @@ protected:
 
     SizeT maxAllowedConfigConnections;
     SizeT configConnectionsCount;
-
+    SizeT controlConnectionsCount;
+    SizeT exclusiveControlConnectionsCount;
     SizeT streamingPacketSendTimeout;
 };
 

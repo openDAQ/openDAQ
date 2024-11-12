@@ -62,6 +62,7 @@ target_link_libraries(${LIB_NAME} PUBLIC  daq::opendaq
                                   PRIVATE daq::discovery
                                           daq::native_streaming_protocol
                                           daq::config_protocol
+                                          daq::opendaq_dev
                                           ${BCRYPT_LIB}
                                           $<BUILD_INTERFACE:Boost::uuid>
 )

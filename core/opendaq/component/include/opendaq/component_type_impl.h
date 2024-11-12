@@ -34,16 +34,14 @@ public:
                                       const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
-                                      const PropertyObjectPtr& defaultConfig,
-                                      const ModuleInfoPtr& moduleInfo);
+                                      const PropertyObjectPtr& defaultConfig);
 
     explicit GenericComponentTypeImpl(const StructTypePtr& type,
                                       const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
                                       const StringPtr& prefix,
-                                      const PropertyObjectPtr& defaultConfig,
-                                      const ModuleInfoPtr& moduleInfo);
+                                      const PropertyObjectPtr& defaultConfig);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -65,8 +63,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& id,
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
-                                                                        const PropertyObjectPtr& defaultConfig,
-                                                                        const ModuleInfoPtr& moduleInfo)
+                                                                        const PropertyObjectPtr& defaultConfig)
     : GenericStructImpl<Intf, IStruct, Interfaces...>(
           type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
     , id(id)
@@ -74,7 +71,6 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , description(description)
     , prefix("")
     , defaultConfig(defaultConfig)
-    , moduleInfo(moduleInfo)
 {
 }
 
@@ -84,8 +80,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
                                                                         const StringPtr& prefix,
-                                                                        const PropertyObjectPtr& defaultConfig,
-                                                                        const ModuleInfoPtr& moduleInfo)
+                                                                        const PropertyObjectPtr& defaultConfig)
     : GenericStructImpl<Intf, IStruct, Interfaces...>(
           type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
     , id(id)
@@ -93,7 +88,6 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , description(description)
     , prefix(prefix)
     , defaultConfig(defaultConfig)
-    , moduleInfo(moduleInfo)
 {
 }
 

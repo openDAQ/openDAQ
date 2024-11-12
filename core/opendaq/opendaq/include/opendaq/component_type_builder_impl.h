@@ -19,9 +19,9 @@
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
+#include <opendaq/module_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class ComponentTypeBuilderImpl : public ImplementationOf<IComponentTypeBuilder>
 {
 public:
@@ -47,6 +47,9 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
+    ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* moduleInfo) override;
+    ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** moduleInfo) override;
+
 private:
     ComponentTypeSort sort;
     StringPtr id;
@@ -54,6 +57,7 @@ private:
     StringPtr prefix;
     StringPtr description;
     PropertyObjectPtr defaultConfig;
+    ModuleInfoPtr moduleInfo;
 };
 
 END_NAMESPACE_OPENDAQ

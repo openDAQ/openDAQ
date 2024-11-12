@@ -164,6 +164,19 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * For example: Port=1000, OutputRate=5000, ...
      */
     virtual ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the module information.
+     * @param info The module information.
+     */
+    virtual ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) = 0;
+
+    /*!
+     * @brief Gets the module information.
+     * @param[out] info The module information.
+     */
+    virtual ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** info) = 0;
 };
 /*!@}*/
 

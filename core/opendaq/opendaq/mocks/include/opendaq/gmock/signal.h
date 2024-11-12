@@ -110,12 +110,5 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
                     return OPENDAQ_SUCCESS;
                 })
             ));
-        
-        ON_CALL(*this, getSignalSerializeId)
-            .WillByDefault(DoAll(
-                Invoke([&](daq::IString** serializeId) {
-                    return getGlobalId(serializeId);
-                })
-            ));
     }
 };

@@ -46,7 +46,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * the Type manager, which, at that point, must already contain a class with the specified name.
  *
  * Each Property defines a set of metadata, specifying what value type it represents, as well as additional information that
- * is used when displaying an user interface, such as whether or not a Property is visible, or read-only. The Property can
+ * is used when displaying a user interface, such as whether a Property is visible, or read-only. The Property can
  * also limit the set of valid values by specifying a minimum/maximum value, or validation/coercion expressions.
  *
  * In addition to properties, a Property object holds a dictionary of Property values, where the key is a Property's name,

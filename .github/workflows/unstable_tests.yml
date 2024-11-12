@@ -1,0 +1,14 @@
+name: Nightly build and run unstable tests
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Every day at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  run-ci-jobs:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/ci.yml
+    with:
+      cmake_preset: unstable_tests_ci
+      ctest_preset: run_unstable_test_repeatedly

@@ -124,7 +124,7 @@ ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::createDefaultConfig(IProp
     if (this->defaultConfig.assigned())
         return this->defaultConfig.template asPtr<IPropertyObjectInternal>()->clone(defaultConfig);
 
-    *defaultConfig = nullptr;
+    *defaultConfig = PropertyObject().detach();
     return OPENDAQ_SUCCESS;
 }
 

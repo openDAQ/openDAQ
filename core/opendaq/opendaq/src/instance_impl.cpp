@@ -71,7 +71,7 @@ static StringPtr DefineLocalId(const StringPtr& localId)
 {
     if (localId.assigned() && localId.getLength())
         return localId;
-    return "ClientDevice";
+    return "openDAQDevice";
 }
 
 static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)

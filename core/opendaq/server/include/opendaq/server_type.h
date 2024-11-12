@@ -21,7 +21,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceSmartPtr(IComponentType, GenericComponentTypePtr, "<opendaq/component_type_ptr.h>")]
- * [interfaceLibrary(IComponentType, "coreobjects")]
+ * [interfaceLibrary(IComponentType, "opendaq")]
  */
 
 /*!

@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 * [templated(defaultAliasName: DeviceTypePtr)]
 * [interfaceSmartPtr(IDeviceType, GenericDeviceTypePtr)]
 * [interfaceSmartPtr(IComponentType, GenericComponentTypePtr, "<opendaq/component_type_ptr.h>")]
-* [interfaceLibrary(IComponentType, "coreobjects")]
+* [interfaceLibrary(IComponentType, "opendaq")]
 */
 
 /*!

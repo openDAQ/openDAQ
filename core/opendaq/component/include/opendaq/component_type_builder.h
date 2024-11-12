@@ -38,7 +38,7 @@ enum class ComponentTypeSort
 
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
- * [interfaceLibrary(IComponentType, "coreobjects")]
+ * [interfaceLibrary(IComponentType, "opendaq")]
  */
 
 /*!

@@ -158,7 +158,7 @@ public:
     }
 };
 
-TEST_P_FLAKY_SKIPPED(SubDevicesTest, RootStreamingToClient)
+TEST_P_UNSTABLE_SKIPPED(SubDevicesTest, RootStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
     auto subdevice1 = CreateSubdeviceInstance(1u);

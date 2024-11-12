@@ -148,7 +148,7 @@ TEST_F(QuickStartTest, QuickStartAppConnectOldWebsocket)
 }
 
 // Corresponding document: Antora/modules/quick_start/pages/quick_start_application.adoc
-TEST_F_FLAKY_SKIPPED(QuickStartTest, QuickStartAppReaderWebsocket)
+TEST_F_UNSTABLE_SKIPPED(QuickStartTest, QuickStartAppReaderWebsocket)
 {
     SKIP_TEST_MAC_CI;
 

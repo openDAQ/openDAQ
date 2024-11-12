@@ -541,7 +541,7 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectDisconnect)
     EXPECT_FALSE(fbIpClient2.getSignal().assigned());
 }
 
-TEST_F_FLAKY_SKIPPED(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithServerSignal)
+TEST_F_UNSTABLE_SKIPPED(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithServerSignal)
 {
     SignalPtr localRootSigClient1 = client1RootDevice.getSignals()[0];
     SignalPtr localRootSigClient2 = client2RootDevice.getSignals()[0];

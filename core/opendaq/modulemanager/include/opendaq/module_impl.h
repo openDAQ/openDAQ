@@ -420,12 +420,6 @@ private:
         return "";
     }
 
-    template <typename T>
-    ComponentTypePtr getTypeFromConnectionString(const StringPtr& connectionString, const DictPtr<IString, IComponentType> types)
-    {
-        
-    }
-
     static void populateDefaultConfig(const PropertyObjectPtr& defaultObj, const PropertyObjectPtr& userInput)
     {
         for (const auto& prop : defaultObj.getAllProperties())

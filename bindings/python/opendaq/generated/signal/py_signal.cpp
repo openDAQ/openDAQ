@@ -113,4 +113,12 @@ void defineISignal(pybind11::module_ m, PyDaqIntf<daq::ISignal, daq::IComponent>
         },
         py::return_value_policy::take_ownership,
         "Gets the signal last value.");
+    cls.def_property_readonly("signal_serialize_id",
+        [](daq::ISignal *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SignalPtr::Borrow(object);
+            return objectPtr.getSignalSerializeId().toStdString();
+        },
+        "Gets the signal serilized id. In local device the serilized id matached the signal global id. For remote id it is the signal id in the remote device.");
 }

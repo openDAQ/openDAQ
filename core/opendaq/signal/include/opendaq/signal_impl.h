@@ -77,6 +77,7 @@ public:
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -1036,12 +1037,15 @@ ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* se
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
-    const SignalPtr domainSignalObj = onGetDomainSignal();
-    if (domainSignalObj.assigned())
+    if (!forUpdate)
     {
-        serializer.key("domainSignalId");
-        const auto domainSignalGlobalId = domainSignalObj.getGlobalId();
-        serializer.writeString(domainSignalGlobalId);
+        const SignalPtr domainSignalObj = onGetDomainSignal();
+        if (domainSignalObj.assigned())
+        {
+            serializer.key("domainSignalId");
+            const auto domainSignalGlobalId = domainSignalObj.getGlobalId();
+            serializer.writeString(domainSignalGlobalId);
+        }
     }
 
     const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
@@ -1191,6 +1195,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
 
     auto typeManager = this->context.getTypeManager();
     return lastDataPacket->getLastValue(value, typeManager);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getSignalSerializeId(IString** serializeId)
+{
+    return this->getGlobalId(serializeId);
 }
 
 template <typename TInterface, typename... Interfaces>

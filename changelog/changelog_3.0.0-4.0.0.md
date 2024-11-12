@@ -1,10 +1,15 @@
-# 07.11.2024:
+# 12.11.2024:
 ## Description
 - Improved component updates.
 - Removed generation of local ID for client device in instance.
-
+- Fixed connecting signals to input ports on the server to which the client is connecting during configuration loading.
 ## Required integration changes:
 - An instance with the client device as the root device no longer generates a unique ID but uses `ClientDevice` as the ID.
+- If a developer encountered issues restoring signal connections from the client to the server during configuration loading, they need to create a new configuration and save it. Otherwise, everything should work fine.
+
+```
++ [function] ISignal::getSignalSerializeId(IString** serializeId)
+```
 
 # 29.10.2024:
 ## Description

@@ -638,7 +638,7 @@ void GenericInputPortImpl<Interfaces...>::serializeCustomObjectValues(const Seri
     if (signal.assigned())
     {
         serializer.key("signalId");
-        const auto signalGlobalId = signal.getGlobalId();
+        const auto signalGlobalId = signal.getSignalSerializeId();
         serializer.writeString(signalGlobalId);
     }
 }

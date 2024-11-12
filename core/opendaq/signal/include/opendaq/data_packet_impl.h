@@ -67,6 +67,7 @@ public:
     ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* rawDataSize) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
+    ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT sampleIndex, ITypeManager* typeManager = nullptr) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
     ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
@@ -572,21 +573,24 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr
         }
         return listPtr;
     }
-    else
+    // Not list
+    if (sampleType == SampleType::Struct)
     {
-        // Not list
-        if (sampleType == SampleType::Struct)
-        {
-            // Struct
-            return buildStructFromFields(descriptor, typeManager, addr);
-        }
-        // Not struct
-        return dataToObjAndIncreaseAddr(addr, sampleType);
+        // Struct
+        return buildStructFromFields(descriptor, typeManager, addr);
     }
+    // Not struct
+    return dataToObjAndIncreaseAddr(addr, sampleType);
 }
 
 template <typename TInterface>
 ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(value);
+    return getValueByIndex(value, sampleCount - 1, typeManager);
+}
+template <typename TInterface>
+ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT sampleIndex, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
@@ -595,20 +599,62 @@ ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManag
     if (dimensionCount > 1)
         return OPENDAQ_IGNORED;
 
-    void* addr;
-    ErrCode err = this->getData(&addr);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    std::lock_guard lk{readLock};
 
-    addr = static_cast<char*>(addr) + (sampleCount - 1) * descriptor.getSampleSize();
-
-    return daqTry(
-        [&]()
+    auto calcLastValue = [this, &value, &typeManager, sampleIndex]()
+    {
+        if (hasRawDataOnly)
         {
-            auto ptr = buildFromDescriptor(addr, descriptor, typeManager);
-            *value = ptr.detach();
-            return OPENDAQ_SUCCESS;
-        });
+            void* addr = static_cast<char*>(data) + sampleIndex * descriptor.getSampleSize();
+            auto valuePtr = buildFromDescriptor(addr, descriptor, typeManager);
+            *value = valuePtr.detach();
+        }
+        else if (hasScalingCalc)
+        {
+            void* addr = static_cast<char*>(data) + sampleIndex * descriptor.getRawSampleSize();
+            auto output = std::make_unique<char[]>(descriptor.getSampleSize());
+            void* outputData = output.get();
+            descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(addr, 1, &outputData);
+            if (hasReferenceDomainOffset)
+            {
+                auto referenceDomainOffsetAdder =
+                    std::unique_ptr<ReferenceDomainOffsetAdder>(
+                        createReferenceDomainOffsetAdderTyped(
+                            descriptor.getSampleType(),
+                            descriptor
+                                .getReferenceDomainInfo()
+                                .getReferenceDomainOffset(),
+                            1
+                        )
+                    );
+                referenceDomainOffsetAdder->addReferenceDomainOffset(&outputData);
+            }
+            *value = buildFromDescriptor(outputData, descriptor, typeManager).detach();
+        }
+        else if (hasDataRuleCalc)
+        {
+            auto output = std::make_unique<char[]>(descriptor.getSampleSize());
+            void* outputData = output.get();
+            descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateSample(offset, sampleIndex, data, rawDataSize, &outputData);
+            if (hasReferenceDomainOffset)
+            {
+                auto referenceDomainOffsetAdder =
+                    std::unique_ptr<ReferenceDomainOffsetAdder>(
+                        createReferenceDomainOffsetAdderTyped(
+                            descriptor.getSampleType(),
+                            descriptor
+                                .getReferenceDomainInfo()
+                                .getReferenceDomainOffset(),
+                            1
+                        )
+                    );
+                referenceDomainOffsetAdder->addReferenceDomainOffset(&outputData);
+            }
+            *value = buildFromDescriptor(outputData, descriptor, typeManager).detach();
+        }
+    };
+
+    return daqTry(calcLastValue);
 }
 
 template <typename TInterface>

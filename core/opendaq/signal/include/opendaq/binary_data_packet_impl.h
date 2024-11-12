@@ -68,6 +68,7 @@ public:
     ErrCode INTERFACE_FUNC getDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
+    ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager) override;
 
 private:
     DataPacketPtr domainPacket;
@@ -186,6 +187,15 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawDataSize(SizeT* rawDataSize)
 
 template <bool ExternalMemory>
 inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    *value = nullptr;
+
+    return OPENDAQ_IGNORED;
+}
+template <bool ExternalMemory>
+ErrCode BinaryDataPacketImpl<ExternalMemory>::getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 

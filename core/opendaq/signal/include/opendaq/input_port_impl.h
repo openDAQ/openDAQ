@@ -193,7 +193,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
 
         InputPortNotificationsPtr inputPortListener;
         {
-            std::scoped_lock lock(this->sync);
+            auto lock = this->getRecursiveConfigLock();
             if (this->isComponentRemoved)
                 return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
 
@@ -303,7 +303,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnect()
         {
             ConnectionPtr connection;
             {
-                std::scoped_lock lock(this->sync);
+                auto lock = this->getRecursiveConfigLock();
                 connection = getConnectionNoLock();
                 connectionRef.release();
             }
@@ -319,7 +319,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getSignal(ISignal** signal)
     if (signal == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     *signal = getSignalNoLock().detach();
 
@@ -342,7 +342,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connect
     if (connection == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     return daqTry([this, &connection] { *connection = getConnectionNoLock().detach(); });
 }
@@ -350,7 +350,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connect
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNotification method)
 {
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if ((method == PacketReadyNotification::Scheduler || method == PacketReadyNotification::SchedulerQueueWasEmpty) && !scheduler.assigned())
     {
@@ -445,7 +445,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedOnThisThread()
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications* port)
 {
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (auto connection = getConnectionNoLock(); connection.assigned())
     {
@@ -484,7 +484,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getCustomData(IBaseObject** data)
 {
     OPENDAQ_PARAM_NOT_NULL(data);
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     *data = this->customData.addRefAndReturn();
 
@@ -494,7 +494,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getCustomData(IBaseObject** data)
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::setCustomData(IBaseObject* data)
 {
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     this->customData = data;
 
     return OPENDAQ_SUCCESS;
@@ -508,7 +508,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification
         {
             ConnectionPtr connection;
             {
-                std::scoped_lock lock(this->sync);
+                auto lock = this->getRecursiveConfigLock();
                 connection = getConnectionNoLock();
                 connectionRef.release();
             }
@@ -731,7 +731,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getRequiresSignal(Bool* requiresSig
 {
     OPENDAQ_PARAM_NOT_NULL(requiresSignal);
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     *requiresSignal = this->requiresSignal;
     return OPENDAQ_SUCCESS;
@@ -740,7 +740,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getRequiresSignal(Bool* requiresSig
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::setRequiresSignal(Bool requiresSignal)
 {
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     this->requiresSignal = requiresSignal;
     return OPENDAQ_SUCCESS;

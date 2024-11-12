@@ -3,12 +3,14 @@
 import argparse
 import os
 import enum
+import sys
 
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from tkinter.filedialog import asksaveasfile
 import opendaq as daq
+from tkinter import messagebox
 
 try:
     from ctypes import windll
@@ -436,6 +438,9 @@ class App(tk.Tk):
     def handle_tree_right_button_release(self, event):
         iid = utils.treeview_get_first_selection(self.tree)
 
+        self.tree_popup.entryconfig('Lock', state=tk.DISABLED)
+        self.tree_popup.entryconfig('Unlock', state=tk.DISABLED)
+
         self.tree_popup.entryconfig(
             'Remove', state=tk.DISABLED, command=None
         )
@@ -450,9 +455,13 @@ class App(tk.Tk):
                     if utils.get_nearest_fb(node.parent) is None:
                         self.tree_popup.entryconfig(
                             'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_function_block(node))
-                elif daq.IDevice.can_cast_from(node) and node.global_id != self.context.instance.global_id:
-                    self.tree_popup.entryconfig(
-                        'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_device(node))
+                elif daq.IDevice.can_cast_from(node):
+                    self.tree_popup.entryconfig('Lock', state=tk.ACTIVE)
+                    self.tree_popup.entryconfig('Unlock', state=tk.ACTIVE)
+
+                    if node.global_id != self.context.instance.global_id:
+                        self.tree_popup.entryconfig(
+                            'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_device(node))
         try:
             self.tree_popup.tk_popup(event.x_root, event.y_root, 0)
         finally:
@@ -653,7 +662,9 @@ class App(tk.Tk):
             device.lock()
             self._set_node_lock_status_recursive(node)
         except Exception as e:
-            print('Lock failed: ', e)
+            msg = str(e)
+            print('Lock failed: ', msg, file=sys.stderr)
+            messagebox.showerror("Force unlock failed", msg)
 
     def handle_unlock(self):
         node = utils.treeview_get_first_selection(self.tree)
@@ -664,7 +675,20 @@ class App(tk.Tk):
             device.unlock()
             self._set_node_lock_status_recursive(node)
         except Exception as e:
-            print('Unlock failed: ', e)
+            print('Unlock failed: ', e, file=sys.stderr)
+            msg = str(e) + ". Do you want to forcefully unlock the device?"
+            do_force_unlock = messagebox.askyesno("Unlock failed", msg)
+            if do_force_unlock:
+                self._force_unlock_device(node, component)
+
+    def _force_unlock_device(self, node, component):
+        try:
+            device_private = daq.IDevicePrivate.cast_from(component)
+            device_private.force_unlock()
+            self._set_node_lock_status_recursive(node)
+        except Exception as e:
+            print('Force unlock failed: ', e, file=sys.stderr)
+            messagebox.showerror("Force unlock failed", str(e))
 
     def set_node_update_status(self):
         for node in self.tree.get_children():

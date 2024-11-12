@@ -51,7 +51,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         {
             auto descName = descriptor.getName();
 
-            if (descName == "AI")
+            if (descName == "AI 1")
             {
                 signal = sig;
                 break;

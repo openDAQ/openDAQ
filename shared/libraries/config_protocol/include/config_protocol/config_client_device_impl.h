@@ -61,7 +61,7 @@ public:
 
     ErrCode INTERFACE_FUNC lock(IUser* user) override;
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
-    ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
+    ErrCode INTERFACE_FUNC forceUnlock() override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -73,6 +73,7 @@ private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
     void deviceDomainChanged(const CoreEventArgsPtr& args);
+    void deviceLockStatusChanged(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -197,6 +198,8 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* u
         DAQLOGF_I(this->loggerComponent, "The specified user was ignored when locking a remote device. A session user was used instead.");
     }
 
+    auto lock = this->getRecursiveConfigLock();
+
     return daqTry([this] { this->clientComm->lock(this->remoteGlobalId); });
 }
 
@@ -208,15 +211,27 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser*
         DAQLOGF_I(this->loggerComponent, "The specified user was ignored when unlocking a remote device. A session user was used instead.");
     }
 
+    auto lock = this->getRecursiveConfigLock();
+
+    auto parentDevice = this->getParentDevice();
+
+    if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
+        return OPENDAQ_ERR_DEVICE_LOCKED;
+
     return daqTry([this] { this->clientComm->unlock(this->remoteGlobalId); });
 }
 
 template <class TDeviceBase>
-inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::isLocked(Bool* locked)
+inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
 {
-    OPENDAQ_PARAM_NOT_NULL(locked);
+    auto lock = this->getRecursiveConfigLock();
 
-    return daqTry([this, &locked] { *locked = this->clientComm->isLocked(this->remoteGlobalId); });
+    auto parentDevice = this->getParentDevice();
+
+    if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
+        return OPENDAQ_ERR_DEVICE_LOCKED;
+
+    return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
 }
 
 template <class TDeviceBase>
@@ -246,6 +261,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
             break;
         case CoreEventId::DeviceDomainChanged:
             deviceDomainChanged(args);
+            break;
+        case CoreEventId::DeviceLockStateChanged:
+            deviceLockStatusChanged(args);
             break;
         case CoreEventId::PropertyValueChanged:
         case CoreEventId::PropertyObjectUpdateEnd:
@@ -381,4 +399,16 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::deviceDomainChanged(const CoreE
     const DeviceDomainPtr domain = args.getParameters().get("DeviceDomain");
     this->setDeviceDomain(domain);
 }
+
+template <class TDeviceBase>
+inline void GenericConfigClientDeviceImpl<TDeviceBase>::deviceLockStatusChanged(const CoreEventArgsPtr& args)
+{
+    const Bool isLocked = args.getParameters().get("IsLocked");
+
+    this->userLock.forceUnlock();
+
+    if (isLocked)
+        this->userLock.lock();
+}
+
 }

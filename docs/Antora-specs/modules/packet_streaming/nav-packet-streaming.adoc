@@ -1,4 +1,4 @@
-* xref:overview.adoc[**Packet streaming protocol**]
+* *Packet streaming*
 
 ** xref:overview.adoc[Overview]
 ** xref:format.adoc[Packet buffer format]

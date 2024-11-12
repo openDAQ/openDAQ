@@ -515,17 +515,16 @@ TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
     auto dataPacket2 = DataPacket(descriptor2, 5);
     auto data2 = static_cast<double*>(dataPacket2.getData());
     data2[4] = 4.2;
-    signal2.sendPacket(dataPacket2);
+
+    // Throws because descriptor2 has the same name as descriptor1 (but is different)
+    // and hence the the struct type can't be added to the type manager and hence
+    // later can't be found in the type manager
+    ASSERT_THROW(signal2.sendPacket(dataPacket2), NotFoundException);
 
     const auto lv1 = signal1.getLastValue();
     StructPtr sp1;
     ASSERT_NO_THROW(sp1 = lv1.asPtr<IStruct>());
     ASSERT_EQ(sp1.get("Int32"), 4);
-
-    // Throws because descriptor2 has the same name as descriptor1 (but is different)
-    // and hence the the struct type can't be added to the type manager and hence
-    // later can't be found in the type manager
-    ASSERT_THROW(signal2.getLastValue(), NotFoundException);
 }
 
 TEST_F(SignalTest, SendNullPacket)
@@ -1707,11 +1706,8 @@ TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
     *B = 15.1;
 
     // Send our packet
-    signal.sendPacket(dataPacket);
-
-    // Call getLastValue
     // Throws becuase we didn't use signal.setDescriptor
-    ASSERT_THROW(signal.getLastValue(), NotFoundException);
+    ASSERT_THROW(signal.sendPacket(dataPacket), NotFoundException);
 }
 
 TEST_F(SignalTest, GetLastValueStructNested)

@@ -641,12 +641,20 @@ TYPED_TEST(StreamReaderTest, ReadConstantRule)
             .setSkipEvents(true)
             .build();
 
+        auto initialValue12 = TypeParam(12);
+        auto initialValue24 = TypeParam(24);
+        if constexpr (IsDerivedFromTemplate<TypeParam, RangeType>::Value)
+        {
+            using T = typename SampleTypeFromType<TypeParam>::Type::Type;
+            initialValue12 = TypeParam{12, std::numeric_limits<T>::max()};
+            initialValue24 = TypeParam{12, std::numeric_limits<T>::max()};
+        }
         auto domainPacket = DataPacket(domainDesc, samplesInPacket, 0);
-        auto dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, 12);
+        auto dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, initialValue12);
         this->sendPacket(dataPacket);
 
         domainPacket = DataPacket(domainDesc, samplesInPacket, 2);
-        dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, 24);
+        dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, initialValue24);
         this->sendPacket(dataPacket);
 
         SizeT count{samplesInPacket * 2};
@@ -656,7 +664,7 @@ TYPED_TEST(StreamReaderTest, ReadConstantRule)
         ASSERT_EQ(count, samplesInPacket * 2);
 
         ASSERT_THAT(ticks, ElementsAre(0, 1, 2, 3));
-        ASSERT_THAT(samples, ElementsAre(12, 12, 24, 24));
+        ASSERT_THAT(samples, ElementsAre(initialValue12, initialValue12, initialValue24, initialValue24));
     }
 }
 
@@ -1064,8 +1072,14 @@ TYPED_TEST(StreamReaderTest, ReadVoid)
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 1);
 
     // Set the first sample to
+    auto initialValue = TypeParam(123);
+    if constexpr (IsDerivedFromTemplate<TypeParam, RangeType>::Value)
+    {
+        using T = typename SampleTypeFromType<TypeParam>::Type::Type;
+        initialValue = TypeParam(123, std::numeric_limits<T>::max());
+    }
     const auto dataPtr = static_cast<TypeParam*>(dataPacket.getData());
-    dataPtr[0] = static_cast<TypeParam>(123);
+    dataPtr[0] = initialValue;
 
     this->sendPacket(dataPacket);
 
@@ -1074,16 +1088,7 @@ TYPED_TEST(StreamReaderTest, ReadVoid)
     reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
-
-    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
-    {
-        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(123)));
-    }
-    else
-    {
-        ASSERT_EQ(samples[0], TypeParam(123));
-    }
-
+    ASSERT_EQ(samples[0], initialValue);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 }
 

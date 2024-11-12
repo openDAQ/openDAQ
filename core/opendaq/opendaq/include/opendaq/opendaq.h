@@ -35,6 +35,7 @@
 #include <opendaq/logger_factory.h>
 
 #include <opendaq/device_ptr.h>
+#include <opendaq/device_private_ptr.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
 

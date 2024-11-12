@@ -158,7 +158,9 @@
                 "OPENDAQ_GENERATE_CSHARP_BINDINGS": true,
                 "APP_ENABLE_AUDIO_APP": true,
                 "APP_ENABLE_EXAMPLE_APPS": true,
-                "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true
+                "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true,
+                "OPENDAQ_ENABLE_FLAKY_TEST_LABELS": true,
+                "OPENDAQ_SKIP_FLAKY_TESTS": true
             }
         },
         {

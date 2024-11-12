@@ -80,7 +80,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             if (!isSignalFromTheSameComponentTree(signalPtr))
                 return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
             {
-                std::scoped_lock lock(this->sync);
+                auto lock = this->getRecursiveConfigLock();
 
                 const auto connectedSignal = getConnectedSignal();
                 if (connectedSignal == signalPtr)

@@ -6,12 +6,13 @@ add_executable(${TEST_APP}
     test_packet_streaming.cpp
     packet_transmission.h
     packet_transmission.cpp
+    test_app.cpp
 )
 
 target_link_libraries(${TEST_APP} PRIVATE
     ${SDK_TARGET_NAMESPACE}::${BASE_NAME}
     daq::opendaq
-    GTest::GTest GTest::Main
+    ${SDK_TARGET_NAMESPACE}::test_utils
 )
 
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)

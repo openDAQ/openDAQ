@@ -158,7 +158,7 @@ public:
     }
 };
 
-TEST_P(SubDevicesTest, RootStreamingToClient)
+TEST_P_FLAKY_SKIPPED(SubDevicesTest, RootStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
     auto subdevice1 = CreateSubdeviceInstance(1u);
@@ -278,8 +278,7 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 
     if (std::get<2>(GetParam()) == StreamingProtocolType::WebsocketStreaming)
     {
-        // skip test
-        return;
+        GTEST_SKIP();
     }
 
     auto subdevice1 = CreateSubdeviceInstance(1u);

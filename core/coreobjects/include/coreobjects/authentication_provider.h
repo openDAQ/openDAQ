@@ -59,6 +59,14 @@ DECLARE_OPENDAQ_INTERFACE(IAuthenticationProvider, IBaseObject)
      * @param user[out] Pointer to anonymous user instance. If authentication is not successful, an exception is thrown.
      */
     virtual ErrCode INTERFACE_FUNC authenticateAnonymous(IUser** userOut) = 0;
+
+    /*!
+     * @brief Find a user instance by its username. If no user with maching username is not found, null is returned.
+     *
+     * @param username The username.
+     * @param userOut[out] Found user instance. If no user with maching username is not found, null is returned.
+     */
+    virtual ErrCode INTERFACE_FUNC findUser(IString* username, IUser** userOut) = 0;
 };
 
 /*!@}*/

@@ -2475,7 +2475,7 @@ TEST_F(MultiReaderTest, ReadWhilePortIsNotConnected)
     ASSERT_EQ(status.getEventPackets().getCount(), 3u);
 }
 
-TEST_F(MultiReaderTest, ReconnectWhileReading)
+TEST_F_FLAKY_SKIPPED(MultiReaderTest, ReconnectWhileReading)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);

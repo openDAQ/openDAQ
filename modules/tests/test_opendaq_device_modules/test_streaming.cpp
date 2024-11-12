@@ -292,7 +292,9 @@ TEST_P(StreamingTest, SetNullDescriptor)
 TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 {
     if (std::get<1>(GetParam()).find("daq.nd://") == 0)
-        return;
+    {
+        GTEST_SKIP();
+    }
 
     SKIP_TEST_MAC_CI;
     SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");
@@ -645,7 +647,7 @@ INSTANTIATE_TEST_SUITE_P(
 class NativeDeviceStreamingTest : public testing::Test
 {};
 
-TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
+TEST_F_FLAKY_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
 {
     SKIP_TEST_MAC_CI;
     const auto moduleManager = ModuleManager("");

@@ -25,7 +25,7 @@ AuthenticationProviderImpl::AuthenticationProviderImpl(bool allowAnonymous)
 
 ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* username, IString* password, IUser** userOut)
 {
-    const auto user = findUser(username);
+    const auto user = findUserInternal(username);
     if (!user.assigned())
         return OPENDAQ_ERR_AUTHENTICATION_FAILED;
 
@@ -56,6 +56,15 @@ ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticateAnonymous(IUser**
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC AuthenticationProviderImpl::findUser(IString* username, IUser** userOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(userOut);
+
+    const UserPtr userTmp = findUserInternal(username);
+    *userOut = userTmp.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 void AuthenticationProviderImpl::loadUserList(const ListPtr<IUser>& userList)
 {
     users.clear();
@@ -67,7 +76,7 @@ void AuthenticationProviderImpl::loadUserList(const ListPtr<IUser>& userList)
     }
 }
 
-UserPtr AuthenticationProviderImpl::findUser(const StringPtr& username)
+UserPtr AuthenticationProviderImpl::findUserInternal(const StringPtr& username)
 {
     if (users.hasKey(username))
         return users.get(username);

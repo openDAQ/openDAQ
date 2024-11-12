@@ -17,6 +17,7 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/listobject_factory.h>
+#include <thread>
 
 using namespace daq;
 

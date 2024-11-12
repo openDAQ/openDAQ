@@ -79,4 +79,13 @@ void defineIAuthenticationProvider(pybind11::module_ m, PyDaqIntf<daq::IAuthenti
             return objectPtr.authenticateAnonymous().detach();
         },
         "Authenticate as anonymous user. If anonymous authentication is not allowed, an exception is thrown.");
+    cls.def("find_user",
+        [](daq::IAuthenticationProvider *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& username)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AuthenticationProviderPtr::Borrow(object);
+            return objectPtr.findUser(getVariantValue<daq::IString*>(username)).detach();
+        },
+        py::arg("username"),
+        "Find a user instance by its username. If no user with maching username is not found, null is returned.");
 }

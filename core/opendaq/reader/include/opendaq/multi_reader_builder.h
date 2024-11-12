@@ -102,17 +102,17 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
     // [returnSelf]
     /*!
      * @brief Sets the read timeout mode
-     * @param mode The timeout mode. 
-     * if "Any" returns immediatly if there is available data otherwise time-out is exceeded.
-     * if "All" waiting until timeout and returns avaiable data if existing. otherwise time-out is exceeded.
+     * @param type The timeout mode. 
+     * if "Any" returns immediately if there is available data otherwise time-out is exceeded.
+     * if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
      */
     virtual ErrCode INTERFACE_FUNC setReadTimeoutType(ReadTimeoutType type) = 0;
 
     /*!
      * @brief Gets the read timeout mode
-     * @param mode The timeout mode. 
-     * if "Any" returns immediatly if there is available data otherwise time-out is exceeded.
-     * if "All" waiting until timeout and returns avaiable data if existing. otherwise time-out is exceeded.
+     * @param type The timeout mode. 
+     * if "Any" returns immediately if there is available data otherwise time-out is exceeded.
+     * if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
      */
     virtual ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* type) = 0;
 

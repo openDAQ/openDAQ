@@ -61,7 +61,7 @@ class TestDocumentationHowTo(opendaq_test.TestCase):
         # Get the output Signal of the Function Block
         output_signal = function_block.signals[0]
 
-        print(output_signal.descriptor.name)
+        print(output_signal.name)
         
     # Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
     def test_save_load_configuration(self):

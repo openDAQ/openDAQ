@@ -138,6 +138,17 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IDeviceDomain*, deviceDomain
 )
 
+/*!
+ * @brief Creates Core event args that are passed as argument when the device is locked or unlocked.
+ * @param isLock New lock state of the device.
+ *
+ * The ID of the event is 160, and the event name is "DeviceLockStateChanged".
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, CoreEventArgsDeviceLockStateChanged, ICoreEventArgs,
+    Bool, isLocked
+)
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

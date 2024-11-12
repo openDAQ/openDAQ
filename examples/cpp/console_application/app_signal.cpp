@@ -10,15 +10,15 @@ bool AppSignal::processCommand(BaseObjectPtr& signal, const std::vector<std::str
     if (command.empty())
         return false;
     
-    if (command[0] == "Print")
+    if (command[0] == "print")
         return print(signal, command);
-    if (command[0] == "Help")
+    if (command[0] == "help")
         return help();
-    if (command[0] == "Set")
+    if (command[0] == "set")
         return set(signal, command);
-    if (command[0] == "Select")
+    if (command[0] == "select")
         return select(signal, command);
-    if (command[0] == "List")
+    if (command[0] == "list")
         return list(signal, command);
 
     return false;
@@ -29,7 +29,7 @@ bool AppSignal::print(const SignalPtr& signal, const std::vector<std::string>& c
     if (command.size() != 2)
         return false;
 
-    if (command[1] == "Name")
+    if (command[1] == "name")
     {
         if (!signal.getDescriptor().assigned())
             return false;
@@ -43,7 +43,7 @@ bool AppSignal::print(const SignalPtr& signal, const std::vector<std::string>& c
         return true;
     }
 
-    if (command[1] == "Id")
+    if (command[1] == "id")
     {
         const auto id = signal.getGlobalId();
         std::cout << "ID: " + id << std::endl;
@@ -51,7 +51,7 @@ bool AppSignal::print(const SignalPtr& signal, const std::vector<std::string>& c
         return true;
     }
 
-    if (command[1] == "Descriptor")
+    if (command[1] == "descriptor")
     {
         if (!signal.getDescriptor().assigned())
             return false;
@@ -61,7 +61,7 @@ bool AppSignal::print(const SignalPtr& signal, const std::vector<std::string>& c
         return true;
     }
 
-    if (command[1] == "Public")
+    if (command[1] == "public")
     {
         if (signal.getPublic())
             std::cout << "Public: true" << std::endl;
@@ -70,7 +70,7 @@ bool AppSignal::print(const SignalPtr& signal, const std::vector<std::string>& c
         return true;
     }
 
-    if (command[1] == "Active")
+    if (command[1] == "active")
     {
         if (signal.getActive())
             std::cout << "Active: true" << std::endl;
@@ -132,13 +132,13 @@ bool AppSignal::set(const SignalPtr& signal, const std::vector<std::string>& com
     else
         return false;
 
-    if (command[1] == "Public")
+    if (command[1] == "public")
     {
         signal.setPublic(value);
         return true;
     }
 
-    if (command[1] == "Active")
+    if (command[1] == "active")
     {
         signal.setActive(value);
         return true;

@@ -21,7 +21,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Unlock all attributes (needed for OPC UA: RegressionTestComponent/setVisibleGetVisible)
     auto componentPrivate = instance.getRootDevice().asPtr<IComponentPrivate>();
     componentPrivate.unlockAllAttributes();
-    // Add Trigger Reference Functioin Block
+    // Add Trigger Reference Function Block
     instance.addFunctionBlock("ref_fb_module_trigger");
     // Add all current servers
     instance.addServer("openDAQ OpcUa", nullptr);
@@ -109,7 +109,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     ready.open("ready", std::ios::out);
     ready.close();
 
-    // Github Action will delete the "ready" file after
+    // GitHub Action will delete the "ready" file after
     // the tests for one protocol are done, which means
     // we can then gracefully shut down the simulator
     while (std::filesystem::exists("ready"))

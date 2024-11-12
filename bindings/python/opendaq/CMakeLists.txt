@@ -24,6 +24,7 @@ set(SRC_Cpp
     generated/component/py_update_parameters.cpp
     generated/context/py_context.cpp
     generated/device/py_device.cpp
+    generated/device/py_device_private.cpp
     generated/device/py_device_domain.cpp
     generated/device/py_device_info.cpp
     generated/device/py_device_info_config.cpp

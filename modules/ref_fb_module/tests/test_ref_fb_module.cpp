@@ -11,13 +11,12 @@
 #include <ref_fb_module/version.h>
 #include <testutils/testutils.h>
 #include <thread>
-#include <future>
 #include "testutils/memcheck_listener.h"
 
 using RefFbModuleTest = testing::Test;
 using namespace daq;
 
-class RefernceDomainOffsetHelper
+class ReferenceDomainOffsetHelper
 {
 public:
     ModulePtr module;
@@ -28,7 +27,7 @@ public:
     SignalConfigPtr domainSignal;
     ContextPtr context;
 
-    RefernceDomainOffsetHelper(uint64_t count = 5)
+    ReferenceDomainOffsetHelper(uint64_t count = 5)
     {
         // Save desired sample count for later
         sampleCount = count;
@@ -60,18 +59,6 @@ public:
         // Create reader
         auto reader = PacketReader(fbSignal);
 
-        std::promise<void> promise;
-        auto future = promise.get_future();
-
-        reader.setOnDataAvailable([&promise, &reader]
-        {
-            if (reader.getAvailableCount() > 1)
-            {
-                reader.setOnDataAvailable(nullptr);
-                promise.set_value();
-            }
-        });
-
         // Create data packet
         auto dataPacket = DataPacketWithDomain(domainPacket, signalDescriptor, sampleCount);
         auto packetData = static_cast<double*>(dataPacket.getRawData());
@@ -82,23 +69,23 @@ public:
         domainSignal.sendPacket(domainPacket);
         signal.sendPacket(dataPacket);
 
-        future.wait_for(std::chrono::seconds(1));
-
-        // Receive packet
-        auto packets = reader.readAll();
-        context.getScheduler().stop();
-        for (const auto packet : packets)
+        PacketPtr receivedPacket;
+        while (true)
         {
-            if (packet.getType() == PacketType::Data)
-            {
-                auto domainPacket = packet.asPtr<IDataPacket>(true).getDomainPacket();
-                size_t sampleCount = domainPacket.getDataSize() /  sizeof(int64_t);
-                std::vector<int64_t> result(sampleCount);
-                memcpy(result.data(), domainPacket.getData(), sampleCount * sizeof(int64_t));
-                return result;
-            }
+            receivedPacket = reader.read();
+            if (receivedPacket.assigned() && receivedPacket.getType() == PacketType::Data)
+                break;
         }
-        return {};
+
+        context.getScheduler().stop();
+
+        auto receivedDomainPacket = receivedPacket.asPtr<IDataPacket>().getDomainPacket();
+        auto* data = receivedDomainPacket.getData();
+        auto dataSize = receivedDomainPacket.getDataSize();
+        auto vectorSize = dataSize / sizeof(int64_t);
+        auto domainPacketData = std::vector<int64_t>(vectorSize);
+        std::memcpy(domainPacketData.data(), data, dataSize);
+        return domainPacketData;
     }
 };
 
@@ -261,7 +248,7 @@ TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
 TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper();
+    auto help = ReferenceDomainOffsetHelper();
 
     // Fix for race condition
     auto config = help.module.getAvailableFunctionBlockTypes().get("RefFBModuleTrigger").createDefaultConfig();
@@ -289,7 +276,7 @@ TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, ScalingWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper();
+    auto help = ReferenceDomainOffsetHelper();
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModuleScaling", nullptr, "FB");
@@ -315,7 +302,7 @@ TEST_F(RefFbModuleTest, ScalingWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, PowerWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper();
+    auto help = ReferenceDomainOffsetHelper();
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModulePower", nullptr, "FB");
@@ -342,7 +329,7 @@ TEST_F(RefFbModuleTest, PowerWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper();
+    auto help = ReferenceDomainOffsetHelper();
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModulePowerReader", nullptr, "FB");
@@ -371,7 +358,7 @@ TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, StatisticsWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper(10);
+    auto help = ReferenceDomainOffsetHelper(10);
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModuleStatistics", nullptr, "FB");
@@ -394,7 +381,7 @@ TEST_F(RefFbModuleTest, StatisticsWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, FFTWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper(2048);
+    auto help = ReferenceDomainOffsetHelper(2048);
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModuleFFT", nullptr, "FB");
@@ -418,7 +405,7 @@ TEST_F(RefFbModuleTest, FFTWithReferenceDomainOffset)
 TEST_F(RefFbModuleTest, ClassifierWithReferenceDomainOffset)
 {
     // Create helper
-    auto help = RefernceDomainOffsetHelper(100);
+    auto help = ReferenceDomainOffsetHelper(100);
 
     // Create function block
     auto fb = help.module.createFunctionBlock("RefFBModuleClassifier", nullptr, "FB");

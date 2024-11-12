@@ -109,7 +109,7 @@ void StructDecoderFbImpl::configure()
 
 void StructDecoderFbImpl::onPacketReceived(const InputPortPtr& port)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     const auto connection = inputPort.getConnection();
     if (!connection.assigned())
@@ -275,7 +275,7 @@ void StructDecoderFbImpl::setInputStatus(const StringPtr& value) const
 
 void StructDecoderFbImpl::onDisconnected(const InputPortPtr& inputPort)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     signals.clear();
 

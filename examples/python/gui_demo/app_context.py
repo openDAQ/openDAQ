@@ -24,7 +24,7 @@ class AppContext(object):
         self.selected_node = None
         self.include_reference_devices = False
         self.view_hidden_components = False
-        self.metadata_fields = ['unit', 'read_only']
+        self.metadata_fields = []
         # gui
         self.ui_scaling_factor = 1.0
         self.icons = {}

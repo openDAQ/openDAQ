@@ -9,7 +9,9 @@ yes_no = ['No', 'Yes']
 
 yes_no_inv = {
     'No':  False,
+    'no': False,
     'Yes': True,
+    'yes': True
 }
 
 
@@ -168,8 +170,15 @@ def str_to_num_or_eval(num_str: str):
 
 
 def value_to_coretype(value, coretype: daq.CoreType):
+    # removing unit symbols
+    if coretype in (daq.CoreType.ctBool, daq.CoreType.ctInt, daq.CoreType.ctFloat):
+        value = str.split(value, ' ')[0]
     if coretype == daq.CoreType.ctBool:
-        return daq.Boolean(bool(value))
+        value = value.lower()
+        if value in ('yes', 'no'):
+            return daq.Boolean(yes_no_inv[value])
+        else:
+            return daq.Boolean(bool(value))
     if coretype == daq.CoreType.ctInt:
         return daq.Integer(int(value))
     if coretype == daq.CoreType.ctFloat:

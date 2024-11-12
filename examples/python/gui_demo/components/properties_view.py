@@ -45,6 +45,8 @@ class PropertiesView(ttk.Frame):
         scroll_bar_x.pack(side=tk.BOTTOM, fill=tk.X)
         tree.pack(fill=tk.BOTH, expand=True)
 
+        tree.tag_configure('readonly', foreground='gray')
+
         # define headings
         tree.heading('#0', anchor=tk.W, text='Property name')
         tree.heading('value', anchor=tk.W, text='Value')
@@ -72,20 +74,26 @@ class PropertiesView(ttk.Frame):
                 self.fillProperties(
                     '', daq.IPropertyObject.cast_from(self.node))
 
-    def fillList(self, parent_iid, l):
+    def fillList(self, parent_iid, l, read_only):
         for i, value in enumerate(l):
-            self.tree.insert('' if not parent_iid else parent_iid,
+            iid = self.tree.insert('' if not parent_iid else parent_iid,
                              tk.END, text=str(i), values=(str(value),))
+            if read_only:
+                self.tree.item(iid, tags=('readonly',))
 
-    def fillDict(self, parent_iid, d):
+    def fillDict(self, parent_iid, d, read_only):
         for key, value in d.items():
-            self.tree.insert('' if not parent_iid else parent_iid,
+            iid = self.tree.insert('' if not parent_iid else parent_iid,
                              tk.END, text=str(key), values=(str(value),))
+            if read_only:
+                self.tree.item(iid, tags=('readonly',))
 
-    def fillStruct(self, parent_iid, node):
+    def fillStruct(self, parent_iid, node, read_only):
         for key, value in node.as_dictionary.items():
-            self.tree.insert('' if not parent_iid else parent_iid,
+            iid = self.tree.insert('' if not parent_iid else parent_iid,
                              tk.END, text=key, values=(value,))
+            if read_only:
+                self.tree.item(iid, tags=('readonly',))
 
     def fillProperties(self, parent_iid, node):
         def printed_value(value_type, value):
@@ -122,19 +130,23 @@ class PropertiesView(ttk.Frame):
             except Exception as e:
                 print(e)
 
+            unit_symbol = property_info.unit.symbol if property_info.unit is not None else ''
             iid = self.tree.insert('' if not parent_iid else parent_iid, tk.END, text=property_info.name, values=(
-                property_value, *meta_fields))
+                f'{property_value} {unit_symbol}', *meta_fields))
+            if property_info.read_only:
+                self.tree.item(iid, tags=('readonly',))
+
 
             if property_info.value_type == daq.CoreType.ctObject:
                 self.fillProperties(
                     iid, node.get_property_value(property_info.name))
             elif property_info.value_type == daq.CoreType.ctStruct:
                 self.fillStruct(
-                    iid, node.get_property_value(property_info.name))
+                    iid, node.get_property_value(property_info.name), property_info.read_only)
             elif property_info.value_type == daq.CoreType.ctList:
-                self.fillList(iid, node.get_property_value(property_info.name))
+                self.fillList(iid, node.get_property_value(property_info.name), property_info.read_only)
             elif property_info.value_type == daq.CoreType.ctDict:
-                self.fillDict(iid, node.get_property_value(property_info.name))
+                self.fillDict(iid, node.get_property_value(property_info.name), property_info.read_only)
 
     def handle_copy(self):
         selected_item = utils.treeview_get_first_selection(self.tree)
@@ -144,7 +156,7 @@ class PropertiesView(ttk.Frame):
 
         self.clipboard_clear()
         value = '' if len(item['values']) == 0 else item['values'][0]
-        self.clipboard_append(value)
+        self.clipboard_append(value.strip())
 
     def handle_show_metadata(self):
         selected_item = utils.treeview_get_first_selection(self.tree)

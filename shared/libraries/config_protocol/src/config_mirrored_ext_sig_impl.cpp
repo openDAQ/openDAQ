@@ -128,4 +128,9 @@ DataDescriptorPtr ConfigMirroredExternalSignalImpl::onGetDescriptor()
     return mirroredDataDescriptor.addRefAndReturn();
 }
 
+ErrCode ConfigMirroredExternalSignalImpl::getSignalSerializeId(IString** serializeId)
+{
+    return this->getGlobalId(serializeId);
+}
+
 }

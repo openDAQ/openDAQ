@@ -1,6 +1,7 @@
 set(BASE_NAME component)
 
 function(rtgen_component_${BASE_NAME})
+    rtgen(SRC_ComponentType component_type.h)
     rtgen(SRC_Component component.h)
     rtgen(SRC_SearchFilter search_filter.h)
     rtgen(SRC_Folder folder.h)
@@ -69,6 +70,11 @@ function(create_component_source_groups_${BASE_NAME})
     set(SDK_HEADERS_DIR "component/include/opendaq")
     set(SDK_SRC_DIR "component/src")
     
+    source_group("component//type" FILES
+        ${SDK_HEADERS_DIR}/component_type.h
+        ${SDK_HEADERS_DIR}/component_type_impl.h
+    )
+    
     source_group("component//component" FILES 
         ${SDK_HEADERS_DIR}/component.h
         ${SDK_HEADERS_DIR}/component_impl.h
@@ -132,6 +138,7 @@ function(create_component_source_groups_${BASE_NAME})
 endfunction()
 
 set(SRC_PublicHeaders_Component 
+    component_type.h
     component_impl.h
     component_ptr.custom.h
     folder_factory.h
@@ -159,6 +166,7 @@ set(SRC_PublicHeaders_Component
 )
 
 set(SRC_PrivateHeaders_Component
+    component_type_impl.h
     search_filter_impl.h
     tags_impl.h      
     component_status_container_private.h

@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/function_block_type.h>
-#include <coreobjects/component_type_impl.h>
+#include <opendaq/component_type_impl.h>
 #include <opendaq/component_type_builder_ptr.h>
 #include <opendaq/function_block_type_factory.h>
 

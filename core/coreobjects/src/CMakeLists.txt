@@ -36,7 +36,6 @@ rtgen(SRC_Coercer coercer.h)
 rtgen(SRC_Validator validator.h)
 rtgen(SRC_Unit unit.h)
 rtgen(SRC_UnitBuilder unit_builder.h)
-rtgen(SRC_ComponentType component_type.h)
 rtgen(SRC_CoreEventArgs core_event_args.h)
 rtgen(SRC_User user.h)
 rtgen(SRC_UserInternal user_internal.h)
@@ -143,10 +142,6 @@ source_group("unit" FILES ${SDK_HEADERS_DIR}/unit.h
                           unit_builder_impl.cpp
 )
 
-source_group("component_type" FILES ${SDK_HEADERS_DIR}/component_type.h
-                                    ${SDK_HEADERS_DIR}/component_type_impl.h
-)
-
 source_group("core_event_args" FILES ${SDK_HEADERS_DIR}/core_event_args.h
                                      ${SDK_HEADERS_DIR}/core_event_args_factory.h
                                      ${SDK_HEADERS_DIR}/core_event_args_impl.h
@@ -246,7 +241,6 @@ set(SRC_PublicHeaders coreobjects.h
                       exceptions.h
                       errors.h
                       unit_factory.h
-                      component_type.h
                       core_event_args_factory.h 
                       core_event_args_ids.h 
                       core_event_args_impl.h
@@ -283,7 +277,6 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        property_builder_impl.h
                        property_object_class_builder_impl.h
                        property_object_internal.h
-                       component_type_impl.h
                        user_impl.h
                        authentication_provider_impl.h
                        permission_manager_impl.h
@@ -316,7 +309,6 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_Coercer}
                                ${SRC_Unit}
                                ${SRC_UnitBuilder}
-                               ${SRC_ComponentType}
                                ${SRC_CoreEventArgs}
                                ${SRC_User}
                                ${SRC_UserInternal}

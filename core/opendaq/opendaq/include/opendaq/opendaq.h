@@ -47,6 +47,8 @@
 #include <opendaq/connection_factory.h>
 #include <opendaq/input_port_factory.h>
 
+#include <opendaq/component_type_ptr.h>
+
 #include <opendaq/component_ptr.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/search_filter_factory.h>

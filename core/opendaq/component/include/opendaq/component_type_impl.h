@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <coreobjects/component_type.h>
+#include <opendaq/component_type.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/validation.h>

@@ -15,7 +15,7 @@ from tkinter import messagebox
 try:
     from ctypes import windll
     windll.shcore.SetProcessDpiAwareness(1)
-except BaseException:
+except Exception:
     pass
 
 try:
@@ -662,9 +662,8 @@ class App(tk.Tk):
             device.lock()
             self._set_node_lock_status_recursive(node)
         except Exception as e:
-            msg = str(e)
-            print('Lock failed: ', msg, file=sys.stderr)
-            messagebox.showerror("Force unlock failed", msg)
+            utils.show_error('Lock failed', f'{component.name}: {e}', self)
+            print(f'Lock failed: {str(e)}', file=sys.stderr)
 
     def handle_unlock(self):
         node = utils.treeview_get_first_selection(self.tree)
@@ -675,9 +674,9 @@ class App(tk.Tk):
             device.unlock()
             self._set_node_lock_status_recursive(node)
         except Exception as e:
-            print('Unlock failed: ', e, file=sys.stderr)
-            msg = str(e) + ". Do you want to forcefully unlock the device?"
-            do_force_unlock = messagebox.askyesno("Unlock failed", msg)
+            print(f'Unlock failed: {str(e)}', file=sys.stderr)
+            msg = str(e) + '. Do you want to forcefully unlock the device?'
+            do_force_unlock = messagebox.askyesno('Unlock failed', msg)
             if do_force_unlock:
                 self._force_unlock_device(node, component)
 
@@ -688,7 +687,7 @@ class App(tk.Tk):
             self._set_node_lock_status_recursive(node)
         except Exception as e:
             print('Force unlock failed: ', e, file=sys.stderr)
-            messagebox.showerror("Force unlock failed", str(e))
+            utils.show_error('Force unlock failed', str(e), self)
 
     def set_node_update_status(self):
         for node in self.tree.get_children():

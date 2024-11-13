@@ -8,6 +8,8 @@ from ..event_port import EventPort
 from ..app_context import AppContext
 from .function_dialog import FunctionDialog
 from .edit_container_property import EditContainerPropertyDialog
+from .metadata_dialog import MetadataDialog
+from .metadata_fields_selector_dialog import MetadataFieldsSelectorDialog
 
 
 class PropertiesView(ttk.Frame):
@@ -20,27 +22,48 @@ class PropertiesView(ttk.Frame):
 
         self.configure(padding=(10, 5))
 
-        ttk.Label(self, text='Properties').pack(anchor=tk.W)
-        tree = ttk.Treeview(self, columns=('value'), show='tree headings')
+        header_frame = ttk.Frame(self)
 
-        scroll_bar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=tree.yview)
+        ttk.Label(header_frame, text='Properties').pack(side=tk.LEFT, pady=5)
+        tk.Button(header_frame, text='Edit', image=self.context.icons['settings'], borderwidth=0,
+                  command=lambda: MetadataFieldsSelectorDialog(
+                      self, self.context).show()
+                  ).pack(
+            side=tk.RIGHT, anchor=tk.E)
+
+        header_frame.pack(fill=tk.X)
+        tree = ttk.Treeview(self, columns=(
+            'value', *self.context.metadata_fields), show='tree headings')
+
+        scroll_bar = ttk.Scrollbar(
+            self, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+        scroll_bar_x = ttk.Scrollbar(
+            self, orient=tk.HORIZONTAL, command=tree.xview)
+        tree.configure(xscrollcommand=scroll_bar_x.set)
+        scroll_bar_x.pack(side=tk.BOTTOM, fill=tk.X)
         tree.pack(fill=tk.BOTH, expand=True)
+
+        tree.tag_configure('readonly', foreground='gray')
 
         # define headings
         tree.heading('#0', anchor=tk.W, text='Property name')
         tree.heading('value', anchor=tk.W, text='Value')
         # layout
-        tree.column('#0', anchor=tk.W)
-        tree.column('#1', anchor=tk.W)
+        tree.column('#0', anchor=tk.W, minwidth=200)
+        tree.column('#1', anchor=tk.W, minwidth=200)
+
+        for field in self.context.metadata_fields:
+            tree.heading(field, anchor=tk.W,
+                         text=utils.snake_case_to_title(field))
+            tree.column(field, anchor=tk.W, minwidth=200)
 
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_double_click)
 
         tree.bind('<Button-3>', self.handle_right_click)
         self.tree = tree
-        self.nodes_by_iids = {}
 
         self.refresh()
 
@@ -51,12 +74,26 @@ class PropertiesView(ttk.Frame):
                 self.fillProperties(
                     '', daq.IPropertyObject.cast_from(self.node))
 
-    def fillStruct(self, parent_iid, node):
+    def fillList(self, parent_iid, l, read_only):
+        for i, value in enumerate(l):
+            iid = self.tree.insert('' if not parent_iid else parent_iid,
+                             tk.END, text=str(i), values=(str(value),))
+            if read_only:
+                self.tree.item(iid, tags=('readonly',))
+
+    def fillDict(self, parent_iid, d, read_only):
+        for key, value in d.items():
+            iid = self.tree.insert('' if not parent_iid else parent_iid,
+                             tk.END, text=str(key), values=(str(value),))
+            if read_only:
+                self.tree.item(iid, tags=('readonly',))
+
+    def fillStruct(self, parent_iid, node, read_only):
         for key, value in node.as_dictionary.items():
-            iid = key if parent_iid is None else parent_iid + '.' + key
-            self.nodes_by_iids[iid] = node
-            self.tree.insert('' if not parent_iid else parent_iid,
-                             tk.END, iid=iid, text=key, values=(value,))
+            iid = self.tree.insert('' if not parent_iid else parent_iid,
+                             tk.END, text=key, values=(value,))
+            if read_only:
+                self.tree.item(iid, tags=('readonly',))
 
     def fillProperties(self, parent_iid, node):
         def printed_value(value_type, value):
@@ -66,9 +103,6 @@ class PropertiesView(ttk.Frame):
                 return value
 
         for property_info in self.context.properties_of_component(node):
-            iid = property_info.name if parent_iid is None else parent_iid + '.' + property_info.name
-            self.nodes_by_iids[iid] = node
-
             if property_info.selection_values is not None:
                 if len(property_info.selection_values) > 0:
                     property_value = printed_value(
@@ -83,109 +117,156 @@ class PropertiesView(ttk.Frame):
                 property_value = 'Struct {{{}}}'.format(property_info.name)
             else:
                 property_value = printed_value(
-                    property_info.item_type, node.get_property_value(property_info.name))
+                    property_info.value_type, node.get_property_value(property_info.name))
 
-            self.tree.insert('' if not parent_iid else parent_iid, tk.END, iid=iid, text=property_info.name, values=(
-                property_value,))
+            meta_fields = [None] * len(self.context.metadata_fields)
+
+            try:
+                for i, field in enumerate(self.context.metadata_fields):
+                    metadata_value = getattr(property_info, field)
+                    metadata_value = utils.metadata_converters[field](
+                        metadata_value) if field in utils.metadata_converters else metadata_value
+                    meta_fields[i] = metadata_value
+            except Exception as e:
+                print(e)
+
+            unit_symbol = property_info.unit.symbol if property_info.unit is not None else ''
+            iid = self.tree.insert('' if not parent_iid else parent_iid, tk.END, text=property_info.name, values=(
+                f'{property_value} {unit_symbol}', *meta_fields))
+            if property_info.read_only:
+                self.tree.item(iid, tags=('readonly',))
+
 
             if property_info.value_type == daq.CoreType.ctObject:
                 self.fillProperties(
                     iid, node.get_property_value(property_info.name))
             elif property_info.value_type == daq.CoreType.ctStruct:
                 self.fillStruct(
-                    iid, node.get_property_value(property_info.name))
+                    iid, node.get_property_value(property_info.name), property_info.read_only)
+            elif property_info.value_type == daq.CoreType.ctList:
+                self.fillList(iid, node.get_property_value(property_info.name), property_info.read_only)
+            elif property_info.value_type == daq.CoreType.ctDict:
+                self.fillDict(iid, node.get_property_value(property_info.name), property_info.read_only)
 
     def handle_copy(self):
         selected_item = utils.treeview_get_first_selection(self.tree)
         if selected_item is None:
             return
         item = self.tree.item(selected_item)
-        property_name = item['text']
-        node = self.nodes_by_iids.get(selected_item)
-        node = daq.IPropertyObject.cast_from(node)
-        if not node:
-            return
-        property_value = node.get_property_value(property_name)
+
         self.clipboard_clear()
-        self.clipboard_append(property_value)
+        value = '' if len(item['values']) == 0 else item['values'][0]
+        self.clipboard_append(value.strip())
 
-    def handle_paste(self):
+    def handle_show_metadata(self):
         selected_item = utils.treeview_get_first_selection(self.tree)
-
         if selected_item is None:
             return
-        item = self.tree.item(selected_item)
-        property_name = item['text']
 
-        node = self.nodes_by_iids.get(selected_item)
+        path = utils.get_item_path(self.tree, selected_item)
+        prop = utils.get_property_for_path(self.context, path, self.node)
+        if not prop:
+            return
 
-        node = daq.IPropertyObject.cast_from(node)
-        if not node:
+        MetadataDialog(self, prop, self.context).show()
+
+    def nearest_property_with_path(self, path):
+        prop = utils.get_property_for_path(self.context, path, self.node)
+        while prop is None and len(path) > 0:
+            path = path[:-1]
+            prop = utils.get_property_for_path(self.context, path, self.node)
+        return (prop, path)
+
+    def handle_paste(self):
+        selected_item_id = utils.treeview_get_first_selection(self.tree)
+        if selected_item_id is None:
             return
-        property_info = node.get_property(property_name)
-        if not property_info:
+
+        path = utils.get_item_path(self.tree, selected_item_id)
+        prop, prop_path = self.nearest_property_with_path(path)
+
+        if not prop:
             return
-        if property_info.read_only:
+
+        path_diff = list(set(path) - set(prop_path))
+        if len(path_diff) > 1:
             return
-        property_value = self.clipboard_get()
-        if property_value is None:
-            return
-        node.set_property_value(property_name, property_value)
-        self.refresh()
-        self.event_port.emit()
+
+        value = prop.value
+        try:
+            if prop.value_type == daq.CoreType.ctObject:
+                pass  # ignoring paste to objects
+            elif prop.value_type == daq.CoreType.ctStruct:
+                field_type = [
+                    field for field in prop.struct_type.field_types if field.name == path_diff[0]][0].core_type
+                setattr(value, path_diff[0], utils.value_to_coretype(
+                    self.clipboard_get(), field_type))
+                prop.value = value
+            elif prop.value_type == daq.CoreType.ctList:
+                value[int(path_diff[0])] = utils.value_to_coretype(
+                    self.clipboard_get(), prop.item_type)
+                prop.value = value
+            elif prop.value_type == daq.CoreType.ctDict:
+                value[utils.value_to_coretype(path_diff[0], prop.key_type)] = utils.value_to_coretype(
+                    self.clipboard_get(), prop.item_type)
+                prop.value = value
+            else:
+                prop.value = utils.value_to_coretype(
+                    self.clipboard_get(), prop.value_type)
+
+            self.event_port.emit()
+
+        except Exception as e:
+            utils.show_error('Paste error', f'Can\'t paste: {e}', parent=self)
 
     def handle_right_click(self, event):
+        utils.treeview_select_item(self.tree, event)
+
         menu = tk.Menu(self, tearoff=0)
         menu.add_command(label='Copy', command=self.handle_copy)
         menu.add_command(label='Paste',
                          command=self.handle_paste)
+        menu.add_separator()
+        menu.add_command(label='Metadata', command=self.handle_show_metadata)
         menu.tk_popup(event.x_root, event.y_root)
 
     def handle_double_click(self, event):
-        selected_item = utils.treeview_get_first_selection(self.tree)
-        if selected_item is None:
+        selected_item_id = utils.treeview_get_first_selection(self.tree)
+        if selected_item_id is None:
             return
-        item = self.tree.item(selected_item)
-        property_name = item['text']
-        node = self.nodes_by_iids.get(selected_item)
-        if not node:
-            return
-        if not daq.IPropertyObject.can_cast_from(node):
-            return
-        node = daq.IPropertyObject.cast_from(node)
-        if not node:
+        property_name = self.tree.item(selected_item_id, 'text')
+        path = utils.get_item_path(self.tree, selected_item_id)
+        prop = utils.get_property_for_path(self.context, path, self.node)
+        if not prop:
             return
 
-        property_info = node.get_property(property_name)
-        property_value = node.get_property_value(property_name)
-        old_value = property_value
-        if not property_info:
-            return
+        old_value = prop.value
+        property_value = prop.value
 
-        if property_info.value_type == daq.CoreType.ctFunc:
+        if prop.value_type == daq.CoreType.ctFunc:
             f = daq.IFunction.cast_from(property_value)
-            FunctionDialog(self, property_info, f, self.context).show()
+            FunctionDialog(self, prop, f, self.context).show()
             return
 
-        if property_info.value_type == daq.CoreType.ctProc:
+        if prop.value_type == daq.CoreType.ctProc:
             p = daq.IProcedure.cast_from(property_value)
-            FunctionDialog(self, property_info, p, self.context).show()
+            FunctionDialog(self, prop, p, self.context).show()
             return
 
-        if (property_info is None or property_info.read_only):
+        if prop.read_only:
             return
 
         prompt = 'Enter the new value for {}:'.format(property_name)
 
-        if property_info.value_type == daq.CoreType.ctBool:
+        if prop.value_type == daq.CoreType.ctBool:
             property_value = not property_value
-        elif property_info.value_type == daq.CoreType.ctInt:
-            if property_info.selection_values is not None:
+        elif prop.value_type == daq.CoreType.ctInt:
+            if prop.selection_values is not None:
                 property_value = utils.show_selection(
-                    prompt, property_value, property_info.selection_values)
+                    prompt, property_value, prop.selection_values)
             else:
-                min_value = property_info.min_value
-                max_value = property_info.max_value
+                min_value = prop.min_value
+                max_value = prop.max_value
                 if min_value is not None and max_value is not None:
                     property_value = simpledialog.askinteger(
                         property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value.int_value,
@@ -194,9 +275,9 @@ class PropertiesView(ttk.Frame):
                     property_value = simpledialog.askinteger(
                         property_name, prompt=prompt, initialvalue=property_value)
 
-        elif property_info.value_type == daq.CoreType.ctFloat:
-            min_value = property_info.min_value
-            max_value = property_info.max_value
+        elif prop.value_type == daq.CoreType.ctFloat:
+            min_value = prop.min_value
+            max_value = prop.max_value
             if min_value is not None and max_value is not None:
                 property_value = simpledialog.askfloat(
                     property_name, prompt=prompt, initialvalue=property_value, minvalue=min_value.float_value,
@@ -204,11 +285,12 @@ class PropertiesView(ttk.Frame):
             else:
                 property_value = simpledialog.askfloat(
                     property_name, prompt=prompt, initialvalue=property_value)
-        elif property_info.value_type == daq.CoreType.ctString:
+        elif prop.value_type == daq.CoreType.ctString:
             property_value = simpledialog.askstring(
                 property_name, prompt=prompt, initialvalue=property_value)
-        elif property_info.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
-            EditContainerPropertyDialog(self, property_info, self.context).show()
+        elif prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
+            EditContainerPropertyDialog(
+                self, prop, self.context).show()
         else:
             return
 
@@ -216,6 +298,6 @@ class PropertiesView(ttk.Frame):
             return
 
         if old_value != property_value:
-            node.set_property_value(property_name, property_value)
+            prop.value = property_value
             self.refresh()
             self.event_port.emit()

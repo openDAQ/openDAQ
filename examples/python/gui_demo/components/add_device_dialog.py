@@ -72,7 +72,8 @@ class AddDeviceDialog(Dialog):
         device_tree_frame.pack(fill=tk.BOTH, expand=True)
 
         add_device_frame = ttk.Frame(right_side_frame)
-        ttk.Label(add_device_frame, text='Connection string:').pack(side=tk.LEFT)
+        ttk.Label(add_device_frame, text='Connection string:').pack(
+            side=tk.LEFT)
         self.conn_string_entry = ttk.Entry(add_device_frame)
         self.conn_string_entry.bind('<Return>', self.handle_entry_enter)
         self.conn_string_entry.pack(
@@ -81,10 +82,10 @@ class AddDeviceDialog(Dialog):
         self.add_device_option = tk.StringVar(add_device_frame)
         add_device_options = ['no config', 'with config']
         ttk.OptionMenu(add_device_frame, self.add_device_option, 'no config',
-                      *add_device_options).pack(side=tk.RIGHT)
+                       *add_device_options).pack(side=tk.RIGHT)
 
         ttk.Button(add_device_frame, text='Add',
-                  command=self.handle_add_device).pack(side=tk.RIGHT)
+                   command=self.handle_add_device).pack(side=tk.RIGHT)
 
         add_device_frame.pack(side=tk.BOTTOM, fill=tk.X,
                               padx=(5, 0), pady=(5, 0))
@@ -118,7 +119,8 @@ class AddDeviceDialog(Dialog):
             self.parent_device_tree)
         if selected_item is None:
             return
-        parent_device = utils.find_component(selected_item, self.context.instance)
+        parent_device = utils.find_component(
+            selected_item, self.context.instance)
         if parent_device is not None and daq.IDevice.can_cast_from(parent_device):
             parent_device = daq.IDevice.cast_from(parent_device)
             self.dialog_parent_device = parent_device
@@ -151,13 +153,18 @@ class AddDeviceDialog(Dialog):
 
     def add_device(self, connection_string, config):
         if connection_string and self.dialog_parent_device is not None:
-            device = self.context.add_device(DeviceInfoLocal(
-                connection_string), self.dialog_parent_device, config)
-            if device:
+            try:
+                device = self.context.add_device(DeviceInfoLocal(
+                    connection_string), self.dialog_parent_device, config)
+
                 self.update_parent_devices(
                     self.parent_device_tree, '', self.context.instance)
                 self.select_parent_device(device.global_id)
                 self.event_port.emit()
+            except RuntimeError as e:
+                utils.show_error('Error adding device', f'{
+                                 connection_string}: {e}', self)
+                return
 
     def handle_add_device(self):
         config = None

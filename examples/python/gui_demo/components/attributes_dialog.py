@@ -13,7 +13,6 @@ from .dialog import Dialog
 class AttributesDialog(Dialog):
     def __init__(self, parent, title, node, context: AppContext, **kwargs):
         Dialog.__init__(self, parent, title, None, **kwargs)
-        self.title(title)
         self.parent = parent
         self.node = node
         self.context = context
@@ -56,8 +55,10 @@ class AttributesDialog(Dialog):
                 signal_domain_desc_frame = ttk.Frame(self.notebook)
                 self.notebook.add(signal_desc_frame, text='Signal Descriptor')
                 if self.node.domain_signal is not None:
-                    self.notebook.add(signal_domain_desc_frame, text='Signal Domain Descriptor')
-                self.notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
+                    self.notebook.add(signal_domain_desc_frame,
+                                      text='Signal Domain Descriptor')
+                self.notebook.bind('<<NotebookTabChanged>>',
+                                   self.on_tab_change)
             elif daq.IDevice.can_cast_from(node):
                 self.node = daq.IDevice.cast_from(node)
                 ttk.Label(self, text='Device Info').pack(
@@ -82,7 +83,8 @@ class AttributesDialog(Dialog):
             additional_tree.column('#1', anchor=tk.W, minwidth=100)
 
             self.additional_tree = additional_tree
-            additional_tree.bind('<Button-3>', self.handle_right_click_additional)
+            additional_tree.bind(
+                '<Button-3>', self.handle_right_click_additional)
 
         self.tree = tree
         self.initial_update_func = lambda: self.tree_update()

@@ -9,7 +9,7 @@ class Dialog(tk.Toplevel):
         tk.Toplevel.__init__(self, parent, **kwargs)
         self.title(title)
         self.parent = parent
-        self.context: AppContext = context
+        self.context = context
         self.initial_update_func = None
 
         self.configure(padx=10, pady=5)

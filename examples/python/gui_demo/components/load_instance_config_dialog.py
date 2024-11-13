@@ -99,9 +99,15 @@ class LoadInstanceConfigDialog(Dialog):
     def edit_value(self, event):
         item_id = self.tree.selection()[0]
         path = utils.get_item_path(self.tree, item_id)
-        prop = utils.get_property_for_path(self.context, path, self.updata_params)
+        prop = utils.get_property_for_path(
+            self.context, path, self.updata_params)
         if prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
             EditContainerPropertyDialog(self, prop, self.updata_params).show()
+        elif prop.value_type == daq.CoreType.ctBool:
+            column = self.tree.identify_column(event.x)
+            if column == '#1':
+                prop.value = not prop.value
+                self.tree.set(item_id, column, str(prop.value))
         else:
             column = self.tree.identify_column(event.x)
             if column == '#1':
@@ -111,7 +117,7 @@ class LoadInstanceConfigDialog(Dialog):
                 entry.place(x=x, y=y, width=width, height=height)
                 entry.insert(0, value)
                 entry.focus()
-                path = utils.get_item_path(self.tree,item_id)
+                path = utils.get_item_path(self.tree, item_id)
                 entry.bind('<Return>', lambda e: self.save_value(
                     entry, item_id, column, path))
                 entry.bind('<FocusOut>', lambda e: self.save_value(

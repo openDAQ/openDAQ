@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 
 import opendaq as daq
 
@@ -8,7 +9,9 @@ yes_no = ['No', 'Yes']
 
 yes_no_inv = {
     'No':  False,
+    'no': False,
     'Yes': True,
+    'yes': True
 }
 
 
@@ -24,6 +27,11 @@ def treeview_get_first_selection(treeview):
     if len(sel) == 0:
         return None
     return sel[0]
+
+
+def treeview_select_item(treeview, event):
+    item = treeview.identify_row(event.y)
+    treeview.selection_set(item)
 
 
 def get_nearest_device(component, default=None):
@@ -81,7 +89,7 @@ def show_selection(title, current_value, values):
         else:
             sel_text = ''
         button = ttk.Button(top, text=sel_text + str(value),
-                           command=make_closure(idx))
+                            command=make_closure(idx))
         button.pack(expand=True, fill=tk.BOTH)
 
     if daq.IDict.can_cast_from(values):
@@ -162,8 +170,15 @@ def str_to_num_or_eval(num_str: str):
 
 
 def value_to_coretype(value, coretype: daq.CoreType):
+    # removing unit symbols
+    if coretype in (daq.CoreType.ctBool, daq.CoreType.ctInt, daq.CoreType.ctFloat):
+        value = str.split(value, ' ')[0]
     if coretype == daq.CoreType.ctBool:
-        return daq.Boolean(bool(value))
+        value = value.lower()
+        if value in ('yes', 'no'):
+            return daq.Boolean(yes_no_inv[value])
+        else:
+            return daq.Boolean(bool(value))
     if coretype == daq.CoreType.ctInt:
         return daq.Integer(int(value))
     if coretype == daq.CoreType.ctFloat:
@@ -193,3 +208,51 @@ def get_property_for_path(context, path: list, property_object: daq.IPropertyObj
                         property.value)
                     return get_property_for_path(context, path[1:], casted_property)
     return None
+
+
+def get_attributes_of_node(node):
+
+    # to filter callables
+    def is_callable(obj, key):
+        try:
+            return callable(getattr(obj, key))
+        except Exception:
+            return True
+
+    try:
+        attributes = dir(node)
+        attributes = list(
+            filter(lambda x: not x.startswith('_'), attributes))
+        attributes = list(
+            filter(lambda x: not is_callable(node, x), attributes))
+    except Exception:
+        attributes = []
+    return attributes
+
+
+def show_error(title, message, parent=None):
+    messagebox.showerror(title, message, parent=parent)
+
+
+def snake_case_to_title(snake_case: str):
+    return snake_case.replace('_', ' ').title()
+
+
+def title_to_snake_case(title: str):
+    return title.lower().replace(' ', '_')
+
+
+def prettify_unit(unit: daq.IStruct):
+    return unit.symbol if unit is not None and unit.symbol is not None else 'None'
+
+
+def prettify_bool(value):
+    return yes_no[value]
+
+
+metadata_converters = {
+    'is_referenced': prettify_bool,
+    'unit': prettify_unit,
+    'read_only': prettify_bool,
+    'visible': prettify_bool
+}

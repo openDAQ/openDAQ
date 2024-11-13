@@ -24,6 +24,7 @@ class AppContext(object):
         self.selected_node = None
         self.include_reference_devices = False
         self.view_hidden_components = False
+        self.metadata_fields = []
         # gui
         self.ui_scaling_factor = 1.0
         self.icons = {}
@@ -48,18 +49,15 @@ class AppContext(object):
             return None
         if parent_device is None:
             return None
-        try:
-            device = parent_device.add_device(
-                device_info.connection_string, config)
-            if device:
-                device_info.name = device.local_id
-                device_info.serial_number = device.info.serial_number
-                self.enabled_devices[device.info.connection_string] = {
-                    'device_info': device_info, 'device': device}
-                return device
-        except RuntimeError as e:
-            print(f'Error adding device {device_info.connection_string}: {e}')
-        return None
+
+        device = parent_device.add_device(
+            device_info.connection_string, config)
+        if device:
+            device_info.name = device.local_id
+            device_info.serial_number = device.info.serial_number
+            self.enabled_devices[device.info.connection_string] = {
+                'device_info': device_info, 'device': device}
+        return device
 
     def remove_device(self, device):
         if device is None:

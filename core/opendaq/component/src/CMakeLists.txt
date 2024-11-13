@@ -70,11 +70,6 @@ function(create_component_source_groups_${BASE_NAME})
     set(SDK_HEADERS_DIR "component/include/opendaq")
     set(SDK_SRC_DIR "component/src")
     
-    source_group("component//type" FILES
-        ${SDK_HEADERS_DIR}/component_type.h
-        ${SDK_HEADERS_DIR}/component_type_impl.h
-    )
-    
     source_group("component//component" FILES 
         ${SDK_HEADERS_DIR}/component.h
         ${SDK_HEADERS_DIR}/component_impl.h
@@ -132,8 +127,11 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/component_holder_impl.cpp
     )
     
-    source_group("component_type" FILES ${SDK_HEADERS_DIR}/component_type_builder.h
-                                    ${SDK_HEADERS_DIR}/component_type_builder_factory.h
+    source_group("component_type" FILES 
+        ${SDK_HEADERS_DIR}/component_type.h
+        ${SDK_HEADERS_DIR}/component_type_impl.h
+        ${SDK_HEADERS_DIR}/component_type_builder.h
+        ${SDK_HEADERS_DIR}/component_type_builder_factory.h
     )
 endfunction()
 

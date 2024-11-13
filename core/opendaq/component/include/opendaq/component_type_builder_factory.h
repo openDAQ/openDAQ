@@ -18,6 +18,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// TODO wrong @ingroup and @addtogroup?
+
 /*!
  * @ingroup coreobjects_unit
  * @addtogroup coreobjects_unit_factories Factories

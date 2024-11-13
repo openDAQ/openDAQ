@@ -20,9 +20,11 @@
 #include <opendaq/module_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 /*#
  * [templated(defaultAliasName: ComponentTypePtr)]
  * [interfaceSmartPtr(IComponentType, GenericComponentTypePtr)]
+ * [interfaceLibrary(IPropertyObject, CoreObjects)]
  */
 
 /*!

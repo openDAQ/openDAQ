@@ -33,17 +33,17 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
                           ? this->logger.getOrAddComponent(REF_MODULE_NAME)
                           : throw ArgumentNullException("Logger must not be null"))
 {
-    if (config.assigned())
+    if (config.assigned() && config.hasProperty("SerialNumber"))
     {
-        if (config.hasProperty("SerialNumber"))
-            serialNumber = config.getPropertyValue("SerialNumber");
+        const StringPtr serialTemp = config.getPropertyValue("SerialNumber");
+        serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
     }
 
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-    if (options.assigned())
+    if (options.assigned() && options.hasKey("SerialNumber"))
     {
-        if (options.hasKey("SerialNumber"))
-            serialNumber = options.get("SerialNumber");
+        const StringPtr serialTemp = config.getPropertyValue("SerialNumber");
+        serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
     }
 
     initIoFolder();
@@ -90,6 +90,7 @@ DeviceTypePtr RefDeviceImpl::CreateType()
     defaultConfig.addProperty(StringProperty("SerialNumber", ""));
     defaultConfig.addProperty(BoolProperty("EnableLogging", False));
     defaultConfig.addProperty(StringProperty("LoggingPath", "ref_device_simulator.log"));
+    defaultConfig.addProperty(StringProperty("Name", ""));
 
     return DeviceType("daqref",
                       "Reference device",

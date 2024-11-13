@@ -38,7 +38,8 @@ TEST_F(ServerTypeTest, ServerTypeFactoryWithDefaultConfig)
 TEST_F(ServerTypeTest, DefaultConfigNullValue)
 {
     ServerTypePtr serverType = ServerType("test_uid", "", "", nullptr);
-    ASSERT_FALSE(serverType.createDefaultConfig().assigned());
+    ASSERT_TRUE(serverType.createDefaultConfig().assigned());
+    ASSERT_EQ(serverType.createDefaultConfig().getAllProperties().getCount(), 0);
 }
 
 TEST_F(ServerTypeTest, ServerTypeStructType)

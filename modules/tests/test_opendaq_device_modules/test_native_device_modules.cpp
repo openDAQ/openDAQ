@@ -370,13 +370,13 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
     };
 
     auto clientInstance = createAndConnectClient(ClientType::ExclusiveControl);
-    ASSERT_TRUE(clientInstance.getDevices().getCount(), 1u);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
     ASSERT_THROW(createAndConnectClient(ClientType::Control), ControlClientRejectedException);
 
     clientInstance = nullptr; // disconnect
     clientInstance = createAndConnectClient(ClientType::ExclusiveControl);
-    ASSERT_TRUE(clientInstance.getDevices().getCount(), 1u);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 }
 
 TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)

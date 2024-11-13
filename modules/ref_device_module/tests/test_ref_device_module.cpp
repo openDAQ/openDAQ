@@ -881,7 +881,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_THROW(ptr = module.createDevice("daqref://device1", nullptr), GeneralErrorException);
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr), GeneralErrorException);
 }
 
 TEST_F(RefDeviceModuleTest, AddRemoveAddDevice)

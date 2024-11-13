@@ -225,8 +225,8 @@ public:
             return errCode;
         
         ComponentTypePtr type;
-        if (types.assigned() && types.hasKey(id))
-            type = types.get(id);
+        if (types.assigned() && types.hasKey(serverTypeId))
+            type = types.get(serverTypeId);
 
         ServerPtr serverInstance;
         errCode = wrapHandlerReturn(this, &Module::onCreateServer, serverInstance, serverTypeId, mergeConfig(config, type), rootDevice);
@@ -437,7 +437,7 @@ private:
                     if (userProp.getValueType() == ctObject)
                         populateDefaultConfig(defaultProp.getValue(), userProp.getValue());
                     else
-                        defaultObj.setPropertyValue(propName, userInput.getPropertyValue(propName));
+                        defaultObj.setPropertyValue(propName, userProp.getValue());
                 }
             }
     }

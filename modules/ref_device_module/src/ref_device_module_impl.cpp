@@ -88,17 +88,29 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     if (config.assigned())
     {
         if (config.hasProperty("LocalId"))
-            localId = config.getPropertyValue("LocalId");
+        {
+            StringPtr localIdTemp = config.getPropertyValue("LocalId");
+            localId = localIdTemp.getLength() ? localIdTemp : nullptr;
+        }
         if (config.hasProperty("Name"))
-            name = config.getPropertyValue("Name");
+        {
+            StringPtr nameTemp = config.getPropertyValue("Name");
+            name = nameTemp.getLength() ? nameTemp : nullptr;
+        }
     }
 
     if (options.assigned())
     {
         if (options.hasKey("LocalId"))
-            localId = options.get("LocalId");
+        {
+            StringPtr localIdTemp = options.get("LocalId");
+            localId = localIdTemp.getLength() ? localIdTemp : nullptr;
+        }
         if (options.hasKey("Name"))
-            name = options.get("Name");
+        {
+            StringPtr nameTemp = options.get("Name");
+            name = nameTemp.getLength() ? nameTemp : nullptr;
+        }
     }
 
     if (!localId.assigned())

@@ -57,7 +57,7 @@ private:
     DictPtr<IString, IDict> connections;
     DictPtr<IString, IString> signalDependencies;
     ListPtr<IString> parentDependencies;
-    DevicePtr rootComponent;
+    const ComponentPtr rootComponent;
 };
 
 inline ComponentPtr ComponentUpdateContextImpl::GetRootComponent(const ComponentPtr& curComponent)
@@ -197,9 +197,14 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
             return OPENDAQ_SUCCESS;
     }
 
-    auto rootDeviceId = GetRootDeviceId(signalId);
-    auto rootDevice = GetDevice(rootDeviceId, rootComponent);
-    if (!rootDevice.assigned())
+    auto signalRootId = GetRootDeviceId(signalId);
+    ComponentPtr signalRootComponent;
+    if (rootComponent.supportsInterface<IDevice>())
+        signalRootComponent = GetDevice(signalRootId, rootComponent);
+    else if (rootComponent.getLocalId() == signalRootId)
+        signalRootComponent = rootComponent;
+
+    if (!signalRootComponent.assigned())
     {
         auto loggerComponent = rootComponent.getContext().getLogger().getOrAddComponent("Component");
         LOG_W("Root device for signal {} not found", signalId);
@@ -207,7 +212,7 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
     }
 
     ComponentPtr signalPtr;
-    rootDevice->findComponent(signalId, &signalPtr);
+    signalRootComponent->findComponent(signalId, &signalPtr);
 
     if (!signalPtr.assigned())
         return OPENDAQ_NOTFOUND;

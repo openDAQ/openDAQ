@@ -34,3 +34,16 @@ endif()
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()
+
+include(GNUInstallDirs)
+
+install(TARGETS ${EXTERNAL_LIB} EXPORT ${EXTERNAL_LIB}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+  
+install(
+    DIRECTORY "include/${EXTERNAL_LIB}"
+    DESTINATION include
+)
+

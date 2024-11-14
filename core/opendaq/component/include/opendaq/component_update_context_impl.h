@@ -200,7 +200,11 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
     auto rootDeviceId = GetRootDeviceId(signalId);
     auto rootDevice = GetDevice(rootDeviceId, rootComponent);
     if (!rootDevice.assigned())
+    {
+        auto loggerComponent = rootComponent.getContext().getLogger().getOrAddComponent("Component");
+        LOG_W("Root device for signal {} not found", signalId);
         return OPENDAQ_NOTFOUND;
+    }
 
     ComponentPtr signalPtr;
     rootDevice->findComponent(signalId, &signalPtr);

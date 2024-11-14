@@ -5,6 +5,7 @@ UpdateParametersImpl::UpdateParametersImpl()
     : Super()
 {
     Super::addProperty(BoolProperty("ReAddDevices", false));
+    Super::addProperty(BoolProperty("RemoteUpdate", false));
 }
 
 template <typename T>

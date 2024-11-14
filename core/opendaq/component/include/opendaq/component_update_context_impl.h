@@ -19,6 +19,7 @@
 #include <opendaq/component_ptr.h>
 #include <opendaq/signal_ptr.h>
 #include <opendaq/update_parameters_factory.h>
+#include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -48,14 +49,15 @@ private:
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
 
     static ComponentPtr GetRootComponent(const ComponentPtr& curComponent);
-    static StringPtr RemoveRootDeviceId(const std::string& globalId);
+    static DevicePtr GetDevice(const StringPtr& id, const DevicePtr& parentDevice);
+    static std::string GetRootDeviceId(const std::string& id);
 
     UpdateParametersPtr config;
 
     DictPtr<IString, IDict> connections;
     DictPtr<IString, IString> signalDependencies;
     ListPtr<IString> parentDependencies;
-    ComponentPtr rootComponent;
+    DevicePtr rootComponent;
 };
 
 inline ComponentPtr ComponentUpdateContextImpl::GetRootComponent(const ComponentPtr& curComponent)
@@ -66,21 +68,30 @@ inline ComponentPtr ComponentUpdateContextImpl::GetRootComponent(const Component
     return GetRootComponent(parent);
 }
 
-inline StringPtr ComponentUpdateContextImpl::RemoveRootDeviceId(const std::string& globalId)
+inline DevicePtr ComponentUpdateContextImpl::GetDevice(const StringPtr& id, const DevicePtr& parentDevice)
 {
-    if (globalId.size() < 2)
-        return globalId;
+    if (parentDevice.getLocalId() == id)
+        return parentDevice;
     
-    if (globalId[0] != '/')
-        return globalId;
-    
-    // Find the position of the second slash
-    size_t secondSlashPos = globalId.find('/', 1);
-    if (secondSlashPos == std::string::npos)
-        return "";
+    for (const auto& device: parentDevice.getDevices())
+    {
+        const auto devicePtr = GetDevice(id, device);
+        if (devicePtr.assigned())
+            return devicePtr;
+    }
+    return nullptr;
+}
 
-    // Erase the first segment
-    return globalId.substr(secondSlashPos + 1);
+inline std::string ComponentUpdateContextImpl::GetRootDeviceId(const std::string& id)
+{
+    if (id.empty())
+        return id;
+    
+    auto idx = id.find('/', 1);
+    if (idx == std::string::npos)
+        return id;
+
+    return id.substr(1, idx - 1);
 }
 
 inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
@@ -100,8 +111,7 @@ inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* paren
         ports = connections.get(parentId);
     }
 
-    auto signalRemoteId = RemoveRootDeviceId(StringPtr::Borrow(signalId));
-    ports.set(portId, signalRemoteId);
+    ports.set(portId, signalId);
 
     return OPENDAQ_SUCCESS;
 }
@@ -187,8 +197,13 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
             return OPENDAQ_SUCCESS;
     }
 
+    auto rootDeviceId = GetRootDeviceId(signalId);
+    auto rootDevice = GetDevice(rootDeviceId, rootComponent);
+    if (!rootDevice.assigned())
+        return OPENDAQ_NOTFOUND;
+
     ComponentPtr signalPtr;
-    rootComponent->findComponent(signalId, &signalPtr);
+    rootDevice->findComponent(signalId, &signalPtr);
 
     if (!signalPtr.assigned())
         return OPENDAQ_NOTFOUND;
@@ -203,14 +218,8 @@ inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId
         return OPENDAQ_ERR_ARGUMENT_NULL;
     if (parentId == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    StringPtr signalRemoteId = RemoveRootDeviceId(StringPtr::Borrow(signalId));
-    StringPtr parentRemoteId = RemoveRootDeviceId(StringPtr::Borrow(parentId));
 
-    if (signalRemoteId.toStdString().find(parentRemoteId.toStdString()) != 0)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "%s is not parent of signal %s", parentRemoteId.getCharPtr(), signalRemoteId.getCharPtr());
-
-    signalDependencies.set(signalRemoteId, parentId);
+    signalDependencies.set(signalId, parentId);
     return OPENDAQ_SUCCESS;
 }
 
@@ -240,7 +249,7 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     signalDependencies->deleteItem(signalId);
     
     auto signalIdPtr = StringPtr::Borrow(signalId);
-    StringPtr signalLocalId = signalIdPtr.toStdString().substr(RemoveRootDeviceId(parentId).getLength());
+    StringPtr signalLocalId = signalIdPtr.toStdString().substr(parentId.getLength());
     
     ComponentPtr signalComponent;
     parentComponent->findComponent(signalLocalId, &signalComponent);

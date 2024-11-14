@@ -246,9 +246,10 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
     releaseSessionHandlerInternal(session, true);
 }
 
-void NativeStreamingServerHandler::releaseSessionHandlerInternal(SessionPtr session, bool enableSyncLock)
+std::shared_ptr<ServerSessionHandler> NativeStreamingServerHandler::releaseSessionHandlerInternal(SessionPtr session, bool enableSyncLock)
 {
     std::shared_ptr<ServerSessionHandler> removedSessionHandler;  // keep object outside the scoped lock
+
     {
         std::unique_lock lock(sync, std::defer_lock);
         if (enableSyncLock)
@@ -280,6 +281,8 @@ void NativeStreamingServerHandler::releaseSessionHandlerInternal(SessionPtr sess
 
     if (session->isOpen())
         session->close();
+
+    return removedSessionHandler;
 }
 
 void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjectPtr& propertyObject,
@@ -408,6 +411,9 @@ void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<
 void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerSessionHandler> sessionHandler,
                                                          config_protocol::PacketBuffer&& firstPacketBuffer)
 {
+    // session hanlders have to be relaeased outside the sync lock
+    std::vector<std::shared_ptr<ServerSessionHandler>> releasedSessions;
+
     {
         std::scoped_lock lock(sync);
 
@@ -439,7 +445,7 @@ void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerS
         {
             if (sessionHandler->isExclusiveControlDropOthersEnabled())
             {
-                releaseOtherControlConnectionsInternal(sessionHandler);
+                releaseOtherControlConnectionsInternal(sessionHandler, releasedSessions);
                 LOG_W("Exclusive control client connected with \"ExclusiveControlDropOthers\" flag enabled, disconnecting other control "
                       "and exclusive control clients");
             }
@@ -550,7 +556,8 @@ void NativeStreamingServerHandler::onSessionError(const std::string& errorMessag
         });
 }
 
-void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(std::shared_ptr<ServerSessionHandler> currentSessiohandler)
+void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(
+    std::shared_ptr<ServerSessionHandler> currentSessiohandler, std::vector<std::shared_ptr<ServerSessionHandler>> releasedSessionHanlders)
 {
     std::vector<SessionPtr> sessionsToRelease;
 
@@ -569,7 +576,10 @@ void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(std::s
     }
 
     for (const auto& session : sessionsToRelease)
-        releaseSessionHandlerInternal(session, false);
+    {
+        const auto& released = releaseSessionHandlerInternal(session, false);
+        releasedSessionHanlders.push_back(released);
+    }
 }
 
 ClientType NativeStreamingServerHandler::parseClientTypeProp(const PropertyObjectPtr& propertyObject)

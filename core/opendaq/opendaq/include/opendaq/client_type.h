@@ -36,7 +36,7 @@ enum class ClientType : EnumType
 class ClientTypeTools
 {
 public:
-    static void DefineConfigProperties(PropertyObjectPtr obj);
+    static void DefineConfigProperties(PropertyObjectPtr& obj);
     static ClientType IntToClientType(Int value);
 };
 

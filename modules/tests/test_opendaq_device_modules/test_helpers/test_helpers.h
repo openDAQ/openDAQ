@@ -28,6 +28,7 @@
 
 #include <opendaq/event_packet_params.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/client_type.h>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -261,6 +262,21 @@ namespace test_helpers
 
         return result;
     }
+
+    static InstancePtr connectIntanceWithClientType(const std::string& connectionString, ClientType clientType, bool dropOthers = false)
+    {
+        auto clientInstance = Instance();
+
+        auto config = clientInstance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+        generalConfig.setPropertyValue("ClientType", (Int) clientType);
+        generalConfig.setPropertyValue("ExclusiveControlDropOthers", dropOthers);
+
+        auto device = clientInstance.addDevice(connectionString, config);
+        return clientInstance;
+    }
+
 }
 
 END_NAMESPACE_OPENDAQ

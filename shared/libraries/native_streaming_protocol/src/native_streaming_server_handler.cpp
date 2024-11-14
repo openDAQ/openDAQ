@@ -269,7 +269,7 @@ void NativeStreamingServerHandler::releaseSessionHandlerInternal(SessionPtr sess
             for (const auto& signal : signalsToUnsubscribe)
                 signalUnsubscribedHandler(signal);
 
-            decrementConnectionCount(removedSessionHandler);
+            decrementConfigConnectionCount(removedSessionHandler);
             sessionHandlers.erase(clientIter);
         }
         else
@@ -452,7 +452,7 @@ void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerS
         }
 
         sessionHandler->triggerUseConfigProtocol();
-        incrementConnectionCount(sessionHandler);
+        incrementConfigConnectionCount(sessionHandler);
     }
 
     this->setUpConfigProtocolCallbacks(sessionHandler, std::move(firstPacketBuffer));
@@ -486,7 +486,7 @@ bool NativeStreamingServerHandler::isExclusiveControlConnectionRejected(std::sha
     return isExclusiveControl && (exclusiveControlConnectionsCount > 0 || controlConnectionsCount > 0);
 }
 
-void NativeStreamingServerHandler::incrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler)
+void NativeStreamingServerHandler::incrementConfigConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
     if (sessionHandler->getClientType() == ClientType::Control)
         controlConnectionsCount++;
@@ -496,7 +496,7 @@ void NativeStreamingServerHandler::incrementConnectionCount(std::shared_ptr<Serv
     configConnectionsCount++;
 }
 
-void NativeStreamingServerHandler::decrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler)
+void NativeStreamingServerHandler::decrementConfigConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
     if (sessionHandler->isConfigProtocolUsed())
     {

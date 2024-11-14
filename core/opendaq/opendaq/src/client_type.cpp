@@ -3,7 +3,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-void ClientTypeTools::DefineConfigProperties(PropertyObjectPtr obj)
+void ClientTypeTools::DefineConfigProperties(PropertyObjectPtr& obj)
 {
     auto clientTypes = Dict<IInteger, IString>();
     clientTypes.set((Int) ClientType::Control, "Control");
@@ -19,7 +19,7 @@ void ClientTypeTools::DefineConfigProperties(PropertyObjectPtr obj)
 
     auto dropOthersProp =
         BoolPropertyBuilder("ExclusiveControlDropOthers", false)
-            .setDescription("If enebaled, when connecting as an Exclusive Control client, any existing Control clients will be disconnected.")
+            .setDescription("If enabled, when connecting as an Exclusive Control client, any existing Control clients will be disconnected.")
             .build();
 
     obj.addProperty(clientTypeProp);
@@ -38,7 +38,7 @@ ClientType ClientTypeTools::IntToClientType(Int value)
             return ClientType::ViewOnly;
     }
 
-    throw InvalidValueException();
+    throw InvalidValueException("Client type value invalid");
 }
 
 END_NAMESPACE_OPENDAQ

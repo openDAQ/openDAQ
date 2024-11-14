@@ -72,8 +72,8 @@ protected:
     bool isConnectionLimitReached();
     bool isControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler);
     bool isExclusiveControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler);
-    void incrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
-    void decrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void incrementConfigConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void decrementConfigConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
     void releaseSessionHandlerInternal(SessionPtr session, bool enableSyncLock);

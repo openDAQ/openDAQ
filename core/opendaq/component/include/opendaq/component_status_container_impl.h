@@ -57,13 +57,13 @@ inline ComponentStatusContainerImpl::ComponentStatusContainerImpl()
 {
 }
 
-inline ComponentStatusContainerImpl::ComponentStatusContainerImpl(const ProcedurePtr &coreEventCallback)
+inline ComponentStatusContainerImpl::ComponentStatusContainerImpl(const ProcedurePtr& coreEventCallback)
     : statuses(Dict<IString, IEnumeration>())
     , triggerCoreEvent(coreEventCallback)
 {
 }
 
-inline ErrCode ComponentStatusContainerImpl::getStatus(IString *name, IEnumeration **value)
+inline ErrCode ComponentStatusContainerImpl::getStatus(IString* name, IEnumeration** value)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
     OPENDAQ_PARAM_NOT_NULL(value);
@@ -77,7 +77,7 @@ inline ErrCode ComponentStatusContainerImpl::getStatus(IString *name, IEnumerati
     return OPENDAQ_SUCCESS;
 }
 
-inline ErrCode ComponentStatusContainerImpl::getStatuses(IDict **statuses)
+inline ErrCode ComponentStatusContainerImpl::getStatuses(IDict** statuses)
 {
     OPENDAQ_PARAM_NOT_NULL(statuses);
 
@@ -87,7 +87,7 @@ inline ErrCode ComponentStatusContainerImpl::getStatuses(IDict **statuses)
     return OPENDAQ_SUCCESS;
 }
 
-inline ErrCode ComponentStatusContainerImpl::addStatus(IString *name, IEnumeration *initialValue)
+inline ErrCode ComponentStatusContainerImpl::addStatus(IString* name, IEnumeration* initialValue)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
     OPENDAQ_PARAM_NOT_NULL(initialValue);
@@ -104,7 +104,7 @@ inline ErrCode ComponentStatusContainerImpl::addStatus(IString *name, IEnumerati
     return statuses->set(name, initialValue);
 }
 
-inline ErrCode ComponentStatusContainerImpl::setStatus(IString *name, IEnumeration *value)
+inline ErrCode ComponentStatusContainerImpl::setStatus(IString* name, IEnumeration* value)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
     OPENDAQ_PARAM_NOT_NULL(value);

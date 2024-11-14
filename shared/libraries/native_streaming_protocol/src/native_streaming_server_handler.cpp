@@ -557,20 +557,20 @@ void NativeStreamingServerHandler::onSessionError(const std::string& errorMessag
 }
 
 void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(
-    std::shared_ptr<ServerSessionHandler> currentSessiohandler, std::vector<std::shared_ptr<ServerSessionHandler>> releasedSessionHanlders)
+    std::shared_ptr<ServerSessionHandler> currentSessionHandler, std::vector<std::shared_ptr<ServerSessionHandler>>& releasedSessionHandlers)
 {
     std::vector<SessionPtr> sessionsToRelease;
 
-    for (const auto& [_, sessionHandeler] : sessionHandlers)
+    for (const auto& [_, sessionHandler] : sessionHandlers)
     {
-        if (currentSessiohandler == sessionHandeler)
+        if (currentSessionHandler == sessionHandler)
             continue;
 
-        switch (sessionHandeler->getClientType())
+        switch (sessionHandler->getClientType())
         {
             case ClientType::Control:
             case ClientType::ExclusiveControl:
-                sessionsToRelease.push_back(sessionHandeler->getSession());
+                sessionsToRelease.push_back(sessionHandler->getSession());
                 break;
             default:
                 break;
@@ -580,7 +580,7 @@ void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(
     for (const auto& session : sessionsToRelease)
     {
         const auto& released = releaseSessionHandlerInternal(session, false);
-        releasedSessionHanlders.push_back(released);
+        releasedSessionHandlers.push_back(released);
     }
 }
 

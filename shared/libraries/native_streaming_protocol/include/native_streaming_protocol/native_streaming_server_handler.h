@@ -84,8 +84,8 @@ protected:
                                   const std::string& clientId);
     bool onAuthenticate(const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut);
     void onSessionError(const std::string &errorMessage, SessionPtr session);
-    void releaseOtherControlConnectionsInternal(std::shared_ptr<ServerSessionHandler> currentSessiohandler,
-                                                std::vector<std::shared_ptr<ServerSessionHandler>> releasedSessionHanlders);
+    void releaseOtherControlConnectionsInternal(std::shared_ptr<ServerSessionHandler> currentSessionHandler,
+                                                std::vector<std::shared_ptr<ServerSessionHandler>>& releasedSessionHandlers);
     ClientType parseClientTypeProp(const PropertyObjectPtr& propertyObject);
     bool parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject);
 

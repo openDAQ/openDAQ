@@ -263,7 +263,8 @@ namespace test_helpers
         return result;
     }
 
-    static InstancePtr connectIntanceWithClientType(const std::string& connectionString, ClientType clientType, bool dropOthers = false)
+    [[maybe_unused]]
+    static InstancePtr connectInstanceWithClientType(const std::string& connectionString, ClientType clientType, bool dropOthers = false)
     {
         auto clientInstance = Instance();
 

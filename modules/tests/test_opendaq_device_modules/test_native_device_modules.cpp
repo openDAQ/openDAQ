@@ -330,13 +330,13 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
     auto serverInstance = InstanceBuilder().build();
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
-    auto clientInstance = test_helpers::connectIntanceWithClientType(url, ClientType::ExclusiveControl);
+    auto clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
-    ASSERT_THROW(test_helpers::connectIntanceWithClientType(url, ClientType::ExclusiveControl), ControlClientRejectedException);
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl), ControlClientRejectedException);
 
     clientInstance = nullptr; // disconnect
-    clientInstance = test_helpers::connectIntanceWithClientType(url, ClientType::ExclusiveControl);
+    clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 }
 
@@ -347,13 +347,13 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
     auto serverInstance = InstanceBuilder().build();
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
-    auto clientInstance = test_helpers::connectIntanceWithClientType(url, ClientType::ExclusiveControl);
+    auto clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
-    ASSERT_THROW(test_helpers::connectIntanceWithClientType(url, ClientType::Control), ControlClientRejectedException);
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(url, ClientType::Control), ControlClientRejectedException);
 
     clientInstance = nullptr; // disconnect
-    clientInstance = test_helpers::connectIntanceWithClientType(url, ClientType::ExclusiveControl);
+    clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 }
 
@@ -364,13 +364,13 @@ TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
     auto serverInstance = InstanceBuilder().build();
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
-    auto clientInstance = test_helpers::connectIntanceWithClientType(url, ClientType::Control);
+    auto clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::Control);
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
-    ASSERT_THROW(test_helpers::connectIntanceWithClientType(url, ClientType::ExclusiveControl), ControlClientRejectedException);
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl), ControlClientRejectedException);
 
     clientInstance = nullptr; // disconnect
-    clientInstance = test_helpers::connectIntanceWithClientType(url, ClientType::ExclusiveControl);
+    clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 }
 
@@ -381,16 +381,16 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
     auto serverInstance = InstanceBuilder().build();
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
-    auto clientInstance1 = test_helpers::connectIntanceWithClientType(url, ClientType::Control);
+    auto clientInstance1 = test_helpers::connectInstanceWithClientType(url, ClientType::Control);
     ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
 
-    auto clientInstance2 = test_helpers::connectIntanceWithClientType(url, ClientType::Control);
+    auto clientInstance2 = test_helpers::connectInstanceWithClientType(url, ClientType::Control);
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
 
     ASSERT_EQ(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
     ASSERT_EQ(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 
-    auto clientInstance3 = test_helpers::connectIntanceWithClientType(
+    auto clientInstance3 = test_helpers::connectInstanceWithClientType(
         url, ClientType::ExclusiveControl, true);  // should cause all other control clients to disconnect
 
     ASSERT_EQ(clientInstance3.getDevices().getCount(), 1u);
@@ -406,12 +406,12 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveCont
     auto serverInstance = InstanceBuilder().build();
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
-    auto clientInstance1 = test_helpers::connectIntanceWithClientType(url, ClientType::ExclusiveControl);
+    auto clientInstance1 = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
     ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
 
     ASSERT_EQ(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 
-    auto clientInstance2 = test_helpers::connectIntanceWithClientType(
+    auto clientInstance2 = test_helpers::connectInstanceWithClientType(
         url, ClientType::ExclusiveControl, true);  // should cause first exclusive control client to disconnect
 
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);

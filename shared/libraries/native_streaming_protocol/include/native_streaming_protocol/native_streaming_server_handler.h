@@ -70,8 +70,8 @@ protected:
                             ErrCode errorCode,
                             const std::string& message);
     bool isConnectionLimitReached();
-    bool isTooManyControlConnections(std::shared_ptr<ServerSessionHandler> sessionHandler);
-    bool isTooManyExclusiveControlConnections(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    bool isControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    bool isExclusiveControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void incrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void decrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
@@ -84,7 +84,7 @@ protected:
                                   const std::string& clientId);
     bool onAuthenticate(const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut);
     void onSessionError(const std::string &errorMessage, SessionPtr session);
-    void releaseControlConnectionsInternal();
+    void releaseOtherControlConnectionsInternal(std::shared_ptr<ServerSessionHandler> currentSessiohandler);
     ClientType parseClientTypeProp(const PropertyObjectPtr& propertyObject);
     bool parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject);
 

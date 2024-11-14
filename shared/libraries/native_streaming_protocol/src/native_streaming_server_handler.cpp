@@ -428,23 +428,24 @@ void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerS
             return;
         }
 
-        if (isTooManyExclusiveControlConnections(sessionHandler))
+        if (isControlConnectionRejected(sessionHandler))
         {
             const std::string message = "Connection rejected, exclusive control client already connected";
             reportConnectError(sessionHandler, firstPacketBuffer, OPENDAQ_ERR_CONTROL_CLIENT_REJECTED, message);
             return;
         }
 
-        if (isTooManyControlConnections(sessionHandler))
+        if (isExclusiveControlConnectionRejected(sessionHandler))
         {
             if (sessionHandler->isExclusiveControlDropOthersEnabled())
             {
-                releaseControlConnectionsInternal();
-                LOG_W("Exclusive control client connected with \"ExclusiveControlDropOthers\" flag enabled, disconnecting other control clients");
+                releaseOtherControlConnectionsInternal(sessionHandler);
+                LOG_W("Exclusive control client connected with \"ExclusiveControlDropOthers\" flag enabled, disconnecting other control "
+                      "and exclusive control clients");
             }
             else
             {
-                const std::string message = "Connection rejected, control clients already connected";
+                const std::string message = "Connection rejected, control or exclusive control client already connected";
                 reportConnectError(sessionHandler, firstPacketBuffer, OPENDAQ_ERR_CONTROL_CLIENT_REJECTED, message);
                 return;
             }
@@ -473,16 +474,16 @@ bool NativeStreamingServerHandler::isConnectionLimitReached()
     return maxAllowedConfigConnections != UNLIMITED_CONFIGURATION_CONNECTIONS && configConnectionsCount == maxAllowedConfigConnections;
 }
 
-bool NativeStreamingServerHandler::isTooManyControlConnections(std::shared_ptr<ServerSessionHandler> sessionHandler)
-{
-    return sessionHandler->getClientType() == ClientType::ExclusiveControl && controlConnectionsCount > 0;
-}
-
-bool NativeStreamingServerHandler::isTooManyExclusiveControlConnections(std::shared_ptr<ServerSessionHandler> sessionHandler)
+bool NativeStreamingServerHandler::isControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
     const bool isControl = sessionHandler->getClientType() == ClientType::Control;
+    return isControl && exclusiveControlConnectionsCount > 0;
+}
+
+bool NativeStreamingServerHandler::isExclusiveControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler)
+{
     const bool isExclusiveControl = sessionHandler->getClientType() == ClientType::ExclusiveControl;
-    return (isControl || isExclusiveControl) && exclusiveControlConnectionsCount > 0;
+    return isExclusiveControl && (exclusiveControlConnectionsCount > 0 || controlConnectionsCount > 0);
 }
 
 void NativeStreamingServerHandler::incrementConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler)
@@ -549,14 +550,22 @@ void NativeStreamingServerHandler::onSessionError(const std::string& errorMessag
         });
 }
 
-void NativeStreamingServerHandler::releaseControlConnectionsInternal()
+void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(std::shared_ptr<ServerSessionHandler> currentSessiohandler)
 {
     std::vector<SessionPtr> sessionsToRelease;
 
     for (const auto& [_, sessionHandeler] : sessionHandlers)
     {
-        if (sessionHandeler->getClientType() == ClientType::Control)
-            sessionsToRelease.push_back(sessionHandeler->getSession());
+        if (currentSessiohandler == sessionHandeler)
+            continue;
+
+        switch (sessionHandeler->getClientType())
+        {
+            case ClientType::Control:
+            case ClientType::ExclusiveControl:
+                sessionsToRelease.push_back(sessionHandeler->getSession());
+                break;
+        }
     }
 
     for (const auto& session : sessionsToRelease)

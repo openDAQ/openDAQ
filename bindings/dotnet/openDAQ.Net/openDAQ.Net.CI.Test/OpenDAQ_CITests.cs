@@ -315,9 +315,15 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     [Test]
     public void Test_0000_GetVersion()
     {
-        Version coreTypesVersion = new();
+        Version coreTypesVersion   = new();
         Version coreObjectsVersion = new();
-        Version openDaqVersion = new();
+        Version openDaqVersion     = new();
+
+        var sdkAssembly         = typeof(CoreTypesFactory).Assembly;
+        var assemblyVersion     = sdkAssembly.GetName().Version;
+        var assemblyInfoVersion = sdkAssembly.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), true)
+                                  .Cast<System.Reflection.AssemblyInformationalVersionAttribute>()
+                                  .Single()?.InformationalVersion;
 
         Assert.Multiple(() =>
         {
@@ -329,6 +335,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Console.WriteLine($"CoreTypes SDK version   = {coreTypesVersion} / .NET Bindings version = {CoreTypesDllInfo.Version}");
         Console.WriteLine($"CoreObjects SDK version = {coreObjectsVersion} / .NET Bindings version = {CoreObjectsDllInfo.Version}");
         Console.WriteLine($"openDAQ SDK version     = {openDaqVersion} / .NET Bindings version = {OpenDAQDllInfo.Version}");
+        Console.WriteLine($"Assembly version        = {assemblyVersion}");
+        Console.WriteLine($"Assembly info version   = {assemblyInfoVersion}");
     }
 
     [Test]

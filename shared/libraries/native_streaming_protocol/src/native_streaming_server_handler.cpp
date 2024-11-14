@@ -572,6 +572,8 @@ void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(
             case ClientType::ExclusiveControl:
                 sessionsToRelease.push_back(sessionHandeler->getSession());
                 break;
+            default:
+                break;
         }
     }
 

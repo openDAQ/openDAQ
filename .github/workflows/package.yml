@@ -55,7 +55,8 @@ jobs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       # test_path: ''
       windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
-      short_sha: ${{ env.short_sha }}
+      # short_sha: ${{ env.short_sha }}
+      short_sha_dotnet: ${{ steps.configure_and_build_wheels.outputs.short_sha_dotnet }}
 
     env:
       short_sha: 'package'  # for .NET Bindings build
@@ -65,13 +66,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure and build Wheels
+        id: configure_and_build_wheels
         if: matrix.cmake_generator_platform != 'Win32'
         shell: pwsh
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
-          # for .NET Bindings build
-          $env:SHORT_SHA = "${{ env.short_sha }}"
+          # for .NET Bindings beta build
+          $env:SHORT_SHA = if ( "${{ github.ref_name || github.base_ref }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
+          if ("$env:SHORT_SHA" -ne '') {
+            echo "short_sha_dotnet=$env:SHORT_SHA" >> "$GITHUB_OUTPUT"
+          }
           mkdir build
           cd build
           mkdir wheels
@@ -98,8 +103,9 @@ jobs:
         if: matrix.cmake_generator_platform == 'Win32'
         shell: pwsh
         run: |
-          # for .NET Bindings build
-          $env:SHORT_SHA = "${{ env.short_sha }}"
+          # for .NET Bindings beta build
+          $env:SHORT_SHA = if ( "${{ github.ref_name || github.base_ref }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
+          # $GITHUB_OUTPUT not set here as output only needed from step configure_and_build_wheels
           mkdir build
           cd build
           Write-Output "Building for Win32"
@@ -471,5 +477,5 @@ jobs:
         # test_path: ''
         windows_x64_artifact_name:  ${{ needs.package_windows.outputs.windows_x64_artifact_name }}
         linux_x64_artifact_name:  ${{ needs.package_linux.outputs.linux_x64_artifact_name }}
-        short_sha: ${{ needs.package_windows.outputs.short_sha }}
+        short_sha: ${{ needs.package_windows.outputs.short_sha_dotnet }}
       # -> output.nuget_artifact_name

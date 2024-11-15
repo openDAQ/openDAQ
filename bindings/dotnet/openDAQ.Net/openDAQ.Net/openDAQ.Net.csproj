@@ -133,7 +133,7 @@
   <ItemGroup Condition="'$(_IsCiPackBuild)' == 'True'">
     <!-- NuGet package creation in CI -->
     <!-- Windows runtimes -->
-    <OpenDaqWinLibs Include="$(_SdkOutputPathWindows64)\*.dll" Exclude="$(_SdkOutputPathWindows64)\openDAQ.Net.dll" />
+    <OpenDaqWinLibs Include="$(_SdkOutputPathWindows64)\*.dll" Exclude="$(_SdkOutputPathWindows64)\openDAQ.Net.dll;$(_SdkOutputPathWindows64)\openDAQDemo.Net.dll" />
     <None Include="@(OpenDaqWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>

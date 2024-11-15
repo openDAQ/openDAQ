@@ -60,7 +60,6 @@ type
 
 implementation
 uses
-  OpenDAQ.CoreTypes.Errors,
   OpenDAQ.Exceptions,
   OpenDAQ.SmartPtrRegistry;
 
@@ -71,7 +70,7 @@ var
   Err : ErrCode;
 begin
   Err := CreateJsonDeserializer(Deserializer);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Create(Deserializer);
 end;
@@ -95,7 +94,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Deserialize(Serialized, Context, FactoryCallback, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Obj);
 end;
@@ -127,7 +126,7 @@ begin
     FactoryCallbackIntf := nil;
 
   Err := FObject.Deserialize(SerializedIntf, ContextIntf, FactoryCallbackIntf, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Obj);
 end;
@@ -153,7 +152,7 @@ begin
     FactoryCallbackIntf := nil;
 
   Err := FObject.Deserialize(CreateStringFromDelphiString(Serialized), ContextIntf, FactoryCallbackIntf, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Obj);
 end;
@@ -173,7 +172,7 @@ begin
     FactoryCallbackIntf := nil;
 
   Err := FObject.Deserialize(CreateStringFromDelphiString(Serialized), Context, FactoryCallbackIntf, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Obj);
 end;
@@ -186,7 +185,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Update(Updatable, Serialized);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: IStringPtr);
@@ -209,7 +208,7 @@ begin
     SerializedIntf := nil;
 
   Err := FObject.Update(UpdatableIntf, SerializedIntf);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: string);
@@ -226,7 +225,7 @@ begin
     UpdatableIntf := nil;
 
   Err := FObject.Update(UpdatableIntf, CreateStringFromDelphiString(Serialized));
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TDeserializerPtr.CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString);
@@ -237,7 +236,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.CallCustomProc(CustomDeserialize, Serialized);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TDeserializerPtr.CallCustomProc(CustomDeserialize: IProcedurePtr; Serialized: IStringPtr);
@@ -260,7 +259,7 @@ begin
     SerializedIntf := nil;
 
   Err := FObject.CallCustomProc(CustomDeserializeIntf, SerializedIntf);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TDeserializerPtr.CallCustomProc(CustomDeserialize: IProcedurePtr; Serialized: string);
@@ -277,7 +276,7 @@ begin
     CustomDeserializeIntf := nil;
 
   Err := FObject.CallCustomProc(CustomDeserializeIntf, CreateStringFromDelphiString(Serialized));
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TDeserializerPtr.Interface_Deserialize(Serialized: IString; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;

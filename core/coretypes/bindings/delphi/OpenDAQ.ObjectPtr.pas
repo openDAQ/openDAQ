@@ -47,7 +47,7 @@ implementation
 uses
   System.TypInfo,
   System.SysUtils,
-  OpenDAQ.CoreTypes.Errors,
+
   OpenDAQ.Exceptions,
   OpenDAQ.SmartPtrRegistry;
 
@@ -76,9 +76,13 @@ var
   Err : ErrCode;
 begin
   Err := CreateBaseObject(Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   FObject := T(Obj);
+
+{$IFDEF DEBUG}
+  Assert(not Assigned(FObject), 'Factory constructor not overriden! Creating a BaseObject object is only usefull in tests');
+{$ENDIF}
 end;
 
 function TObjectPtr<T>.EqualsObject(Other: IBaseObject): Boolean;
@@ -89,7 +93,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is null.');
 
   Err := FObject.EqualsObject(Other, Result);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TObjectPtr<T>.EqualsObject(Other: ISmartPtr): Boolean;
@@ -109,7 +113,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is null.');
 
   Err := FObject.GetHashCodeEx(HashCode);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := HashCode;
 end;
@@ -143,7 +147,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is null.');
 
   Error := FObject.ToCharPtr(@Ptr);
-  CheckRtErrorInfo(Error);
+  CheckDaqErrorInfo(Error);
 
   Result := string(UTF8String(Ptr));
 end;

@@ -51,7 +51,7 @@ var
   Err : ErrCode;
 begin
   Err := CreateInteger(IntegerObj, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(IntegerObj);
 end;
@@ -65,7 +65,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetValue(Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
@@ -78,7 +78,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.EqualsValue(Value, Result);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TIntegerPtr.Interface_GetValue(out Value: RtInt): ErrCode;

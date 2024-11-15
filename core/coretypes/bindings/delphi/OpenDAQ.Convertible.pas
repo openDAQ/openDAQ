@@ -58,7 +58,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ToFloat(FloatVal);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   
   Result := FloatVal;
 end;
@@ -72,7 +72,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ToInt(IntVal);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := IntVal;
 end;
@@ -86,7 +86,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ToBool(BoolVal);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := BoolVal;
 end;

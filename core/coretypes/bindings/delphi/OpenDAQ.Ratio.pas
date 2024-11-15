@@ -53,7 +53,7 @@ var
   RatioObj : IRatio;
 begin
   Err := CreateRatio(RatioObj, Value, 1);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Create(RatioObj);
 end;
@@ -64,7 +64,7 @@ var
   RatioObj : IRatio;
 begin
   Err := CreateRatio(RatioObj, Numerator, Denumerator);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Create(RatioObj);
 end;
@@ -78,7 +78,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetNumerator(Numerator);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Numerator;
 end;
@@ -92,7 +92,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetDenominator(Denominator);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Denominator;
 end;

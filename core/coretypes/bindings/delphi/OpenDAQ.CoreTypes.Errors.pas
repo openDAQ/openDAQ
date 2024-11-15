@@ -61,8 +61,6 @@ const
   function OPENDAQ_FAILED(X: Cardinal): LongBool;
   function OPENDAQ_SUCCEEDED(X: Cardinal): LongBool;
 
-  procedure CheckError(ErrCode: Cardinal);
-
 implementation
 uses
   SysUtils;
@@ -75,37 +73,6 @@ end;
 function OPENDAQ_SUCCEEDED(X: Cardinal): LongBool;
 begin
   Result := not(OPENDAQ_FAILED(X));
-end;
-
-procedure CheckError(ErrCode: Cardinal);
-begin
-  if OPENDAQ_FAILED(ErrCode) then
-  begin
-    case ErrCode of
-      OPENDAQ_ERR_NOMEMORY: raise EOutOfMemory.Create('Out of memory');
-      OPENDAQ_ERR_INVALIDPARAMETER: raise Exception.create('Invalid argument');
-      OPENDAQ_ERR_NOINTERFACE: raise Exception.create('No interface');
-      OPENDAQ_ERR_SIZETOOSMALL: raise Exception.create('Size to small');
-      OPENDAQ_ERR_CONVERSIONFAILED: raise EConvertError.Create('Conversion failed');
-      OPENDAQ_ERR_OUTOFRANGE: raise ERangeError.create('Out of range');
-      OPENDAQ_ERR_NOTFOUND: raise Exception.create('Not found');
-      OPENDAQ_ERR_NOTASSIGNED: raise Exception.Create('Not assigned');
-      OPENDAQ_ERR_NOTENABLED: raise Exception.Create('Not enabled');
-      OPENDAQ_ERR_GENERALERROR: raise Exception.Create('General error"');
-      OPENDAQ_ERR_INVALIDTYPE: raise Exception.Create('Invalid type');
-      OPENDAQ_ERR_CALCFAILED: raise Exception.Create('"Calculation failed"');
-      OPENDAQ_ERR_ALREADYEXISTS: raise Exception.Create('Already exists');
-      OPENDAQ_ERR_FROZEN: raise Exception.Create('Object frozen');
-      OPENDAQ_ERR_PARSEFAILED: raise Exception.Create('Parse failed');
-      OPENDAQ_ERR_NOTIMPLEMENTED: raise Exception.Create('Not Implemented');
-      OPENDAQ_ERR_NOT_SERIALIZABLE: raise Exception.Create('Not serializable');
-      OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR: raise Exception.Create('Error when parsing or deserializing');
-      OPENDAQ_ERR_INVALIDPROPERTY: raise Exception.Create('Invalid property');
-    else
-      raise Exception.create('Unexpected error: ' + IntTohex(ErrCode, 8));
-    end;
-  end;
-
 end;
 
 end.

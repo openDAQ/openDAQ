@@ -42,8 +42,7 @@ type
 
 implementation
 uses
-  OpenDAQ.Exceptions,
-  OpenDAQ.CoreTypes.Errors;
+  OpenDAQ.Exceptions;
 
 constructor TEventArgsPtr<T>.Create(Obj: T);
 begin
@@ -64,7 +63,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetEventId(Id);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Id;
 end;
@@ -78,7 +77,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetEventName(Name);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TStringPtr.Create(Name);
 end;

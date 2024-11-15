@@ -386,8 +386,7 @@ uses
   OpenDAQ.CoreTypes.Config,
   OpenDAQ.Exceptions,
   OpenDAQ.Freezable,
-  OpenDAQ.Serializable,
-  TypInfo;
+  OpenDAQ.Serializable;
 
 function DaqGetTrackedObjectCount: NativeUInt; external DSCoreTypesDLL name 'daqGetTrackedObjectCount';
 procedure DaqPrintTrackedObjects; external DSCoreTypesDLL name 'daqPrintTrackedObjects';
@@ -426,7 +425,7 @@ begin
   if Err = OPENDAQ_ERR_FACTORY_NOT_REGISTERED then
     Exit(False);
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function DaqGetSerializerFactory(Id: string): TDSRTDeserializerFactory;
@@ -435,7 +434,7 @@ var
   Factory : TDSRTDeserializerFactory;
 begin
   Err := DaqGetSerializerFactory(PAnsiChar(UTF8String(Id)), Factory);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Factory;
 end;
@@ -470,7 +469,7 @@ begin
   if Err = OPENDAQ_ERR_FACTORY_NOT_REGISTERED then
     Exit(False);
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function DaqBoxValue(Value: Boolean): IBoolean; overload;
@@ -478,7 +477,7 @@ var
   Err: ErrCode;
 begin
   Err := CreateBoolean(Result, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function DaqBoxValue(Value: RtInt): IInteger; overload;
@@ -486,7 +485,7 @@ var
   Err: ErrCode;
 begin
   Err := CreateInteger(Result, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function DaqBoxValue(Value: RtFloat): IFloat; overload;
@@ -494,7 +493,7 @@ var
   Err: ErrCode;
 begin
   Err := CreateFloat(Result, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function DaqBoxValue(Value: string): IString; overload;
@@ -508,7 +507,7 @@ var
   Res: ErrCode;
 begin
   Res := CreateString(Str, PAnsiChar(UTF8String(Value)));
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
   Result := Str;
 end;
 
@@ -523,10 +522,10 @@ var
   Res: ErrCode;
 begin
   Res := Obj.QueryInterface(IConvertible, Pointer(Conv));
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 
   Res := Conv.ToFloat(Result);
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 end;
 
 function BaseObjectToFloat(Obj: ISmartPtr): RtFloat;
@@ -540,10 +539,10 @@ var
   Res: ErrCode;
 begin
   Res := Obj.QueryInterface(IConvertible, Pointer(Conv));
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 
   Res := Conv.ToInt(Result);
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 end;
 
 function BaseObjectToInt(Obj: ISmartPtr): RtInt;
@@ -557,10 +556,10 @@ var
   Res: ErrCode;
 begin
   Res := Obj.QueryInterface(IConvertible, Pointer(Conv));
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 
   Res := Conv.ToBool(Result);
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 end;
 
 function BaseObjectToBool(Obj: ISmartPtr): Boolean;
@@ -575,7 +574,7 @@ var
 begin
   try
     Error := Obj.ToCharPtr(@Ptr);
-    CheckError(Error);
+    CheckDaqErrorInfo(Error);
 
     Result := string(UTF8String(Ptr));
   finally
@@ -593,11 +592,11 @@ begin
   if Res = OPENDAQ_ERR_NOINTERFACE then
     Exit(ctObject);
 
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 
   Res := CT.GetCoreType(CoreTypeRaw);
   Result := CoreTypeRaw;
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 end;
 
 function GetCoreType(Obj: ISmartPtr): TCoreType;
@@ -610,7 +609,7 @@ var
   Res: ErrCode;
 begin
   Res := Obj.QueryInterface(IFreezable, Pointer(Result));
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 end;
 
 function GetFreezableInterface(Obj: ISmartPtr): IFreezablePtr;
@@ -623,7 +622,7 @@ var
   Res: ErrCode;
 begin
   Res := Obj.QueryInterface(ISerializable, Pointer(Result));
-  CheckError(Res);
+  CheckDaqErrorInfo(Res);
 end;
 
 function GetSerializableInterface(Obj: ISmartPtr): ISerializablePtr;
@@ -637,10 +636,10 @@ var
   Error : ErrCode;
 begin
   if not Assigned(Value) then
-    CheckError(OPENDAQ_ERR_INVALIDPARAMETER);
+    CheckDaqErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER);
 
   Error := value.GetCharPtr(@Ptr);
-  CheckError(Error);
+  CheckDaqErrorInfo(Error);
 
   Result := string(UTF8String(Ptr));
 end;

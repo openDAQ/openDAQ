@@ -182,7 +182,7 @@ var
   Err : ErrCode;
 begin
   Err := CreateJsonSerializer(Serializer);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Create(Serializer);
 end;
@@ -202,7 +202,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.StartList();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.StartObject();
@@ -210,7 +210,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.StartObject();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.StartTaggedObject(Obj: ISerializable);
@@ -218,7 +218,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.StartTaggedObject(Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.EndList();
@@ -226,7 +226,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.EndList();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.EndObject();
@@ -234,7 +234,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.EndObject();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TSerializerPtr.GetOutput(): IStringPtr;
@@ -243,7 +243,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.GetOutput(Output);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TStringPtr.Create(Output);
 end;
@@ -259,7 +259,7 @@ var
   Complete : Boolean;
 begin
   Err := FObject.IsComplete(Complete);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Complete;
 end;
@@ -269,7 +269,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.Key(Str);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.Key(const Str: PAnsiChar; Len: SizeT);
@@ -277,7 +277,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.KeyRaw(Str, Len);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.Key(Name: IString);
@@ -285,7 +285,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.KeyStr(Name);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.Reset();
@@ -293,7 +293,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.Reset();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteBool(Bool: Boolean);
@@ -301,7 +301,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.WriteBool(Bool);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteFloat(Real: Double);
@@ -309,7 +309,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.WriteFloat(Real);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteInt(Int: RtInt);
@@ -317,7 +317,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.WriteInt(Int);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteNull();
@@ -325,7 +325,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.WriteNull();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteString(const Str: PAnsiChar; Len: SizeT);
@@ -333,7 +333,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.WriteString(Str, Len);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteString(Str: IString);
@@ -343,13 +343,13 @@ var
   Err : ErrCode;
 begin
   Err := Str.GetCharPtr(@Ptr);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := Str.GetLength(Length);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := FObject.WriteString(Ptr, Length);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteString(Str: string);

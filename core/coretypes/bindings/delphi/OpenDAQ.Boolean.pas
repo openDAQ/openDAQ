@@ -51,7 +51,7 @@ var
   Err : ErrCode;
 begin
   Err := CreateBoolean(BoolObj, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(BoolObj);
 end;
@@ -65,7 +65,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetValue(Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
@@ -78,7 +78,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.EqualsValue(Value, Result);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TBooleanPtr.Interface_GetValue(out Value: Boolean): ErrCode;

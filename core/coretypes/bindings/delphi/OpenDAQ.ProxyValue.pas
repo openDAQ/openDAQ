@@ -1,9 +1,8 @@
 unit OpenDAQ.ProxyValue;
 
 interface
-uses 
-  OpenDAQ.CoreTypes,
-  OpenDAQ.ObjectPtr;
+uses
+  OpenDAQ.CoreTypes;
 
 type
   {$MINENUMSIZE 4}
@@ -96,14 +95,14 @@ begin
   PtrClass := TSmartPtrRegistry.GetPtrClass(InterfaceGuid);
 
   if not Assigned(PtrClass) then
-    raise ERTException.Create('SmartPtr class for this interface is not registered.');
+    raise EDaqException.Create('SmartPtr class for this interface is not registered.');
 
   Ptr := PtrClass.Create(FObject);
 
   if Supports(Ptr, InterfaceGuid, PtrInterface) then
     Result := PtrInterface
   else
-    raise ERTException.Create('The registered SmartPtr class does not implement the specified interface.');
+    raise EDaqException.Create('The registered SmartPtr class does not implement the specified interface.');
 end;
 
 function TProxyValue<T>.AsPtrOrNil<U>(): U;
@@ -122,7 +121,7 @@ begin
   PtrClass := TSmartPtrRegistry.GetPtrClass(PtrGuid);
 
   if not Assigned(PtrClass) then
-    raise ERTException.Create('SmartPtr class for this interface is not registered.');
+    raise EDaqException.Create('SmartPtr class for this interface is not registered.');
 
   InterfaceGuid := TSmartPtrRegistry.GetInterfaceFromPtr(PtrGuid);
   if not Supports(FObject, InterfaceGuid, InterfaceObj) then
@@ -156,7 +155,7 @@ begin
   else
     raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to RtInt.');
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   Result := Value;
 end;
 
@@ -176,7 +175,7 @@ begin
   else
     raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to RtInt.');
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   Result := Value;
 end;
 
@@ -196,7 +195,7 @@ begin
   else
     raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to RtInt.');
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   Result := Value;
 end;
 
@@ -266,7 +265,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface is not IFloat or IBaseObject.');
 
   Err := CreateFloat(FloatObj, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue<T>(TProxyValue<IFloat>.Create(FloatObj));
 end;
@@ -281,7 +280,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface is not IBoolean or IBaseObject.');
 
   Err := CreateBoolean(BoolObj, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue<T>(TProxyValue<IBoolean>.Create(BoolObj));
 end;
@@ -306,14 +305,14 @@ begin
   if ((TypeInfo(T) = TypeInfo(IInteger)) or (TypeInfo(T) = TypeInfo(IBaseObject))) then
   begin
     Err := CreateInteger(IntObj, Value);
-    CheckRtErrorInfo(Err);
+    CheckDaqErrorInfo(Err);
 
     Exit(TProxyValue<T>(TProxyValue<IInteger>.Create(IntObj)))
   end
   else if (TypeInfo(T) = TypeInfo(IFloat)) then
   begin
     Err := CreateFloat(FloatObj, Value);
-    CheckRtErrorInfo(Err);
+    CheckDaqErrorInfo(Err);
 
     Exit(TProxyValue<T>(TProxyValue<IFloat>.Create(FloatObj)))
   end

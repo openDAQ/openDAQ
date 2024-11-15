@@ -357,7 +357,7 @@ void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjec
     }
     catch (const DaqException&)
     {
-        LOG_I("Invalid or missing transport layer property ClientType - default value \"Control\" assumed");
+        LOG_W("Invalid or missing transport layer property ClientType - default value \"Control\" assumed");
         sessionHandler->setClientType(ClientType::Control);
     }
 

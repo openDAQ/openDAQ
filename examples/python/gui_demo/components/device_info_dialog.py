@@ -8,10 +8,11 @@ from ..app_context import AppContext
 from .dialog import Dialog
 
 
-class MetadataDialog(Dialog):
+class DeviceInfoDialog(Dialog):
 
-    def __init__(self, parent, node: daq.IProperty, context: AppContext, **kwargs):
-        super().__init__(parent, f'{node.name} metadata', context, **kwargs)
+    def __init__(self, parent, node: daq.IDeviceInfo, context: AppContext, title='', **kwargs):
+        super().__init__(parent, f'Device {
+            node.name} info', context, **kwargs)
 
         self.parent = parent
         self.node = node
@@ -34,7 +35,7 @@ class MetadataDialog(Dialog):
         tree.heading('#0', anchor=tk.W, text='Name')
         tree.heading('value', anchor=tk.W, text='Value')
         # layout
-        tree.column('#0', anchor=tk.W, minwidth=100, width=120)
+        tree.column('#0', anchor=tk.W, minwidth=100, width=150)
         tree.column('value', anchor=tk.W, minwidth=100, width=300)
 
         tree.bind('<Button-3>', self.handle_right_click)
@@ -53,9 +54,6 @@ class MetadataDialog(Dialog):
                 display_value = value.value
                 if value.value_type == daq.CoreType.ctBool:
                     display_value = utils.yes_no[display_value]
-            else:
-                display_value = utils.metadata_converters[key](
-                    value) if key in utils.metadata_converters else value
             id = self.tree.insert(
                 parent, tk.END, text=str(key), values=(str(display_value), ))
 
@@ -78,13 +76,9 @@ class MetadataDialog(Dialog):
                         fill_tree(k, v, id)
                 except Exception:
                     pass
-            elif issubclass(type(value), daq.IBaseObject):
-                for name in utils.get_attributes_of_node(value):
-                    v = getattr(value, name)
-                    fill_tree(name, v, id)
 
-        for name in utils.get_attributes_of_node(self.node):
-            fill_tree(name, getattr(self.node, name), '')
+        for property in self.node.all_properties if self.context.view_hidden_components else self.node.visible_properties:
+            fill_tree(property.name, property, '')
 
     def handle_copy(self):
         selected_iid = utils.treeview_get_first_selection(self.tree)

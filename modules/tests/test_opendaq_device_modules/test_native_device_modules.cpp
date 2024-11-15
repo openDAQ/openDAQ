@@ -171,6 +171,7 @@ TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
     ASSERT_THROW(client.lock(), ServerVersionTooLowException);
     ASSERT_THROW(client.unlock(), ServerVersionTooLowException);
     ASSERT_THROW(client.getDevices()[0].getAvailableDevices(), ServerVersionTooLowException);
+    ASSERT_THROW(client.getDevices()[0].getAvailableDeviceTypes(), ServerVersionTooLowException);
 }
 
 

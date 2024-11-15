@@ -77,7 +77,6 @@ public:
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
-    ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -100,6 +99,7 @@ public:
     // ISignalPrivate
     ErrCode INTERFACE_FUNC clearDomainSignalWithoutNotification() override;
     ErrCode INTERFACE_FUNC enableKeepLastValue(Bool enabled) override;
+    ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;

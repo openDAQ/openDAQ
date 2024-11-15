@@ -43,7 +43,7 @@ public:
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-    // ISignal
+    // ISignalPrivate
     ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
 protected:

@@ -139,12 +139,6 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
      * one dimension.
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) = 0;
-
-    /*!
-     * @brief Gets the signal serilized id. In local device the serilized id matached the signal global id. For remote id it is the signal id in the remote device.
-     * @param[out] serializeId The signal serilized id.
-     */
-    virtual ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) = 0;
 };
 
 /*!@}*/

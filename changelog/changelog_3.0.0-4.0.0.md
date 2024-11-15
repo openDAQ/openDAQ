@@ -8,7 +8,7 @@
 - If a developer encountered issues restoring signal connections from the client to the server during configuration loading, they need to create a new configuration and save it. Otherwise, everything should work fine.
 
 ```
-+ [function] ISignal::getSignalSerializeId(IString** serializeId)
++ [function] ISignalPrivate::getSignalSerializeId(IString** serializeId)
 ```
 
 # 08.11.2024

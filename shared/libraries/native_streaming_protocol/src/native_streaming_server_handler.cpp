@@ -443,7 +443,7 @@ void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerS
 
         if (isExclusiveControlConnectionRejected(sessionHandler))
         {
-            if (sessionHandler->isExclusiveControlDropOthersEnabled())
+            if (sessionHandler->isExclusiveControlDropOthersEnabled() && !sessionHandler->getReconnected())
             {
                 releaseOtherControlConnectionsInternal(sessionHandler, releasedSessions);
                 LOG_W("Exclusive control client connected with \"ExclusiveControlDropOthers\" flag enabled, disconnecting other control "

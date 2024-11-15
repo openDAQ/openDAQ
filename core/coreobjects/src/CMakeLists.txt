@@ -351,7 +351,7 @@ target_link_libraries(${LIB_NAME}
     PRIVATE
         daq::core_containers
         rapidjson
-        bcrypt
+        bcrypt::bcrypt
         $<BUILD_INTERFACE:Boost::algorithm>
         $<BUILD_INTERFACE:std::filesystem>
 )

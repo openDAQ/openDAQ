@@ -24,46 +24,39 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ComponentStatusContainerImpl final : public ImplementationOf<IComponentStatusContainer, IComponentStatusContainerPrivate, ISerializable>
+template <typename TInterface, typename... Interfaces>
+class StatusContainerBase : public ImplementationOf<TInterface, Interfaces...>
 {
 public:
-    explicit ComponentStatusContainerImpl();
-    explicit ComponentStatusContainerImpl(const ProcedurePtr& coreEventCallback);
+    explicit StatusContainerBase();
+    explicit StatusContainerBase(const ProcedurePtr& coreEventCallback);
 
     // IComponentStatusContainer
     ErrCode INTERFACE_FUNC getStatus(IString* name, IEnumeration** value) override;
     ErrCode INTERFACE_FUNC getStatuses(IDict** statuses) override;
 
-    // IComponentStatusContainerPrivate
-    ErrCode INTERFACE_FUNC addStatus(IString* name, IEnumeration* initialValue) override;
-    ErrCode INTERFACE_FUNC setStatus(IString* name, IEnumeration* value) override;
-
-    // ISerializable
-    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
-    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
-
-    static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
-
-private:
+protected:
     std::recursive_mutex sync;
 
     DictPtr<IString, IEnumeration> statuses;
     ProcedurePtr triggerCoreEvent;
 };
 
-inline ComponentStatusContainerImpl::ComponentStatusContainerImpl()
-    : statuses(Dict<IString, IEnumeration>())
+template <typename TInterface, typename... Interfaces>
+StatusContainerBase<TInterface, Interfaces...>::StatusContainerBase()
+    : StatusContainerBase(nullptr)
 {
 }
 
-inline ComponentStatusContainerImpl::ComponentStatusContainerImpl(const ProcedurePtr& coreEventCallback)
+template <typename TInterface, typename... Interfaces>
+StatusContainerBase<TInterface, Interfaces...>::StatusContainerBase(const ProcedurePtr& coreEventCallback)
     : statuses(Dict<IString, IEnumeration>())
     , triggerCoreEvent(coreEventCallback)
 {
 }
 
-inline ErrCode ComponentStatusContainerImpl::getStatus(IString* name, IEnumeration** value)
+template <typename TInterface, typename... Interfaces>
+ErrCode StatusContainerBase<TInterface, Interfaces...>::getStatus(IString* name, IEnumeration** value)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
     OPENDAQ_PARAM_NOT_NULL(value);
@@ -77,7 +70,8 @@ inline ErrCode ComponentStatusContainerImpl::getStatus(IString* name, IEnumerati
     return OPENDAQ_SUCCESS;
 }
 
-inline ErrCode ComponentStatusContainerImpl::getStatuses(IDict** statuses)
+template <typename TInterface, typename... Interfaces>
+ErrCode StatusContainerBase<TInterface, Interfaces...>::getStatuses(IDict** statuses)
 {
     OPENDAQ_PARAM_NOT_NULL(statuses);
 
@@ -85,6 +79,37 @@ inline ErrCode ComponentStatusContainerImpl::getStatuses(IDict** statuses)
 
     *statuses = this->statuses.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+// ComponentStatusContainer
+class ComponentStatusContainerImpl final : public StatusContainerBase<IComponentStatusContainer, IComponentStatusContainerPrivate, ISerializable>
+{
+public:
+    using Super = StatusContainerBase<IComponentStatusContainer, IComponentStatusContainerPrivate, ISerializable>;
+
+    explicit ComponentStatusContainerImpl();
+    explicit ComponentStatusContainerImpl(const ProcedurePtr& coreEventCallback);
+
+    // IComponentStatusContainerPrivate
+    ErrCode INTERFACE_FUNC addStatus(IString* name, IEnumeration* initialValue) override;
+    ErrCode INTERFACE_FUNC setStatus(IString* name, IEnumeration* value) override;
+
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+};
+
+inline ComponentStatusContainerImpl::ComponentStatusContainerImpl()
+    : ComponentStatusContainerImpl(nullptr)
+{
+}
+
+inline ComponentStatusContainerImpl::ComponentStatusContainerImpl(const ProcedurePtr& coreEventCallback)
+    : Super(coreEventCallback)
+{
 }
 
 inline ErrCode ComponentStatusContainerImpl::addStatus(IString* name, IEnumeration* initialValue)

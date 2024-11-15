@@ -390,3 +390,44 @@ TEST_F(DeviceTest, SerializeLocked)
     deviceNew.asPtr<daq::IDevicePrivate>().unlock(tomaz);
     ASSERT_FALSE(deviceNew.isLocked());
 }
+
+TEST_F(DeviceTest, ConnectionStatusContainer)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    const auto connectionStatusContainer = device.getConnectionStatusContainer();
+
+    ASSERT_TRUE(connectionStatusContainer.assigned());
+}
+
+TEST_F(DeviceTest, SerializeAndDeserializeWithConnectionStatuses)
+{
+    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+
+    const auto typeManager = dev.getContext().getTypeManager();
+    const auto statusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
+
+    auto connectionStatusContainer = dev.getConnectionStatusContainer().asPtr<daq::IConnectionStatusContainerPrivate>();
+    connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnStr", statusValue);
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr1", statusValue, daq::String("StreamingObj1"));
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr2", statusValue, daq::String("StreamingObj2"));
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    dev.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = daq::JsonDeserializer();
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "dev");
+
+    const daq::DevicePtr newDev = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    // TODO streaming statuses are not serialized/deserialized
+    // ASSERT_EQ(newDev.getConnectionStatusContainer().getStatuses(), newDev.getConnectionStatusContainer().getStatuses());
+    // test config status only
+    auto newConnectionStatusContainer = newDev.getConnectionStatusContainer();
+    ASSERT_EQ(newConnectionStatusContainer.getStatuses().getCount(), 1u);
+    ASSERT_EQ(newConnectionStatusContainer.getStatus("ConfigurationStatus"),
+              dev.getConnectionStatusContainer().getStatus("ConfigurationStatus"));
+    ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_1"));
+    ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_2"));
+}

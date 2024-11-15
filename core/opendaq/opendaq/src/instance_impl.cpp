@@ -296,6 +296,11 @@ ErrCode INTERFACE_FUNC InstanceImpl::getLog(IString** log, IString* id, Int size
     return rootDevice->getLog(log, id, size, offset);
 }
 
+ErrCode InstanceImpl::getConnectionStatusContainer(IComponentStatusContainer** statusContainer)
+{
+    return rootDevice->getConnectionStatusContainer(statusContainer);
+}
+
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
 {
     OPENDAQ_PARAM_NOT_NULL(currentRootDevice);

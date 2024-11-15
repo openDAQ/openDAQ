@@ -206,7 +206,7 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * @subsubsection opendaq_core_event_types_component_status Component status changed
  *
- * Triggered whenever the status of a component changes.
+ * Triggered whenever a component's status changes (excluding device's connection statuses).
  *
  * The sender of the event is the component.
  *
@@ -242,6 +242,25 @@ BEGIN_NAMESPACE_OPENDAQ
  *  - The device domain under the key "DeviceDomain"
  *
  * The ID of the event is 150, and the event name is "DeviceDomainChanged".
+ *
+ * @subsubsection opendaq_core_event_types_device_connection_status Device connection status changed
+ *
+ * Triggered whenever connection status of a device changes.
+ *
+ * The sender of the event is the device of which connection status changed.
+ *
+ * The event contains the following parameters:
+ *  - The changed status name string under the key "StatusName"
+ *  - The new status value encapsulated within an Enumeration object under the key "StatusValue". The possible values:
+ *  "Connected" - connection just established or restored, "Reconnecting" - connection lost, "Unrecoverable" - reconnection
+ *  is not possible, "NotAvailable" - connection removed (typically when corresponding streaming source is removed)
+ *  - The connection string associated with connection under the key "ConnectionString"
+ *  - The integer value specifying the type of particular connection which status changed (0 - Unknown, 1 - Configuration, 2 - Streaming,
+ *  3 - ConfigurationAndStreaming) under the key "ProtocolType"
+ *  - The Streaming object associated with connection under the key "StreamingObject", the parameter is nullptr if connection
+ *  is of configuration type or the corresponding streaming connection has been removed
+ *
+ * The ID of the event is 170, and the event name is "ConnectionStatusChanged".
  *
  * @subsection opendaq_core_event_muting Muting core events
  *

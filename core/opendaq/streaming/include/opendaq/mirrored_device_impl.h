@@ -19,6 +19,7 @@
 #include <opendaq/mirrored_device_config.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/streaming_ptr.h>
+#include <opendaq/streaming_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -113,6 +114,25 @@ ErrCode MirroredDeviceBase<Interfaces...>::addStreamingSource(IStreaming* stream
     }
 
     streamingSources.push_back(streamingPtr);
+
+    auto errCode =
+        daqTry(
+            [this, streamingPtr] {
+                this->connectionStatusContainer.addStreamingConnectionStatus(
+                    streamingPtr.getConnectionString(),
+                    streamingPtr.getConnectionStatus(),
+                    streamingPtr
+                );
+            }
+        );
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    const auto thisPtr = this->template borrowPtr<DevicePtr>();
+    errCode = streamingPtr.template asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -132,11 +152,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
                                return streamingConnectionStringPtr == item.getConnectionString();
                            });
 
-    if (it != streamingSources.end())
-    {
-        streamingSources.erase(it);
-    }
-    else
+    if (it == streamingSources.end())
     {
         return this->makeErrorInfo(
             OPENDAQ_ERR_NOTFOUND,
@@ -148,12 +164,33 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
         );
     }
 
+    auto errCode =
+        daqTry(
+            [this, streamingConnectionStringPtr] {
+                this->connectionStatusContainer.removeStreamingConnectionStatus(streamingConnectionStringPtr);
+            }
+        );
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    errCode = (*it).template asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    streamingSources.erase(it);
+
     return OPENDAQ_SUCCESS;
 }
 
 template <typename... Interfaces>
 void MirroredDeviceBase<Interfaces...>::removed()
 {
+    for (const auto& streamingSource : streamingSources)
+    {
+        this->connectionStatusContainer.removeStreamingConnectionStatus(streamingSource.getConnectionString());
+        checkErrorInfo(streamingSource.template asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr));
+    }
+
     // disconnects all streaming connections
     streamingSources.clear();
 
@@ -186,6 +223,12 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     auto streamingPtr = managerUtils.createStreaming(connectionString, config);
     streamingSources.push_back(streamingPtr);
+
+    this->connectionStatusContainer.addStreamingConnectionStatus(streamingPtr.getConnectionString(),
+                                                                 streamingPtr.getConnectionStatus(),
+                                                                 streamingPtr);
+    const auto thisPtr = this->template borrowPtr<DevicePtr>();
+    checkErrorInfo(streamingPtr.template asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
 
     return streamingPtr;
 }

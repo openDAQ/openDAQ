@@ -22,6 +22,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*#
+ * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
+ */
+
 /*!
  * @ingroup opendaq_streamings
  * @addtogroup opendaq_streaming_streaming Streaming
@@ -98,6 +102,13 @@ DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
      * @param[out] connectionString The string used to connect to the streaming service.
      */
     virtual ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) const = 0;
+
+    /*!
+     * @brief Retrieves the current status of the streaming connection.
+     * @param[out] connectionStatus The connection status, represented as an enumeration of type "ConnectionStatusType"
+     * with possible values: "Connected", "Reconnecting", or "Unrecoverable".
+     */
+    virtual ErrCode INTERFACE_FUNC getConnectionStatus(IEnumeration** connectionStatus) = 0;
 };
 /*!@}*/
 

@@ -55,6 +55,7 @@
 #include <opendaq/removable_ptr.h>
 #include <opendaq/component_status_container_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
+#include <opendaq/connection_status_container_private_ptr.h>
 
 #include <opendaq/data_descriptor_factory.h>
 

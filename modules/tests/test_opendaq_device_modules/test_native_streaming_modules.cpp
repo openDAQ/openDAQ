@@ -360,7 +360,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("OpenDAQNativeStreamingStatus_1"), "Connected");
 
     std::promise<StringPtr> connectionStatusPromise;
     std::future<StringPtr> connectionStatusFuture = connectionStatusPromise.get_future();
@@ -368,10 +368,16 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
-        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged)
         {
-            ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
-            connectionStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
+            ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
+            EXPECT_TRUE(args.getParameters().get("StatusName").assigned());
+            ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
+            EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.ns://127.0.0.1/");
+            ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
+            EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
+            ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+            connectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
         }
     };
 
@@ -381,7 +387,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     server.release();
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Reconnecting");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("OpenDAQNativeStreamingStatus_1"), "Reconnecting");
 
     // reset future / promise
     connectionStatusPromise = std::promise<StringPtr>();
@@ -393,7 +399,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
 
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Connected");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("OpenDAQNativeStreamingStatus_1"), "Connected");
 
     auto clientSignalsAfterReconnection = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignalsAfterReconnection.getCount(), clientSignalsBeforeDisconnection.getCount());
@@ -425,7 +431,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("OpenDAQNativeStreamingStatus_1"), "Connected");
 
     std::promise<StringPtr> connectionStatusPromise;
     std::future<StringPtr> connectionStatusFuture = connectionStatusPromise.get_future();
@@ -433,10 +439,16 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
-        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged)
         {
-            ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
-            connectionStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
+            ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
+            EXPECT_TRUE(args.getParameters().get("StatusName").assigned());
+            ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
+            EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.ns://127.0.0.1/");
+            ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
+            EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
+            ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+            connectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
         }
     };
 
@@ -467,7 +479,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
     server.release();
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Reconnecting");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("OpenDAQNativeStreamingStatus_1"), "Reconnecting");
 
     // reset future / promise
     connectionStatusPromise = std::promise<StringPtr>();
@@ -495,7 +507,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
 
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Connected");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("OpenDAQNativeStreamingStatus_1"), "Connected");
 
     // wait for new subscribe ack before further reading
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));

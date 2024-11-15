@@ -31,6 +31,18 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
     if (!this->logger.assigned())
         throw ArgumentNullException("Logger must not be null");
 
+    if (!this->typeManager.assigned())
+        this->typeManager = TypeManager();
+
+    if (!this->typeManager.hasType("ConnectionStatusType"))
+    {
+        const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected",
+                                                                                      "Reconnecting",
+                                                                                      "Unrecoverable",
+                                                                                      "NotAvailable"));
+        this->typeManager.addType(statusType);
+    }
+
     if (!this->authenticationProvider.assigned())
         this->authenticationProvider = AuthenticationProvider();
 

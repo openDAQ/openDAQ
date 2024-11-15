@@ -18,6 +18,7 @@
 #include <opendaq/device_ptr.h>
 #include <coreobjects/property_object_protected.h>
 #include <config_protocol/config_server_access_control.h>
+#include <opendaq/update_parameters_factory.h>
 
 namespace daq::config_protocol
 {
@@ -222,7 +223,9 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
         updatable = component;
 
     const auto deserializer = JsonDeserializer();
-    deserializer.update(updatable, serializedString, nullptr);
+    const auto updateParams = UpdateParameters();
+    updateParams.setPropertyValue("RemoteUpdate", true);
+    deserializer.update(updatable, serializedString, updateParams);
 
     return nullptr;
 }

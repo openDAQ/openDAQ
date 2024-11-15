@@ -17,31 +17,28 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-static std::string defineLocalId(const std::string& localId);
-static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder);
-static std::string getErrorMessage();
+static StringPtr DefineLocalId(const StringPtr& localId);
+static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder);
+static std::string GetErrorMessage();
 
 InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     : context(std::move(context))
     , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
     , rootDeviceSet(false)
 {
-    auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
+    auto instanceId = DefineLocalId(localId);
     rootDevice = Client(this->context, instanceId);
     rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     loggerComponent = this->context.getLogger().addComponent("Instance");
 }
 
 InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
-    : context(contextFromInstanceBuilder(instanceBuilder))
+    : context(ContextFromInstanceBuilder(instanceBuilder))
     , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
     , rootDeviceSet(false)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
     loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
-
-    auto localId = builderPtr.getDefaultRootDeviceLocalId();
-    auto instanceId = defineLocalId(localId.assigned() ? localId.toStdString() : std::string());
 
     auto connectionString = builderPtr.getRootDevice();
     auto rootDeviceConfig = builderPtr.getRootDeviceConfig();
@@ -56,8 +53,11 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
         rootDeviceSet = true;
     }
     else
+    {
+        auto localId = builderPtr.getDefaultRootDeviceLocalId();
+        auto instanceId = DefineLocalId(localId);
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
-
+    }
     rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 }
 
@@ -67,18 +67,11 @@ InstanceImpl::~InstanceImpl()
     rootDevice.release();
 }
 
-static std::string defineLocalId(const std::string& localId)
+static StringPtr DefineLocalId(const StringPtr& localId)
 {
-    if (!localId.empty())
+    if (localId.assigned() && localId.getLength())
         return localId;
-
-    auto* env = std::getenv("OPENDAQ_INSTANCE_ID");
-    if (env != nullptr)
-        return env;
-
-    boost::uuids::random_generator gen;
-    const auto uuidBoost = gen();
-    return boost::uuids::to_string(uuidBoost);
+    return "openDAQDevice";
 }
 
 static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
@@ -88,7 +81,7 @@ static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, co
     return nullptr;
 }
 
-static ContextPtr contextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
+static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
     const auto context = builderPtr.getContext();
@@ -200,7 +193,7 @@ ErrCode InstanceImpl::addServer(IString* typeId, IPropertyObject* config, IServe
     return rootDevice->addServer(typeId, config, server);
 }
 
-std::string getErrorMessage()
+std::string GetErrorMessage()
 {
     std::string errorMessage;
 
@@ -235,7 +228,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &nativeStreamingServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, getErrorMessage(), errCode);
+        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
         return errCode;
     }
     serversPtr.pushBack(nativeStreamingServer);
@@ -247,7 +240,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, getErrorMessage(), errCode);
+        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
         return errCode;
     }
     serversPtr.pushBack(websocketServer);
@@ -258,7 +251,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &opcUaServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, getErrorMessage(), errCode);
+        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
         return errCode;
     }
     serversPtr.pushBack(opcUaServer);

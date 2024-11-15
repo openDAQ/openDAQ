@@ -122,6 +122,7 @@ TEST_F(InputPortTest, SerializeAndDeserialize)
     EXPECT_CALL(signal.mock(), listenerConnected).Times(2);
     EXPECT_CALL(signal.mock(), isRemoved(_)).WillRepeatedly(DoAll(SetArgPointee<0>(False), Return(OPENDAQ_SUCCESS)));
     EXPECT_CALL(signal.mock(), getGlobalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("sig"));
+    EXPECT_CALL(signal.mock(), getSignalSerializeId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("sig"));
 
     inputPort.setName("sig_name");
     inputPort.setDescription("sig_description");

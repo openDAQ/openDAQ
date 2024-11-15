@@ -99,6 +99,7 @@ public:
     // ISignalPrivate
     ErrCode INTERFACE_FUNC clearDomainSignalWithoutNotification() override;
     ErrCode INTERFACE_FUNC enableKeepLastValue(Bool enabled) override;
+    ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -1045,12 +1046,15 @@ ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* se
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
-    const SignalPtr domainSignalObj = onGetDomainSignal();
-    if (domainSignalObj.assigned())
+    if (!forUpdate)
     {
-        serializer.key("domainSignalId");
-        const auto domainSignalGlobalId = domainSignalObj.getGlobalId();
-        serializer.writeString(domainSignalGlobalId);
+        const SignalPtr domainSignalObj = onGetDomainSignal();
+        if (domainSignalObj.assigned())
+        {
+            serializer.key("domainSignalId");
+            const auto domainSignalGlobalId = domainSignalObj.getGlobalId();
+            serializer.writeString(domainSignalGlobalId);
+        }
     }
 
     const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
@@ -1200,6 +1204,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
 
     *value = lastDataValue.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getSignalSerializeId(IString** serializeId)
+{
+    return this->getGlobalId(serializeId);
 }
 
 template <typename TInterface, typename... Interfaces>

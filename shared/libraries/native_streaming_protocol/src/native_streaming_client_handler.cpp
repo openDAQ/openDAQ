@@ -17,7 +17,7 @@ NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
                                                      const std::shared_ptr<boost::asio::io_context>& ioContextPtr)
     : context(context)
     , transportLayerProperties(transportLayerProperties)
-    , authenticationObject(normalizeAuthenticationObject(authenticationObject))
+    , authenticationObject(authenticationObject)
     , ioContextPtr(ioContextPtr)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientImpl"))
     , reconnectionTimer(std::make_shared<boost::asio::steady_timer>(*ioContextPtr))
@@ -30,25 +30,6 @@ NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
 NativeStreamingClientImpl::~NativeStreamingClientImpl()
 {
     reconnectionTimer->cancel();
-}
-
-PropertyObjectPtr NativeStreamingClientImpl::normalizeAuthenticationObject(const PropertyObjectPtr& authenticationObject)
-{
-    auto normalizedObject = PropertyObject();
-
-    normalizedObject.addProperty(StringProperty("Username", ""));
-    normalizedObject.addProperty(StringProperty("Password", ""));
-
-    if (authenticationObject.assigned())
-    {
-        if (authenticationObject.hasProperty("Username"))
-            normalizedObject.setPropertyValue("Username", authenticationObject.getPropertyValue("Username"));
-
-        if (authenticationObject.hasProperty("Password"))
-            normalizedObject.setPropertyValue("Password", authenticationObject.getPropertyValue("Password"));
-    }
-
-    return normalizedObject;
 }
 
 void NativeStreamingClientImpl::manageTransportLayerProps()

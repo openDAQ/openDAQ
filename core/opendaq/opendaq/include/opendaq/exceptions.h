@@ -21,3 +21,4 @@
 DEFINE_EXCEPTION(ConnectionLost, OPENDAQ_ERR_CONNECTION_LOST, "Lost connection to the server.")
 DEFINE_EXCEPTION(ConnectionLimitReached, OPENDAQ_ERR_CONNECTION_LIMIT_REACHED, "Connection rejected - connections limit reached")
 DEFINE_EXCEPTION(ServerVersionTooLow, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW, "The client attempted to call a function that requires a newer version of the openDAQ server")
+DEFINE_EXCEPTION(ControlClientRejected, OPENDAQ_ERR_CONTROL_CLIENT_REJECTED, "Connection rejected - too many control clients")

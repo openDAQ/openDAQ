@@ -65,8 +65,18 @@ protected:
                                       config_protocol::PacketBuffer&& firstPacketBuffer);
     void connectConfigProtocol(std::shared_ptr<ServerSessionHandler> sessionHandler,
                                config_protocol::PacketBuffer&& firstPacketBuffer);
+    void reportConnectError(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                            config_protocol::PacketBuffer& firstPacketBuffer,
+                            ErrCode errorCode,
+                            const std::string& message);
+    bool isConnectionLimitReached();
+    bool isControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    bool isExclusiveControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void incrementConfigConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void decrementConfigConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
+    std::shared_ptr<ServerSessionHandler> releaseSessionHandlerInternal(SessionPtr session, bool enableSyncLock);
     void handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
                                   const SignalPtr& signal,
@@ -74,6 +84,10 @@ protected:
                                   const std::string& clientId);
     bool onAuthenticate(const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut);
     void onSessionError(const std::string &errorMessage, SessionPtr session);
+    void releaseOtherControlConnectionsInternal(std::shared_ptr<ServerSessionHandler> currentSessionHandler,
+                                                std::vector<std::shared_ptr<ServerSessionHandler>>& releasedSessionHandlers);
+    ClientType parseClientTypeProp(const PropertyObjectPtr& propertyObject);
+    bool parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject);
 
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
@@ -95,7 +109,8 @@ protected:
 
     SizeT maxAllowedConfigConnections;
     SizeT configConnectionsCount;
-
+    SizeT controlConnectionsCount;
+    SizeT exclusiveControlConnectionsCount;
     SizeT streamingPacketSendTimeout;
 };
 

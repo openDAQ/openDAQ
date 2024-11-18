@@ -15,6 +15,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <config_protocol/config_protocol_client.h>
 #include <opendaq/address_info_factory.h>
+#include <opendaq/client_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace discovery;
@@ -462,6 +463,8 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
     transportLayerConfig.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));
 
+    daq::ClientTypeTools::DefineConfigProperties(transportLayerConfig);
+
     populateTransportLayerConfigFromContext(transportLayerConfig);
 
     return transportLayerConfig;
@@ -475,6 +478,8 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
     defaultConfig.addProperty(IntProperty("Port", 7420));
     defaultConfig.addProperty(StringProperty("Username", ""));
     defaultConfig.addProperty(StringProperty("Password", ""));
+
+    daq::ClientTypeTools::DefineConfigProperties(defaultConfig);
 
     if (nativeConfigType == NativeType::config)
     {
@@ -546,8 +551,11 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     const StringPtr& path,
     const PropertyObjectPtr& config)
 {
-    const PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
-    const PropertyObjectPtr authenticationConfig = config;  // root config also has a flat lsit of authentication properties
+    PropertyObjectPtr transportLayerConfig = config.getPropertyValue("TransportLayerConfig");
+    PropertyObjectPtr authenticationConfig = parseAuthenticationConfig(config);
+
+    copyConfigPropertyValue("ClientType", config, transportLayerConfig);
+    copyConfigPropertyValue("ExclusiveControlDropOthers", config, transportLayerConfig);
 
     StringPtr modifiedHost = host;
     if (modifiedHost.assigned() && modifiedHost.getLength() > 1 && modifiedHost.getCharPtr()[0] == '[' && modifiedHost.getCharPtr()[modifiedHost.getLength() - 1] == ']')
@@ -569,6 +577,40 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     }
 
     return transportClientHandler;
+}
+
+PropertyObjectPtr NativeStreamingClientModule::parseAuthenticationConfig(const PropertyObjectPtr& config)
+{
+    auto normalizedObject = PropertyObject();
+
+    normalizedObject.addProperty(StringProperty("Username", ""));
+    normalizedObject.addProperty(StringProperty("Password", ""));
+
+    if (config.assigned())
+    {
+        if (config.hasProperty("Username"))
+            normalizedObject.setPropertyValue("Username", config.getPropertyValue("Username"));
+
+        if (config.hasProperty("Password"))
+            normalizedObject.setPropertyValue("Password", config.getPropertyValue("Password"));
+    }
+
+    return normalizedObject;
+}
+
+void NativeStreamingClientModule::copyConfigPropertyValue(const StringPtr& propName,
+                                                          const PropertyObjectPtr& srcObject,
+                                                          PropertyObjectPtr& targetObject)
+{
+    if (srcObject.hasProperty(propName))
+    {
+        const auto prop = srcObject.getProperty(propName);
+        const auto value = srcObject.getPropertyValue(propName);
+        const auto defaultValue = prop.getDefaultValue();
+
+        if (targetObject.hasProperty(propName) && targetObject.getPropertyValue(propName) == defaultValue)
+            targetObject.setPropertyValue(propName, value);
+    }
 }
 
 StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr& connectionString,

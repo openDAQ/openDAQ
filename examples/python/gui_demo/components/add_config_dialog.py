@@ -91,8 +91,8 @@ class AddConfigDialog(Dialog):
             for property in self.context.properties_of_component(context):
                 if property.name == path[depth]:
                     if depth == len(path) - 1:
-                        context.set_property_value(
-                            property.name, daq.EvalValue(new_value))
+                        eval_result = daq.EvalValue(new_value).result
+                        context.set_property_value(property.name, eval_result)
                         return
                     prop = context.get_property_value(property.name)
                     if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):

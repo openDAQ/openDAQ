@@ -30,6 +30,11 @@
     <VersionSuffix Condition="'$(SHORT_SHA)' != ''">beta-$(SHORT_SHA)</VersionSuffix>
     <AssemblyVersion>9.9.9.9</AssemblyVersion>
     <FileVersion>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</FileVersion>
+    <!--<RepositoryUrl>https://github.com/openDAQ/openDAQ.git</RepositoryUrl>-->
+    <RepositoryUrl Condition="'$(REPOSITORY_URL)' != ''">$(REPOSITORY_URL)</RepositoryUrl>
+    <RepositoryType Condition="'$(REPOSITORY_URL)' != ''">git</RepositoryType>
+    <RepositoryBranch Condition="'$(BRANCH_NAME)' != ''">$(BRANCH_NAME)</RepositoryBranch>
+    <RepositoryCommit Condition="'$(COMMIT_SHA)' != ''">$(COMMIT_SHA)</RepositoryCommit>
     <PackageProjectUrl>https://opendaq.com/</PackageProjectUrl>
     <PackageTags>open;daq;sdk;bindings;blueberry</PackageTags>
     <!-- for local test-purposes only, in CI == 'Release_Build' -->

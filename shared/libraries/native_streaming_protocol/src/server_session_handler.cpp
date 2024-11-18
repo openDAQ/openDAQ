@@ -280,6 +280,26 @@ UserPtr ServerSessionHandler::getUser()
     return userPtr;
 }
 
+void ServerSessionHandler::setClientType(ClientType clientType)
+{
+    this->clientType = clientType;
+}
+
+ClientType ServerSessionHandler::getClientType()
+{
+    return clientType;
+}
+
+void ServerSessionHandler::setExclusiveControlDropOthers(bool enabled)
+{
+    exclusiveControlDropOthers = enabled;
+}
+
+bool ServerSessionHandler::isExclusiveControlDropOthersEnabled()
+{
+    return exclusiveControlDropOthers;
+}
+
 void ServerSessionHandler::setClientId(const std::string& clientId)
 {
     this->clientId = clientId;

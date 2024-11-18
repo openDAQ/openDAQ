@@ -12,6 +12,7 @@
 #include <opendaq/module_impl.h>
 #include <chrono>
 #include <coretypes/filesystem.h>
+#include <opendaq/client_type.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -320,6 +321,102 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     nativeStreamingConfig.setPropertyValue("Password", "tomaz123");
     auto device = clientInstance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
+{
+    const std::string url = "daq.nd://127.0.0.1";
+
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl), ControlClientRejectedException);
+
+    clientInstance = nullptr; // disconnect
+    clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
+{
+    const std::string url = "daq.nd://127.0.0.1";
+
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(url, ClientType::Control), ControlClientRejectedException);
+
+    clientInstance = nullptr; // disconnect
+    clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
+{
+    const std::string url = "daq.nd://127.0.0.1";
+
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::Control);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+
+    ASSERT_THROW(test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl), ControlClientRejectedException);
+
+    clientInstance = nullptr; // disconnect
+    clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
+{
+    const std::string url = "daq.nd://127.0.0.1";
+
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto clientInstance1 = test_helpers::connectInstanceWithClientType(url, ClientType::Control);
+    ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
+
+    auto clientInstance2 = test_helpers::connectInstanceWithClientType(url, ClientType::Control);
+    ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
+
+    ASSERT_EQ(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    auto clientInstance3 = test_helpers::connectInstanceWithClientType(
+        url, ClientType::ExclusiveControl, true);  // should cause all other control clients to disconnect
+
+    ASSERT_EQ(clientInstance3.getDevices().getCount(), 1u);
+    ASSERT_NE(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_NE(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance3.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveControl)
+{
+    const std::string url = "daq.nd://127.0.0.1";
+
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto clientInstance1 = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
+
+    ASSERT_EQ(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    auto clientInstance2 = test_helpers::connectInstanceWithClientType(
+        url, ClientType::ExclusiveControl, true);  // should cause first exclusive control client to disconnect
+
+    ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
+    ASSERT_NE(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 }
 
 TEST_F(NativeDeviceModulesTest, PartialSerialization)

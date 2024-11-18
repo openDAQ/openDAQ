@@ -99,7 +99,6 @@ public:
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
 protected:
-    PropertyObjectPtr normalizeAuthenticationObject(const PropertyObjectPtr& authenticationObject);
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
     daq::native_streaming::Authentication initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject);

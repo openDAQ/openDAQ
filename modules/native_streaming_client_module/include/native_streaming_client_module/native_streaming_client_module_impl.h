@@ -68,6 +68,8 @@ private:
         const StringPtr& port,
         const StringPtr& path,
         const PropertyObjectPtr& config);
+    PropertyObjectPtr parseAuthenticationConfig(const PropertyObjectPtr& config);
+    void copyConfigPropertyValue(const StringPtr& propName, const PropertyObjectPtr& srcObject, PropertyObjectPtr& targetObject);
 
     StreamingPtr createNativeStreaming(const StringPtr& connectionString,
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,

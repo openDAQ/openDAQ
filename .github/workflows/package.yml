@@ -43,13 +43,13 @@ jobs:
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
             cpack: NSIS
-          - name: Windows VS 2022 Win32 Release
-            runner: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: Win32
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-            cpack: NSIS
+          # - name: Windows VS 2022 Win32 Release
+          #   runner: windows-latest
+          #   cmake_generator: "Visual Studio 17 2022"
+          #   cmake_generator_platform: Win32
+          #   cmake_build_type: Release
+          #   cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+          #   cpack: NSIS
 
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
@@ -73,9 +73,10 @@ jobs:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
           # for .NET Bindings beta build
-          $env:SHORT_SHA = if ( "${{ github.ref_name || github.base_ref }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
+          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
           if ("$env:SHORT_SHA" -ne '') {
-            echo "short_sha_dotnet=$env:SHORT_SHA" >> "$GITHUB_OUTPUT"
+            # pwsh syntax
+            echo "short_sha_dotnet=$env:SHORT_SHA" >> $env:GITHUB_OUTPUT
           }
           mkdir build
           cd build
@@ -104,8 +105,8 @@ jobs:
         shell: pwsh
         run: |
           # for .NET Bindings beta build
-          $env:SHORT_SHA = if ( "${{ github.ref_name || github.base_ref }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
-          # $GITHUB_OUTPUT not set here as output only needed from step configure_and_build_wheels
+          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
+          # $env:GITHUB_OUTPUT not set here as output only needed from step configure_and_build_wheels
           mkdir build
           cd build
           Write-Output "Building for Win32"
@@ -174,22 +175,22 @@ jobs:
             apt_packages: g++-10
             cc: gcc-10
             cxx: g++-10
-          - name: Ubuntu 20.04 gcc-10 Release arm64
-            image: ubuntu:20.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines:
-              -DOPENDAQ_BUILD_DOCUMENTATION=OFF
-              -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
-              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-              -DCMAKE_SYSTEM_NAME=Linux
-              -DCMAKE_SYSTEM_PROCESSOR=aarch64
-              -DDAQMODULES_REF_FB_MODULE=OFF
-            build_documentation: false
-            cpack: DEB
-            apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu
-            cc: aarch64-linux-gnu-gcc-10
-            cxx: aarch64-linux-gnu-g++-10
+          # - name: Ubuntu 20.04 gcc-10 Release arm64
+          #   image: ubuntu:20.04
+          #   cmake_generator: Ninja
+          #   cmake_build_type: Release
+          #   cmake_defines:
+          #     -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+          #     -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+          #     -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+          #     -DCMAKE_SYSTEM_NAME=Linux
+          #     -DCMAKE_SYSTEM_PROCESSOR=aarch64
+          #     -DDAQMODULES_REF_FB_MODULE=OFF
+          #   build_documentation: false
+          #   cpack: DEB
+          #   apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu
+          #   cc: aarch64-linux-gnu-gcc-10
+          #   cxx: aarch64-linux-gnu-g++-10
 
     container:
       image: ${{ matrix.image }}
@@ -306,6 +307,7 @@ jobs:
           retention-days: 1
 
   package_linux_wheels:
+    if: false
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
 
@@ -377,6 +379,7 @@ jobs:
           retention-days: 7
 
   simulator-build:
+    if: false
     runs-on: ubuntu-latest-4-cores
     name: Simulator build
     needs: [package_linux]

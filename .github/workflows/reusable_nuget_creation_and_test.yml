@@ -23,9 +23,9 @@ on:
         type: string
     outputs:
       nuget_artifact_name:
-        description: the name of the uploaded NuGet artifact  
+        description: the name of the uploaded NuGet artifact
         value: ${{ jobs.dotnet-bindings-nuget-creation.outputs.nuget_artifact_name }}
-      nuget_creation_result: 
+      nuget_creation_result:
         description: result of the creation job
         value: ${{ fromJSON(toJSON(jobs.dotnet-bindings-nuget-creation)).result }}
         # JSON trick from https://github.com/actions/runner/issues/2495
@@ -59,12 +59,12 @@ jobs:
       dotnet_source_path: ${{ env.dotnet_source_path }}
       nuget_artifact_name: ${{ env.nuget_artifact }}
       test_path: ${{ env.test_path }}
-    
+
     defaults:
       run:
         shell: pwsh
         working-directory: ${{ env.nuget_work_path }}
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,6 +104,9 @@ jobs:
         working-directory: ${{ env.dotnet_source_path }}/openDAQ.NET
         run: |
           # for .NET Bindings build
+          $ENV:REPOSITORY_URL = '${{ github.repositoryUrl }}'.Replace('git:','https:')
+          $ENV:BRANCH_NAME = '${{ github.base_ref || github.ref_name }}'.Replace('refs/heads/','')
+          $ENV:COMMIT_SHA = '${{ github.sha }}'
           $ENV:SHORT_SHA = '${{ inputs.short_sha }}'
           $SDK_WIN64_PATH = '-p:SDK_WIN64_PATH="${{ env.nuget_work_path_win_x64 }}"'
           $SDK_LINUX64_PATH = '-p:SDK_LINUX64_PATH="${{ env.nuget_work_path_linux_x64 }}"'

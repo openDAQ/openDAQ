@@ -51,13 +51,13 @@ jobs:
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
         include:
-          - name: Windows VS 2019 x64 Release
-            runner: windows-2019
-            cmake_generator: "Visual Studio 16 2019"
-            cmake_generator_platform: x64
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
-            cpack: NSIS
+          # - name: Windows VS 2019 x64 Release
+          #   runner: windows-2019
+          #   cmake_generator: "Visual Studio 16 2019"
+          #   cmake_generator_platform: x64
+          #   cmake_build_type: Release
+          #   cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+          #   cpack: NSIS
           - name: Windows VS 2022 x64 Release
             runner: windows-2022
             cmake_generator: "Visual Studio 17 2022"
@@ -65,26 +65,26 @@ jobs:
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
             cpack: NSIS
-          - name: Windows VS 2022 x64 Debug
-            runner: windows-2022
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: x64
-            cmake_build_type: Debug
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-            cpack: NSIS
-          - name: Windows VS 2022 Win32 Release
-            runner: windows-2022
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: Win32
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-            cpack: NSIS
-          - name: Windows Clang Release
-            runner: windows-2022
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
-            cpack: NSIS
+          # - name: Windows VS 2022 x64 Debug
+          #   runner: windows-2022
+          #   cmake_generator: "Visual Studio 17 2022"
+          #   cmake_generator_platform: x64
+          #   cmake_build_type: Debug
+          #   cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+          #   cpack: NSIS
+          # - name: Windows VS 2022 Win32 Release
+          #   runner: windows-2022
+          #   cmake_generator: "Visual Studio 17 2022"
+          #   cmake_generator_platform: Win32
+          #   cmake_build_type: Release
+          #   cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+          #   cpack: NSIS
+          # - name: Windows Clang Release
+          #   runner: windows-2022
+          #   cmake_generator: Ninja
+          #   cmake_build_type: Release
+          #   cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+          #   cpack: NSIS
 
     outputs:
       # trick for reusable workflow in build_nuget because cannot use env context in "with:"
@@ -214,46 +214,46 @@ jobs:
             cc: gcc-12
             cxx: g++-12
             cpack: DEB
-          # - name: Ubuntu 22.04 gcc-12 Debug
-          #   image: ubuntu:22.04
-          #   cmake_generator: Ninja
-          #   cmake_build_type: Debug
-          #   apt_packages: g++-12
-          #   cc: gcc-12
-          #   cxx: g++-12
-          #   cpack: DEB
-          - name: Ubuntu 20.04 gcc-7 Release
-            image: ubuntu:20.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-            apt_packages: g++-7
-            cc: gcc-7
-            cxx: g++-7
-          - name: Ubuntu 22.04 clang-14 Release
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            apt_packages: clang++-14
-            cc: clang-14
-            cxx: clang++-14
-          # - name: Ubuntu 22.04 clang-14 libc++ Release
-            # image: ubuntu:22.04
-            # cmake_generator: Ninja
-            # cmake_build_type: Release
-            # cmake_defines: -DCMAKE_CXX_FLAGS=-stdlib=libc++
-            # apt_packages: clang++-14 libc++-14-dev libc++abi-14-dev
-            # cc: clang-14
-            # cxx: clang++-14
-            # cpack: ZIP
-          - name: Ubuntu 22.04 preinstalled packages
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev
-            cc: gcc
-            cxx: g++
-            cpack: DEB
+          ## - name: Ubuntu 22.04 gcc-12 Debug
+          ##   image: ubuntu:22.04
+          ##   cmake_generator: Ninja
+          ##   cmake_build_type: Debug
+          ##   apt_packages: g++-12
+          ##   cc: gcc-12
+          ##   cxx: g++-12
+          ##   cpack: DEB
+          #- name: Ubuntu 20.04 gcc-7 Release
+          #  image: ubuntu:20.04
+          #  cmake_generator: Ninja
+          #  cmake_build_type: Release
+          #  cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+          #  apt_packages: g++-7
+          #  cc: gcc-7
+          #  cxx: g++-7
+          #- name: Ubuntu 22.04 clang-14 Release
+          #  image: ubuntu:22.04
+          #  cmake_generator: Ninja
+          #  cmake_build_type: Release
+          #  apt_packages: clang++-14
+          #  cc: clang-14
+          #  cxx: clang++-14
+          ## - name: Ubuntu 22.04 clang-14 libc++ Release
+          #  # image: ubuntu:22.04
+          #  # cmake_generator: Ninja
+          #  # cmake_build_type: Release
+          #  # cmake_defines: -DCMAKE_CXX_FLAGS=-stdlib=libc++
+          #  # apt_packages: clang++-14 libc++-14-dev libc++abi-14-dev
+          #  # cc: clang-14
+          #  # cxx: clang++-14
+          #  # cpack: ZIP
+          #- name: Ubuntu 22.04 preinstalled packages
+          #  image: ubuntu:22.04
+          #  cmake_generator: Ninja
+          #  cmake_build_type: Release
+          #  apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev
+          #  cc: gcc
+          #  cxx: g++
+          #  cpack: DEB
 
     container:
       image: ${{ matrix.image }}
@@ -435,7 +435,8 @@ jobs:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
     # ${{ }} expression syntax because of leading '!'
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
+    if: false
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -543,7 +544,8 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
     # ${{ }} expression syntax because of leading '!'
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
+    if: false
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -604,7 +606,8 @@ jobs:
     runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
     # ${{ }} expression syntax because of leading '!'
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
+    if: false
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}

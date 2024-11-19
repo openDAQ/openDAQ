@@ -294,7 +294,7 @@ void ConfigProtocolClientComm::lock(const std::string& globalId)
     auto params = Dict<IString, IBaseObject>();
     params.set("ComponentGlobalId", String(globalId));
 
-    sendCommand(ClientCommand("Lock", 3), params);
+    sendCommand(ClientCommand("Lock", 6), params);
 }
 
 void ConfigProtocolClientComm::unlock(const std::string& globalId)
@@ -302,7 +302,7 @@ void ConfigProtocolClientComm::unlock(const std::string& globalId)
     auto params = Dict<IString, IBaseObject>();
     params.set("ComponentGlobalId", String(globalId));
 
-    sendCommand(ClientCommand("Unlock", 3), params);
+    sendCommand(ClientCommand("Unlock", 6), params);
 }
 
 void ConfigProtocolClientComm::forceUnlock(const std::string& globalId)
@@ -318,7 +318,7 @@ bool ConfigProtocolClientComm::isLocked(const std::string& globalId)
     auto params = Dict<IString, IBaseObject>();
     params.set("ComponentGlobalId", String(globalId));
 
-    return sendCommand(ClientCommand("IsLocked", 3), params);
+    return sendCommand(ClientCommand("IsLocked", 6), params);
 }
 
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const

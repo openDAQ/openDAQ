@@ -1,3 +1,7 @@
+# 19.11.2024
+## Description
+- Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool* isLockedOut)
+
 # 08.11.2024
 ## Description
 - Add support for forcefully unlocking a device over native config protocol

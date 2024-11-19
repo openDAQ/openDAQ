@@ -507,3 +507,207 @@ TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueInsideCallback)
     clientDevice.setPropertyValue("EditableProperty", 1);
     ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);   
 }
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackFailed)
+{
+    serverDevice.addProperty(IntProperty("EditableProperty", 0));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() > 0)
+            throw InvalidParameterException("Invalid value");
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
+    ASSERT_THROW(clientDevice.setPropertyValue("EditableProperty", 1), InvalidParameterException);
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackIgnoreValue)
+{
+    serverDevice.addProperty(IntProperty("EditableProperty", 0));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() > 0)
+            arg.setValue(obj.getPropertyValue("EditableProperty"));
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("EditableProperty", 1));
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackNestead)
+{
+    serverDevice.addProperty(IntProperty("EditableProperty", 0));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() < 10)
+            obj.setPropertyValue("EditableProperty", arg.getValue() + 1);
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("EditableProperty", 1));
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 10);   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackDependencies)
+{
+    serverDevice.addProperty(IntProperty("Number", 0));
+    serverDevice.addProperty(IntProperty("Ones", 0));
+    serverDevice.addProperty(IntProperty("Tens", 0));
+
+    serverDevice.getOnPropertyValueWrite("Number") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        obj.setPropertyValue("Ones", arg.getValue());
+    };
+    
+    serverDevice.getOnPropertyValueWrite("Ones") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() < 0)
+        {
+            throw OutOfRangeException("Ones");
+        }
+        if ((Int)arg.getValue() > 9)
+        {
+            auto tens = (Int)arg.getValue() / 10;
+            obj.setPropertyValue("Tens", tens);
+            arg.setValue((Int)arg.getValue() % 10);
+        }
+        else
+        {
+            obj.setPropertyValue("Tens", 0);
+        }
+    };
+
+    serverDevice.getOnPropertyValueWrite("Tens") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() < 0)
+            throw OutOfRangeException("Tens");
+        if ((Int)arg.getValue() > 9)
+            throw OutOfRangeException("Tens");
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+    
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("Number", 12));
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 12);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 2);
+
+    ASSERT_THROW(clientDevice.setPropertyValue("Number", -1), OutOfRangeException);
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 12);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 2);
+
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("Number", 9));
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 9);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 9);
+
+    ASSERT_THROW(clientDevice.setPropertyValue("Number", 100), OutOfRangeException);
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 9);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 9);
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackCircleDependencies)
+{
+    serverDevice.addProperty(IntProperty("Number", 0));
+    serverDevice.addProperty(IntProperty("Ones", 0));
+    serverDevice.addProperty(IntProperty("Tens", 0));
+
+    serverDevice.getOnPropertyValueWrite("Number") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        obj.setPropertyValue("Ones", arg.getValue());
+    };
+    
+    serverDevice.getOnPropertyValueWrite("Ones") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() < 0)
+        {
+            throw OutOfRangeException("Ones");
+        }
+        if ((Int)arg.getValue() > 9)
+        {
+            auto tens = (Int)arg.getValue() / 10;
+            obj.setPropertyValue("Tens", tens);
+            arg.setValue((Int)arg.getValue() % 10);
+        }
+        else
+        {
+            obj.setPropertyValue("Tens", 0);
+        }
+    };
+
+    serverDevice.getOnPropertyValueWrite("Tens") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() < 0)
+            throw OutOfRangeException("Tens");
+        if ((Int)arg.getValue() > 9)
+            throw OutOfRangeException("Tens");
+
+        obj.setPropertyValue("Number", (Int)arg.getValue() * 10 + (Int)obj.getPropertyValue("Ones"));
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+    
+    // we are going number->ones->tens->number
+    // when the property tens updates the number property, it will used updated value of tens but old value of ones
+    // so it would be 1*10+0 = 10
+    // because number sets to 10, it will update ones to 0
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("Number", 12));
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 10);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+
+    // number->ones
+    // ones will throw an exception because it is out of range
+    // updating the full chain will be canceled
+    ASSERT_THROW(clientDevice.setPropertyValue("Number", -1), OutOfRangeException);
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 10);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+
+    // we are going number->ones->tens->number
+    // while setting new value to number from tens. it will used updated value of tens but old value of ones
+    // so it would be 0*10+0 = 10
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("Number", 9));
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+
+    // we are going number->ones->tens
+    // tens will throw an exception because it is out of range
+    // updating the full chain will be canceled
+    ASSERT_THROW(clientDevice.setPropertyValue("Number", 100), OutOfRangeException);
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+
+    // we are going tens->number
+    // while setting new value to tens from number. it will used updated value of number but old value of ones
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("Tens", 1));
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 10);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+
+    // we are going ones->tens->number
+    // while setting new value to ones from tens. it will used updated value of tens but old value of ones
+    // so it would be 1*10+0 = 10
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("Ones", 5));
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+
+    // we are going ones->tens->number
+    // while setting new value to ones from tens. it will used updated value of tens but old value of ones
+    // so it would be 2*10+0 = 20
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("Ones", 20));
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 20);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 2);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+}

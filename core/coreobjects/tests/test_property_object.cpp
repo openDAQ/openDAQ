@@ -125,7 +125,7 @@ protected:
     {
         PropertyPtr prop = args.getProperty();
 
-        propValue = propObj.getPropertyValue("IntProperty");
+        propValue = args.getValue();
         propName = prop.getName();
     }
 
@@ -973,11 +973,14 @@ TEST_F(PropertyObjectTest, OnValueChange)
     BaseObjectPtr propValue;
     StringPtr propName;
 
-    propObj.getOnPropertyValueWrite("Referenced") += [&propValue, &propName](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+    auto oldPropertyValue = propObj.getPropertyValue("IntProperty");
+
+    propObj.getOnPropertyValueWrite("Referenced") += [&propValue, &propName, &oldPropertyValue](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
     {
         auto prop = args.getProperty();
 
-        propValue = sender.getPropertyValue("IntProperty");
+        ASSERT_EQ(oldPropertyValue, sender.getPropertyValue("IntProperty"));
+        propValue = args.getValue();
         propName = prop.getName();
     };
 

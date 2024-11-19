@@ -299,6 +299,7 @@ protected:
     virtual PropertyObjectPtr getPropertyObjectParent();
 
     // Adds the value to the local list of values (`propValues`)
+    bool shouldWriteLocalValue(const StringPtr& name, const BaseObjectPtr& value) const;
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
     virtual void cloneAndSetChildPropertyObject(const PropertyPtr& prop);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
@@ -319,6 +320,10 @@ private:
     object_utils::NullMutex nullSync;
     std::thread::id externalCallThreadId{};
     int externalCallDepth = 0;
+
+    // stores the dictionaty of properties that have been updated during the current update
+    // the key is the property name, the value is pair of the stack depth and the current value to set
+    std::map<std::string, std::pair<size_t, BaseObjectPtr>> updatePropertyStack;
 
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
 
@@ -347,7 +352,7 @@ private:
 
     // Called when `setPropertyValue` successfully sets a new value
     [[maybe_unused]]
-    BaseObjectPtr callPropertyValueWrite(const PropertyPtr& prop, const BaseObjectPtr& newValue, PropertyEventType changeType, bool isUpdating);
+    ErrCode callPropertyValueWrite(const PropertyPtr& prop, BaseObjectPtr& newValue, PropertyEventType changeType, bool isUpdating);
 
     // Called at the end of `getPropertyValue`
     BaseObjectPtr callPropertyValueRead(const PropertyPtr& prop, const BaseObjectPtr& readValue);
@@ -543,46 +548,92 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
 #endif
 
 template <class PropObjInterface, class... Interfaces>
-BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPropertyValueWrite(const PropertyPtr& prop,
-                                                                                                 const BaseObjectPtr& newValue,
-                                                                                                 PropertyEventType changeType,
-                                                                                                 bool isUpdating)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPropertyValueWrite(const PropertyPtr& prop,
+                                                                                           BaseObjectPtr& newValue,
+                                                                                           PropertyEventType changeType,
+                                                                                           bool isUpdating)
 {
-    if (!prop.assigned())
+    const auto name = prop.getName();
+
+    size_t curStackLevel;
     {
-        return newValue;
+        auto updateStackIt = updatePropertyStack.try_emplace(name, std::make_pair(0, newValue));
+
+        // if this is the first time the property is being updated
+        if (updateStackIt.second)
+        {
+            // if the new value is the same as the old value do nothing
+            if (!shouldWriteLocalValue(name, newValue))
+            {
+                updatePropertyStack.erase(name);
+                return OPENDAQ_IGNORED;
+            }
+            curStackLevel = 0;
+
+        }
+        // if the property is already in the update stack
+        else
+        {
+            auto& valueIt = updateStackIt.first->second;
+            // if the new value is the same as the old value do nothing
+            if (valueIt.second == newValue)
+            {
+                return OPENDAQ_IGNORED;
+            }
+            curStackLevel = ++valueIt.first;
+            valueIt.second = newValue;
+        }
     }
 
     auto args = PropertyValueEventArgs(prop, newValue, changeType, isUpdating);
-
-    if (!localProperties.count(prop.getName()))
+    if (!localProperties.count(name))
     {
-        const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>().getClassOnPropertyValueWrite()};
+        const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>(true).getClassOnPropertyValueWrite()};
         if (propEvent.hasListeners())
-        {
             propEvent(objPtr, args);
-        }
     }
 
-    const auto name = prop.getName();
+    ErrCode errCode = OPENDAQ_SUCCESS;
+
     if (valueWriteEvents.find(name) != valueWriteEvents.end())
     {
         if (valueWriteEvents[name].hasListeners())
+            errCode = daqTry([&] { valueWriteEvents[name](objPtr, args); });
+    }
+
+    // If the event execution failed, forward the error code
+    if (OPENDAQ_FAILED(errCode))
+    {
+        // cleanup if we are in the first level of the stack
+        if (curStackLevel == 0)
+            updatePropertyStack.erase(name);
+        return errCode;
+    }
+    errCode = OPENDAQ_SUCCESS;
+
+    {
+        // if the property was handled in the higher level of the update stack, we shouldn't overwrite the final value
+        auto& [stackLevel, _] = updatePropertyStack[name];
+        if (curStackLevel != stackLevel)
+            errCode = OPENDAQ_IGNORED;
+    }
+
+    // if we are at the first level of the stack, clear the stack after completing the update
+    if (curStackLevel == 0)
+        updatePropertyStack.erase(name);
+
+    if (errCode == OPENDAQ_SUCCESS)
+    {
+        // If we reach here, it means that we are in the top level of the stack, setting the final value
+        if (newValue != args.getValue())
         {
-            valueWriteEvents[name](objPtr, args);
+            // If the new value differs from the provided value, it means it was changed in the callback,
+            // so we need to validate and possibly re-apply the new value
+            newValue = args.getValue();
+            return setPropertyValueInternal(name, newValue, false, true, false);
         }
     }
-
-    const auto argsValue = args.getValue();
-    if (argsValue != newValue)
-    {
-        setPropertyValueInternal(name, argsValue, false, true, false);
-    }
-
-    BaseObjectPtr valuePtr;
-    PropertyPtr propPtr;
-    getPropertyAndValueInternal(name, valuePtr, propPtr, false);
-    return valuePtr;
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -993,16 +1044,31 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 configureClonedObj(propName, valuePtr);
             }
 
-            if (!writeLocalValue(propName, valuePtr))
-                return OPENDAQ_IGNORED;
-
-            setOwnerToPropertyValue(valuePtr);
             if (triggerEvent)
             {
-                const auto newVal = callPropertyValueWrite(prop, valuePtr, PropertyEventType::Update, isUpdating);
+                BaseObjectPtr newValue = valuePtr;
+                err = callPropertyValueWrite(prop, newValue, PropertyEventType::Update, isUpdating);
+                if (OPENDAQ_FAILED(err))
+                    return err;
+
+                if (err == OPENDAQ_IGNORED)
+                    return OPENDAQ_SUCCESS;
+
+                if (valuePtr == newValue)
+                {
+                    writeLocalValue(propName, newValue);
+                    setOwnerToPropertyValue(newValue);
+                }
+
                 if (!isUpdating)
-                    triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));
+                    triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newValue, path));
             }
+            else
+            {
+                if (!writeLocalValue(propName, valuePtr))
+                    return OPENDAQ_IGNORED;
+                setOwnerToPropertyValue(valuePtr);
+            }           
         }
 
         return OPENDAQ_SUCCESS;
@@ -1053,6 +1119,27 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
     }
 
     return OPENDAQ_SUCCESS;
+}
+
+template <class PropObjInterface, class... Interfaces>
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::shouldWriteLocalValue(const StringPtr& name, const BaseObjectPtr& value) const
+{
+    auto it = propValues.find(name);
+    if (it != propValues.end())
+    {
+        return it->second != value;
+    }
+    else
+    {
+        try
+        {
+            return objPtr.getProperty(name).template asPtr<IPropertyInternal>().getDefaultValueNoLock() != value;
+        }
+        catch(...)
+        {
+        }
+    }
+    return true;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1609,7 +1696,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             auto it = propValues.find(prop.getName());
             if (it == propValues.end())
             {
-                return  OPENDAQ_IGNORED;
+                return OPENDAQ_IGNORED;
             }
 
             if (it->second.assigned())
@@ -1622,9 +1709,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             propValues.erase(it);
             cloneAndSetChildPropertyObject(prop);
 
-            const auto val = callPropertyValueWrite(prop, nullptr, PropertyEventType::Clear, isUpdating);
+            BaseObjectPtr newVal;
+            const ErrCode err = callPropertyValueWrite(prop, newVal, PropertyEventType::Clear, isUpdating);
+
+            if (OPENDAQ_FAILED(err))
+                return err;
+            
+            if (err == OPENDAQ_IGNORED)
+                return OPENDAQ_SUCCESS;
+
             if (!isUpdating)
-                triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, val, path));
+                triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));
         }
     }
     catch (const DaqException& e)

@@ -1,3 +1,38 @@
+# 19.11.2024
+## Description
+- Fixed the issue where property values were written before validation.
+## Required integration changes
+- Callback Attachment for Property Write. 
+  
+    In the method that attaches to the property object as a callback for property writes, use the following pattern:
+    ```
+    propObj.getOnPropertyValueWrite(propName) += (PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    { 
+        // Your logic here 
+    };
+    ```
+    - If you call propObj.getPropertyValue(propName) inside the callback, you will get the old property value.
+    - To access the new value that is about to be set, use arg.getValue().
+    ```
+    // prop has value 100
+    // setting new prop value as 345
+    propObj.getOnPropertyValueWrite(propName) += [&propName](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    { 
+        assert(obj.getPropertyValue(propName) == 100);
+        assert(arg.getValue() == 345); 
+    };
+    ```
+-  Ignoring the New Value for the Property. 
+
+    If you want to ignore setting the new value for the property:
+    - Throw an exception inside the callback.This will cancel the property update and propagate the exception to the initial `setPropertyValue` call.
+    - Alternatively, you can use:
+    ```
+        arg.setValue(obj.getPropertyValue(propName));
+
+    ```
+    This will skip setting the new value without throwing an exception.
+
 # 08.11.2024
 ## Description
 - Add support for forcefully unlocking a device over native config protocol

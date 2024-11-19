@@ -93,6 +93,8 @@
 #include <opendaq/log_file_info_ptr.h>
 #include <opendaq/log_file_info_builder_ptr.h>
 
+#include <opendaq/exceptions.h>
+
 
 /*!
  * @ingroup opendaq

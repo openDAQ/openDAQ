@@ -103,6 +103,64 @@ private:
     std::lock_guard<TMutex> lock;
 };
 
+class PropertyUpdateStack
+{
+    struct PropertyUpdateStackItem
+    {
+        PropertyUpdateStackItem(const BaseObjectPtr& value)
+            : value(value)
+            , stackLevel(1)
+        {
+        }
+
+        BaseObjectPtr value;
+        size_t stackLevel;
+    };
+
+public:
+    PropertyUpdateStack() = default;
+
+    // if update was not registered, returns 0, otherwise current stack level
+    size_t registerPropertyUpdating(const std::string& name, const BaseObjectPtr& value)
+    {
+        auto [it, inserted] = updatePropertyStack.try_emplace(name, value);
+        auto& propertItem = it->second;
+
+        if (inserted)
+            return propertItem.stackLevel;
+
+        if (value == propertItem.value)
+            return 0;
+        
+        propertItem.value = value;
+        return ++(propertItem.stackLevel);
+    }
+
+    inline bool isTopStackLevel(const std::string& name, size_t stackLevel) const
+    {
+        return updatePropertyStack.at(name).stackLevel == stackLevel;
+    }
+
+    inline bool isBaseStackLevel(size_t stackLevel) const 
+    {
+        return stackLevel == 1;
+    }
+
+    inline bool isPropertyUpdateRegistered(size_t stackLevel) const
+    {
+        return stackLevel;
+    }
+
+    inline void finalizePropertyUpdating(const std::string& name, size_t stackLevel)
+    {
+        if (stackLevel == 1)
+            updatePropertyStack.erase(name);
+    }
+
+private:
+    std::map<std::string, PropertyUpdateStackItem> updatePropertyStack;
+};
+
 template <typename PropObjInterface, typename... Interfaces>
 class GenericPropertyObjectImpl : public ImplementationOfWeak<PropObjInterface,
                                                               IOwnable,
@@ -321,9 +379,7 @@ private:
     std::thread::id externalCallThreadId{};
     int externalCallDepth = 0;
 
-    // stores the dictionaty of properties that have been updated during the current update
-    // the key is the property name, the value is pair of the stack depth and the current value to set
-    std::map<std::string, std::pair<size_t, BaseObjectPtr>> updatePropertyStack;
+    PropertyUpdateStack updatePropertyStack;
 
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
 
@@ -554,34 +610,19 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
                                                                                            bool isUpdating)
 {
     const auto name = prop.getName();
+    size_t curStackLevel = updatePropertyStack.registerPropertyUpdating(name, newValue);
 
-    size_t curStackLevel;
+    // it the value is not changed, we can skip the event
+    if (!updatePropertyStack.isPropertyUpdateRegistered(curStackLevel))
+        return OPENDAQ_IGNORED;
+
+    if (updatePropertyStack.isBaseStackLevel(curStackLevel))
     {
-        auto updateStackIt = updatePropertyStack.try_emplace(name, std::make_pair(0, newValue));
-
-        // if this is the first time the property is being updated
-        if (updateStackIt.second)
+        // if the value is not changed, we can skip the event
+        if (!shouldWriteLocalValue(name, newValue))
         {
-            // if the new value is the same as the old value do nothing
-            if (!shouldWriteLocalValue(name, newValue))
-            {
-                updatePropertyStack.erase(name);
-                return OPENDAQ_IGNORED;
-            }
-            curStackLevel = 0;
-
-        }
-        // if the property is already in the update stack
-        else
-        {
-            auto& valueIt = updateStackIt.first->second;
-            // if the new value is the same as the old value do nothing
-            if (valueIt.second == newValue)
-            {
-                return OPENDAQ_IGNORED;
-            }
-            curStackLevel = ++valueIt.first;
-            valueIt.second = newValue;
+            updatePropertyStack.finalizePropertyUpdating(name, curStackLevel);
+            return OPENDAQ_IGNORED;
         }
     }
 
@@ -604,36 +645,24 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     // If the event execution failed, forward the error code
     if (OPENDAQ_FAILED(errCode))
     {
-        // cleanup if we are in the first level of the stack
-        if (curStackLevel == 0)
-            updatePropertyStack.erase(name);
+        updatePropertyStack.finalizePropertyUpdating(name, curStackLevel);
         return errCode;
     }
-    errCode = OPENDAQ_SUCCESS;
 
+    bool isTopLevel = updatePropertyStack.isTopStackLevel(name, curStackLevel);
+    updatePropertyStack.finalizePropertyUpdating(name, curStackLevel);
+
+    if (isTopLevel)
     {
-        // if the property was handled in the higher level of the update stack, we shouldn't overwrite the final value
-        auto& [stackLevel, _] = updatePropertyStack[name];
-        if (curStackLevel != stackLevel)
-            errCode = OPENDAQ_IGNORED;
+        // setting the final value is only done in the top level of the stack
+        if (newValue == args.getValue())
+            return OPENDAQ_SUCCESS;
+        
+        // if the value changed, we have to validate new value before setting it
+        newValue = args.getValue();
+        return setPropertyValueInternal(name, newValue, false, true, false);
     }
-
-    // if we are at the first level of the stack, clear the stack after completing the update
-    if (curStackLevel == 0)
-        updatePropertyStack.erase(name);
-
-    if (errCode == OPENDAQ_SUCCESS)
-    {
-        // If we reach here, it means that we are in the top level of the stack, setting the final value
-        if (newValue != args.getValue())
-        {
-            // If the new value differs from the provided value, it means it was changed in the callback,
-            // so we need to validate and possibly re-apply the new value
-            newValue = args.getValue();
-            return setPropertyValueInternal(name, newValue, false, true, false);
-        }
-    }
-    return errCode;
+    return OPENDAQ_IGNORED;
 }
 
 template <typename PropObjInterface, typename... Interfaces>

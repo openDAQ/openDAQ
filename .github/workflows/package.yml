@@ -73,9 +73,10 @@ jobs:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
           # for .NET Bindings beta build
-          $env:SHORT_SHA = if ( "${{ github.ref_name || github.base_ref }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
+          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
           if ("$env:SHORT_SHA" -ne '') {
-            echo "short_sha_dotnet=$env:SHORT_SHA" >> "$GITHUB_OUTPUT"
+            # pwsh syntax
+            echo "short_sha_dotnet=$env:SHORT_SHA" >> $env:GITHUB_OUTPUT
           }
           mkdir build
           cd build
@@ -104,8 +105,8 @@ jobs:
         shell: pwsh
         run: |
           # for .NET Bindings beta build
-          $env:SHORT_SHA = if ( "${{ github.ref_name || github.base_ref }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
-          # $GITHUB_OUTPUT not set here as output only needed from step configure_and_build_wheels
+          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
+          # $env:GITHUB_OUTPUT not set here as output only needed from step configure_and_build_wheels
           mkdir build
           cd build
           Write-Output "Building for Win32"

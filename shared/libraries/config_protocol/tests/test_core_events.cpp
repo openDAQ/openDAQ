@@ -33,7 +33,11 @@ public:
         const auto anonymousUser = User("", "");
 
         serverDevice = test_utils::createTestDevice();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigCoreEventTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
+        server =
+            std::make_unique<ConfigProtocolServer>(serverDevice,
+                                                   std::bind(&ConfigCoreEventTest::serverNotificationReady, this, std::placeholders::_1),
+                                                   anonymousUser,
+                                                   ClientType::Control);
 
         clientContext = NullContext();
         client =

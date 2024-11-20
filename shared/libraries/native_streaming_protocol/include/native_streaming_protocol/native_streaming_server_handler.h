@@ -34,7 +34,7 @@ using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
 using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
 
 using ConfigServerCallbacks = std::pair<ProcessConfigProtocolPacketCb, OnPacketBufferReceivedCallback>;
-using SetUpConfigProtocolServerCb = std::function<ConfigServerCallbacks(SendConfigProtocolPacketCb cb, const UserPtr& user)>;
+using SetUpConfigProtocolServerCb = std::function<ConfigServerCallbacks(SendConfigProtocolPacketCb cb, const UserPtr& user, ClientType connectionType)>;
 
 class NativeStreamingServerHandler : public std::enable_shared_from_this<NativeStreamingServerHandler>
 {

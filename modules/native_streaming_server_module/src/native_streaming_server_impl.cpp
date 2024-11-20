@@ -259,14 +259,14 @@ void NativeStreamingServerImpl::prepareServerHandler()
     // a new packet streaming client (used for client to device streaming);
     // and transfers ownership of these objects to the transport layer session
     SetUpConfigProtocolServerCb createConfigServerCb =
-        [this](SendConfigProtocolPacketCb sendConfigPacketCb, const UserPtr& user)
+        [this](SendConfigProtocolPacketCb sendConfigPacketCb, const UserPtr& user, ClientType connectionType)
     {
         ProcessConfigProtocolPacketCb processConfigRequestCb = [](PacketBuffer&& packetBuffer) {};
         OnPacketBufferReceivedCallback packetBufferReceivedHandler = [](const packet_streaming::PacketBufferPtr& packetBufferPtr) {};
 
         if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         {
-            auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user, this->signals);
+            auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user, connectionType, this->signals);
             processConfigRequestCb =
                 [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
             {

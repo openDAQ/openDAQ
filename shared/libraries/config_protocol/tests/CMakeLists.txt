@@ -8,6 +8,7 @@ add_executable(${TEST_APP}
     test_config_protocol_integration.cpp
     test_config_protocol_access_control.cpp
     test_config_protocol_device_locking.cpp
+    test_config_protocol_view_only_client.cpp
     test_config_serialization.cpp
     test_ref_modules.cpp
     test_app.cpp

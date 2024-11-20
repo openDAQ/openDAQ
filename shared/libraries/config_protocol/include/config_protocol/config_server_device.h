@@ -57,6 +57,7 @@ inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const RpcContext& cont
 {
     ConfigServerAccessControl::protectLockedComponent(device);
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto fbTypeId = params.get("TypeId");
     PropertyObjectPtr config;
@@ -73,6 +74,7 @@ inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const RpcContext& c
 {
     ConfigServerAccessControl::protectLockedComponent(device);
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto localId = params.get("LocalId");
 
@@ -105,18 +107,27 @@ inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(const RpcContext& c
 
 inline BaseObjectPtr ConfigServerDevice::lock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
     device.asPtr<IDevicePrivate>().lock(context.user);
     return nullptr;
 }
 
 inline BaseObjectPtr ConfigServerDevice::unlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
     device.asPtr<IDevicePrivate>().unlock(context.user);
     return nullptr;
 }
 
 inline BaseObjectPtr ConfigServerDevice::forceUnlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
     device.asPtr<IDevicePrivate>().forceUnlock();
     return nullptr;
 }
@@ -130,7 +141,7 @@ inline BaseObjectPtr ConfigServerDevice::getLogFileInfos(const RpcContext& conte
 inline BaseObjectPtr ConfigServerDevice::getLog(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
-    
+
     const auto Id = params.get("Id");
     const auto size = params.get("Size");
     const auto offset = params.get("Offset");
@@ -142,7 +153,6 @@ inline BaseObjectPtr ConfigServerDevice::getAvailableDevices(const RpcContext& c
                                                    const DevicePtr& device,
                                                    const ParamsDictPtr& params)
 {
-    ConfigServerAccessControl::protectLockedComponent(device);
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
     return device.getAvailableDevices();
 }
@@ -153,6 +163,7 @@ inline BaseObjectPtr ConfigServerDevice::addDevice(const RpcContext& context,
 {
     ConfigServerAccessControl::protectLockedComponent(device);
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto connectionString = params.get("ConnectionString");
     PropertyObjectPtr config;
@@ -167,6 +178,7 @@ inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context,
 {
     ConfigServerAccessControl::protectLockedComponent(device);
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto localId = params.get("LocalId");
 

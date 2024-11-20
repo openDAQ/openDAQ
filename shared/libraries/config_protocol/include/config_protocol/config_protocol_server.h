@@ -21,6 +21,7 @@
 #include <opendaq/device_ptr.h>
 
 #include <opendaq/component_holder_ptr.h>
+#include <opendaq/client_type.h>
 
 namespace daq::config_protocol
 {
@@ -51,6 +52,7 @@ public:
     ConfigProtocolServer(DevicePtr rootDevice,
                          NotificationReadyCallback notificationReadyCallback,
                          const UserPtr& user,
+                         ClientType connectionType,
                          const FolderConfigPtr& externalSignalsFolder = nullptr);
     ~ConfigProtocolServer();
 
@@ -97,6 +99,7 @@ private:
     std::mutex notificationSerializerLock;
     std::unique_ptr<IComponentFinder> componentFinder;
     UserPtr user;
+    ClientType connectionType;
     uint16_t protocolVersion;
     const std::set<uint16_t> supportedServerVersions;
     ConfigProtocolStreamingConsumer streamingConsumer;

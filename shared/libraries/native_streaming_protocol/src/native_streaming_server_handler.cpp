@@ -396,8 +396,10 @@ void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<
             sessionHandlerPtr->sendConfigurationPacket(packetBuffer);
     };
 
-    UserPtr user = sessionHandler->getUser();
-    ConfigServerCallbacks configServerCallbacks = setUpConfigProtocolServerCb(sendConfigPacketCb, user);
+    const UserPtr user = sessionHandler->getUser();
+    const ClientType connectionType = sessionHandler->getClientType();
+
+    ConfigServerCallbacks configServerCallbacks = setUpConfigProtocolServerCb(sendConfigPacketCb, user, connectionType);
     ProcessConfigProtocolPacketCb receiveConfigPacketCb = configServerCallbacks.first;
     OnPacketBufferReceivedCallback clientToDeviceStreamingCb = configServerCallbacks.second;
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);

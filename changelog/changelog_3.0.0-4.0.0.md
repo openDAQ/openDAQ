@@ -1,3 +1,13 @@
+# 20.11.2024
+## Description
+- Support for different client types over the native configuration protocol has been introduced.
+- A ClientType selection property has been added to the general configuration object of the IDevice::addDevice method. Supported values are Control(0), Exclusive Control(1), and View Only(2).
+- An ExclusiveControlDropOthers boolean property has been added to the general configuration object of the IDevice::addDevice method.
+- The native configuration protocol has been updated to version 7.
+
+## Required integration changes
+- None. The default client type is Control(0), which is backward-compatible with previous protocol versions.
+
 # 19.11.2024
 ## Description
 - Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool* isLockedOut)

@@ -270,7 +270,6 @@ DeviceInfoPtr MockDevice1Impl::onGetInfo()
 {    
     auto deviceInfo = DeviceInfo("mock://dev1", "MockDevice1");
     deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("Testing");
-    deviceInfo.freeze();
     return deviceInfo;
 }
 

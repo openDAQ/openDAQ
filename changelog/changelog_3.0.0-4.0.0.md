@@ -1,3 +1,14 @@
+# 26.11.2024
+## Description
+- Implement editable device info fields that can be modified by the owner (device).
+- Broadcast modified device info properties via mDNS.
+- Broadcast all device info properties via mDNS.
+
+## Required integration changes
+- For classes inheriting from `Device`, the method `onGetInfo` should not freeze the device info prematurely.
+  - Device info will be frozen after attaching editable properties in `Device`.
+  - Freezing the info earlier would prevent custom properties, which are not included in the device info, from being added.
+
 # 25.11.2024
 ## Description
 - Delete the fields `id`, `name`, and `versionInfo` from the `IModule` interface and add them to the new `IModuleInfo` interface, which is a new field in the `IModule` interface

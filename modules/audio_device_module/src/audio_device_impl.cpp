@@ -59,7 +59,6 @@ DeviceInfoPtr AudioDeviceImpl::onGetInfo()
         LOG_W("Miniaudio get device information failed: {}", ma_result_description(result));
     }
     auto deviceInfo = CreateDeviceInfo(maContext, info);
-    deviceInfo.freeze();
     return deviceInfo;
 }
 

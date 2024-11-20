@@ -95,7 +95,6 @@ DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
     deviceInfo.addProperty(StringProperty("custom_string", "custom_string"));
     deviceInfo.addProperty(IntProperty("custom_int", 1));
     deviceInfo.addProperty(FloatProperty("custom_float", 1.123));
-    deviceInfo.freeze();
     return deviceInfo;
 }
 

@@ -160,6 +160,7 @@ public:
     virtual ErrCode INTERFACE_FUNC setPath(IString* path) override;
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) override;
     virtual ErrCode INTERFACE_FUNC hasUserReadAccess(IBaseObject* userContext, Bool* hasAccessOut) override;
+    virtual ErrCode INTERFACE_FUNC getOwner(IPropertyObject** owner) override;
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
@@ -1915,8 +1916,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
     if (objectClass.assigned())
     {
         auto propList = objectClass.getProperties(True);
+        allProperties.reserve(propList.getCount() + localProperties.size());
         for (const auto& prop : propList)
             allProperties.push_back(prop);
+    }
+    else
+    {
+        allProperties.reserve(localProperties.size());
     }
 
     for (const auto& prop : localProperties)
@@ -2462,6 +2468,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadA
     OPENDAQ_PARAM_NOT_NULL(hasAccessOut);
     const auto self = this->template borrowPtr<PropertyObjectPtr>();
     *hasAccessOut = hasUserReadAccess(userContext, self);
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOwner(IPropertyObject** owner)
+{
+    OPENDAQ_PARAM_NOT_NULL(owner);
+    *owner = getPropertyObjectParent().detach();
     return OPENDAQ_SUCCESS;
 }
 

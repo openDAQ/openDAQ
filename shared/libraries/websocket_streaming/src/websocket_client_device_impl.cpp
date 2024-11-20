@@ -32,7 +32,6 @@ void WebsocketClientDeviceImpl::removed()
 DeviceInfoPtr WebsocketClientDeviceImpl::onGetInfo()
 {
     auto deviceInfo = DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
-    deviceInfo.freeze();
     return deviceInfo;
 }
 

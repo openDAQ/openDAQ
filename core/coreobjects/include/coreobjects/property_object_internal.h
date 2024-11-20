@@ -44,6 +44,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* name, IBaseObject** value) = 0;
     virtual ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* name, IBaseObject* value) = 0;
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* name) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getOwner(IPropertyObject** owner) = 0;
 };
 
 /*!@}*/

@@ -33,8 +33,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     createAndSetDefaultStringProperty("systemUuid", "");
     createAndSetDefaultStringProperty("connectionString", "");
     createAndSetDefaultStringProperty("sdkVersion", "");
-    createAndSetDefaultStringProperty("location", "");
-    
+
     Super::setProtectedPropertyValue(String("name"), name);
     Super::setProtectedPropertyValue(String("connectionString"), connectionString);
 
@@ -48,15 +47,6 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
         Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
     else
         Super::setProtectedPropertyValue(String("sdkVersion"), String(OPENDAQ_PACKAGE_VERSION));
-
-    this->objPtr.getOnPropertyValueRead("location") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
-    {
-        const PropertyObjectPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
-        {
-            value.setValue(ownerPtr.getPropertyValue("location"));
-        }
-    };
 
     this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
     {

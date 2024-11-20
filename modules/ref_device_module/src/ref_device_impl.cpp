@@ -102,7 +102,6 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
     auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
-    deviceInfo.freeze();
     return deviceInfo;
 }
 

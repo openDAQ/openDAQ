@@ -197,6 +197,8 @@ protected:
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
     DevicePtr getParentDevice();
 
+    virtual std::vector<std::string> getChangeableDeviceInfoFields();
+
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -248,6 +250,12 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 }
 
 template <typename TInterface, typename... Interfaces>
+std::vector<std::string> GenericDevice<TInterface, Interfaces...>::getChangeableDeviceInfoFields()
+{
+    return {"userName", "location"};
+}
+
+template <typename TInterface, typename... Interfaces>
 DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
 {
     return deviceInfo;
@@ -271,9 +279,33 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 
         if (this->deviceInfo.assigned())
         {
+            bool deviceInfoFrozen = this->deviceInfo.isFrozen();
             this->deviceInfo.template asPtr<IOwnable>().setOwner(this->objPtr);
-            if (!this->deviceInfo.isFrozen())
-                this->deviceInfo.freeze();
+
+            for (const auto& field : this->getChangeableDeviceInfoFields())
+            {
+                if (this->objPtr.hasProperty(field))
+                {
+                    if (!this->deviceInfo.hasProperty(field))
+                    {
+                        if (deviceInfoFrozen)
+                            continue;   
+                        this->deviceInfo.addProperty(this->objPtr.getProperty(field).asPtr<IPropertyInternal>().clone());
+                    }
+
+                    this->deviceInfo.getOnPropertyValueRead(field) += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
+                    {
+                        auto owner = obj.asPtr<IPropertyObjectInternal>(true).getOwner();
+                        if (owner.assigned())
+                        {
+                            auto name = value.getProperty().getName();
+                            value.setValue(owner.getPropertyValue(name));
+                        }
+                    };
+                }
+            }
+
+            this->deviceInfo.freeze();
         }
     }
 

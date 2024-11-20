@@ -1663,7 +1663,7 @@ TEST_F(NativeDeviceModulesTest, ConfiguringWithOptions)
     ASSERT_NO_THROW(instance = InstanceBuilder().addConfigProvider(JsonConfigProvider(filename)).build());
 
     auto deviceConfig = instance.getAvailableDeviceTypes().get("OpenDAQNativeConfiguration").createDefaultConfig();
-    ASSERT_EQ(deviceConfig.getPropertyValue("ProtocolVersion"), 7);
+    ASSERT_EQ(deviceConfig.getPropertyValue("ProtocolVersion"), 6);
     ASSERT_EQ(deviceConfig.getPropertyValue("ConfigProtocolRequestTimeout"), 7000);
     ASSERT_EQ(deviceConfig.getPropertyValue("RestoreClientConfigOnReconnect"), True);
     ASSERT_TRUE(deviceConfig.hasProperty("TransportLayerConfig"));

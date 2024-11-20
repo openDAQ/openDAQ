@@ -179,12 +179,12 @@ public:
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    return {0, 1, 2, 3, 4, 5, 6};
+    return {0, 1, 2, 3, 4, 5, 6, 7};
 }
 
 inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
-    return 6; // *GetSupportedConfigProtocolVersions().rbegin();
+    return 7; // *GetSupportedConfigProtocolVersions().rbegin();
 }
 
 

@@ -247,3 +247,74 @@ foreach (var deviceInfo in instance.AvailableDevices)
         devices.Add(instance.AddDevice(deviceInfo.ConnectionString));
 ----
 ====
+
+== Client connection types
+
+When connecting to the openDAQ device, a user can specify one of three different connection or client types, each designed for specific use cases.
+
+- **Control** client is the default option and allows users to read and modify the device's configuration and data. Multiple Control clients can connect to the same device simultaneously, enabling parallel operations.
+- **Exclusive Control** client grants exclusive access for configuration, ensuring no other Control or Exclusive Control clients can connect to the device during its session. This is ideal for scenarios requiring consistent and isolated configuration.
+- **View Only** client provides read-only access, ensuring no modifications can be made. It supports multiple simultaneous connections and can connect to the device even when an Exclusive Control client is already connected to it.
+
+
+If an Exclusive Control client tries to connect to a device that already has other Control clients connected, the connection will be refused. When this happens, a user can set **ExclusiveControlDropOthers** flag. If set to true, this flag will automatically disconnect any existing Control or Exclusive Control clients before a new Exclusive Control connection is established.
+
+.Forcefully connecting to a device as an Exclusive Control client
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+#include <opendaq/opendaq.h>
+#include <iostream>
+
+using namespace daq;
+
+int main(int /*argc*/, const char* /*argv*/[])
+{
+	auto instance = Instance();
+
+	auto config = instance.createDefaultAddDeviceConfig();	
+	PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+	
+	generalConfig.setPropertyValue("ClientType", (Int) ClientType::ExclusiveControl);
+	generalConfig.setPropertyValue("ExclusiveControlDropOthers", true);
+
+	auto device = instance.addDevice("daq.nd://127.0.0.1", config);
+	std::cout << "Connected to: " << device.getName() << std::endl;
+	
+    return 0;
+}
+----
+Python::
++
+[source,python]
+----
+instance = opendaq.Instance()
+
+config = instance.create_default_add_device_config()
+general_config = config.get_property_value("General")
+
+general_config.set_property_value("ClientType", 1)
+general_config.set_property_value("ExclusiveControlDropOthers", True)
+
+device = instance.add_device("daq.nd://127.0.0.1")
+print("Connected to:", device.name)
+----
+C#::
++
+[source,csharp]
+----
+var instance = OpenDAQFactory.Instance();
+
+var config = instance.CreateDefaultAddDeviceConfig();
+var generalConfig = config.GetPropertyValue("General").Cast<PropertyObject>();
+
+generalConfig.SetPropertyValue("ClientType", 1);
+generalConfig.SetPropertyValue("ExclusiveControlDropOthers", true);
+
+var device = instance.AddDevice("daq.nd://127.0.0.1", config);
+Console.WriteLine("Connected to: " + device.Name);
+----
+====

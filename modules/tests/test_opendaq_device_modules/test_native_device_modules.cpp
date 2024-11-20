@@ -156,20 +156,6 @@ TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 {
     SKIP_TEST_MAC_CI;
 
-    // workaround until exceptionsin opendaq/excpetions.h are correctly registered
-    auto AssertErrorCode = [](const std::function<void()>& func, ErrCode expectedErrorCode)
-    {
-        try
-        {
-            func();
-            ASSERT_TRUE(false);
-        }
-        catch (const DaqException& e)
-        {
-            ASSERT_EQ(e.getErrCode(), expectedErrorCode);
-        }
-    };
-
     // connect to server with protocol version 2
 
     const uint16_t negotiateVersion = 2;
@@ -183,10 +169,10 @@ TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 
     // call some methods which require protocol version 3 or higher
 
-    AssertErrorCode([&]() { client.lock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
-    AssertErrorCode([&]() { client.unlock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
-    AssertErrorCode([&]() { client.getDevices()[0].getAvailableDevices(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
-    AssertErrorCode([&]() { client.getDevices()[0].getAvailableDeviceTypes(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    ASSERT_THROW(client.lock(), ServerVersionTooLowException);
+    ASSERT_THROW(client.unlock(), ServerVersionTooLowException);
+    ASSERT_THROW(client.getDevices()[0].getAvailableDevices(), ServerVersionTooLowException);
+    ASSERT_THROW(client.getDevices()[0].getAvailableDeviceTypes(), ServerVersionTooLowException);
 }
 
 

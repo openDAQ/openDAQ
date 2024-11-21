@@ -94,8 +94,7 @@ namespace daq::config_protocol::test_utils
         void setDeviceInfoHelper(const DeviceInfoPtr& deviceInfo)
         {
             this->deviceInfo = deviceInfo;
-            if (!this->deviceInfo.isFrozen())
-                this->deviceInfo.freeze();
+            this->deviceInfo.freeze();
         }
 
     protected:

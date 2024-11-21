@@ -28,14 +28,16 @@ MdnsDiscoveryServerImpl::MdnsDiscoveryServerImpl(const LoggerPtr& logger)
 
 ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo)
 {
+    if (!id)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    if (!config)
+        return OPENDAQ_IGNORED;
+    if (!deviceInfo)
+        return OPENDAQ_IGNORED;
+
+    
     auto serviceId = StringPtr::Borrow(id);
     auto configPtr = PropertyObjectPtr::Borrow(config);
-    auto deviceInfoPtr = DeviceInfoPtr::Borrow(deviceInfo);
-
-    if (!serviceId.assigned())
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    if (!configPtr.assigned())
-        return OPENDAQ_IGNORED;
 
     if (!configPtr.hasProperty("ServiceName"))
     {
@@ -58,30 +60,19 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     auto serviceCap = configPtr.getPropertyValue("ServiceCap");
 
     std::unordered_map<std::string, std::string> properties;
-    properties["caps"] = serviceCap.asPtr<IString>(true).toStdString();
-
-    properties["name"] = "";
-    properties["manufacturer"] = "";
-    properties["model"] = "";
-    properties["serialNumber"] = "";
-    properties["path"] = "/";
-    properties["protocolVersion"] = "";
-
-    if (deviceInfoPtr.assigned())
-    {
-        properties["name"] = deviceInfoPtr.getName().toStdString();
-        properties["manufacturer"] = deviceInfoPtr.getManufacturer().toStdString();
-        properties["model"] = deviceInfoPtr.getModel().toStdString();
-        properties["serialNumber"] = deviceInfoPtr.getSerialNumber().toStdString();
-    }
+    properties["caps"] = configPtr.getPropertyValue("ServiceCap").asPtr<IString>().toStdString();
 
     if (configPtr.hasProperty("Path"))
         properties["path"] = configPtr.getPropertyValue("Path").asPtr<IString>().toStdString();
+    else
+        properties["path"] = "/";
     
     if (configPtr.hasProperty("ProtocolVersion"))
         properties["protocolVersion"] = configPtr.getPropertyValue("ProtocolVersion").asPtr<IString>().toStdString();
+    else
+        properties["protocolVersion"] = "";
 
-    discovery_server::MdnsDiscoveredDevice device(serviceName, servicePort, properties);
+    discovery_server::MdnsDiscoveredDevice device(serviceName, servicePort, properties, PropertyObjectPtr::Borrow(deviceInfo));
     if (discoveryServer.addDevice(serviceId, device))
     {
         LOG_I("Server \"{}\" registered with the discovery service", serviceId);

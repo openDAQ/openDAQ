@@ -284,25 +284,28 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 
             for (const auto& field : this->getChangeableDeviceInfoFields())
             {
-                if (this->objPtr.hasProperty(field))
-                {
-                    if (!this->deviceInfo.hasProperty(field))
-                    {
-                        if (deviceInfoFrozen)
-                            continue;   
-                        this->deviceInfo.addProperty(this->objPtr.getProperty(field).asPtr<IPropertyInternal>().clone());
-                    }
+                if (!this->objPtr.hasProperty(field))
+                    continue;
 
-                    this->deviceInfo.getOnPropertyValueRead(field) += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
-                    {
-                        auto owner = obj.asPtr<IPropertyObjectInternal>(true).getOwner();
-                        if (owner.assigned())
-                        {
-                            auto name = value.getProperty().getName();
-                            value.setValue(owner.getPropertyValue(name));
-                        }
-                    };
+                if (!this->deviceInfo.hasProperty(field))
+                {
+                    if (deviceInfoFrozen)
+                        continue;
+
+                    auto ownerProp = this->objPtr.getProperty(field);
+                    auto clonedProp = ownerProp.template asPtr<IPropertyInternal>(true).clone();
+                    this->deviceInfo.addProperty(clonedProp);
                 }
+
+                this->deviceInfo.getOnPropertyValueRead(field) += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
+                {
+                    auto owner = obj.asPtr<IPropertyObjectInternal>(true).getOwner();
+                    if (owner.assigned())
+                    {
+                        auto name = value.getProperty().getName();
+                        value.setValue(owner.getPropertyValue(name));
+                    }
+                };
             }
 
             this->deviceInfo.freeze();

@@ -402,7 +402,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLockedInternal(Bool* locked)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
 {
-    std::scoped_lock syncLock(this->sync);
+    auto syncLock = this->getAcquisitionLock();
 
     ErrCode status = forceUnlockInternal();
 

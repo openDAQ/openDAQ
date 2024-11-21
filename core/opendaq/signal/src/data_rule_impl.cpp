@@ -31,7 +31,7 @@ namespace detail
 
         throw InvalidParameterException{"Invalid type of data rule. Rules with no parameters can only be explicit or constant."};
     }
-    }
+}
 
 DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseObject>& params)
     : GenericStructImpl<IDataRule, IStruct, IRulePrivate>(

@@ -59,7 +59,7 @@ FunctionBlockPtr StatisticsFbImpl::onAddFunctionBlock(const StringPtr& typeId, c
 {
     FunctionBlockPtr nestedFunctionBlock;
     {
-        std::lock_guard lock(this->sync);
+        auto lock = this->getAcquisitionLock();
         if (this->functionBlocks.getItems().getCount())
             throw AlreadyExistsException("Only one nested function block is supported");
         

@@ -646,7 +646,9 @@ template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 {
     for (const auto& comp : components)
+    {
         comp.endUpdate();
+    }
 
     Super::callEndUpdateOnChildren();
 }

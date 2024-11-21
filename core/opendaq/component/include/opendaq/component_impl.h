@@ -52,10 +52,8 @@ BEGIN_NAMESPACE_OPENDAQ
 static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
 
 // https://developercommunity.visualstudio.com/t/inline-static-destructors-are-called-multiple-time/1157794
-#ifdef _MSC_VER
-#if _MSC_VER <= 1927
-#define WORKAROUND_MEMBER_INLINE_VARIABLE
-#endif
+#if defined(_MSC_VER) && _MSC_VER <= 1927
+    #define WORKAROUND_MEMBER_INLINE_VARIABLE
 #endif
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}

@@ -463,7 +463,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunct
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
-    std::lock_guard lock(this->sync);
+    auto lock = this->getAcquisitionLock();
     this->functionBlocks.removeItem(functionBlock);
 }
 

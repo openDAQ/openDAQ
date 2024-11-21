@@ -629,7 +629,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 mdns_record_t answer = createSrvRecord(device);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(device.size() + 2);
+                records.reserve(2);
 
                 if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
                     records.push_back(createARecord(device));
@@ -644,14 +644,12 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
             if (((rtype == MDNS_RECORDTYPE_A) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv4.sin_family == AF_INET) && from->sa_family == AF_INET) 
             {
                 mdns_record_t answer = createARecord(device);
-
                 std::vector<mdns_record_t> records = {answer};
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             } 
             else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6)) 
             {
                 mdns_record_t answer = createAaaaRecord(device);
-
                 std::vector<mdns_record_t> records = {answer};
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }

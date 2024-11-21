@@ -545,11 +545,12 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        ASSERT_EQ(deviceInfo.getMacAddress(), "");
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
+
+            ASSERT_EQ(deviceInfo.getMacAddress(), "custom_mac");
             
             if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
             {

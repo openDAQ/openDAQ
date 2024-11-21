@@ -1492,6 +1492,16 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             serializer.key("deviceDomain");
             deviceDomain.serialize(serializer);
         }
+        {
+            auto changeableDeviceInfoFields = getChangeableDeviceInfoFields();
+            serializer.key("changeableDeviceInfoFields");
+            serializer.startList();
+            for (const auto& field : changeableDeviceInfoFields)
+            {
+                serializer.writeString(field);
+            }
+            serializer.endList();
+        }
     }
     else
     {
@@ -1677,6 +1687,40 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
         deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
+    
+        std::vector<std::string> changeableDeviceInfoFields;
+        if (serializedObject.hasKey("changeableDeviceInfoFields"))
+        {
+            const auto changeableFields = serializedObject.readList<IString>("changeableDeviceInfoFields");
+            changeableDeviceInfoFields.reserve(changeableFields.getCount());
+            for (const auto& field : changeableFields)
+            {
+                changeableDeviceInfoFields.push_back(field.toStdString());
+            }
+        }
+        else
+        {
+            changeableDeviceInfoFields = getChangeableDeviceInfoFields();
+        }
+
+        for (const auto& field : this->getChangeableDeviceInfoFields())
+        {
+            if (!this->objPtr.hasProperty(field))
+                continue;
+
+            if (!this->deviceInfo.hasProperty(field))
+                continue;
+
+            deviceInfo.getOnPropertyValueRead(field) += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
+            {
+                auto owner = obj.asPtr<IPropertyObjectInternal>(true).getOwner();
+                if (owner.assigned())
+                {
+                    auto name = value.getProperty().getName();
+                    value.setValue(owner.getPropertyValue(name));
+                }
+            };
+        }
         deviceInfo.freeze();
     }
 

@@ -593,8 +593,6 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
 
     ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
 
-    const auto info1 = serverDeviceInfo.getLocation();
-    const auto info2 = clientDeviceInfo.getLocation();
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
 
     clientDevice.setName("new_name");

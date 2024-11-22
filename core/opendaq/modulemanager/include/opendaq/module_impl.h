@@ -30,6 +30,7 @@
 #include <opendaq/server_capability_config_ptr.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_info_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class Module : public ImplementationOf<IModule>
@@ -74,6 +75,12 @@ public:
 
         DictPtr<IString, IDeviceType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
+
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
 
         *deviceTypes = types.detach();
         return errCode;
@@ -129,6 +136,12 @@ public:
         DictPtr<IString, IFunctionBlockType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
 
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
+
         *functionBlockTypes = types.detach();
         return errCode;
     }
@@ -173,6 +186,12 @@ public:
 
         DictPtr<IString, IServerType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
+
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
 
         *serverTypes = types.detach();
         return errCode;
@@ -263,6 +282,12 @@ public:
 
         DictPtr<IString, IStreamingType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
+
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
 
         *streamingTypes = types.detach();
         return errCode;

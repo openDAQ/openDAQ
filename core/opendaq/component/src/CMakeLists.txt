@@ -2,6 +2,7 @@ set(BASE_NAME component)
 
 function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ComponentType component_type.h)
+    rtgen(SRC_ComponentTypePrivate component_type_private.h)
     rtgen(SRC_Component component.h)
     rtgen(SRC_SearchFilter search_filter.h)
     rtgen(SRC_Folder folder.h)
@@ -22,6 +23,7 @@ function(rtgen_component_${BASE_NAME})
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Component_PublicHeaders}
+        ${SRC_ComponentTypePrivate_PublicHeaders}
         ${SRC_Folder_PublicHeaders}
         ${SRC_FolderConfig_PublicHeaders}
         ${SRC_IoFolder_PublicHeaders}
@@ -132,6 +134,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/component_type_impl.h
         ${SDK_HEADERS_DIR}/component_type_builder.h
         ${SDK_HEADERS_DIR}/component_type_builder_factory.h
+        ${SDK_HEADERS_DIR}/component_type_private.h
     )
 endfunction()
 

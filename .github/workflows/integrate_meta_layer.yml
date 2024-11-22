@@ -17,7 +17,7 @@ env:
   meta_openembedded_ref: dunfell
   opendaq_sdk_sha: ${{ github.sha }}
   opendaq_sdk_branch: ${{ github.ref }}
-  meta_opendaq_sdk_ref: '${{ inputs.meta_opendaq_sdk_ref }} || dunfell'
+  meta_opendaq_sdk_ref: ${{ inputs.meta_opendaq_sdk_ref || 'dunfell' }}
 
 
 jobs:

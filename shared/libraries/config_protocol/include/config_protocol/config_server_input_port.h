@@ -36,6 +36,7 @@ inline BaseObjectPtr ConfigServerInputPort::connect(const RpcContext& context,
     if (!signal.assigned())
         throw NotFoundException("Cannot connect requested signal. Signal not found");
 
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
     ConfigServerAccessControl::protectLockedComponent(inputPort);
     ConfigServerAccessControl::protectObject(inputPort, context.user, {Permission::Read, Permission::Write});
     ConfigServerAccessControl::protectObject(signal, context.user, Permission::Read);
@@ -50,6 +51,7 @@ inline BaseObjectPtr ConfigServerInputPort::disconnect(const RpcContext& context
 {
     ConfigServerAccessControl::protectLockedComponent(inputPort);
     ConfigServerAccessControl::protectObject(inputPort, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     inputPort.disconnect();
     return nullptr;
@@ -63,7 +65,6 @@ inline BaseObjectPtr ConfigServerInputPort::accepts(const RpcContext& context,
     if (!signal.assigned())
         throw NotFoundException("Cannot connect requested signal. Signal not found");
 
-    ConfigServerAccessControl::protectLockedComponent(inputPort);
     ConfigServerAccessControl::protectObject(inputPort, user, Permission::Read);
     ConfigServerAccessControl::protectObject(signal, user, Permission::Read);
 

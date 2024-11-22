@@ -53,7 +53,10 @@ public:
         serverDevice = device;
         serverDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
         server = std::make_unique<ConfigProtocolServer>(
-            serverDevice, std::bind(&ConfigProtocolAccessControlTest::serverNotificationReady, this, std::placeholders::_1), user);
+            serverDevice,
+            std::bind(&ConfigProtocolAccessControlTest::serverNotificationReady, this, std::placeholders::_1),
+            user,
+            ClientType::Control);
 
         auto clientContext = NullContext();
         client =

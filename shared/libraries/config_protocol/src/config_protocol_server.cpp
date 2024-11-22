@@ -68,6 +68,7 @@ ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalI
 ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
                                            NotificationReadyCallback notificationReadyCallback,
                                            const UserPtr& user,
+                                           ClientType connectionType,
                                            const FolderConfigPtr& externalSignalsFolder)
     : rootDevice(std::move(rootDevice))
     , daqContext(this->rootDevice.getContext())
@@ -77,6 +78,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , notificationSerializer(JsonSerializer())
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
+    , connectionType(connectionType)
     , protocolVersion(0)
     , supportedServerVersions(std::move(GetSupportedConfigProtocolVersions()))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
@@ -105,6 +107,7 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         RpcContext context;
         context.protocolVersion = this->protocolVersion;
         context.user = this->user;
+        context.connectionType = this->connectionType;
 
         const auto componentGlobalId = static_cast<std::string>(params["ComponentGlobalId"]);
         const auto component = findComponent(componentGlobalId);
@@ -403,6 +406,7 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignal(const RpcContext& cont
 BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(rootDevice);
+    ConfigServerAccessControl::protectViewOnlyConnection(connectionType);
 
     streamingConsumer.removeExternalSignals(params);
     return nullptr;

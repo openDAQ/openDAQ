@@ -23,6 +23,7 @@
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/baseobject_factory.h>
 #include <coreobjects/user_ptr.h>
+#include <opendaq/client_type.h>
 #include <set>
 
 namespace daq::config_protocol
@@ -173,16 +174,17 @@ class RpcContext
 public:
     uint16_t protocolVersion = 0;
     UserPtr user;
+    ClientType connectionType = ClientType::Control;
 };
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    return {0, 1, 2, 3, 4, 5, 6};
+    return {0, 1, 2, 3, 4, 5, 6, 7};
 }
 
 inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
-    return 6; // *GetSupportedConfigProtocolVersions().rbegin();
+    return 7; // *GetSupportedConfigProtocolVersions().rbegin();
 }
 
 

@@ -30,7 +30,11 @@ public:
 
         serverDevice = test_utils::createTestDevice();
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
+        server = std::make_unique<ConfigProtocolServer>(
+            serverDevice,
+            std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1),
+            anonymousUser,
+            ClientType::Control);
 
         clientContext = NullContext();
         client =

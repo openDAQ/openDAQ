@@ -204,6 +204,12 @@ The following table showcases which of the protocols supports what features. You
 ^|
 ^|
 
+| Client types
+| Clients can connect to the device as Control, Exclusive Control, or View Only. Control and Exclusive Control connections can modify the device, while View Only can only read it. Exclusive Control client blocks other Control or Exclusive Control connections.
+^| ✅
+^|
+^|
+
 
 |===
 

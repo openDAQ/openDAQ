@@ -41,7 +41,7 @@ public:
     {
         ProtocolTestBase::SetUp();
         setUpConfigProtocolServerCb =
-            [this](SendConfigProtocolPacketCb sendPacketCb, const UserPtr& user)
+            [this](SendConfigProtocolPacketCb sendPacketCb, const UserPtr& user, ClientType connectionType)
         {
             configProtocolTriggeredPromise.set_value();
 

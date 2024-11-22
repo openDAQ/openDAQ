@@ -128,7 +128,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     const auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 6);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 7);
 
     client->releaseRef();
     server->releaseRef();
@@ -382,6 +382,45 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
     ASSERT_EQ(clientInstance3.getDevices().getCount(), 1u);
     ASSERT_NE(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
     ASSERT_NE(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance3.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
+{
+    const std::string url = "daq.nd://127.0.0.1";
+
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto clientInstance1 = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
+
+    auto clientInstance2 = test_helpers::connectInstanceWithClientType(url, ClientType::ViewOnly);
+    ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
+{
+    const std::string url = "daq.nd://127.0.0.1";
+
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto clientInstance1 = test_helpers::connectInstanceWithClientType(url, ClientType::Control);
+    ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
+
+    auto clientInstance2 = test_helpers::connectInstanceWithClientType(url, ClientType::ViewOnly);
+    ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
+
+    ASSERT_EQ(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    auto clientInstance3 = test_helpers::connectInstanceWithClientType(
+        url, ClientType::ExclusiveControl, true);  // should cause all other control clients to disconnect
+
+    ASSERT_EQ(clientInstance3.getDevices().getCount(), 1u);
+    ASSERT_NE(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected"); // view-only client should stay connected
     ASSERT_EQ(clientInstance3.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 }
 

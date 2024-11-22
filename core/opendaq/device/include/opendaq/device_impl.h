@@ -1689,7 +1689,7 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("deviceInfo"))
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
-        deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
+        deviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
     
         std::vector<std::string> changeableDeviceInfoFields;
         if (serializedObject.hasKey("changeableDeviceInfoFields"))
@@ -1706,7 +1706,7 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
             changeableDeviceInfoFields = getChangeableDeviceInfoFields();
         }
 
-        for (const auto& field : this->getChangeableDeviceInfoFields())
+        for (const auto& field : changeableDeviceInfoFields)
         {
             if (!this->objPtr.hasProperty(field))
                 continue;

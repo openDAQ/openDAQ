@@ -543,6 +543,7 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
     const auto newDeviceInfo = DeviceInfo(connectionString, deviceInfo.getName());
+    newDeviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
 
     for (const auto& prop : deviceInfo.getAllProperties())
     {
@@ -555,11 +556,26 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 
             newDeviceInfo.addProperty(internalProp.clone());
         }
-        if (propName != "connectionString" && propName != "Name")
+
+        if (propName != "connectionString" && propName != "name")
         {
             const auto propValue = deviceInfo.getPropertyValue(propName);
             if (propValue.assigned())
                 newDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propName, propValue);
+        }
+
+        auto event = newDeviceInfo.getOnPropertyValueRead(propName);
+        if (prop.getOnPropertyValueRead().getListenerCount() > event.getListenerCount())
+        {
+            event += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
+            {
+                auto owner = obj.asPtr<IPropertyObjectInternal>(true).getOwner();
+                if (owner.assigned())
+                {
+                    auto name = value.getProperty().getName();
+                    value.setValue(owner.getPropertyValue(name));
+                }
+            };
         }
     }
 

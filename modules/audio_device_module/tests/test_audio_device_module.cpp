@@ -122,30 +122,49 @@ TEST_F(AudioDeviceModuleTest, GetAvailableComponentTypes)
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
     ASSERT_EQ(serverTypes.getCount(), 0u);
 
+    // Check module info for module
+    ModuleInfoPtr moduleInfo;
+    ASSERT_NO_THROW(moduleInfo = module.getModuleInfo());
+    ASSERT_NE(moduleInfo, nullptr);
+    ASSERT_EQ(moduleInfo.getName(), "AudioDeviceModule");
+    ASSERT_EQ(moduleInfo.getId(), "AudioDeviceModule");
+
     // Check version info for module
     VersionInfoPtr versionInfoModule;
-    ASSERT_NO_THROW(versionInfoModule = module.getModuleInfo().getVersionInfo());
+    ASSERT_NO_THROW(versionInfoModule = moduleInfo.getVersionInfo());
     ASSERT_NE(versionInfoModule, nullptr);
     ASSERT_EQ(versionInfoModule.getMajor(), AUDIO_DEVICE_MODULE_MAJOR_VERSION);
     ASSERT_EQ(versionInfoModule.getMinor(), AUDIO_DEVICE_MODULE_MINOR_VERSION);
     ASSERT_EQ(versionInfoModule.getPatch(), AUDIO_DEVICE_MODULE_PATCH_VERSION);
 
-    // Check version info for function block types
+    // Check module and version info for function block types
     for (const auto& functionBlockType : functionBlockTypes)
     {
+        ModuleInfoPtr moduleInfoFunctionBlockType;
+        ASSERT_NO_THROW(moduleInfoFunctionBlockType = functionBlockType.second.getModuleInfo());
+        ASSERT_NE(moduleInfoFunctionBlockType, nullptr);
+        ASSERT_EQ(moduleInfoFunctionBlockType.getName(), "AudioDeviceModule");
+        ASSERT_EQ(moduleInfoFunctionBlockType.getId(), "AudioDeviceModule");
+
         VersionInfoPtr versionInfoFunctionBlockType;
-        ASSERT_NO_THROW(versionInfoFunctionBlockType = functionBlockType.second.getModuleInfo().getVersionInfo());
+        ASSERT_NO_THROW(versionInfoFunctionBlockType = moduleInfoFunctionBlockType.getVersionInfo());
         ASSERT_NE(versionInfoFunctionBlockType, nullptr);
         ASSERT_EQ(versionInfoFunctionBlockType.getMajor(), AUDIO_DEVICE_MODULE_MAJOR_VERSION);
         ASSERT_EQ(versionInfoFunctionBlockType.getMinor(), AUDIO_DEVICE_MODULE_MINOR_VERSION);
         ASSERT_EQ(versionInfoFunctionBlockType.getPatch(), AUDIO_DEVICE_MODULE_PATCH_VERSION);
     }
 
-    // Check version info for device types
+    // Check module and version info for device types
     for (const auto& deviceType : deviceTypes)
     {
+        ModuleInfoPtr moduleInfoDeviceType;
+        ASSERT_NO_THROW(moduleInfoDeviceType = deviceType.second.getModuleInfo());
+        ASSERT_NE(moduleInfoDeviceType, nullptr);
+        ASSERT_EQ(moduleInfoDeviceType.getName(), "AudioDeviceModule");
+        ASSERT_EQ(moduleInfoDeviceType.getId(), "AudioDeviceModule");
+
         VersionInfoPtr versionInfoDeviceType;
-        ASSERT_NO_THROW(versionInfoDeviceType = deviceType.second.getModuleInfo().getVersionInfo());
+        ASSERT_NO_THROW(versionInfoDeviceType = moduleInfoDeviceType.getVersionInfo());
         ASSERT_NE(versionInfoDeviceType, nullptr);
         ASSERT_EQ(versionInfoDeviceType.getMajor(), AUDIO_DEVICE_MODULE_MAJOR_VERSION);
         ASSERT_EQ(versionInfoDeviceType.getMinor(), AUDIO_DEVICE_MODULE_MINOR_VERSION);

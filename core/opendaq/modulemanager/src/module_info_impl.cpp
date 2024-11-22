@@ -38,7 +38,7 @@ ErrCode INTERFACE_FUNC ModuleInfoImpl::getId(IString** id)
     if (!id)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *id = this->fields.get("Name").asPtr<IString>().addRefAndReturn();
+    *id = this->fields.get("Id").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -62,15 +62,6 @@ inline ComponentTypeBuilderPtr ServerTypeBuilder()
     return obj;
 }
 
-/*!
- * @brief Creates a ComponentTypeBuilder copying the type from the given ComponentType.
- */
-inline ComponentTypeBuilderPtr ComponentTypeBuilderCopy(const ComponentTypePtr& type)
-{
-    ComponentTypeBuilderPtr obj(ComponentTypeBuilderCopy_Create(type));
-    return obj;
-}
-
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

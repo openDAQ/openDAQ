@@ -211,11 +211,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, ServerTypeBuilder,
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, FunctionBlockTypeBuilder, IComponentTypeBuilder)
 
-/*!
- * @brief Creates a ComponentTypeBuilder copying the type from the given ComponentType.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, ComponentTypeBuilderCopy, IComponentTypeBuilder, IComponentType*, type)
-
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

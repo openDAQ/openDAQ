@@ -2,20 +2,27 @@ name: Integrate Meta-Layer
 
 on:
   workflow_dispatch:
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
+    inputs:
+      meta_opendaq_sdk_ref:
+        description: 'The branch or commit SHA of the meta-opendaq-sdk layer to use'
+        required: true
+        default: 'dunfell'
+  # Run every Friday at 5:00 UTC
+  schedule:
+    - cron: '0 5 * * 5'
 
 env:
   poky_dir: ${{ github.workspace }}/poky
   poky_yoctoproject_ref: dunfell
   meta_openembedded_ref: dunfell
-  meta_opendaq_sdk_ref: dunfell
+  opendaq_sdk_sha: ${{ github.sha }}
+  opendaq_sdk_branch: ${{ github.ref }}
+  meta_opendaq_sdk_ref: '${{ inputs.meta_opendaq_sdk_ref }} || dunfell'
 
 
 jobs:
   build_linux:
-    runs-on: ubuntu-latest
-    if: ${{ ! github.event.pull_request.draft }}
+    runs-on: ubuntu-8-core
 
     steps:
       - name: Checkout
@@ -47,5 +54,15 @@ jobs:
           echo 'CORE_IMAGE_EXTRA_INSTALL += "opendaq-sdk"' >> conf/local.conf
           echo 'HOSTTOOLS += "mono"' >> conf/local.conf
           echo 'INHERIT += "rm_work"' >> conf/local.conf
+          echo 'SRCREV_opendaq-sdk:pn-opendaq-sdk = "${{ env.opendaq_sdk_sha }}"' >> conf/local.conf
+          echo 'OPENDAQ_SDK_BRANCH:pn-opendaq-sdk = "${{ env.opendaq_sdk_branch }}"' >> conf/local.conf
           bitbake opendaq-sdk
         working-directory: ${{ env.poky_dir }}
+
+      - name: Update sdk hash in meta-opendaq-sdk
+        run: |
+          sed -i 's/OPENDAQ_SDK_BRANCH ?= .*/OPENDAQ_SDK_BRANCH ?= \"${{ env.opendaq_sdk_branch }}\"/' ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
+          sed -i 's/SRCREV_opendaq-sdk = .*/SRCREV_opendaq-sdk = \"${{ env.opendaq_sdk_sha }}\"/' ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
+          git add ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
+          git commit -m "Update opendaq-sdk ref"
+        working-directory: ${{ env.poky_dir }}/meta-opendaq-sdk

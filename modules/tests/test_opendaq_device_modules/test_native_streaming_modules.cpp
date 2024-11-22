@@ -129,6 +129,46 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
+{
+    auto server = InstanceBuilder().addDiscoveryServer("mdns")
+                                   .setDefaultRootDeviceLocalId("local")
+                                   .build();
+    server.addDevice("daqref://device1");
+
+    // set initial username and location
+    server.setPropertyValue("userName", "testUser1");
+    server.setPropertyValue("location", "testLocation1");
+
+    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    auto path = "/test/native_streaming/discovery/username_location/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+
+    // update the username and location after server creation
+    server.setPropertyValue("userName", "testUser");
+    server.setPropertyValue("location", "testLocation");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
+            ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
+            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
+                return;
+        }
+    }
+    ASSERT_TRUE(false) << "Device not found";
+}
+
 #ifdef _WIN32
 
 TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)

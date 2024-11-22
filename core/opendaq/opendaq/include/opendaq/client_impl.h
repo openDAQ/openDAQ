@@ -37,6 +37,7 @@ private:
     ModuleManagerPtr manager;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    DeviceInfoPtr customDeviceInfo;
 
     std::unordered_map<std::string, size_t> functionBlockCountMap;
 };

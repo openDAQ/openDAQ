@@ -58,8 +58,7 @@ DeviceInfoPtr AudioDeviceImpl::onGetInfo()
     {
         LOG_W("Miniaudio get device information failed: {}", ma_result_description(result));
     }
-    auto deviceInfo = CreateDeviceInfo(maContext, info);
-    return deviceInfo;
+    return CreateDeviceInfo(maContext, info);
 }
 
 uint64_t AudioDeviceImpl::onGetTicksSinceOrigin()

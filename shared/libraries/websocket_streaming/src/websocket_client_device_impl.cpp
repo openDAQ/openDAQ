@@ -31,8 +31,7 @@ void WebsocketClientDeviceImpl::removed()
 
 DeviceInfoPtr WebsocketClientDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
-    return deviceInfo;
+    return DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
 }
 
 void WebsocketClientDeviceImpl::activateStreaming()

@@ -101,8 +101,7 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
-    return deviceInfo;
+    return RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
 }
 
 uint64_t RefDeviceImpl::onGetTicksSinceOrigin()

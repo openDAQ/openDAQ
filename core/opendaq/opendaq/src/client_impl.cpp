@@ -12,14 +12,10 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent("Client")
                           : throw ArgumentNullException("Logger must not be null"))
+    , customDeviceInfo(deviceInfo)
 {
-    if (deviceInfo.assigned())
-        this->deviceInfo = deviceInfo;
-    else
-        this->deviceInfo = DeviceInfo("daqmock://client_device", "OpenDAQClient");
-    this->deviceInfo.freeze();
     this->name = "OpenDAQClient";
-    this->isRootDevice = true;
+    this->isRootDevice = parent == nullptr;
 
     auto syncComponentPrivate = this->syncComponent.asPtr<IComponentPrivate>(true);
     syncComponentPrivate.unlockAttributes(List<IString>("Visible"));
@@ -29,7 +25,9 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
 
 DeviceInfoPtr ClientImpl::onGetInfo()
 {
-    return this->deviceInfo;
+    if (customDeviceInfo.assigned())
+        return std::move(customDeviceInfo);
+    return DeviceInfo("daqmock://client_device", "OpenDAQClient");;
 }
 
 bool ClientImpl::allowAddDevicesFromModules()

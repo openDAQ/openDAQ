@@ -269,7 +269,7 @@ void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBloc
 DeviceInfoPtr MockDevice1Impl::onGetInfo()
 {    
     auto deviceInfo = DeviceInfo("mock://dev1", "MockDevice1");
-    deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("Testing");
+    deviceInfo.setManufacturer("Testing");
     return deviceInfo;
 }
 

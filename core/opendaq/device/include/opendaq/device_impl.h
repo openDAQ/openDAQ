@@ -297,7 +297,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
                     this->deviceInfo.addProperty(clonedProp);
                 }
 
-                this->deviceInfo.getOnPropertyValueRead(field) += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
+                auto event = this->deviceInfo.getOnPropertyValueRead(field);
+                if (event.getListenerCount())
+                    continue;
+                event += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
                 {
                     auto owner = obj.asPtr<IPropertyObjectInternal>(true).getOwner();
                     if (owner.assigned())
@@ -1711,7 +1714,11 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
             if (!this->deviceInfo.hasProperty(field))
                 continue;
 
-            deviceInfo.getOnPropertyValueRead(field) += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
+            auto event = deviceInfo.getOnPropertyValueRead(field);
+            if (event.getListenerCount())
+                continue;
+
+            event += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
             {
                 auto owner = obj.asPtr<IPropertyObjectInternal>(true).getOwner();
                 if (owner.assigned())

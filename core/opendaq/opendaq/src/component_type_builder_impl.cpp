@@ -123,20 +123,6 @@ ErrCode ComponentTypeBuilderImpl::getDefaultConfig(IPropertyObject** defaultConf
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ComponentTypeBuilderImpl::setModuleInfo(IModuleInfo* moduleInfo)
-{
-    this->moduleInfo = moduleInfo;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode ComponentTypeBuilderImpl::getModuleInfo(IModuleInfo** moduleInfo)
-{
-    OPENDAQ_PARAM_NOT_NULL(moduleInfo);
-
-    *moduleInfo = this->moduleInfo.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
 #if !defined(BUILDING_STATIC_LIBRARY)
 
 extern "C"

@@ -47,9 +47,6 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
-    ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* moduleInfo) override;
-    ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** moduleInfo) override;
-
 private:
     ComponentTypeSort sort;
     StringPtr id;

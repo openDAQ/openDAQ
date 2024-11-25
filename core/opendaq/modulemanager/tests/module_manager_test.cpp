@@ -117,10 +117,10 @@ TEST_F(ModuleManagerTest, EnumDriver)
 #ifdef __GNUC__
     for (const ObjectPtr<IModule>& module : moduleDrivers)
     {
-        StringPtr name;
-        module->getName(&name);
+        ModuleInfoPtr info;
+        module->getModuleInfo(&info);
 
-        std::cout << name << std::endl;
+        std::cout << info.getName() << std::endl;
     }
 
 #else

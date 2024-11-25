@@ -757,6 +757,12 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)
     ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5);
     ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6);
     ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7);
+
+    ASSERT_EQ(moduleInfoC.getId(), "module_id");
+    ASSERT_EQ(moduleInfoC.getName(), "module_name");
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, FunctionBlockTypesModuleInfo)
@@ -775,4 +781,10 @@ TEST_F(ConfigProtocolIntegrationTest, FunctionBlockTypesModuleInfo)
     ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5);
     ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6);
     ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7);
+
+    ASSERT_EQ(moduleInfoC.getId(), "module_id");
+    ASSERT_EQ(moduleInfoC.getName(), "module_name");
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7);
 }

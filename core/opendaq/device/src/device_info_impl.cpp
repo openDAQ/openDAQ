@@ -738,17 +738,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setEditableProperties(I
     OPENDAQ_PARAM_NOT_NULL(editableProperties);
     if (editablePropertyNames.size())
         return OPENDAQ_ERR_ALREADYEXISTS;
-    
-    Super::setProtectedPropertyValue(String("editableProperties"), editableProperties);
 
     auto owner = this->getPropertyObjectParent();
     if (!owner.assigned())
-        return OPENDAQ_IGNORED;
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Editable fields cannot be set without setting the owner.");
 
+    Super::setProtectedPropertyValue(String("editableProperties"), editableProperties);
     for (const auto & prop : ListPtr<IString>::Borrow(editableProperties))
-    {
         editablePropertyNames.insert(prop);
-    }
 
     for (const auto & prop : editablePropertyNames)
     {

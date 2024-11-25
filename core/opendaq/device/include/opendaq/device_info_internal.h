@@ -52,7 +52,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() = 0;
 
-     // [templateType(editableProperties, IString)]
+    // [templateType(editableProperties, IString)]
     /*!
      * @brief Sets the list of properties which have to be editable.
      * @param propertyName The name of the property to add.

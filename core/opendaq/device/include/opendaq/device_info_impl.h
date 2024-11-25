@@ -24,6 +24,7 @@
 #include <opendaq/device_type_ptr.h>
 #include <opendaq/device_info_internal.h>
 #include <opendaq/server_capability_ptr.h>
+#include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -107,6 +108,13 @@ public:
 
     ErrCode INTERFACE_FUNC getConfigurationConnectionInfo(IServerCapability** connectionInfo) override;
 
+    ErrCode INTERFACE_FUNC setEditableProperties(IList* editableProperties) override;
+    ErrCode INTERFACE_FUNC getEditableProperties(IList** editableProperties) override;
+
+    // IPropertyObject
+    ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
+
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -115,7 +123,10 @@ private:
     StringPtr getStringProperty(const StringPtr& name);
     Int getIntProperty(const StringPtr& name);
 
+    ErrCode getEditableProperty(IString* propertyName, IBaseObject** value);
+
     std::unordered_set<std::string> defaultPropertyNames;
+    std::set<std::string> editablePropertyNames;
     DeviceTypePtr deviceType;
 };
 

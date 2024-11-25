@@ -51,6 +51,21 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      * @brief Removes all server streaming capabilities from the list of supported capabilities.
      */
     virtual ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() = 0;
+
+     // [templateType(editableProperties, IString)]
+    /*!
+     * @brief Sets the list of properties which have to be editable.
+     * @param propertyName The name of the property to add.
+     */
+    // TODO: add description what it means 
+    virtual ErrCode INTERFACE_FUNC setEditableProperties(IList* editableProperties) = 0;
+
+    // [templateType(editableProperties, IString)]
+    /*!
+     * @brief Gets the list of editable properties.
+     * @param editableProperties The list of editable properties.
+     */
+    virtual ErrCode INTERFACE_FUNC getEditableProperties(IList** editableProperties) = 0;
 };
 /*!@}*/
 

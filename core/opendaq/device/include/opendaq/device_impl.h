@@ -20,6 +20,7 @@
 #include <opendaq/device.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_ptr.h>
+#include <opendaq/device_info_internal.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/signal_ptr.h>
@@ -197,7 +198,7 @@ protected:
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
     DevicePtr getParentDevice();
 
-    virtual std::vector<std::string> getChangeableDeviceInfoFields();
+    virtual ListPtr<IString> getChangeableDeviceInfoFields();
 
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
@@ -250,7 +251,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 }
 
 template <typename TInterface, typename... Interfaces>
-std::vector<std::string> GenericDevice<TInterface, Interfaces...>::getChangeableDeviceInfoFields()
+ListPtr<IString> GenericDevice<TInterface, Interfaces...>::getChangeableDeviceInfoFields()
 {
     return {"userName", "location"};
 }
@@ -279,38 +280,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 
         if (this->deviceInfo.assigned())
         {
-            bool deviceInfoFrozen = this->deviceInfo.isFrozen();
-            this->deviceInfo.template asPtr<IOwnable>().setOwner(this->objPtr);
-
-            for (const auto& field : this->getChangeableDeviceInfoFields())
-            {
-                if (!this->objPtr.hasProperty(field))
-                    continue;
-
-                if (!this->deviceInfo.hasProperty(field))
-                {
-                    if (deviceInfoFrozen)
-                        continue;
-
-                    auto ownerProp = this->objPtr.getProperty(field);
-                    auto clonedProp = ownerProp.template asPtr<IPropertyInternal>(true).clone();
-                    this->deviceInfo.addProperty(clonedProp);
-                }
-
-                auto event = this->deviceInfo.getOnPropertyValueRead(field);
-                if (event.getListenerCount())
-                    continue;
-                event += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
-                {
-                    auto owner = obj.asPtr<IPropertyObjectInternal>(true).getOwner();
-                    if (owner.assigned())
-                    {
-                        auto name = value.getProperty().getName();
-                        value.setValue(owner.getPropertyValue(name));
-                    }
-                };
-            }
-
+            this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
+            this->deviceInfo.template as<IDeviceInfoInternal>(true)->setEditableProperties(this->getChangeableDeviceInfoFields());
             this->deviceInfo.freeze();
         }
     }
@@ -1495,16 +1466,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             serializer.key("deviceDomain");
             deviceDomain.serialize(serializer);
         }
-        {
-            auto changeableDeviceInfoFields = getChangeableDeviceInfoFields();
-            serializer.key("changeableDeviceInfoFields");
-            serializer.startList();
-            for (const auto& field : changeableDeviceInfoFields)
-            {
-                serializer.writeString(field);
-            }
-            serializer.endList();
-        }
     }
     else
     {
@@ -1690,44 +1651,6 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
         deviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
-    
-        std::vector<std::string> changeableDeviceInfoFields;
-        if (serializedObject.hasKey("changeableDeviceInfoFields"))
-        {
-            const auto changeableFields = serializedObject.readList<IString>("changeableDeviceInfoFields");
-            changeableDeviceInfoFields.reserve(changeableFields.getCount());
-            for (const auto& field : changeableFields)
-            {
-                changeableDeviceInfoFields.push_back(field.toStdString());
-            }
-        }
-        else
-        {
-            changeableDeviceInfoFields = getChangeableDeviceInfoFields();
-        }
-
-        for (const auto& field : changeableDeviceInfoFields)
-        {
-            if (!this->objPtr.hasProperty(field))
-                continue;
-
-            if (!this->deviceInfo.hasProperty(field))
-                continue;
-
-            auto event = deviceInfo.getOnPropertyValueRead(field);
-            if (event.getListenerCount())
-                continue;
-
-            event += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& value) 
-            {
-                auto owner = obj.asPtr<IPropertyObjectInternal>(true).getOwner();
-                if (owner.assigned())
-                {
-                    auto name = value.getProperty().getName();
-                    value.setValue(owner.getPropertyValue(name));
-                }
-            };
-        }
         deviceInfo.freeze();
     }
 

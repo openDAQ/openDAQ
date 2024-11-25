@@ -140,14 +140,19 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
     server.setPropertyValue("userName", "testUser1");
     server.setPropertyValue("location", "testLocation1");
 
+    ASSERT_EQ(server.getPropertyValue("userName"), "testUser1");
+    ASSERT_EQ(server.getPropertyValue("location"), "testLocation1");
+    ASSERT_EQ(server.getInfo().getPropertyValue("userName"), "testUser1");
+    ASSERT_EQ(server.getInfo().getPropertyValue("location"), "testLocation1");
+
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery/username_location/";
     serverConfig.setPropertyValue("Path", path);
     server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     // update the username and location after server creation
-    server.setPropertyValue("userName", "testUser");
-    server.setPropertyValue("location", "testLocation");
+    server.setPropertyValue("userName", "testUser2");
+    server.setPropertyValue("location", "testLocation2");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
@@ -160,8 +165,8 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
 
-            ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
-            ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
+            ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser2");
+            ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation2");
             if (capability.getProtocolName() == "OpenDAQNativeStreaming")
                 return;
         }

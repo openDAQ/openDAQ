@@ -112,7 +112,6 @@ set(SRC_PublicHeaders_Component
     module_info.h
     module_info_factory.h
     module_info_impl.h
-    
     PARENT_SCOPE
 )
 
@@ -124,7 +123,6 @@ set(SRC_PrivateHeaders_Component
     boost_dll.h
     context_impl.h
     mdns_discovery_server_impl.h
-    
     PARENT_SCOPE
 )
 

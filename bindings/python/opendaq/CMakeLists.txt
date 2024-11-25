@@ -101,6 +101,7 @@ set(SRC_Cpp
     generated/streaming/py_mirrored_device_config.cpp
     generated/synchronization/py_sync_component.cpp
     generated/synchronization/py_sync_component_private.cpp
+    generated/component/py_component_type.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

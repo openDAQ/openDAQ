@@ -68,7 +68,6 @@ run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_va
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated validator
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit_builder
-run_rtgen CoreObjects coreobjects coreobjects core_objects/generated component_type
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated user
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated authentication_provider
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permissions_builder
@@ -170,3 +169,4 @@ run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component   
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        tags_private
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component_private
+run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_type

@@ -40,31 +40,15 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
 {
     cls.doc() = "A module is an object that provides device and function block factories. The object is usually implemented in an external dynamic link / shared library. IModuleManager is responsible for loading all modules.";
 
-    cls.def_property_readonly("version_info",
+    cls.def_property_readonly("module_info",
         [](daq::IModule *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.getVersionInfo().detach();
+            return objectPtr.getModuleInfo().detach();
         },
         py::return_value_policy::take_ownership,
-        "Retrieves the module version information.");
-    cls.def_property_readonly("name",
-        [](daq::IModule *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.getName().toStdString();
-        },
-        "Gets the module name.");
-    cls.def_property_readonly("id",
-        [](daq::IModule *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.getId().toStdString();
-        },
-        "Gets the module id.");
+        "Retrieves the module information.");
     cls.def_property_readonly("available_devices",
         [](daq::IModule *object)
         {

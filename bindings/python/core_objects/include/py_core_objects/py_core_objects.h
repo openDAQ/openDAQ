@@ -37,7 +37,6 @@ PyDaqIntf<daq::IPropertyValueEventArgs, daq::IEventArgs> declareIPropertyValueEv
 PyDaqIntf<daq::IValidator, daq::IBaseObject> declareIValidator(pybind11::module_ m);
 PyDaqIntf<daq::IUnit, daq::IBaseObject> declareIUnit(pybind11::module_ m);
 PyDaqIntf<daq::IUnitBuilder, daq::IBaseObject> declareIUnitBuilder(pybind11::module_ m);
-PyDaqIntf<daq::IComponentType, daq::IBaseObject> declareIComponentType(pybind11::module_ m);
 PyDaqIntf<daq::IUser, daq::IBaseObject> declareIUser(pybind11::module_ m);
 PyDaqIntf<daq::IAuthenticationProvider, daq::IBaseObject> declareIAuthenticationProvider(pybind11::module_ m);
 PyDaqIntf<daq::IPermissionsBuilder, daq::IBaseObject> declareIPermissionsBuilder(pybind11::module_ m);

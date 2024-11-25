@@ -54,6 +54,15 @@ void defineICoercer(pybind11::module_ m, PyDaqIntf<daq::ICoercer, daq::IBaseObje
         },
         py::arg("prop_obj"), py::arg("value"),
         "Coerces `value` to match the coercion restrictions and outputs the result.");
+    cls.def("coerce_no_lock",
+        [](daq::ICoercer *object, const py::object& propObj, const py::object& value)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::CoercerPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.coerceNoLock(pyObjectToBaseObject(propObj), pyObjectToBaseObject(value)));
+        },
+        py::arg("prop_obj"), py::arg("value"),
+        "");
     cls.def_property_readonly("eval",
         [](daq::ICoercer *object)
         {

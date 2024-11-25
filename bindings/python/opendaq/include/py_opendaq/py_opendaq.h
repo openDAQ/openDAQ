@@ -114,8 +114,8 @@ PyDaqIntf<daq::IReferenceDomainInfoBuilder, daq::IBaseObject> declareIReferenceD
 PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> declareIUpdateParameters(pybind11::module_ m);
 PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> declareILogFileInfo(pybind11::module_ m);
 PyDaqIntf<daq::ILogFileInfoBuilder, daq::IBaseObject> declareILogFileInfoBuilder(pybind11::module_ m);
-PyDaqIntf<daq::IComponentType, daq::IBaseObject> declareIComponentType(pybind11::module_ m);
 PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> declareIModuleInfo(pybind11::module_ m);
+PyDaqIntf<daq::IComponentType, daq::IBaseObject> declareIComponentType(pybind11::module_ m);
 
 
 
@@ -224,3 +224,5 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
 void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> cls);
 void defineILogFileInfo(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> cls);
 void defineILogFileInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfoBuilder, daq::IBaseObject> cls);
+void defineIModuleInfo(pybind11::module_ m, PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> cls);
+void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, daq::IBaseObject> cls);

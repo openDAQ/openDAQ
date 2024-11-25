@@ -102,6 +102,8 @@ set(SRC_Cpp
     generated/synchronization/py_sync_component.cpp
     generated/synchronization/py_sync_component_private.cpp
     generated/component/py_component_type.cpp
+    generated/component/py_component_type_private.cpp
+    generated/modulemanager/py_module_info.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

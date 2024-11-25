@@ -124,6 +124,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classILogFileInfo = declareILogFileInfo(m);
     auto classILogFileInfoBuilder = declareILogFileInfoBuilder(m);
     auto classIComponentType = declareIComponentType(m);
+    auto classIComponentTypePrivate = declareIComponentTypePrivate(m);
+    auto classIModuleInfo = declareIModuleInfo(m);
 
     defineIRemovable(m, classIRemovable);
     defineIComponent(m, classIComponent);
@@ -222,6 +224,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineILogFileInfo(m, classILogFileInfo);
     defineILogFileInfoBuilder(m, classILogFileInfoBuilder);
     defineIComponentType(m, classIComponentType);
+    defineIComponentTypePrivate(m, classIComponentTypePrivate);
+    defineIModuleInfo(m, classIModuleInfo);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
     m.def("NullContext", []() { return daq::NullContext().detach(); });

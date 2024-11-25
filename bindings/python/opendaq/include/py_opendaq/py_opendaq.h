@@ -115,6 +115,10 @@ PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> declareIUpdateParameters
 PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> declareILogFileInfo(pybind11::module_ m);
 PyDaqIntf<daq::ILogFileInfoBuilder, daq::IBaseObject> declareILogFileInfoBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IComponentType, daq::IBaseObject> declareIComponentType(pybind11::module_ m);
+PyDaqIntf<daq::IComponentTypePrivate, daq::IBaseObject> declareIComponentTypePrivate(pybind11::module_ m);
+PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> declareIModuleInfo(pybind11::module_ m);
+
+
 
 py::class_<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
 py::class_<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m);

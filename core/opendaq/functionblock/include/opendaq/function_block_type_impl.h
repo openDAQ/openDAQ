@@ -88,6 +88,12 @@ inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)
                     serializerPtr.key("defaultConfig");
                     defaultConfig.serialize(serializerPtr);
                 }
+
+                if (moduleInfo.assigned())
+                {
+                    serializerPtr.key("moduleInfo");
+                    moduleInfo.serialize(serializerPtr);
+                }
             }
 
             serializerPtr.endObject();
@@ -136,7 +142,18 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
             if (serializedObj.hasKey("defaultConfig"))
                 defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-            *obj = createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig).detach();
+            auto functionBlockType =
+                createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig);
+
+            ModuleInfoPtr moduleInfo;
+            if (serializedObj.hasKey("moduleInfo"))
+            {
+                moduleInfo = serializedObj.readObject("moduleInfo", contextPtr, factoryCallbackPtr);
+                functionBlockType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo);
+            }
+
+            *obj = functionBlockType.detach();
+
         });
 }
 

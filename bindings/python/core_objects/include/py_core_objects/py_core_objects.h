@@ -59,7 +59,6 @@ void defineIPropertyValueEventArgs(pybind11::module_ m, PyDaqIntf<daq::IProperty
 void defineIValidator(pybind11::module_ m, PyDaqIntf<daq::IValidator, daq::IBaseObject> cls);
 void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cls);
 void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::IBaseObject> cls);
-void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, daq::IBaseObject> cls);
 void defineIUser(pybind11::module_ m, PyDaqIntf<daq::IUser, daq::IBaseObject> cls);
 void defineIAuthenticationProvider(pybind11::module_ m, PyDaqIntf<daq::IAuthenticationProvider, daq::IBaseObject> cls);
 void defineIPermissionsBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionsBuilder, daq::IBaseObject> cls);

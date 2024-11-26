@@ -236,7 +236,7 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
     ASSERT_NO_THROW(moduleInfo = module.getModuleInfo());
     ASSERT_NE(moduleInfo, nullptr);
     ASSERT_EQ(moduleInfo.getName(), "ReferenceDeviceModule");
-    ASSERT_EQ(moduleInfo.getId(), "ReferenceDeviceModule");
+    ASSERT_EQ(moduleInfo.getId(), "ReferenceDevice");
 
     // Check version info for module
     VersionInfoPtr versionInfoModule;
@@ -253,7 +253,7 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
         ASSERT_NO_THROW(moduleInfoDeviceType = deviceType.second.getModuleInfo());
         ASSERT_NE(moduleInfoDeviceType, nullptr);
         ASSERT_EQ(moduleInfoDeviceType.getName(), "ReferenceDeviceModule");
-        ASSERT_EQ(moduleInfoDeviceType.getId(), "ReferenceDeviceModule");
+        ASSERT_EQ(moduleInfoDeviceType.getId(), "ReferenceDevice");
 
         VersionInfoPtr versionInfoDeviceType;
         ASSERT_NO_THROW(versionInfoDeviceType = moduleInfoDeviceType.getVersionInfo());

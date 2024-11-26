@@ -20,7 +20,6 @@ set(SRC_Cpp
     generated/py_validator.cpp
     generated/py_unit.cpp
     generated/py_unit_builder.cpp
-    generated/py_component_type.cpp
     generated/py_user.cpp
     generated/py_authentication_provider.cpp
     generated/py_permissions_builder.cpp

@@ -7,22 +7,13 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/module_info_factory.h>
 
 using namespace daq;
 
 MockDeviceModuleImpl::MockDeviceModuleImpl(daq::ContextPtr ctx)
     : ctx(std::move(ctx))
 {
-}
-
-ErrCode MockDeviceModuleImpl::getName(IString** name)
-{
-    return createString(name, "MockDeviceModule");
-}
-
-ErrCode MockDeviceModuleImpl::getId(IString** id)
-{
-    return createString(id, "MockDevice");
 }
 
 ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)
@@ -122,12 +113,12 @@ ErrCode MockDeviceModuleImpl::createServer(IServer** server,
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockDeviceModuleImpl::getVersionInfo(IVersionInfo** version)
+ErrCode MockDeviceModuleImpl::getModuleInfo(daq::IModuleInfo** info)
 {
-    if (version == nullptr)
+    if (info == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *version = nullptr;
+    *info = ModuleInfo(VersionInfo(0, 0, 0), "MockModule", "mock").detach();
     return OPENDAQ_SUCCESS;
 }
 

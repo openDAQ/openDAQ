@@ -15,30 +15,30 @@
  */
 
 #pragma once
-#include <coretypes/deserializer.h>
-#include <coretypes/serialized_object.h>
-#include <coretypes/serializer.h>
-#include <coretypes/version_info.h>
+#include <coretypes/struct_impl.h>
+#include <opendaq/module_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-class VersionInfoImpl : public GenericStructImpl<IVersionInfo, IStruct>
+class ModuleInfoImpl : public GenericStructImpl<IModuleInfo, IStruct>
 {
 public:
-    VersionInfoImpl(SizeT major, SizeT minor, SizeT patch);
+    ModuleInfoImpl(const VersionInfoPtr& versionInfo, const StringPtr& name, const StringPtr& id);
 
-    ErrCode INTERFACE_FUNC getMajor(SizeT* major) override;
-    ErrCode INTERFACE_FUNC getMinor(SizeT* minor) override;
-    ErrCode INTERFACE_FUNC getPatch(SizeT* patch) override;
+    ErrCode INTERFACE_FUNC getVersionInfo(IVersionInfo** versionInfo) override;
+    ErrCode INTERFACE_FUNC getName(IString** name) override;
+    ErrCode INTERFACE_FUNC getId(IString** id) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj);
+    static ErrCode Deserialize(ISerializedObject* serialized,
+                               IBaseObject* context,
+                               IFunction* factoryCallback,
+                               IBaseObject** obj);
 };
 
-OPENDAQ_REGISTER_DESERIALIZE_FACTORY(VersionInfoImpl)
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ModuleInfoImpl)
 
 END_NAMESPACE_OPENDAQ

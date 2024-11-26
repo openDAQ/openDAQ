@@ -58,7 +58,7 @@ inline StructTypePtr CallableInfoStructType()
 {
     return StructType("CallableInfo",
                       List<IString>("Arguments", "ReturnType", "Const"),
-                      List<IBaseObject>(List<IArgumentInfo>(), "", false),
+                      List<IBaseObject>(List<IArgumentInfo>(), -1, false),
                       List<IType>(SimpleType(ctList), SimpleType(ctInt), SimpleType(ctBool)));
 }
 

@@ -1,3 +1,27 @@
+# 25.11.2024
+## Description
+- Delete the fields `id`, `name`, and `versionInfo` from the `IModule` interface and add them to the new `IModuleInfo` interface, which is a new field in the `IModule` interface
+- `IModuleInfo` field is also added to `IComponentType` interface
+- Works over Native
+- Component Type is moved from `coreobjects` to `opendaq`
+
+## Required integration changes
+- Breaks binary compatibility
+
+```
++ [interface] IModuleInfo : public IBaseObject
++ [function] IModuleInfo::getVersionInfo(IVersionInfo** version)
++ [function] IModuleInfo::getName(IVersionInfo** version)
++ [function] IModuleInfo::getId(IVersionInfo** version)
++ [interface] IComponentTypePrivate : public IBaseObject
++ [function] IComponentTypePrivate::setModuleInfo(IModuleInfo* info)
++ [function] IComponentType::getModuleInfo(IModuleInfo** info)
++ [function] IModule::getModuleInfo(IModuleInfo** info)
+- [function] IModule::getVersionInfo(IVersionInfo** version)
+- [function] IModule::getName(IVersionInfo** version)
+- [function] IModule::getId(IVersionInfo** version)
+```
+
 # 20.11.2024
 ## Description
 - Support for different client types over the native configuration protocol has been introduced.
@@ -34,7 +58,6 @@
 ```
 
 # 29.10.2024:
-# 8.11.2024
 ## Description
 - Implement thread synchronization mechanism in property objects
 - Provides new internal method to allow for recursive locking in onWrite/onRead events via `GenericPropertyObjectImpl::getRecursiveConfigLock()`

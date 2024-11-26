@@ -43,7 +43,7 @@ TEST_F(ModulesTest, EnumerateModules)
     ModulePtr _module;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "ReferenceFunctionBlockModule")
+        if (mod.getModuleInfo().getName() == "ReferenceFunctionBlockModule")
         {
             _module = mod;
             break;
@@ -76,18 +76,18 @@ TEST_F(ModulesTest, CreateComponents)
     ModulePtr devModule;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "ReferenceFunctionBlockModule")
+        if (mod.getModuleInfo().getName() == "ReferenceFunctionBlockModule")
             fbModule = mod;
-        else if (mod.getName() == "ReferenceDeviceModule")
+        else if (mod.getModuleInfo().getName() == "ReferenceDeviceModule")
             devModule = mod;
-        else if (mod.getName() == "OpenDAQOPCUAServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQOPCUAServerModule")
             serverModule = mod;
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-        else if (mod.getName() == "OpenDAQNativeStreamingServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQNativeStreamingServerModule")
             nativeStreamingServerModule = mod;
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-        else if (mod.getName() == "OpenDAQWebsocketStreamingServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQWebsocketStreamingServerModule")
             websocketStreamingServerModule = mod;
 #endif
     }
@@ -160,16 +160,16 @@ TEST_F(ModulesTest, CreateServer)
     ModulePtr devModule;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "OpenDAQOPCUAServerModule")
+        if (mod.getModuleInfo().getName() == "OpenDAQOPCUAServerModule")
             serverModule = mod;
-        else if (mod.getName() == "ReferenceDeviceModule")
+        else if (mod.getModuleInfo().getName() == "ReferenceDeviceModule")
             devModule = mod;
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-        else if (mod.getName() == "OpenDAQNativeStreamingServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQNativeStreamingServerModule")
             nativeStreamingServerModule = mod;
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-        else if (mod.getName() == "OpenDAQWebsocketStreamingServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQWebsocketStreamingServerModule")
             websocketStreamingServerModule = mod;
 #endif
     }

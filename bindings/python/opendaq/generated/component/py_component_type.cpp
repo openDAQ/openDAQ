@@ -27,7 +27,7 @@
 
 #include <pybind11/gil.h>
 
-#include "py_core_objects/py_core_objects.h"
+#include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
 
@@ -72,4 +72,13 @@ void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, da
             return objectPtr.createDefaultConfig().detach();
         },
         "The function clones and returns default configuration. On each call, we need to create new object, because we want that each instance of the component has its own configuration object.");
+    cls.def_property_readonly("module_info",
+        [](daq::IComponentType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentTypePtr::Borrow(object);
+            return objectPtr.getModuleInfo().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Retrieves the module information.");
 }

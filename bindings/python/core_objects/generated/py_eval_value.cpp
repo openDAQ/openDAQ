@@ -96,4 +96,13 @@ void defineIEvalValue(pybind11::module_ m, PyDaqIntf<daq::IEvalValue, daq::IBase
         },
         py::return_value_policy::take_ownership,
         "Returns the names of all properties referenced by the eval value.");
+    cls.def_property_readonly("result_no_lock",
+        [](daq::IEvalValue *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::EvalValuePtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getResultNoLock());
+        },
+        py::return_value_policy::take_ownership,
+        "");
 }

@@ -243,7 +243,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
 
 void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig)
 {
-    auto options = context.getModuleOptions(id);
+    auto options = context.getModuleOptions(moduleInfo.getId());
     if (options.getCount() == 0)
         return;
 
@@ -271,7 +271,7 @@ void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObject
 
 void NativeStreamingClientModule::populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig)
 {
-    auto options = context.getModuleOptions(id);
+    auto options = context.getModuleOptions(moduleInfo.getId());
     if (options.getCount() == 0)
         return;
 

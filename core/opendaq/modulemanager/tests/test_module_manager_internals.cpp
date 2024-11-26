@@ -90,5 +90,5 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckSucceed)
     ModuleLibrary lib;
     ASSERT_NO_THROW(lib = loadModule(loggerComponent, modulePath, context));
 
-    ASSERT_EQ(lib.module.getName(), "MockModule");
+    ASSERT_EQ(lib.module.getModuleInfo().getName(), "MockModule");
 }

@@ -558,7 +558,7 @@ TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
     }
 }
 
-TEST_F(InstanceTest, SaveLoadReaddDevice)
+TEST_F(InstanceTest, SaveLoadReadDevice)
 {
     std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
@@ -584,7 +584,7 @@ TEST_F(InstanceTest, SaveLoadReaddDevice)
     }
 }
 
-TEST_F(InstanceTest, SaveLoadReaddDevice2)
+TEST_F(InstanceTest, SaveLoadReadDevice2)
 {
     std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
@@ -609,7 +609,7 @@ TEST_F(InstanceTest, SaveLoadReaddDevice2)
     }
 }
 
-TEST_F(InstanceTest, SaveLoadReaddDevice3)
+TEST_F(InstanceTest, SaveLoadReadDevice3)
 {
     std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");

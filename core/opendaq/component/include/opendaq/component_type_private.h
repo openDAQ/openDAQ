@@ -15,24 +15,23 @@
  */
 
 #pragma once
-#include <opendaq/server_type.h>
-#include <opendaq/component_type_impl.h>
-#include <opendaq/component_type_builder_ptr.h>
+#include "opendaq/module_info.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ServerTypeImpl : public GenericComponentTypeImpl<IServerType>
+/*!
+ * @brief Private interface to component type. Allows for setting the module information.
+ */
+DECLARE_OPENDAQ_INTERFACE(IComponentTypePrivate, IBaseObject)
 {
-public:
-    using Self = ServerTypeImpl;
-    using Super = GenericComponentTypeImpl<IServerType>;
-
-    explicit ServerTypeImpl(const StringPtr& id,
-                            const StringPtr& name,
-                            const StringPtr& description,
-                            const PropertyObjectPtr& defaultConfig);
-
-    explicit ServerTypeImpl(const ComponentTypeBuilderPtr& builder);
+    // [returnSelf]
+    /*!
+     * @brief Sets the module information.
+     * @param info The module information.
+     */
+    virtual ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) = 0;
 };
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

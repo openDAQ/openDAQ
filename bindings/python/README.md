@@ -1,6 +1,6 @@
 Python bindings get generated nearly automatically, but the CMake code to build the library out of the freshly generated C++ files hasn't been adapted yet.
 
-The bindings can be update "semi-manually" by running `run_rtgen.sh` from this directory and commiting the changes to the repository.
+The bindings can be updated "semi-manually" by running `run_rtgen.sh` from this directory and commiting the changes to the repository.
 
 When a new interface file has been added (or removed), some additional changes are needed:
 * Add (or remove) the corresponding line to `run_rtgen.sh` and run the script.

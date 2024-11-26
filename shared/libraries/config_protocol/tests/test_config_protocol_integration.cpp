@@ -640,16 +640,16 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
 
     ASSERT_EQ(availableDevicesClient.getCount(), 3);
 
-    auto lastC = availableDevicesClient[2];
-    auto lastS = availableDevicesServer[2];
+    auto c = availableDevicesClient[2];
+    auto s = availableDevicesServer[2];
 
-    ASSERT_EQ(lastC.getName(), "AvailableMockDevice2");
-    ASSERT_EQ(lastC.getConnectionString(), "mock://available_dev2");
-    ASSERT_EQ(lastC.getManufacturer(), "Testing");
+    ASSERT_EQ(c.getName(), "AvailableMockDevice2");
+    ASSERT_EQ(c.getConnectionString(), "mock://available_dev2");
+    ASSERT_EQ(c.getManufacturer(), "Testing");
 
-    ASSERT_EQ(lastC.getName(), lastS.getName());
-    ASSERT_EQ(lastC.getConnectionString(), lastS.getConnectionString());
-    ASSERT_EQ(lastC.getManufacturer(), lastS.getManufacturer());
+    ASSERT_EQ(c.getName(), s.getName());
+    ASSERT_EQ(c.getConnectionString(), s.getConnectionString());
+    ASSERT_EQ(c.getManufacturer(), s.getManufacturer());
 }
 
 void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
@@ -727,17 +727,64 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
 
     ASSERT_EQ(availableDeviceTypesClient.getCount(), 1);
 
-    auto lastC = availableDeviceTypesClient.get("mockDev1");
-    auto lastS = availableDeviceTypesServer.get("mockDev1");
+    auto c = availableDeviceTypesClient.get("mockDev1");
+    auto s = availableDeviceTypesServer.get("mockDev1");
 
-    ASSERT_EQ(lastC.getId(), "mockDev1");
-    ASSERT_EQ(lastC.getName(), "MockDev1");
-    ASSERT_EQ(lastC.getDescription(), "Mock Device 1");
-    ASSERT_EQ(lastC.getConnectionStringPrefix(), "prefix");
+    ASSERT_EQ(c.getId(), "mockDev1");
+    ASSERT_EQ(c.getName(), "MockDev1");
+    ASSERT_EQ(c.getDescription(), "Mock Device 1");
+    ASSERT_EQ(c.getConnectionStringPrefix(), "prefix");
 
-    ASSERT_EQ(lastC.getId(), lastS.getId());
-    ASSERT_EQ(lastC.getName(), lastS.getName());
-    ASSERT_EQ(lastC.getDescription(), lastS.getDescription());
-    ASSERT_EQ(lastC.getConnectionStringPrefix(), lastS.getConnectionStringPrefix());
+    ASSERT_EQ(c.getId(), s.getId());
+    ASSERT_EQ(c.getName(), s.getName());
+    ASSERT_EQ(c.getDescription(), s.getDescription());
+    ASSERT_EQ(c.getConnectionStringPrefix(), s.getConnectionStringPrefix());
 }
 
+TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)
+{
+    auto availableDeviceTypesServer = serverDevice.getDevices()[0].getAvailableDeviceTypes();
+    auto availableDeviceTypesClient = clientDevice.getDevices()[0].getAvailableDeviceTypes();
+
+    auto s = availableDeviceTypesServer.get("mockDev1");
+    auto c = availableDeviceTypesClient.get("mockDev1");
+
+    auto moduleInfoS = s.getModuleInfo();
+    auto moduleInfoC = c.getModuleInfo();
+
+    ASSERT_EQ(moduleInfoS.getId(), "module_id");
+    ASSERT_EQ(moduleInfoS.getName(), "module_name");
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7);
+
+    ASSERT_EQ(moduleInfoC.getId(), "module_id");
+    ASSERT_EQ(moduleInfoC.getName(), "module_name");
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, FunctionBlockTypesModuleInfo)
+{
+    auto availableFunctionBlockTypesServer = serverDevice.getDevices()[0].getAvailableFunctionBlockTypes();
+    auto availableFunctionBlockTypesClient = clientDevice.getDevices()[0].getAvailableFunctionBlockTypes();
+
+    auto s = availableFunctionBlockTypesServer.get("mockfb1");
+    auto c = availableFunctionBlockTypesClient.get("mockfb1");
+
+    auto moduleInfoS = s.getModuleInfo();
+    auto moduleInfoC = c.getModuleInfo();
+
+    ASSERT_EQ(moduleInfoS.getId(), "module_id");
+    ASSERT_EQ(moduleInfoS.getName(), "module_name");
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7);
+
+    ASSERT_EQ(moduleInfoC.getId(), "module_id");
+    ASSERT_EQ(moduleInfoC.getName(), "module_name");
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7);
+}

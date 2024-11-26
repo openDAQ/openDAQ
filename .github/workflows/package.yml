@@ -65,6 +65,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
+
       - name: Configure and build Wheels
         id: configure_and_build_wheels
         if: matrix.cmake_generator_platform != 'Win32'

@@ -68,6 +68,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
+
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha

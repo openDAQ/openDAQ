@@ -646,7 +646,9 @@ template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 {
     for (const auto& comp : components)
+    {
         comp.endUpdate();
+    }
 
     Super::callEndUpdateOnChildren();
 }
@@ -685,14 +687,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateSignal(const std::string&
     contextPtr.setSignalDependency(signals.getGlobalId() + "/" + sigId, this->globalId);
 
     if (!signals.hasItem(sigId))
-    {
-        DAQLOGF_W(signalContainerLoggerComponent,
-                  "Signal "
-                  "{} "
-                  "not found",
-                  sigId);
         return;
-    }
 
     const auto signal = signals.getItem(sigId);
 

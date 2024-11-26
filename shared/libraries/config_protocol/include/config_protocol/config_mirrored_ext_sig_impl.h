@@ -43,6 +43,9 @@ public:
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    // ISignalPrivate
+    ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
+
 protected:
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,

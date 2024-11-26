@@ -711,7 +711,7 @@ void RendererFbImpl::renderLoop()
     if (!font.loadFromMemory(ARIAL_TTF, sizeof(ARIAL_TTF)))
         throw std::runtime_error("Failed to load font.");
 
-    std::unique_lock<std::mutex> lock(sync);
+    auto lock = getUniqueLock();
     const auto defaultWaitTime = std::chrono::milliseconds(20);
     auto waitTime = defaultWaitTime;
     while (!stopRender && window.isOpen())

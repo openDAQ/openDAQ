@@ -139,31 +139,28 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
-    return daqTry([&]()
+    for (const auto& path: paths)
     {
-        for (const auto& path: paths)
+        try
         {
-            try
-            {
-                auto localLibraries = enumerateModules(loggerComponent, path, context);
-                libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());                
-            }
-            catch (const daq::DaqException& e)
-            {
-                LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.what(), e.getErrCode())
-            }
-            catch (const std::exception& e)
-            {
-                LOG_W(R"(Error scanning directory "{}": {})", path, e.what())
-            }
-            catch (...)
-            {
-                LOG_W(R"(Unknown error occured scanning directory "{}")", path)
-            }
+            auto localLibraries = enumerateModules(loggerComponent, path, context);
+            libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());                
         }
-        modulesLoaded = true;
-        return OPENDAQ_SUCCESS;
-    });
+        catch (const daq::DaqException& e)
+        {
+            LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.what(), e.getErrCode())
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W(R"(Error scanning directory "{}": {})", path, e.what())
+        }
+        catch (...)
+        {
+            LOG_W(R"(Unknown error occured scanning directory "{}")", path)
+        }
+    }
+    modulesLoaded = true;
+    return OPENDAQ_SUCCESS;
 }
 
 struct DevicePing

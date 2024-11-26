@@ -27,6 +27,7 @@
 #include <opendaq/signal_errors.h>
 #include <opendaq/signal_events_ptr.h>
 #include <opendaq/signal_factory.h>
+#include <opendaq/signal_private_ptr.h>
 #include <opendaq/work_factory.h>
 #include <opendaq/scheduler_errors.h>
 #include <opendaq/component_update_context_ptr.h>
@@ -638,8 +639,8 @@ void GenericInputPortImpl<Interfaces...>::serializeCustomObjectValues(const Seri
     if (signal.assigned())
     {
         serializer.key("signalId");
-        const auto signalGlobalId = signal.getGlobalId();
-        serializer.writeString(signalGlobalId);
+        const auto signalSerializedId = signal.template asPtr<ISignalPrivate>(true).getSignalSerializeId();
+        serializer.writeString(signalSerializedId);
     }
 }
 

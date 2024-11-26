@@ -111,7 +111,6 @@ protected:
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
-    int getSerializeFlags() override;
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
     virtual void onListenedStatusChanged(bool listened);
@@ -1077,12 +1076,6 @@ void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectP
         isPublic = obj.readBool("public");
 
     Super::updateObject(obj, context);
-}
-
-template <typename TInterface, typename... Interfaces>
-int SignalBase<TInterface, Interfaces...>::getSerializeFlags()
-{
-    return ComponentSerializeFlag_SerializeActiveProp;
 }
 
 template <typename TInterface, typename ... Interfaces>

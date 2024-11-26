@@ -237,6 +237,8 @@ TEST_F(DeviceTest, SerializeAndDeserialize)
 {
     const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
 
+    dev.setActive(daq::False);
+
     const auto serializer = daq::JsonSerializer(daq::True);
     dev.serialize(serializer);
     const auto str1 = serializer.getOutput();
@@ -254,6 +256,8 @@ TEST_F(DeviceTest, SerializeAndDeserialize)
     ASSERT_EQ(str1, str2);
 
     ASSERT_EQ(newDev.getDevices().getElementInterfaceId(), daq::IDevice::Id);
+
+    ASSERT_FALSE(newDev.getActive());
 }
 
 TEST_F(DeviceTest, BeginUpdateEndUpdate)

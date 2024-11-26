@@ -28,7 +28,8 @@ env:
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   dotnet_test_path: ${{ github.workspace }}/build/bindings/CSharp/test_results
   python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
+  # python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
+  python_versions: 3.13 3.12 #TODO: uncomment amd remove
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
@@ -98,6 +99,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
@@ -627,6 +634,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'

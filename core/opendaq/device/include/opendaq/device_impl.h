@@ -20,7 +20,7 @@
 #include <opendaq/device.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_ptr.h>
-#include <opendaq/device_info_internal.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/signal_ptr.h>
@@ -1651,7 +1651,8 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
         deviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
-        deviceInfo.freeze();
+        auto deviceInfoInternal = deviceInfo.asPtr<IDeviceInfoInternal>(true);
+        deviceInfoInternal.setEditableProperties(deviceInfoInternal.getEditableProperties());
     }
 
     if (serializedObject.hasKey("deviceDomain"))

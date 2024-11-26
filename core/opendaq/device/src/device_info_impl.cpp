@@ -41,10 +41,11 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
     defaultPropertyNames.insert("serverCapabilities");
 
-    Super::addProperty(ListProperty("editableProperties", List<IString>(), false));
-
     Super::addProperty(ObjectProperty("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
     defaultPropertyNames.insert("configurationConnectionInfo");
+
+    Super::addProperty(ListProperty("editableProperties", List<IString>(), false));
+    defaultPropertyNames.insert("editableProperties");
 
     if (customSdkVersion.assigned())
         Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
@@ -743,9 +744,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setEditableProperties(I
     if (!owner.assigned())
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Editable fields cannot be set without setting the owner.");
 
-    Super::setProtectedPropertyValue(String("editableProperties"), editableProperties);
-    for (const auto & prop : ListPtr<IString>::Borrow(editableProperties))
-        editablePropertyNames.insert(prop);
+    auto editablePropsPtr = ListPtr<IString>::Borrow(editableProperties);
+    Super::setProtectedPropertyValue(String("editableProperties"), editablePropsPtr);
+    for (const auto & prop : editablePropsPtr)
+        editablePropertyNames.insert(prop.toStdString());
 
     for (const auto & prop : editablePropertyNames)
     {
@@ -764,8 +766,13 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperties(IList** editableProperties)
 {
     OPENDAQ_PARAM_NOT_NULL(editableProperties);
+    
     BaseObjectPtr obj;
-    ErrCode errCode = this->getPropertyValue(String("editableProperties"), &obj);
+    StringPtr str = "editableProperties";
+    ErrCode errCode = this->getPropertyValue(str, &obj);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
     *editableProperties = obj.asPtr<IList>().detach();
     return errCode;
 }
@@ -783,10 +790,11 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(ISt
     if (!owner.assigned())
         return OPENDAQ_NOTFOUND;
 
-    if (!owner.hasProperty(propertyName))
+    auto name = StringPtr::Borrow(propertyName);
+
+    if (!owner.hasProperty(name))
         return OPENDAQ_NOTFOUND;
- 
-    auto name = StringPtr::Borrow(propertyName); 
+     
     if (editablePropertyNames.count(name))
     { 
         return owner->getPropertyValue(propertyName, value);

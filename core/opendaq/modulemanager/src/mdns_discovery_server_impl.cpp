@@ -60,15 +60,15 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     auto serviceCap = configPtr.getPropertyValue("ServiceCap");
 
     std::unordered_map<std::string, std::string> properties;
-    properties["caps"] = configPtr.getPropertyValue("ServiceCap").asPtr<IString>().toStdString();
+    properties["caps"] = std::string(configPtr.getPropertyValue("ServiceCap"));
 
     if (configPtr.hasProperty("Path"))
-        properties["path"] = configPtr.getPropertyValue("Path").asPtr<IString>().toStdString();
+        properties["path"] = std::string(configPtr.getPropertyValue("Path"));
     else
         properties["path"] = "/";
     
     if (configPtr.hasProperty("ProtocolVersion"))
-        properties["protocolVersion"] = configPtr.getPropertyValue("ProtocolVersion").asPtr<IString>().toStdString();
+        properties["protocolVersion"] = std::string(configPtr.getPropertyValue("ProtocolVersion"));
     else
         properties["protocolVersion"] = "";
 

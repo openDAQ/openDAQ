@@ -460,12 +460,12 @@ jobs:
             cxx: g++
             cpack: ZIP
 
-    container:
-      image: ${{ matrix.image }}
-      env:
-        TZ: Europe/Berlin
-        CC: ${{ matrix.cc }}
-        CXX: ${{ matrix.cxx }}
+            container:
+              image: ${{ matrix.image }}
+              env:
+                TZ: Europe/Berlin
+                CC: ${{ matrix.cc }}
+                CXX: ${{ matrix.cxx }}
 
     steps:
       - name: Install basic dependencies
@@ -477,9 +477,7 @@ jobs:
         run : git config --global --add safe.directory '*'
 
       - name: Checkout
-        uses: actions/checkout@v4
-        env:
-          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+        uses: actions/checkout@v3
 
       - name: Install build dependencies
         run: |

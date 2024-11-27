@@ -460,12 +460,12 @@ jobs:
             cxx: g++
             cpack: ZIP
 
-            container:
-              image: ${{ matrix.image }}
-              env:
-                TZ: Europe/Berlin
-                CC: ${{ matrix.cc }}
-                CXX: ${{ matrix.cxx }}
+    container:
+      image: ${{ matrix.image }}
+      env:
+        TZ: Europe/Berlin
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
 
     steps:
       - name: Install basic dependencies

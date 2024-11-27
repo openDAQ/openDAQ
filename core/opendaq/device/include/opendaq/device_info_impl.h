@@ -115,6 +115,9 @@ public:
     ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
 
+    // IOwnable
+    virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
+
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -123,6 +126,7 @@ private:
     StringPtr getStringProperty(const StringPtr& name);
     Int getIntProperty(const StringPtr& name);
 
+    ErrCode applyEditableProperties(const PropertyObjectPtr& owner);
     ErrCode getEditableProperty(IString* propertyName, IBaseObject** value);
 
     std::unordered_set<std::string> defaultPropertyNames;

@@ -736,30 +736,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setEditableProperties(IList* editableProperties)
 {
-    OPENDAQ_PARAM_NOT_NULL(editableProperties);
-    if (editablePropertyNames.size())
-        return OPENDAQ_ERR_ALREADYEXISTS;
-
-    auto owner = this->getPropertyObjectParent();
-    if (!owner.assigned())
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Editable fields cannot be set without setting the owner.");
-
-    auto editablePropsPtr = ListPtr<IString>::Borrow(editableProperties);
-    Super::setProtectedPropertyValue(String("editableProperties"), editablePropsPtr);
-    for (const auto & prop : editablePropsPtr)
-        editablePropertyNames.insert(prop.toStdString());
-
-    for (const auto & prop : editablePropertyNames)
-    {
-        PropertyPtr ownerProp;
-        ErrCode errCode = owner->getProperty(String(prop), &ownerProp);
-        if (OPENDAQ_FAILED(errCode))
-            continue;
-        
-        this->addProperty(ownerProp.asPtr<IPropertyInternal>(true).clone());
-    }
-    
-    return OPENDAQ_SUCCESS;
+    return Super::setProtectedPropertyValue(String("editableProperties"), editableProperties);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -806,7 +783,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(ISt
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock();
     ErrCode errCode = getEditableProperty(propertyName, value);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
@@ -826,6 +803,48 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValueNoLock(
     if (errCode == OPENDAQ_NOTFOUND)
         errCode = Super::getPropertyValueNoLock(propertyName, value); 
     return errCode;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyEditableProperties(const PropertyObjectPtr& owner)
+{
+    if (!owner.assigned())
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Editable fields cannot be set without setting the owner.");
+
+    if (editablePropertyNames.size())
+        return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Editable properties have already been applied.");
+
+    ListPtr<IString> editableProperties;
+    ErrCode errCode = this->getEditableProperties(&editableProperties);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    for (const auto & prop : editableProperties)
+        editablePropertyNames.insert(prop.toStdString());
+
+    for (const auto & prop : editablePropertyNames)
+    {
+        PropertyPtr ownerProp;
+        errCode = owner->getProperty(String(prop), &ownerProp);
+        if (OPENDAQ_FAILED(errCode))
+            continue;
+        
+        this->addProperty(ownerProp.asPtr<IPropertyInternal>(true).clone());
+    }
+    
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
+{
+    ErrCode errCode = Super::setOwner(newOwner);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    
+    if (newOwner != nullptr)
+        errCode = applyEditableProperties(newOwner);
+   return errCode; 
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

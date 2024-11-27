@@ -544,8 +544,8 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
     const auto newDeviceInfo = DeviceInfo(connectionString, deviceInfo.getName());
-    newDeviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
     newDeviceInfo.asPtr<IDeviceInfoInternal>(true).setEditableProperties(deviceInfo.asPtr<IDeviceInfoInternal>().getEditableProperties());
+    newDeviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
 
     for (const auto& prop : deviceInfo.getAllProperties())
     {

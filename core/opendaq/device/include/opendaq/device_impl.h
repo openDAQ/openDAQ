@@ -280,8 +280,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 
         if (this->deviceInfo.assigned())
         {
-            this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
             this->deviceInfo.template as<IDeviceInfoInternal>(true)->setEditableProperties(this->getChangeableDeviceInfoFields());
+            this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
             this->deviceInfo.freeze();
         }
     }
@@ -1651,8 +1651,6 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
         deviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
-        auto deviceInfoInternal = deviceInfo.asPtr<IDeviceInfoInternal>(true);
-        deviceInfoInternal.setEditableProperties(deviceInfoInternal.getEditableProperties());
     }
 
     if (serializedObject.hasKey("deviceDomain"))

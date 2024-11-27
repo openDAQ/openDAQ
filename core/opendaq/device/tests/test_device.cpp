@@ -17,6 +17,7 @@
 #include <coreobjects/authentication_provider_factory.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
+#include <opendaq/mock/mock_streaming_factory.h>
 
 
 using DeviceTest = testing::Test;
@@ -401,15 +402,16 @@ TEST_F(DeviceTest, ConnectionStatusContainer)
 
 TEST_F(DeviceTest, SerializeAndDeserializeWithConnectionStatuses)
 {
-    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    const auto context = daq::NullContext();
+    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(context, nullptr, "dev");
 
     const auto typeManager = dev.getContext().getTypeManager();
     const auto statusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
 
     auto connectionStatusContainer = dev.getConnectionStatusContainer().asPtr<daq::IConnectionStatusContainerPrivate>();
     connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnStr", statusValue);
-    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr1", statusValue, daq::String("StreamingObj1"));
-    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr2", statusValue, daq::String("StreamingObj2"));
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr1", statusValue, daq::MockStreaming("MockStreaming1", context));
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr2", statusValue, daq::MockStreaming("MockStreaming2", context));
 
     const auto serializer = daq::JsonSerializer(daq::True);
     dev.serialize(serializer);

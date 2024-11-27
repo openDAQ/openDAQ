@@ -4,6 +4,7 @@
 #include <opendaq/connection_status_container_private_ptr.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/mock/mock_streaming_factory.h>
 
 using namespace daq;
 using namespace testing;
@@ -66,17 +67,17 @@ TEST_F(ConnectionStatusContainerTest, AddStreamingStatus)
 
     const auto connectionStatusContainer = ConnectionStatusContainer();
     const auto connectionString = String("ConnectionString");
-    const BaseObjectPtr fakeStreamingObject = String("StreamingObject");
+    const StreamingPtr mockStreamingObject = MockStreaming("MockStreaming", context);
     auto connectionStatusContainerPrivate = connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>();
 
     ASSERT_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus(nullptr, nullptr, nullptr), ArgumentNullException);
     ASSERT_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString, nullptr, nullptr), ArgumentNullException);
     ASSERT_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus(nullptr, statusInitValue, nullptr), ArgumentNullException);
-    ASSERT_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus(nullptr, nullptr, fakeStreamingObject), ArgumentNullException);
-    ASSERT_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus("", statusInitValue, fakeStreamingObject), InvalidParameterException);
+    ASSERT_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus(nullptr, nullptr, mockStreamingObject), ArgumentNullException);
+    ASSERT_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus("", statusInitValue, mockStreamingObject), InvalidParameterException);
 
-    ASSERT_NO_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString, statusInitValue, fakeStreamingObject));
-    ASSERT_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString, statusInitValue, fakeStreamingObject), AlreadyExistsException);
+    ASSERT_NO_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString, statusInitValue, mockStreamingObject));
+    ASSERT_THROW(connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString, statusInitValue, mockStreamingObject), AlreadyExistsException);
 
     const auto dict = connectionStatusContainer.getStatuses();
     ASSERT_EQ(dict.getCount(), 1u);
@@ -99,18 +100,18 @@ TEST_F(ConnectionStatusContainerTest, AddConfigAndStreamingStatuses)
     const auto configConnectionString = String("ConfigConnectionString");
     const auto streamingConnectionString1 = String("StreamingConnectionString1");
     const auto streamingConnectionString2 = String("StreamingConnectionString2");
-    const BaseObjectPtr fakeStreamingObject = String("StreamingObject");
+    const StreamingPtr mockStreamingObject = MockStreaming("MockStreaming", context);
     auto statusContainer = connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>();
 
-    ASSERT_NO_THROW(statusContainer.addStreamingConnectionStatus(streamingConnectionString1, connected, fakeStreamingObject));
-    ASSERT_THROW(statusContainer.addStreamingConnectionStatus(streamingConnectionString1, reconnecting, fakeStreamingObject), AlreadyExistsException);
+    ASSERT_NO_THROW(statusContainer.addStreamingConnectionStatus(streamingConnectionString1, connected, mockStreamingObject));
+    ASSERT_THROW(statusContainer.addStreamingConnectionStatus(streamingConnectionString1, reconnecting, mockStreamingObject), AlreadyExistsException);
 
     ASSERT_THROW(statusContainer.addConfigurationConnectionStatus(streamingConnectionString1, unrecoverable), AlreadyExistsException);
     ASSERT_NO_THROW(statusContainer.addConfigurationConnectionStatus(configConnectionString, unrecoverable));
 
-    ASSERT_THROW(statusContainer.addStreamingConnectionStatus(configConnectionString, reconnecting, fakeStreamingObject), AlreadyExistsException);
-    ASSERT_THROW(statusContainer.addStreamingConnectionStatus(streamingConnectionString1, reconnecting, fakeStreamingObject), AlreadyExistsException);
-    ASSERT_NO_THROW(statusContainer.addStreamingConnectionStatus(streamingConnectionString2, reconnecting, fakeStreamingObject));
+    ASSERT_THROW(statusContainer.addStreamingConnectionStatus(configConnectionString, reconnecting, mockStreamingObject), AlreadyExistsException);
+    ASSERT_THROW(statusContainer.addStreamingConnectionStatus(streamingConnectionString1, reconnecting, mockStreamingObject), AlreadyExistsException);
+    ASSERT_NO_THROW(statusContainer.addStreamingConnectionStatus(streamingConnectionString2, reconnecting, mockStreamingObject));
 
     const auto dict = connectionStatusContainer.getStatuses();
     ASSERT_EQ(dict.getCount(), 3u);
@@ -135,12 +136,12 @@ TEST_F(ConnectionStatusContainerTest, RemoveAddStreamingStatus)
     const auto connectionStatusContainer = ConnectionStatusContainer();
     const auto connectionString1 = String("ConnectionString1");
     const auto connectionString2 = String("ConnectionString2");
-    const BaseObjectPtr fakeStreamingObject = String("StreamingObject");
+    const StreamingPtr mockStreamingObject = MockStreaming("MockStreaming", context);
     auto connectionStatusContainerPrivate = connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>();
 
     ASSERT_THROW(connectionStatusContainerPrivate.removeStreamingConnectionStatus(connectionString1), NotFoundException);
-    connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString1, statusInitValue, fakeStreamingObject);
-    connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString2, statusInitValue, fakeStreamingObject);
+    connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString1, statusInitValue, mockStreamingObject);
+    connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString2, statusInitValue, mockStreamingObject);
 
     ASSERT_NO_THROW(connectionStatusContainerPrivate.removeStreamingConnectionStatus(connectionString1));
     ASSERT_THROW(connectionStatusContainerPrivate.removeStreamingConnectionStatus(connectionString1), NotFoundException);
@@ -151,7 +152,7 @@ TEST_F(ConnectionStatusContainerTest, RemoveAddStreamingStatus)
     EnumerationPtr statusValue;
     ASSERT_THROW(statusValue = connectionStatusContainer.getStatus("StreamingStatus_1"), NotFoundException);
 
-    connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString1, statusInitValue, fakeStreamingObject);
+    connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString1, statusInitValue, mockStreamingObject);
     ASSERT_NO_THROW(statusValue = connectionStatusContainer.getStatus("StreamingStatus_3"));
 }
 
@@ -198,7 +199,7 @@ TEST_F(ConnectionStatusContainerTest, SerializeDeserialize)
     auto connectionStatusContainerPrivate = statusContainer.asPtr<IConnectionStatusContainerPrivate>();
 
     connectionStatusContainerPrivate.addConfigurationConnectionStatus(configConnectionString, statusInitValue);
-    connectionStatusContainerPrivate.addStreamingConnectionStatus(streamingConnectionString, statusInitValue, String("StreamingObj"));
+    connectionStatusContainerPrivate.addStreamingConnectionStatus(streamingConnectionString, statusInitValue, MockStreaming("MockStreaming", context));
 
     auto serializer = JsonSerializer(False);
     statusContainer.serialize(serializer);

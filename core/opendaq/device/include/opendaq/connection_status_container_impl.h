@@ -42,9 +42,9 @@ public:
 
     // IConnectionStatusContainerPrivate
     ErrCode INTERFACE_FUNC addConfigurationConnectionStatus(IString* connectionString, IEnumeration* initialValue) override;
-    ErrCode INTERFACE_FUNC addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IBaseObject* streamingObject) override;
+    ErrCode INTERFACE_FUNC addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IStreaming* streamingObject) override;
     ErrCode INTERFACE_FUNC removeStreamingConnectionStatus(IString* connectionString) override;
-    ErrCode INTERFACE_FUNC updateConnectionStatus(IString* connectionString, IEnumeration* value, IBaseObject* streamingObject) override;
+    ErrCode INTERFACE_FUNC updateConnectionStatus(IString* connectionString, IEnumeration* value, IStreaming* streamingObject) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -134,10 +134,22 @@ inline ErrCode ConnectionStatusContainerImpl::addConfigurationConnectionStatus(I
     statusNameAliases[connectionStringObj] = ConfigurationConnectionStatusAlias;
     configConnectionStatusAdded = true;
 
+    if (triggerCoreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            CoreEventId::ConnectionStatusChanged, Dict<IString, IBaseObject>({
+                                        {"StatusName", ConfigurationConnectionStatusAlias},
+                                        {"StatusValue", initialValue},
+                                        {"ConnectionString", connectionStringObj},
+                                        {"ProtocolType", Integer((Int)ProtocolType::Configuration)},
+                                        {"StreamingObject", nullptr}}));
+        triggerCoreEvent(args);
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
-inline ErrCode ConnectionStatusContainerImpl::addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IBaseObject* streamingObject)
+inline ErrCode ConnectionStatusContainerImpl::addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IStreaming* streamingObject)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(initialValue);
@@ -186,7 +198,7 @@ inline ErrCode ConnectionStatusContainerImpl::removeStreamingConnectionStatus(IS
             : nullptr;
 
     auto value = statuses.remove(connectionString);
-    value = "NotAvailable";
+    value = "Removed";
 
     if (triggerCoreEvent.assigned())
     {
@@ -203,7 +215,7 @@ inline ErrCode ConnectionStatusContainerImpl::removeStreamingConnectionStatus(IS
     return OPENDAQ_SUCCESS;
 }
 
-inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatus(IString* connectionString, IEnumeration* value, IBaseObject* streamingObject)
+inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatus(IString* connectionString, IEnumeration* value, IStreaming* streamingObject)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(value);
@@ -326,7 +338,7 @@ inline StringPtr ConnectionStatusContainerImpl::getStreamingStatusNameAlias(cons
         {
             auto prefix = streamingType.getConnectionStringPrefix().toStdString();
             if (connectionString.toStdString().find(prefix) == 0)
-                return String(fmt::format("{}Status_{}", typeId, streamingConnectionsCounter));
+                return String(fmt::format("StreamingStatus_{}_{}", typeId, streamingConnectionsCounter));
         }
     }
     return String(fmt::format("StreamingStatus_{}", streamingConnectionsCounter));

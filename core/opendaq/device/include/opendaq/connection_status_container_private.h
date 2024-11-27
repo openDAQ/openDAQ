@@ -17,6 +17,7 @@
 #pragma once
 
 #include <coretypes/coretypes.h>
+#include <opendaq/streaming.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -45,7 +46,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * "ConnectionStatusChanged" Core events are triggered whenever there is a change in the connection status of the openDAQ Device,
  * including parameters such as status name alias, value, protocol type, connection string, and streaming
  * object (nullptr for configuration statuses). Removing streaming statuses also triggers said Core event with
- * "NotAvailable" as the value and nullptr for the streaming object parameters.
+ * "Removed" as the value and nullptr for the streaming object parameters.
  */
 DECLARE_OPENDAQ_INTERFACE(IConnectionStatusContainerPrivate, IBaseObject)
 {
@@ -62,7 +63,7 @@ DECLARE_OPENDAQ_INTERFACE(IConnectionStatusContainerPrivate, IBaseObject)
      * @param initialValue The initial value of the status.
      * @param streamingObject The streaming object associated with the status.
      */
-    virtual ErrCode INTERFACE_FUNC addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IBaseObject* streamingObject) = 0;
+    virtual ErrCode INTERFACE_FUNC addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IStreaming* streamingObject) = 0;
 
     /*!
      * @brief Removes a streaming connection status associated with the specified connection string.
@@ -77,7 +78,7 @@ DECLARE_OPENDAQ_INTERFACE(IConnectionStatusContainerPrivate, IBaseObject)
      * @param streamingObject The streaming object associated with the connection, used in triggered Core events.
      * Set to nullptr for configuration connections.
      */
-    virtual ErrCode INTERFACE_FUNC updateConnectionStatus(IString* connectionString, IEnumeration* value, IBaseObject* streamingObject) = 0;
+    virtual ErrCode INTERFACE_FUNC updateConnectionStatus(IString* connectionString, IEnumeration* value, IStreaming* streamingObject) = 0;
 };
 /*!@}*/
 

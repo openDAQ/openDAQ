@@ -485,6 +485,7 @@ NativeDeviceImpl::~NativeDeviceImpl()
 // INativeDevicePrivate
 void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status)
 {
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", status);
     this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), status, nullptr);
 }
 
@@ -493,10 +494,9 @@ void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper
     attachDeviceHelper(deviceHelper);
     updateDeviceInfo(connectionString);
 
-    this->connectionStatusContainer.addConfigurationConnectionStatus(
-        deviceInfo.getConnectionString(),
-        Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager())
-    );
+    const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
+    this->connectionStatusContainer.addConfigurationConnectionStatus(deviceInfo.getConnectionString(), statusInitValue);
 }
 
 ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,

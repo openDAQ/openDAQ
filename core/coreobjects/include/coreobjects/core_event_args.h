@@ -253,7 +253,7 @@ BEGIN_NAMESPACE_OPENDAQ
  *  - The changed status name string under the key "StatusName"
  *  - The new status value encapsulated within an Enumeration object under the key "StatusValue". The possible values:
  *  "Connected" - connection just established or restored, "Reconnecting" - connection lost, "Unrecoverable" - reconnection
- *  is not possible, "NotAvailable" - connection removed (typically when corresponding streaming source is removed)
+ *  is not possible, "Removed" - connection removed (typically when corresponding streaming source is removed)
  *  - The connection string associated with connection under the key "ConnectionString"
  *  - The integer value specifying the type of particular connection which status changed (0 - Unknown, 1 - Configuration, 2 - Streaming,
  *  3 - ConfigurationAndStreaming) under the key "ProtocolType"

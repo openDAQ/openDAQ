@@ -37,6 +37,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                           initTimeout);
     activateStreaming();
     this->connectionStatusContainer.addStreamingConnectionStatus(connectionString, connectionStatus, nativeStreaming);
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", connectionStatus);
 
     const auto thisPtr = this->template borrowPtr<DevicePtr>();
     checkErrorInfo(nativeStreaming.asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
@@ -261,6 +262,8 @@ void NativeStreamingDeviceImpl::connectionStatusChangedHandler(const Enumeration
         deviceSignalsReconnection.clear();
     }
     connectionStatus = status;
+
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", connectionStatus);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

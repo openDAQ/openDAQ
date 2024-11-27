@@ -39,7 +39,7 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
         const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected",
                                                                                       "Reconnecting",
                                                                                       "Unrecoverable",
-                                                                                      "NotAvailable"));
+                                                                                      "Removed"));
         this->typeManager.addType(statusType);
     }
 

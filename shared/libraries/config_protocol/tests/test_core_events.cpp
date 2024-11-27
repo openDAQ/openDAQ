@@ -21,6 +21,7 @@
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"
 #include <coreobjects/user_factory.h>
+#include <opendaq/mock/mock_streaming_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -886,12 +887,13 @@ TEST_F(ConfigCoreEventTest, StatusChanged)
 
 TEST_F(ConfigCoreEventTest, ConnectionStatusChanged)
 {
+    const StreamingPtr mockStreaming = MockStreaming("MockStreaming", serverDevice.getContext());
     const auto typeManager = serverDevice.getContext().getTypeManager();
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", typeManager);
     const auto statusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
 
     const auto connectionStatusContainer = serverDevice.getConnectionStatusContainer().asPtr<IConnectionStatusContainerPrivate>();
-    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr", statusInitValue, String("StreamingObj"));
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr", statusInitValue, mockStreaming);
 
     int changeCount = 0;
     clientContext.getOnCoreEvent() +=
@@ -931,9 +933,9 @@ TEST_F(ConfigCoreEventTest, ConnectionStatusChanged)
     connectionStatusContainer.updateConnectionStatus("ConfigConnStr", statusValue, nullptr);
 
     // core events with streaming connection status change are not forwarded to client
-    connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusValue, String("StreamingObj"));
-    connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusInitValue, String("StreamingObj"));
-    connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusValue, String("StreamingObj"));
+    connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusValue, mockStreaming);
+    connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusInitValue, mockStreaming);
+    connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusValue, mockStreaming);
 
     ASSERT_EQ(changeCount, 3);
 }

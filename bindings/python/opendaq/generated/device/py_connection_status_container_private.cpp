@@ -50,11 +50,11 @@ void defineIConnectionStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq:
         py::arg("connection_string"), py::arg("initial_value"),
         "Adds a new configuration connection status with the specified connection string and initial value.");
     cls.def("add_streaming_connection_status",
-        [](daq::IConnectionStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IEnumeration* initialValue, const py::object& streamingObject)
+        [](daq::IConnectionStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IEnumeration* initialValue, daq::IStreaming* streamingObject)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionStatusContainerPrivatePtr::Borrow(object);
-            objectPtr.addStreamingConnectionStatus(getVariantValue<daq::IString*>(connectionString), initialValue, pyObjectToBaseObject(streamingObject));
+            objectPtr.addStreamingConnectionStatus(getVariantValue<daq::IString*>(connectionString), initialValue, streamingObject);
         },
         py::arg("connection_string"), py::arg("initial_value"), py::arg("streaming_object"),
         "Adds a new streaming connection status with the specified connection string, initial value, and streaming object.");
@@ -68,11 +68,11 @@ void defineIConnectionStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq:
         py::arg("connection_string"),
         "Removes a streaming connection status associated with the specified connection string.");
     cls.def("update_connection_status",
-        [](daq::IConnectionStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IEnumeration* value, const py::object& streamingObject)
+        [](daq::IConnectionStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IEnumeration* value, daq::IStreaming* streamingObject)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectionStatusContainerPrivatePtr::Borrow(object);
-            objectPtr.updateConnectionStatus(getVariantValue<daq::IString*>(connectionString), value, pyObjectToBaseObject(streamingObject));
+            objectPtr.updateConnectionStatus(getVariantValue<daq::IString*>(connectionString), value, streamingObject);
         },
         py::arg("connection_string"), py::arg("value"), py::arg("streaming_object"),
         "Updates the value of an existing connection status.");

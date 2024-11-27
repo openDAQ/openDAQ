@@ -481,12 +481,7 @@ jobs:
           curl https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.gz -O
           tar xzf node-v20.18.1-linux-x64-glibc-217.tar.gz
           echo "$(pwd)/node-v20.18.1-linux-x64-glibc-217/bin" >> "$GITHUB_PATH"
-          echo $PATH
-          echo $GITHUB_PATH
-          node --version
-          echo $GITHUB_WORKSPACE
-          which node
-          which node20
+          env
 
       - name: Checkout
         uses: actions/checkout@v3

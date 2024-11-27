@@ -204,6 +204,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
     }
     
     findAndCreateServerCapabilities(deviceInfo);
+    findAndGetEditableDeviceInfoFields(deviceInfo);
 
     for (const auto & cap : deviceInfo.getServerCapabilities())
     {
@@ -486,6 +487,36 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
         deviceInfoInternal.addServerCapability(val);
     for (const auto& val : unorderedCaps)
         deviceInfoInternal.addServerCapability(val);
+}
+
+void TmsClientDeviceImpl::findAndGetEditableDeviceInfoFields(const DeviceInfoPtr& deviceInfo)
+{
+    auto editablePropertiesNodeId = getNodeId("DeviceInfoEditableProperties");
+
+    try
+    {
+        const auto& editableDeviceInfoPropReferences =
+            getChildReferencesOfType(editablePropertiesNodeId, OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE));
+
+        auto editableProps = List<IString>();
+        for (const auto& [browseName, ref] : editableDeviceInfoPropReferences.byBrowseName)
+        {
+            const auto optionNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+            auto clientEditableProporties = TmsClientPropertyObject(daqContext, clientContext, optionNodeId);
+
+            for (const auto& prop : clientEditableProporties.getAllProperties())
+            {
+                const auto name = prop.getName();
+                editableProps.pushBack(name);
+            }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        LOG_W("Failed to find 'ServerCapabilities' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.what());
+    }
+
+   
 }
 
 void TmsClientDeviceImpl::removed()

@@ -52,6 +52,8 @@ protected:
 
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
+    virtual ListPtr<IString> getChangeableDeviceInfoFields() override;
+
 private:
     std::vector<StreamingPtr> streamingSources;
 };
@@ -188,6 +190,12 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
     streamingSources.push_back(streamingPtr);
 
     return streamingPtr;
+}
+
+template <typename... Interfaces>
+ListPtr<IString> MirroredDeviceBase<Interfaces...>::getChangeableDeviceInfoFields()
+{
+    return nullptr;
 }
 
 END_NAMESPACE_OPENDAQ

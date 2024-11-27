@@ -2,6 +2,7 @@
 #include <string>
 #include <stdexcept>
 #include <opendaq/device_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opcuatms_server/objects/tms_server_device.h>
 #include <opcuatms/core_types_utils.h>
 #include <opcuatms/type_mappings.h>
@@ -16,6 +17,7 @@
 #include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms/converters/list_conversion_utils.h>
 #include <opcuatms_server/objects/tms_server_function_block_type.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -154,7 +156,38 @@ void TmsServerDevice::populateDeviceInfo()
 
     createNode("OpenDaqPackageVersion", ctString);
 
-    const auto customInfoNames = deviceInfo.getCustomInfoPropertyNames();
+    auto customInfoNames = List<IString>();
+    // Editable properties of deviceInfo are actualy references to the device properties
+    // they are going to be added by device itself
+    {
+        const auto editableProps = deviceInfo.asPtr<IDeviceInfoInternal>().getEditableProperties();
+        for (const auto& propName : deviceInfo.getCustomInfoPropertyNames())
+        {
+            bool isEditable = false;
+            for (const auto& editableProp : editableProps)
+            {
+                if (propName == editableProp)
+                {
+                    isEditable = true;
+                    break;
+                }
+            }
+            if (!isEditable)
+                customInfoNames.pushBack(propName);
+        }
+
+        // we want to let client now that these properties are part of device info
+        const auto editablePropsInfo = PropertyObject();
+        for (const auto & propName : editableProps)
+        {
+            editablePropsInfo.addProperty(BoolPropertyBuilder(propName, true).setReadOnly(true).build());
+        }
+
+        auto tmsEditableProperties = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
+            nodeId, editablePropsInfo, numberInList++, "DeviceInfoEditableProperties");
+        this->deviceInfoEditableProperties.push_back(std::move(tmsEditableProperties));
+    }
+    
     std::unordered_set<std::string> customInfoNamesSet;
 
     for (auto propName : customInfoNames)

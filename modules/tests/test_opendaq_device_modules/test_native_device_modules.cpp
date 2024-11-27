@@ -130,8 +130,9 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
     ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 7);
 
-    client->releaseRef();
+    client->releaseRef();    
     server->releaseRef();
+
     client.detach();
     server.detach();
 }

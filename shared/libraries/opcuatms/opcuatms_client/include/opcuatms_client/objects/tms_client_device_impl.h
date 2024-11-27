@@ -55,6 +55,7 @@ protected:
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
+    void findAndGetEditableDeviceInfoFields(const DeviceInfoPtr& deviceInfo);
 
     void removed() override;
 

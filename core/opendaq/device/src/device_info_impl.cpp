@@ -736,6 +736,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setEditableProperties(IList* editableProperties)
 {
+    if (editableProperties == nullptr)
+        return OPENDAQ_IGNORED;
     return Super::setProtectedPropertyValue(String("editableProperties"), editableProperties);
 }
 
@@ -744,14 +746,11 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperties(I
 {
     OPENDAQ_PARAM_NOT_NULL(editableProperties);
     
-    BaseObjectPtr obj;
-    StringPtr str = "editableProperties";
-    ErrCode errCode = this->getPropertyValue(str, &obj);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
-    *editableProperties = obj.asPtr<IList>().detach();
-    return errCode;
+    auto props = List<IString>();
+    for (const auto & propName: editablePropertyNames)
+        props.pushBack(String(propName));
+    *editableProperties = props.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -814,21 +813,15 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyEditableProperties
     if (editablePropertyNames.size())
         return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Editable properties have already been applied.");
 
-    ListPtr<IString> editableProperties;
-    ErrCode errCode = this->getEditableProperties(&editableProperties);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
+    ListPtr<IString> editableProperties = this->objPtr.getPropertyValue("editableProperties");
     for (const auto & prop : editableProperties)
-        editablePropertyNames.insert(prop.toStdString());
-
-    for (const auto & prop : editablePropertyNames)
     {
         PropertyPtr ownerProp;
-        errCode = owner->getProperty(String(prop), &ownerProp);
+        ErrCode errCode = owner->getProperty(String(prop), &ownerProp);
         if (OPENDAQ_FAILED(errCode))
             continue;
-        
+
+        editablePropertyNames.insert(prop.toStdString());
         this->addProperty(ownerProp.asPtr<IPropertyInternal>(true).clone());
     }
     

@@ -525,6 +525,30 @@ TEST_F(InstanceTest, SaveLoadRestoreDevice)
     }
 }
 
+TEST_F(InstanceTest, SaveLoadLocked)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    instance.lock();
+
+    auto config = instance.saveConfiguration();
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    ASSERT_TRUE(instance2.isLocked());
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(device.isLocked());
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+    }
+}
+
 TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
 {
     std::map<std::string, std::string> devicesNames;

@@ -71,7 +71,7 @@ jobs:
           opendaq_sdk_sha: ${{ env.opendaq_sdk_sha }}
           opendaq_sdk_branch: ${{ env.opendaq_sdk_branch }}
         run: |
-          sed -i 's/OPENDAQ_SDK_BRANCH ?= .*/OPENDAQ_SDK_BRANCH ?= \"${{ env.opendaq_sdk_branch }}\"/' ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
+          sed -i 's|OPENDAQ_SDK_BRANCH ?= .*|OPENDAQ_SDK_BRANCH ?= \"${{ env.opendaq_sdk_branch }}\"|' ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
           sed -i 's/SRCREV_opendaq-sdk = .*/SRCREV_opendaq-sdk = \"${{ env.opendaq_sdk_sha }}\"/' ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
           git add ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
           git commit -m "Update opendaq-sdk ref"

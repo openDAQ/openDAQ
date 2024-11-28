@@ -20,7 +20,6 @@ env:
   python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   package_windows:
@@ -324,8 +323,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: manylinux2014 gcc Release
-            image: quay.io/pypa/manylinux2014_x86_64
+          - name: manylinux_2_28 gcc Release
+            image: quay.io/pypa/manylinux_2_28_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
             additional_packages:
@@ -347,7 +346,7 @@ jobs:
           yum install -y git
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
@@ -377,7 +376,7 @@ jobs:
           done
 
       - name: Upload Wheels
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: Wheels (${{ matrix.name }})
           path: ${{ env.wheels_path }}

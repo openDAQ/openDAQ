@@ -33,7 +33,6 @@ env:
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
   nuget_artifact: Packages (openDAQ.Net NuGet)
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   build_windows:
@@ -437,7 +436,7 @@ jobs:
 
       # PROTOCOL REGRESSION TEST END
 
-  build_linux_centos:
+  build_linux_manylinux:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
     # ${{ }} expression syntax because of leading '!'
@@ -451,8 +450,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: manylinux2014 gcc Release
-            image: quay.io/pypa/manylinux2014_x86_64
+          - name: manylinux_2_28 gcc Release
+            image: quay.io/pypa/manylinux_2_28_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
             additional_packages:
@@ -476,15 +475,8 @@ jobs:
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
 
-      - name: Custom node20
-        run: |
-          curl https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.gz -O
-          tar xzf node-v20.18.1-linux-x64-glibc-217.tar.gz
-          echo "$(pwd)/node-v20.18.1-linux-x64-glibc-217/bin" >> "$GITHUB_PATH"
-          env
-
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
@@ -527,7 +519,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (${{ matrix.name }})
           path: /junit_reports/unit
@@ -539,14 +531,14 @@ jobs:
 
       - name: Upload package
         if: matrix.cpack != ''
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: Packages (${{ matrix.name }})
           path: ${{ env.package_path }}
           retention-days: 7
 
       - name: Upload PIP packages
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: PIP Package (${{ matrix.name }})
           path: ${{ env.build_path }}/wheels/opendaq*.whl

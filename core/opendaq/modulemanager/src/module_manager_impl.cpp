@@ -29,6 +29,7 @@
 #include <coreobjects/property_internal_ptr.h>
 #include <coreobjects/property_object_internal.h>
 #include <coreobjects/eval_value_factory.h>
+#include <opendaq/client_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 static OrphanedModules orphanedModules;
@@ -1304,6 +1305,8 @@ PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
 
     obj.addProperty(StringProperty("Username", ""));
     obj.addProperty(StringProperty("Password", ""));
+
+    ClientTypeTools::DefineConfigProperties(obj);
 
     obj.addProperty(
         StringPropertyBuilder("PrimaryAddressType", "")

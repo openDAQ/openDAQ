@@ -1729,6 +1729,9 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     {
         deviceDomain = obj.readObject("deviceDomain");
     }
+
+    if (obj.hasKey("UserLock"))
+        userLock = obj.readObject("UserLock", context);
 }
 
 template <typename TInterface, typename... Interfaces>

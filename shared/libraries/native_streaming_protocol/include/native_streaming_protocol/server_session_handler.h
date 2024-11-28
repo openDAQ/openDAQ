@@ -20,6 +20,7 @@
 
 #include <opendaq/context_ptr.h>
 #include <opendaq/signal_ptr.h>
+#include <opendaq/client_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -50,6 +51,10 @@ public:
     void setReconnected(bool reconnected);
     bool getReconnected();
     UserPtr getUser();
+    void setClientType(ClientType clientType);
+    ClientType getClientType();
+    void setExclusiveControlDropOthers(bool enabled);
+    bool isExclusiveControlDropOthersEnabled();
 
     bool isConfigProtocolUsed();
     void triggerUseConfigProtocol();
@@ -70,5 +75,7 @@ private:
     std::string clientId;
     bool reconnected;
     bool useConfigProtocol;
+    ClientType clientType = ClientType::Control;
+    bool exclusiveControlDropOthers = false;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

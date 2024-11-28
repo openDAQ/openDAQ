@@ -63,7 +63,6 @@ inline BaseObjectPtr ConfigServerInputPort::accepts(const RpcContext& context,
     if (!signal.assigned())
         throw NotFoundException("Cannot connect requested signal. Signal not found");
 
-    ConfigServerAccessControl::protectLockedComponent(inputPort);
     ConfigServerAccessControl::protectObject(inputPort, user, Permission::Read);
     ConfigServerAccessControl::protectObject(signal, user, Permission::Read);
 

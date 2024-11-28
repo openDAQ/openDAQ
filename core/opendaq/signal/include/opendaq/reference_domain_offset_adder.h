@@ -64,7 +64,7 @@ private:
     SizeT sampleCount;
 };
 
-static ReferenceDomainOffsetAdder* createReferenceDomainOffsetAdderTyped(SampleType outputType,
+inline ReferenceDomainOffsetAdder* createReferenceDomainOffsetAdderTyped(SampleType outputType,
                                                                          const IntegerPtr& referenceDomainOffset,
                                                                          SizeT sampleCount)
 {

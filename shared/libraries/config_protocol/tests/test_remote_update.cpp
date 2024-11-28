@@ -24,7 +24,11 @@ public:
         referenceDevice = test_utils::createTestDevice();
         setUpDevice(referenceDevice);
         serverDevice = test_utils::createTestDevice();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigRemoteUpdateTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
+        server =
+            std::make_unique<ConfigProtocolServer>(serverDevice,
+                                                   std::bind(&ConfigRemoteUpdateTest::serverNotificationReady, this, std::placeholders::_1),
+                                                   anonymousUser,
+                                                   ClientType::Control);
 
         clientContext = NullContext();
         client =

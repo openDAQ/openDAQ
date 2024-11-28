@@ -402,7 +402,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLockedInternal(Bool* locked)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
 {
-    std::scoped_lock syncLock(this->sync);
+    auto syncLock = this->getAcquisitionLock();
 
     ErrCode status = forceUnlockInternal();
 
@@ -1729,6 +1729,9 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     {
         deviceDomain = obj.readObject("deviceDomain");
     }
+
+    if (obj.hasKey("UserLock"))
+        userLock = obj.readObject("UserLock", context);
 }
 
 template <typename TInterface, typename... Interfaces>

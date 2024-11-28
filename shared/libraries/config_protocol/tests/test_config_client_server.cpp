@@ -45,7 +45,11 @@ public:
         device->getPermissionManager().setPermissions(permissions);
 
         EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
-        server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), anonymousUser);
+        server =
+            std::make_unique<ConfigProtocolServer>(device,
+                                                   std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1),
+                                                   anonymousUser,
+                                                   ClientType::Control);
         client =
             std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
                 NullContext(),

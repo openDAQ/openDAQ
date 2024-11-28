@@ -35,6 +35,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param symbol The symbol of the unit, i.e. "m/s".
  * @param name The full name of the unit, i.e. "meters per second". (optional)
  * @param quantity The quantity represented by the unit, i.e. "Velocity". (optional)
+ * @return The Unit object.
  */
 inline UnitPtr Unit(const StringPtr& symbol, const Int id = -1, const StringPtr& name = "", const StringPtr& quantity = "")
 {
@@ -45,6 +46,7 @@ inline UnitPtr Unit(const StringPtr& symbol, const Int id = -1, const StringPtr&
 /*!
  * @brief Creates a Unit with Builder
  * @param builder Unit Builder
+ * @return The Unit object.
  */
 inline UnitPtr UnitFromBuilder(const UnitBuilderPtr& builder)
 {

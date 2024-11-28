@@ -5,7 +5,6 @@
 #include <opendaq/reader_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/signal_factory.h>
-
 #include <cassert>
 #include <iostream>
 

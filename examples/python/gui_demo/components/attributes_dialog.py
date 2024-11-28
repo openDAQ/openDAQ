@@ -41,7 +41,7 @@ class AttributesDialog(Dialog):
         tree.column('#2', anchor=tk.W, minwidth=80, width=80)
 
         tree.bind('<Double-1>', self.handle_double_click)
-        tree.bind('<Button-3>', self.handle_right_click)
+        tree.bind('<Button-3>', lambda event: self.handle_right_click(tree, event))
 
         self.additional_tree = None
         self.notebook = None
@@ -84,7 +84,7 @@ class AttributesDialog(Dialog):
 
             self.additional_tree = additional_tree
             additional_tree.bind(
-                '<Button-3>', self.handle_right_click_additional)
+                '<Button-3>', lambda event: self.handle_right_click(additional_tree, event))
 
         self.tree = tree
         self.initial_update_func = lambda: self.tree_update()
@@ -97,32 +97,21 @@ class AttributesDialog(Dialog):
     def on_tab_change(self, event):
         self.additional_tree_update()
 
-    def handle_copy(self):
-        sel = utils.treeview_get_first_selection(self.tree)
-        if sel not in self.attributes:
-            return
-        attr_dict = self.attributes[sel]
-        value = attr_dict['Value']
-        self.clipboard_clear()
-        self.clipboard_append(value)
-
-    def handle_copy_additional(self):
-        sel = utils.treeview_get_first_selection(self.additional_tree)
+    def handle_copy(self, tree):
+        sel = utils.treeview_get_first_selection(tree)
         if not sel:
             return
-        item = self.additional_tree.item(sel)
+        item = tree.item(sel)
         value_to_copy = item['values'][0] if item['values'] else ''
         self.clipboard_clear()
         self.clipboard_append(value_to_copy)
 
-    def handle_right_click(self, event):
-        menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label='Copy', command=self.handle_copy)
-        menu.tk_popup(event.x_root, event.y_root)
+    def handle_right_click(self, tree, event):
+        utils.treeview_select_item(tree, event)
 
-    def handle_right_click_additional(self, event):
         menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label='Copy', command=self.handle_copy_additional)
+        menu.add_command(
+            label='Copy', command=lambda: self.handle_copy(tree))
         menu.tk_popup(event.x_root, event.y_root)
 
     def handle_double_click(self, event):
@@ -265,6 +254,45 @@ class AttributesDialog(Dialog):
         if self.additional_tree is not None:
             self.additional_tree_update()
 
+    def fill_tree(self, tree, key, value, parent='', display_attributes=False):
+
+        display_value = value
+        # for user to see property value without expanding the tree
+        if isinstance(value, daq.IProperty):
+            display_value = value.value
+            if value.value_type == daq.CoreType.ctBool:
+                display_value = utils.yes_no[display_value]
+        else:
+            display_value = utils.metadata_converters[key](
+                value) if key in utils.metadata_converters else value
+        id = tree.insert(
+            parent, tk.END, text=str(key), values=(str(display_value), ))
+
+        # displaying Nones but not traversing further
+        if value is None:
+            return
+
+        if isinstance(value, daq.IPropertyObject):
+            for property in value.all_properties if self.context.view_hidden_components else value.visible_properties:
+                self.fill_tree(tree, property.name, property,
+                               id, display_attributes)
+        elif isinstance(value, daq.IList):
+            try:
+                for i, item in enumerate(value):
+                    self.fill_tree(tree, i, item, id, display_attributes)
+            except Exception:
+                pass
+        elif isinstance(value, daq.IDict):
+            try:
+                for k, v in value.items():
+                    self.fill_tree(tree, k, v, id, display_attributes)
+            except Exception:
+                pass
+        elif issubclass(type(value), daq.IBaseObject) and display_attributes:
+            for name in utils.get_attributes_of_node(value):
+                v = getattr(value, name)
+                self.fill_tree(tree, name, v, id, display_attributes)
+
     def additional_tree_update_signal(self):
         signal = daq.ISignal.cast_from(self.node)
         if self.get_selected_tab() == 0:
@@ -272,64 +300,17 @@ class AttributesDialog(Dialog):
         else:
             desc = signal.domain_signal.descriptor
 
-        if not desc:
-            return
+        if desc:
+            for name in utils.get_attributes_of_node(desc):
+                value = getattr(desc, name)
+                self.fill_tree(self.additional_tree, name, value, '', True)
 
-        descriptor = {}
-        descriptor['name'] = desc.name
-        descriptor['dimensions'] = desc.dimensions
-        descriptor['sample_type'] = desc.sample_type
-
-        if desc.unit:
-            descriptor['unit'] = {}
-            descriptor['unit']['id'] = desc.unit.id
-            descriptor['unit']['name'] = desc.unit.name
-            descriptor['unit']['symbol'] = desc.unit.symbol
-            descriptor['unit']['quantity'] = desc.unit.quantity
-
-        if desc.value_range:
-            descriptor['value_range'] = {}
-            descriptor['value_range']['low_value'] = desc.value_range.low_value
-            descriptor['value_range']['high_value'] = desc.value_range.high_value
-
-        if desc.rule:
-            descriptor['rule'] = {}
-            if desc.rule.type:
-                descriptor['rule']['type'] = {}
-                descriptor['rule']['type']['name'] = desc.rule.type.name
-                descriptor['rule']['type']['value'] = desc.rule.type.value
-            descriptor['rule']['core_type'] = desc.rule.core_type
-            if desc.rule.parameters:
-                descriptor['rule']['parameters'] = {
-                    name: value for name, value in desc.rule.parameters.items()}
-            else:
-                descriptor['rule']['parameters'] = {}
-
-        descriptor['origin'] = desc.origin
-
-        if desc.tick_resolution:
-            descriptor['tick_resolution'] = {}
-            descriptor['tick_resolution']['numerator'] = desc.tick_resolution.numerator
-            descriptor['tick_resolution']['denominator'] = desc.tick_resolution.denominator
-
-        if desc.post_scaling:
-            descriptor['post_scaling'] = {}
-            descriptor['post_scaling']['type'] = desc.post_scaling.type
-            descriptor['post_scaling']['core_type'] = desc.post_scaling.core_type
-            descriptor['post_scaling']['input_sample_type'] = desc.post_scaling.input_sample_type
-            descriptor['post_scaling']['output_sample_type'] = desc.post_scaling.output_sample_type
-            descriptor['post_scaling']['parameters'] = desc.post_scaling.parameters
-
-        descriptor['struct_fields'] = desc.struct_fields
-
-        if desc.reference_domain_info:
-            descriptor['reference_domain_info'] = {}
-            descriptor['reference_domain_info']['reference_domain_id'] = desc.reference_domain_info.reference_domain_id
-            descriptor['reference_domain_info']['reference_domain_offset'] = desc.reference_domain_info.reference_domain_offset
-            descriptor['reference_domain_info']['reference_time_source'] = desc.reference_domain_info.reference_time_source
-            descriptor['reference_domain_info']['uses_offset'] = desc.reference_domain_info.uses_offset
-
-        self.fill_additional_tree('', descriptor)
+    def additional_tree_update_device(self):
+        device = daq.IDevice.cast_from(self.node)
+        if device.info:
+            for property in self.context.properties_of_component(device.info):
+                self.fill_tree(self.additional_tree,
+                               property.name, property.value)
 
     def additional_tree_update(self):
         self.additional_tree.delete(*self.additional_tree.get_children())
@@ -337,32 +318,3 @@ class AttributesDialog(Dialog):
             self.additional_tree_update_signal()
         elif daq.IDevice.can_cast_from(self.node):
             self.additional_tree_update_device()
-
-    def additional_tree_update_device(self):
-        device = daq.IDevice.cast_from(self.node)
-        info = device.info
-
-        if not info:
-            return
-
-        self.fill_additional_tree('', info)
-
-    def fill_additional_tree(self, parent_node_name, attributes):
-        if not attributes:
-            return
-
-        if type(attributes) is dict:
-            for name, value in attributes.items():
-                display_value = value if type(value) is not dict and type(
-                    value) is not daq.IDict else ''
-                iid = parent_node_name + '.' + name
-                self.additional_tree.insert(
-                    parent_node_name, tk.END, iid=iid, text=name, values=(display_value,))
-                if type(value) is dict or type(value) is daq.IDict:
-                    self.fill_additional_tree(iid, value)
-        elif type(attributes) is daq.IDeviceInfo:
-            for property in self.context.properties_of_component(attributes):
-                iid = parent_node_name + '.' + property.name
-                value = attributes.get_property_value(property.name)
-                self.additional_tree.insert(
-                    parent_node_name, tk.END, iid=iid, text=property.name, values=(value,))

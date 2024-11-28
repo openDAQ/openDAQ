@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <coreobjects/component_type.h>
+#include <opendaq/component_type.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/validation.h>
@@ -23,11 +23,13 @@
 #include <coretypes/struct_impl.h>
 #include <coretypes/struct_type_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <opendaq/module_info_ptr.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename Intf = IComponentType, typename... Interfaces>
-class GenericComponentTypeImpl : public GenericStructImpl<Intf, IStruct, Interfaces...>
+class GenericComponentTypeImpl : public GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>
 {
 public:
     explicit GenericComponentTypeImpl(const StructTypePtr& type,
@@ -47,6 +49,10 @@ public:
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
+    ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** moduleInfo) override;
+
+    // IComponentTypePrivate
+    ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
 
 protected:
     StringPtr id;
@@ -54,6 +60,7 @@ protected:
     StringPtr description;
     StringPtr prefix;
     PropertyObjectPtr defaultConfig;
+    ModuleInfoPtr moduleInfo;
 };
 
 template <class Intf, class... Interfaces>
@@ -62,7 +69,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
                                                                         const PropertyObjectPtr& defaultConfig)
-    : GenericStructImpl<Intf, IStruct, Interfaces...>(
+    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
           type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
     , id(id)
     , name(name)
@@ -79,7 +86,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& description,
                                                                         const StringPtr& prefix,
                                                                         const PropertyObjectPtr& defaultConfig)
-    : GenericStructImpl<Intf, IStruct, Interfaces...>(
+    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
           type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
     , id(id)
     , name(name)
@@ -125,6 +132,23 @@ ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::createDefaultConfig(IProp
         return this->defaultConfig.template asPtr<IPropertyObjectInternal>()->clone(defaultConfig);
 
     *defaultConfig = PropertyObject().detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename Intf, typename... Interfaces>
+inline ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::setModuleInfo(IModuleInfo* info)
+{
+    this->moduleInfo = info;
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename Intf, typename... Interfaces>
+inline ErrCode INTERFACE_FUNC GenericComponentTypeImpl<Intf, Interfaces...>::getModuleInfo(IModuleInfo** moduleInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(moduleInfo);
+
+    *moduleInfo = this->moduleInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

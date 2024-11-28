@@ -198,7 +198,7 @@ void RefDeviceImpl::acqLoop()
     auto startLoopTime = std::chrono::high_resolution_clock::now();
     const auto loopTime = milli(acqLoopTime);
 
-    std::unique_lock<std::mutex> lock(sync);
+    auto lock = getUniqueLock();
 
     while (!stopAcq)
     {
@@ -417,7 +417,7 @@ StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint)
 ListPtr<ILogFileInfo> RefDeviceImpl::ongetLogFileInfos()
 {    
     {
-        std::scoped_lock lock(sync);
+        auto lock = getAcquisitionLock();
         if (!loggingEnabled)
         {
             return List<ILogFileInfo>();
@@ -455,7 +455,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::ongetLogFileInfos()
 StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
 {
     {
-        std::scoped_lock lock(sync);
+        auto lock = getAcquisitionLock();
         if (!loggingEnabled)
             return "";
 

@@ -20,6 +20,7 @@ function(rtgen_component_${BASE_NAME})
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Device_PublicHeaders}
+        ${SRC_DevicePrivate_PublicHeaders}
         ${SRC_DeviceDomain_PublicHeaders}
         ${SRC_DeviceInfo_PublicHeaders}
         ${SRC_DeviceInfoConfig_PublicHeaders}
@@ -39,6 +40,7 @@ function(rtgen_component_${BASE_NAME})
     
     set(SRC_PrivateHeaders_Component_Generated
         ${SRC_Device_PrivateHeaders}
+        ${SRC_DevicePrivate_PrivateHeaders}
         ${SRC_DeviceDomain_PrivateHeaders}
         ${SRC_DeviceInfo_PrivateHeaders}
         ${SRC_DeviceInfoConfig_PrivateHeaders}
@@ -57,6 +59,7 @@ function(rtgen_component_${BASE_NAME})
     
     set(SRC_Cpp_Component_Generated
         ${SRC_Device_Cpp}
+        ${SRC_DevicePrivate_Cpp}
         ${SRC_DeviceDomain_Cpp}
         ${SRC_DeviceInfo_Cpp}
         ${SRC_DeviceInfoConfig_Cpp}

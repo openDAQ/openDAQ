@@ -110,19 +110,19 @@ TEST_F(RefFbModuleTest, CreateModule)
 TEST_F(RefFbModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "ReferenceFunctionBlockModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "ReferenceFunctionBlockModule");
 }
 
 TEST_F(RefFbModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(RefFbModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), REF_FB_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), REF_FB_MODULE_MINOR_VERSION);
@@ -178,6 +178,38 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStructDecoder"));
     ASSERT_EQ("RefFBModuleStructDecoder", functionBlockTypes.get("RefFBModuleStructDecoder").getId());
+
+    // Check module info for module
+    ModuleInfoPtr moduleInfo;
+    ASSERT_NO_THROW(moduleInfo = module.getModuleInfo());
+    ASSERT_NE(moduleInfo, nullptr);
+    ASSERT_EQ(moduleInfo.getName(), "ReferenceFunctionBlockModule");
+    ASSERT_EQ(moduleInfo.getId(), "ReferenceFunctionBlockModule");
+
+    // Check version info for module
+    VersionInfoPtr versionInfoModule;
+    ASSERT_NO_THROW(versionInfoModule = moduleInfo.getVersionInfo());
+    ASSERT_NE(versionInfoModule, nullptr);
+    ASSERT_EQ(versionInfoModule.getMajor(), REF_FB_MODULE_MAJOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getMinor(), REF_FB_MODULE_MINOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getPatch(), REF_FB_MODULE_PATCH_VERSION);
+
+    // Check module and version info for function block types
+    for (const auto& functionBlockType : functionBlockTypes)
+    {
+        ModuleInfoPtr moduleInfoFunctionBlockType;
+        ASSERT_NO_THROW(moduleInfoFunctionBlockType = functionBlockType.second.getModuleInfo());
+        ASSERT_NE(moduleInfoFunctionBlockType, nullptr);
+        ASSERT_EQ(moduleInfoFunctionBlockType.getName(), "ReferenceFunctionBlockModule");
+        ASSERT_EQ(moduleInfoFunctionBlockType.getId(), "ReferenceFunctionBlockModule");
+
+        VersionInfoPtr versionInfoFunctionBlockType;
+        ASSERT_NO_THROW(versionInfoFunctionBlockType = moduleInfoFunctionBlockType.getVersionInfo());
+        ASSERT_NE(versionInfoFunctionBlockType, nullptr);
+        ASSERT_EQ(versionInfoFunctionBlockType.getMajor(), REF_FB_MODULE_MAJOR_VERSION);
+        ASSERT_EQ(versionInfoFunctionBlockType.getMinor(), REF_FB_MODULE_MINOR_VERSION);
+        ASSERT_EQ(versionInfoFunctionBlockType.getPatch(), REF_FB_MODULE_PATCH_VERSION);
+    }
 }
 
 TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)

@@ -21,58 +21,31 @@
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <coreobjects/property_object_factory.h>
-
 #include <coretypes/intfs.h>
-#include <coretypes/version_info_ptr.h>
 #include <coretypes/validation.h>
-
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/server_capability_config_ptr.h>
-
 #include <opendaq/custom_log.h>
+#include <opendaq/module_info_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class Module : public ImplementationOf<IModule>
 {
 public:
 
     /*!
-     * @brief Retrieves the module version information.
-     * @param[out] moduleVersion The semantic version information.
+     * @brief Retrieves the module information.
+     * @param[out] info The module information.
      */
-    ErrCode INTERFACE_FUNC getVersionInfo(IVersionInfo** moduleVersion) override
+    ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** info) override
     {
-        OPENDAQ_PARAM_NOT_NULL(moduleVersion);
+        OPENDAQ_PARAM_NOT_NULL(info);
 
-        *moduleVersion = version.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
-    /*!
-     * @brief Gets the module name.
-     * @param[out] moduleName The module name.
-     */
-    ErrCode INTERFACE_FUNC getName(IString** moduleName) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(moduleName);
-
-        *moduleName = name.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
-    /*!
-     * @brief Gets the module id.
-     * @param[out] moduleId The module id.
-     */
-    ErrCode INTERFACE_FUNC getId(IString** moduleId) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(moduleId);
-
-        *moduleId = id.addRefAndReturn();
+        *info = moduleInfo.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -102,6 +75,12 @@ public:
 
         DictPtr<IString, IDeviceType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
+
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
 
         *deviceTypes = types.detach();
         return errCode;
@@ -157,6 +136,12 @@ public:
         DictPtr<IString, IFunctionBlockType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
 
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
+
         *functionBlockTypes = types.detach();
         return errCode;
     }
@@ -201,6 +186,12 @@ public:
 
         DictPtr<IString, IServerType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
+
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
 
         *serverTypes = types.detach();
         return errCode;
@@ -292,6 +283,12 @@ public:
         DictPtr<IString, IStreamingType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
 
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
+
         *streamingTypes = types.detach();
         return errCode;
     }
@@ -382,9 +379,7 @@ public:
     }
 
 protected:
-    StringPtr name;
-    StringPtr id;
-    VersionInfoPtr version;
+    ModuleInfoPtr moduleInfo;
 
     ContextPtr context;
 
@@ -392,14 +387,13 @@ protected:
     LoggerComponentPtr loggerComponent;
 
     Module(StringPtr name, VersionInfoPtr version, ContextPtr context, StringPtr id = nullptr)
-        : name(std::move(name))
-        , id (std::move(id))
-        , version(std::move(version))
+        : moduleInfo(ModuleInfo(version, name, id))
         , context(std::move(context))
         , logger(this->context.getLogger())
-        , loggerComponent( this->logger.assigned()
-                              ? this->logger.getOrAddComponent(this->name.assigned() ? this->name : "UnknownModule" )
-                              : throw ArgumentNullException("Logger must not be null"))
+        , loggerComponent(
+              this->logger.assigned()
+                  ? this->logger.getOrAddComponent(this->moduleInfo.getName().assigned() ? this->moduleInfo.getName() : "UnknownModule")
+                  : throw ArgumentNullException("Logger must not be null"))
     {
     }
 

@@ -19,6 +19,7 @@
 #include <opendaq/component_ptr.h>
 #include <opendaq/signal_ptr.h>
 #include <opendaq/update_parameters_factory.h>
+#include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,7 +32,7 @@ public:
         , connections(Dict<IString, IBaseObject>())
         , signalDependencies(Dict<IString, IString>())
         , parentDependencies(List<IString>())
-        , rootComponent(getRootComponent(curComponent))
+        , rootComponent(GetRootComponent(curComponent))
     {
     }
 
@@ -45,26 +46,52 @@ public:
     ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
 
 private:
-
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
 
-    static ComponentPtr getRootComponent(const ComponentPtr& curComponent);
-    static StringPtr getRemoteId(const std::string& globalId);
+    static ComponentPtr GetRootComponent(const ComponentPtr& curComponent);
+    static DevicePtr GetDevice(const StringPtr& id, const DevicePtr& parentDevice);
+    static std::string GetRootDeviceId(const std::string& id);
 
     UpdateParametersPtr config;
 
-    DictPtr<IString, IBaseObject> connections;
+    DictPtr<IString, IDict> connections;
     DictPtr<IString, IString> signalDependencies;
     ListPtr<IString> parentDependencies;
-    ComponentPtr rootComponent;
+    const ComponentPtr rootComponent;
 };
 
-inline ComponentPtr ComponentUpdateContextImpl::getRootComponent(const ComponentPtr& curComponent)
+inline ComponentPtr ComponentUpdateContextImpl::GetRootComponent(const ComponentPtr& curComponent)
 {
     const auto parent = curComponent.getParent();
     if (!parent.assigned())
         return curComponent;
-    return getRootComponent(parent);
+    return GetRootComponent(parent);
+}
+
+inline DevicePtr ComponentUpdateContextImpl::GetDevice(const StringPtr& id, const DevicePtr& parentDevice)
+{
+    if (parentDevice.getLocalId() == id)
+        return parentDevice;
+    
+    for (const auto& device: parentDevice.getDevices())
+    {
+        const auto devicePtr = GetDevice(id, device);
+        if (devicePtr.assigned())
+            return devicePtr;
+    }
+    return nullptr;
+}
+
+inline std::string ComponentUpdateContextImpl::GetRootDeviceId(const std::string& id)
+{
+    if (id.empty())
+        return id;
+    
+    auto idx = id.find('/', 1);
+    if (idx == std::string::npos)
+        return id;
+
+    return id.substr(1, idx - 1);
 }
 
 inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
@@ -83,9 +110,8 @@ inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* paren
     {
         ports = connections.get(parentId);
     }
-    ports.set(portId, signalId);
 
-    connections->set(portId, signalId);
+    ports.set(portId, signalId);
 
     return OPENDAQ_SUCCESS;
 }
@@ -126,27 +152,6 @@ inline ErrCode ComponentUpdateContextImpl::getRootComponent(IComponent** rootCom
     return OPENDAQ_SUCCESS;
 }
 
-inline StringPtr ComponentUpdateContextImpl::getRemoteId(const std::string& globalId)
-{
-    size_t firstSlashPos = globalId.find('/');
-    if (firstSlashPos == std::string::npos) 
-    {
-        // No slash found, return the original path
-        return globalId;
-    }
-
-    // Find the position of the second slash
-    size_t secondSlashPos = globalId.find('/', firstSlashPos + 1);
-    if (secondSlashPos == std::string::npos) 
-    {
-        // Only one segment found, return an empty string
-        return "";
-    }
-
-    // Erase the first segment
-    return globalId.substr(secondSlashPos);
-}
-
 inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString* portId, ISignal** signal)
 {
     if (parentId == nullptr)
@@ -158,13 +163,12 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
 
     *signal = nullptr;
 
-    DictPtr<IString, IBaseObject> connections;
-    getInputPortConnections(parentId, &connections);
-    if (!connections.hasKey(portId))
+    DictPtr<IString, IString> signalConnections;
+    getInputPortConnections(parentId, &signalConnections);
+    if (!signalConnections.hasKey(portId))
         return OPENDAQ_NOTFOUND;
     
-    auto signalId = connections.get(portId);
-    auto overridenSignalId = rootComponent.getGlobalId() + getRemoteId(signalId);
+    auto signalId = signalConnections.get(portId);
 
     Bool isCircle = false;
     for (SizeT i = 0; i < parentDependencies.getCount(); i++)
@@ -172,13 +176,13 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
         const auto & parentDep = parentDependencies.getItemAt(i);
         if (parentDep == parentId)
         {
-            std::string deps;
+            std::ostringstream deps;
             for (SizeT j = i; j < parentDependencies.getCount(); j++)
             {
-                deps += parentDependencies.getItemAt(j).toStdString() + " -> ";
+                deps << parentDependencies.getItemAt(j).toStdString() + " -> ";
             }
             auto loggerComponent = rootComponent.getContext().getLogger().getOrAddComponent("Component");
-            LOG_W("Circular dependency detected: {}{}", deps, parentDep);
+            LOG_W("Circular dependency detected: {}{}", deps.str(), parentDep);
             isCircle = true;
             break;
         }
@@ -187,14 +191,28 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
     if (isCircle == false)
     {
         parentDependencies.pushBack(parentId);
-        ErrCode errCode = resolveSignalDependency(overridenSignalId, signal);
+        ErrCode errCode = resolveSignalDependency(signalId, signal);
         parentDependencies.popBack();
         if (errCode == OPENDAQ_SUCCESS)
             return OPENDAQ_SUCCESS;
     }
 
+    auto signalRootId = GetRootDeviceId(signalId);
+    ComponentPtr signalRootComponent;
+    if (rootComponent.supportsInterface<IDevice>())
+        signalRootComponent = GetDevice(signalRootId, rootComponent);
+    else if (rootComponent.getLocalId() == signalRootId)
+        signalRootComponent = rootComponent;
+
+    if (!signalRootComponent.assigned())
+    {
+        auto loggerComponent = rootComponent.getContext().getLogger().getOrAddComponent("Component");
+        LOG_W("Root device for signal {} not found", signalId);
+        return OPENDAQ_NOTFOUND;
+    }
+
     ComponentPtr signalPtr;
-    rootComponent->findComponent(overridenSignalId, &signalPtr);
+    signalRootComponent->findComponent(signalId, &signalPtr);
 
     if (!signalPtr.assigned())
         return OPENDAQ_NOTFOUND;
@@ -216,9 +234,6 @@ inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId
 
 inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* signalId, ISignal** signal)
 {
-    if (signalId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
     // Check that signal has parent
     if (!signalDependencies.hasKey(signalId))
         return OPENDAQ_NOTFOUND;
@@ -241,16 +256,20 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
 
     // unregister dependency
     signalDependencies->deleteItem(signalId);
-
-    // Find the signal in parent component
-    auto signalIdPtr = StringPtr::Borrow(signalId);
-    if (parentComponent.getGlobalId().toStdString().find(signalIdPtr.toStdString()) != 0)
-        return OPENDAQ_ERR_INVALIDSTATE;
     
-    StringPtr signalLocalId = parentComponent.getGlobalId().toStdString().substr(signalIdPtr.getLength());
+    auto signalIdPtr = StringPtr::Borrow(signalId);
+    StringPtr signalLocalId = signalIdPtr.toStdString().substr(parentId.getLength());
+    
     ComponentPtr signalComponent;
     parentComponent->findComponent(signalLocalId, &signalComponent);
-    *signal = signalComponent.asPtrOrNull<ISignal>().detach();
+    if (!signalComponent.assigned())
+        return OPENDAQ_NOTFOUND;
+
+    SignalPtr singalPtr = signalComponent.asPtrOrNull<ISignal>();
+    if (!singalPtr.assigned())
+        return OPENDAQ_NOTFOUND;
+
+    *signal = singalPtr.detach();
     return OPENDAQ_SUCCESS;
 }
 

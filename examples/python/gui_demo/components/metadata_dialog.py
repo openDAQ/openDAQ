@@ -47,12 +47,19 @@ class MetadataDialog(Dialog):
 
         def fill_tree(key, value, parent=''):
 
-            # displaying Nones but not traversing further
-            display_value = utils.metadata_converters[key](
-                value) if key in utils.metadata_converters else value
+            display_value = value
+            # for user to see property value without expanding the tree
+            if isinstance(value, daq.IProperty):
+                display_value = value.value
+                if value.value_type == daq.CoreType.ctBool:
+                    display_value = utils.yes_no[display_value]
+            else:
+                display_value = utils.metadata_converters[key](
+                    value) if key in utils.metadata_converters else value
             id = self.tree.insert(
                 parent, tk.END, text=str(key), values=(str(display_value), ))
 
+            # displaying Nones but not traversing further
             if value is None:
                 return
 

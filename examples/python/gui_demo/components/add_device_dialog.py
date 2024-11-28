@@ -8,6 +8,7 @@ from ..app_context import AppContext, DeviceInfoLocal
 from ..event_port import *
 from .dialog import Dialog
 from .add_config_dialog import AddConfigDialog
+from .device_info_dialog import DeviceInfoDialog
 
 
 class AddDeviceDialog(Dialog):
@@ -68,6 +69,7 @@ class AddDeviceDialog(Dialog):
         device_tree.column('conn', anchor=tk.W, minwidth=300)
 
         device_tree.bind('<Double-1>', self.handle_device_tree_double_click)
+        device_tree.bind('<Button-3>', self.handle_right_click)
         device_tree.pack(fill=tk.BOTH, expand=True)
         device_tree_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -151,6 +153,16 @@ class AddDeviceDialog(Dialog):
 
             self.add_device(connection_string, config)
 
+    def handle_right_click(self, event):
+        utils.treeview_select_item(self.device_tree, event)
+
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(
+            label='Connect', command=lambda: self.handle_device_tree_double_click(None))
+        menu.add_command(label='Device Info',
+                         command=self.handle_show_device_info)
+        menu.tk_popup(event.x_root, event.y_root)
+
     def add_device(self, connection_string, config):
         if connection_string and self.dialog_parent_device is not None:
             try:
@@ -161,9 +173,9 @@ class AddDeviceDialog(Dialog):
                     self.parent_device_tree, '', self.context.instance)
                 self.select_parent_device(device.global_id)
                 self.event_port.emit()
-            except RuntimeError as e:
-                utils.show_error('Error adding device', f'{
-                                 connection_string}: {e}', self)
+            except Exception as e:
+                msg = str(e)
+                utils.show_error('Error adding device', f'{connection_string}: {str(e)}', self)
                 return
 
     def handle_add_device(self):
@@ -181,6 +193,26 @@ class AddDeviceDialog(Dialog):
 
     def handle_entry_enter(self, event):
         self.handle_add_device()
+
+    def handle_show_device_info(self):
+        selected_item_iid = utils.treeview_get_first_selection(
+            self.device_tree)
+        if selected_item_iid is None:
+            return
+
+        def find_device(parent_device: daq.IDevice, selected_item_iid):
+            if parent_device is None or selected_item_iid is None:
+                return None
+
+            found_devices = list(filter(
+                lambda d: d.connection_string == selected_item_iid, parent_device.available_devices))
+            return found_devices[0] if len(found_devices) > 0 else None
+
+        device_info = find_device(self.dialog_parent_device, selected_item_iid)
+        if device_info is None or not daq.IDeviceInfo.can_cast_from(device_info):
+            return
+
+        DeviceInfoDialog(self, device_info, self.context).show()
 
     def update_child_devices(self, tree, parent_device):
         tree.delete(*tree.get_children())

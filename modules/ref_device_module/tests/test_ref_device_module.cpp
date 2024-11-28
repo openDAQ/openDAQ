@@ -49,19 +49,19 @@ TEST_F(RefDeviceModuleTest, CreateModule)
 TEST_F(RefDeviceModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "ReferenceDeviceModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "ReferenceDeviceModule");
 }
 
 TEST_F(RefDeviceModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(RefDeviceModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), REF_DEVICE_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), REF_DEVICE_MODULE_MINOR_VERSION);
@@ -230,6 +230,38 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
     ASSERT_EQ(serverTypes.getCount(), 0u);
+
+    // Check module info for module
+    ModuleInfoPtr moduleInfo;
+    ASSERT_NO_THROW(moduleInfo = module.getModuleInfo());
+    ASSERT_NE(moduleInfo, nullptr);
+    ASSERT_EQ(moduleInfo.getName(), "ReferenceDeviceModule");
+    ASSERT_EQ(moduleInfo.getId(), "ReferenceDevice");
+
+    // Check version info for module
+    VersionInfoPtr versionInfoModule;
+    ASSERT_NO_THROW(versionInfoModule = moduleInfo.getVersionInfo());
+    ASSERT_NE(versionInfoModule, nullptr);
+    ASSERT_EQ(versionInfoModule.getMajor(), REF_DEVICE_MODULE_MAJOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getMinor(), REF_DEVICE_MODULE_MINOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getPatch(), REF_DEVICE_MODULE_PATCH_VERSION);
+
+    // Check module and version info for device types
+    for (const auto& deviceType : deviceTypes)
+    {
+        ModuleInfoPtr moduleInfoDeviceType;
+        ASSERT_NO_THROW(moduleInfoDeviceType = deviceType.second.getModuleInfo());
+        ASSERT_NE(moduleInfoDeviceType, nullptr);
+        ASSERT_EQ(moduleInfoDeviceType.getName(), "ReferenceDeviceModule");
+        ASSERT_EQ(moduleInfoDeviceType.getId(), "ReferenceDevice");
+
+        VersionInfoPtr versionInfoDeviceType;
+        ASSERT_NO_THROW(versionInfoDeviceType = moduleInfoDeviceType.getVersionInfo());
+        ASSERT_NE(versionInfoDeviceType, nullptr);
+        ASSERT_EQ(versionInfoDeviceType.getMajor(), REF_DEVICE_MODULE_MAJOR_VERSION);
+        ASSERT_EQ(versionInfoDeviceType.getMinor(), REF_DEVICE_MODULE_MINOR_VERSION);
+        ASSERT_EQ(versionInfoDeviceType.getPatch(), REF_DEVICE_MODULE_PATCH_VERSION);
+    }
 }
 
 TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdNull)

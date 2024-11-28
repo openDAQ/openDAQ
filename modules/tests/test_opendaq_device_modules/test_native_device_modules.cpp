@@ -128,7 +128,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     const auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 6);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 7);
 
     client->releaseRef();
     server->releaseRef();
@@ -156,20 +156,6 @@ TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 {
     SKIP_TEST_MAC_CI;
 
-    // workaround until exceptionsin opendaq/excpetions.h are correctly registered
-    auto AssertErrorCode = [](const std::function<void()>& func, ErrCode expectedErrorCode)
-    {
-        try
-        {
-            func();
-            ASSERT_TRUE(false);
-        }
-        catch (const DaqException& e)
-        {
-            ASSERT_EQ(e.getErrCode(), expectedErrorCode);
-        }
-    };
-
     // connect to server with protocol version 2
 
     const uint16_t negotiateVersion = 2;
@@ -183,10 +169,10 @@ TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 
     // call some methods which require protocol version 3 or higher
 
-    AssertErrorCode([&]() { client.lock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
-    AssertErrorCode([&]() { client.unlock(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
-    AssertErrorCode([&]() { client.getDevices()[0].getAvailableDevices(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
-    AssertErrorCode([&]() { client.getDevices()[0].getAvailableDeviceTypes(); }, OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    ASSERT_THROW(client.lock(), ServerVersionTooLowException);
+    ASSERT_THROW(client.unlock(), ServerVersionTooLowException);
+    ASSERT_THROW(client.getDevices()[0].getAvailableDevices(), ServerVersionTooLowException);
+    ASSERT_THROW(client.getDevices()[0].getAvailableDeviceTypes(), ServerVersionTooLowException);
 }
 
 
@@ -396,6 +382,45 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
     ASSERT_EQ(clientInstance3.getDevices().getCount(), 1u);
     ASSERT_NE(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
     ASSERT_NE(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance3.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
+{
+    const std::string url = "daq.nd://127.0.0.1";
+
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto clientInstance1 = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
+
+    auto clientInstance2 = test_helpers::connectInstanceWithClientType(url, ClientType::ViewOnly);
+    ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
+{
+    const std::string url = "daq.nd://127.0.0.1";
+
+    auto serverInstance = InstanceBuilder().build();
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    auto clientInstance1 = test_helpers::connectInstanceWithClientType(url, ClientType::Control);
+    ASSERT_EQ(clientInstance1.getDevices().getCount(), 1u);
+
+    auto clientInstance2 = test_helpers::connectInstanceWithClientType(url, ClientType::ViewOnly);
+    ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
+
+    ASSERT_EQ(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    auto clientInstance3 = test_helpers::connectInstanceWithClientType(
+        url, ClientType::ExclusiveControl, true);  // should cause all other control clients to disconnect
+
+    ASSERT_EQ(clientInstance3.getDevices().getCount(), 1u);
+    ASSERT_NE(clientInstance1.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(clientInstance2.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected"); // view-only client should stay connected
     ASSERT_EQ(clientInstance3.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
 }
 
@@ -2076,7 +2101,7 @@ class MockNativeModule : public Module
 {
 public:
     MockNativeModule(const ContextPtr& context)
-        : Module("mock", VersionInfo(1, 0, 0), context, "MockModule")
+        : Module("mock", VersionInfo(0, 0, 0), context, "MockModule")
     {
     }
 
@@ -2287,6 +2312,7 @@ InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPa
     PropertyObjectPtr config = PropertyObject();
     config.addProperty(BoolProperty("EnableLogging", true));
     config.addProperty(StringProperty("LoggingPath", loggerPath));
+    config.addProperty(StringProperty("SerialNumber", "NativeDeviceModulesTestSerial"));
 
     auto instance = InstanceBuilder().setLogger(Logger(loggerPath))
                                      .setRootDevice("daqref://device0", config)
@@ -2294,6 +2320,111 @@ InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPa
     
     instance.addServer("OpenDAQNativeStreaming", nullptr);
     return instance;
+}
+
+TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreServerConfiguration)
+{
+    StringPtr config;
+
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0];
+        auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics");
+        fb.getInputPorts()[0].connect(clientRoot.getSignals(search::Recursive(search::Visible()))[0]);
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+    auto clientRoot = devices[0];
+    ASSERT_EQ(clientRoot.getFunctionBlocks().getCount(), 1u);
+
+    auto fb = clientRoot.getFunctionBlocks()[0];
+    ASSERT_EQ(fb.getFunctionBlockType().getId(), "RefFBModuleStatistics");
+
+    auto signal = fb.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(signal.assigned());
+    ASSERT_EQ(signal.getGlobalId(), clientRoot.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
+}
+
+TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreClientConnectedToServer)
+{
+    StringPtr config;
+
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0];
+        auto fb = client.addFunctionBlock("RefFBModuleStatistics");
+        fb.getInputPorts()[0].connect(clientRoot.getSignals(search::Recursive(search::Visible()))[0]);
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+    auto clientRoot = devices[0];
+
+    ASSERT_EQ(restoredClient.getFunctionBlocks().getCount(), 1u);
+
+    auto fb = restoredClient.getFunctionBlocks()[0];
+    ASSERT_EQ(fb.getFunctionBlockType().getId(), "RefFBModuleStatistics");
+
+    auto signal = fb.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(signal.assigned());
+    ASSERT_EQ(signal.getGlobalId(), clientRoot.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
+}
+
+TEST_F(NativeDeviceModulesTest, DISABLED_lientSaveLoadRestoreServerConnectedToClient)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto client = CreateClientInstance();
+        auto clientRefDevice = client.addDevice("daqref://device1");
+        auto clientRoot = client.getDevices()[0];
+        auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics");
+        fb.getInputPorts()[0].connect(clientRefDevice.getSignals(search::Recursive(search::Visible()))[0]);
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 2u);
+    DevicePtr clientRoot;
+    DevicePtr clientRefDevice;
+    for (const auto& dev : devices)
+    {
+        if (dev.getInfo().getConnectionString() == "daqref://device1")
+            clientRefDevice = dev;
+        else
+            clientRoot = dev;
+    }
+    ASSERT_TRUE(clientRoot.assigned());
+    ASSERT_TRUE(clientRefDevice.assigned());
+    
+    ASSERT_EQ(clientRoot.getFunctionBlocks().getCount(), 1u);
+
+    auto fb = clientRoot.getFunctionBlocks()[0];
+    ASSERT_EQ(fb.getFunctionBlockType().getId(), "RefFBModuleStatistics");
+
+    auto signal = fb.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(signal.assigned());
+    ASSERT_EQ(signal.getGlobalId(), clientRefDevice.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)

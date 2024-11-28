@@ -19,9 +19,30 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*!
+ * @brief Creates a new Version Info object.
+ * @param major The major version component.
+ * @param minor The minor version component.
+ * @param patch The patch version component.
+ * @return The Version Info object.
+ */
+
 inline VersionInfoPtr VersionInfo(SizeT major, SizeT minor, SizeT patch)
 {
-    return VersionInfoPtr(VersionInfo_Create(major, minor, patch));
+    return VersionInfoPtr{VersionInfo_Create(major, minor, patch)};
 }
+
+/*!
+ * @brief Creates the Struct type object that defines the Version Info struct.
+ */
+inline StructTypePtr VersionInfoStructType()
+{
+    return StructType("VersionInfo",
+                      List<IString>("Major", "Minor", "Patch"),
+                      List<IBaseObject>(0, 0, 0),
+                      List<IType>(SimpleType(ctInt), SimpleType(ctInt), SimpleType(ctInt)));
+}
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

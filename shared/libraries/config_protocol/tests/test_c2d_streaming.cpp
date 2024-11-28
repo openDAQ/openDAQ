@@ -288,6 +288,7 @@ public:
             serverDevice,
             std::bind(&ClientToDeviceStreamingTest::serverNotificationReady, this, std::ref(clientPtr), std::placeholders::_1),
             anonymousUser,
+            ClientType::Control,
             serverExtSigFolder);
     }
 

@@ -30,19 +30,19 @@ TEST_F(EmptyModuleTest, CreateModule)
 TEST_F(EmptyModuleTest, ModuleName)
 {
     auto module = createModule();
-    ASSERT_EQ(module.getName(), "EmptyModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "EmptyModule");
 }
 
 TEST_F(EmptyModuleTest, VersionAvailable)
 {
     auto module = createModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(EmptyModuleTest, VersionCorrect)
 {
     auto module = createModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), EMPTY_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), EMPTY_MODULE_MINOR_VERSION);

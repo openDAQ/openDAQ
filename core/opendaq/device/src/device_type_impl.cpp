@@ -68,6 +68,12 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
                     serializerPtr.key("defaultConfig");
                     defaultConfig.serialize(serializerPtr);
                 }
+
+                if (moduleInfo.assigned())
+                {
+                    serializerPtr.key("moduleInfo");
+                    moduleInfo.serialize(serializerPtr);
+                }
             }
 
             serializerPtr.endObject();
@@ -117,7 +123,16 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
             if (serializedObj.hasKey("defaultConfig"))
                 defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-            *obj = createWithImplementation<IDeviceType, DeviceTypeImpl>(id, name, description, defaultConfig, prefix).detach();
+            auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(id, name, description, defaultConfig, prefix);
+
+            ModuleInfoPtr moduleInfo;
+            if (serializedObj.hasKey("moduleInfo"))
+            {
+                moduleInfo = serializedObj.readObject("moduleInfo", contextPtr, factoryCallbackPtr);
+                deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo);
+            }
+
+            *obj = deviceType.detach();
         });
 }
 

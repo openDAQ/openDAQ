@@ -28,6 +28,7 @@ public:
     static void protectObject(const PropertyObjectPtr& component, const UserPtr& user, const std::vector<Permission>& requiredPermissions);
     static PropertyObjectPtr getFirstPropertyParent(const ComponentPtr& component, const StringPtr& propertyName);
     static void protectLockedComponent(const ComponentPtr& component);
+    static void protectViewOnlyConnection(ClientType connectionType);
 
 private:
     static DevicePtr getParentDevice(const ComponentPtr& component);
@@ -77,6 +78,12 @@ inline void ConfigServerAccessControl::protectLockedComponent(const ComponentPtr
 
     if (device.assigned() && device.isLocked())
         throw DeviceLockedException();
+}
+
+inline void ConfigServerAccessControl::protectViewOnlyConnection(ClientType connectionType)
+{
+    if (connectionType == ClientType::ViewOnly)
+        throw AccessDeniedException("Operation is not avilable under view-only connection");
 }
 
 inline DevicePtr ConfigServerAccessControl::getParentDevice(const ComponentPtr& component)

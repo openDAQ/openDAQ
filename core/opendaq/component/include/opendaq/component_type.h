@@ -17,12 +17,14 @@
 #pragma once
 #include <coreobjects/property_object.h>
 #include <coretypes/stringobject.h>
+#include <opendaq/module_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [templated(defaultAliasName: ComponentTypePtr)]
  * [interfaceSmartPtr(IComponentType, GenericComponentTypePtr)]
+ * [interfaceLibrary(IPropertyObject, CoreObjects)]
  */
 
 /*!
@@ -73,6 +75,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
      * For example: Port=1000, OutputRate=5000, ...
      */
     virtual ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) = 0;
+
+    /*!
+     * @brief Retrieves the module information.
+     * @param[out] info The module information.
+     */
+    virtual ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** info) = 0;
 };
 /*!@}*/
 

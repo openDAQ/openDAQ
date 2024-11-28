@@ -15,7 +15,7 @@
   <PropertyGroup>
     <!-- the <OPENDAQ_PACKAGE_VERSION> is normally set externally -->
     <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">0.0.0</OPENDAQ_PACKAGE_VERSION>
-    <_BuildNumber>18</_BuildNumber>
+    <_BuildNumber>20</_BuildNumber>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <Title>openDAQ SDK .Net-Bindings</Title>
@@ -30,6 +30,11 @@
     <VersionSuffix Condition="'$(SHORT_SHA)' != ''">beta-$(SHORT_SHA)</VersionSuffix>
     <AssemblyVersion>9.9.9.9</AssemblyVersion>
     <FileVersion>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</FileVersion>
+    <!--<RepositoryUrl>https://github.com/openDAQ/openDAQ.git</RepositoryUrl>-->
+    <RepositoryUrl Condition="'$(REPOSITORY_URL)' != ''">$(REPOSITORY_URL)</RepositoryUrl>
+    <RepositoryType Condition="'$(REPOSITORY_URL)' != ''">git</RepositoryType>
+    <RepositoryBranch Condition="'$(BRANCH_NAME)' != ''">$(BRANCH_NAME)</RepositoryBranch>
+    <RepositoryCommit Condition="'$(COMMIT_SHA)' != ''">$(COMMIT_SHA)</RepositoryCommit>
     <PackageProjectUrl>https://opendaq.com/</PackageProjectUrl>
     <PackageTags>open;daq;sdk;bindings;blueberry</PackageTags>
     <!-- for local test-purposes only, in CI == 'Release_Build' -->
@@ -133,7 +138,7 @@
   <ItemGroup Condition="'$(_IsCiPackBuild)' == 'True'">
     <!-- NuGet package creation in CI -->
     <!-- Windows runtimes -->
-    <OpenDaqWinLibs Include="$(_SdkOutputPathWindows64)\*.dll" Exclude="$(_SdkOutputPathWindows64)\openDAQ.Net.dll" />
+    <OpenDaqWinLibs Include="$(_SdkOutputPathWindows64)\*.dll" Exclude="$(_SdkOutputPathWindows64)\openDAQ.Net.dll;$(_SdkOutputPathWindows64)\openDAQDemo.Net.dll" />
     <None Include="@(OpenDaqWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>

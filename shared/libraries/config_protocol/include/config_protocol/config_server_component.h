@@ -18,6 +18,7 @@
 #include <opendaq/device_ptr.h>
 #include <coreobjects/property_object_protected.h>
 #include <config_protocol/config_server_access_control.h>
+#include <opendaq/update_parameters_factory.h>
 
 namespace daq::config_protocol
 {
@@ -57,6 +58,7 @@ inline BaseObjectPtr ConfigServerComponent::setPropertyValue(const RpcContext& c
                                                              const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     const auto propertyValue = params["PropertyValue"];
@@ -74,6 +76,7 @@ inline BaseObjectPtr ConfigServerComponent::setProtectedPropertyValue(const RpcC
                                                                       const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     const auto propertyValue = static_cast<std::string>(params["PropertyValue"]);
@@ -91,6 +94,7 @@ inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(const RpcContext&
                                                                const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
@@ -129,7 +133,10 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
     }
 
     if (!prop.getCallableInfo().isConst())
+    {
         ConfigServerAccessControl::protectLockedComponent(component);
+        ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+    }
 
     if (propValueCoreType == CoreType::ctFunc)
     {
@@ -148,6 +155,7 @@ inline BaseObjectPtr ConfigServerComponent::beginUpdate(const RpcContext& contex
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     if (params.hasKey("Path"))
     {
@@ -163,6 +171,7 @@ inline BaseObjectPtr ConfigServerComponent::endUpdate(const RpcContext& context,
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     PropertyObjectPtr obj;
     if (params.hasKey("Path"))
@@ -191,6 +200,7 @@ inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const RpcContext& 
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto attributeName = static_cast<std::string>(params["AttributeName"]);
     const BaseObjectPtr attributeValue = params["AttributeValue"];
@@ -211,6 +221,7 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto serializedString = static_cast<std::string>(params["Serialized"]);
     const auto path = static_cast<std::string>(params["Path"]);
@@ -222,7 +233,9 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
         updatable = component;
 
     const auto deserializer = JsonDeserializer();
-    deserializer.update(updatable, serializedString, nullptr);
+    const auto updateParams = UpdateParameters();
+    updateParams.setPropertyValue("RemoteUpdate", true);
+    deserializer.update(updatable, serializedString, updateParams);
 
     return nullptr;
 }

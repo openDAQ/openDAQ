@@ -553,14 +553,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macos-12 clang Release
+          - name: macos-13 clang Release
             cmake_generator: Ninja
             cmake_build_type: Release
-            runner: macos-12
-          # - name: macos-12 clang Debug
+            runner: macos-13
+          # - name: macos-13 clang Debug
             # cmake_generator: Ninja
             # cmake_build_type: Debug
-            # runner: macos-12
+            # runner: macos-13
 
     steps:
       - name: Checkout

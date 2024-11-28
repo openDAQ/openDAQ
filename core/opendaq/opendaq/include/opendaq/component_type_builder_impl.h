@@ -19,9 +19,9 @@
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
+#include <opendaq/module_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class ComponentTypeBuilderImpl : public ImplementationOf<IComponentTypeBuilder>
 {
 public:
@@ -54,6 +54,7 @@ private:
     StringPtr prefix;
     StringPtr description;
     PropertyObjectPtr defaultConfig;
+    ModuleInfoPtr moduleInfo;
 };
 
 END_NAMESPACE_OPENDAQ

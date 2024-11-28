@@ -139,31 +139,28 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
-    return daqTry([&]()
+    for (const auto& path: paths)
     {
-        for (const auto& path: paths)
+        try
         {
-            try
-            {
-                auto localLibraries = enumerateModules(loggerComponent, path, context);
-                libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());                
-            }
-            catch (const daq::DaqException& e)
-            {
-                LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.what(), e.getErrCode())
-            }
-            catch (const std::exception& e)
-            {
-                LOG_W(R"(Error scanning directory "{}": {})", path, e.what())
-            }
-            catch (...)
-            {
-                LOG_W(R"(Unknown error occured scanning directory "{}")", path)
-            }
+            auto localLibraries = enumerateModules(loggerComponent, path, context);
+            libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());                
         }
-        modulesLoaded = true;
-        return OPENDAQ_SUCCESS;
-    });
+        catch (const daq::DaqException& e)
+        {
+            LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.what(), e.getErrCode())
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W(R"(Error scanning directory "{}": {})", path, e.what())
+        }
+        catch (...)
+        {
+            LOG_W(R"(Unknown error occured scanning directory "{}")", path)
+        }
+    }
+    modulesLoaded = true;
+    return OPENDAQ_SUCCESS;
 }
 
 struct DevicePing
@@ -300,7 +297,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
         catch (const std::exception& e)
         {
             LOG_E("Failed to run device enumeration asynchronously within the module: {}. Result {}",
-                  module.getName(),
+                  module.getModuleInfo().getName(),
                   e.what()
             )
         }
@@ -316,11 +313,11 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
         }
         catch (NotImplementedException&)
         {
-            LOG_I("{}: GetAvailableDevices not implemented", module.getName())
+            LOG_I("{}: GetAvailableDevices not implemented", module.getModuleInfo().getName())
         }
         catch (const std::exception& e)
         {
-            LOG_W("{}: GetAvailableDevices failed: {}", module.getName(), e.what())
+            LOG_W("{}: GetAvailableDevices failed: {}", module.getModuleInfo().getName(), e.what())
         }
 
         if (!moduleAvailableDevices.assigned())
@@ -405,11 +402,11 @@ ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
         }
         catch (NotImplementedException&)
         {
-            LOG_I("{}: GetAvailableDeviceTypes not implemented", module.getName())
+            LOG_I("{}: GetAvailableDeviceTypes not implemented", module.getModuleInfo().getName())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
-            LOG_W("{}: GetAvailableDeviceTypes failed: {}", module.getName(), e.what())
+            LOG_W("{}: GetAvailableDeviceTypes failed: {}", module.getModuleInfo().getName(), e.what())
         }
 
         if (!moduleDeviceTypes.assigned())
@@ -517,11 +514,11 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
         }
         catch (const NotImplementedException&)
         {
-            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
+            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getModuleInfo().getName())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
-            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getName(), e.what())
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.what())
         }
 
         if (!types.assigned())
@@ -633,11 +630,11 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         }
         catch (const NotImplementedException&)
         {
-            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getName())
+            LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getModuleInfo().getName())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
-            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getName(), e.what())
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.what())
         }
 
         if (!types.assigned())
@@ -726,11 +723,11 @@ ErrCode ModuleManagerImpl::getAvailableStreamingTypes(IDict** streamingTypes)
         }
         catch (const NotImplementedException&)
         {
-            LOG_I("{}: GetAvailableStreamingTypes not implemented", module.getName())
+            LOG_I("{}: GetAvailableStreamingTypes not implemented", module.getModuleInfo().getName())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
-            LOG_W("{}: GetAvailableStreamingTypes failed: {}", module.getName(), e.what())
+            LOG_W("{}: GetAvailableStreamingTypes failed: {}", module.getModuleInfo().getName(), e.what())
         }
 
         if (!types.assigned())
@@ -1222,7 +1219,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
-            LOG_E("{}: createStreaming failed: {}", module.getName(), e.what())
+            LOG_E("{}: createStreaming failed: {}", module.getModuleInfo().getName(), e.what())
             throw;
         }
     }
@@ -1252,11 +1249,11 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
             }
             catch (const NotImplementedException&)
             {
-                LOG_D("{}: completeServerCapability not implemented", module.getName());
+                LOG_D("{}: completeServerCapability not implemented", module.getModuleInfo().getName());
             }
             catch ([[maybe_unused]] const std::exception& e)
             {
-                LOG_W("{}: completeServerCapability failed: {}", module.getName(), e.what());
+                LOG_W("{}: completeServerCapability failed: {}", module.getModuleInfo().getName(), e.what());
             }
         }
     }
@@ -1688,18 +1685,18 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
         throw ModuleEntryPointFailedException("Library \"{}\" failed to create a Module.", relativePath);
     }
 
-    if (auto version = module.getVersionInfo(); version.assigned())
+    if (auto version = module.getModuleInfo().getVersionInfo(); version.assigned())
     {
         LOG_I("Loaded module [v{}.{}.{} {}] from \"{}\".",
               version.getMajor(),
               version.getMinor(),
               version.getPatch(),
-              module.getName(),
+              module.getModuleInfo().getName(),
               relativePath);
     }
     else
     {
-        LOG_I("Loaded module UNKNOWN VERSION of {} from \"{}\".", module.getName(), relativePath);
+        LOG_I("Loaded module UNKNOWN VERSION of {} from \"{}\".", module.getModuleInfo().getName(), relativePath);
     }
 
 

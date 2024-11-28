@@ -5,6 +5,7 @@
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 namespace detail
 {
     static const StructTypePtr callableInfoStructType = CallableInfoStructType();

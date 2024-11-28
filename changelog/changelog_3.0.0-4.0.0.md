@@ -33,6 +33,58 @@
     ```
     This will skip setting the new value without throwing an exception.
 
+
+# 25.11.2024
+## Description
+- Delete the fields `id`, `name`, and `versionInfo` from the `IModule` interface and add them to the new `IModuleInfo` interface, which is a new field in the `IModule` interface
+- `IModuleInfo` field is also added to `IComponentType` interface
+- Works over Native
+- Component Type is moved from `coreobjects` to `opendaq`
+
+## Required integration changes
+- Breaks binary compatibility
+
+```
++ [interface] IModuleInfo : public IBaseObject
++ [function] IModuleInfo::getVersionInfo(IVersionInfo** version)
++ [function] IModuleInfo::getName(IVersionInfo** version)
++ [function] IModuleInfo::getId(IVersionInfo** version)
++ [interface] IComponentTypePrivate : public IBaseObject
++ [function] IComponentTypePrivate::setModuleInfo(IModuleInfo* info)
++ [function] IComponentType::getModuleInfo(IModuleInfo** info)
++ [function] IModule::getModuleInfo(IModuleInfo** info)
+- [function] IModule::getVersionInfo(IVersionInfo** version)
+- [function] IModule::getName(IVersionInfo** version)
+- [function] IModule::getId(IVersionInfo** version)
+```
+
+# 20.11.2024
+## Description
+- Support for different client types over the native configuration protocol has been introduced.
+- A ClientType selection property has been added to the general configuration object of the IDevice::addDevice method. Supported values are Control(0), Exclusive Control(1), and View Only(2).
+- An ExclusiveControlDropOthers boolean property has been added to the general configuration object of the IDevice::addDevice method.
+- The native configuration protocol has been updated to version 7.
+
+## Required integration changes
+- None. The default client type is Control(0), which is backward-compatible with previous protocol versions.
+
+# 19.11.2024
+## Description
+- Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool* isLockedOut)
+
+# 12.11.2024:
+## Description
+- Improved component updates.
+- Removed generation of local ID for client device in instance.
+- Fixed connecting signals to input ports on the server to which the client is connecting during configuration loading.
+## Required integration changes:
+- An instance with the client device as the root device no longer generates a unique ID but uses `openDAQDevice` as the ID.
+- If a developer encountered issues restoring signal connections from the client to the server during configuration loading, they need to create a new configuration and save it. Otherwise, everything should work fine.
+
+```
++ [function] ISignalPrivate::getSignalSerializeId(IString** serializeId)
+```
+
 # 08.11.2024
 ## Description
 - Add support for forcefully unlocking a device over native config protocol
@@ -55,7 +107,6 @@
 ```
 
 # 29.10.2024:
-# 8.11.2024
 ## Description
 - Implement thread synchronization mechanism in property objects
 - Provides new internal method to allow for recursive locking in onWrite/onRead events via `GenericPropertyObjectImpl::getRecursiveConfigLock()`

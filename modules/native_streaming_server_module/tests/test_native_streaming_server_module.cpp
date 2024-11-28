@@ -68,19 +68,19 @@ TEST_F(NativeStreamingServerModuleTest, CreateModule)
 TEST_F(NativeStreamingServerModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "OpenDAQNativeStreamingServerModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQNativeStreamingServerModule");
 }
 
 TEST_F(NativeStreamingServerModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(NativeStreamingServerModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), NATIVE_STREAM_SRV_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), NATIVE_STREAM_SRV_MODULE_MINOR_VERSION);
@@ -104,6 +104,38 @@ TEST_F(NativeStreamingServerModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(serverTypes.getCount(), 1u);
     ASSERT_TRUE(serverTypes.hasKey("OpenDAQNativeStreaming"));
     ASSERT_EQ(serverTypes.get("OpenDAQNativeStreaming").getId(), "OpenDAQNativeStreaming");
+
+    // Check module info for module
+    ModuleInfoPtr moduleInfo;
+    ASSERT_NO_THROW(moduleInfo = module.getModuleInfo());
+    ASSERT_NE(moduleInfo, nullptr);
+    ASSERT_EQ(moduleInfo.getName(), "OpenDAQNativeStreamingServerModule");
+    ASSERT_EQ(moduleInfo.getId(), "OpenDAQNativeStreamingServerModule");
+
+    // Check version info for module
+    VersionInfoPtr versionInfoModule;
+    ASSERT_NO_THROW(versionInfoModule = moduleInfo.getVersionInfo());
+    ASSERT_NE(versionInfoModule, nullptr);
+    ASSERT_EQ(versionInfoModule.getMajor(), NATIVE_STREAM_SRV_MODULE_MAJOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getMinor(), NATIVE_STREAM_SRV_MODULE_MINOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getPatch(), NATIVE_STREAM_SRV_MODULE_PATCH_VERSION);
+
+    // Check module version info for server types
+    for (const auto& serverType : serverTypes)
+    {
+        ModuleInfoPtr moduleInfoServerType;
+        ASSERT_NO_THROW(moduleInfoServerType = serverType.second.getModuleInfo());
+        ASSERT_NE(moduleInfoServerType, nullptr);
+        ASSERT_EQ(moduleInfoServerType.getName(), "OpenDAQNativeStreamingServerModule");
+        ASSERT_EQ(moduleInfoServerType.getId(), "OpenDAQNativeStreamingServerModule");
+
+        VersionInfoPtr versionInfoServerType;
+        ASSERT_NO_THROW(versionInfoServerType = moduleInfoServerType.getVersionInfo());
+        ASSERT_NE(versionInfoServerType, nullptr);
+        ASSERT_EQ(versionInfoServerType.getMajor(), NATIVE_STREAM_SRV_MODULE_MAJOR_VERSION);
+        ASSERT_EQ(versionInfoServerType.getMinor(), NATIVE_STREAM_SRV_MODULE_MINOR_VERSION);
+        ASSERT_EQ(versionInfoServerType.getPatch(), NATIVE_STREAM_SRV_MODULE_PATCH_VERSION);
+    }
 }
 
 TEST_F(NativeStreamingServerModuleTest, ServerConfig)

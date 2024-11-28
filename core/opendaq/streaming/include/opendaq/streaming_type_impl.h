@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/streaming_type.h>
-#include <coreobjects/component_type_impl.h>
+#include <opendaq/component_type_impl.h>
 #include <opendaq/component_type_builder_ptr.h>
 #include <opendaq/streaming_type_factory.h>
 

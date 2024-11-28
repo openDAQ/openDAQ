@@ -13,7 +13,7 @@ void ClientTypeTools::DefineConfigProperties(PropertyObjectPtr& obj)
     const auto clientTypeProp =
         SparseSelectionPropertyBuilder("ClientType", clientTypes, (Int) ClientType::Control)
             .setDescription("Specifies the client's connection type. Control and Exclusive Control clients can modify the device, while "
-                            "View-Only clients can only read from the device. When an Exclusive Control client is connected, no other "
+                            "View Only clients can only read from the device. When an Exclusive Control client is connected, no other "
                             "Control or Exclusive Control clients can connect to the same device.")
             .build();
 

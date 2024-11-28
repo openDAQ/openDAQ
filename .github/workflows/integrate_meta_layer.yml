@@ -16,7 +16,7 @@ env:
   poky_yoctoproject_ref: dunfell
   meta_openembedded_ref: dunfell
   opendaq_sdk_sha: ${{ github.sha }}
-  opendaq_sdk_branch: ${{ github.ref }}
+  opendaq_sdk_branch_ref: ${{ github.ref }}
   meta_opendaq_sdk_ref: ${{ inputs.meta_opendaq_sdk_ref || 'dunfell' }}
 
 
@@ -47,7 +47,14 @@ jobs:
           git clone --branch ${{ env.meta_opendaq_sdk_ref }} https://github.com/openDAQ/meta-opendaq-sdk meta-opendaq-sdk
         working-directory: ${{ env.poky_dir }}
 
+      - name: Set environment
+        run: |
+          echo "opendaq_sdk_branch=$(echo '${{ env.opendaq_sdk_branch_ref }}' | sed 's|refs/heads/||g')" >> $GITHUB_ENV
+
       - name: Build opendaq-sdk image
+        env:
+          opendaq_sdk_sha: ${{ env.opendaq_sdk_sha }}
+          opendaq_sdk_branch: ${{ env.opendaq_sdk_branch }}
         run: |
           source oe-init-build-env
           bitbake-layers add-layer ../meta-openembedded/meta-oe ../meta-opendaq-sdk
@@ -60,6 +67,9 @@ jobs:
         working-directory: ${{ env.poky_dir }}
 
       - name: Update sdk hash in meta-opendaq-sdk
+        env:
+          opendaq_sdk_sha: ${{ env.opendaq_sdk_sha }}
+          opendaq_sdk_branch: ${{ env.opendaq_sdk_branch }}
         run: |
           sed -i 's/OPENDAQ_SDK_BRANCH ?= .*/OPENDAQ_SDK_BRANCH ?= \"${{ env.opendaq_sdk_branch }}\"/' ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
           sed -i 's/SRCREV_opendaq-sdk = .*/SRCREV_opendaq-sdk = \"${{ env.opendaq_sdk_sha }}\"/' ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb

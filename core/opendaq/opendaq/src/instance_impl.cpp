@@ -603,9 +603,9 @@ ErrCode InstanceImpl::setPropertyValue(IString* propertyName, IBaseObject* value
     return rootDevice->setPropertyValue(propertyName, value);
 }
 
-ErrCode InstanceImpl::getPropertyValue(IString* propertyName, IBaseObject** value)
+ErrCode InstanceImpl::getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
 {
-    return rootDevice->getPropertyValue(propertyName, value);
+    return rootDevice->getPropertyValue(propertyName, value, retrieveUpdatingValue);
 }
 
 ErrCode InstanceImpl::getPropertySelectionValue(IString* propertyName, IBaseObject** value)

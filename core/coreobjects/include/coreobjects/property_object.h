@@ -148,7 +148,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * If the requested Property has the Selection values fields configured, the Property value getter returns an index/key of the
      * selected item in the Selection values list/dictionary.
      */
-    virtual ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) = 0;
+    virtual ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = true) = 0;
 
     /*!
      * @brief Gets the selected value of the Property, if the Property is a Selection property.

@@ -45,7 +45,7 @@ public:
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
-    ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = true) override;
     ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
@@ -211,7 +211,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setProtectedPropertyValue(IStr
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* propertyName, IBaseObject** value)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(value);
@@ -219,7 +219,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
     return daqTry(
-        [this, &propertyNamePtr, &value]()
+        [this, &propertyNamePtr, &value, retrieveUpdatingValue]()
         {
             // TODO: Refactor this
             PropertyPtr prop;
@@ -235,7 +235,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
                 return OPENDAQ_SUCCESS;
             }
 
-            return Impl::getPropertyValue(propertyNamePtr, value);
+            return Impl::getPropertyValue(propertyNamePtr, value, retrieveUpdatingValue);
         });
 }
 

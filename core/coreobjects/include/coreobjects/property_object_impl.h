@@ -157,6 +157,16 @@ public:
             updatePropertyStack.erase(name);
     }
 
+    bool getPropertyValue(const std::string& name, BaseObjectPtr& value) const
+    {
+        auto it = updatePropertyStack.find(name);
+        if (it == updatePropertyStack.end())
+            return false;
+
+        value = it->second.value;
+        return true;
+    }
+
 private:
     std::map<std::string, PropertyUpdateStackItem> updatePropertyStack;
 };
@@ -179,8 +189,8 @@ public:
 
     virtual ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
-    virtual ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
-    virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
+    virtual ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = true) override;
+    virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = true) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
@@ -302,7 +312,7 @@ protected:
     void internalDispose(bool) override;
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
-    ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value);
+    ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value);
     ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
 
@@ -386,7 +396,7 @@ private:
     void triggerCoreEventInternal(const CoreEventArgsPtr& args);
 
     // Gets the property, as well as its value. Gets the referenced property, if the property is a refProp
-    ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property, bool triggerEvent = true);
+    ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property, bool triggerEvent = true, bool retrieveUpdatingValue = false);
     ErrCode getPropertiesInternal(Bool includeInvisible, Bool bind, IList** list);
 
     // Gets the property value, if stored in local value dictionary (propValues)
@@ -427,7 +437,7 @@ private:
     ConstCharPtr getPropNameWithoutIndex(const StringPtr& name, StringPtr& propName) const;
 
     // Child property handling - Used when a property is queried in the "parent.child" format
-    ErrCode getChildPropertyValue(const StringPtr& childName, const StringPtr& subName, BaseObjectPtr& value);
+    ErrCode getChildPropertyValue(const StringPtr& childName, const StringPtr& subName, BaseObjectPtr& value, bool retrieveUpdatingValue);
 
     PropertyPtr checkForRefPropAndGetBoundProp(PropertyPtr& prop, bool* isReferenced = nullptr) const;
 
@@ -560,19 +570,20 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty
 template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildPropertyValue(const StringPtr& childName,
                                                                                           const StringPtr& subName,
-                                                                                          BaseObjectPtr& value)
+                                                                                          BaseObjectPtr& value,
+                                                                                          bool retrieveUpdatingValue)
 {
     PropertyPtr prop;
     StringPtr name;
 
     auto err = daqTry([&]() -> auto
-        {
-            prop = getUnboundProperty(childName);
+    {
+        prop = getUnboundProperty(childName);
 
-            prop = checkForRefPropAndGetBoundProp(prop);
-            name = prop.getName();
-            return OPENDAQ_SUCCESS;
-        });
+        prop = checkForRefPropAndGetBoundProp(prop);
+        name = prop.getName();
+        return OPENDAQ_SUCCESS;
+    });
 
     if (OPENDAQ_FAILED(err))
     {
@@ -585,18 +596,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     }
 
     BaseObjectPtr childProp;
-    err = getPropertyValueInternal(name, &childProp);
+    err = getPropertyValueInternal(name, &childProp, retrieveUpdatingValue);
     if (OPENDAQ_FAILED(err))
     {
         return err;
     }
 
     return daqTry([&]() -> auto
-        {
-            const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
-            value = childPropAsPropertyObject.getPropertyValue(subName);
-            return OPENDAQ_SUCCESS;
-        });
+    {
+        const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
+        value = childPropAsPropertyObject.getPropertyValue(subName, retrieveUpdatingValue);
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 #if defined(__GNUC__) && __GNUC__ >= 12
@@ -1450,7 +1461,8 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyAndValueInternal(const StringPtr& name,
                                                                                                 BaseObjectPtr& value,
                                                                                                 PropertyPtr& property,
-                                                                                                bool triggerEvent)
+                                                                                                bool triggerEvent,
+                                                                                                bool retrieveUpdatingValue)
 {
     StringPtr propName;
     ConstCharPtr bracket = getPropNameWithoutIndex(name, propName);
@@ -1481,8 +1493,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
     {
         propName = property.getName();
     }
-    
-    ErrCode res = readLocalValue(propName, value);
+
+    ErrCode res = OPENDAQ_SUCCESS;
+    if (!retrieveUpdatingValue || !updatePropertyStack.getPropertyValue(propName, value))
+        res = readLocalValue(propName, value);
 
     if (res != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(res))
     {
@@ -1534,16 +1548,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
 #endif
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
 {
     auto lock = getRecursiveConfigLock();
-    return getPropertyValueInternal(propertyName, value);
+    return getPropertyValueInternal(propertyName, value, retrieveUpdatingValue);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValueNoLock(IString* propertyName, IBaseObject** value)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValueNoLock(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
 {
-    return getPropertyValueInternal(propertyName, value);
+    return getPropertyValueInternal(propertyName, value, retrieveUpdatingValue);
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1760,7 +1774,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
 }
 
 template <typename PropObjInterface, typename... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValueInternal(IString* propertyName, IBaseObject** value)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
 {
     if (propertyName == nullptr || value == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
@@ -1776,12 +1790,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
 
         if (isChildProperty(propName, childName, subName))
         {
-            err = getChildPropertyValue(childName, subName, valuePtr);
+            err = getChildPropertyValue(childName, subName, valuePtr, retrieveUpdatingValue);
         }
         else
         {
             PropertyPtr prop;
-            err = getPropertyAndValueInternal(propName, valuePtr, prop);
+            err = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
         }
 
         if (OPENDAQ_SUCCEEDED(err))

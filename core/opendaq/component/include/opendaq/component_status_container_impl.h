@@ -21,6 +21,7 @@
 #include <coretypes/intfs.h>
 #include <coretypes/validation.h>
 #include <coreobjects/core_event_args_impl.h>
+#include <opendaq/component_deserialize_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -198,8 +199,12 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
     OPENDAQ_PARAM_NOT_NULL(context);
     OPENDAQ_PARAM_NOT_NULL(obj);
 
+    const auto contextPtr = BaseObjectPtr::Borrow(context);
+    const auto deserializerContext = contextPtr.assigned() ? contextPtr.asPtrOrNull<IComponentDeserializeContext>() : nullptr;
+    const ProcedurePtr triggerCoreEvent = deserializerContext.assigned() ? deserializerContext.getTriggerCoreEvent() : nullptr;
+
     ObjectPtr<IComponentStatusContainerPrivate> statusContainer;
-    auto errCode = createObject<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(&statusContainer);
+    auto errCode = createObject<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(&statusContainer, triggerCoreEvent);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
@@ -207,7 +212,11 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
 
     DictPtr<IString, IEnumeration> statuses = serializedObj.readObject("statuses", context, factoryCallback);
     for (const auto& [name, value] : statuses)
-        statusContainer->addStatus(name, value);
+    {
+        errCode = statusContainer->addStatus(name, value);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
 
     *obj = statusContainer.detach();
 

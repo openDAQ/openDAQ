@@ -1685,40 +1685,18 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 
     if (serializedObject.hasKey("connectionStatuses"))
     {
-        connectionStatusContainer = serializedObject.readObject(
-            "connectionStatuses",
-            context,
-            [this](const StringPtr& typeId,
-                   const SerializedObjectPtr& object,
-                   const BaseObjectPtr& context,
-                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
-            {
-                if (typeId == ConnectionStatusContainerImpl::SerializeId())
-                {
-                    auto connStatusContainer = createWithImplementation<IConnectionStatusContainerPrivate, ConnectionStatusContainerImpl>(
-                        this->context,
-                        [this](const CoreEventArgsPtr& args)
-                        {
-                            if (!this->coreEventMuted)
-                                this->triggerCoreEvent(args);
-                        }
-                    );
-
-                    DictPtr<IString, IEnumeration> statuses = object.readObject("connectionStatuses", context, factoryCallback);
-                    DictPtr<IString, IString> statusNameAliases = object.readObject("statusNames", context, factoryCallback);
-
-                    for (const auto& [connString, nameAlias] : statusNameAliases)
-                    {
-                        if (nameAlias == ConfigurationConnectionStatusAlias && statuses.hasKey(connString))
-                        {
-                            connStatusContainer->addConfigurationConnectionStatus(connString, statuses.get(connString));
-                            break;
-                        }
-                    }
-                    return connStatusContainer;
-                }
-                return nullptr;
-            });
+        const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+        auto intfID = deserializeContext.getIntfID();
+        const auto triggerCoreEvent = [this](const CoreEventArgsPtr& args)
+        {
+            if (!this->coreEventMuted)
+                this->triggerCoreEvent(args);
+        };
+        const auto clonedDeserializeContext = deserializeContext.clone(deserializeContext.getParent(),
+                                                                    deserializeContext.getLocalId(),
+                                                                    &intfID,
+                                                                    triggerCoreEvent);
+        connectionStatusContainer = serializedObject.readObject("connectionStatuses", clonedDeserializeContext, factoryCallback);
     }
 
     if (serializedObject.hasKey("UserLock"))

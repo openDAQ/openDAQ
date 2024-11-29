@@ -23,6 +23,7 @@
 
 #include <opendaq/server_capability.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/component_deserialize_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -303,8 +304,13 @@ inline ErrCode ConnectionStatusContainerImpl::Deserialize(ISerializedObject* ser
     OPENDAQ_PARAM_NOT_NULL(context);
     OPENDAQ_PARAM_NOT_NULL(obj);
 
+    const auto contextPtr = BaseObjectPtr::Borrow(context);
+    const auto deserializerContext = contextPtr.assigned() ? contextPtr.asPtrOrNull<IComponentDeserializeContext>() : nullptr;
+    const ProcedurePtr triggerCoreEvent = deserializerContext.assigned() ? deserializerContext.getTriggerCoreEvent() : nullptr;
+    const ContextPtr daqContext = deserializerContext.assigned() ? deserializerContext.getContext() : nullptr;
+
     ObjectPtr<IConnectionStatusContainerPrivate> statusContainer;
-    auto errCode = createObject<IConnectionStatusContainerPrivate, ConnectionStatusContainerImpl>(&statusContainer);
+    auto errCode = createObject<IConnectionStatusContainerPrivate, ConnectionStatusContainerImpl>(&statusContainer, daqContext, triggerCoreEvent);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
@@ -317,7 +323,9 @@ inline ErrCode ConnectionStatusContainerImpl::Deserialize(ISerializedObject* ser
     {
         if (nameAlias == ConfigurationConnectionStatusAlias && statuses.hasKey(connString))
         {
-            statusContainer->addConfigurationConnectionStatus(connString, statuses.get(connString));
+            errCode = statusContainer->addConfigurationConnectionStatus(connString, statuses.get(connString));
+            if (OPENDAQ_FAILED(errCode))
+                return errCode;
             break;
         }
     }

@@ -1751,23 +1751,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
         }
         else
         {
-            auto it = propValues.find(prop.getName());
-            if (it == propValues.end())
-            {
-                return OPENDAQ_IGNORED;
-            }
-
-            if (it->second.assigned())
-            {
-                const auto ownable = it->second.template asPtrOrNull<IOwnable>(true);
-                if (ownable.assigned())
-                    ownable.setOwner(nullptr);
-            }
-
-            propValues.erase(it);
-            cloneAndSetChildPropertyObject(prop);
-
-            BaseObjectPtr newVal;
+            BaseObjectPtr defaultVal = prop.getDefaultValue();
+            BaseObjectPtr newVal = defaultVal;
             const ErrCode err = callPropertyValueWrite(prop, newVal, PropertyEventType::Clear, isUpdating);
 
             if (OPENDAQ_FAILED(err))
@@ -1775,6 +1760,25 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             
             if (err == OPENDAQ_IGNORED)
                 return OPENDAQ_SUCCESS;
+
+            if (newVal == defaultVal)
+            {
+                auto it = propValues.find(prop.getName());
+                if (it == propValues.end())
+                {
+                    return OPENDAQ_IGNORED;
+                }
+
+                if (it->second.assigned())
+                {
+                    const auto ownable = it->second.template asPtrOrNull<IOwnable>(true);
+                    if (ownable.assigned())
+                        ownable.setOwner(nullptr);
+                }
+
+                propValues.erase(it);
+                cloneAndSetChildPropertyObject(prop);
+            }
 
             if (!isUpdating)
                 triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));

@@ -973,14 +973,11 @@ TEST_F(PropertyObjectTest, OnValueChange)
     BaseObjectPtr propValue;
     StringPtr propName;
 
-    auto oldPropertyValue = propObj.getPropertyValue("IntProperty");
-
-    propObj.getOnPropertyValueWrite("Referenced") += [&propValue, &propName, &oldPropertyValue](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+    propObj.getOnPropertyValueWrite("Referenced") += [&propValue, &propName](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
     {
         auto prop = args.getProperty();
 
-        ASSERT_EQ(oldPropertyValue, sender.getPropertyValue("IntProperty"));
-        propValue = args.getValue();
+        propValue = sender.getPropertyValue("IntProperty");
         propName = prop.getName();
     };
 
@@ -1001,6 +998,7 @@ TEST_F(PropertyObjectTest, OnValueChangeClear)
     };
 
     propObj.setPropertyValue("IntProperty", 2);
+    ASSERT_EQ(propObj.getPropertyValue("IntProperty"), 2);
     propObj.clearPropertyValue("IntProperty");
     ASSERT_EQ(numCallbacks, 2);
 }

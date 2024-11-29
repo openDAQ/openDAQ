@@ -190,8 +190,10 @@ public:
 
     virtual ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
-    virtual ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = true) override;
-    virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = true) override;
+    virtual ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
+    virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
+    virtual ErrCode INTERFACE_FUNC getOldPropertyValue(IString* propertyName, IBaseObject** value) override;
+    virtual ErrCode INTERFACE_FUNC getOldPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
@@ -609,7 +611,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     return daqTry([&]() -> auto
     {
         const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
-        value = childPropAsPropertyObject.getPropertyValue(subName, retrieveUpdatingValue);
+        value = retrieveUpdatingValue ? childPropAsPropertyObject.getPropertyValue(subName) : childPropAsPropertyObject.getOldPropertyValue(subName);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -1553,16 +1555,29 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
 #endif
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
     auto lock = getRecursiveConfigLock();
-    return getPropertyValueInternal(propertyName, value, retrieveUpdatingValue);
+    return getPropertyValueInternal(propertyName, value, true);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValueNoLock(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValueNoLock(IString* propertyName, IBaseObject** value)
 {
-    return getPropertyValueInternal(propertyName, value, retrieveUpdatingValue);
+    return getPropertyValueInternal(propertyName, value, true);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOldPropertyValue(IString* propertyName, IBaseObject** value)
+{
+    auto lock = getRecursiveConfigLock();
+    return getPropertyValueInternal(propertyName, value, false);
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOldPropertyValueNoLock(IString* propertyName, IBaseObject** value)
+{
+    return getPropertyValueInternal(propertyName, value, false);
 }
 
 template <class PropObjInterface, class... Interfaces>

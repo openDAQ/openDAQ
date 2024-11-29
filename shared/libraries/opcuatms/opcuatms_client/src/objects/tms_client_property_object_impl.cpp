@@ -113,7 +113,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setProtectedProper
 }
 
 template <typename Impl>
-ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
+ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
     if (propertyName == nullptr)
     {
@@ -133,7 +133,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         else if (referenceVariableIdMap.count(propertyNamePtr))
         {
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
-            return getPropertyValue(refProp.getName(), value, retrieveUpdatingValue);
+            return getPropertyValue(refProp.getName(), value);
         }
         else if (const auto& objIt = objectTypeIdMap.find(propertyNamePtr); objIt != objectTypeIdMap.cend())
         {
@@ -141,7 +141,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
             return OPENDAQ_SUCCESS;
         }
 
-        return Impl::getPropertyValue(propertyName, value, retrieveUpdatingValue);
+        return Impl::getPropertyValue(propertyName, value);
     });
     if (OPENDAQ_FAILED(errCode))
     {

@@ -336,14 +336,14 @@ ErrCode FunctionBlockWrapperImpl::setPropertyValue(IString* propertyName, IBaseO
         });
 }
 
-ErrCode FunctionBlockWrapperImpl::getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
+ErrCode FunctionBlockWrapperImpl::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
     auto lock = this->getRecursiveConfigLock();
 
     if (isPropertyVisible(propertyName))
-        return functionBlock->getPropertyValue(propertyName, value, retrieveUpdatingValue);
+        return functionBlock->getPropertyValue(propertyName, value);
 
     return OPENDAQ_ERR_NOTFOUND;
 }

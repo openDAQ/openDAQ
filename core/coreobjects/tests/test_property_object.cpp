@@ -121,11 +121,11 @@ protected:
         testPropClass.release();
     }
 
-    void intPropertyValueEvent(PropertyObjectPtr& /* propObj */, PropertyValueEventArgsPtr& args)
+    void intPropertyValueEvent(PropertyObjectPtr& propObj, PropertyValueEventArgsPtr& args)
     {
         PropertyPtr prop = args.getProperty();
 
-        propValue = args.getValue();
+        propValue = propObj.getPropertyValue("IntProperty");
         propName = prop.getName();
     }
 

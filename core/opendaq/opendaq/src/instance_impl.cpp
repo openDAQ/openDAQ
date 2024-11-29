@@ -596,9 +596,14 @@ ErrCode InstanceImpl::setPropertyValue(IString* propertyName, IBaseObject* value
     return rootDevice->setPropertyValue(propertyName, value);
 }
 
-ErrCode InstanceImpl::getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue)
+ErrCode InstanceImpl::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
-    return rootDevice->getPropertyValue(propertyName, value, retrieveUpdatingValue);
+    return rootDevice->getPropertyValue(propertyName, value);
+}
+
+ErrCode InstanceImpl::getOldPropertyValue(IString* propertyName, IBaseObject** value)
+{
+    return rootDevice->getOldPropertyValue(propertyName, value);
 }
 
 ErrCode InstanceImpl::getPropertySelectionValue(IString* propertyName, IBaseObject** value)

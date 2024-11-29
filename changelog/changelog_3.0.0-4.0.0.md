@@ -12,19 +12,16 @@
     };
     ```
     **Additional Notes**:
-    - The `getPropertyValue` method returns the property value based on the parameter `retrieveUpdatingValue`.
-        - If the property is being updated and `retrieveUpdatingValue` is set to `true`, the method returns the intermediate value, which can still be overridden in further updates or aborted.
-        - If `retrieveUpdatingValue` is set to `false`, the method returns the old value of the property.
-        - By default, `retrieveUpdatingValue` is set to `true`.
-
+    - If the property is being updated, the method `getPropertyValue` returns the intermediate value, which can still be overridden in further updates or aborted.
+    - If the property is being updated, The method `getOldPropertyValue` returns the old property 
     # Example
     ```cpp
     // propObj has a property prop1 with default value 100
     // Setting a new property value to 345
     propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
     { 
-        assert(obj.getPropertyValue("prop1", true) == 100);  // Old value
-        assert(obj.getPropertyValue("prop1", false) == 345); // Value to set
+        assert(obj.getOldPropertyValue("prop1") == 100);  // Old value
+        assert(obj.getPropertyValue("prop1") == 345); // Value to set
         assert(arg.getValue() == 345); // Value to set
     };
     propObj.setPropertyValue("prop1", 345);
@@ -47,7 +44,7 @@
     {
         // Restore value without an throwing exeption
         if ((Int)arg.getValue() < 0)
-            arg.setValue(obj.getPropertyValue("prop1", false));
+            arg.setValue(obj.getOldPropertyValue("prop1"));
     };
     ```
     **Handling Flaky Property Updates**
@@ -77,13 +74,9 @@
     ```
 
 ```
--m [function] IPropertyObject::getPropertyValue(IString* propertyName, IBaseObject** value)
-+m [function] IPropertyObject::getPropertyValue(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = true)
-
--m [function] IPropertyObjectInternal::getPropertyValueNoLock(IString* name, IBaseObject** value)
-+m [function] IPropertyObjectInternal::getPropertyValueNoLock(IString* name, IBaseObject** value, Bool retrieveUpdatingValue = true)
++ [function] IPropertyObject::getOldPropertyValue(IString* propertyName, IBaseObject** value)
++ [function] IPropertyObjectInternal::getOldPropertyValueNoLock(IString* name, IBaseObject** value)
 ```
-
 
 # 25.11.2024
 ## Description

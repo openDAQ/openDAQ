@@ -40,10 +40,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) = 0;
     virtual ErrCode INTERFACE_FUNC hasUserReadAccess(IBaseObject* userContext, Bool * hasAccessOut) = 0;
 
-    virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* name, IBaseObject** value, Bool retrieveUpdatingValue = true) = 0;
+    virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* name, IBaseObject** value) = 0;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* name, IBaseObject** value) = 0;
     virtual ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* name, IBaseObject* value) = 0;
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* name) = 0;
+    virtual ErrCode INTERFACE_FUNC getOldPropertyValueNoLock(IString* name, IBaseObject** value) = 0;
+
 };
 
 /*!@}*/

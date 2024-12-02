@@ -119,7 +119,6 @@ public:
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
-    ErrCode INTERFACE_FUNC getOldPropertyValue(IString* propertyName, IBaseObject** value) override;
 
     ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;

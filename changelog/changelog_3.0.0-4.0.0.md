@@ -13,16 +13,16 @@ propObj.getOnPropertyValueWrite(propName) += (PropertyObjectPtr& obj, PropertyVa
 ```
 **Additional Notes**:
 - If the property is being updated, the method `getPropertyValue` returns the intermediate value, which can still be overridden in further updates or aborted.
-- If the property is being updated, The method `getOldPropertyValue` returns the old property 
+- If the property is being updated, The method `IPropertyValueEventArgs::getOldValue` inside the callback returns the old property 
 # Example
 ```cpp
 // propObj has a property prop1 with default value 100
 // Setting a new property value to 345
 propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
-{ 
-    assert(obj.getOldPropertyValue("prop1") == 100);  // Old value
+{
     assert(obj.getPropertyValue("prop1") == 345); // Value to set
     assert(arg.getValue() == 345); // Value to set
+    assert(arg.getOldValue() == 100); // Old value
 };
 propObj.setPropertyValue("prop1", 345);
 ```
@@ -40,11 +40,11 @@ propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyV
 };
 ```
 ```cpp
-propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg) 
 {
     // Restore value without an throwing exeption
     if ((Int)arg.getValue() < 0)
-        arg.setValue(obj.getOldPropertyValue("prop1"));
+        arg.setValue(arg.getOldValue());
 };
 ```
 **Handling Flaky Property Updates**:
@@ -75,8 +75,16 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ```
 
 ```
-+ [function] IPropertyObject::getOldPropertyValue(IString* propertyName, IBaseObject** value)
-+ [function] IPropertyObjectInternal::getOldPropertyValueNoLock(IString* name, IBaseObject** value)
++ [function] IPropertyValueEventArgs::getOldValue(IBaseObject** value)
+-m[factory] PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
+                                                        const BaseObjectPtr& newValue,
+                                                        PropertyEventType changeType,
+                                                        Bool isUpdating)
++m[factory] PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
+                                                        const BaseObjectPtr& newValue,
+                                                        const BaseObjectPtr& oldValue,
+                                                        PropertyEventType changeType,
+                                                        Bool isUpdating)
 ```
 
 # 25.11.2024

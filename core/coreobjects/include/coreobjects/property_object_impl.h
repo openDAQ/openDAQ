@@ -109,51 +109,75 @@ class PropertyUpdateStack
         PropertyUpdateStackItem(const BaseObjectPtr& value)
             : value(value)
             , stackLevel(1)
+            , isPushed(true)
         {
+        }
+
+        bool setValue(const BaseObjectPtr& value)
+        {
+            if (this->value == value)
+                return false;
+
+            this->value = value;
+            this->isPushed = true;
+            this->stackLevel++;
+            return true;
+        }
+
+        bool unregister()
+        {
+            bool result = this->isPushed;
+            this->isPushed = false;
+            this->stackLevel--;
+            return result;
+        }
+
+        size_t getStackLevel() const
+        {
+            return this->stackLevel;
         }
 
         BaseObjectPtr value;
         size_t stackLevel;
+        bool isPushed;
     };
 
 public:
     PropertyUpdateStack() = default;
 
-    // if update was not registered, returns 0, otherwise current stack level
-    size_t registerPropertyUpdating(const std::string& name, const BaseObjectPtr& value)
+    // return true if property is registered
+    bool registerPropertyUpdating(const std::string& name, const BaseObjectPtr& value)
     {
         auto [it, inserted] = updatePropertyStack.try_emplace(name, value);
-        auto& propertItem = it->second;
 
         if (inserted)
-            return propertItem.stackLevel;
+            return true;
 
-        if (value == propertItem.value)
-            return 0;
-        
-        propertItem.value = value;
-        return ++(propertItem.stackLevel);
+        auto& propertItem = it->second;
+        return propertItem.setValue(value);
     }
 
-    inline bool isTopStackLevel(const std::string& name, size_t stackLevel) const
+    // returns true is object need to be written
+    bool unregisetPropertyUpdating(const std::string& name)
     {
-        return updatePropertyStack.at(name).stackLevel == stackLevel;
+        auto it = updatePropertyStack.find(name);
+        if (it == updatePropertyStack.end())
+            return false;
+
+        auto& propertItem = it->second;
+        bool result = propertItem.unregister();
+        if (propertItem.getStackLevel() == 0)
+            updatePropertyStack.erase(it);
+        return result;
     }
 
-    inline bool isBaseStackLevel(size_t stackLevel) const 
+    bool isBaseStackLevel(const std::string& name) const
     {
-        return stackLevel == 1;
-    }
+        auto it = updatePropertyStack.find(name);
+        if (it == updatePropertyStack.end())
+            return false;
 
-    inline bool isPropertyUpdateRegistered(size_t stackLevel) const
-    {
-        return stackLevel;
-    }
-
-    inline void finalizePropertyUpdating(const std::string& name, size_t stackLevel)
-    {
-        if (stackLevel == 1)
-            updatePropertyStack.erase(name);
+        return it->second.getStackLevel() == 1;
     }
 
     bool getPropertyValue(const std::string& name, BaseObjectPtr& value) const
@@ -162,8 +186,9 @@ public:
         if (it == updatePropertyStack.end())
             return false;
 
+        // if value is not assigned, it means, that property is on clearing stage (clearPropertyValue)
         value = it->second.value;
-        return true;
+        return value.assigned();
     }
 
 private:
@@ -192,8 +217,6 @@ public:
     virtual ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
-    virtual ErrCode INTERFACE_FUNC getOldPropertyValue(IString* propertyName, IBaseObject** value) override;
-    virtual ErrCode INTERFACE_FUNC getOldPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
@@ -443,7 +466,7 @@ private:
     ConstCharPtr getPropNameWithoutIndex(const StringPtr& name, StringPtr& propName) const;
 
     // Child property handling - Used when a property is queried in the "parent.child" format
-    ErrCode getChildPropertyValue(const StringPtr& childName, const StringPtr& subName, BaseObjectPtr& value, bool retrieveUpdatingValue);
+    ErrCode getChildPropertyValue(const StringPtr& childName, const StringPtr& subName, BaseObjectPtr& value);
 
     PropertyPtr checkForRefPropAndGetBoundProp(PropertyPtr& prop, bool* isReferenced = nullptr) const;
 
@@ -576,8 +599,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildPropertyValue(const StringPtr& childName,
                                                                                           const StringPtr& subName,
-                                                                                          BaseObjectPtr& value,
-                                                                                          bool retrieveUpdatingValue)
+                                                                                          BaseObjectPtr& value)
 {
     PropertyPtr prop;
     StringPtr name;
@@ -602,7 +624,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     }
 
     BaseObjectPtr childProp;
-    err = getPropertyValueInternal(name, &childProp, retrieveUpdatingValue);
+    err = getPropertyValueInternal(name, &childProp);
     if (OPENDAQ_FAILED(err))
     {
         return err;
@@ -611,7 +633,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     return daqTry([&]() -> auto
     {
         const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
-        value = retrieveUpdatingValue ? childPropAsPropertyObject.getPropertyValue(subName) : childPropAsPropertyObject.getOldPropertyValue(subName);
+        value = childPropAsPropertyObject.getPropertyValue(subName);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -627,23 +649,30 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
                                                                                            bool isUpdating)
 {
     const auto name = prop.getName();
-    size_t curStackLevel = updatePropertyStack.registerPropertyUpdating(name, newValue);
 
-    // it the value is not changed, we can skip the event
-    if (!updatePropertyStack.isPropertyUpdateRegistered(curStackLevel))
+    if (!updatePropertyStack.registerPropertyUpdating(name, newValue))
         return OPENDAQ_IGNORED;
 
-    if (updatePropertyStack.isBaseStackLevel(curStackLevel))
+    const bool isBaseStackLevel = updatePropertyStack.isBaseStackLevel(name);
+    if (isBaseStackLevel)
     {
-        // if the value is not changed, we can skip the event
-        if (!shouldWriteLocalValue(name, newValue))
+        if (newValue.assigned() && !shouldWriteLocalValue(name, newValue))
         {
-            updatePropertyStack.finalizePropertyUpdating(name, curStackLevel);
+            updatePropertyStack.unregisetPropertyUpdating(name);
             return OPENDAQ_IGNORED;
         }
     }
 
-    auto args = PropertyValueEventArgs(prop, newValue, changeType, isUpdating);
+    BaseObjectPtr oldValue;
+    ErrCode errCode = readLocalValue(name, oldValue);
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+    {
+        daqClearErrorInfo();
+        oldValue = prop.getDefaultValue();
+    }
+    errCode = OPENDAQ_SUCCESS;
+
+    auto args = PropertyValueEventArgs(prop, newValue, oldValue, changeType, isUpdating);
     if (!localProperties.count(name))
     {
         const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>(true).getClassOnPropertyValueWrite()};
@@ -651,25 +680,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
             propEvent(objPtr, args);
     }
 
-    ErrCode errCode = OPENDAQ_SUCCESS;
-
     if (valueWriteEvents.find(name) != valueWriteEvents.end())
     {
         if (valueWriteEvents[name].hasListeners())
             errCode = daqTry([&] { valueWriteEvents[name](objPtr, args); });
     }
 
+    bool shouldUpdate = updatePropertyStack.unregisetPropertyUpdating(name);
     // If the event execution failed, forward the error code
     if (OPENDAQ_FAILED(errCode))
-    {
-        updatePropertyStack.finalizePropertyUpdating(name, curStackLevel);
         return errCode;
-    }
 
-    bool isTopLevel = updatePropertyStack.isTopStackLevel(name, curStackLevel);
-    updatePropertyStack.finalizePropertyUpdating(name, curStackLevel);
-
-    if (isTopLevel)
+    if (shouldUpdate)
     {
         // setting the final value is only done in the top level of the stack
         if (newValue == args.getValue())
@@ -691,7 +713,7 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
         return readValue;
     }
 
-    auto args = PropertyValueEventArgs(prop, readValue, PropertyEventType::Read, False);
+    auto args = PropertyValueEventArgs(prop, readValue, readValue, PropertyEventType::Read, False);
 
     if (!localProperties.count(prop.getName()))
     {
@@ -1114,7 +1136,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 if (!writeLocalValue(propName, valuePtr))
                     return OPENDAQ_IGNORED;
                 setOwnerToPropertyValue(valuePtr);
-            }           
+            }
         }
 
         return OPENDAQ_SUCCESS;
@@ -1568,19 +1590,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOldPropertyValue(IString* propertyName, IBaseObject** value)
-{
-    auto lock = getRecursiveConfigLock();
-    return getPropertyValueInternal(propertyName, value, false);
-}
-
-template <typename PropObjInterface, typename ... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOldPropertyValueNoLock(IString* propertyName, IBaseObject** value)
-{
-    return getPropertyValueInternal(propertyName, value, false);
-}
-
-template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
     auto lock = getRecursiveConfigLock();
@@ -1766,8 +1775,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
         }
         else
         {
-            BaseObjectPtr defaultVal = prop.getDefaultValue();
-            BaseObjectPtr newVal = defaultVal;
+            BaseObjectPtr newVal;
             const ErrCode err = callPropertyValueWrite(prop, newVal, PropertyEventType::Clear, isUpdating);
 
             if (OPENDAQ_FAILED(err))
@@ -1775,8 +1783,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             
             if (err == OPENDAQ_IGNORED)
                 return OPENDAQ_SUCCESS;
-
-            if (newVal == defaultVal)
+            
+            if (!newVal.assigned())
             {
                 auto it = propValues.find(prop.getName());
                 if (it == propValues.end())
@@ -1824,7 +1832,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
 
         if (isChildProperty(propName, childName, subName))
         {
-            err = getChildPropertyValue(childName, subName, valuePtr, retrieveUpdatingValue);
+            err = getChildPropertyValue(childName, subName, valuePtr);
         }
         else
         {

@@ -349,23 +349,6 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * @param[out] permissionManager The permission manager of property object.
      */
     virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) = 0;
-
-    /*!
-     * @brief Retrieves the previous (non-updated) value of the Property with the given name.
-     * @param propertyName The name of the Property.
-     * @param[out] value The returned old Property value.
-     * @retval OPENDAQ_ERR_NOTFOUND if a property with the given `propertyName` is not part of the Property object.
-     * @retval OPENDAQ_ERR_INVALIDPARAMETER if attempting to get a value at an index of a non-list Property.
-     * @retval OPENDAQ_ERR_OUTOFRANGE if attempting to get a value of a list Property at an out-of-bounds index.
-     *
-     * This method retrieves the old value of the Property, ignoring any intermediate updates. The value is returned from the local
-     * dictionary of Property values where they were stored before the current update process.
-     *
-     * All retrieval behaviors (including child Property objects, list properties, and selection properties) are consistent with 
-     * the `getPropertyValue` method.
-     */
-    virtual ErrCode INTERFACE_FUNC getOldPropertyValue(IString* propertyName, IBaseObject** value) = 0;
-
 };
 
 /*!@}*/

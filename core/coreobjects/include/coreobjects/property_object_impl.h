@@ -188,7 +188,7 @@ public:
 
         // if value is not assigned, it means, that property is on clearing stage (clearPropertyValue)
         value = it->second.value;
-        return value.assigned();
+        return true;
     }
 
 private:
@@ -1524,8 +1524,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
     }
 
     ErrCode res = OPENDAQ_SUCCESS;
-    if (!retrieveUpdatingValue || !updatePropertyStack.getPropertyValue(propName, value))
+
+    if (retrieveUpdatingValue && updatePropertyStack.getPropertyValue(propName, value))
+    {
+        if (!value.assigned())
+            value = property.getDefaultValue();
+    }
+    else
+    {
         res = readLocalValue(propName, value);
+    }
 
     if (res != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(res))
     {

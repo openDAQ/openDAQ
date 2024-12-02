@@ -219,4 +219,13 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         },
         py::return_value_policy::take_ownership,
         "Gets the permission manager of property object.");
+    cls.def("get_old_property_value",
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getOldPropertyValue(getVariantValue<daq::IString*>(propertyName)));
+        },
+        py::arg("property_name"),
+        "Retrieves the previous (non-updated) value of the Property with the given name.");
 }

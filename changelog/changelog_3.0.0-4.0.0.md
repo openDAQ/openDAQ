@@ -2,76 +2,77 @@
 ## Description
 - Fixed the issue where property values were written before validation.
 ## Required integration changes
-- Callback Attachment for Property Write. 
-  
-    To attach a callback to the property object for handling property writes, use the following pattern:
-    ```cpp
-    propObj.getOnPropertyValueWrite(propName) += (PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
-    { 
-        // Your logic here 
-    };
-    ```
-    **Additional Notes**:
-    - If the property is being updated, the method `getPropertyValue` returns the intermediate value, which can still be overridden in further updates or aborted.
-    - If the property is being updated, The method `getOldPropertyValue` returns the old property 
-    # Example
-    ```cpp
-    // propObj has a property prop1 with default value 100
-    // Setting a new property value to 345
-    propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
-    { 
-        assert(obj.getOldPropertyValue("prop1") == 100);  // Old value
-        assert(obj.getPropertyValue("prop1") == 345); // Value to set
-        assert(arg.getValue() == 345); // Value to set
-    };
-    propObj.setPropertyValue("prop1", 345);
-    ```
 
-    **Ignoring the New Value for a Property**:
-    - If you want to ignore setting the new value for a property:
-    **Throw an exception in the callback**: This will cancel the property update and propagate the exception to the setPropertyValue call.
-    - **Alternatively, skip the update**: Use the following pattern to revert to the old value without throwing an exception:
-    ```cpp
-    propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
-    {
-        // Restore by throwing an exeption
-        if ((Int)arg.getValue() < 0)
-            throw OutOfRangeException("prop1 value is negative");
-    };
-    ```
-    ```cpp
-    propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
-    {
-        // Restore value without an throwing exeption
-        if ((Int)arg.getValue() < 0)
-            arg.setValue(obj.getOldPropertyValue("prop1"));
-    };
-    ```
-    **Handling Flaky Property Updates**
-    When defining a callback for a property (e.g., `prop1`), if you update another property (`prop2`) within the callback and then throw an exception, the changes to `prop1` will be rolled back automatically, meanwhile `prop2` will have a new value
-    ```cpp
-    // prop1 has a default value of 0
-    // prop2 has a default value of 0
-    propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
-    { 
-        obj.setPropertyValue("prop2", arg.getValue()); // Update prop2
-        if ((int)arg.getValue() < 0) // Validate prop1's value
-            throw OutOfRangeException("prop1 value is negative"); // Abort prop1 update
-    };
+**Callback Attachment for Property Write**  
+To attach a callback to the property object for handling property writes, use the following pattern:
+```cpp
+propObj.getOnPropertyValueWrite(propName) += (PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+{ 
+    // Your logic here 
+};
+```
+**Additional Notes**:
+- If the property is being updated, the method `getPropertyValue` returns the intermediate value, which can still be overridden in further updates or aborted.
+- If the property is being updated, The method `getOldPropertyValue` returns the old property 
+# Example
+```cpp
+// propObj has a property prop1 with default value 100
+// Setting a new property value to 345
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+{ 
+    assert(obj.getOldPropertyValue("prop1") == 100);  // Old value
+    assert(obj.getPropertyValue("prop1") == 345); // Value to set
+    assert(arg.getValue() == 345); // Value to set
+};
+propObj.setPropertyValue("prop1", 345);
+```
 
-    try 
-    {
-        propObj.setPropertyValue("prop1", -1); // This will throw an exception
-    } 
-    catch (...) 
-    {
-        // Exception is handled here
-    }
+**Ignoring the New Value for a Property**:
+- If you want to ignore setting the new value for a property:
+**Throw an exception in the callback**: This will cancel the property update and propagate the exception to the setPropertyValue call.
+- **Alternatively, skip the update**: Use the following pattern to revert to the old value without throwing an exception:
+```cpp
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+{
+    // Restore by throwing an exeption
+    if ((Int)arg.getValue() < 0)
+        throw OutOfRangeException("prop1 value is negative");
+};
+```
+```cpp
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+{
+    // Restore value without an throwing exeption
+    if ((Int)arg.getValue() < 0)
+        arg.setValue(obj.getOldPropertyValue("prop1"));
+};
+```
+**Handling Flaky Property Updates**:
 
-    // Ensure property values remain unchanged
-    assert(propObj.getPropertyValue("prop1") == 0); // prop1 retains its original value
-    assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
-    ```
+When defining a callback for a property (e.g., `prop1`), if you update another property (`prop2`) within the callback and then throw an exception, the changes to `prop1` will be rolled back automatically, meanwhile `prop2` will have a new value
+```cpp
+// prop1 has a default value of 0
+// prop2 has a default value of 0
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+{ 
+    obj.setPropertyValue("prop2", arg.getValue()); // Update prop2
+    if ((int)arg.getValue() < 0) // Validate prop1's value
+        throw OutOfRangeException("prop1 value is negative"); // Abort prop1 update
+};
+
+try 
+{
+    propObj.setPropertyValue("prop1", -1); // This will throw an exception
+} 
+catch (...) 
+{
+    // Exception is handled here
+}
+
+// Ensure property values remain unchanged
+assert(propObj.getPropertyValue("prop1") == 0); // prop1 retains its original value
+assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
+```
 
 ```
 + [function] IPropertyObject::getOldPropertyValue(IString* propertyName, IBaseObject** value)

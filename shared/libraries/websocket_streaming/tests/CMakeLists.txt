@@ -7,6 +7,7 @@ add_executable(${TEST_APP}
     test_streaming.cpp
     test_websocket_client_device.cpp
     test_signal_generator.cpp
+    test_app.cpp
 )
 
 if (MSVC)
@@ -18,7 +19,7 @@ target_link_libraries(${TEST_APP} PRIVATE
     daq::opendaq
     daq::opendaq_mocks
     daq::streaming_protocol
-    GTest::GTest GTest::Main
+    ${SDK_TARGET_NAMESPACE}::test_utils
 )
 
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)

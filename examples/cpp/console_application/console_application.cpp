@@ -36,17 +36,17 @@ void ConsoleApplication::start()
 
 std::string ConsoleApplication::getTypeString(const BaseObjectPtr& obj)
 {
-    if (obj.asPtrOrNull<IInstance>().assigned())
+    if (obj.supportsInterface<IInstance>())
         return "instance";
-    if (obj.asPtrOrNull<IDevice>().assigned())
+    if (obj.supportsInterface<IDevice>())
         return "device";
-    if (obj.asPtrOrNull<IChannel>().assigned())
+    if (obj.supportsInterface<IChannel>())
         return "channel";
-    if (obj.asPtrOrNull<IFunctionBlock>().assigned())
+    if (obj.supportsInterface<IFunctionBlock>())
         return "function-block";
-    if (obj.asPtrOrNull<ISignal>().assigned())
+    if (obj.supportsInterface<ISignal>())
         return "signal";
-    if (obj.asPtrOrNull<IInputPort>().assigned())
+    if (obj.supportsInterface<IInputPort>())
         return "input-port";
     return "";
 }
@@ -65,7 +65,7 @@ bool ConsoleApplication::processCommand(const std::vector<std::string>& command)
     if (!command.empty() && command[0] == "exit")
         return true;
 
-    if (!command.empty() && command[0] == "Help")
+    if (!command.empty() && command[0] == "help")
     {
         std::cout << std::setw(25) << std::left << "exit"
                   << "Exits the application." << std::endl
@@ -105,15 +105,15 @@ bool ConsoleApplication::processCommand(const std::vector<std::string>& command)
     const BaseObjectPtr prev = currentObject;
 
     bool validCommand = false;
-    if (currentObject.asPtrOrNull<IDevice>().assigned())
+    if (currentObject.supportsInterface<IDevice>())
         validCommand = AppDevice::processCommand(currentObject, command);
-    else if (currentObject.asPtrOrNull<IChannel>().assigned())
+    else if (currentObject.supportsInterface<IChannel>())
         validCommand = AppChannel::processCommand(currentObject, command);
-    else if (currentObject.asPtrOrNull<IFunctionBlock>().assigned())
+    else if (currentObject.supportsInterface<IFunctionBlock>())
         validCommand = AppFunctionBlock::processCommand(currentObject, command);
-    else if (currentObject.asPtrOrNull<ISignal>().assigned())
+    else if (currentObject.supportsInterface<ISignal>())
         validCommand = AppSignal::processCommand(currentObject, command);
-    else if (currentObject.asPtrOrNull<IInputPort>().assigned())
+    else if (currentObject.supportsInterface<IInputPort>())
         validCommand = AppInputPort::processCommand(currentObject, command, instance);
 
     if (!validCommand)

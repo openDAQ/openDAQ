@@ -19,7 +19,12 @@ void wrapDaqComponentCoreObjects(pybind11::module_ m)
     auto classIValidator = declareIValidator(m);
     auto classIUnit = declareIUnit(m);
     auto classIUnitBuilder = declareIUnitBuilder(m);
-    auto classIComponentType = declareIComponentType(m);
+    auto classIUser = declareIUser(m);
+    auto classIAuthenticationProvider = declareIAuthenticationProvider(m);
+    auto classIPermissionsBuilder = declareIPermissionsBuilder(m);
+    auto classIPermissionMaskBuilder = declareIPermissionMaskBuilder(m);
+    auto classIPermissionManager = declareIPermissionManager(m);
+    auto classIPermissions = declareIPermissions(m);
 
     defineIArgumentInfo(m, classIArgumentInfo);
     defineICallableInfo(m, classICallableInfo);
@@ -36,5 +41,10 @@ void wrapDaqComponentCoreObjects(pybind11::module_ m)
     defineIValidator(m, classIValidator);
     defineIUnit(m, classIUnit);
     defineIUnitBuilder(m, classIUnitBuilder);
-    defineIComponentType(m, classIComponentType);
+    defineIUser(m, classIUser);
+    defineIAuthenticationProvider(m, classIAuthenticationProvider);
+    defineIPermissionsBuilder(m, classIPermissionsBuilder);
+    defineIPermissionMaskBuilder(m, classIPermissionMaskBuilder);
+    defineIPermissionManager(m, classIPermissionManager);
+    defineIPermissions(m, classIPermissions);
 }

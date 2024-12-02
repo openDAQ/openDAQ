@@ -114,9 +114,12 @@ public static partial class OpenDAQFactory
 
 #if _WIN32
     /// <summary>Creates a Logger Sink object with WinDebug output as a target.</summary>
-    /// <returns></returns>
+    /// <returns>The sink when called on Windows, otherwise <c>null</c>.</returns>
     public static LoggerSink WinDebugLoggerSink()
     {
+        if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            return null;
+
         /*
             inline LoggerSinkPtr WinDebugLoggerSink()
             {
@@ -256,12 +259,15 @@ public static partial class OpenDAQFactory
         }
 
 #if _WIN32
-        var winDebugSinkLogLevel = getEnvLogLevel("OPENDAQ_SINK_WINDEBUG_LOG_LEVEL", (int)LogLevel.Info);
-        if (winDebugSinkLogLevel != LogLevel.Off)
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
         {
-            var winDebugSink = WinDebugLoggerSink();
-            winDebugSink.Level = winDebugSinkLogLevel;
-            sinks.Add(winDebugSink);
+            var winDebugSinkLogLevel = getEnvLogLevel("OPENDAQ_SINK_WINDEBUG_LOG_LEVEL", (int)LogLevel.Info);
+            if (winDebugSinkLogLevel != LogLevel.Off)
+            {
+                var winDebugSink   = WinDebugLoggerSink();
+                winDebugSink.Level = winDebugSinkLogLevel;
+                sinks.Add(winDebugSink);
+            }
         }
 #endif
 
@@ -531,6 +537,28 @@ public static partial class OpenDAQFactory
     }
 
     #endregion AuthenticationProvider
+
+    #region User
+
+    /// <summary>Creates an immutable user object</summary>
+    /// <returns>The &apos;User&apos; object.</returns>
+    /// <param name="username">The username.</param>
+    /// <param name="passwordHash">The hashed password as a string in Modular Crypt Format.</param>
+    /// <param name="groups">The list of group IDs which the user belongs to.</param>
+    public static User User(string username, string passwordHash, List<string> groups = null)
+    {
+        var groupList = CoreTypesFactory.CreateList<BaseObject>();
+
+        if (groups != null)
+        {
+            foreach (var group in groups)
+                groupList.Add(group);
+        }
+
+        return CoreObjectsFactory.CreateUser(username, passwordHash, groupList);
+    }
+
+    #endregion User
 
     #region ConfigProvider
 

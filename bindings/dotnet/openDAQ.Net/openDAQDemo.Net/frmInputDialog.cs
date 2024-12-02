@@ -1,4 +1,21 @@
-﻿using Daq.Core.Types;
+﻿/*
+ * Copyright 2022-2024 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+using Daq.Core.Types;
 
 
 namespace openDAQDemoNet;
@@ -25,6 +42,8 @@ public partial class frmInputDialog : Form
     private frmInputDialog()
     {
         InitializeComponent();
+
+        MakeSimpleInput();
     }
 
 
@@ -44,26 +63,20 @@ public partial class frmInputDialog : Form
             e.Cancel = true;
     }
 
-    /// <summary>
-    /// Handles the KeyUp event of the <c>comboBoxValue</c> control.<para/>
-    /// Handles keys: <c>Return, Enter, Escape</c>.
-    /// </summary>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="e">The <see cref="KeyEventArgs"/> instance containing the event data.</param>
-    private void comboBoxValue_KeyUp(object sender, KeyEventArgs e)
+
+    private void MakeSimpleInput()
     {
-        if ((e.KeyCode == Keys.Enter) || (e.KeyCode == Keys.Return))
-        {
-            this.DialogResult = DialogResult.OK;
-            this.Close();
-        }
-        else if (e.KeyCode == Keys.Escape)
-        {
-            this.DialogResult = DialogResult.Cancel;
-            this.Close();
-        }
+        this.comboBoxValue.DropDownStyle      = ComboBoxStyle.Simple;
+        //this.comboBoxValue.AutoCompleteMode   = AutoCompleteMode.SuggestAppend;
+        //this.comboBoxValue.AutoCompleteSource = AutoCompleteSource.CustomSource;
     }
 
+    private void MakeDropDownListInput(StringObject[] selectionValues, int selectedIndex)
+    {
+        this.comboBoxValue.Items.AddRange(selectionValues);
+        this.comboBoxValue.DropDownStyle = ComboBoxStyle.DropDownList;
+        this.comboBoxValue.SelectedIndex = selectedIndex;
+    }
 
     /// <summary>
     /// Default validate function with no operation.
@@ -272,16 +285,20 @@ public partial class frmInputDialog : Form
                                long originalValue,
                                IList<StringObject> selectionValues)
     {
+        int    selectedIndex = (int)originalValue;
+        if (selectedIndex >= selectionValues.Count)
+            selectedIndex = -1;
+
         using (var dlg = new frmInputDialog())
         {
             dlg.Text            = title;
             dlg.lblCaption.Text = caption;
 
+            dlg.MakeDropDownListInput(selectionValues.ToArray(), selectedIndex);
+
             dlg.lblMinMax.Visible = false;
 
-            dlg.comboBoxValue.Items.AddRange(selectionValues.ToArray());
-            dlg.comboBoxValue.DropDownStyle = ComboBoxStyle.DropDownList;
-            dlg.comboBoxValue.Text          = selectionValues[(int)originalValue];
+            dlg.btnOK.Enabled = (dlg.comboBoxValue.Items.Count > 0);
 
             if (dlg.ShowDialog(owner) == DialogResult.OK)
                 return dlg.comboBoxValue.SelectedIndex;
@@ -305,16 +322,20 @@ public partial class frmInputDialog : Form
                                long originalValue,
                                IDictionary<IntegerObject, StringObject> selectionValues)
     {
+        int    selectedIndex = (int)originalValue;
+        if (selectedIndex >= selectionValues.Count)
+            selectedIndex = -1;
+
         using (var dlg = new frmInputDialog())
         {
             dlg.Text            = title;
             dlg.lblCaption.Text = caption;
 
+            dlg.MakeDropDownListInput(selectionValues.Values.ToArray(), selectedIndex);
+
             dlg.lblMinMax.Visible = false;
 
-            dlg.comboBoxValue.Items.AddRange(selectionValues.Values.ToArray());
-            dlg.comboBoxValue.DropDownStyle = ComboBoxStyle.DropDownList;
-            dlg.comboBoxValue.Text          = selectionValues[(int)originalValue];
+            dlg.btnOK.Enabled = (dlg.comboBoxValue.Items.Count > 0);
 
             if (dlg.ShowDialog(owner) == DialogResult.OK)
                 return dlg.comboBoxValue.SelectedIndex;

@@ -19,6 +19,7 @@
 #include <opendaq/input_port_impl.h>
 #include <config_protocol/config_client_connection_impl.h>
 #include <config_protocol/config_client_input_port.h>
+#include <opendaq/errors.h>
 
 namespace daq::config_protocol
 {
@@ -40,6 +41,8 @@ public:
 
     ErrCode INTERFACE_FUNC assignSignal(ISignal* signal) override;
 
+    ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -47,7 +50,11 @@ protected:
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
     ConnectionPtr createConnection(const SignalPtr& signal) override;
-    bool isConnected(const SignalPtr& signal);
+    SignalPtr getConnectedSignal();
+
+    bool isSignalFromTheSameComponentTree(const SignalPtr& signal);
+
+    void removed() override;
 };
 
 inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -69,27 +76,37 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
         {
             if (!this->deserializationComplete)
                 return Super::connect(signal);
-
             const auto signalPtr = SignalPtr::Borrow(signal);
+            if (!isSignalFromTheSameComponentTree(signalPtr))
+                return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
             {
-                std::scoped_lock lock(this->sync);
+                auto lock = this->getRecursiveConfigLock();
 
-                if (isConnected(signalPtr))
+                const auto connectedSignal = getConnectedSignal();
+                if (connectedSignal == signalPtr)
                     return OPENDAQ_IGNORED;
+                if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
+                    clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
             }
 
             const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
-            if (!configObject.assigned())
-                throw InvalidParameterException("Not a remote signal");
+            if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
+            {
+                StringPtr signalRemoteGlobalId;
+                checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+                clientComm->connectSignal(remoteGlobalId, signalRemoteGlobalId);
+            }
+            else
+            {
+                if (clientComm->getProtocolVersion() >= 2)
+                    clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId);
+                else
+                    return makeErrorInfo(
+                        OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
+                        "Client-to-device streaming operations are not supported by the protocol version currently in use"
+                    );
+            }
 
-             // TODO check that signal actually belongs to this device
-
-            StringPtr signalRemoteGlobalId;
-            checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
-
-            auto params = ParamsDict({{"SignalId", signalRemoteGlobalId}});
-
-            clientComm->sendComponentCommand(remoteGlobalId, "ConnectSignal", params, nullptr);
             return Super::connect(signal);
         });
 }
@@ -101,25 +118,61 @@ inline ErrCode ConfigClientInputPortImpl::disconnect()
         {
             assert(this->deserializationComplete);
 
-            clientComm->sendComponentCommand(remoteGlobalId, "DisconnectSignal", nullptr);
+            clientComm->disconnectSignal(remoteGlobalId);
             return Super::disconnect();
         });
 }
 
 inline ErrCode ConfigClientInputPortImpl::assignSignal(ISignal* signal)
 {
+    const auto connectedSignal = getConnectedSignal();
+    const auto signalPtr = SignalPtr::Borrow(signal);
+
+    if (connectedSignal != signalPtr && connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
+        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
+
     if (signal == nullptr)
         return Super::disconnect();
     return Super::connect(signal);
 }
 
-inline bool ConfigClientInputPortImpl::isConnected(const SignalPtr& signal)
+inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(signal);
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+
+    return daqTry(
+        [this, &signal, &accepts]
+        {
+            if (clientComm->getProtocolVersion() < 4)
+                return OPENDAQ_ERR_SERVER_VERSION_TOO_LOW;
+
+            const auto signalPtr = SignalPtr::Borrow(signal);
+            if (!isSignalFromTheSameComponentTree(signalPtr))
+                return makeErrorInfo(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Signal is not from the same component tree");
+
+            const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
+            if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
+            {
+                StringPtr signalRemoteGlobalId;
+                checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+                BooleanPtr acceptsPtr = clientComm->acceptsSignal(remoteGlobalId, signalRemoteGlobalId);
+                *accepts = acceptsPtr.getValue(False);
+                return OPENDAQ_SUCCESS;
+            }
+            *accepts = False;
+            return OPENDAQ_SUCCESS;
+        });
+}
+
+
+inline SignalPtr ConfigClientInputPortImpl::getConnectedSignal()
 {
     const auto conn = this->getConnectionNoLock();
-    if (conn.assigned() && conn.getSignal() == signal)
-        return true;
+    if (conn.assigned())
+        return conn.getSignal();
 
-    return false;
+    return nullptr;
 }
 
 inline ErrCode ConfigClientInputPortImpl::Deserialize(ISerializedObject* serialized,
@@ -185,6 +238,32 @@ inline ConnectionPtr ConfigClientInputPortImpl::createConnection(const SignalPtr
 {
     const auto connection = createWithImplementation<IConnection, ConfigClientConnectionImpl>(this->template thisPtr<InputPortPtr>(), signal, this->context);
     return connection;
+}
+
+inline bool ConfigClientInputPortImpl::isSignalFromTheSameComponentTree(const SignalPtr& signal)
+{
+    auto portGlobalId = this->globalId.toStdString();
+    auto signalGlobalId = signal.getGlobalId().toStdString();
+
+    size_t portTreeRootIdEnd = portGlobalId.find('/', 1);
+    size_t signalTreeRootIdEnd = signalGlobalId.find('/', 1);
+
+    if (portTreeRootIdEnd == std::string::npos || signalTreeRootIdEnd == std::string::npos || portTreeRootIdEnd != signalTreeRootIdEnd)
+        return false;
+
+    std::string portTreeRootId = portGlobalId.substr(1, portTreeRootIdEnd - 1);
+    std::string signalTreeRootId = signalGlobalId.substr(1, signalTreeRootIdEnd - 1);
+
+    return portTreeRootId == signalTreeRootId;
+}
+
+inline void ConfigClientInputPortImpl::removed()
+{
+    const auto connectedSignal = getConnectedSignal();
+
+    if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
+        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
+    Super::removed();
 }
 
 }

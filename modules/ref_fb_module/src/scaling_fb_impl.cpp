@@ -80,7 +80,6 @@ void ScalingFbImpl::initProperties()
 
 void ScalingFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure();
@@ -123,6 +122,12 @@ void ScalingFbImpl::configure()
 
     try
     {
+        if (inputDomainDataDescriptor == NullDataDescriptor())
+            throw std::runtime_error("No domain input");
+
+        if (inputDataDescriptor == NullDataDescriptor())
+            throw std::runtime_error("No value input");
+
         if (inputDataDescriptor.getDimensions().getCount() > 0)
             throw std::runtime_error("Arrays not supported");
 
@@ -167,15 +172,15 @@ void ScalingFbImpl::configure()
         outputDataDescriptor = outputDataDescriptorBuilder.build();
         outputSignal.setDescriptor(outputDataDescriptor);
         outputDomainSignal.setDescriptor(inputDomainDataDescriptor);
+
+        setInputStatus(InputConnected);
     }
     catch (const std::exception& e)
     {
         setInputStatus(InputInvalid);
-        LOG_W("Failed to set descriptor for power signal: {}", e.what())
+        LOG_W("Failed to set descriptor for output signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }
-
-    setInputStatus(InputConnected);
 }
 
 
@@ -183,8 +188,8 @@ void ScalingFbImpl::onPacketReceived(const InputPortPtr& port)
 {
     auto outQueue = List<IPacket>();
     auto outDomainQueue = List<IPacket>();
-
-    std::scoped_lock lock(sync);
+    
+    auto lock = this->getAcquisitionLock();
 
     PacketPtr packet;
     const auto connection = inputPort.getConnection();

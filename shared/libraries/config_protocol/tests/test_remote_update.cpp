@@ -9,6 +9,7 @@
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"
+#include <coreobjects/user_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -18,14 +19,26 @@ class ConfigRemoteUpdateTest : public testing::Test
 public:
     void SetUp() override
     {
-        referenceDevice = test_utils::createServerDevice();
+        const auto anonymousUser = User("", "");
+
+        referenceDevice = test_utils::createTestDevice();
         setUpDevice(referenceDevice);
-        serverDevice = test_utils::createServerDevice();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigRemoteUpdateTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
+        serverDevice = test_utils::createTestDevice();
+        server =
+            std::make_unique<ConfigProtocolServer>(serverDevice,
+                                                   std::bind(&ConfigRemoteUpdateTest::serverNotificationReady, this, std::placeholders::_1),
+                                                   anonymousUser,
+                                                   ClientType::Control);
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigRemoteUpdateTest::sendRequest, this, std::placeholders::_1), nullptr);
-
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                clientContext,
+                std::bind(&ConfigRemoteUpdateTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigRemoteUpdateTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
+                nullptr
+            );
         clientDevice = client->connect();
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
@@ -46,10 +59,17 @@ protected:
     }
 
     // client handling
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket) const
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
         auto replyPacket = server->processRequestAndGetReply(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
 
     void setUpDevice(DevicePtr& device)

@@ -16,9 +16,9 @@
 
 #pragma once
 #include <opendaq/function_block_ptr.h>
-#include "opcuatms_server/objects/tms_server_property_object.h"
-#include "opcuatms_server/objects/tms_server_signal.h"
-#include "opcuatms_server/objects/tms_server_input_port.h"
+#include <opcuatms_server/objects/tms_server_property_object.h>
+#include <opcuatms_server/objects/tms_server_signal.h>
+#include <opcuatms_server/objects/tms_server_input_port.h>
 #include <list>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS

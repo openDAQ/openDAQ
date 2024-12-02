@@ -1,0 +1,53 @@
+name: 🐞 Bug report
+description: File a bug/issue
+title: "[BUG] title here"
+labels: ["bug"]
+body:
+- type: textarea
+  attributes:
+    label: Current behavior
+    description: A concise description of what you're experiencing.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Expected behavior
+    description: A concise description of what you expected to happen.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Code or steps
+    description: A code snippet or precise steps to reproduce the issue.
+    value: |
+      ```
+      <your code here>
+      ```
+      1. With this configuration...
+      2. Do '...'
+      3. See error...
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Environment
+    description: |
+      For example:
+        * **openDAQ version tag or commit SHA**: v3.0.0
+        * **OS**: Ubuntu 20.04
+        * **programming language**: C++
+    value: |
+      * openDAQ version tag or commit SHA: 
+      * OS: 
+      * programming language: 
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Log files or image attachments
+    description: |
+      Do you have a log file?
+      An image of what happened?
+      Anything that will give us more context about the issue you are encountering?
+
+      Tip: You can attach images, code or log files by clicking the text area and dragging files in!

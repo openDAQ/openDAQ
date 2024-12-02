@@ -158,7 +158,20 @@
                 "OPENDAQ_GENERATE_CSHARP_BINDINGS": true,
                 "APP_ENABLE_AUDIO_APP": true,
                 "APP_ENABLE_EXAMPLE_APPS": true,
-                "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true
+                "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true,
+                "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS": true,
+                "OPENDAQ_SKIP_UNSTABLE_TESTS": true
+            }
+        },
+        {
+            "name": "unstable_tests_ci",
+            "hidden": false,
+            "inherits": [
+                "ci"
+            ],
+            "cacheVariables": {
+                "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS": true,
+                "OPENDAQ_SKIP_UNSTABLE_TESTS": false
             }
         },
         {
@@ -250,6 +263,33 @@
                 "clang",
                 "ninja"
             ]
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "run_tests",
+            "description": "Run all tests excluding unstable ones",
+            "configurePreset": "ci",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "run_unstable_test_repeatedly",
+            "description": "Run only unstable tests multiple times",
+            "configurePreset": "unstable_tests_ci",
+            "output": {
+                "outputOnFailure": true
+            },
+            "environment": {
+                "GTEST_FILTER": "*.UNSTABLE_SKIPPED_*",
+                "GTEST_REPEAT": "30"
+            },
+            "filter": {
+                "exclude": {
+                    "name": "test_py_opendaq"
+                }
+            }
         }
     ]
 }

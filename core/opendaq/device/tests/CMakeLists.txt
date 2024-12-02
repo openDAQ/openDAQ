@@ -9,6 +9,9 @@ set(TEST_SOURCES test_factories.cpp
                  test_device.cpp
                  test_tree_traversal.cpp
                  test_server_capability.cpp
+                 test_device_domain.cpp
+                 test_log_file_info.cpp
+                 test_user_lock.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
@@ -22,10 +25,6 @@ target_link_libraries(${TEST_APP} PRIVATE daq::coreobjects
                                           daq::opendaq
                                           daq::opendaq_mocks
 )
-
-if (MSVC)
-    target_compile_options(${TEST_APP} PRIVATE /bigobj)
-endif()
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>

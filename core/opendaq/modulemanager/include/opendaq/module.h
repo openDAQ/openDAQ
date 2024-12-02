@@ -22,11 +22,10 @@
 #include <opendaq/streaming.h>
 #include <coretypes/listobject.h>
 #include <coretypes/stringobject.h>
-#include <coretypes/version_info.h>
 #include <opendaq/server_capability_config.h>
+#include <opendaq/module_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
@@ -45,22 +44,10 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
 {
     /*!
-     * @brief Retrieves the module version information.
-     * @param[out] version The semantic version information.
+     * @brief Retrieves the module information.
+     * @param[out] info The module information.
      */
-    virtual ErrCode INTERFACE_FUNC getVersionInfo(IVersionInfo** version) = 0;
-
-    /*!
-     * @brief Gets the module name.
-     * @param[out] name The module name.
-     */
-    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
-
-    /*!
-     * @brief Gets the module id.
-     * @param[out] id The module id.
-     */
-    virtual ErrCode INTERFACE_FUNC getId(IString** id) = 0;
+    virtual ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** info) = 0;
 
     /*!
      * @brief Returns a list of known devices info.
@@ -114,7 +101,6 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
 
     /*!
      * @brief Creates and returns a server with the specified server type.
-     * To prevent cyclic reference, we should not use the Instance instead of rootDevice.
      * @param serverTypeId The id of the server type to create. ServerType can be retrieved by calling `getAvailableServerTypes()`.
      * @param config Server configuration. In case of a null value, implementation should use default configuration.
      * @param rootDevice Root device.

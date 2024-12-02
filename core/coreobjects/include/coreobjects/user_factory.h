@@ -26,8 +26,10 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @brief Creates a immutable user object with provided arguments.
+ * 
  * @param username Username of a user.
- * @param passwordHash Hashed password as a string in Modular Crypt Format.
+ * @param passwordHash the user's password, which can either be in plain text or hashed using the Bcrypt algorithm.
+ * Hashed passwords should follow the Modular Crypt Format. For security purposes, hashed passwords are preferred.
  * @param groups The list of group IDs which the user belongs to.
  */
 inline UserPtr User(const StringPtr& username, const StringPtr& passwordHash, const ListPtr<IString> groups = nullptr)

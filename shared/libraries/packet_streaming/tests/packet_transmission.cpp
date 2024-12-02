@@ -19,11 +19,16 @@ void PacketTransmission::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
     else
         recvPayload = nullptr;
 
-    auto recvPacketBuffer = std::make_shared<PacketBuffer>(recvPacketHeader, recvPayload, [recvPacketHeader, recvPayload]() {
+    auto recvPacketBuffer = std::make_shared<PacketBuffer>(
+        recvPacketHeader,
+        recvPayload,
+        [recvPacketHeader, recvPayload]() {
         std::free(recvPacketHeader);
         if (recvPayload != nullptr)
           std::free(recvPayload);
-    });
+        },
+        false
+    );
 
     queue.push(recvPacketBuffer);
 }

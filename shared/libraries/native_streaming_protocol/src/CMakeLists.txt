@@ -50,6 +50,7 @@ target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
                                          daq::packet_streaming
                                          daq::native_streaming
                                   PRIVATE daq::config_protocol
+                                          daq::opendaq_dev
 )
 
 if (WIN32)

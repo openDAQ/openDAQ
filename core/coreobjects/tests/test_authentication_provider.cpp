@@ -2,6 +2,7 @@
 #include <coreobjects/authentication_provider_factory.h>
 #include <coreobjects/user_factory.h>
 #include <coreobjects/exceptions.h>
+#include <coreobjects/user_internal_ptr.h>
 
 using namespace daq;
 
@@ -99,3 +100,70 @@ TEST_F(AuthenticationProviderTest, EmptyJson)
     ASSERT_THROW(JsonStringAuthenticationProvider("   "), ParseFailedException);
 }
 
+TEST_F(AuthenticationProviderTest, AuthenticatePlain)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("user", "user123"));
+    users.pushBack(User("admin", "admin123"));
+    users.pushBack(User("guest", "$2a$Password"));
+
+    auto provider = StaticAuthenticationProvider(false, users);
+
+    ASSERT_THROW(provider.authenticate("user", "wrongPass"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("user", "user123").getUsername(), "user");
+
+    ASSERT_THROW(provider.authenticate("admin", "wrongPass"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("admin", "admin123").getUsername(), "admin");
+
+    ASSERT_THROW(provider.authenticate("guest", "wrongPass"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("guest", "$2a$Password").getUsername(), "guest");
+}
+
+TEST_F(AuthenticationProviderTest, AuthenticateBcrypt)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("user", "$2a$12$9gJbsmTbR3Vh2C.6l83roe/fWVunnXa3/1AbtEYXuh20OZBkXD2Hy")); // user123
+    users.pushBack(User("admin", "$2a$12$vEipziDschmoMw2iVaoUbeDX3p1u3W8NQn.wgu0KkJn/C.tvIPEpG")); // admin123
+
+    auto provider = StaticAuthenticationProvider(false, users);
+
+    ASSERT_THROW(provider.authenticate("user", "wrongPass"), AuthenticationFailedException);
+    ASSERT_THROW(provider.authenticate("user", "$2a$12$9gJbsmTbR3Vh2C.6l83roe/fWVunnXa3/1AbtEYXuh20OZBkXD2Hy"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("user", "user123").getUsername(), "user");
+
+    ASSERT_THROW(provider.authenticate("admin", "wrongPass"), AuthenticationFailedException);
+    ASSERT_THROW(provider.authenticate("admin", "$2a$12$vEipziDschmoMw2iVaoUbeDX3p1u3W8NQn.wgu0KkJn/C.tvIPEpG"), AuthenticationFailedException);
+    ASSERT_EQ(provider.authenticate("admin", "admin123").getUsername(), "admin");
+}
+
+TEST_F(AuthenticationProviderTest, AuthanticateAnonymous)
+{
+    auto provider = AuthenticationProvider(true);
+    auto user1 = provider.authenticateAnonymous();
+    auto user2 = provider.authenticateAnonymous();
+
+    ASSERT_EQ(user1, user2);
+    ASSERT_EQ(user1.getUsername(), "");
+    ASSERT_EQ(user1.asPtr<IUserInternal>().getPasswordHash(), "");
+    ASSERT_EQ(user1.getGroups().getCount(), 1u);
+    ASSERT_EQ(user1.getGroups()[0], "everyone");
+}
+
+TEST_F(AuthenticationProviderTest, AuthanticateAnonymousDisabled)
+{
+    auto provider = AuthenticationProvider(false);
+    ASSERT_THROW(provider.authenticateAnonymous(), AuthenticationFailedException);
+}
+
+TEST_F(AuthenticationProviderTest, FindUser)
+{
+    auto jure = User("jure", "jure");
+    auto tomaz = User("tomaz", "tomaz");
+    auto users = List<IUser>(jure, tomaz);
+
+    auto provider = StaticAuthenticationProvider(false, users);
+
+    ASSERT_EQ(provider.findUser("jure"), jure);
+    ASSERT_EQ(provider.findUser("tomaz"), tomaz);
+    ASSERT_EQ(provider.findUser("missing"), nullptr);
+}

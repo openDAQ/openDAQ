@@ -72,7 +72,7 @@ void example1(const SignalConfigPtr& signal)
  */
 void example2(const SignalConfigPtr& signal)
 {
-    auto reader = TailReader(signal, 5);
+    auto reader = TailReaderBuilder().setSignal(signal).setHistorySize(5).setSkipEvents(true).build();
 
     // The Signal produces 3 samples: 1, 2, 3
     const SizeT FIRST_PACKET_SAMPLES = 3u;
@@ -118,7 +118,7 @@ void example2(const SignalConfigPtr& signal)
 
 void example3(const SignalConfigPtr& signal)
 {
-    auto reader = TailReader(signal, 5);
+    auto reader = TailReaderBuilder().setSignal(signal).setHistorySize(5).setSkipEvents(true).build();
 
     /*
      * The Signal produces 3 Packets

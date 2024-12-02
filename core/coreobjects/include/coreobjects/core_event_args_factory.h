@@ -18,6 +18,7 @@
 #include <coreobjects/core_event_args_ptr.h>
 #include <coretypes/dictobject_factory.h>
 #include <coreobjects/property_ptr.h>
+#include <coreobjects/property_object_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

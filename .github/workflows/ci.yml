@@ -5,25 +5,34 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 
+  workflow_call:
+    inputs:
+      cmake_preset:
+        required: false
+        type: string
+      ctest_preset:
+        required: false
+        type: string
+
 # TODO: Enable Python binding tests on all distributions
 
 env:
   s3_bucket: bb-blueberry-sdk-releases
   regression_tests_target_tag: v3.0.0
   regression_simulator_folder: regression_test_simulator
-  cmake_preset: ci
+  cmake_preset: ${{ inputs.cmake_preset != '' && inputs.cmake_preset || 'ci' }}
+  ctest_preset: ${{ inputs.ctest_preset != '' && inputs.ctest_preset || 'run_tests' }}
   test_path: ${{ github.workspace }}/junit_reports/
   build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages/
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   dotnet_test_path: ${{ github.workspace }}/build/bindings/CSharp/test_results
   python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12
+  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
   nuget_artifact: Packages (openDAQ.Net NuGet)
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   build_windows:
@@ -89,6 +98,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
+
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
         uses: seanmiddleditch/gha-setup-ninja@v5
@@ -135,11 +150,10 @@ jobs:
 
       - name: Test
         shell: pwsh
-        working-directory: build
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |
-          ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
           if (Test-Path -Path "${{ env.dotnet_test_path }}") {
             if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
             Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"
@@ -178,6 +192,7 @@ jobs:
           path: |
             ${{ env.dotnetBuildPath }}
             !${{ env.dotnetBuildPath }}/**/*.json
+            !${{ env.dotnetBuildPath }}/**/*.exe
           #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
           retention-days: 1
 
@@ -292,10 +307,9 @@ jobs:
         run: cmake --build .
 
       - name: Test
-        working-directory: build
         env:
           GTEST_OUTPUT: "xml:/junit_reports/unit/"
-        run: ctest --output-on-failure --exclude-regex regression_test -C ${{ matrix.cmake_build_type }}
+        run: ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()
@@ -378,7 +392,7 @@ jobs:
           trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
           
           # Perform tests
-          ctest --output-on-failure -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
           
           EOL
           
@@ -422,7 +436,7 @@ jobs:
 
       # PROTOCOL REGRESSION TEST END
 
-  build_linux_centos:
+  build_linux_manylinux:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
     # ${{ }} expression syntax because of leading '!'
@@ -436,8 +450,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: manylinux2014 gcc Release
-            image: quay.io/pypa/manylinux2014_x86_64
+          - name: manylinux_2_28 gcc Release
+            image: quay.io/pypa/manylinux_2_28_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
             additional_packages:
@@ -462,7 +476,7 @@ jobs:
         run : git config --global --add safe.directory '*'
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
@@ -495,18 +509,17 @@ jobs:
           echo "last_version=$last_version" >> "$GITHUB_ENV"
 
       - name: Test
-        working-directory: build
         env:
           GTEST_OUTPUT: "xml:/junit_reports/unit/"
         run: |
-          python$last_version -m venv venv
-          . venv/bin/activate
-          pip install pip/packages/opendaq*.whl
-          ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+          python$last_version -m venv build/venv
+          . build/venv/bin/activate
+          pip install build/pip/packages/opendaq*.whl
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (${{ matrix.name }})
           path: /junit_reports/unit
@@ -518,14 +531,14 @@ jobs:
 
       - name: Upload package
         if: matrix.cpack != ''
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: Packages (${{ matrix.name }})
           path: ${{ env.package_path }}
           retention-days: 7
 
       - name: Upload PIP packages
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: PIP Package (${{ matrix.name }})
           path: ${{ env.build_path }}/wheels/opendaq*.whl
@@ -545,14 +558,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macos-12 clang Release
+          - name: macos-13 clang Release
             cmake_generator: Ninja
             cmake_build_type: Release
-            runner: macos-12
-          # - name: macos-12 clang Debug
+            runner: macos-13
+          # - name: macos-13 clang Debug
             # cmake_generator: Ninja
             # cmake_build_type: Debug
-            # runner: macos-12
+            # runner: macos-13
 
     steps:
       - name: Checkout
@@ -581,10 +594,9 @@ jobs:
         run: cmake --build .
 
       - name: Test
-        working-directory: build
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure -C ${{ matrix.cmake_build_type }}
+        run: ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()
@@ -620,6 +632,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'

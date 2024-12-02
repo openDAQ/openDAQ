@@ -10,7 +10,8 @@ BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
                                        SessionPtr session,
                                        const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                        OnSessionErrorCallback errorHandler,
-                                       ConstCharPtr loggerComponentName)
+                                       ConstCharPtr loggerComponentName,
+                                       SizeT streamingPacketSendTimeout)
     : session(session)
     , configPacketReceivedHandler(nullptr)
     , packetBufferReceivedHandler(nullptr)
@@ -18,6 +19,9 @@ BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
     , ioContextPtr(ioContextPtr)
     , connectionInactivityTimer(std::make_shared<boost::asio::steady_timer>(*(this->ioContextPtr)))
     , loggerComponent(daqContext.getLogger().getOrAddComponent(loggerComponentName))
+    , streamingPacketSendTimeout(streamingPacketSendTimeout != UNLIMITED_PACKET_SEND_TIME
+                                     ? std::chrono::milliseconds(streamingPacketSendTimeout)
+                                     : std::chrono::milliseconds(0))
 {
 }
 
@@ -140,10 +144,13 @@ BaseSessionHandler::~BaseSessionHandler()
 
 ReadTask BaseSessionHandler::createReadHeaderTask()
 {
+    auto thisWeakPtr = this->weak_from_this();
     return ReadTask(
-        [this](const void* data, size_t size)
+        [thisWeakPtr](const void* data, size_t size)
         {
-            return readHeader(data, size);
+            if (const auto thisPtr = thisWeakPtr.lock())
+                return thisPtr->readHeader(data, size);
+            return ReadTask();
         },
         TransportHeader::PACKED_HEADER_SIZE
     );
@@ -162,6 +169,8 @@ const SessionPtr BaseSessionHandler::getSession() const
 void BaseSessionHandler::sendConfigurationPacket(const config_protocol::PacketBuffer& packetBuffer)
 {
     std::vector<WriteTask> tasks;
+    tasks.reserve(3);
+
     auto packetBufferPtr =
         std::make_shared<config_protocol::PacketBuffer>(packetBuffer.getBuffer(), true);
 
@@ -191,7 +200,7 @@ void BaseSessionHandler::sendConfigurationPacket(const config_protocol::PacketBu
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_CONFIGURATION_PACKET, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    session->scheduleWrite(std::move(tasks));
 }
 
 ReadTask BaseSessionHandler::discardPayload(const void* /*data*/, size_t /*size*/)
@@ -321,16 +330,18 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
                                            std::free(packetBufferHeader);
                                            if (packetBufferPayload != nullptr)
                                                std::free(packetBufferPayload);
-                                       });
+                                       },
+                                       false);
 
     packetBufferReceivedHandler(recvPacketBuffer);
 
     return createReadHeaderTask();
 }
 
-void BaseSessionHandler::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
+void BaseSessionHandler::sendPacketBuffer(PacketBufferPtr&& packetBuffer)
 {
     std::vector<WriteTask> tasks;
+    tasks.reserve(3);
 
     // create write task for packet buffer header
     boost::asio::const_buffer packetBufferHeader(packetBuffer->packetHeader,
@@ -352,7 +363,12 @@ void BaseSessionHandler::sendPacketBuffer(const PacketBufferPtr& packetBuffer)
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
     tasks.insert(tasks.begin(), writeHeaderTask);
 
-    session->scheduleWrite(tasks);
+    auto deadlineTime =
+        packetBuffer->timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
+            ? std::optional(packetBuffer->timeStamp.value() + streamingPacketSendTimeout)
+            : std::nullopt;
+
+    session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -38,31 +40,19 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
 {
     cls.doc() = "A module is an object that provides device and function block factories. The object is usually implemented in an external dynamic link / shared library. IModuleManager is responsible for loading all modules.";
 
-    cls.def_property_readonly("version_info",
+    cls.def_property_readonly("module_info",
         [](daq::IModule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.getVersionInfo().detach();
+            return objectPtr.getModuleInfo().detach();
         },
         py::return_value_policy::take_ownership,
-        "Retrieves the module version information.");
-    cls.def_property_readonly("name",
-        [](daq::IModule *object)
-        {
-            const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.getName().toStdString();
-        },
-        "Gets the module name.");
-    cls.def_property_readonly("id",
-        [](daq::IModule *object)
-        {
-            const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.getId().toStdString();
-        },
-        "Gets the module id.");
+        "Retrieves the module information.");
     cls.def_property_readonly("available_devices",
         [](daq::IModule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.getAvailableDevices().detach();
         },
@@ -71,6 +61,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
     cls.def_property_readonly("available_device_types",
         [](daq::IModule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.getAvailableDeviceTypes().detach();
         },
@@ -79,6 +70,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
     cls.def("create_device",
         [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IComponent* parent, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.createDevice(getVariantValue<daq::IString*>(connectionString), parent, config).detach();
         },
@@ -87,6 +79,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
     cls.def_property_readonly("available_function_block_types",
         [](daq::IModule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.getAvailableFunctionBlockTypes().detach();
         },
@@ -95,6 +88,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
     cls.def("create_function_block",
         [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.createFunctionBlock(getVariantValue<daq::IString*>(id), parent, getVariantValue<daq::IString*>(localId), config).detach();
         },
@@ -103,6 +97,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
     cls.def_property_readonly("available_server_types",
         [](daq::IModule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.getAvailableServerTypes().detach();
         },
@@ -111,14 +106,16 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
     cls.def("create_server",
         [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& serverTypeId, daq::IDevice* rootDevice, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.createServer(getVariantValue<daq::IString*>(serverTypeId), rootDevice, config).detach();
         },
         py::arg("server_type_id"), py::arg("root_device"), py::arg("config") = nullptr,
-        "Creates and returns a server with the specified server type. To prevent cyclic reference, we should not use the Instance instead of rootDevice.");
+        "Creates and returns a server with the specified server type.");
     cls.def("create_streaming",
         [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.createStreaming(getVariantValue<daq::IString*>(connectionString), config).detach();
         },
@@ -127,6 +124,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
     cls.def("complete_server_capability",
         [](daq::IModule *object, daq::IServerCapability* source, daq::IServerCapabilityConfig* target)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.completeServerCapability(source, target);
         },
@@ -135,6 +133,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
     cls.def_property_readonly("available_streaming_types",
         [](daq::IModule *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);
             return objectPtr.getAvailableStreamingTypes().detach();
         },

@@ -257,7 +257,7 @@ TEST_F(TmsIntegrationTest, GetAvailableFunctionBlockTypes)
 
     const auto clientFbTypes = clientDevice.getAvailableFunctionBlockTypes();
 
-    ASSERT_EQ(serverFbTypes.getCount(), 1u);
+    ASSERT_EQ(serverFbTypes.getCount(), 3u);
     ASSERT_EQ(serverFbTypes.getCount(), clientFbTypes.getCount());
     ASSERT_TRUE(TestComparators::FunctionBlockTypeEquals(serverFbTypes.get("mock_fb_uid"), clientFbTypes.get("mock_fb_uid")));
 }

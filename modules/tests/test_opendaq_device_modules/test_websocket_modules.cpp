@@ -82,7 +82,9 @@ TEST_F(WebsocketModulesTest, ConnectAndDisconnectBackwardCompatibility)
 TEST_F(WebsocketModulesTest, ConnectViaIpv6)
 {
     if (test_helpers::Ipv6IsDisabled())
-        return;
+    {
+        GTEST_SKIP() << "Ipv6 is disabled";
+    }
 
     auto server = CreateServerInstance();
     auto client = Instance();
@@ -141,7 +143,7 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
             }
         }
     }
-    ASSERT_TRUE(false);
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 
@@ -201,7 +203,7 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
         }      
     }
 
-    ASSERT_TRUE(false);
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 #ifdef _WIN32
@@ -209,7 +211,9 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
 TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 {
     if (test_helpers::Ipv6IsDisabled())
-        return;
+    {
+        GTEST_SKIP() << "Ipv6 is disabled";
+    }
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();

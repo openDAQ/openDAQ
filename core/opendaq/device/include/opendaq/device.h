@@ -24,6 +24,10 @@
 #include <opendaq/device_type.h>
 #include <opendaq/streaming.h>
 #include <opendaq/sync_component.h>
+#include <opendaq/server.h>
+#include <opendaq/update_parameters.h>
+#include <coreobjects/user.h>
+#include <opendaq/log_file_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,6 +36,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [templated(defaultAliasName: DevicePtr)]
  * [interfaceSmartPtr(IDevice, GenericDevicePtr)]
  * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object.h>")]
+ * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user.h>")]
  */
 
 /*!
@@ -237,7 +242,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @brief Loads the configuration of the device from string.
      * @param configuration Serialized configuration of the device.
      */
-    virtual ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration) = 0;
+    virtual ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IUpdateParameters* config = nullptr) = 0;
 
     /*!
      * @brief Gets the number of ticks passed since the device's absolute origin.
@@ -275,7 +280,74 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 
+    /*!
+     * @brief Gets the sync component of the device.
+     * @param[out] sync The sync component.
+     */
     virtual ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** sync) = 0;
+
+    /*!
+     * @brief Creates and adds to the device a server with the provided unique type ID and returns it.
+     * @param[out] server The added server.
+     * @param typeId The unique type ID of the server. Can be obtained from its corresponding Server type object.
+     * @param config A config object to configure a server with custom settings specific to that server type.
+     */
+    virtual ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) = 0;
+
+    /*!
+     * @brief Removes the server provided as argument.
+     * @param server The server to be removed.
+     */
+    virtual ErrCode INTERFACE_FUNC removeServer(IServer* server) = 0;
+
+    // [elementType(servers, IServer)]
+    /*!
+     * @brief Get list of added servers.
+     * @param[out] servers List of added servers.
+     */
+    virtual ErrCode INTERFACE_FUNC getServers(IList** servers) = 0;
+
+    /*!
+     * @brief Lock a device with a session user. Once locked, no properties of the device can be changed via the protocol layer.
+     * Only the same user who locked the device can unlock it. If no user was specified when the device was locked, any user
+     * will be able to unlock it.
+     */
+    virtual ErrCode INTERFACE_FUNC lock() = 0;
+
+    /*!
+     * @brief Unlock a device with a session user. A device can only be unlocked by the same user who locked it.
+     * If no user was specified when the device was locked, any user will be able to unlock it.
+     */
+    virtual ErrCode INTERFACE_FUNC unlock() = 0;
+
+    /*!
+     * @brief Returns truee if device is locked. Once locked, no properties of the device can be changed via the protocol layer.
+     * @param[out] locked True if device is locked.
+     */
+    virtual ErrCode INTERFACE_FUNC isLocked(Bool* locked) = 0;
+
+    // [elementType(logFileInfos, ILogFileInfo)]
+    /*!
+     * @brief Gets a list of available log files.
+     * @param[out] logFileInfos The list of available log files.
+     */
+    virtual ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) = 0;
+
+    /*!
+     * @brief Retrieves a chunk of the log file with the provided ID.
+     * 
+     * This function extracts a specified portion (or the entire content) of the log file, starting at the given offset. 
+     * If the size and offset are not specified, it will attempt to return the entire log file by default.
+     * 
+     * @param[out] log A string which stores requested log chunk.
+     * @param id Rhe ID of the log file to retrieve.
+     * @param size The size of the log chunk to retrieve in bytes. Defaults to -1, which means it will return all remaining bytes from the offset.
+     * @param offset The offset, in bytes, from where the log chunk should be read. Defaults to 0 (start of the file).
+     * 
+     * If size is set to -1, and offset is 0, the entire log file will be returned.
+     */
+    virtual ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size = -1, Int offset = 0) = 0;
+
 };
 /*!@}*/
 

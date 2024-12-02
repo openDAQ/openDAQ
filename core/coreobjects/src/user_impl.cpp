@@ -39,6 +39,14 @@ ErrCode INTERFACE_FUNC UserImpl::getGroups(IList** groups)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC UserImpl::isAnonymous(Bool* anonymous)
+{
+    OPENDAQ_PARAM_NOT_NULL(anonymous);
+
+    *anonymous = username == "" && passwordHash == "";
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode INTERFACE_FUNC UserImpl::equals(IBaseObject* other, Bool* equal) const
 {
     OPENDAQ_PARAM_NOT_NULL(equal);
@@ -110,12 +118,12 @@ ErrCode UserImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunc
 
     StringPtr username;
     ErrCode err = serializedObj->readString(String("username"), &username);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
+    if (OPENDAQ_FAILED(err))
         return err;
 
     StringPtr passwordHash;
     err = serializedObj->readString(String("passwordHash"), &passwordHash);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
+    if (OPENDAQ_FAILED(err))
         return err;
 
     ListPtr<IUser> groups;

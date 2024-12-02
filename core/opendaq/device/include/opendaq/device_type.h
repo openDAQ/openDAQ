@@ -15,15 +15,15 @@
  */
 
 #pragma once
-#include <coreobjects/component_type.h>
+#include <opendaq/component_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
 * [templated(defaultAliasName: DeviceTypePtr)]
 * [interfaceSmartPtr(IDeviceType, GenericDeviceTypePtr)]
-* [interfaceSmartPtr(IComponentType, GenericComponentTypePtr, "<coreobjects/component_type_ptr.h>")]
-* [interfaceLibrary(IComponentType, "coreobjects")]
+* [interfaceSmartPtr(IComponentType, GenericComponentTypePtr, "<opendaq/component_type_ptr.h>")]
+* [interfaceLibrary(IComponentType, "opendaq")]
 */
 
 /*!

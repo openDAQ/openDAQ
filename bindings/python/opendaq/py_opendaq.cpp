@@ -19,18 +19,22 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
         .value("ComplexFloat32", daq::SampleType::ComplexFloat32)
         .value("ComplexFloat64", daq::SampleType::ComplexFloat64)
         .value("Binary", daq::SampleType::Binary)
-        .value("String", daq::SampleType::String);
+        .value("String", daq::SampleType::String)
+        .value("Struct", daq::SampleType::Struct);
 
     py::enum_<daq::ScaledSampleType>(m, "ScaledSampleType")
         .value("Invalid", daq::ScaledSampleType::Invalid)
         .value("Float32", daq::ScaledSampleType::Float32)
         .value("Float64", daq::ScaledSampleType::Float64);
 
+    auto classIModuleInfo = declareIModuleInfo(m);
+    auto classIComponentType = declareIComponentType(m);
     auto classIRemovable = declareIRemovable(m);
     auto classIComponent = declareIComponent(m);
     auto classIFolder = declareIFolder(m);
     auto classIFolderConfig = declareIFolderConfig(m);
     auto classIDevice = declareIDevice(m);
+    auto classIDevicePrivate = declareIDevicePrivate(m);
     auto classIInstanceBuilder = declareIInstanceBuilder(m);
     auto classIConfigProvider = declareIConfigProvider(m);
     auto classIInstance = declareIInstance(m);
@@ -116,13 +120,20 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIAddressInfoBuilder = declareIAddressInfoBuilder(m);
     auto classISyncComponent = declareISyncComponent(m);
     auto classISyncComponentPrivate = declareISyncComponentPrivate(m);
+    auto classIReferenceDomainInfo = declareIReferenceDomainInfo(m);
+    auto classIReferenceDomainInfoBuilder = declareIReferenceDomainInfoBuilder(m);
+    auto classIUpdateParameters = declareIUpdateParameters(m);
+    auto classILogFileInfo = declareILogFileInfo(m);
+    auto classILogFileInfoBuilder = declareILogFileInfoBuilder(m);
 
+    defineIModuleInfo(m, classIModuleInfo);
+    defineIComponentType(m, classIComponentType);
     defineIRemovable(m, classIRemovable);
     defineIComponent(m, classIComponent);
     defineIFolder(m, classIFolder);
     defineIFolderConfig(m, classIFolderConfig);
     defineIDevice(m, classIDevice);
-
+    defineIDevicePrivate(m, classIDevicePrivate);
     defineIInstanceBuilder(m, classIInstanceBuilder);
     defineIInstance(m, classIInstance);
     defineIConfigProvider(m, classIConfigProvider);
@@ -206,9 +217,14 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIComponentStatusContainerPrivate(m, classIComponentStatusContainerPrivate);
     defineIAddressInfo(m, classIAddressInfo);
     defineIAddressInfoBuilder(m, classIAddressInfoBuilder);
-
     defineISyncComponent(m, classISyncComponent);
     defineISyncComponentPrivate(m, classISyncComponentPrivate);
+    defineIReferenceDomainInfo(m, classIReferenceDomainInfo);
+    defineIReferenceDomainInfoBuilder(m, classIReferenceDomainInfoBuilder);
+    defineIUpdateParameters(m, classIUpdateParameters);
+    defineILogFileInfo(m, classILogFileInfo);
+    defineILogFileInfoBuilder(m, classILogFileInfoBuilder);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
+    m.def("NullContext", []() { return daq::NullContext().detach(); });
 }

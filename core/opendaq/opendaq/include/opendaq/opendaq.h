@@ -35,6 +35,7 @@
 #include <opendaq/logger_factory.h>
 
 #include <opendaq/device_ptr.h>
+#include <opendaq/device_private_ptr.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
 
@@ -45,6 +46,8 @@
 #include <opendaq/signal_events_ptr.h>
 #include <opendaq/connection_factory.h>
 #include <opendaq/input_port_factory.h>
+
+#include <opendaq/component_type_ptr.h>
 
 #include <opendaq/component_ptr.h>
 #include <opendaq/component_private_ptr.h>
@@ -88,6 +91,11 @@
 
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
+
+#include <opendaq/log_file_info_ptr.h>
+#include <opendaq/log_file_info_builder_ptr.h>
+
+#include <opendaq/exceptions.h>
 
 
 /*!

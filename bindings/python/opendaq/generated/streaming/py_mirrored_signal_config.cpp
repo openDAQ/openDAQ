@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,6 +43,7 @@ void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSi
     cls.def_property_readonly("remote_id",
         [](daq::IMirroredSignalConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
             return objectPtr.getRemoteId().toStdString();
         },
@@ -48,6 +51,7 @@ void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSi
     cls.def_property_readonly("streaming_sources",
         [](daq::IMirroredSignalConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
             return objectPtr.getStreamingSources().detach();
         },
@@ -56,11 +60,13 @@ void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSi
     cls.def_property("active_streaming_source",
         [](daq::IMirroredSignalConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
             return objectPtr.getActiveStreamingSource().toStdString();
         },
         [](daq::IMirroredSignalConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& streamingConnectionString)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
             objectPtr.setActiveStreamingSource(getVariantValue<daq::IString*>(streamingConnectionString));
         },
@@ -68,6 +74,7 @@ void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSi
     cls.def("deactivate_streaming",
         [](daq::IMirroredSignalConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
             objectPtr.deactivateStreaming();
         },
@@ -76,6 +83,7 @@ void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSi
     cls.def_property_readonly("on_subscribe_complete",
         [](daq::IMirroredSignalConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
             return objectPtr.getOnSubscribeComplete().detach();
         },
@@ -86,6 +94,7 @@ void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSi
     cls.def_property_readonly("on_unsubscribe_complete",
         [](daq::IMirroredSignalConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
             return objectPtr.getOnUnsubscribeComplete().detach();
         },

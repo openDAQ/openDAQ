@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
             if signal.domain_signal:
                 recorders.append(Recorder(signal, 1000))
-                print(f"{signal.descriptor.name}")
+                print(f"{signal.name}")
                 print(f"{signal.global_id}")
         recorded_device = RecordedDevice(device_name, recorders)
         recorded_device.write_header()

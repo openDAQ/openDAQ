@@ -1,11 +1,12 @@
-import opendaq as daq
 import tkinter as tk
 from tkinter import ttk
 
-from ..utils import *
-from ..app_context import *
-from ..event_port import *
-from .diaolog import Dialog
+import opendaq as daq
+
+from .. import utils
+from ..app_context import AppContext
+from ..event_port import EventPort
+from .dialog import Dialog
 
 
 class AddFunctionBlockDialog(Dialog):
@@ -25,63 +26,68 @@ class AddFunctionBlockDialog(Dialog):
         parent_device_tree = ttk.Treeview(parent_device_tree_frame)
 
         parent_device_scroll_bar = ttk.Scrollbar(
-            parent_device_tree_frame, orient="vertical", command=parent_device_tree.yview)
+            parent_device_tree_frame, orient=tk.VERTICAL, command=parent_device_tree.yview)
         parent_device_tree.configure(
             yscrollcommand=parent_device_scroll_bar.set)
-        parent_device_scroll_bar.pack(side="right", fill="y")
+        parent_device_scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        parent_device_tree.heading('#0', text='Parent device')
+        parent_device_tree.heading('#0', text='Parent device', anchor=tk.W)
 
         parent_device_tree.column(
-            '#0', anchor=tk.W, width=200, stretch=True)
+            '#0', anchor=tk.W, minwidth=200, stretch=True)
 
         parent_device_tree.bind('<<TreeviewSelect>>',
                                 self.handle_parent_device_selected)
-        parent_device_tree.pack(fill="both", expand=True)
+        parent_device_tree.pack(fill=tk.BOTH, expand=True)
 
-        parent_device_tree_frame.grid(row=0, column=0)
-        parent_device_tree_frame.grid_configure(sticky='nsew')
+        parent_device_tree_frame.grid(row=0, column=0, sticky=tk.NSEW)
 
         # child
 
         tree_frame = ttk.Frame(self)
         tree = ttk.Treeview(tree_frame, columns=('id', 'name'), displaycolumns=(
-            'id', 'name'), show='tree headings', selectmode='browse')
+            'id', 'name'), show='tree headings', selectmode=tk.BROWSE)
         scroll_bar = ttk.Scrollbar(
-            tree_frame, orient="vertical", command=tree.yview)
+            tree_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
-        scroll_bar.pack(side="right", fill="y")
+        scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # define headings
-        tree.heading('id', text='TypeId')
-        tree.heading('name', text='Name')
+        tree.heading('id', text='TypeId', anchor=tk.W)
+        tree.heading('name', text='Name', anchor=tk.W)
 
         # layout
-        tree.column('#0', anchor=tk.CENTER, width=0, stretch=False)
-        tree.column('#1', anchor=tk.CENTER, width=300 *
-                                                  self.context.ui_scaling_factor, stretch=False)
-        tree.column('#2', anchor=tk.CENTER, width=300 *
-                                                  self.context.ui_scaling_factor, stretch=True)
+        tree.column('#0', width=0, stretch=tk.NO)
+        tree.column('id', anchor=tk.W, minwidth=200, width=300 *
+                    self.context.ui_scaling_factor, stretch=tk.NO)
+        tree.column('name', anchor=tk.W, minwidth=200, width=300 *
+                    self.context.ui_scaling_factor)
 
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_fb_tree_double_click)
 
-        tree.pack(fill="both", expand=True)
+        tree.pack(fill=tk.BOTH, expand=True)
 
-        tree_frame.grid(row=0, column=1)
-        tree_frame.grid_configure(sticky='nsew')
+        tree_frame.grid(row=0, column=1, sticky=tk.NSEW)
 
         self.device_tree = parent_device_tree
         self.fb_tree = tree
 
         self.grid_rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=2)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=2)
+        self.grid_columnconfigure((0, 1), uniform='uniform')
 
-        self.initial_update_func = lambda: self.update_parent_devices(
+        self.initial_update_func = lambda: self.initial_update()
+
+    def initial_update(self):
+        self.update_parent_devices(
             self.device_tree, '', self.context.instance)
-        self.after(1, lambda: self.device_tree.selection_set(
-            self.context.instance.global_id))
+        self.select_parent_device(self.context.instance.global_id)
+
+    def select_parent_device(self, device_id: str):
+        if self.device_tree.exists(device_id):
+            self.device_tree.selection_set(device_id)
 
     def update_parent_devices(self, tree, parent_id, component):
         tree.delete(*tree.get_children())
@@ -93,7 +99,7 @@ class AddFunctionBlockDialog(Dialog):
             if daq.IDevice.can_cast_from(component):
                 device = daq.IDevice.cast_from(component)
                 tree.insert(parent_id, tk.END, text=device.name,
-                            iid=device.global_id, open=True)
+                            iid=device.global_id, open=tk.TRUE)
                 parent_id = device.global_id
 
             if daq.IFolder.can_cast_from(component):
@@ -113,19 +119,19 @@ class AddFunctionBlockDialog(Dialog):
                 daq.IFunctionBlockType.cast_from(available_function_block_types[function_block_id]).name))
 
     def handle_parent_device_selected(self, event):
-        selected_item = treeview_get_first_selection(
+        selected_item = utils.treeview_get_first_selection(
             self.device_tree)
         if selected_item is None:
             return
 
-        parent_device = find_component(selected_item, self.context.instance)
+        parent_device = utils.find_component(selected_item, self.context.instance)
         if parent_device is not None and daq.IDevice.can_cast_from(parent_device):
             parent_device = daq.IDevice.cast_from(parent_device)
             self.parent_device = parent_device
             self.update_function_blocks()
 
     def handle_fb_tree_double_click(self, event):
-        selected_item = treeview_get_first_selection(self.fb_tree)
+        selected_item = utils.treeview_get_first_selection(self.fb_tree)
         if selected_item is None:
             return
 

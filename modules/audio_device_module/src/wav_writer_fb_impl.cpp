@@ -2,7 +2,7 @@
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/reader_factory.h>
@@ -97,10 +97,7 @@ void WAVWriterFbImpl::initProperties()
     objPtr.addProperty(BoolProperty("Storing", false));
     objPtr.getOnPropertyValueWrite("Storing") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args)
     {
-        if (selfChange)
-            storingChangedNoLock(args.getValue());
-        else
-            storingChanged(args.getValue());
+        storingChanged(args.getValue());
     };
 
     fileNameChanged();
@@ -108,19 +105,12 @@ void WAVWriterFbImpl::initProperties()
 
 void WAVWriterFbImpl::fileNameChanged()
 {
-    std::scoped_lock lock(sync);
     fileName = static_cast<std::string>(objPtr.getPropertyValue("FileName"));
     LOG_I("File name: {}", fileName)
     stopStoreInternal();
 }
 
 void WAVWriterFbImpl::storingChanged(bool store)
-{
-    std::scoped_lock lock(sync);
-    storingChangedNoLock(store);
-}
-
-void WAVWriterFbImpl::storingChangedNoLock(bool store)
 {
     if (store)
         startStore();
@@ -177,21 +167,20 @@ void WAVWriterFbImpl::processEventPacket(const EventPacketPtr& packet)
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
         stopStoreInternal();
-        const auto params = packet.getParameters();
 
-        const DataDescriptorPtr valueSignalDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        const DataDescriptorPtr domainSignalDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+        const auto [valueDescriptorChanged, domainDescriptorChanged, valueSignalDescriptor, domainSignalDescriptor] =
+            parseDataDescriptorEventPacket(packet);
 
-        if (valueSignalDescriptor.assigned())
+        if (valueDescriptorChanged)
             inputValueDataDescriptor = valueSignalDescriptor;
-        if (domainSignalDescriptor.assigned())
+        if (domainDescriptorChanged)
             inputTimeDataDescriptor = domainSignalDescriptor;
     }
 }
 
 void WAVWriterFbImpl::calculate()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
     SizeT availableData = reader.getAvailableCount();
 
     std::vector<float> inputData;

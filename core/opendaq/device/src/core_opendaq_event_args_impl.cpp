@@ -69,6 +69,12 @@ ErrCode PUBLIC_EXPORT createCoreEventArgsDeviceDomainChanged(ICoreEventArgs** ob
     return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::DeviceDomainChanged, dict);
 }
 
+extern "C" ErrCode PUBLIC_EXPORT createCoreEventArgsDeviceLockStateChanged(ICoreEventArgs** objTmp, Bool isLocked)
+{
+    const auto dict = Dict<IString, IBaseObject>({{"IsLocked", isLocked}});
+    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::DeviceLockStateChanged, dict);
+}
+
 #endif
 
 END_NAMESPACE_OPENDAQ

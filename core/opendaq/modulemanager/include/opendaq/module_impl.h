@@ -20,58 +20,32 @@
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/context_ptr.h>
-
+#include <coreobjects/property_object_factory.h>
 #include <coretypes/intfs.h>
-#include <coretypes/version_info_ptr.h>
 #include <coretypes/validation.h>
-
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/server_capability_config_ptr.h>
-
 #include <opendaq/custom_log.h>
+#include <opendaq/module_info_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class Module : public ImplementationOf<IModule>
 {
 public:
 
     /*!
-     * @brief Retrieves the module version information.
-     * @param[out] moduleVersion The semantic version information.
+     * @brief Retrieves the module information.
+     * @param[out] info The module information.
      */
-    ErrCode INTERFACE_FUNC getVersionInfo(IVersionInfo** moduleVersion) override
+    ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** info) override
     {
-        OPENDAQ_PARAM_NOT_NULL(moduleVersion);
+        OPENDAQ_PARAM_NOT_NULL(info);
 
-        *moduleVersion = version.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
-    /*!
-     * @brief Gets the module name.
-     * @param[out] moduleName The module name.
-     */
-    ErrCode INTERFACE_FUNC getName(IString** moduleName) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(moduleName);
-
-        *moduleName = name.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
-    /*!
-     * @brief Gets the module id.
-     * @param[out] moduleId The module id.
-     */
-    ErrCode INTERFACE_FUNC getId(IString** moduleId) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(moduleId);
-
-        *moduleId = id.addRefAndReturn();
+        *info = moduleInfo.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -102,6 +76,12 @@ public:
         DictPtr<IString, IDeviceType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
 
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
+
         *deviceTypes = types.detach();
         return errCode;
     }
@@ -119,8 +99,27 @@ public:
         OPENDAQ_PARAM_NOT_NULL(connectionString);
         OPENDAQ_PARAM_NOT_NULL(device);
 
+        DictPtr<IString, IDeviceType> types;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
+        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
+            return errCode;
+
+        ComponentTypePtr deviceType;
+        const StringPtr prefix = getPrefixFromConnectionString(connectionString);
+        if (prefix.assigned() && prefix.getLength() != 0)
+        {
+            for (const auto& [_, type] : types)
+            {
+                if (type.getConnectionStringPrefix() == prefix)
+                {
+                    deviceType = type;
+                    break;
+                }
+            }
+        }
+
         DevicePtr createdDevice;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, config);
+        errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, mergeConfig(config, deviceType));
 
         *device = createdDevice.detach();
         return errCode;
@@ -136,6 +135,12 @@ public:
 
         DictPtr<IString, IFunctionBlockType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
+
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
 
         *functionBlockTypes = types.detach();
         return errCode;
@@ -154,9 +159,18 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(id);
         OPENDAQ_PARAM_NOT_NULL(functionBlock);
+        
+        DictPtr<IString, IComponentType> types;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
+        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
+            return errCode;
+
+        ComponentTypePtr type;
+        if (types.assigned() && types.hasKey(id))
+            type = types.get(id);
 
         FunctionBlockPtr block;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateFunctionBlock, block, id, parent, localId, config);
+        errCode = wrapHandlerReturn(this, &Module::onCreateFunctionBlock, block, id, parent, localId, mergeConfig(config, type));
 
         *functionBlock = block.detach();
         return errCode;
@@ -173,6 +187,12 @@ public:
         DictPtr<IString, IServerType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
 
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
+
         *serverTypes = types.detach();
         return errCode;
     }
@@ -188,11 +208,19 @@ public:
     ErrCode INTERFACE_FUNC createServer(daq::IServer** server, IString* serverTypeId, daq::IDevice* rootDevice, IPropertyObject* config) override
     {
         OPENDAQ_PARAM_NOT_NULL(serverTypeId);
-        OPENDAQ_PARAM_NOT_NULL(rootDevice);
         OPENDAQ_PARAM_NOT_NULL(server);
+
+        DictPtr<IString, IComponentType> types;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
+        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
+            return errCode;
         
+        ComponentTypePtr type;
+        if (types.assigned() && types.hasKey(serverTypeId))
+            type = types.get(serverTypeId);
+
         ServerPtr serverInstance;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateServer, serverInstance, serverTypeId, config, rootDevice);
+        errCode = wrapHandlerReturn(this, &Module::onCreateServer, serverInstance, serverTypeId, mergeConfig(config, type), rootDevice);
 
         *server = serverInstance.detach();
         return errCode;
@@ -209,9 +237,28 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(streaming);
         OPENDAQ_PARAM_NOT_NULL(connectionString);
+        
+        DictPtr<IString, IStreamingType> types;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
+        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
+            return errCode;
+
+        ComponentTypePtr streamingType;
+        const StringPtr prefix = getPrefixFromConnectionString(connectionString);
+        if (prefix.assigned() && prefix.getLength() != 0)
+        {
+            for (const auto& [_, type] : types)
+            {
+                if (type.getConnectionStringPrefix() == prefix)
+                {
+                    streamingType = type;
+                    break;
+                }
+            }
+        }
 
         StreamingPtr createdStreaming;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, createdStreaming, connectionString, config);
+        errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, createdStreaming, connectionString, mergeConfig(config, streamingType));
 
         *streaming = createdStreaming.detach();
         return errCode;
@@ -235,6 +282,12 @@ public:
 
         DictPtr<IString, IStreamingType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
+
+        for (const auto& type : types)
+        {
+            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            componentTypePrivate->setModuleInfo(this->moduleInfo);
+        }
 
         *streamingTypes = types.detach();
         return errCode;
@@ -312,7 +365,7 @@ public:
         return Dict<IString, IStreamingType>();
     }
 
-    virtual ServerPtr onCreateServer(StringPtr /*serverType*/, PropertyObjectPtr /*serverConfig*/, DevicePtr /*rootDevice*/)
+    virtual ServerPtr onCreateServer(const StringPtr& serverType, const PropertyObjectPtr& serverConfig, const DevicePtr& rootDevice)
     {
         return nullptr;
     }
@@ -328,9 +381,7 @@ public:
     }
 
 protected:
-    StringPtr name;
-    StringPtr id;
-    VersionInfoPtr version;
+    ModuleInfoPtr moduleInfo;
 
     ContextPtr context;
 
@@ -338,15 +389,78 @@ protected:
     LoggerComponentPtr loggerComponent;
 
     Module(StringPtr name, VersionInfoPtr version, ContextPtr context, StringPtr id = nullptr)
-        : name(std::move(name))
-        , id (std::move(id))
-        , version(std::move(version))
+        : moduleInfo(ModuleInfo(version, name, id))
         , context(std::move(context))
         , logger(this->context.getLogger())
-        , loggerComponent( this->logger.assigned()
-                              ? this->logger.getOrAddComponent(this->name.assigned() ? this->name : "UnknownModule" )
-                              : throw ArgumentNullException("Logger must not be null"))
+        , loggerComponent(
+              this->logger.assigned()
+                  ? this->logger.getOrAddComponent(this->moduleInfo.getName().assigned() ? this->moduleInfo.getName() : "UnknownModule")
+                  : throw ArgumentNullException("Logger must not be null"))
     {
+    }
+
+private:
+
+    StringPtr getPrefixFromConnectionString(const StringPtr& connectionString) const
+    {
+        try
+        {
+            std::string str = connectionString;
+            return str.substr(0, str.find("://"));
+        }
+        catch(...)
+        {
+            LOG_W("Connection string has no prefix denoted by the \"://\" delimiter")
+        }
+
+        return "";
+    }
+
+    static void populateDefaultConfig(const PropertyObjectPtr& defaultObj, const PropertyObjectPtr& userInput)
+    {
+        for (const auto& prop : defaultObj.getAllProperties())
+            {
+                const auto propName = prop.getName();
+
+                if (userInput.hasProperty(propName))
+                {
+                    const auto userProp = userInput.getProperty(propName);
+                    const auto defaultProp = defaultObj.getProperty(propName);
+
+                    if (userProp.getValueType() != defaultProp.getValueType())
+                        continue;
+
+                    if (userProp.getValueType() == ctObject)
+                        populateDefaultConfig(defaultProp.getValue(), userProp.getValue());
+                    else
+                        defaultObj.setPropertyValue(propName, userProp.getValue());
+                }
+            }
+    }
+
+    PropertyObjectPtr mergeConfig(const PropertyObjectPtr& userConfig, const ComponentTypePtr& type) const
+    {
+        
+        PropertyObjectPtr configIn = userConfig.assigned() ? userConfig : PropertyObject();
+        PropertyObjectPtr configOut;
+
+        try
+        {
+            configOut = type.assigned() ? type.createDefaultConfig() : PropertyObject();
+            populateDefaultConfig(configOut, configIn);
+        }
+        catch (const DaqException& e)
+        {
+            LOG_W("Failed to merge configuration: {}", e.what())
+            return configIn;
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to merge configuration: {}", e.what())
+            return configIn;
+        }
+
+        return configOut;
     }
 };
 

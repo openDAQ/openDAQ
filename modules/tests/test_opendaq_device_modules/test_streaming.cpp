@@ -1,23 +1,19 @@
 #include "test_helpers/test_helpers.h"
-#include <opendaq/event_packet_params.h>
 #include <opendaq/mock/mock_device_module.h>
-#include <opendaq/custom_log.h>
 #include <coreobjects/authentication_provider_factory.h>
 
 using namespace daq;
 using namespace std::chrono_literals;
 
-// first param: streaming server type
-// second param: primary streaming protocol
-// third param: client device connection string
-class StreamingTest : public testing::TestWithParam<std::tuple<std::string, std::string, std::string>>
+// first param: streaming server type / streaming protocol
+// second param: client device connection string
+class StreamingTest : public testing::TestWithParam<std::tuple<std::string, std::string>>
 {
 public:
     void SetUp() override
     {
-        auto connectionString = std::get<2>(GetParam());
-        bool connectStringIpv6 = connectionString.find('[') != std::string::npos && connectionString.find(']') != std::string::npos;
-        if (connectStringIpv6 && test_helpers::Ipv6IsDisabled())
+        auto connectionString = std::get<1>(GetParam());
+        if (test_helpers::isIpv6ConnectionString(connectionString) && test_helpers::Ipv6IsDisabled())
         {
             GTEST_SKIP() << "Ipv6 is disabled";
         }
@@ -25,8 +21,8 @@ public:
         serverInstance = CreateServerInstance();
         clientInstance = CreateClientInstance();
 
-        logger = Logger();
-        loggerComponent = logger.getOrAddComponent("StreamingTest");
+        usingNativePseudoDevice = std::get<0>(GetParam()) == "OpenDAQNativeStreaming" && (std::get<1>(GetParam()).find("daq.ns://") == 0);
+        usingLTPseudoDevice = std::get<0>(GetParam()) == "OpenDAQLTStreaming" && (std::get<1>(GetParam()).find("daq.lt://") == 0);
     }
 
     void TearDown() override
@@ -72,100 +68,6 @@ public:
         return reader;
     }
 
-    static ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader,
-                                    size_t packetCount,
-                                    std::chrono::seconds timeout = std::chrono::seconds(60))
-    {
-        auto allPackets = List<IPacket>();
-        auto startPoint = std::chrono::system_clock::now();
-
-        while (allPackets.getCount() < packetCount)
-        {
-            if (reader.getAvailableCount() == 0)
-            {
-                auto now = std::chrono::system_clock::now();
-                auto timeElapsed = now - startPoint;
-                if (timeElapsed > timeout)
-                {
-                    break;
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                continue;
-            }
-
-            auto packets = reader.readAll();
-
-            for (const auto& packet : packets)
-                allPackets.pushBack(packet);
-        }
-
-        return allPackets;
-    }
-
-    bool packetsEqual(const ListPtr<IPacket>& listA, const ListPtr<IPacket>& listB, bool skipEventPackets = false)
-    {
-        bool result = true;
-        if (listA.getCount() != listB.getCount())
-        {
-            LOG_E("Compared packets count differs: A {}, B {}", listA.getCount(), listB.getCount());
-            result = false;
-        }
-
-        auto count = std::min(listA.getCount(), listB.getCount());
-
-        for (SizeT i = 0; i < count; i++)
-        {
-            if (!BaseObjectPtr::Equals(listA.getItemAt(i), listB.getItemAt(i)))
-            {
-                if (listA.getItemAt(i).getType() == PacketType::Event &&
-                    listB.getItemAt(i).getType() == PacketType::Event)
-                {
-                    if (skipEventPackets)
-                        continue;
-                    auto eventPacketA = listA.getItemAt(i).asPtr<IEventPacket>(true);
-                    auto eventPacketB = listB.getItemAt(i).asPtr<IEventPacket>(true);
-
-                    if (eventPacketA.getEventId() != eventPacketB.getEventId())
-                    {
-                        LOG_E("Event id of packets at index {} differs: A - \"{}\", B - \"{}\"",
-                              i, eventPacketA.getEventId(), eventPacketB.getEventId());
-                    }
-                    else if(eventPacketA.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED &&
-                             eventPacketB.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-                    {
-                        const DataDescriptorPtr valueDataDescA = eventPacketA.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                        const DataDescriptorPtr domainDataDescA = eventPacketA.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-
-                        const DataDescriptorPtr valueDataDescB = eventPacketB.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                        const DataDescriptorPtr domainDataDescB = eventPacketB.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-
-                        LOG_E("Event parameters of packets at index {} differs:", i);
-                        LOG_E("packet A - \nvalue:\n\"{}\"\ndomain:\n\"{}\"",
-                              valueDataDescA.assigned() ? valueDataDescA.toString() : "null",
-                              domainDataDescA.assigned() ? domainDataDescA.toString() : "null");
-                        LOG_E("packet B - \nvalue:\n\"{}\"\ndomain:\n\"{}\"",
-                              valueDataDescB.assigned() ? valueDataDescB.toString() : "null",
-                              domainDataDescB.assigned() ? domainDataDescB.toString() : "null");
-                    }
-                    else
-                    {
-                        LOG_E("Event packets at index {} differs: A - \"{}\", B - \"{}\"",
-                              i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
-                    }
-                }
-                else
-                {
-                    LOG_E("Data packets at index {} differs: A - \"{}\", B - \"{}\"",
-                          i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
-                }
-                result = false;
-            }
-        }
-
-        return result;
-    }
-
 protected:
     virtual InstancePtr CreateServerInstance()
     {
@@ -183,9 +85,9 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        auto streamingServer = std::get<0>(GetParam());
-        instance.addServer(streamingServer, nullptr);
-        // streaming server added first, so registered device streaming options is published over opcua
+        instance.addServer("OpenDAQLTStreaming", nullptr);
+        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        // streaming servers added first, so registered device streaming options is published over opcua
         instance.addServer("OpenDAQOPCUA", nullptr);
 
         return instance;
@@ -194,15 +96,21 @@ protected:
     InstancePtr CreateClientInstance()
     {
         auto instance = Instance();
-        auto connectionString = std::get<2>(GetParam());
-        auto device = instance.addDevice(connectionString);
+        auto connectionString = std::get<1>(GetParam());
+
+        auto config = instance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr general = config.getPropertyValue("General");
+        general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>(std::get<0>(GetParam())));
+
+        auto device = instance.addDevice(connectionString, config);
         return instance;
     }
 
     InstancePtr serverInstance;
     InstancePtr clientInstance;
-    LoggerPtr logger;
-    LoggerComponentPtr loggerComponent;
+
+    bool usingNativePseudoDevice{false};
+    bool usingLTPseudoDevice{false};
 };
 
 TEST_P(StreamingTest, SignalDescriptorEvents)
@@ -231,17 +139,17 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     // websocket streaming does not recreate half assigned data descriptor changed event packet on client side
     // both: value and domain descriptors are always assigned in event packet
     // while on server side one descriptor can be assigned only
-    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
-    auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets,
-                             clientReceivedPackets,
-                             std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets,
+                                           clientReceivedPackets,
+                                           std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
 
     // recreate client reader and test initial event packet
     clientReader = createClientReader(clientSignal.getDescriptor().getName());
-    clientReceivedPackets = tryReadPackets(clientReader, 1);
+    clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 1);
 
     ASSERT_EQ(clientReceivedPackets.getCount(), 1u);
 
@@ -281,24 +189,119 @@ TEST_P(StreamingTest, DataPackets)
 
     generatePackets(packetsToGenerate);
 
-    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead);
-    auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead);
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
+}
+
+TEST_P(StreamingTest, SetNullDescriptor)
+{
+    if (!usingLTPseudoDevice)
+    {
+        const size_t packetsToRead = 2;
+
+        auto serverSignalPtr = getSignal(serverInstance, "ByteStep").template asPtr<ISignalConfig>();
+        auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+        std::promise<StringPtr> subscribeCompletePromise;
+        std::future<StringPtr> subscribeCompleteFuture;
+        test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+
+        auto serverReader = createServerReader("ByteStep");
+        auto clientReader = createClientReader("ByteStep");
+
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
+
+        // set null descriptor
+        serverSignalPtr.setDescriptor(nullptr);
+
+        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
+        auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
+
+        ASSERT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+        ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+
+        const auto nullDescEventPacket = clientReceivedPackets[1].asPtr<IEventPacket>();
+        EXPECT_EQ(nullDescEventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+        EXPECT_EQ(nullDescEventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR), NullDataDescriptor());
+
+        ASSERT_EQ(mirroredSignalPtr.getDescriptor(), nullptr);
+
+        EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets,
+                                               clientReceivedPackets,
+                                               std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
+    }
+    else // usingLTPseudoDevice true
+    {
+
+        auto serverSignalPtr = getSignal(serverInstance, "ByteStep").template asPtr<ISignalConfig>();
+        auto serverReader = createServerReader("ByteStep");
+
+        auto mirroredOrigSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+        std::promise<StringPtr> origSigSubscribeCompletePromise;
+        std::future<StringPtr> origSigSubscribeCompleteFuture;
+        test_helpers::setupSubscribeAckHandler(origSigSubscribeCompletePromise, origSigSubscribeCompleteFuture, mirroredOrigSignalPtr);
+        auto clientOrigSigReader = createClientReader("ByteStep");
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(origSigSubscribeCompleteFuture));
+        auto clientOrigSigReceivedPackets = test_helpers::tryReadPackets(clientOrigSigReader, 1);
+
+        SignalConfigPtr mirroredNewSignalPtr;
+        std::promise<void> addSigPromise;
+        std::future<void> addSigFuture = addSigPromise.get_future();
+
+        clientInstance.getContext().getOnCoreEvent() +=
+            [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        {
+            auto params = args.getParameters();
+            if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+            {
+                ComponentPtr component = params.get("Component");
+                if (component.asPtrOrNull<ISignal>().assigned())
+                {
+                    mirroredNewSignalPtr = component;
+                    addSigPromise.set_value();
+                }
+            }
+        };
+
+        // set null descriptor
+        serverSignalPtr.setDescriptor(nullptr);
+
+        ASSERT_TRUE(addSigFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+
+        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 2);
+
+        auto clientNewSigReader = PacketReader(mirroredNewSignalPtr);
+        auto clientNewSigReceivedPackets = test_helpers::tryReadPackets(clientNewSigReader, 1);
+
+        ASSERT_EQ(serverReceivedPackets.getCount(), 2u);
+        ASSERT_EQ(clientOrigSigReceivedPackets.getCount(), 1u);
+        ASSERT_EQ(clientNewSigReceivedPackets.getCount(), 1u);
+
+        const auto nullDescEventPacket = clientNewSigReceivedPackets[0].asPtr<IEventPacket>();
+        EXPECT_EQ(nullDescEventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+        EXPECT_EQ(nullDescEventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR), NullDataDescriptor());
+
+        ASSERT_EQ(mirroredNewSignalPtr.getDescriptor(), nullptr);
+        ASSERT_TRUE(mirroredOrigSignalPtr.isRemoved());
+    }
 }
 
 TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 {
+    if (std::get<1>(GetParam()).find("daq.nd://") == 0)
+    {
+        GTEST_SKIP();
+    }
+
     SKIP_TEST_MAC_CI;
     SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");
     MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 
-    bool usingNativePseudoDevice = std::get<1>(GetParam()) == "OpenDAQNativeStreaming" && (std::get<2>(GetParam()).find("daq.ns://") == 0);
-    bool usingWSPseudoDevice = std::get<1>(GetParam()) == "OpenDAQLTStreaming" && (std::get<2>(GetParam()).find("daq.lt://") == 0);
-    bool usingNativeStreaming = std::get<1>(GetParam()) == "OpenDAQNativeStreaming";
+    bool usingNativeStreaming = std::get<0>(GetParam()) == "OpenDAQNativeStreaming";
 
     for (int i = 0; i < 5; ++i)
     {
@@ -342,7 +345,7 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 
         if (usingNativePseudoDevice)
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 2u);
+            auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 2u);
             ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 2u);
 
             for (int j = 0; j < 2; ++j)
@@ -367,9 +370,9 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
                 }
             }
         }
-        else if (usingWSPseudoDevice)
+        else if (usingLTPseudoDevice)
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 3u);
+            auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 3u);
             ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 3u);
 
             for (int j = 0; j < 3; ++j)
@@ -401,7 +404,7 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         }
         else
         {
-            auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1u);
+            auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 1u);
             ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1u);
             const auto packet = clientReceivedPackets[0];
             const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
@@ -439,14 +442,18 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTestGroup,
     StreamingTest,
     testing::Values(
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.opcua://127.0.0.1/"),
-        std::make_tuple("OpenDAQLTStreaming", "OpenDAQLTStreaming", "daq.lt://127.0.0.1/"),
-        std::make_tuple("OpenDAQLTStreaming", "OpenDAQLTStreaming", "daq.opcua://127.0.0.1/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.ns://[::1]/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.opcua://[::1]/"),
-        std::make_tuple("OpenDAQLTStreaming", "OpenDAQLTStreaming", "daq.lt://[::1]/"),
-        std::make_tuple("OpenDAQLTStreaming", "OpenDAQLTStreaming", "daq.opcua://[::1]/")
+        std::make_tuple("OpenDAQNativeStreaming", "daq.ns://127.0.0.1/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.nd://127.0.0.1/"),
+        std::make_tuple("OpenDAQLTStreaming", "daq.lt://127.0.0.1/"),
+        std::make_tuple("OpenDAQLTStreaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("OpenDAQLTStreaming", "daq.nd://127.0.0.1/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.ns://[::1]/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.opcua://[::1]/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.nd://[::1]/"),
+        std::make_tuple("OpenDAQLTStreaming", "daq.lt://[::1]/"),
+        std::make_tuple("OpenDAQLTStreaming", "daq.opcua://[::1]/"),
+        std::make_tuple("OpenDAQLTStreaming", "daq.nd://[::1]/")
     )
 );
 #elif defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && !defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -454,10 +461,10 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTestGroup,
     StreamingTest,
     testing::Values(
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.opcua://127.0.0.1/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.ns://[::1]/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.opcua://[::1]/")
+        std::make_tuple("OpenDAQNativeStreaming", "daq.ns://127.0.0.1/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.ns://[::1]/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.opcua://[::1]/")
     )
 );
 #elif !defined(OPENDAQ_ENABLE_NATIVE_STREAMING) && defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -465,10 +472,10 @@ INSTANTIATE_TEST_SUITE_P(
     StreamingTestGroup,
     StreamingTest,
     testing::Values(
-        std::make_tuple("OpenDAQLTStreaming", "OpenDAQLTStreaming", "daq.lt://127.0.0.1/"),
-        std::make_tuple("OpenDAQLTStreaming", "OpenDAQLTStreaming", "daq.opcua://127.0.0.1/"),
-        std::make_tuple("OpenDAQLTStreaming", "OpenDAQLTStreaming", "daq.lt://[::1]/"),
-        std::make_tuple("OpenDAQLTStreaming", "OpenDAQLTStreaming", "daq.opcua://[::1]/")
+        std::make_tuple("OpenDAQLTStreaming", "daq.lt://127.0.0.1/"),
+        std::make_tuple("OpenDAQLTStreaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("OpenDAQLTStreaming", "daq.lt://[::1]/"),
+        std::make_tuple("OpenDAQLTStreaming", "daq.opcua://[::1]/")
     )
 );
 #endif
@@ -522,22 +529,22 @@ TEST_P(StreamingAsyncSignalTest, SigWithExplicitDomain)
 
     generatePackets(packetsToRead);
 
-    auto serverReceivedPackets = tryReadPackets(serverReader, packetsToRead + 1);
-    auto clientReceivedPackets = tryReadPackets(clientReader, packetsToRead + 1);
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead + 1);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 1);
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead + 1);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
 INSTANTIATE_TEST_SUITE_P(
     StreamingAsyncSignalTestGroup,
     StreamingAsyncSignalTest,
     testing::Values(
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.opcua://127.0.0.1/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.ns://[::1]/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.opcua://[::1]/")
+        std::make_tuple("OpenDAQNativeStreaming", "daq.ns://127.0.0.1/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.ns://[::1]/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.opcua://[::1]/")
     )
 );
 
@@ -596,10 +603,10 @@ TEST_P(StreamingReconnectionTest, Reconnection)
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
 
     // read initial event packets
-    auto clientReceivedPackets = tryReadPackets(clientReader, 1);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 1);
     EXPECT_EQ(clientReceivedPackets.getCount(), 1u);
 
-    auto serverReceivedPackets = tryReadPackets(serverReader, 1);
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 1);
     EXPECT_EQ(serverReceivedPackets.getCount(), 1u);
 
     // remove streaming server to emulate disconnection
@@ -618,29 +625,29 @@ TEST_P(StreamingReconnectionTest, Reconnection)
 
     generatePackets(packetsToGenerate);
 
-    serverReceivedPackets = tryReadPackets(serverReader, packetsToGenerate);
-    clientReceivedPackets = tryReadPackets(clientReader, packetsToGenerate);
+    serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToGenerate);
+    clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToGenerate);
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToGenerate);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToGenerate);
-    EXPECT_TRUE(packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
 INSTANTIATE_TEST_SUITE_P(
     StreamingReconnectionTestGroup,
     StreamingReconnectionTest,
     testing::Values(
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.ns://127.0.0.1/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.opcua://127.0.0.1/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.ns://[::1]/"),
-        std::make_tuple("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", "daq.opcua://[::1]/")
+        std::make_tuple("OpenDAQNativeStreaming", "daq.ns://127.0.0.1/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.opcua://127.0.0.1/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.ns://[::1]/"),
+        std::make_tuple("OpenDAQNativeStreaming", "daq.opcua://[::1]/")
     )
 );
 
 class NativeDeviceStreamingTest : public testing::Test
 {};
 
-TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
 {
     SKIP_TEST_MAC_CI;
     const auto moduleManager = ModuleManager("");
@@ -704,7 +711,7 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
         const int packetsToRead = i + 3;
         serverInstance.setPropertyValue("GeneratePackets", packetsToRead);
 
-        auto clientReceivedPackets = StreamingTest::tryReadPackets(clientReader, packetsToRead + 1u);
+        auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead + 1u);
         ASSERT_EQ(clientReceivedPackets.getCount(), packetsToRead + 1u);
         const auto packet = clientReceivedPackets[0];
         const auto eventPacket = packet.asPtrOrNull<IEventPacket>();

@@ -13,8 +13,16 @@ TailReaderImpl::TailReaderImpl(ISignal* signal,
     , historySize(historySize)
     , cachedSamples(0)
 {
-    port.setNotificationMethod(PacketReadyNotification::SameThread);
-    packetReceived(port.as<IInputPort>(true));
+    try
+    {
+        port.setNotificationMethod(PacketReadyNotification::SameThread);
+        packetReceived(port.as<IInputPort>(true));
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
@@ -27,7 +35,17 @@ TailReaderImpl::TailReaderImpl(IInputPortConfig* port,
     , historySize(historySize)
     , cachedSamples(0)
 {
-    this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    try
+    {
+        this->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+        if (connection.assigned())
+            packetReceived(this->port.as<IInputPort>(true));
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 TailReaderImpl::TailReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -51,7 +69,6 @@ TailReaderImpl::TailReaderImpl(TailReaderImpl* old,
     , packets(old->packets)
     
 {
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 }
 
 ErrCode TailReaderImpl::getAvailableCount(SizeT* count)
@@ -257,7 +274,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
         {
             case PacketType::Data:
             {
-                auto newPacket = packet.asPtrOrNull<IDataPacket>(true);
+                auto newPacket = packet.asPtr<IDataPacket>(true);
                 SizeT newPacketSampleCount = newPacket.getSampleCount();
                 if (cachedSamples < historySize)
                 {
@@ -275,7 +292,7 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
                             continue;
                         }
                 
-                        auto tmpPacket = it->asPtrOrNull<IDataPacket>(true);
+                        auto tmpPacket = it->asPtr<IDataPacket>(true);
                         SizeT sampleCount = tmpPacket.getSampleCount();
                         if (availableSamples - sampleCount >= historySize)
                         {
@@ -379,6 +396,12 @@ daq::ErrCode PUBLIC_EXPORT createTailReaderFromBuilder(ITailReader** objTmp, ITa
     OPENDAQ_PARAM_NOT_NULL(builder);
 
     auto builderPtr = TailReaderBuilderPtr::Borrow(builder);
+
+    if ((builderPtr.getValueReadType() == SampleType::Undefined || builderPtr.getDomainReadType() == SampleType::Undefined) &&
+        builderPtr.getSkipEvents())
+    {
+        return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Reader cannot skip events when sample type is undefined", nullptr);
+    }
 
     if (auto port = builderPtr.getInputPort(); port.assigned())
     {

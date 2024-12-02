@@ -1,10 +1,10 @@
 #include <coreobjects/argument_info_impl.h>
 #include <coretypes/impl.h>
 #include <coreobjects/argument_info_factory.h>
-
-#include "coretypes/validation.h"
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 namespace detail
 {
     static const StructTypePtr argumentInfoStructType = ArgumentInfoStructType();

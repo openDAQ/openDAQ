@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 06.08.2024 09:13:27.
+//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:25.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -191,7 +191,7 @@ public static partial class CoreTypesFactory
         var typesPtr = (ListObject<BaseObject>)types;
 
         //call native function
-        ErrorCode errorCode = createStructType(out objPtr, namePtr.NativePointer, namesPtr.NativePointer, defaultValuesPtr.NativePointer, typesPtr.NativePointer);
+        ErrorCode errorCode = createStructType(out objPtr, namePtr, namesPtr, defaultValuesPtr, typesPtr);
 
         if (Result.Succeeded(errorCode))
         {
@@ -214,7 +214,7 @@ public static partial class CoreTypesFactory
         var typesPtr = (ListObject<BaseObject>)types;
 
         //call native function
-        ErrorCode errorCode = createStructType(out objPtr, namePtr.NativePointer, namesPtr.NativePointer, defaultValuesPtr.NativePointer, typesPtr.NativePointer);
+        ErrorCode errorCode = createStructType(out objPtr, namePtr, namesPtr, defaultValuesPtr, typesPtr);
 
         if (Result.Failed(errorCode))
         {
@@ -244,7 +244,7 @@ public static partial class CoreTypesFactory
         var typesPtr = (ListObject<BaseObject>)types;
 
         //call native function
-        ErrorCode errorCode = createStructTypeNoDefaults(out objPtr, namePtr.NativePointer, namesPtr.NativePointer, typesPtr.NativePointer);
+        ErrorCode errorCode = createStructTypeNoDefaults(out objPtr, namePtr, namesPtr, typesPtr);
 
         if (Result.Succeeded(errorCode))
         {
@@ -266,7 +266,7 @@ public static partial class CoreTypesFactory
         var typesPtr = (ListObject<BaseObject>)types;
 
         //call native function
-        ErrorCode errorCode = createStructTypeNoDefaults(out objPtr, namePtr.NativePointer, namesPtr.NativePointer, typesPtr.NativePointer);
+        ErrorCode errorCode = createStructTypeNoDefaults(out objPtr, namePtr, namesPtr, typesPtr);
 
         if (Result.Failed(errorCode))
         {

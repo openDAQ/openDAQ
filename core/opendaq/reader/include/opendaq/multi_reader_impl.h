@@ -33,7 +33,8 @@ public:
                     ReadMode mode,
                     ReadTimeoutType timeoutType,
                     Int requiredCommonSampleRate = -1,
-                    Bool startOnFullUnitOfDomain = false);
+                    Bool startOnFullUnitOfDomain = false,
+                    SizeT minReadCount = 1);
 
     MultiReaderImpl(MultiReaderImpl* old,
                     SampleType valueReadType,
@@ -61,6 +62,7 @@ public:
     ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
     ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IMultiReaderStatus** status) override;
 
+    // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
     ErrCode INTERFACE_FUNC connected(IInputPort* port) override;
     ErrCode INTERFACE_FUNC disconnected(IInputPort* port) override;
@@ -80,19 +82,27 @@ public:
 
     ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
 
+    ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
+    ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
+
 private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
-    static ListPtr<IInputPortConfig> CheckPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
+    ListPtr<IInputPortConfig> checkPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
     void updateCommonSampleRateAndDividers();
     ListPtr<ISignal> getSignals() const;
 
     void setStartInfo();
-    void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
+    void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, 
+                      SampleType valueRead, 
+                      SampleType domainRead, 
+                      ReadMode mode,
+                      bool fromInputPorts);
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
     DictPtr<IString, IEventPacket> readUntilFirstDataPacket();
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
+    bool hasEventOrGapInQueue();
 
     SyncStatus getSyncStatus() const;
 
@@ -102,8 +112,9 @@ private:
     void prepareWithDomain(void** outValues, void** domain, SizeT count, std::chrono::milliseconds timeoutTime);
 
     [[nodiscard]] Duration durationFromStart() const;
-
     void readSamples(SizeT samples);
+
+    void readSamplesAndSetRemainingSamples(SizeT samples);
 
     void readDomainStart();
     void sync();
@@ -138,11 +149,20 @@ private:
     bool startOnFullUnitOfDomain;
 
     NotifyInfo notify{};
-    bool portConnected {};
-    bool portDisconnected {};
+    bool portConnected{};
+    bool portDisconnected{};
 
     DataDescriptorPtr mainValueDescriptor;
     DataDescriptorPtr mainDomainDescriptor;
+
+    void isDomainValid(const ListPtr<IInputPortConfig>& list);
+    void checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list);
+
+    ContextPtr context;
+    struct ReferenceDomainBin;
+    bool isActive{true};
+
+    SizeT minReadCount;
 };
 
 END_NAMESPACE_OPENDAQ

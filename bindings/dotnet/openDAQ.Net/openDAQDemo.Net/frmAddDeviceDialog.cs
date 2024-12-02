@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
+
 using System.ComponentModel;
 using System.Windows.Forms;
 
 using Daq.Core.OpenDAQ;
 using Daq.Core.Types;
+
+using openDAQDemoNet.Helpers;
 
 
 namespace openDAQDemoNet;
@@ -43,7 +46,7 @@ public partial class frmAddDeviceDialog : Form
 
         this.treeParentDevices.HideSelection = false;
 
-        InitializeDataGridView(this.gridChildDevices);
+        GuiHelper.InitializeDataGridView(this.gridChildDevices);
 
         this._instance = instance;
     }
@@ -58,7 +61,7 @@ public partial class frmAddDeviceDialog : Form
     /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
     private void frmAddDeviceDialog_Shown(object sender, EventArgs e)
     {
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
         this.Update();
 
         PopulateParentDevices(_instance);
@@ -68,7 +71,9 @@ public partial class frmAddDeviceDialog : Form
         this.gridChildDevices.DataSource = _childDevices;
         this.gridChildDevices.Columns["Used"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
 
-        ResetWaitCursor();
+        GuiHelper.Update(this.gridChildDevices);
+
+        GuiHelper.ResetWaitCursor(this);
     }
 
     #region Context Menu
@@ -153,10 +158,7 @@ public partial class frmAddDeviceDialog : Form
         string connectionString = childDevice.ConnectionString;
 
         if (ConnectAndAddDeviceToParent(connectionString))
-        {
             childDevice.SetUsed();
-            this.gridChildDevices.Refresh(); //Update() does not paint the check-mark somehow
-        }
     }
 
     #endregion
@@ -195,53 +197,6 @@ public partial class frmAddDeviceDialog : Form
     }
 
     #endregion //event handlers .................................................................................
-
-    /// <summary>
-    /// Sets the wait cursor.
-    /// </summary>
-    private void SetWaitCursor()
-    {
-        Cursor.Current     = Cursors.WaitCursor;
-        this.Cursor        = Cursors.WaitCursor;
-        this.UseWaitCursor = true;
-    }
-
-    /// <summary>
-    /// Resets the wait cursor.
-    /// </summary>
-    private void ResetWaitCursor()
-    {
-        this.UseWaitCursor = false;
-        this.Cursor        = Cursors.Default;
-        Cursor.Current     = Cursors.Default;
-        base.ResetCursor();
-    }
-
-    /// <summary>
-    /// Initializes the given <c>DataGridView</c>.
-    /// </summary>
-    /// <param name="grid">The <c>DataGridView</c> to initialize.</param>
-    private void InitializeDataGridView(DataGridView grid)
-    {
-        var columnHeadersDefaultCellStyle = grid.ColumnHeadersDefaultCellStyle;
-
-        grid.EnableHeadersVisualStyles                   = false; //enable ColumnHeadersDefaultCellStyle
-        columnHeadersDefaultCellStyle.BackColor          = Color.FromKnownColor(KnownColor.ButtonFace);
-        columnHeadersDefaultCellStyle.Font               = new Font(grid.Font, FontStyle.Bold);
-        columnHeadersDefaultCellStyle.SelectionBackColor = Color.Transparent;
-        columnHeadersDefaultCellStyle.SelectionForeColor = Color.Transparent;
-        grid.ColumnHeadersHeightSizeMode                 = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-        grid.AlternatingRowsDefaultCellStyle.BackColor   = Color.FromArgb(0xFF, 0xF9, 0xF9, 0xF9);
-        grid.GridColor                                   = Color.FromArgb(0xFF, 0xE0, 0xE0, 0xE0);
-
-        grid.DefaultCellStyle.DataSourceNullValue = null;
-
-        grid.SelectionMode       = DataGridViewSelectionMode.FullRowSelect;
-        grid.MultiSelect         = false;
-        grid.RowHeadersVisible   = false;
-        grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-        grid.AutoSizeRowsMode    = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
-    }
 
     /// <summary>
     /// Populates the parent devices tree (recursion).
@@ -293,7 +248,7 @@ public partial class frmAddDeviceDialog : Form
         bool isWaitCursorAlreadyOn = this.UseWaitCursor;
 
         if (!isWaitCursorAlreadyOn)
-            SetWaitCursor();
+            GuiHelper.SetWaitCursor(this);
 
         _childDevices.Clear();
         this.gridChildDevices.Refresh(); //clear in GUI
@@ -304,7 +259,7 @@ public partial class frmAddDeviceDialog : Form
         }
 
         if (!isWaitCursorAlreadyOn)
-            ResetWaitCursor();
+            GuiHelper.ResetWaitCursor(this);
     }
 
     /// <summary>
@@ -338,17 +293,10 @@ public partial class frmAddDeviceDialog : Form
         //check if the device is already connected
         ChildDevice? childDevice = _childDevices.FirstOrDefault(device => device.ConnectionString?.Equals(connectionString, StringComparison.InvariantCultureIgnoreCase) ?? false);
 
-        SetWaitCursor();
+        GuiHelper.SetWaitCursor(this);
 
         try
         {
-            //HACK: just for now, as HBK devices cannot handle port numbers at the moment
-            if (childDevice?.Name.StartsWith("HBK") ?? false)
-            {
-                //remove port number for now
-                connectionString = string.Join(':', connectionString.Split(':'), 0, 2) + "/";
-            }
-
             //connect the device
             Device newDevice = selectedParentDevice.AddDevice(connectionString);
 
@@ -368,7 +316,7 @@ public partial class frmAddDeviceDialog : Form
         }
         finally
         {
-            ResetWaitCursor();
+            GuiHelper.ResetWaitCursor(this);
         }
 
         return true;

@@ -25,6 +25,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
+enum class NativeType {config, streaming};
+
 class NativeStreamingClientModule final : public Module
 {
 public:
@@ -66,6 +68,8 @@ private:
         const StringPtr& port,
         const StringPtr& path,
         const PropertyObjectPtr& config);
+    PropertyObjectPtr parseAuthenticationConfig(const PropertyObjectPtr& config);
+    void copyConfigPropertyValue(const StringPtr& propName, const PropertyObjectPtr& srcObject, PropertyObjectPtr& targetObject);
 
     StreamingPtr createNativeStreaming(const StringPtr& connectionString,
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
@@ -77,13 +81,15 @@ private:
                                  const PropertyObjectPtr& config,
                                  const StringPtr& host,
                                  const StringPtr& port,
-                                 const StringPtr& path);
-    PropertyObjectPtr createConnectionDefaultConfig();
+                                 const StringPtr& path,
+                                 uint16_t& protocolVersion);
+
+    PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType);
     bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
-    PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
+    PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType);
     void populateDefaultTransportLayerConfig(PropertyObjectPtr& defaultConfig, const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateDeviceConfig(const PropertyObjectPtr& config);

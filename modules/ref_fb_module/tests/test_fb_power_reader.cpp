@@ -471,3 +471,160 @@ TEST_F(PowerReaderTest, Gap)
 
     ctx.getScheduler().stop();
 }
+
+TEST_F(PowerReaderTest, InvalidateVoltageSignal)
+{
+    const auto ctx = createContext();
+    const auto module = createModule(ctx);
+
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
+    ASSERT_TRUE(fb.assigned());
+
+    createSignals(ctx);
+
+    fb.getInputPorts()[0].connect(voltageSignal);
+    fb.getInputPorts()[1].connect(currentSignal);
+
+    const auto powerSignal = fb.getSignals()[0];
+
+    const auto timePacket0 = DataPacket(timeSignal.getDescriptor(), 100, 0);
+
+    const auto voltagePacket0 = DataPacketWithDomain(timePacket0, voltageSignal.getDescriptor(), 100);
+    auto voltageData0 = static_cast<float*>(voltagePacket0.getRawData());
+    for (size_t i = 0; i < 100; i++)
+        *voltageData0++ = static_cast<float>(i);
+
+    const auto currentPacket0 = DataPacketWithDomain(timePacket0, currentSignal.getDescriptor(), 100);
+    auto currentData0 = static_cast<float*>(currentPacket0.getRawData());
+    for (size_t i = 0; i < 100; i++)
+        *currentData0++ = static_cast<float>(i);
+
+    const auto reader = StreamReaderBuilder()
+                            .setSkipEvents(False)
+                            .setSignal(powerSignal)
+                            .setValueReadType(SampleType::Float64)
+                            .setDomainReadType(SampleType::Int64)
+                            .setReadMode(ReadMode::Scaled)
+                            .setReadTimeoutType(ReadTimeoutType::All)
+                            .build();
+
+    // Catch initial event packet
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count, 10000);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    timeSignal.sendPacket(timePacket0);
+    voltageSignal.sendPacket(voltagePacket0);
+    currentSignal.sendPacket(currentPacket0);
+
+    constexpr size_t samplesToRead0 = 100;
+
+    std::vector<double> data0(samplesToRead0);
+    std::vector<int64_t> time0(samplesToRead0);
+
+    SizeT count0 = samplesToRead0;
+    auto status0 = reader.readWithDomain(data0.data(), time0.data(), &count0, 10000);
+    ASSERT_EQ(status0.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count0, samplesToRead0);
+
+    std::vector<double> expectedData0(samplesToRead0);
+    std::generate(expectedData0.begin(),
+                  expectedData0.end(),
+                  [n = 0]() mutable
+                  {
+                      const auto res = n * n;
+                      n++;
+                      return res;
+                  });
+    ASSERT_THAT(data0, testing::ElementsAreArray(expectedData0));
+
+    std::vector<int64_t> expectedTime(samplesToRead0);
+    std::generate(expectedTime.begin(), expectedTime.end(), [n = 0]() mutable { return n++; });
+    ASSERT_THAT(time0, testing::ElementsAreArray(expectedTime));
+
+    // Set incompatible Unit
+    voltageSignal.setDescriptor(
+        DataDescriptorBuilderCopy(voltageSignal.getDescriptor()).setUnit(Unit("W", -1, "watt", "power")).build());
+
+    const auto timePacket1 = DataPacket(timeSignal.getDescriptor(), 100, 100);
+    timeSignal.sendPacket(timePacket1);
+
+    const auto voltagePacket1 = DataPacketWithDomain(timePacket1, voltageSignal.getDescriptor(), 100);
+    voltageSignal.sendPacket(voltagePacket1);
+
+    const auto currentPacket1 = DataPacketWithDomain(timePacket1, currentSignal.getDescriptor(), 100);
+    currentSignal.sendPacket(currentPacket1);
+
+    constexpr size_t samplesToRead1 = 100;
+    ASSERT_EQ(reader.getAvailableCount(), 0u); // no data available when FB internal multireader is inactive
+
+    // Set correct Unit
+    voltageSignal.setDescriptor(
+        DataDescriptorBuilderCopy(voltageSignal.getDescriptor()).setUnit(Unit("V", -1, "volts", "voltage")).build());
+
+    // Catch event packet from value desc change
+    {
+        constexpr size_t samplesToRead = 1;
+        std::vector<double> data(samplesToRead);
+        std::vector<int64_t> time(samplesToRead);
+
+        SizeT count = samplesToRead;
+        auto status = reader.readWithDomain(data.data(), time.data(), &count, 10000);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    // Catch event packet from domain desc change
+    {
+        constexpr size_t samplesToRead = 1;
+        std::vector<double> data(samplesToRead);
+        std::vector<int64_t> time(samplesToRead);
+
+        SizeT count = samplesToRead;
+        auto status = reader.readWithDomain(data.data(), time.data(), &count, 10000);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    const auto timePacket2 = DataPacket(timeSignal.getDescriptor(), 50, 200);
+    timeSignal.sendPacket(timePacket2);
+
+    const auto voltagePacket2 = DataPacketWithDomain(timePacket2, voltageSignal.getDescriptor(), 50);
+    auto voltageData2 = static_cast<float*>(voltagePacket2.getRawData());
+    for (size_t i = 200; i < 250; i++)
+        *voltageData2++ = static_cast<float>(i);
+    voltageSignal.sendPacket(voltagePacket2);
+
+    const auto currentPacket2 = DataPacketWithDomain(timePacket2, currentSignal.getDescriptor(), 50);
+    auto currentData2 = static_cast<float*>(currentPacket2.getRawData());
+    for (size_t i = 200; i < 250; i++)
+        *currentData2++ = static_cast<float>(i);
+    currentSignal.sendPacket(currentPacket2);
+
+    constexpr size_t samplesToRead2 = 50;
+    std::vector<double> data2(samplesToRead2);
+    std::vector<int64_t> time2(samplesToRead2);
+
+    SizeT count2 = samplesToRead2;
+    auto status2 = reader.readWithDomain(data2.data(), time2.data(), &count2, 10000);
+    ASSERT_EQ(status2.getReadStatus(), ReadStatus::Ok);
+    ASSERT_TRUE(status2.getValid());
+    ASSERT_EQ(count2, samplesToRead2);
+
+    std::vector<double> expectedData2(samplesToRead2);
+    std::generate(expectedData2.begin(),
+                  expectedData2.end(),
+                  [n = samplesToRead0 + samplesToRead1]() mutable
+                  {
+                      const auto res = n * n;
+                      n++;
+                      return res;
+                  });
+    ASSERT_THAT(data2, testing::ElementsAreArray(expectedData2));
+
+    std::vector<int64_t> expectedTime2(samplesToRead2);
+    std::generate(expectedTime2.begin(), expectedTime2.end(), [n = samplesToRead0 + samplesToRead1]() mutable { return n++; });
+    ASSERT_THAT(time2, testing::ElementsAreArray(expectedTime2));
+
+    ctx.getScheduler().stop();
+}

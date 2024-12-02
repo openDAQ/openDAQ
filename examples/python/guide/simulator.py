@@ -17,6 +17,9 @@ instance_builder.add_discovery_server("mdns")
 # Set reference device as a root
 instance_builder.set_root_device('daqref://device0', config)
 
+# until instance builder factory gets updated
+instance_builder.module_path = opendaq.OPENDAQ_MODULES_DIR
+
 # Creating a new instance from builder
 instance = instance_builder.build()
 

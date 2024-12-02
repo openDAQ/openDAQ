@@ -17,10 +17,9 @@ env:
   simulator_app_artifact: SimulatorApp
   simulator_package_artifact: SimulatorPackage
   python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12
+  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   package_windows:
@@ -55,7 +54,8 @@ jobs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       # test_path: ''
       windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
-      short_sha: ${{ env.short_sha }}
+      # short_sha: ${{ env.short_sha }}
+      short_sha_dotnet: ${{ steps.configure_and_build_wheels.outputs.short_sha_dotnet }}
 
     env:
       short_sha: 'package'  # for .NET Bindings build
@@ -64,14 +64,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
+
       - name: Configure and build Wheels
+        id: configure_and_build_wheels
         if: matrix.cmake_generator_platform != 'Win32'
         shell: pwsh
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
-          # for .NET Bindings build
-          $env:SHORT_SHA = "${{ env.short_sha }}"
+          # for .NET Bindings beta build
+          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
+          if ("$env:SHORT_SHA" -ne '') {
+            # pwsh syntax
+            echo "short_sha_dotnet=$env:SHORT_SHA" >> $env:GITHUB_OUTPUT
+          }
           mkdir build
           cd build
           mkdir wheels
@@ -98,8 +109,9 @@ jobs:
         if: matrix.cmake_generator_platform == 'Win32'
         shell: pwsh
         run: |
-          # for .NET Bindings build
-          $env:SHORT_SHA = "${{ env.short_sha }}"
+          # for .NET Bindings beta build
+          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
+          # $env:GITHUB_OUTPUT not set here as output only needed from step configure_and_build_wheels
           mkdir build
           cd build
           Write-Output "Building for Win32"
@@ -311,8 +323,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: manylinux2014 gcc Release
-            image: quay.io/pypa/manylinux2014_x86_64
+          - name: manylinux_2_28 gcc Release
+            image: quay.io/pypa/manylinux_2_28_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
             additional_packages:
@@ -334,7 +346,7 @@ jobs:
           yum install -y git
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
@@ -364,7 +376,7 @@ jobs:
           done
 
       - name: Upload Wheels
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: Wheels (${{ matrix.name }})
           path: ${{ env.wheels_path }}
@@ -471,5 +483,5 @@ jobs:
         # test_path: ''
         windows_x64_artifact_name:  ${{ needs.package_windows.outputs.windows_x64_artifact_name }}
         linux_x64_artifact_name:  ${{ needs.package_linux.outputs.linux_x64_artifact_name }}
-        short_sha: ${{ needs.package_windows.outputs.short_sha }}
+        short_sha: ${{ needs.package_windows.outputs.short_sha_dotnet }}
       # -> output.nuget_artifact_name

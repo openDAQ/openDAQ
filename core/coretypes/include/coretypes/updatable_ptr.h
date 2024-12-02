@@ -83,12 +83,12 @@ public:
         return *this;
     }
 
-    void update(const SerializedObjectPtr& update) const
+    void update(const SerializedObjectPtr& update, const BaseObjectPtr& config) const
     {
         if (this->object == nullptr)
             throw daq::InvalidParameterException();
 
-        auto errCode = this->object->update(update);
+        auto errCode = this->object->update(update, config);
         daq::checkErrorInfo(errCode);
     }
 
@@ -101,15 +101,23 @@ public:
         daq::checkErrorInfo(errCode);
     }
 
-    void updateEnded() const
+    void updateEnded(const BaseObjectPtr& context) const
     {
         if (this->object == nullptr)
             throw daq::InvalidParameterException();
 
-        auto errCode = this->object->updateEnded();
+        auto errCode = this->object->updateEnded(context);
         daq::checkErrorInfo(errCode);
     }
 
+    void updateInternal(const SerializedObjectPtr& update, const BaseObjectPtr& context) const
+    {
+        if (this->object == nullptr)
+            throw daq::InvalidParameterException();
+
+        auto errCode = this->object->updateInternal(update, context);
+        daq::checkErrorInfo(errCode);
+    }
 };
 
 /*!

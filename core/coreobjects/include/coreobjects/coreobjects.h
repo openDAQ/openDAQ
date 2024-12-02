@@ -51,7 +51,8 @@
 
 #include <coreobjects/unit_factory.h>
 
-#include <coreobjects/component_type_ptr.h>
+#include <coreobjects/user_factory.h>
+#include <coreobjects/authentication_provider_factory.h>
 
 /*!
  * @ingroup coreobjects

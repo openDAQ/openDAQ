@@ -44,16 +44,14 @@
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <opendaq/component_errors.h>
+#include <opendaq/component_update_context_impl.h>
+#include <opendaq/component_update_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
-
 // https://developercommunity.visualstudio.com/t/inline-static-destructors-are-called-multiple-time/1157794
-#ifdef _MSC_VER
-#if _MSC_VER <= 1927
-#define WORKAROUND_MEMBER_INLINE_VARIABLE
-#endif
+#if defined(_MSC_VER) && _MSC_VER <= 1927
+    #define WORKAROUND_MEMBER_INLINE_VARIABLE
 #endif
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
@@ -101,7 +99,8 @@ public:
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;
 
     // IUpdatable
-    ErrCode INTERFACE_FUNC update(ISerializedObject* obj) override;
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
@@ -122,7 +121,6 @@ protected:
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
 
-    std::mutex sync;
     ContextPtr context;
 
     bool isComponentRemoved;
@@ -146,12 +144,11 @@ protected:
     ComponentStatusContainerPtr statusContainer;
 
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
-    virtual int getSerializeFlags();
 
-    std::unordered_map<std::string, SerializedObjectPtr> getSerializedItems(const SerializedObjectPtr& object);
+    std::vector<std::pair<std::string, SerializedObjectPtr>> getSerializedItems(const SerializedObjectPtr& object);
 
-    virtual void updateObject(const SerializedObjectPtr& obj);
-    void onUpdatableUpdateEnd() override;
+    virtual void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
+    void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
     virtual void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate);
     void triggerCoreEvent(const CoreEventArgsPtr& args);
 
@@ -235,13 +232,9 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 
     if (parent.assigned())
     {
+        this->permissionManager.setPermissions(PermissionsBuilder().inherit(true).build());
         const auto parentManager = parent.getPermissionManager();
         this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
-    }
-    else
-    {
-        this->permissionManager.setPermissions(
-            PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
     }
 }
 
@@ -268,7 +261,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     *active = this->active;
     return OPENDAQ_SUCCESS;
@@ -281,7 +274,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
         return OPENDAQ_ERR_FROZEN;
 
     {
-        std::scoped_lock lock(sync);
+        auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
             return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -365,7 +358,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
         return OPENDAQ_ERR_FROZEN;
 
     {
-        std::scoped_lock lock(sync);
+        auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
             return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -416,7 +409,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
         return OPENDAQ_ERR_FROZEN;
 
     {
-        std::scoped_lock lock(sync);
+        auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
             return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -477,7 +470,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
         return OPENDAQ_ERR_FROZEN;
 
     {
-        std::scoped_lock lock(sync);
+        auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
             return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -525,7 +518,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     if (!attributes)
         return OPENDAQ_SUCCESS;
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -545,7 +538,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributes()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -559,7 +552,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
     if (!attributes)
         return OPENDAQ_SUCCESS;
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -579,7 +572,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::unlockAllAttributes()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -593,7 +586,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getLockedAttributes(IList** attributes)
 {
     OPENDAQ_PARAM_NOT_NULL(attributes);
     
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
@@ -648,9 +641,8 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
     OPENDAQ_PARAM_NOT_NULL(id);
 
     return daqTry(
-        [&]()
+        [&]
         {
-            
             std::string str = StringPtr(id);
             if (str != "" && str[0] == '/')
             {
@@ -671,7 +663,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
 template<class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs ...>::remove()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (isComponentRemoved)
         return  OPENDAQ_IGNORED;
@@ -700,33 +692,54 @@ ErrCode ComponentImpl<Intf, Intfs ...>::isRemoved(Bool* removed)
     return OPENDAQ_SUCCESS;
 }
 
-template <class Intf, class... Intfs>
-ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj)
+template <class Intf, class ... Intfs>
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
+    const auto contextPtr = BaseObjectPtr::Borrow(context);
 
-    return daqTry(
-        [&objPtr, this]()
-        {
-            const bool muted = this->coreEventMuted;
-            const auto thisPtr = this->template borrowPtr<ComponentPtr>();
-            const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
-            if (!muted)
-                propInternalPtr.disableCoreEventTrigger();
+    return daqTry([&objPtr, &contextPtr, this]
+    {
+        const auto err = Super::updateInternal(objPtr, contextPtr);
+        updateObject(objPtr, contextPtr);
+        return err;
+    });
+}
 
-            const auto err = Super::update(objPtr);
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& /* context */)
+{
+}
 
-            updateObject(objPtr);
-            onUpdatableUpdateEnd();
+template <class Intf, class... Intfs>
+ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IBaseObject* config)
+{
+    auto configPtr = BaseObjectPtr::Borrow(config);
+    if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>())
+    {
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
+    }
+    
+    const bool muted = this->coreEventMuted;
+    const auto thisPtr = this->template borrowPtr<ComponentPtr>();
+    const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
+    if (!muted)
+        propInternalPtr.disableCoreEventTrigger();
 
-            if (!muted && this->coreEvent.assigned())
-            {
-                const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
-                triggerCoreEvent(args);
-                propInternalPtr.enableCoreEventTrigger();
-            }
-            return err;
-        });
+    BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config));
+    ErrCode errCode = updateInternal(obj, context);
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        errCode = this->updateEnded(context);
+    }
+
+    if (!muted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::ComponentUpdateEnd, Dict<IString, IBaseObject>());
+        triggerCoreEvent(args);
+        propInternalPtr.enableCoreEventTrigger();
+    }
+    return errCode;
 }
 
 template <class Intf, class ... Intfs>
@@ -736,12 +749,11 @@ ErrCode ComponentImpl<Intf, Intfs...>::deserializeValues(ISerializedObject* seri
     auto contextPtr = BaseObjectPtr::Borrow(context);
     auto callbackFactoryPtr = FunctionPtr::Borrow(callbackFactory);
 
-    return daqTry(
-        [&serializedObjectPtr, &contextPtr, &callbackFactoryPtr, this]()
-        {
-            deserializeCustomObjectValues(serializedObjectPtr, contextPtr, callbackFactoryPtr);
-            return OPENDAQ_SUCCESS;
-        });
+    return daqTry([&serializedObjectPtr, &contextPtr, &callbackFactoryPtr, this]
+    {
+        deserializeCustomObjectValues(serializedObjectPtr, contextPtr, callbackFactoryPtr);
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <class Intf, class ... Intfs>
@@ -757,10 +769,10 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::getDeserializedParameter(I
     OPENDAQ_PARAM_NOT_NULL(value);
 
     return daqTry([this, &parameter, &value]
-        {
-            const auto parameterPtr = StringPtr::Borrow(parameter);
-            *value = getDeserializedParameter(parameterPtr).detach();
-        });
+    {
+        const auto parameterPtr = StringPtr::Borrow(parameter);
+        *value = getDeserializedParameter(parameterPtr).detach();
+    });
 }
 
 template <class Intf, class ... Intfs>
@@ -784,22 +796,21 @@ ErrCode ComponentImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeComponent(
-                serialized,
-                context,
-                factoryCallback, 
-                [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
-                {
-                    return createWithImplementation<IComponent, ComponentImpl>(
-                        deserializeContext.getContext(),
-                        deserializeContext.getParent(),
-                        deserializeContext.getLocalId(),
-                        className);
-                }).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = DeserializeComponent(
+            serialized,
+            context,
+            factoryCallback, 
+            [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+            {
+                return createWithImplementation<IComponent, ComponentImpl>(
+                    deserializeContext.getContext(),
+                    deserializeContext.getParent(),
+                    deserializeContext.getLocalId(),
+                    className);
+            }).detach();
+    });
 }
 
 template <class Intf, class... Intfs>
@@ -868,7 +879,7 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
         if (searchFilter.acceptsComponent(item))
             allItems.insert(item);
 
-    if (searchFilter.asPtrOrNull<IRecursiveSearch>().assigned())
+    if (searchFilter.supportsInterface<IRecursiveSearch>())
     {
         for (const auto& item : items)
         {
@@ -913,32 +924,27 @@ ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serial
         return errCode;
 
     return daqTry(
-        [&serializerPtr, forUpdate, this]()
-        {
-            serializeCustomObjectValues(serializerPtr, forUpdate);
+    [&serializerPtr, forUpdate, this]
+    {
+        serializeCustomObjectValues(serializerPtr, forUpdate);
 
-            return OPENDAQ_SUCCESS;
-        });
-}
- 
-template <class Intf, class... Intfs>
-int ComponentImpl<Intf, Intfs...>::getSerializeFlags()
-{
-    return 0;
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <class Intf, class... Intfs>
-std::unordered_map<std::string, SerializedObjectPtr> ComponentImpl<Intf, Intfs...>::getSerializedItems(const SerializedObjectPtr& object)
+std::vector<std::pair<std::string, SerializedObjectPtr>> ComponentImpl<Intf, Intfs...>::getSerializedItems(const SerializedObjectPtr& object)
 {
-    std::unordered_map<std::string, SerializedObjectPtr> serializedItems;
+    std::vector<std::pair<std::string, SerializedObjectPtr>> serializedItems;
     if (object.hasKey("items"))
     {
         const auto itemsObject = object.readSerializedObject("items");
         const auto itemsObjectKeys = itemsObject.getKeys();
+        serializedItems.reserve(itemsObjectKeys.getCount());
         for (const auto& key : itemsObjectKeys)
         {
             auto itemObject = itemsObject.readSerializedObject(key);
-            serializedItems.insert(std::pair(key.toStdString(), std::move(itemObject)));
+            serializedItems.push_back(std::pair(key.toStdString(), std::move(itemObject)));
         }
     }
 
@@ -946,10 +952,9 @@ std::unordered_map<std::string, SerializedObjectPtr> ComponentImpl<Intf, Intfs..
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
+void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& /* context */)
 {
-    const auto flags = getSerializeFlags();
-    if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("active"))
+    if (obj.hasKey("active"))
         active = obj.readBool("active");
 
     if (obj.hasKey("visible"))
@@ -962,17 +967,10 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj)
         name = obj.readString("name");
 }
 
-template <class Intf, class ... Intfs>
-void ComponentImpl<Intf, Intfs...>::onUpdatableUpdateEnd()
-{
-}
-
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /* forUpdate */)
 {
-    const auto flags = getSerializeFlags();
-
-    if (flags & ComponentSerializeFlag_SerializeActiveProp && !active)
+    if (!active)
     {
         serializer.key("active");
         serializer.writeBool(active);
@@ -1149,6 +1147,8 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
 template <class Intf, class... Intfs>
 bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
 {
+    if (id.find('/') != std::string::npos)
+        throw InvalidParameterException("Component id " + id + " contains '/'");
     return id.find(' ') == std::string::npos;
 }
 

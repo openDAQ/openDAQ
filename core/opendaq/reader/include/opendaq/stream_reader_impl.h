@@ -104,6 +104,7 @@ private:
     void connectSignal(const SignalPtr& signal);
     void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const;
 
+    EventPacketPtr createInitDataDescriptorChangedEventPacket();
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
 
     [[nodiscard]]
@@ -117,9 +118,6 @@ private:
     NotifyInfo notify{};
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;
-
-    DataDescriptorPtr dataDescriptor;
-    DataDescriptorPtr domainDescriptor;
 
     ReadMode readMode;
     ReadTimeoutType timeoutType;

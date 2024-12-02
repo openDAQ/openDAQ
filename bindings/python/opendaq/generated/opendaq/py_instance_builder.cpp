@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -43,6 +45,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def("build",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -50,6 +53,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def("add_config_provider",
         [](daq::IInstanceBuilder *object, daq::IConfigProvider* configProvider)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.addConfigProvider(configProvider);
         },
@@ -58,11 +62,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("context",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getContext().detach();
         },
         [](daq::IInstanceBuilder *object, daq::IContext* context)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setContext(context);
         },
@@ -71,11 +77,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("logger",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getLogger().detach();
         },
         [](daq::IInstanceBuilder *object, daq::ILogger* logger)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setLogger(logger);
         },
@@ -84,11 +92,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("global_log_level",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getGlobalLogLevel();
         },
         [](daq::IInstanceBuilder *object, daq::LogLevel logLevel)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setGlobalLogLevel(logLevel);
         },
@@ -96,6 +106,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def("set_component_log_level",
         [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& component, daq::LogLevel logLevel)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setComponentLogLevel(getVariantValue<daq::IString*>(component), logLevel);
         },
@@ -104,6 +115,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property_readonly("components_log_level",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getComponentsLogLevel().detach();
         },
@@ -112,6 +124,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def("add_logger_sink",
         [](daq::IInstanceBuilder *object, daq::ILoggerSink* sink)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.addLoggerSink(sink);
         },
@@ -120,6 +133,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def("set_sink_log_level",
         [](daq::IInstanceBuilder *object, daq::ILoggerSink* sink, daq::LogLevel logLevel)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setSinkLogLevel(sink, logLevel);
         },
@@ -128,6 +142,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property_readonly("logger_sinks",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getLoggerSinks().detach();
         },
@@ -136,11 +151,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("module_path",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getModulePath().toStdString();
         },
         [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& path)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setModulePath(getVariantValue<daq::IString*>(path));
         },
@@ -148,6 +165,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def("add_module_path",
         [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& path)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.addModulePath(getVariantValue<daq::IString*>(path));
         },
@@ -156,6 +174,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property_readonly("module_paths_list",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getModulePathsList().detach();
         },
@@ -164,11 +183,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("module_manager",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getModuleManager().detach();
         },
         [](daq::IInstanceBuilder *object, daq::IModuleManager* moduleManager)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setModuleManager(moduleManager);
         },
@@ -177,11 +198,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("authentication_provider",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getAuthenticationProvider().detach();
         },
         [](daq::IInstanceBuilder *object, daq::IAuthenticationProvider* authenticationProvider)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setAuthenticationProvider(authenticationProvider);
         },
@@ -190,11 +213,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("scheduler_worker_num",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getSchedulerWorkerNum();
         },
         [](daq::IInstanceBuilder *object, const size_t numWorkers)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setSchedulerWorkerNum(numWorkers);
         },
@@ -202,11 +227,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("scheduler",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getScheduler().detach();
         },
         [](daq::IInstanceBuilder *object, daq::IScheduler* scheduler)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setScheduler(scheduler);
         },
@@ -215,11 +242,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("default_root_device_local_id",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getDefaultRootDeviceLocalId().toStdString();
         },
         [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setDefaultRootDeviceLocalId(getVariantValue<daq::IString*>(localId));
         },
@@ -227,6 +256,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def("set_root_device",
         [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setRootDevice(getVariantValue<daq::IString*>(connectionString), config);
         },
@@ -235,6 +265,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property_readonly("root_device",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getRootDevice().toStdString();
         },
@@ -242,6 +273,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property_readonly("root_device_config",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getRootDeviceConfig().detach();
         },
@@ -250,11 +282,13 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property("default_root_device_info",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getDefaultRootDeviceInfo().detach();
         },
         [](daq::IInstanceBuilder *object, daq::IDeviceInfo* deviceInfo)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.setDefaultRootDeviceInfo(deviceInfo);
         },
@@ -263,6 +297,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property_readonly("options",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getOptions().detach();
         },
@@ -271,6 +306,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def("enable_standard_providers",
         [](daq::IInstanceBuilder *object, const bool flag)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.enableStandardProviders(flag);
         },
@@ -279,6 +315,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def_property_readonly("discovery_servers",
         [](daq::IInstanceBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             return objectPtr.getDiscoveryServers().detach();
         },
@@ -287,6 +324,7 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
     cls.def("add_discovery_server",
         [](daq::IInstanceBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& serverName)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
             objectPtr.addDiscoveryServer(getVariantValue<daq::IString*>(serverName));
         },

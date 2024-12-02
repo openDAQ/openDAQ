@@ -77,19 +77,19 @@ TEST_F(OpcUaServerModuleTest, CreateModule)
 TEST_F(OpcUaServerModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "OpenDAQOPCUAServerModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQOPCUAServerModule");
 }
 
 TEST_F(OpcUaServerModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(OpcUaServerModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), OPCUA_SERVER_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), OPCUA_SERVER_MODULE_MINOR_VERSION);
@@ -113,6 +113,38 @@ TEST_F(OpcUaServerModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(serverTypes.getCount(), 1u);
     ASSERT_TRUE(serverTypes.hasKey("OpenDAQOPCUA"));
     ASSERT_EQ(serverTypes.get("OpenDAQOPCUA").getId(), "OpenDAQOPCUA");
+
+    // Check module info for module
+    ModuleInfoPtr moduleInfo;
+    ASSERT_NO_THROW(moduleInfo = module.getModuleInfo());
+    ASSERT_NE(moduleInfo, nullptr);
+    ASSERT_EQ(moduleInfo.getName(), "OpenDAQOPCUAServerModule");
+    ASSERT_EQ(moduleInfo.getId(), "OpenDAQOPCUAServerModule");
+
+    // Check version info for module
+    VersionInfoPtr versionInfoModule;
+    ASSERT_NO_THROW(versionInfoModule = moduleInfo.getVersionInfo());
+    ASSERT_NE(versionInfoModule, nullptr);
+    ASSERT_EQ(versionInfoModule.getMajor(), OPCUA_SERVER_MODULE_MAJOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getMinor(), OPCUA_SERVER_MODULE_MINOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getPatch(), OPCUA_SERVER_MODULE_PATCH_VERSION);
+
+    // Check module and version info for server types
+    for (const auto& serverType : serverTypes)
+    {
+        ModuleInfoPtr moduleInfoServerType;
+        ASSERT_NO_THROW(moduleInfoServerType = serverType.second.getModuleInfo());
+        ASSERT_NE(moduleInfoServerType, nullptr);
+        ASSERT_EQ(moduleInfoServerType.getName(), "OpenDAQOPCUAServerModule");
+        ASSERT_EQ(moduleInfoServerType.getId(), "OpenDAQOPCUAServerModule");
+
+        VersionInfoPtr versionInfoServerType;
+        ASSERT_NO_THROW(versionInfoServerType = moduleInfoServerType.getVersionInfo());
+        ASSERT_NE(versionInfoServerType, nullptr);
+        ASSERT_EQ(versionInfoServerType.getMajor(), OPCUA_SERVER_MODULE_MAJOR_VERSION);
+        ASSERT_EQ(versionInfoServerType.getMinor(), OPCUA_SERVER_MODULE_MINOR_VERSION);
+        ASSERT_EQ(versionInfoServerType.getPatch(), OPCUA_SERVER_MODULE_PATCH_VERSION);
+    }
 }
 
 TEST_F(OpcUaServerModuleTest, ServerConfig)

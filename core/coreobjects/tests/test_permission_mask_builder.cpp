@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include <coreobjects/permission_enum.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 
 using namespace daq;

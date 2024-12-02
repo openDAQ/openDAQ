@@ -38,38 +38,46 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionsBuilder, IBaseObject)
 {
     // [returnSelf]
     /*!
-     * @brief Configure component to inherit or ignore permissions from parent object.
-     * @param inherit Flag if components should inherit permissions from it's parent object.
+     * @brief Configure component to inherit or ignore permissions from the parent object.
+     * @param inherit Flag signifying if component should inherit permissions from its parent object.
      */
     virtual ErrCode INTERFACE_FUNC inherit(Bool inherit) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Allow a set of permissions for a given group and deny all others.
+     * @brief Strictly assign a specified set of permissions for a given group. This method allows only the specified
+     * permissions and will not inherit any permissions from the parent object for the group, even if the inherit flag is enabled.
+     *
      * @param groupId The id of a group to set permissions for.
-     * @param permissions A set of permissions to allow for given group. Permissions not present in the set are denied.
+     * @param permissions A set of permissions to allow for given group.
      */
     virtual ErrCode INTERFACE_FUNC assign(IString* groupId, IPermissionMaskBuilder* permissions) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Allow a set of permissions for a given group and inherit all others.
+     * @brief Allow a specified set of permissions for a given group. If the inherit flag is enabled, this method will
+     * allow both the specified permissions and any permissions already allowed for the group on the parent component.
+     * Denied permissions will always overrule allowed permissions.
+     * 
      * @param groupId The id of a group to allow permissions for.
-     * @param permissions A set of permissions to allow for given group. Permissions not present in the set are inherited.
+     * @param permissions A set of permissions to allow for given group.
      */
     virtual ErrCode INTERFACE_FUNC allow(IString* groupId, IPermissionMaskBuilder* permissions) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Deny a set of permissions for a given group and inherit all others.
+     * @brief Deny a specified set of permissions for a given group. If the inherit flag is enabled, this method will
+     * deny both the specified permissions and any permissions already denied for the group on the parent component.
+     * Denied permissions will always overrule allowed permissions.
+     *
      * @param groupId The id of a group to deny permissions for.
-     * @param permissions A set of permissions to deny for given group. Permissions not present in the set are inherited.
+     * @param permissions A set of permissions to deny for given group.
      */
     virtual ErrCode INTERFACE_FUNC deny(IString* groupId, IPermissionMaskBuilder* permissions) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Add permissions of another permission config object, overwrite existing ones.
+     * @brief Add permissions of another permission config object and overwrite existing ones. Inherit flag will not be overwritten.
      * @param config Permission config object.
      */
     virtual ErrCode INTERFACE_FUNC extend(IPermissions* config) = 0;

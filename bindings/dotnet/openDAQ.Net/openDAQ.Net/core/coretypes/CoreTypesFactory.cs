@@ -105,7 +105,7 @@ public static partial class CoreTypesFactory
             case CoreType.ctDict:            return propertyValue.Cast<DictObject<BaseObject, BaseObject>>();
             case CoreType.ctRatio:           return propertyValue.Cast<Ratio>();
             case CoreType.ctProc:            return propertyValue.Cast<Procedure>();
-            case CoreType.ctObject:          return propertyValue.Cast<BaseObject>();
+            case CoreType.ctObject:          return propertyValue/*.Cast<BaseObject>()*/;
             //case CoreType.ctBinaryData:      return propertyValue.Cast<>();
             case CoreType.ctFunc:            return propertyValue.Cast<Function>();
             //case CoreType.ctComplexNumber:   return propertyValue.Cast<>();
@@ -115,6 +115,7 @@ public static partial class CoreTypesFactory
             default:                         return $"<{propertyType}>"; //StringObject ;)
         }
     }
+
 
     #region NumberObject
 
@@ -187,4 +188,62 @@ public static partial class CoreTypesFactory
     }
 
     #endregion NumberObject
+
+    #region ListObject
+
+    /// <summary>
+    /// Creates a list with elements of <typeparamref name="TValue"/> and initializes it with the given list items.
+    /// </summary>
+    /// <remarks>
+    /// Example:<br/>
+    /// <c>var errorCode = CreateList&lt;StringObject&gt;(out IListObject&lt;StringObject&gt; stringList, "1", "2");</c>
+    /// </remarks>
+    /// <typeparam name="TValue">The type of the list items.</typeparam>
+    /// <param name="obj">The list object.</param>
+    /// <param name="items">The list items.</param>
+    /// <returns><c>ErrorCode.OPENDAQ_SUCCESS</c> when successfully created.</returns>
+    public static ErrorCode CreateList<TValue>(out IListObject<TValue> obj, params TValue[] items)
+        where TValue : BaseObject
+    {
+        ErrorCode errorCode = CreateList<TValue>(out IListObject<TValue> list);
+
+        if (errorCode != ErrorCode.OPENDAQ_SUCCESS)
+        {
+            obj = default;
+            return errorCode;
+        }
+
+        foreach (var item in items)
+        {
+            list.Add(item);
+        }
+
+        obj = list;
+        return errorCode;
+    }
+
+    /// <summary>
+    /// Creates a list with elements of <typeparamref name="TValue"/> and initializes it with the given list items.
+    /// </summary>
+    /// <remarks>
+    /// Example:<br/>
+    /// <c>var stringList = CreateList&lt;StringObject&gt;("1", "2");</c>
+    /// </remarks>
+    /// <typeparam name="TValue">The type of the list items.</typeparam>
+    /// <param name="items">The list items.</param>
+    /// <returns>The list object.</returns>
+    public static IListObject<TValue> CreateList<TValue>(params TValue[] items)
+        where TValue : BaseObject
+    {
+        var list = CreateList<TValue>();
+
+        foreach (var item in items)
+        {
+            list.Add(item);
+        }
+
+        return list;
+    }
+
+    #endregion ListObject
 }

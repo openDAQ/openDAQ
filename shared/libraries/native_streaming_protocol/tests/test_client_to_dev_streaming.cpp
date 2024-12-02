@@ -41,9 +41,9 @@ public:
     {
         ProtocolTestBase::SetUp();
         setUpConfigProtocolServerCb =
-            [this](SendConfigProtocolPacketCb sendPacketCb, const UserPtr& user)
+            [this](SendConfigProtocolPacketCb sendPacketCb, const UserPtr& user, ClientType connectionType)
         {
-            clientConnectedPromise.set_value();
+            configProtocolTriggeredPromise.set_value();
 
             OnPacketBufferReceivedCallback receiveStreamingPacketBuffer =
                 [this](const packet_streaming::PacketBufferPtr& packetBufferPtr)
@@ -56,8 +56,8 @@ public:
         };
 
         client.setUp();
-        clientConnectedPromise = std::promise< void > ();
-        clientConnectedFuture = clientConnectedPromise.get_future();
+        configProtocolTriggeredPromise = std::promise< void > ();
+        configProtocolTriggeredFuture = configProtocolTriggeredPromise.get_future();
 
         streamingPacketReceivedPromise = std::promise< std::tuple<SignalNumericIdType, PacketPtr> >();
         streamingPacketReceivedFuture = streamingPacketReceivedPromise.get_future();
@@ -100,8 +100,8 @@ public:
     }
 
 protected:
-    std::promise< void > clientConnectedPromise;
-    std::future< void > clientConnectedFuture;
+    std::promise< void > configProtocolTriggeredPromise;
+    std::future< void > configProtocolTriggeredFuture;
     SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
 
     ClientAttributes client;
@@ -120,7 +120,8 @@ TEST_P(ClientToDeviceStreamingTest, EventPacket)
     startServer();
 
     ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
-    ASSERT_EQ(clientConnectedFuture.wait_for(timeout), std::future_status::ready);
+    client.clientHandler->sendConfigRequest(config_protocol::PacketBuffer::createGetProtocolInfoRequest(0));
+    ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 
     client.clientHandler->sendStreamingPacket(1u, eventPacket);
 

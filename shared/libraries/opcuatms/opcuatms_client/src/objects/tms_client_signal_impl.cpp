@@ -1,9 +1,9 @@
 #include <list>
-#include "open62541/daqbsp_nodeids.h"
-#include "opcuashared/opcuacommon.h"
-#include "opcuatms/exceptions.h"
-#include "opcuatms_client/objects/tms_client_signal_impl.h"
-#include "opcuatms/converters/variant_converter.h"
+#include <open62541/daqbsp_nodeids.h>
+#include <opcuashared/opcuacommon.h>
+#include <opcuatms/exceptions.h>
+#include <opcuatms_client/objects/tms_client_signal_impl.h>
+#include <opcuatms/converters/variant_converter.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/data_descriptor_ptr.h>
 

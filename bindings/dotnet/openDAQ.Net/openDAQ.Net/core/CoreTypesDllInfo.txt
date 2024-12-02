@@ -1,0 +1,2 @@
+The class CoreTypesDllInfo is now being auto generated in the pre-build step of the .NET Bindings and can be found in
+./build/bindings/CSharp/core/CoreTypesDllInfo.cs

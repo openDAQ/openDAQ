@@ -2,7 +2,7 @@
 
 IMPORTANT: Building openDAQ(TM) from source is meant for advanced users. We recommend for anyone new to openDAQ(TM)
 to start out by downloading the pre-build binary packages as described in the
-xref:quick_start_setting_up_cpp.adoc[Setting up ({cpp})] and xref:quick_start_setting_up_python.adoc[Setting up (Python)] guides instead.
+xref:quick_start_setting_up_cpp.adoc[Setting up ({cpp})], xref:quick_start_setting_up_python.adoc[Setting up (Python)] and xref:quick_start_setting_up_csharp.adoc[Setting up (C#)] guides instead.
 
 While this guide uses Visual Studio as the Windows CMake generator, and Ninja
 as the Linux generator, you can use different ones depending on your set-up and
@@ -26,7 +26,7 @@ Windows::
 
 [source,shell]
 ----
-git clone git@github.com:openDAQ/openDAQ.git
+git clone https://github.com/openDAQ/openDAQ.git
 cd openDAQ
 ----
 
@@ -57,8 +57,8 @@ might be located at a slightly different path within the `build` folder.
 [source,shell]
 ----
 cd build/x64/msvc-22/full
-cmake --build .
-cmake --install . --prefix "openDAQ"
+cmake --build . --config Release
+cmake --install . --prefix "openDAQ" --config Release
 ----
 
 This will install the binaries in the build directory within the `"openDAQ"` folder. To specify a different
@@ -122,12 +122,22 @@ be located at a slightly different path within the `build` folder.
 [source,shell]
 ----
 cd build/x64/gcc/full/release
-cmake --build .
-cmake --install . --prefix "openDAQ"
+cmake --build . --config Release
+cmake --install . --prefix "openDAQ" --config Release
 ----
 
 This will install the binaries in the build directory within the `"openDAQ"` folder. To specify a different installation
 directory, you can provide the path in the CMake install `--prefix` argument.
+
+In case of error, contained message "Killed signal terminated program cc1plus", try to restrict number of parallel build
+tasks:
+
+[source,shell]
+----
+cmake --build . -- -j 5
+----
+
+or just restart build.
 
 --
 ====

@@ -25,9 +25,15 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 static const char* NativeStreamingPrefix = "daq.ns";
 static const char* NativeStreamingID = "OpenDAQNativeStreaming";
 
-class NativeStreamingImpl : public Streaming
+DECLARE_OPENDAQ_INTERFACE(INativeStreamingPrivate, IBaseObject)
+{
+    virtual void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() = 0;
+};
+
+class NativeStreamingImpl : public StreamingImpl<INativeStreamingPrivate>
 {
 public:
+    using Super = StreamingImpl<INativeStreamingPrivate>;
     explicit NativeStreamingImpl(const StringPtr& connectionString,
         const ContextPtr& context,
         opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
@@ -39,6 +45,9 @@ public:
 
     ~NativeStreamingImpl();
 
+    // INativeStreamingPrivate
+    void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() override;
+
 protected:
     void onSetActive(bool active) override;
     void onAddSignal(const MirroredSignalConfigPtr& signal) override;
@@ -49,12 +58,13 @@ protected:
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
 
-    void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
+    void updateConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status);
+    void processConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status);
 
-    void prepareClientHandler();
+    void initClientHandlerCallbacks();
+    void upgradeClientHandlerCallbacks();
 
-    void startTransportOperations();
-    void stopTransportOperations();
+    void stopProcessingOperations();
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
 
@@ -66,7 +76,6 @@ protected:
     opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
-    boost::asio::io_context::strand processingStrand;
 
     std::promise<void> protocolInitPromise;
     std::future<void> protocolInitFuture;

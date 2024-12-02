@@ -25,6 +25,7 @@
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/search_filter_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/component_update_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -53,6 +54,9 @@ public:
     ErrCode INTERFACE_FUNC getSignalsRecursive(IList** signals, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getStatusSignal(ISignal** statusSignal) override;
     ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
+    ErrCode INTERFACE_FUNC addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr) override;
+    ErrCode INTERFACE_FUNC removeFunctionBlock(IFunctionBlock* functionBlock) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -77,6 +81,10 @@ public:
     virtual void onDisconnected(const InputPortPtr& port);
     virtual void onPacketReceived(const InputPortPtr& port);
 
+    virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
+    virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
+    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -87,7 +95,8 @@ protected:
     InputPortConfigPtr createAndAddInputPort(const std::string& localId,
                                              PacketReadyNotification notificationMethod,
                                              BaseObjectPtr customData = nullptr,
-                                             bool requestGapPackets = false);
+                                             bool requestGapPackets = false,
+                                             const PermissionsPtr& permissions = nullptr);
 
     void addInputPort(const InputPortPtr& inputPort);
     void removeInputPort(const InputPortConfigPtr& inputPort);
@@ -95,14 +104,15 @@ protected:
     void removed() override;
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void updateInputPort(const std::string& localId, const SerializedObjectPtr& obj);
-    void updateFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock) override;
+    void updateInputPort(const std::string& localId, const SerializedObjectPtr& obj, const BaseObjectPtr& context);
+    void updateFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock, const BaseObjectPtr& context) override;
 
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
 
-    void updateObject(const SerializedObjectPtr& obj) override;
+    void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
+    void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
     template <class Impl>
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
@@ -152,7 +162,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getSignals(IList** signals
         return this->signals->getItems(signals);
 
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -210,7 +220,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getInputPorts(IList** port
         return this->inputPorts->getItems(ports);
 
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -257,7 +267,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getStatusSignal(ISignal** 
 }
 
 template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj)
+void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     if (obj.hasKey("IP"))
     {
@@ -265,61 +275,78 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const Serialized
         this->updateFolder(ipFolder,
                      "Folder",                    
                      "InputPort",
-                     [this](const std::string& localId, const SerializedObjectPtr& obj)
-                     { updateInputPort(localId, obj); });
+                     [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                     { updateInputPort(localId, obj, context); });
     }
 
-    return Super::updateObject(obj);
+    return Super::updateObject(obj, context);
 }
 
 template <class Intf, class... Intfs>
 void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& localId,
-                                                             const SerializedObjectPtr& obj)
+                                                        const SerializedObjectPtr& obj,
+                                                        const BaseObjectPtr& context)
 {
-    InputPortPtr inputPort;
-    if (!inputPorts.hasItem(localId))
-    {
-        LOG_W("Input port {} not found", localId);
-        for (const auto& ip : inputPorts.getItems(search::Any()))
-        {
-            inputPort = ip.template asPtr<IInputPort>(true);
-            if (!inputPort.getSignal().assigned())
-            {
-                LOG_W("Using input port {}", inputPort.getLocalId());
-                break;
-            }
-
-        }
-        if (!inputPort.assigned())
-            return;
-    }
-    else
-        inputPort = inputPorts.getItem(localId);
-
+    InputPortPtr inputPort = InputPort(this->context, inputPorts, localId);
     const auto updatableIp = inputPort.asPtr<IUpdatable>(true);
 
-    updatableIp.update(obj);
+    updatableIp.updateInternal(obj, context);
+}
+
+template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
+{
+    ComponentUpdateContextPtr contextPtr = context.asPtr<IComponentUpdateContext>(true);
+    for (const auto & [portId, signalId] : contextPtr.getInputPortConnections(inputPorts.getGlobalId()))
+    {
+        InputPortPtr inputPort;
+        if (!inputPorts.hasItem(portId))
+        {
+            LOG_W("Input port {} not found. The connection order might be incorrect", portId);
+            for (const auto& ip : inputPorts.getItems(search::Any()))
+            {
+                inputPort = ip.template asPtr<IInputPort>(true);
+                if (!inputPort.getSignal().assigned())
+                {
+                    LOG_W("Using input port {}", inputPort.getLocalId());
+                    break;
+                }
+            }
+            if (!inputPort.assigned())
+                continue;
+        }
+        else
+        {
+            inputPort = inputPorts.getItem(portId);
+        }
+        inputPort.asPtr<IUpdatable>(true).updateEnded(contextPtr);
+    }
+    contextPtr.removeInputPortConnection(inputPorts.getGlobalId());
+    Super::onUpdatableUpdateEnd(context);
 }
 
 template <typename TInterface, typename ... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
-    const SerializedObjectPtr& serializedFunctionBlock)
+                                                                       const SerializedObjectPtr& serializedFunctionBlock,
+                                                                       const BaseObjectPtr& context)
 {
+    UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
     {
-        DAQLOGF_W(loggerComponent,
-                  "Sub function block "
-                  "{}"
-                  "not found",
-                  fbId);
-        return;
+        auto typeId = serializedFunctionBlock.readString("typeId");
+
+        auto config = PropertyObject();
+        config.addProperty(StringProperty("LocalId", fbId));
+
+        auto fb = onAddFunctionBlock(typeId, config);
+        updatableFb = fb.template asPtr<IUpdatable>(true);
+    }
+    else
+    {
+        updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
     }
 
-    const auto fb = this->functionBlocks.getItem(fbId);
-
-    const auto updatableFb = fb.template asPtr<IUpdatable>(true);
-
-    updatableFb.update(serializedFunctionBlock);
+    updatableFb.updateInternal(serializedFunctionBlock, context);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -347,7 +374,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocks(IList** 
         return this->functionBlocks->getItems(functionBlocks);
     
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.asPtrOrNull<IRecursiveSearch>().assigned())
+    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
         return daqTry([&]
         {
@@ -377,6 +404,67 @@ ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctio
         fbList.pushBack(fb);
 
     return fbList;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
+{
+    if (functionBlockTypes == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    DictPtr<IString, IFunctionBlockType> dict;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableFunctionBlockTypes, dict);
+
+    *functionBlockTypes = dict.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+DictPtr<IString, IFunctionBlockType> FunctionBlockImpl<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
+{
+    return Dict<IString, IFunctionBlockType>().detach();
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
+{
+    if (functionBlock == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    if (typeId == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    FunctionBlockPtr functionBlockPtr;
+    const auto typeIdPtr = StringPtr::Borrow(typeId);
+    const auto PropertyObjectPtr = PropertyObjectPtr::Borrow(config);
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeIdPtr, PropertyObjectPtr);
+
+    *functionBlock = functionBlockPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+FunctionBlockPtr FunctionBlockImpl<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
+{
+    throw NotSupportedException("Function block does not support adding nested function blocks");
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
+{
+    if (functionBlock == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
+    const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    auto lock = this->getAcquisitionLock();
+    this->functionBlocks.removeItem(functionBlock);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -426,12 +514,17 @@ template <typename TInterface, typename... Interfaces>
 InputPortConfigPtr FunctionBlockImpl<TInterface, Interfaces...>::createAndAddInputPort(const std::string& localId,
                                                                                        PacketReadyNotification notificationMethod,
                                                                                        BaseObjectPtr customData,
-                                                                                       bool requestGapPackets)
+                                                                                       bool requestGapPackets,
+                                                                                       const PermissionsPtr& permissions)
 {
-    auto inputPort = InputPort(this->context, inputPorts, localId, requestGapPackets);
+    InputPortConfigPtr inputPort = InputPort(this->context, inputPorts, localId, requestGapPackets);
+
     inputPort.setListener(this->template borrowPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(notificationMethod);
     inputPort.setCustomData(customData);
+
+    if (permissions.assigned())
+        inputPort.getPermissionManager().setPermissions(permissions);
 
     addInputPort(inputPort);
     return inputPort;

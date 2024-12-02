@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include "opcuatms_server/objects/tms_server_object.h"
+#include <opcuatms_server/objects/tms_server_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

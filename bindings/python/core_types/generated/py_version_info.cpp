@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
 
@@ -43,6 +45,7 @@ void defineIVersionInfo(pybind11::module_ m, PyDaqIntf<daq::IVersionInfo, daq::I
     cls.def_property_readonly("major",
         [](daq::IVersionInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::VersionInfoPtr::Borrow(object);
             return objectPtr.getMajor();
         },
@@ -50,6 +53,7 @@ void defineIVersionInfo(pybind11::module_ m, PyDaqIntf<daq::IVersionInfo, daq::I
     cls.def_property_readonly("minor",
         [](daq::IVersionInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::VersionInfoPtr::Borrow(object);
             return objectPtr.getMinor();
         },
@@ -57,6 +61,7 @@ void defineIVersionInfo(pybind11::module_ m, PyDaqIntf<daq::IVersionInfo, daq::I
     cls.def_property_readonly("patch",
         [](daq::IVersionInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::VersionInfoPtr::Borrow(object);
             return objectPtr.getPatch();
         },

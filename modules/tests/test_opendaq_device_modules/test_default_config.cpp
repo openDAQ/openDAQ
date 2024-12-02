@@ -22,6 +22,7 @@ TEST_F(ModulesDefaultConfigTest, GeneralConfig)
     ASSERT_TRUE(general.hasProperty("StreamingConnectionHeuristic"));
     ASSERT_TRUE(general.hasProperty("AllowedStreamingProtocols"));
     ASSERT_TRUE(general.hasProperty("AutomaticallyConnectStreaming"));
+    ASSERT_TRUE(general.hasProperty("PrimaryAddressType"));
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)
@@ -31,6 +32,10 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("TransportLayerConfig"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
@@ -49,6 +54,19 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
     ASSERT_TRUE(instance.addDevice("daq.nd://127.0.0.1", config).assigned());
 }
 
+TEST_F(ModulesDefaultConfigTest, NativeStreaming)
+{
+    const auto instance = Instance();
+    const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("Streaming");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeStreaming");
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("TransportLayerConfig"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
+}
+
 TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)
 {
     const auto instance = Instance();
@@ -56,6 +74,10 @@ TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeStreaming");
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("TransportLayerConfig"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_FALSE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeStreamingDeviceConnect)
@@ -259,4 +281,169 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
 
     const auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2u);
+}
+
+TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
+{
+    PropertyObjectPtr refDevConfig = PropertyObject();
+    refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
+    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+
+    const auto serverInstance = InstanceBuilder()
+                                    .addDiscoveryServer("mdns")
+                                    .setRootDevice("daqref://device1", refDevConfig)
+                                    .build();
+
+    serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    for (const auto& server : serverInstance.getServers())
+        server.enableDiscovery();
+
+    const auto instance = Instance();
+    const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+    generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
+    {
+        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
+        devConnStr = device.getInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
+        for (const auto& streamingSource : device.asPtr<IMirroredDevice>().getStreamingSources())
+        {
+            EXPECT_TRUE(test_helpers::isIpv4ConnectionString(streamingSource.getConnectionString()))
+                << streamingSource.getConnectionString();
+        }
+        instance.removeDevice(device);
+    }
+
+    if (test_helpers::Ipv6IsDisabled(true))
+    {
+        GTEST_SKIP() << "Ipv6 is disabled - skip rest of the test";
+    }
+
+    generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
+    {
+        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
+        devConnStr = device.getInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
+        for (const auto& streamingSource : device.asPtr<IMirroredDevice>().getStreamingSources())
+        {
+            EXPECT_TRUE(test_helpers::isIpv6ConnectionString(streamingSource.getConnectionString()))
+                << streamingSource.getConnectionString();
+        }
+        instance.removeDevice(device);
+    }
+}
+
+TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
+{
+    PropertyObjectPtr refDevConfig = PropertyObject();
+    refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
+    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+
+    const auto serverInstance = InstanceBuilder()
+                                    .addDiscoveryServer("mdns")
+                                    .setRootDevice("daqref://device1", refDevConfig)
+                                    .build();
+
+    serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+    serverInstance.addServer("OpenDAQOPCUA", nullptr);
+
+    for (const auto& server : serverInstance.getServers())
+        server.enableDiscovery();
+
+    const auto instance = Instance();
+    const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+    generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
+    {
+        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
+        devConnStr = device.getInfo().getConnectionString();
+        // FIXME connection string is not set within DeviceInfo for OpcUa devices
+        // EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
+        for (const auto& streamingSource : device.asPtr<IMirroredDevice>().getStreamingSources())
+        {
+            EXPECT_TRUE(test_helpers::isIpv4ConnectionString(streamingSource.getConnectionString()))
+                << streamingSource.getConnectionString();
+        }
+        instance.removeDevice(device);
+    }
+
+    if (test_helpers::Ipv6IsDisabled(true))
+    {
+        GTEST_SKIP() << "Ipv6 is disabled - skip rest of the test";
+    }
+
+    generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
+    {
+        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
+        devConnStr = device.getInfo().getConnectionString();
+        // FIXME connection string is not set within DeviceInfo for OpcUa devices
+        // EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
+        for (const auto& streamingSource : device.asPtr<IMirroredDevice>().getStreamingSources())
+        {
+            EXPECT_TRUE(test_helpers::isIpv6ConnectionString(streamingSource.getConnectionString()))
+                << streamingSource.getConnectionString();
+        }
+        instance.removeDevice(device);
+    }
+}
+
+TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
+{
+    PropertyObjectPtr refDevConfig = PropertyObject();
+    refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
+    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+
+    const auto serverInstance = InstanceBuilder()
+                                    .addDiscoveryServer("mdns")
+                                    .setRootDevice("daqref://device1", refDevConfig)
+                                    .build();
+
+    serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+
+    for (const auto& server : serverInstance.getServers())
+        server.enableDiscovery();
+
+    const auto instance = Instance();
+    const auto config = instance.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
+
+    generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
+    {
+        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
+        devConnStr = device.getInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
+        instance.removeDevice(device);
+    }
+
+    if (test_helpers::Ipv6IsDisabled(true))
+    {
+        GTEST_SKIP() << "Ipv6 is disabled - skip rest of the test";
+    }
+
+    generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
+    {
+        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
+        devConnStr = device.getInfo().getConnectionString();
+        EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
+        instance.removeDevice(device);
+    }
 }

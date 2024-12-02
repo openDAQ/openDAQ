@@ -5,8 +5,14 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_InstanceBuilder instance_builder.h)
     rtgen(SRC_ConfigProvider config_provider.h)
     
+	set(ConfigHeaderSource ${CMAKE_CURRENT_SOURCE_DIR}/${MAIN_TARGET}/include/${MAIN_TARGET}/opendaq_config.h.in)
+	set(ConfigHeader ${CMAKE_CURRENT_BINARY_DIR}/${MAIN_TARGET}/include/${MAIN_TARGET}/opendaq_config.h)
+	configure_file(${ConfigHeaderSource} ${ConfigHeader})
+
+	set_source_files_properties(${ConfigHeader} PROPERTIES GENERATED TRUE)
+
     set(SRC_PublicHeaders_Component_Generated
-        ${ConfigHeader}
+	    ${ConfigHeader}
         ${SRC_Instance_PublicHeaders}
         ${SRC_InstanceBuilder_PublicHeaders}
         ${SRC_ConfigProvider_PublicHeaders}
@@ -46,6 +52,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/base_config_provider_impl.h
         ${SDK_HEADERS_DIR}/env_config_provider_impl.h
         ${SDK_HEADERS_DIR}/cmd_line_args_config_provider_impl.h
+        ${SDK_HEADERS_DIR}/client_type.h
         ${SDK_SRC_DIR}/instance_impl.cpp
         ${SDK_SRC_DIR}/client_impl.cpp
         ${SDK_SRC_DIR}/instance_builder_impl.cpp
@@ -53,7 +60,8 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/base_config_provider_impl.cpp
         ${SDK_SRC_DIR}/env_config_provider_impl.cpp
         ${SDK_SRC_DIR}/cmd_line_args_config_provider_impl.cpp
-        ${SDK_SRC_DIR}/path_tool.cpp             
+        ${SDK_SRC_DIR}/path_tool.cpp
+        ${SDK_SRC_DIR}/client_type.cpp
     )
     
     source_group("component_type" FILES 
@@ -62,22 +70,20 @@ function(create_component_source_groups_${BASE_NAME})
     )
 endfunction()
 
-set(ConfigHeaderSource ../include/opendaq/opendaq_config.h.in)
-set(ConfigHeader ${CMAKE_CURRENT_BINARY_DIR}/../include/${MAIN_TARGET}/opendaq_config.h)
-configure_file(${ConfigHeaderSource} ${ConfigHeader})
-
 
 set(SRC_PublicHeaders_Component 
-    version.h
+	version.h
     opendaq.h
     errors.h
     exceptions.h
     instance_factory.h
     config_provider_factory.h
+    client_type.h
     PARENT_SCOPE
 )
 
 set(SRC_PrivateHeaders_Component
+    opendaq_config.h.in
     instance_impl.h
     client_impl.h
     opendaq_init.h
@@ -103,6 +109,7 @@ set(SRC_Cpp_Component
     env_config_provider_impl.cpp
     cmd_line_args_config_provider_impl.cpp
     component_type_builder_impl.cpp
+    client_type.cpp
     opendaq.natvis
     PARENT_SCOPE
 )
@@ -113,5 +120,3 @@ set(SRC_PrivateLinkLibraries_Component
     $<BUILD_INTERFACE:rapidjson>
     PARENT_SCOPE
 )
-
-set_source_files_properties(${ConfigHeader} PROPERTIES GENERATED TRUE)

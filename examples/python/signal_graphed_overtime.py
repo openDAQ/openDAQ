@@ -1,5 +1,4 @@
 import opendaq
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -22,7 +21,7 @@ def read_signal(device):
     signals = device.signals_recursive
     print("Signals:")
     for i, signal in enumerate(signals):
-        print(f"{i}: {signal.descriptor.name}")
+        print(f"{i}: {signal.name}")
 
     signal_index = int(input("Enter the index of the signal you want to read: "))
     if 0 <= signal_index < len(signals):
@@ -55,13 +54,13 @@ def main():
     print(f"\nConnected to device: {device.info.name}")
 
     signal = read_signal(device)
-    print(f"Reading signal: {signal.descriptor.name}\n")
+    print(f"Reading signal: {signal.name}\n")
 
-    reader = opendaq.StreamReader(signal,timeout_type=opendaq.ReadTimeoutType.All)
+    reader = opendaq.StreamReader(signal, timeout_type=opendaq.ReadTimeoutType.All)
     signal_values = [reader.read(100, 100) for _ in range(int(10 / 0.1))]
     signal_values = np.concatenate(signal_values)
 
-    plot_signal_values(signal_values, signal.descriptor.name)
+    plot_signal_values(signal_values, signal.name)
     calculate_statistics(signal_values)
 
 

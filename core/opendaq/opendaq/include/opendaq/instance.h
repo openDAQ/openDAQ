@@ -81,34 +81,12 @@ DECLARE_OPENDAQ_INTERFACE(IInstance, IDevice)
      */
     virtual ErrCode INTERFACE_FUNC getAvailableServerTypes(IDict** serverTypes) = 0;
 
-    /*!
-     * @brief Creates and adds a server with the provided serverType and configuration.
-     * @param serverTypeId Type id of the server. Can be obtained from its corresponding Server type object.
-     * @param serverConfig Config of the server. Can be created from its corresponding Server type object.
-     * In case of a null value, it will use the default configuration.
-     * @param[out] server The added created server.
-     */
-    virtual ErrCode INTERFACE_FUNC addServer(IString* serverTypeId, IPropertyObject* serverConfig, IServer** server) = 0;
-
     // [elementType(servers, IServer)]
     /*!
      * @brief Creates and adds streaming and "OpenDAQOPCUA" servers with default configurations.
      * @param[out] servers List of added created servers.
      */
     virtual ErrCode INTERFACE_FUNC addStandardServers(IList** servers) = 0;
-
-    /*!
-     * @brief Removes the server provided as argument.
-     * @param server The server to be removed.
-     */
-    virtual ErrCode INTERFACE_FUNC removeServer(IServer* server) = 0;
-
-    // [elementType(servers, IServer)]
-    /*!
-     * @brief Get list of added servers.
-     * @param[out] servers List of added servers.
-     */
-    virtual ErrCode INTERFACE_FUNC getServers(IList** servers) = 0;
 };
 /*!@}*/
 

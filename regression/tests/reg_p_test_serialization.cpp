@@ -1,3 +1,4 @@
+#include "opendaq/device_domain_factory.h"
 #include "setup_regression.h"
 
 class RegressionTestSerialization : public testing::Test
@@ -56,7 +57,7 @@ TEST_F(RegressionTestSerialization, deserializeCallInfo)
     list.pushBack(1);
     list.pushBack(2);
     list.pushBack(3);
-    CallableInfoPtr expectedDefault = CallableInfo_Create(list, CoreType::ctInt);
+    CallableInfoPtr expectedDefault = CallableInfo_Create(list, CoreType::ctInt, false);
     CallableInfoPtr defaultVal = prop.getDefaultValue();
     ASSERT_EQ(expectedDefault, defaultVal);
 
@@ -68,7 +69,7 @@ TEST_F(RegressionTestSerialization, deserializeCallInfo)
     newList.pushBack(4);
     newList.pushBack(2);
     newList.pushBack(6);
-    CallableInfoPtr newVal = CallableInfo_Create(newList, CoreType::ctInt);
+    CallableInfoPtr newVal = CallableInfo_Create(newList, CoreType::ctInt, false);
     device.setPropertyValue("TestCallInfoProp", newVal);
     ASSERT_EQ(newVal, device.getPropertyValue("TestCallInfoProp"));
 }
@@ -239,7 +240,7 @@ TEST_F(RegressionTestSerialization, deserializeDeviceDomain)
 
     // Check expected default
     auto unit = Unit("TestSymbol", -1, "TestName", "TestQuantity");
-    DeviceDomainPtr expectedDefault = DeviceDomain_Create(Ratio(3, 4), String("1997"), unit);
+    DeviceDomainPtr expectedDefault = DeviceDomain(Ratio(3, 4), String("1997"), unit);
     DeviceDomainPtr defaultVal = prop.getDefaultValue();
     ASSERT_EQ(expectedDefault, defaultVal);
 
@@ -248,7 +249,7 @@ TEST_F(RegressionTestSerialization, deserializeDeviceDomain)
 
     // Set new value and check
     auto newUnit = Unit("NewTestSymbol", -1, "NewTestName", "NewTestQuantity");
-    DeviceDomainPtr newVal = DeviceDomain_Create(Ratio(4, 5), String("1998"), newUnit);
+    DeviceDomainPtr newVal = DeviceDomain(Ratio(4, 5), String("1998"), newUnit);
     device.setPropertyValue("TestDeviceDomainProp", newVal);
     ASSERT_EQ(newVal, device.getPropertyValue("TestDeviceDomainProp"));
 }

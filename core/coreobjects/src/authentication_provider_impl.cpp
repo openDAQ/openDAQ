@@ -4,20 +4,28 @@
 #include <coretypes/filesystem.h>
 #include <coreobjects/errors.h>
 #include <coreobjects/user_factory.h>
+#include <bcrypt/BCrypt.hpp>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+
+// ^\$(2[ayb]?)\$[0-9]+\$[a-zA-Z0-9\.\/]{53}$
+static const std::regex BcryptRegex("^\\$(2[ayb]?)\\$[0-9]+\\$[a-zA-Z0-9\\.\\/]{53}$");
+
 
 // AuthenticationProviderImpl
 
 AuthenticationProviderImpl::AuthenticationProviderImpl(bool allowAnonymous)
     : allowAnonymous(allowAnonymous)
     , users(Dict<IString, IUser>())
+    , anonymousUser(User("", ""))
 {
 }
 
 ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* username, IString* password, IUser** userOut)
 {
-    const auto user = findUser(username);
+    const auto user = findUserInternal(username);
     if (!user.assigned())
         return OPENDAQ_ERR_AUTHENTICATION_FAILED;
 
@@ -31,7 +39,29 @@ ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* usernam
 
 ErrCode INTERFACE_FUNC AuthenticationProviderImpl::isAnonymousAllowed(Bool* allowedOut)
 {
+    OPENDAQ_PARAM_NOT_NULL(allowedOut);
+
     *allowedOut = this->allowAnonymous;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticateAnonymous(IUser** userOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(userOut);
+
+    if (!this->allowAnonymous)
+        return OPENDAQ_ERR_AUTHENTICATION_FAILED;
+
+    *userOut = this->anonymousUser.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC AuthenticationProviderImpl::findUser(IString* username, IUser** userOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(userOut);
+
+    const UserPtr userTmp = findUserInternal(username);
+    *userOut = userTmp.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -46,7 +76,7 @@ void AuthenticationProviderImpl::loadUserList(const ListPtr<IUser>& userList)
     }
 }
 
-UserPtr AuthenticationProviderImpl::findUser(const StringPtr& username)
+UserPtr AuthenticationProviderImpl::findUserInternal(const StringPtr& username)
 {
     if (users.hasKey(username))
         return users.get(username);
@@ -54,9 +84,11 @@ UserPtr AuthenticationProviderImpl::findUser(const StringPtr& username)
     return nullptr;
 }
 
-bool AuthenticationProviderImpl::isPasswordValid(const StringPtr& hash, const StringPtr& password)
+bool AuthenticationProviderImpl::isPasswordValid(const std::string& hash, const StringPtr& password)
 {
-    // return libsodium.passwordVerify(hash, password);
+    if (std::regex_match(hash, BcryptRegex))
+        return BCrypt::validatePassword(password, hash);
+
     return hash == password;
 }
 
@@ -186,6 +218,13 @@ std::string JsonFileAuthenticationProviderImpl::readJsonFile(const StringPtr& fi
 
 
 // Factories
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               AuthenticationProviderImpl,
+                                                               IAuthenticationProvider,
+                                                               createAuthenticationProvider,
+                                                               Bool,
+                                                               allowAnonymous)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
                                                                StaticAuthenticationProviderImpl,

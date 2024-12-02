@@ -9,6 +9,7 @@ const char* PrimaryConnectionString = "PrimaryConnectionString";
 const char* ConnectionStrings = "ConnectionStrings";
 const char* ProtocolName = "ProtocolName";
 const char* ProtocolTypeName = "ProtocolType";
+const char* ProtocolVersonName = "ProtocolVersion";
 const char* ConnectionType = "ConnectionType";
 const char* CoreEventsEnabled = "CoreEventsEnabled"; 
 const char* ProtocolId = "protocolId";
@@ -27,10 +28,9 @@ StringPtr ServerCapabilityConfigImpl::ProtocolTypeToString(ProtocolType type)
             return "Streaming";
         case(ProtocolType::ConfigurationAndStreaming):
             return "ConfigurationAndStreaming";
-        case ProtocolType::Unknown:
+        default:
             return "Unknown";
     }
-    return "Unknown";
 }
 
 ProtocolType ServerCapabilityConfigImpl::StringToProtocolType(const StringPtr& type)
@@ -52,6 +52,7 @@ ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& protocol
     Super::addProperty(StringProperty(ProtocolName, ""));
     Super::addProperty(StringProperty(ProtocolId, ""));
     Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Unknown)));
+    Super::addProperty(StringProperty(ProtocolVersonName, ""));
     Super::addProperty(StringProperty(ConnectionType, "Unknown"));
     Super::addProperty(BoolProperty(CoreEventsEnabled, false));
     Super::addProperty(StringProperty(Prefix, ""));
@@ -72,7 +73,8 @@ typename InterfaceToSmartPtr<T>::SmartPtr ServerCapabilityConfigImpl::getTypedPr
 
 ErrCode ServerCapabilityConfigImpl::getConnectionString(IString** connectionString)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *connectionString = getTypedProperty<IString>(PrimaryConnectionString).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -81,7 +83,8 @@ ErrCode ServerCapabilityConfigImpl::getConnectionString(IString** connectionStri
 ErrCode ServerCapabilityConfigImpl::setConnectionString(IString* connectionString)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         checkErrorInfo(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
         checkErrorInfo(addConnectionString(connectionString));
         return OPENDAQ_SUCCESS;
@@ -90,7 +93,8 @@ ErrCode ServerCapabilityConfigImpl::setConnectionString(IString* connectionStrin
 
 ErrCode ServerCapabilityConfigImpl::getConnectionStrings(IList** connectionStrings)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *connectionStrings = getTypedProperty<IList>(ConnectionStrings).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -99,7 +103,8 @@ ErrCode ServerCapabilityConfigImpl::getConnectionStrings(IList** connectionStrin
 ErrCode ServerCapabilityConfigImpl::addConnectionString(IString* connectionString)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         ListPtr<IString> connectionStrings = getTypedProperty<IList>(ConnectionStrings);
         connectionStrings.pushBack(connectionString);
         checkErrorInfo(Super::setPropertyValue(String(ConnectionStrings), connectionStrings));
@@ -113,7 +118,8 @@ ErrCode ServerCapabilityConfigImpl::addConnectionString(IString* connectionStrin
 
 ErrCode ServerCapabilityConfigImpl::getProtocolName(IString** protocolName)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *protocolName = getTypedProperty<IString>(ProtocolName).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -127,7 +133,8 @@ ErrCode ServerCapabilityConfigImpl::setProtocolName(IString* protocolName)
 
 ErrCode ServerCapabilityConfigImpl::getProtocolId(IString** protocolId)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *protocolId = getTypedProperty<IString>(ProtocolId).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -141,7 +148,8 @@ ErrCode ServerCapabilityConfigImpl::setProtocolId(IString* protocolId)
 
 ErrCode ServerCapabilityConfigImpl::getProtocolType(ProtocolType* type)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *type = StringToProtocolType(getTypedProperty<IString>(ProtocolTypeName));
         return OPENDAQ_SUCCESS;
     });
@@ -152,9 +160,24 @@ ErrCode ServerCapabilityConfigImpl::setProtocolType(ProtocolType type)
     return Super::setPropertyValue(String(ProtocolTypeName), ProtocolTypeToString(type));
 }
 
+ErrCode ServerCapabilityConfigImpl::getProtocolVersion(IString** version)
+{
+    return daqTry([&]
+    {
+        *version = getTypedProperty<IString>(ProtocolVersonName).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ServerCapabilityConfigImpl::setProtocolVersion(IString* version)
+{
+    return Super::setPropertyValue(String(ProtocolVersonName), version);
+}
+
 ErrCode ServerCapabilityConfigImpl::getPrefix(IString** prefix)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *prefix = getTypedProperty<IString>(Prefix).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -167,7 +190,8 @@ ErrCode ServerCapabilityConfigImpl::setPrefix(IString* prefix)
 
 ErrCode ServerCapabilityConfigImpl::getConnectionType(IString** type)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *type = getTypedProperty<IString>(ConnectionType).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -180,7 +204,8 @@ ErrCode ServerCapabilityConfigImpl::setConnectionType(IString* type)
 
 ErrCode ServerCapabilityConfigImpl::getCoreEventsEnabled(Bool* enabled)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *enabled = getTypedProperty<IBoolean>(CoreEventsEnabled);
         return OPENDAQ_SUCCESS;
     });
@@ -200,7 +225,8 @@ ErrCode ServerCapabilityConfigImpl::getSerializeId(ConstCharPtr* id) const
 
 ErrCode ServerCapabilityConfigImpl::getAddresses(IList** addresses)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *addresses = getTypedProperty<IList>(Addresses).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -209,7 +235,8 @@ ErrCode ServerCapabilityConfigImpl::getAddresses(IList** addresses)
 ErrCode ServerCapabilityConfigImpl::addAddress(IString* address)
 {
     OPENDAQ_PARAM_NOT_NULL(address);
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         ListPtr<IString> addresses = getTypedProperty<IList>(Addresses);
         addresses.pushBack(address);
         checkErrorInfo(Super::setPropertyValue(String(Addresses), addresses));
@@ -247,26 +274,26 @@ ErrCode ServerCapabilityConfigImpl::Deserialize(ISerializedObject* serialized,
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializePropertyObject(
-                    serialized,
-                    context,
-                    factoryCallback,
-                       [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
-                       {
-                           const auto cap = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
-                           return cap;
-                       }).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = Super::DeserializePropertyObject(
+                serialized,
+                context,
+                factoryCallback,
+                    [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
+                    {
+                        const auto cap = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
+                        return cap;
+                    }).detach();
+    });
 }
 
 ErrCode ServerCapabilityConfigImpl::getPort(IInteger** port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
     
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *port = getTypedProperty<IInteger>(Port).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -347,7 +374,7 @@ ErrCode ServerCapabilityConfigImpl::clone(IPropertyObject** cloned)
 
     auto obj = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
 
-    return daqTry([this, &obj, &cloned]()
+    return daqTry([this, &obj, &cloned]
     {
         auto implPtr = static_cast<ServerCapabilityConfigImpl*>(obj.getObject());
         implPtr->configureClonedMembers(valueWriteEvents,

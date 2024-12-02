@@ -1,10 +1,10 @@
 #include <iostream>
-#include "opcuatms_server/objects/tms_server_input_port.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "open62541/statuscodes.h"
-#include "open62541/daqbsp_nodeids.h"
-#include "open62541/di_nodeids.h"
-#include "open62541/daqbsp_nodeids.h"
+#include <opcuatms_server/objects/tms_server_input_port.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <open62541/statuscodes.h>
+#include <open62541/daqbsp_nodeids.h>
+#include <open62541/di_nodeids.h>
+#include <open62541/daqbsp_nodeids.h>
 #include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -59,6 +59,10 @@ void TmsServerInputPort::createConnectMethodNode()
         {
             return e.getStatusCode();
         }
+        catch (...)
+        {
+            return UA_STATUSCODE_BADINTERNALERROR;
+        }
 
         return UA_STATUSCODE_GOOD;
     };
@@ -85,6 +89,10 @@ void TmsServerInputPort::createDisconnectMethodNode()
         catch (const OpcUaException& e)
         {
             return e.getStatusCode();
+        }
+        catch (...)
+        {
+            return UA_STATUSCODE_BADINTERNALERROR;
         }
 
         return UA_STATUSCODE_GOOD;

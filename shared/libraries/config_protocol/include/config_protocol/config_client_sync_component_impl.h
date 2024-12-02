@@ -33,12 +33,7 @@ class ConfigClientBaseSyncComponentImpl : public ConfigClientComponentBaseImpl<I
 public:
 
     using Super = ConfigClientComponentBaseImpl<Impl>;
-    ConfigClientBaseSyncComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                               const std::string& remoteGlobalId,
-                               const ContextPtr& ctx,
-                               const ComponentPtr& parent,
-                               const StringPtr& localId,
-                               const StringPtr& className = nullptr);
+    using Super::Super;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -55,18 +50,6 @@ protected:
 
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 };
-
-template <class Impl>
-ConfigClientBaseSyncComponentImpl<Impl>::ConfigClientBaseSyncComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                                             const std::string& remoteGlobalId,
-                                                             const ContextPtr& ctx,
-                                                             const ComponentPtr& parent,
-                                                             const StringPtr& localId,
-                                                             const StringPtr& className)
-
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
-{
-}
 
 template <class Impl>
 ErrCode ConfigClientBaseSyncComponentImpl<Impl>::Deserialize(ISerializedObject* serialized,
@@ -98,11 +81,11 @@ BaseObjectPtr ConfigClientBaseSyncComponentImpl<Impl>::DeserializeSyncComponent(
         {
             const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
             return createWithImplementation<Interface, Implementation>(ctx->getClientComm(),
-                                                                           ctx->getRemoteGlobalId(),
-                                                                           deserializeContext.getContext(),
-                                                                           deserializeContext.getParent(),
-                                                                           deserializeContext.getLocalId(),
-                                                                           className);
+                                                                       ctx->getRemoteGlobalId(),
+                                                                       deserializeContext.getContext(),
+                                                                       deserializeContext.getParent(),
+                                                                       deserializeContext.getLocalId(),
+                                                                       className);
         });
 }
 

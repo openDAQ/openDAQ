@@ -33,19 +33,19 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateModule)
 TEST_F(WebsocketStreamingClientModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "OpenDAQWebsocketClientModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQWebsocketClientModule");
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), WS_STREAM_CL_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), WS_STREAM_CL_MODULE_MINOR_VERSION);

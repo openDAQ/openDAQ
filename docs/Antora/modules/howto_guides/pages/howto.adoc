@@ -20,3 +20,10 @@
 == Configuration
 
 * xref:howto_save_load_configuration.adoc[]
+
+== Access control
+
+* xref:howto_access_control_introduction.adoc[Introduction]
+* xref:howto_access_control_connect.adoc[]
+* xref:howto_access_control_user_list.adoc[]
+* xref:howto_access_control_protected_object.adoc[]

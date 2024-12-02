@@ -102,17 +102,17 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
     // [returnSelf]
     /*!
      * @brief Sets the read timeout mode
-     * @param mode The timeout mode. 
-     * if "Any" returns immediatly if there is available data otherwise time-out is exceeded.
-     * if "All" waiting until timeout and returns avaiable data if existing. otherwise time-out is exceeded.
+     * @param type The timeout mode. 
+     * if "Any" returns immediately if there is available data otherwise time-out is exceeded.
+     * if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
      */
     virtual ErrCode INTERFACE_FUNC setReadTimeoutType(ReadTimeoutType type) = 0;
 
     /*!
      * @brief Gets the read timeout mode
-     * @param mode The timeout mode. 
-     * if "Any" returns immediatly if there is available data otherwise time-out is exceeded.
-     * if "All" waiting until timeout and returns avaiable data if existing. otherwise time-out is exceeded.
+     * @param type The timeout mode. 
+     * if "Any" returns immediately if there is available data otherwise time-out is exceeded.
+     * if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
      */
     virtual ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* type) = 0;
 
@@ -141,6 +141,27 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * @param enabled enable/disable start on full unit of domain
      */
     virtual ErrCode INTERFACE_FUNC getStartOnFullUnitOfDomain(Bool* enabled) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the minimal number of samples to read.
+     * @param minReadCount The minimal number of samples to read.
+     *
+     * If set, the reader will return 0 for `getAvailableCount` if less than `minReadCount`
+     * samples are available. It will also never read less than `minReadCount` samples. The
+     * default value is 1.
+     */
+    virtual ErrCode INTERFACE_FUNC setMinReadCount(SizeT minReadCount) = 0;
+
+    /*!
+     * @brief Gets the minimal number of samples to read.
+     * @param[out] minReadCount The minimal number of samples to read.
+     *
+     * If set, the reader will return 0 for `getAvailableCount` if less than `minReadCount`
+     * samples are available. It will also never read less than `minReadCount` samples. The
+     * default value is 1.
+     */
+    virtual ErrCode INTERFACE_FUNC getMinReadCount(SizeT* minReadCount) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, MultiReaderBuilder, IMultiReaderBuilder)

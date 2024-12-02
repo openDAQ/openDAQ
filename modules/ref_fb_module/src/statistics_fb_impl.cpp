@@ -2,6 +2,7 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/packet_factory.h>
 #include <ref_fb_module/statistics_fb_impl.h>
+#include <opendaq/module_manager_utils_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -45,6 +46,39 @@ FunctionBlockTypePtr StatisticsFbImpl::CreateType()
                              defaultConfig);
 }
 
+DictPtr<IString, IFunctionBlockType> StatisticsFbImpl::onGetAvailableFunctionBlockTypes()
+{
+    auto dict = Dict<IString, IFunctionBlockType>();
+    auto allFbs = context.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableFunctionBlockTypes();
+    if (allFbs.hasKey("RefFBModuleTrigger"))
+        dict.set("RefFBModuleTrigger", allFbs["RefFBModuleTrigger"]);
+    return dict.detach();
+}
+
+FunctionBlockPtr StatisticsFbImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    FunctionBlockPtr nestedFunctionBlock;
+    {
+        auto lock = this->getAcquisitionLock();
+        if (this->functionBlocks.getItems().getCount())
+            throw AlreadyExistsException("Only one nested function block is supported");
+        
+        if (typeId != "RefFBModuleTrigger")
+            throw NotSupportedException("Statistics function block only supports nested trigger function block");
+
+        PropertyObjectPtr triggerConfig = config;
+        if (!triggerConfig.assigned())
+        {
+            triggerConfig = PropertyObject();
+            triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", packetReadyNotification != PacketReadyNotification::SameThread));
+        }
+        nestedFunctionBlock = createAndAddNestedFunctionBlock(typeId, "nfbt", triggerConfig);
+    }
+
+    triggerInput.connect(nestedFunctionBlock.getSignals()[0]);
+    return nestedFunctionBlock;
+}
+
 void StatisticsFbImpl::initProperties()
 {
     objPtr.addProperty(IntProperty("BlockSize", 10));
@@ -53,10 +87,6 @@ void StatisticsFbImpl::initProperties()
     objPtr.addProperty(SelectionProperty("DomainSignalType", List<IString>("Implicit", "Explicit", "ExplicitRange"), 0));
     objPtr.getOnPropertyValueWrite("DomainSignalType") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
-
-    objPtr.addProperty(BoolProperty("TriggerMode", false));
-    objPtr.getOnPropertyValueWrite("TriggerMode") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { triggerModeChanged(); };
 
     auto overlapProperty =
         IntPropertyBuilder("Overlap", 0)
@@ -74,92 +104,18 @@ void StatisticsFbImpl::initProperties()
 
 void StatisticsFbImpl::propertyChanged()
 {
-    std::scoped_lock lock(sync);
     readProperties();
     configure();
-}
-
-void StatisticsFbImpl::triggerModeChanged()
-{
-    sync.lock();
-    try
-    {
-        readProperties();
-    }
-    catch (const std::exception& e)
-    {
-        LOG_E("Reading properties when trigger mode changed failed: {}", e.what());
-        sync.unlock();
-        return;
-    }
-    if (triggerMode)
-    {
-        try
-        {
-            // Configure Trigger UseMultiThreadedScheduler according to Statistics UseMultiThreadedScheduler
-            auto triggerConfig = PropertyObject();
-            if (packetReadyNotification == PacketReadyNotification::SameThread)
-                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
-            else
-                triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
-
-            // Use trigger, output signals depending on trigger
-            nestedTriggerFunctionBlock = createAndAddNestedFunctionBlock("RefFBModuleTrigger", "nfbt", triggerConfig);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_E("Creating nested trigger function block when trigger mode changed failed: {}", e.what());
-            sync.unlock();
-            return;
-        }
-        sync.unlock();
-
-        // Connect trigger
-        triggerInput.connect(nestedTriggerFunctionBlock.getSignals()[0]);
-
-        sync.lock();
-        try
-        {
-            configure();
-        }
-        catch (const std::exception& e)
-        {
-            LOG_E("Configure when trigger mode changed failed: {}", e.what());
-            sync.unlock();
-            return;
-        }
-        sync.unlock();
-    }
-    else
-    {
-        try
-        {
-            // Don't use trigger, output signals
-            triggerInput.disconnect();
-            removeNestedFunctionBlock(nestedTriggerFunctionBlock);
-
-            configure();
-        }
-        catch (const std::exception& e)
-        {
-            LOG_E("Trigger mode changed failed: {}", e.what());
-            sync.unlock();
-            return;
-        }
-        sync.unlock();
-    }
 }
 
 void StatisticsFbImpl::readProperties()
 {
     blockSize = objPtr.getPropertyValue("BlockSize");
     domainSignalType = static_cast<DomainSignalType>(static_cast<Int>(objPtr.getPropertyValue("DomainSignalType")));
-    triggerMode = objPtr.getPropertyValue("TriggerMode");
     overlap = objPtr.getPropertyValue("Overlap");
-    LOG_D("Properties: BlockSize {}, DomainSignalType {}, TriggerMode {}, Overlap {}",
+    LOG_D("Properties: BlockSize {}, DomainSignalType {}, Overlap {}",
           blockSize,
           objPtr.getPropertySelectionValue("DomainSignalType").toString(),
-          triggerMode,
           overlap);
 }
 
@@ -338,9 +294,7 @@ void StatisticsFbImpl::validateTriggerDescriptors(const DataDescriptorPtr& value
     if (valueDataDescriptor.assigned())
     {
         const auto type = valueDataDescriptor.getSampleType();
-        if (type != SampleType::Float64 && type != SampleType::Float32 && type != SampleType::Int8 && type != SampleType::Int16 &&
-            type != SampleType::Int32 && type != SampleType::Int64 && type != SampleType::UInt8 && type != SampleType::UInt16 &&
-            type != SampleType::UInt32 && type != SampleType::UInt64)
+        if (acceptSampleType(type))
         {
             LOG_W("Invalid nested trigger value sample type!");
             return;
@@ -453,7 +407,8 @@ void StatisticsFbImpl::processDataPacketInput(const DataPacketPtr& packet)
     if (!domainPacket.assigned())
         return;
 
-    if (triggerMode)
+    bool triggerModeEnabled = this->functionBlocks.getItems().getCount();
+    if (triggerModeEnabled)
     {
         const auto packetBuf = static_cast<uint8_t*>(packet.getData());
         auto domainBuf = static_cast<Int*>(domainPacket.getData());
@@ -713,7 +668,7 @@ void StatisticsFbImpl::onPacketReceived(const InputPortPtr& port)
 
 void StatisticsFbImpl::processTriggerPackets(const InputPortPtr& port)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     const auto conn = port.getConnection();
     if (!conn.assigned())
@@ -729,6 +684,7 @@ void StatisticsFbImpl::processTriggerPackets(const InputPortPtr& port)
             LOG_T("Processing {} event", eventPacket.getEventId())
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
+                // TODO handle Null-descriptor params ('Null' sample type descriptors)
                 DataDescriptorPtr valueSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
                 DataDescriptorPtr domainSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
                 validateTriggerDescriptors(valueSignalDescriptor, domainSignalDescriptor);
@@ -746,7 +702,7 @@ void StatisticsFbImpl::processTriggerPackets(const InputPortPtr& port)
 
 void StatisticsFbImpl::processInputPackets(const InputPortPtr& port)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     const auto conn = port.getConnection();
     if (!conn.assigned())
@@ -762,6 +718,7 @@ void StatisticsFbImpl::processInputPackets(const InputPortPtr& port)
             LOG_T("Processing {} event", eventPacket.getEventId())
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
+                // TODO handle Null-descriptor params ('Null' sample type descriptors)
                 DataDescriptorPtr valueSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
                 DataDescriptorPtr domainSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
                 processSignalDescriptorChanged(valueSignalDescriptor, domainSignalDescriptor);

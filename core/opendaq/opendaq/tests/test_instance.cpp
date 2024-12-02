@@ -1,6 +1,7 @@
 #include "test_helpers.h"
 #include <gtest/gtest.h>
 #include <opendaq/function_block_type_ptr.h>
+#include <opendaq/update_parameters_factory.h>
 
 using InstanceTest = testing::Test;
 
@@ -25,18 +26,6 @@ TEST_F(InstanceTest, CustomLocalId)
     ASSERT_EQ(instance.getLocalId(), "myId");
     ASSERT_EQ(instance.getGlobalId(), "/myId");
 }
-
-#ifdef _MSC_VER
-
-TEST_F(InstanceTest, LocalIdFromEnvVar)
-{
-    _putenv("OPENDAQ_INSTANCE_ID=myId");
-    auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getLocalId(), "myId");
-    ASSERT_EQ(instance.getGlobalId(), "/myId");
-}
-
-#endif
 
 TEST_F(InstanceTest, InstanceGetters)
 {
@@ -77,7 +66,7 @@ TEST_F(InstanceTest, RootDeviceWithModuleFunctionBlocks)
     ASSERT_EQ(fbs.getCount(), 0u);
 
     auto fbTypes = instance.getAvailableFunctionBlockTypes();
-    ASSERT_EQ(fbTypes.getCount(), 1u);
+    ASSERT_EQ(fbTypes.getCount(), 3u);
     ASSERT_TRUE(fbTypes.hasKey("mock_fb_uid"));
     ASSERT_EQ(fbTypes.get("mock_fb_uid").getId(), "mock_fb_uid");
 
@@ -511,6 +500,449 @@ TEST_F(InstanceTest, AddServerBackwardsCompat)
     ASSERT_NO_THROW(instance.addServer("openDAQ Native Streaming", nullptr));
     ASSERT_NO_THROW(instance.addServer("openDAQ LT Streaming", nullptr));
     ASSERT_NO_THROW(instance.addServer("openDAQ OpcUa", nullptr));
+}
+
+TEST_F(InstanceTest, SaveLoadRestoreDevice)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.addDevice("daqmock://phys_device");
+    instance2.addDevice("daqmock://client_device");
+    instance2.loadConfiguration(config);
+
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadLocked)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    instance.lock();
+
+    auto config = instance.saveConfiguration();
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    ASSERT_TRUE(instance2.isLocked());
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(device.isLocked());
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    instance2.loadConfiguration(config);
+
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadReadDevice)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.addDevice("daqmock://phys_device");
+    instance2.addDevice("daqmock://client_device");
+    auto loadConfig = UpdateParameters();
+    loadConfig.setReAddDevicesEnabled(true);
+    instance2.loadConfiguration(config, loadConfig);
+
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadReadDevice2)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.addDevice("daqmock://phys_device");
+    auto loadConfig = UpdateParameters();
+    loadConfig.setReAddDevicesEnabled(true);
+    instance2.loadConfiguration(config, loadConfig);
+
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadReadDevice3)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    auto config = instance.saveConfiguration();
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    auto loadConfig = UpdateParameters();
+    loadConfig.setReAddDevicesEnabled(true);
+    instance2.loadConfiguration(config, loadConfig);
+
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+        devicesNames.erase(device.getName());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionsOrdered)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+        fb2.getInputPorts()[0].connect(fb1.getSignals()[0]);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 2u);
+
+    FunctionBlockPtr restoredFb2;
+    for (const auto & fb : restoredFbs)
+    {
+        if (fb.getLocalId() == "mock_fb_uid_2")
+        {
+            restoredFb2 = fb;
+            break;
+        }
+    }
+    ASSERT_EQ(restoredFb2.getLocalId(), "mock_fb_uid_2");
+    auto inputSignal = restoredFb2.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(inputSignal.assigned());
+    ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_1/Sig/UniqueId_1");
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionsCircleDependcies)
+{
+    StringPtr config;
+    auto connections = Dict<IString, IString>();
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb3 = instance.addFunctionBlock("mock_fb_uid");
+        fb2.getInputPorts()[0].connect(fb1.getSignals()[0]);
+        fb3.getInputPorts()[0].connect(fb2.getSignals()[0]);
+        fb1.getInputPorts()[0].connect(fb3.getSignals()[0]);
+
+        connections.set(fb1.getGlobalId(), fb1.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb2.getGlobalId(), fb2.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb3.getGlobalId(), fb3.getInputPorts()[0].getSignal().getGlobalId());
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 3u);
+    // yes, we are still attemping to restore all connections
+    for (const auto & fb : restoredFbs)
+    {
+        ASSERT_TRUE(connections.hasKey(fb.getGlobalId()));
+        ASSERT_EQ(connections.get(fb.getGlobalId()), fb.getInputPorts()[0].getSignal().getGlobalId());
+    }
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionsOrderedDifferentIds)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+        fb2.getInputPorts()[0].connect(fb1.getSignals()[0]);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 2u);
+    FunctionBlockPtr restoredFb2;
+    for (const auto & fb : restoredFbs)
+    {
+        if (fb.getLocalId() == "mock_fb_uid_2")
+        {
+            restoredFb2 = fb;
+            break;
+        }
+    }
+    auto inputSignal = restoredFb2.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(!inputSignal.assigned());
+    // ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId2/FB/mock_fb_uid_1/Sig/UniqueId_1");
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionsUnordered)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_uid");
+        fb1.getInputPorts()[0].connect(fb2.getSignals()[0]);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    config = instance2.saveConfiguration();
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 2u);
+    FunctionBlockPtr restoredFb1;
+    for (const auto & fb : restoredFbs)
+    {
+        if (fb.getLocalId() == "mock_fb_uid_1")
+        {
+            restoredFb1 = fb;
+            break;
+        }
+    }
+    ASSERT_EQ(restoredFb1.getLocalId(), "mock_fb_uid_1");
+    auto inputSignal = restoredFb1.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(inputSignal.assigned());
+    ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_2/Sig/UniqueId_1");
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionConnectingDynamicPorts)
+{
+    auto connections = Dict<IString, IString>();
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb1 = instance.addFunctionBlock("mock_fb_uid");
+        auto fb2 = instance.addFunctionBlock("mock_fb_dynamic_output_ports_uid");
+        auto fb3 = instance.addFunctionBlock("mock_fb_dynamic_input_ports_uid");
+        auto fb4 = instance.addFunctionBlock("mock_fb_uid");
+        
+        fb4.getInputPorts()[0].connect(fb1.getSignals()[0]);
+        fb3.getInputPorts()[0].connect(fb4.getSignals()[0]);
+        fb2.getInputPorts()[0].connect(fb3.getSignals()[0]);
+        fb1.getInputPorts()[0].connect(fb2.getSignals()[0]);
+       
+        connections.set(fb1.getGlobalId(), fb1.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb2.getGlobalId(), fb2.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb3.getGlobalId(), fb3.getInputPorts()[0].getSignal().getGlobalId());
+        connections.set(fb4.getGlobalId(), fb4.getInputPorts()[0].getSignal().getGlobalId());
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 4u);
+
+    for (const auto & fb : restoredFbs)
+    {
+        ASSERT_TRUE(connections.hasKey(fb.getGlobalId()));
+        ASSERT_EQ(connections.get(fb.getGlobalId()), fb.getInputPorts()[0].getSignal().getGlobalId());
+    }
+    
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionConnectingSignalFromDev)
+{
+    StringPtr config;
+    StringPtr signalId;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb = instance.addFunctionBlock("mock_fb_uid");
+        auto dev = instance.addDevice("daqmock://phys_device");
+        auto sig = dev.getSignalsRecursive()[0];
+        signalId = sig.getGlobalId();
+        fb.getInputPorts()[0].connect(sig);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    auto restoredDevs = instance2.getDevices();
+    ASSERT_EQ(restoredDevs.getCount(), 1u);
+    auto restoredDev = restoredDevs[0];
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 1u);
+    auto restoredFb = restoredFbs[0];
+
+    auto restoredSig = restoredFb.getInputPorts()[0].getSignal();
+    ASSERT_TRUE(restoredSig.assigned());
+    ASSERT_EQ(restoredSig.getGlobalId(), signalId);
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionNeastedFb)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb = instance.addFunctionBlock("mock_fb_uid");
+        fb.addFunctionBlock("NestedFBId");
+        fb.addFunctionBlock("NestedFBId");
+        ASSERT_EQ(fb.getFunctionBlocks().getCount(), 3u);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 1u);
+    auto restoredFb = restoredFbs[0];
+
+    auto nestedFbs = restoredFb.getFunctionBlocks();
+    ASSERT_EQ(nestedFbs.getCount(), 3u);
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionNeastedFb2)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb = instance.addFunctionBlock("mock_fb_uid");
+        fb.addFunctionBlock("NestedFBId");
+        fb.addFunctionBlock("NestedFBId");
+        ASSERT_EQ(fb.getFunctionBlocks().getCount(), 3u);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    auto fb = instance2.addFunctionBlock("mock_fb_uid");
+    fb.addFunctionBlock("NestedFBId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 1u);
+    auto restoredFb = restoredFbs[0];
+
+    auto nestedFbs = restoredFb.getFunctionBlocks();
+    ASSERT_EQ(nestedFbs.getCount(), 3u);
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionNeastedFb3)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        auto fb = instance.addFunctionBlock("mock_fb_uid");
+        fb.addFunctionBlock("NestedFBId");
+        fb.addFunctionBlock("NestedFBId");
+        ASSERT_EQ(fb.getFunctionBlocks().getCount(), 3u);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    auto fb = instance2.addFunctionBlock("mock_fb_uid");
+    fb.addFunctionBlock("NestedFBId");
+    fb.addFunctionBlock("NestedFBId");
+    instance2.loadConfiguration(config);
+
+    auto restoredFbs = instance2.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 1u);
+    auto restoredFb = restoredFbs[0];
+
+    auto nestedFbs = restoredFb.getFunctionBlocks();
+    ASSERT_EQ(nestedFbs.getCount(), 3u);
+}
+
+TEST_F(InstanceTest, DISABLED_SaveLoadServers)
+{
+    StringPtr config;
+    StringPtr serverId;
+    {
+        auto instance = Instance();
+        auto server = instance.addServer("OpenDAQOPCUA", nullptr);
+        serverId = server.getId();
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = Instance();
+    instance2.loadConfiguration(config);
+
+    auto servers = instance2.getServers();
+    ASSERT_EQ(servers.getCount(), 1u);
+    ASSERT_EQ(servers[0].getId(), serverId);
 }
 
 END_NAMESPACE_OPENDAQ

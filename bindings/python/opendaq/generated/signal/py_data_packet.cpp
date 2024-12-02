@@ -25,9 +25,12 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
+#include "py_opendaq/py_packet_buffer.h"
 
 PyDaqIntf<daq::IDataPacket, daq::IPacket> declareIDataPacket(pybind11::module_ m)
 {
@@ -42,19 +45,15 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
         return daq::DataPacket_Create(descriptor, sampleCount, getVariantValue<daq::INumber*>(offset));
     }, py::arg("descriptor"), py::arg("sample_count"), py::arg("offset"));
 
-    m.def("DataPacketWithExternalMemory", [](daq::IDataPacket* domainPacket, daq::IDataDescriptor* descriptor, const size_t sampleCount, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& offset, void* externalMemory, daq::IDeleter* deleter, const size_t bufferSize){
-        return daq::DataPacketWithExternalMemory_Create(domainPacket, descriptor, sampleCount, getVariantValue<daq::INumber*>(offset), externalMemory, deleter, bufferSize);
-    }, py::arg("domain_packet"), py::arg("descriptor"), py::arg("sample_count"), py::arg("offset"), py::arg("external_memory"), py::arg("deleter"), py::arg("buffer_size"));
-
     m.def("DataPacketWithDomain", [](daq::IDataPacket* domainPacket, daq::IDataDescriptor* descriptor, const size_t sampleCount, std::variant<daq::INumber*, double, int64_t, daq::IEvalValue*>& offset){
         return daq::DataPacketWithDomain_Create(domainPacket, descriptor, sampleCount, getVariantValue<daq::INumber*>(offset));
     }, py::arg("domain_packet"), py::arg("descriptor"), py::arg("sample_count"), py::arg("offset"));
 
-    m.def("ConstantDataPacketWithDomain", &daq::ConstantDataPacketWithDomain_Create);
 
     cls.def_property_readonly("data_descriptor",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getDataDescriptor().detach();
         },
@@ -63,6 +62,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("sample_count",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getSampleCount();
         },
@@ -70,34 +70,34 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("offset",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getOffset().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets current packet offset. This offset is later applied to the data rule used by a signal to calculate actual data value. This value is usually a time or other domain value. Packet offset is particularly useful when one wants to transfer a gap in otherwise equidistant samples. If we have a linear data rule, defined by equation f(x) = k*x + n, then the data value will be calculated by the equation g(x) = offset + f(x).");
-    /*
     cls.def_property_readonly("data",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
-            return objectPtr.getData();
+            return std::make_unique<PyBuffer::Buffer>(objectPtr, objectPtr.getData(), objectPtr.getDataSize());
         },
         py::return_value_policy::take_ownership,
         "Gets the calculated/scaled data address of the packet.");
-    */
-    /*
     cls.def_property_readonly("raw_data",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
-            return objectPtr.getRawData();
+            return std::make_unique<PyBuffer::Buffer>(objectPtr, objectPtr.getRawData(), objectPtr.getRawDataSize());
         },
         py::return_value_policy::take_ownership,
         "Gets a pointer to the raw packet data. `nullptr` if the signal's data rule is implicit.");
-    */
     cls.def_property_readonly("data_size",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getDataSize();
         },
@@ -105,6 +105,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("raw_data_size",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getRawDataSize();
         },
@@ -112,6 +113,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("domain_packet",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getDomainPacket().detach();
         },
@@ -120,6 +122,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("packet_id",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return objectPtr.getPacketId();
         },
@@ -127,17 +130,28 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
     cls.def_property_readonly("last_value",
         [](daq::IDataPacket *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getLastValue());
         },
         py::return_value_policy::take_ownership,
-        "Gets the data packet last value");
+        "Gets the data packet last value.");
     cls.def("get_last_value",
         [](daq::IDataPacket *object, daq::ITypeManager* typeManager)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::DataPacketPtr::Borrow(object);
             return baseObjectToPyObject(objectPtr.getLastValue(typeManager));
         },
         py::arg("type_manager") = nullptr,
-        "Gets the data packet last value");
+        "Gets the data packet last value.");
+    cls.def("get_value_by_index",
+        [](daq::IDataPacket *object, const size_t index, daq::ITypeManager* typeManager)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DataPacketPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getValueByIndex(index, typeManager));
+        },
+        py::arg("index"), py::arg("type_manager") = nullptr,
+        "Gets the data packet last value.");
 }

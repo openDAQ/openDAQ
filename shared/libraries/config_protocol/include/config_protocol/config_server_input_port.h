@@ -23,22 +23,52 @@ namespace daq::config_protocol
 class ConfigServerInputPort
 {
 public:
-    static BaseObjectPtr connect(const InputPortPtr& inputPort, const SignalPtr& signal);
-    static BaseObjectPtr disconnect(const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    static BaseObjectPtr connect(const RpcContext& context, const InputPortPtr& inputPort, const SignalPtr& signal, const ParamsDictPtr& params);
+    static BaseObjectPtr disconnect(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+	static BaseObjectPtr accepts(const RpcContext& context, const InputPortPtr& inputPort, const SignalPtr& signal, const UserPtr& user);
 };
 
-inline BaseObjectPtr ConfigServerInputPort::connect(const InputPortPtr& inputPort, const SignalPtr& signal)
+inline BaseObjectPtr ConfigServerInputPort::connect(const RpcContext& context,
+                                                    const InputPortPtr& inputPort,
+                                                    const SignalPtr& signal,
+                                                    const ParamsDictPtr& params)
 {
     if (!signal.assigned())
         throw NotFoundException("Cannot connect requested signal. Signal not found");
+
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+    ConfigServerAccessControl::protectLockedComponent(inputPort);
+    ConfigServerAccessControl::protectObject(inputPort, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectObject(signal, context.user, Permission::Read);
+
     inputPort.connect(signal);
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerInputPort::disconnect(const InputPortPtr& inputPort, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerInputPort::disconnect(const RpcContext& context,
+                                                       const InputPortPtr& inputPort,
+                                                       const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectLockedComponent(inputPort);
+    ConfigServerAccessControl::protectObject(inputPort, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
     inputPort.disconnect();
     return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerInputPort::accepts(const RpcContext& context,
+                                                    const InputPortPtr& inputPort,
+                                                    const SignalPtr& signal,
+                                                    const UserPtr& user)
+{
+    if (!signal.assigned())
+        throw NotFoundException("Cannot connect requested signal. Signal not found");
+
+    ConfigServerAccessControl::protectObject(inputPort, user, Permission::Read);
+    ConfigServerAccessControl::protectObject(signal, user, Permission::Read);
+
+    return Boolean(inputPort.acceptsSignal(signal));
 }
 
 }

@@ -40,6 +40,15 @@
     // ReSharper restore CppInconsistentNaming
 #endif
 
+#ifndef OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS
+#   define TEST_F_UNSTABLE_SKIPPED TEST_F
+#   define TEST_P_UNSTABLE_SKIPPED TEST_P
+#else
+    // ReSharper disable CppInconsistentNaming
+#   define TEST_F_UNSTABLE_SKIPPED(test_fixture, test_name)  TEST_F(test_fixture, UNSTABLE_SKIPPED_##test_name)
+#   define TEST_P_UNSTABLE_SKIPPED(test_fixture, test_name)  TEST_P(test_fixture, UNSTABLE_SKIPPED_##test_name)
+    // ReSharper restore CppInconsistentNaming
+#endif
 
 #define ASSERT_SUCCEEDED(ErrCode) ASSERT_TRUE(OPENDAQ_SUCCEEDED(ErrCode))
 

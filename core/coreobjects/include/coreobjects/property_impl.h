@@ -31,11 +31,13 @@
 #include <coreobjects/unit_ptr.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
+#include <coretypes/validation.h>
 #include <iostream>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
 #include <coreobjects/errors.h>
+#include <coreobjects/permission_mask_builder_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -77,6 +79,8 @@ protected:
         , readOnly(false)
     {
         propPtr = this->borrowPtr<PropertyPtr>();
+
+        initDefaultPermissionManager();
     }
 
 public:
@@ -110,6 +114,7 @@ public:
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 
+        initDefaultPermissionManager();
         checkErrorInfo(validateDuringConstruction());
     }
 
@@ -209,6 +214,12 @@ public:
         const auto err = validateDuringConstruction();
         if (err != OPENDAQ_SUCCESS)
             throwExceptionFromErrorCode(err);
+
+        if (this->defaultValue.assigned())
+        {
+            auto defaultValueObj = this->defaultValue.asPtr<IPropertyObject>();
+            defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(this->defaultPermissionManager);
+        }
     }
 
     // FunctionProperty()
@@ -293,73 +304,95 @@ public:
             throwExceptionFromErrorCode(err);
     }
 
+    void initDefaultPermissionManager()
+    {
+        const auto defaultPermissions =
+            PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+
+        defaultPermissionManager = PermissionManager();
+        defaultPermissionManager.setPermissions(defaultPermissions);
+    }
+
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
     {
-        if (type == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        return getValueTypeInternal(type, true);
+    }
 
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
+    ErrCode INTERFACE_FUNC getValueTypeNoLock(CoreType* type) override
+    {
+        return getValueTypeInternal(type, false);
+    }
+
+    ErrCode INTERFACE_FUNC getValueTypeInternal(CoreType* type, bool lock)
+    {
+        OPENDAQ_PARAM_NOT_NULL(type);
+
+	    return daqTry([&]()
             {
-                *type = prop.getValueType();
-            }
-            else
-            {
-                *type = this->valueType;
-            }
-            return OPENDAQ_SUCCESS;
-        });
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *type = lock ? prop.getValueType() : prop.asPtr<IPropertyInternal>().getValueTypeNoLock();
+		        else
+			        *type = this->valueType;
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
     }
     
     ErrCode INTERFACE_FUNC getKeyType(CoreType* type) override
     {
-        if (type == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        return getKeyTypeInternal(type, true);    
+    }
+
+    ErrCode INTERFACE_FUNC getKeyTypeNoLock(CoreType* type) override
+    {
+        return getKeyTypeInternal(type, false);    
+    }
+
+    ErrCode INTERFACE_FUNC getKeyTypeInternal(CoreType* type, bool lock)
+    {
+        OPENDAQ_PARAM_NOT_NULL(type);
 
         *type = ctUndefined;
         BaseObjectPtr defVal;
-        ErrCode err = this->getDefaultValue(&defVal);
+        auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
         if (OPENDAQ_FAILED(err))
-        {
             return err;
-        }
 
         if (!defVal.assigned())
-        {
             return OPENDAQ_SUCCESS;
-        }
 
-        DictPtr<IBaseObject, IBaseObject> value = defVal.asPtrOrNull<IDict>();
+        const auto value = defVal.asPtrOrNull<IDict>();
         if (!value.assigned())
-        {
             return OPENDAQ_SUCCESS;
-        }
 
         IntfID intfID;
         err = value.asPtr<IDictElementType>()->getKeyInterfaceId(&intfID);
         if (OPENDAQ_FAILED(err))
-        {
             return err;
-        }
 
         auto coreType = details::intfIdToCoreType(intfID);
 
         // TODO: Workaround if item type of dict/list is undefined
         if (coreType == ctUndefined && value.getCount() > 0)
-        {
             coreType = value.getKeyList()[0].getCoreType();
-        }
 
         *type = coreType;
         return OPENDAQ_SUCCESS;
     }
-
+        
     ErrCode INTERFACE_FUNC getItemType(CoreType* type) override
     {
-        if (type == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        return getItemTypeInternal(type, true);    
+    }
+
+    ErrCode INTERFACE_FUNC getItemTypeNoLock(CoreType* type) override
+    {
+        return getItemTypeInternal(type, false);    
+    }
+
+    ErrCode INTERFACE_FUNC getItemTypeInternal(CoreType* type, bool lock)
+    {
+        OPENDAQ_PARAM_NOT_NULL(type);
 
         try
         {
@@ -367,51 +400,39 @@ public:
             *type = ctUndefined;
 
             BaseObjectPtr defVal;
-            ErrCode err = this->getDefaultValue(&defVal);
+            auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
             if (OPENDAQ_FAILED(err))
-            {
                 return err;
-            }
 
             BaseObjectPtr selVal;
-            err = this->getSelectionValues(&selVal);
+            err = lock ? this->getSelectionValues(&selVal) : this->getSelectionValuesNoLock(&selVal);
             if (OPENDAQ_FAILED(err))
-            {
                 return err;
-            }
 
             BaseObjectPtr value = defVal.assigned() ? defVal : nullptr;
             value = selVal.assigned() ? selVal : value;
             if (!value.assigned())
-            {
                 return err;
-            }
 
             const auto dictElementType = value.asPtrOrNull<IDictElementType>();
             if (dictElementType.assigned())
-            {
                 err = dictElementType->getValueInterfaceId(&intfID);
-            }
 
             const auto listElementType = value.asPtrOrNull<IListElementType>();
             if (listElementType.assigned())
-            {
                 err = listElementType->getElementInterfaceId(&intfID);
-            }
 
             auto coreType = details::intfIdToCoreType(intfID);
 
             // TODO: Workaround if item type of dict/list is undefined
             if (coreType == ctUndefined)
             {
-                ListPtr<IBaseObject> asList = value.asPtrOrNull<IList>();
-                DictPtr<IBaseObject, IBaseObject> asDict = value.asPtrOrNull<IDict>();
-                if (asList.assigned() && asList.getCount() > 0)
+                if (const auto asList = value.asPtrOrNull<IList>(); asList.assigned() && asList.getCount() > 0)
                 {
                     coreType = asList[0].getCoreType();
                     err = OPENDAQ_SUCCESS;
                 }
-                else if (asDict.assigned() && asDict.getCount() > 0)
+                else if (const auto asDict = value.asPtrOrNull<IDict>();asDict.assigned() && asDict.getCount() > 0)
                 {
                     coreType = asDict.getValueList()[0].getCoreType();
                     err = OPENDAQ_SUCCESS;
@@ -446,302 +467,380 @@ public:
 
     ErrCode INTERFACE_FUNC getDescription(IString** description) override
     {
-        if (description == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+	    return getDescriptionInternal(description, true);
+    }
 
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
+    ErrCode INTERFACE_FUNC getDescriptionNoLock(IString** description) override
+    {
+	    return getDescriptionInternal(description, false);
+    }
+
+    ErrCode getDescriptionInternal(IString** description, bool lock)
+    {
+        OPENDAQ_PARAM_NOT_NULL(description);
+
+	    return daqTry([&]()
             {
-                *description = prop.getDescription().detach();
-            }
-            else
-            {
-                StringPtr descriptionBound = bindAndGet(this->description);
-                *description = descriptionBound.detach();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *description = lock ? prop.getDescription().detach() : prop.asPtr<IPropertyInternal>().getDescriptionNoLock().detach();
+		        else
+			        *description = bindAndGet<StringPtr>(this->description, lock).detach();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
     }
 
     ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override
     {
-        if (unit == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
-            {
-                *unit = prop.getUnit().detach();
-            }
-            else
-            {
-                UnitPtr unitBound = bindAndGet(this->unit);
-                *unit = unitBound.detach();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+	    return getUnitInternal(unit, true);
     }
-    
+
+    ErrCode INTERFACE_FUNC getUnitNoLock(IUnit** unit) override
+    {
+	    return getUnitInternal(unit, false);
+    }
+
+    ErrCode getUnitInternal(IUnit** unit, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(unit);
+
+	    return daqTry([&]()
+            {
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *unit = lock ? prop.getUnit().detach() : prop.asPtr<IPropertyInternal>().getUnitNoLock().detach();
+		        else
+			        *unit = bindAndGet<UnitPtr>(this->unit, lock).detach();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
+    }
+
     ErrCode INTERFACE_FUNC getMinValue(INumber** min) override
     {
-        if (min == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+	    return getMinValueInternal(min, true);
+    }
 
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
+    ErrCode INTERFACE_FUNC getMinValueNoLock(INumber** min) override
+    {
+	    return getMinValueInternal(min, false);
+    }
+
+    ErrCode getMinValueInternal(INumber** min, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(min);
+
+	    return daqTry([&]()
             {
-                *min = prop.getMinValue().detach();
-            }
-            else
-            {
-                NumberPtr minBound = bindAndGet(this->minValue);
-                *min = minBound.detach();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *min = lock ? prop.getMinValue().detach() : prop.asPtr<IPropertyInternal>().getMinValueNoLock().detach();
+		        else
+			        *min = bindAndGet<NumberPtr>(this->minValue, lock).detach();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
     }
 
     ErrCode INTERFACE_FUNC getMaxValue(INumber** max) override
     {
-        if (max == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+	    return getMaxValueInternal(max, true);
+    }
 
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
+    ErrCode INTERFACE_FUNC getMaxValueNoLock(INumber** max) override
+    {
+	    return getMaxValueInternal(max, false);
+    }
+
+    ErrCode getMaxValueInternal(INumber** max, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(max);
+
+	    return daqTry([&]()
             {
-                *max = prop.getMaxValue().detach();
-            }
-            else
-            {
-                NumberPtr maxBound = bindAndGet(this->maxValue);
-                *max = maxBound.detach();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *max = lock ? prop.getMaxValue().detach() : prop.asPtr<IPropertyInternal>().getMaxValueNoLock().detach();
+		        else
+			        *max = bindAndGet<NumberPtr>(this->maxValue, lock).detach();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
     }
     
     ErrCode INTERFACE_FUNC getDefaultValue(IBaseObject** value) override
     {
-        if (value == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
-            {
-                *value = prop.getDefaultValue().detach();
-            }
-            else
-            {
-                BaseObjectPtr defaultValueBound = bindAndGet(this->defaultValue);
-                *value = defaultValueBound.detach();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+	    return getDefaultValueInternal(value, true);
     }
 
+    ErrCode INTERFACE_FUNC getDefaultValueNoLock(IBaseObject** value) override
+    {
+	    return getDefaultValueInternal(value, false);
+    }
+
+    ErrCode getDefaultValueInternal(IBaseObject** value, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(value);
+
+	    return daqTry([&]()
+            {
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *value = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
+		        else
+			        *value = bindAndGet<BaseObjectPtr>(this->defaultValue, lock).detach();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
+    }
+        
     ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) override
     {
-        if (values == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
-            {
-                *values = prop.getSuggestedValues().detach();
-            }
-            else
-            {
-                ListPtr<IBaseObject> suggestedValuesBound = bindAndGet(this->suggestedValues);
-                *values = suggestedValuesBound.detach();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+	    return getSuggestedValuesInternal(values, true);
     }
-    
+
+    ErrCode INTERFACE_FUNC getSuggestedValuesNoLock(IList** values) override
+    {
+	    return getSuggestedValuesInternal(values, false);
+    }
+
+    ErrCode getSuggestedValuesInternal(IList** values, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(values);
+
+	    return daqTry([&]()
+            {
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *values = lock ? prop.getSuggestedValues().detach() : prop.asPtr<IPropertyInternal>().getSuggestedValuesNoLock().detach();
+		        else
+			        *values = bindAndGet<ListPtr<IBaseObject>>(this->suggestedValues, lock).detach();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
+    }
+            
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override
     {
-        if (visible == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
-            {
-                *visible = prop.getVisible();
-            }
-            else
-            {
-                *visible = bindAndGet(this->visible);
-            }
-            return OPENDAQ_SUCCESS;
-        });
+	    return getVisibleInternal(visible, true);
     }
-    
-    ErrCode INTERFACE_FUNC getReadOnly(Bool* isReadOnly) override
+
+    ErrCode INTERFACE_FUNC getVisibleNoLock(Bool* visible) override
     {
-        if (isReadOnly == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+	    return getVisibleInternal(visible, false);
+    }
 
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
+    ErrCode getVisibleInternal(Bool* visible, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(visible);
+
+	    return daqTry([&]()
             {
-                *isReadOnly = prop.getReadOnly();
-            }
-            else
-            {
-                *isReadOnly = bindAndGet(readOnly);
-            }
-            return OPENDAQ_SUCCESS;
-        });
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *visible = lock ? prop.getVisible() : prop.asPtr<IPropertyInternal>().getVisibleNoLock();
+		        else
+			        *visible = bindAndGet<BooleanPtr>(this->visible, lock);
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
     }
     
+    ErrCode INTERFACE_FUNC getReadOnly(Bool* readOnly) override
+    {
+	    return getReadOnlyInternal(readOnly, true);
+    }
+
+    ErrCode INTERFACE_FUNC getReadOnlyNoLock(Bool* readOnly) override
+    {
+	    return getReadOnlyInternal(readOnly, false);
+    }
+
+    ErrCode getReadOnlyInternal(Bool* readOnly, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(readOnly);
+
+	    return daqTry([&]()
+            {
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *readOnly = lock ? prop.getReadOnly() : prop.asPtr<IPropertyInternal>().getReadOnlyNoLock();
+		        else
+			        *readOnly = bindAndGet<BooleanPtr>(this->readOnly, lock);
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
+    }
+
     ErrCode INTERFACE_FUNC getSelectionValues(IBaseObject** values) override
     {
-        if (values == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+	    return getSelectionValuesInternal(values, true);
+    }
 
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
+    ErrCode INTERFACE_FUNC getSelectionValuesNoLock(IBaseObject** values) override
+    {
+	    return getSelectionValuesInternal(values, false);
+    }
+
+    ErrCode getSelectionValuesInternal(IBaseObject** values, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(values);
+
+	    return daqTry([&]()
             {
-                *values = prop.getSelectionValues().detach();
-            }
-            else
-            {
-                *values = bindAndGet(this->selectionValues).detach();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *values = lock ? prop.getSelectionValues().detach() : prop.asPtr<IPropertyInternal>().getSelectionValuesNoLock().detach();
+		        else
+			        *values = bindAndGet<BaseObjectPtr>(this->selectionValues, lock).detach();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
     }
     
     ErrCode INTERFACE_FUNC getReferencedProperty(IProperty** property) override
     {
-        if (property == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
-        return daqTry([&]() {
-            PropertyPtr prop = bindAndGet(this->refProp);
-            *property = prop.detach();
-            return OPENDAQ_SUCCESS;
-        });
+	    return getReferencedPropertyInternal(property, true);
     }
-    
+
+    ErrCode INTERFACE_FUNC getReferencedPropertyNoLock(IProperty** property) override
+    {
+	    return getReferencedPropertyInternal(property, false);
+    }
+
+    ErrCode getReferencedPropertyInternal(IProperty** property, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(property);
+
+	    return daqTry([&]()
+            {
+	            *property = bindAndGet<PropertyPtr>(this->refProp, lock).detach();
+		        return OPENDAQ_SUCCESS;
+	        });
+    }
+
     ErrCode INTERFACE_FUNC getIsReferenced(Bool* isReferenced) override
     {
-        if (isReferenced == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+	    return getIsReferencedInternal(isReferenced, true);
+    }
+
+    ErrCode INTERFACE_FUNC getIsReferencedNoLock(Bool* isReferenced) override
+    {
+	    return getIsReferencedInternal(isReferenced, false);
+    }
+
+    ErrCode getIsReferencedInternal(Bool* isReferenced, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(isReferenced);
 
         return daqTry([&]() {
             *isReferenced = false;
+	        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
+
             if (owner.assigned())
             {
                 const auto ownerInternal = owner.getRef().asPtr<IPropertyObjectInternal>();
-                *isReferenced = ownerInternal.checkForReferences(propPtr);
+                *isReferenced = lock ? ownerInternal.checkForReferences(propPtr) : ownerInternal.checkForReferencesNoLock(propPtr);
             }
 
             return OPENDAQ_SUCCESS;
         });
     }
-
+        
     ErrCode INTERFACE_FUNC getValidator(IValidator** validator) override
     {
-        if (validator == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
-            {
-                *validator = prop.getValidator().detach();
-            }
-            else
-            {
-                *validator = this->validator.addRefAndReturn();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+	    return getValidatorInternal(validator, true);
     }
-    
+
+    ErrCode INTERFACE_FUNC getValidatorNoLock(IValidator** validator) override
+    {
+	    return getValidatorInternal(validator, false);
+    }
+
+    ErrCode getValidatorInternal(IValidator** validator, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(validator);
+
+	    return daqTry([&]()
+            {
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *validator = lock ? prop.getValidator().detach() : prop.asPtr<IPropertyInternal>().getValidatorNoLock().detach();
+		        else
+			        *validator = this->validator.addRefAndReturn();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
+    }
+            
     ErrCode INTERFACE_FUNC getCoercer(ICoercer** coercer) override
     {
-        if (coercer == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
-            {
-                *coercer = prop.getCoercer().detach();
-            }
-            else
-            {
-                *coercer = this->coercer.addRefAndReturn();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+	    return getCoercerInternal(coercer, true);
     }
-    
-    ErrCode INTERFACE_FUNC getCallableInfo(ICallableInfo** callable) override
-    {
-        if (callable == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
 
-        return daqTry([&]() {
-            bool bound = false;
-            const auto prop = bindAndGetRefProp(bound);
-            if (bound)
+    ErrCode INTERFACE_FUNC getCoercerNoLock(ICoercer** coercer) override
+    {
+	    return getCoercerInternal(coercer, false);
+    }
+
+    ErrCode getCoercerInternal(ICoercer** coercer, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(coercer);
+
+	    return daqTry([&]()
             {
-                *callable = prop.getCallableInfo();
-            }
-            else
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *coercer = lock ? prop.getCoercer().detach() : prop.asPtr<IPropertyInternal>().getCoercerNoLock().detach();
+		        else
+			        *coercer = this->coercer.addRefAndReturn();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
+    }
+           
+    ErrCode INTERFACE_FUNC getCallableInfo(ICallableInfo** callableInfo) override
+    {
+	    return getCallableInfoInternal(callableInfo, true);
+    }
+
+    ErrCode INTERFACE_FUNC getCallableInfoNoLock(ICallableInfo** callableInfo) override
+    {
+	    return getCallableInfoInternal(callableInfo, false);
+    }
+
+    ErrCode getCallableInfoInternal(ICallableInfo** callableInfo, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(callableInfo);
+
+	    return daqTry([&]()
             {
-                *callable = this->callableInfo.addRefAndReturn();
-            }
-            return OPENDAQ_SUCCESS;
-        });
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        *callableInfo = lock ? prop.getCallableInfo().detach() : prop.asPtr<IPropertyInternal>().getCallableInfoNoLock().detach();
+		        else
+			        *callableInfo = this->callableInfo.addRefAndReturn();
+			        
+		        return OPENDAQ_SUCCESS;
+	        });
     }
 
     ErrCode INTERFACE_FUNC getStructType(IStructType** structType) override
     {
-        if (structType == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+	    return getStructTypeInternal(structType, true);
+    }
 
-        return daqTry(
-            [&]()
+    ErrCode INTERFACE_FUNC getStructTypeNoLock(IStructType** structType) override
+    {
+	    return getStructTypeInternal(structType, false);
+    }
+
+    ErrCode getStructTypeInternal(IStructType** structType, bool lock)
+    {
+	    OPENDAQ_PARAM_NOT_NULL(structType);
+
+	    return daqTry([&]()
             {
-                bool bound = false;
-                const auto prop = bindAndGetRefProp(bound);
                 BaseObjectPtr defaultStruct;
-                if (bound)
-                {
-                    defaultStruct = prop.getDefaultValue();
-                }
-                else
-                {
+		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+			        defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
+                else if (lock)
                     checkErrorInfo(this->getDefaultValue(&defaultStruct));
-                }
+                else
+                    checkErrorInfo(this->getDefaultValueNoLock(&defaultStruct));
 
-                *structType = defaultValue.asPtr<IStruct>().getStructType().detach();
-                return OPENDAQ_SUCCESS;
-            });
+                *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
+		        return OPENDAQ_SUCCESS;
+	        });
     }
 
     ErrCode INTERFACE_FUNC getClassOnPropertyValueWrite(IEvent** event) override
@@ -896,7 +995,7 @@ public:
         if (selectionValues.assigned())
         {
             bool valid = valueType == ctInt;
-            valid = valid && (selectionValues.asPtrOrNull<IList>().assigned() || selectionValues.asPtrOrNull<IDict>().assigned());
+            valid = valid && (selectionValues.supportsInterface<IList>() || selectionValues.supportsInterface<IDict>());
             if (!valid)
                 return this->makeErrorInfo(
                     OPENDAQ_ERR_INVALIDSTATE,
@@ -1374,7 +1473,6 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-
     //
     // IOwnable
     //
@@ -1420,57 +1518,47 @@ protected:
     CallableInfoPtr callableInfo;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueWrite;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueRead;
-    PermissionManagerPtr permissionManager;
+    PermissionManagerPtr defaultPermissionManager;
 
 private:
-    PropertyPtr bindAndGetRefProp(bool& bound)
+
+    PropertyPtr bindAndGetRefProp(bool lock)
     {
-        auto refPropPtr = propPtr.getReferencedProperty();
-        if (!refPropPtr.assigned())
-        {
-            bound = false;
-            return propPtr;
-        }
-        bound = true;
-        return refPropPtr;
+	    PropertyPtr refPropPtr;
+	    checkErrorInfo(getReferencedPropertyInternal(&refPropPtr, lock));
+	    if (!refPropPtr.assigned())
+		    return nullptr;
+		    
+	    return refPropPtr;
     }
 
-    BaseObjectPtr bindAndGet(BaseObjectPtr metadata) const
+    template <typename TPtr>
+    TPtr bindAndGet(const BaseObjectPtr& metadata, bool lock) const
     {
-        if (!metadata.assigned())
-        {
-            return nullptr;
-        }
+	    if (!metadata.assigned())
+		    return nullptr;
+		    
+	    auto eval = metadata.asPtrOrNull<IEvalValue>();
+	    if (!eval.assigned())
+		    return metadata;
 
-        auto eval = metadata.asPtrOrNull<IEvalValue>();
-        if (!eval.assigned())
-        {
-            return metadata;
-        }
+	    const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
+	    if (ownerPtr.assigned())
+		    eval = eval.cloneWithOwner(ownerPtr);
 
-        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
-        {
-            eval = eval.cloneWithOwner(ownerPtr);
-        }
-
-        return eval.getResult();
+	    return lock ? eval.getResult() : eval.getResultNoLock();
     }
 
-    BaseObjectPtr getUnresolved(BaseObjectPtr localMetadata) const
+    BaseObjectPtr getUnresolved(const BaseObjectPtr& localMetadata) const
     {
         if (!localMetadata.assigned())
-        {
             return nullptr;
-        }
 
-        auto eval = localMetadata.asPtrOrNull<IEvalValue>();
-        if (eval.assigned())
+        if (const auto eval = localMetadata.asPtrOrNull<IEvalValue>(); eval.assigned())
         {
             const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
             if (ownerPtr.assigned())
-                eval = eval.cloneWithOwner(ownerPtr);
-            return eval;
+                return eval.cloneWithOwner(ownerPtr);
         }
 
         return localMetadata;

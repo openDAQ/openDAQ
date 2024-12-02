@@ -19,7 +19,7 @@
 #include <coretypes/common.h>
 #include <coreobjects/user.h>
 #include <coreobjects/permissions.h>
-#include <coreobjects/permission_enum.h>
+#include <coreobjects/permission_mask_builder.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -37,7 +37,7 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IPermissionManager, IBaseObject)
 {
     /*!
-     * @brief Set object permisison configuration.
+     * @brief Set object permission configuration.
      * @param permissions Permissions configuration object.
      */
     virtual ErrCode INTERFACE_FUNC setPermissions(IPermissions* permissions) = 0;
@@ -45,8 +45,8 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionManager, IBaseObject)
     /*!
      * @brief Check if user has a given permission on an object of the permission manager.
      * @param user A reference to the user.
-     * @param permission A permisson to test.
-     * @param authorizedOut[out] Returns true if user is authorized and false otherwise.
+     * @param permission A permission to test.
+     * @param[out] authorizedOut Returns true if user is authorized and false otherwise.
      */
     virtual ErrCode INTERFACE_FUNC isAuthorized(IUser * user, Permission permission, Bool* authorizedOut) = 0;
 };

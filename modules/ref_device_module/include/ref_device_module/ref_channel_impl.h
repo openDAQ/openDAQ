@@ -30,6 +30,7 @@ struct RefChannelInit
     double globalSampleRate;
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
+    StringPtr referenceDomainId;
 };
 
 class RefChannelBase final : public templates::ChannelTemplateHooks
@@ -99,6 +100,7 @@ private:
     SignalConfigPtr timeSignal;
     bool fixedPacketSize;
     uint64_t packetSize;
+    StringPtr referenceDomainId;
 
     std::unordered_set<std::string> signalTypeProps;
     std::unordered_set<std::string> waveformProps;

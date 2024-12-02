@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -41,11 +43,13 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
     cls.def_property("active",
         [](daq::IStreaming *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamingPtr::Borrow(object);
             return objectPtr.getActive();
         },
         [](daq::IStreaming *object, const bool active)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamingPtr::Borrow(object);
             objectPtr.setActive(active);
         },
@@ -53,6 +57,7 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
     cls.def("add_signals",
         [](daq::IStreaming *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& signals)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamingPtr::Borrow(object);
             objectPtr.addSignals(getVariantValue<daq::IList*>(signals));
         },
@@ -61,6 +66,7 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
     cls.def("remove_signals",
         [](daq::IStreaming *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& signals)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamingPtr::Borrow(object);
             objectPtr.removeSignals(getVariantValue<daq::IList*>(signals));
         },
@@ -69,6 +75,7 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
     cls.def("remove_all_signals",
         [](daq::IStreaming *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamingPtr::Borrow(object);
             objectPtr.removeAllSignals();
         },
@@ -76,6 +83,7 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
     cls.def_property_readonly("connection_string",
         [](daq::IStreaming *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamingPtr::Borrow(object);
             return objectPtr.getConnectionString().toStdString();
         },

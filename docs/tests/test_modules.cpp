@@ -43,7 +43,7 @@ TEST_F(ModulesTest, EnumerateModules)
     ModulePtr _module;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "ReferenceFunctionBlockModule")
+        if (mod.getModuleInfo().getName() == "ReferenceFunctionBlockModule")
         {
             _module = mod;
             break;
@@ -76,18 +76,18 @@ TEST_F(ModulesTest, CreateComponents)
     ModulePtr devModule;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "ReferenceFunctionBlockModule")
+        if (mod.getModuleInfo().getName() == "ReferenceFunctionBlockModule")
             fbModule = mod;
-        else if (mod.getName() == "ReferenceDeviceModule")
+        else if (mod.getModuleInfo().getName() == "ReferenceDeviceModule")
             devModule = mod;
-        else if (mod.getName() == "OpenDAQOPCUAServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQOPCUAServerModule")
             serverModule = mod;
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-        else if (mod.getName() == "OpenDAQNativeStreamingServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQNativeStreamingServerModule")
             nativeStreamingServerModule = mod;
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-        else if (mod.getName() == "OpenDAQWebsocketStreamingServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQWebsocketStreamingServerModule")
             websocketStreamingServerModule = mod;
 #endif
     }
@@ -133,12 +133,12 @@ TEST_F(ModulesTest, CreateComponents)
     daq::FunctionBlockPtr functionBlock = fbModule.createFunctionBlock(statisticsFbType.getId(), nullptr, "fb");
     daq::DevicePtr device = devModule.createDevice("daqref://device0", nullptr);
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-    daq::ServerPtr nativeStreamingServer = nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(), device);
+    daq::ServerPtr nativeStreamingServer = nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(), device, nullptr);
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    daq::ServerPtr webSocketStreamingServer = websocketStreamingServerModule.createServer(webSocketStreamingServerType.getId(), device);
+    daq::ServerPtr webSocketStreamingServer = websocketStreamingServerModule.createServer(webSocketStreamingServerType.getId(), device, nullptr);
 #endif
-    daq::ServerPtr opcUaServer = serverModule.createServer(opcUaServerType.getId(), device);
+    daq::ServerPtr opcUaServer = serverModule.createServer(opcUaServerType.getId(), device, nullptr);
 
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(1500ms);
@@ -160,16 +160,16 @@ TEST_F(ModulesTest, CreateServer)
     ModulePtr devModule;
     for (auto mod : manager.getModules())
     {
-        if (mod.getName() == "OpenDAQOPCUAServerModule")
+        if (mod.getModuleInfo().getName() == "OpenDAQOPCUAServerModule")
             serverModule = mod;
-        else if (mod.getName() == "ReferenceDeviceModule")
+        else if (mod.getModuleInfo().getName() == "ReferenceDeviceModule")
             devModule = mod;
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-        else if (mod.getName() == "OpenDAQNativeStreamingServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQNativeStreamingServerModule")
             nativeStreamingServerModule = mod;
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-        else if (mod.getName() == "OpenDAQWebsocketStreamingServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQWebsocketStreamingServerModule")
             websocketStreamingServerModule = mod;
 #endif
     }
@@ -198,7 +198,11 @@ TEST_F(ModulesTest, CreateServer)
     daq::ListPtr<IProperty> nativeStreamingConfigFields = nativeStreamingConfig.getVisibleProperties();
     ASSERT_NO_THROW(nativeStreamingConfigFields[0].getName());
     nativeStreamingConfig.setPropertyValue("NativeStreamingPort", 7420);
-    ASSERT_NO_THROW(nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(), device, nativeStreamingConfig));
+    nativeStreamingConfig.setPropertyValue("MaxAllowedConfigConnections", 0);
+    nativeStreamingConfig.setPropertyValue("StreamingPacketSendTimeout", 0);
+    ASSERT_NO_THROW(nativeStreamingServerModule.createServer(nativeStreamingServerType.getId(),
+                                                             device,
+                                                             nativeStreamingConfig));
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     daq::ServerTypePtr webSocketServerType = websocketStreamingServerTypes.get("OpenDAQLTStreaming");
@@ -207,7 +211,9 @@ TEST_F(ModulesTest, CreateServer)
     ASSERT_NO_THROW(webSocketConfigFields[0].getName());
     webSocketConfig.setPropertyValue("WebsocketStreamingPort", 7414);
     webSocketConfig.setPropertyValue("WebsocketControlPort", 7438);
-    ASSERT_NO_THROW(websocketStreamingServerModule.createServer(webSocketServerType.getId(), device, webSocketConfig));
+    ASSERT_NO_THROW(websocketStreamingServerModule.createServer(webSocketServerType.getId(),
+                                                                device,
+                                                                webSocketConfig));
 #endif
 
     daq::ServerTypePtr opcUaServerType = serverTypes.get("OpenDAQOPCUA");
@@ -216,7 +222,9 @@ TEST_F(ModulesTest, CreateServer)
     ASSERT_NO_THROW(configFields[0].getName());
     opcUaConfig.setPropertyValue("Port", 4840);
 
-    ASSERT_NO_THROW(serverModule.createServer(opcUaServerType.getId(), device, opcUaConfig));
+    ASSERT_NO_THROW(serverModule.createServer(opcUaServerType.getId(),
+                                              device,
+                                              opcUaConfig));
 }
 
 // Corresponding document: Antora/modules/explanation/pages/modules.adoc

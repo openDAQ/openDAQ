@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include <opendaq/range_factory.h>
 #include <coreobjects/unit_factory.h>
 #include <opendaq/data_rule_factory.h>
@@ -6,11 +6,11 @@
 #include <opendaq/scaling_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/dimension_rule_factory.h>
-#include "coretypes/ratio_factory.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/converters/struct_converter.h"
-#include "opcuashared/opcuavariant.h"
-#include "opcuatms/converters/list_conversion_utils.h"
+#include <coretypes/ratio_factory.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/converters/struct_converter.h>
+#include <opcuashared/opcuavariant.h>
+#include <opcuatms/converters/list_conversion_utils.h>
 
 using VariantListConverterTest = testing::Test;
 

@@ -73,7 +73,7 @@ void PowerReaderFbImpl::initProperties()
 
 void PowerReaderFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
+    auto lock = getRecursiveConfigLock();
     readProperties();
     if (configure)
         this->configure(nullptr, nullptr, nullptr);
@@ -117,7 +117,7 @@ bool PowerReaderFbImpl::getDomainDescriptor(const EventPacketPtr& eventPacket, D
 
 void PowerReaderFbImpl::onDataReceived()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     SizeT cnt = reader.getAvailableCount();
     const auto voltageData = std::make_unique<double[]>(cnt);
@@ -196,6 +196,18 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         if (currentDescriptor.assigned())
             this->currentDescriptor = currentDescriptor;
 
+        if (this->domainDescriptor == NullDataDescriptor())
+            throw std::runtime_error("Input domain descriptor is not set");
+        if (this->voltageDescriptor == NullDataDescriptor())
+            throw std::runtime_error("Input voltage descriptor is not set");
+        if (this->currentDescriptor == NullDataDescriptor())
+            throw std::runtime_error("Input current descriptor is not set");
+
+        if (this->voltageDescriptor.assigned() &&
+            this->voltageDescriptor.getUnit().assigned() &&
+            this->voltageDescriptor.getUnit().getSymbol() != "V")
+            throw std::runtime_error("Invalid voltage signal unit");
+
         const auto powerDataDescriptorBuilder =
             DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("W", -1, "watt", "power"));
 
@@ -206,16 +218,17 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
             powerRange = getValueRange(this->voltageDescriptor, this->currentDescriptor);
 
         powerDataDescriptor = powerDataDescriptorBuilder.setValueRange(powerRange).setName("Power").build();
-        powerSignal.setDescriptor(powerDataDescriptor);
-
         powerDomainDataDescriptor = DataDescriptorBuilderCopy(this->domainDescriptor).setName("Power domain").build();
 
+        reader.setActive(True);
+
+        powerSignal.setDescriptor(powerDataDescriptor);
         powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
     }
     catch (const std::exception& e)
     {
         LOG_W("Failed to set descriptor for power signal: {}", e.what())
-        powerSignal.setDescriptor(nullptr);
+        reader.setActive(False);
     }
 }
 

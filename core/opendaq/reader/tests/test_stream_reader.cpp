@@ -641,12 +641,20 @@ TYPED_TEST(StreamReaderTest, ReadConstantRule)
             .setSkipEvents(true)
             .build();
 
+        auto initialValue12 = TypeParam(12);
+        auto initialValue24 = TypeParam(24);
+        if constexpr (IsDerivedFromTemplate<TypeParam, RangeType>::Value)
+        {
+            using T = typename SampleTypeFromType<TypeParam>::Type::Type;
+            initialValue12 = TypeParam{12, std::numeric_limits<T>::max()};
+            initialValue24 = TypeParam{12, std::numeric_limits<T>::max()};
+        }
         auto domainPacket = DataPacket(domainDesc, samplesInPacket, 0);
-        auto dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, 12);
+        auto dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, initialValue12);
         this->sendPacket(dataPacket);
 
         domainPacket = DataPacket(domainDesc, samplesInPacket, 2);
-        dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, 24);
+        dataPacket = ConstantDataPacketWithDomain<TypeParam>(domainPacket, this->signal.getDescriptor(), samplesInPacket, initialValue24);
         this->sendPacket(dataPacket);
 
         SizeT count{samplesInPacket * 2};
@@ -656,7 +664,7 @@ TYPED_TEST(StreamReaderTest, ReadConstantRule)
         ASSERT_EQ(count, samplesInPacket * 2);
 
         ASSERT_THAT(ticks, ElementsAre(0, 1, 2, 3));
-        ASSERT_THAT(samples, ElementsAre(12, 12, 24, 24));
+        ASSERT_THAT(samples, ElementsAre(initialValue12, initialValue12, initialValue24, initialValue24));
     }
 }
 
@@ -941,12 +949,12 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
         .setSignal(this->signal)
         .setValueReadType(SampleType::Undefined)
         .setDomainReadType(SampleType::Undefined)
-        .setSkipEvents(true)
         .build();
 
     {
-        SizeT tmpCount = 0u;
-        reader.read(nullptr, &tmpCount);
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     }
 
     ASSERT_EQ(reader.getValueReadType(), SampleType::Float64); // read from signal descriptor
@@ -962,6 +970,12 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithDomain)
     dataPtr[0] = 123.4;
 
     this->sendPacket(dataPacket);
+
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     SizeT count{1};
     double samples[1]{};
@@ -1015,8 +1029,13 @@ TYPED_TEST(StreamReaderTest, ReadUndefinedWithWithDomainFromPacket)
         .setSignal(this->signal)
         .setValueReadType(SampleType::Invalid)
         .setDomainReadType(SampleType::Invalid)
-        .setSkipEvents(true)
         .build();
+
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
 
     auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 1, 1);
     auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 1);
@@ -1053,8 +1072,14 @@ TYPED_TEST(StreamReaderTest, ReadVoid)
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 1);
 
     // Set the first sample to
+    auto initialValue = TypeParam(123);
+    if constexpr (IsDerivedFromTemplate<TypeParam, RangeType>::Value)
+    {
+        using T = typename SampleTypeFromType<TypeParam>::Type::Type;
+        initialValue = TypeParam(123, std::numeric_limits<T>::max());
+    }
     const auto dataPtr = static_cast<TypeParam*>(dataPacket.getData());
-    dataPtr[0] = static_cast<TypeParam>(123);
+    dataPtr[0] = initialValue;
 
     this->sendPacket(dataPacket);
 
@@ -1063,16 +1088,7 @@ TYPED_TEST(StreamReaderTest, ReadVoid)
     reader.read(&samples, &count);
 
     ASSERT_EQ(count, 1u);
-
-    if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
-    {
-        ASSERT_EQ(samples[0], TypeParam(typename TypeParam::Type(123)));
-    }
-    else
-    {
-        ASSERT_EQ(samples[0], TypeParam(123));
-    }
-
+    ASSERT_EQ(samples[0], initialValue);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 }
 
@@ -1841,4 +1857,118 @@ TYPED_TEST(StreamReaderTest, SkipSamplesNotEnoughData)
     reader.skipSamples(&count);
     ASSERT_EQ(count, 50u);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
+}
+
+TYPED_TEST(StreamReaderTest, TestReaderWithConnectedPortConnectionEmpty)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    {
+        auto connection = port.getConnection();
+        ASSERT_TRUE(connection.assigned());
+        
+        SizeT packetInConnection = 0;
+        while (true)
+        {
+            if (connection.dequeue().assigned())
+                packetInConnection++;
+            else
+                break;
+        }
+
+        // 1 event packet
+        ASSERT_EQ(packetInConnection, 1u);
+    }
+
+    auto reader = daq::StreamReaderFromPort(port, SampleType::Float64, SampleType::RangeInt64);
+    
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    {
+        auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 4, 1);
+        auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 4);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        dataPtr[0] = 111.1;
+        dataPtr[1] = 222.2;
+        dataPtr[2] = 333.3;
+        dataPtr[3] = 444.4;
+
+        this->sendPacket(dataPacket);
+    }
+
+    {
+        SizeT count{4};
+        double samples[4]{};
+        auto status = reader.read(&samples, &count, 500);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+        ASSERT_EQ(count, 4u);
+        ASSERT_EQ(samples[0], 111.1);
+        ASSERT_EQ(samples[1], 222.2);
+        ASSERT_EQ(samples[2], 333.3);
+        ASSERT_EQ(samples[3], 444.4);
+    }
+}
+
+TYPED_TEST(StreamReaderTest, TestReaderWithConnectedPortConnectionNotEmpty)
+{
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
+    port.connect(this->signal);
+
+    {
+        auto connection = port.getConnection();
+        ASSERT_TRUE(connection.assigned());
+        
+        SizeT packetInConnection = 0;
+        while (true)
+        {
+            if (connection.dequeue().assigned())
+                packetInConnection++;
+            else
+                break;
+        }
+
+        // 1 event packet
+        ASSERT_EQ(packetInConnection, 1u);
+    }
+
+    {
+        auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), 4, 1);
+        auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), 4);
+        auto dataPtr = static_cast<double*>(dataPacket.getData());
+        dataPtr[0] = 111.1;
+        dataPtr[1] = 222.2;
+        dataPtr[2] = 333.3;
+        dataPtr[3] = 444.4;
+
+        this->sendPacket(dataPacket);
+    }
+
+    auto reader = daq::StreamReaderFromPort(port, SampleType::Float64, SampleType::RangeInt64);
+    
+    {
+        SizeT count{0};
+        auto status = reader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    {
+        SizeT count{4};
+        double samples[4]{};
+        auto status = reader.read(&samples, &count, 500);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+
+        ASSERT_EQ(count, 4u);
+        ASSERT_EQ(samples[0], 111.1);
+        ASSERT_EQ(samples[1], 222.2);
+        ASSERT_EQ(samples[2], 333.3);
+        ASSERT_EQ(samples[3], 444.4);
+    }
 }

@@ -18,8 +18,8 @@
 
 #include <pybind11/pybind11.h>
 #include <opendaq/opendaq.h>
-#include "py_core_types/py_opendaq_daq.h"
-#include "py_opendaq/py_mock_signal.h"
+#include <py_core_types/py_opendaq_daq.h>
+#include <py_opendaq/py_mock_signal.h>
 
 void wrapDaqComponentOpenDaq(pybind11::module_ m);
 
@@ -32,6 +32,7 @@ PyDaqIntf<daq::IComponent, daq::IPropertyObject> declareIComponent(pybind11::mod
 PyDaqIntf<daq::IFolder, daq::IComponent> declareIFolder(pybind11::module_ m);
 PyDaqIntf<daq::IFolderConfig, daq::IFolder> declareIFolderConfig(pybind11::module_ m);
 PyDaqIntf<daq::IDevice, daq::IFolder> declareIDevice(pybind11::module_ m);
+PyDaqIntf<daq::IDevicePrivate, daq::IBaseObject> declareIDevicePrivate(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceDomain, daq::IBaseObject> declareIDeviceDomain(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> declareIDeviceInfo(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> declareIDeviceInfoConfig(pybind11::module_ m);
@@ -91,7 +92,7 @@ PyDaqIntf<daq::ISignalConfig, daq::ISignal> declareISignalConfig(pybind11::modul
 PyDaqIntf<daq::ISignalEvents, daq::IBaseObject> declareISignalEvents(pybind11::module_ m);
 PyDaqIntf<daq::ITags, daq::IBaseObject> declareITags(pybind11::module_ m);
 PyDaqIntf<daq::ITagsPrivate, daq::IBaseObject> declareITagsPrivate(pybind11::module_ m);
-PyDaqIntf<daq::IServer, daq::IBaseObject> declareIServer(pybind11::module_ m);
+PyDaqIntf<daq::IServer, daq::IFolder> declareIServer(pybind11::module_ m);
 PyDaqIntf<daq::IServerType, daq::IComponentType> declareIServerType(pybind11::module_ m);
 PyDaqIntf<daq::IStreaming, daq::IBaseObject> declareIStreaming(pybind11::module_ m);
 PyDaqIntf<daq::IStreamingType, daq::IComponentType> declareIStreamingType(pybind11::module_ m);
@@ -108,6 +109,15 @@ PyDaqIntf<daq::IAddressInfo, daq::IPropertyObject> declareIAddressInfo(pybind11:
 PyDaqIntf<daq::IAddressInfoBuilder, daq::IBaseObject> declareIAddressInfoBuilder(pybind11::module_ m);
 PyDaqIntf<daq::ISyncComponent, daq::IComponent> declareISyncComponent(pybind11::module_ m);
 PyDaqIntf<daq::ISyncComponentPrivate, daq::IBaseObject> declareISyncComponentPrivate(pybind11::module_ m);
+PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> declareIReferenceDomainInfo(pybind11::module_ m);
+PyDaqIntf<daq::IReferenceDomainInfoBuilder, daq::IBaseObject> declareIReferenceDomainInfoBuilder(pybind11::module_ m);
+PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> declareIUpdateParameters(pybind11::module_ m);
+PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> declareILogFileInfo(pybind11::module_ m);
+PyDaqIntf<daq::ILogFileInfoBuilder, daq::IBaseObject> declareILogFileInfoBuilder(pybind11::module_ m);
+PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> declareIModuleInfo(pybind11::module_ m);
+PyDaqIntf<daq::IComponentType, daq::IBaseObject> declareIComponentType(pybind11::module_ m);
+
+
 
 py::class_<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
 py::class_<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m);
@@ -115,6 +125,8 @@ py::class_<daq::TimeReader<daq::BlockReaderPtr>> declareTimeBlockReader(pybind11
 py::class_<daq::TimeReader<daq::MultiReaderPtr>> declareTimeMultiReader(pybind11::module_ m);
 
 py::class_<daq::MockSignal> declareMockSignal(py::module_ m);
+
+
 
 void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice> cls);
 void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder, daq::IBaseObject> cls);
@@ -125,6 +137,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
 void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent> cls);
 void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq::IFolder> cls);
 void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cls);
+void defineIDevicePrivate(pybind11::module_ m, PyDaqIntf<daq::IDevicePrivate, daq::IBaseObject> cls);
 void defineIDeviceDomain(pybind11::module_ m, PyDaqIntf<daq::IDeviceDomain, daq::IBaseObject> cls);
 void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> cls);
 void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> cls);
@@ -188,7 +201,7 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
 void defineISignalEvents(pybind11::module_ m, PyDaqIntf<daq::ISignalEvents, daq::IBaseObject> cls);
 void defineITags(pybind11::module_ m, PyDaqIntf<daq::ITags, daq::IBaseObject> cls);
 void defineITagsPrivate(pybind11::module_ m, PyDaqIntf<daq::ITagsPrivate, daq::IBaseObject> cls);
-void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject> cls);
+void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cls);
 void defineIServerType(pybind11::module_ m, PyDaqIntf<daq::IServerType, daq::IComponentType> cls);
 void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBaseObject> cls);
 void defineIStreamingType(pybind11::module_ m, PyDaqIntf<daq::IStreamingType, daq::IComponentType> cls);
@@ -206,3 +219,10 @@ void defineIAddressInfo(pybind11::module_ m, PyDaqIntf<daq::IAddressInfo, daq::I
 void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoBuilder, daq::IBaseObject> cls);
 void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, daq::IComponent> cls);
 void defineISyncComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::ISyncComponentPrivate, daq::IBaseObject> cls);
+void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> cls);
+void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IReferenceDomainInfoBuilder, daq::IBaseObject> cls);
+void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> cls);
+void defineILogFileInfo(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> cls);
+void defineILogFileInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfoBuilder, daq::IBaseObject> cls);
+void defineIModuleInfo(pybind11::module_ m, PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> cls);
+void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, daq::IBaseObject> cls);

@@ -179,7 +179,7 @@ PacketBuffer PacketBuffer::createGetProtocolInfoRequest(uint64_t id)
     return packetBuffer;
 }
 
-PacketBuffer PacketBuffer::createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::vector<uint16_t>& supportedVersions)
+PacketBuffer PacketBuffer::createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::set<uint16_t>& supportedVersions)
 {
     const auto payloadSize = sizeof(uint16_t) + sizeof(uint16_t) +
                              supportedVersions.size() * sizeof(uint16_t);
@@ -205,7 +205,7 @@ void PacketBuffer::parseProtocolInfoRequest() const
         throw ConfigProtocolException("Invalid payload");
 }
 
-void PacketBuffer::parseProtocolInfoReply(uint16_t& currentVersion, std::vector<uint16_t>& supportedVersions) const
+void PacketBuffer::parseProtocolInfoReply(uint16_t& currentVersion, std::set<uint16_t>& supportedVersions) const
 {
     if (getPacketType() != PacketType::GetProtocolInfo)
         throw ConfigProtocolException("Invalid packet type");
@@ -215,8 +215,9 @@ void PacketBuffer::parseProtocolInfoReply(uint16_t& currentVersion, std::vector<
 
     auto payload = static_cast<uint16_t*>(getPayload());
     currentVersion = *payload++;
-    supportedVersions.resize(*payload++);
-    std::memcpy(supportedVersions.data(), payload, supportedVersions.size() * sizeof(uint16_t));
+    const size_t verCount = *payload++;
+    for (size_t i = 0; i < verCount; i++)
+        supportedVersions.insert(*payload++);
 }
 
 PacketBuffer PacketBuffer::createUpgradeProtocolRequest(uint64_t id, uint16_t version)
@@ -299,6 +300,46 @@ PacketBuffer PacketBuffer::createServerNotification(const char* json, size_t jso
 StringPtr PacketBuffer::parseServerNotification() const
 {
     if (getPacketType() != PacketType::ServerNotification)
+        throw ConfigProtocolException("Invalid packet type");
+
+    const auto payloadSize = getPayloadSize();
+
+    if (payloadSize == 0)
+        throw ConfigProtocolException("Invalid payload");
+
+    auto jsonStr = String(static_cast<char*>(getPayload()), payloadSize);
+    return jsonStr;
+}
+
+PacketBuffer PacketBuffer::createNoReplyRpcRequest(const char* json, size_t jsonSize)
+{
+    auto packetBuffer = PacketBuffer(PacketType::NoReplyRpc, std::numeric_limits<uint64_t>::max(), json, jsonSize);
+    return packetBuffer;
+}
+
+StringPtr PacketBuffer::parseNoReplyRpcRequest() const
+{
+    if (getPacketType() != PacketType::NoReplyRpc)
+        throw ConfigProtocolException("Invalid packet type");
+
+    const auto payloadSize = getPayloadSize();
+
+    if (payloadSize == 0)
+        throw ConfigProtocolException("Invalid payload");
+
+    auto jsonStr = String(static_cast<char*>(getPayload()), payloadSize);
+    return jsonStr;
+}
+
+PacketBuffer PacketBuffer::createConnectionRejectedReply(uint64_t id, const char* json, size_t jsonSize)
+{
+    auto packetBuffer = PacketBuffer(PacketType::ConnectionRejected, id, json, jsonSize);
+    return packetBuffer;
+}
+
+StringPtr PacketBuffer::parseConnectionRejectedReply() const
+{
+    if (getPacketType() != PacketType::ConnectionRejected)
         throw ConfigProtocolException("Invalid packet type");
 
     const auto payloadSize = getPayloadSize();

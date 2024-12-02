@@ -19,6 +19,7 @@
 #include <opendaq/component_holder_ptr.h>
 #include <opendaq/component_holder_factory.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/device_private_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -26,22 +27,38 @@ namespace daq::config_protocol
 class ConfigServerDevice
 {
 public:
-    static BaseObjectPtr getAvailableFunctionBlockTypes(const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr addFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr removeFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr getInfo(const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr getTicksSinceOrigin(const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getAvailableFunctionBlockTypes(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr addFunctionBlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr removeFunctionBlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getInfo(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getTicksSinceOrigin(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr lock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr unlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr forceUnlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getAvailableDevices(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr addDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr removeDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getAvailableDeviceTypes(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getLogFileInfos(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getLog(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
-inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const DevicePtr& device,
-    const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const RpcContext& context,
+                                                                        const DevicePtr& device,
+                                                                        const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+
     const auto fbTypes = device.getAvailableFunctionBlockTypes();
     return fbTypes;
 }
 
-inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectLockedComponent(device);
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
     const auto fbTypeId = params.get("TypeId");
     PropertyObjectPtr config;
     if (params.hasKey("Config"))
@@ -51,8 +68,14 @@ inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const DevicePtr& devic
     return ComponentHolder(fb);
 }
 
-inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const RpcContext& context,
+                                                             const DevicePtr& device,
+                                                             const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectLockedComponent(device);
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
     const auto localId = params.get("LocalId");
 
     const auto fbs = device.getFunctionBlocks(search::LocalId(localId));
@@ -66,14 +89,120 @@ inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const DevicePtr& de
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerDevice::getInfo(const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getInfo(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+
     return device.getInfo();
 }
 
-inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(const RpcContext& context,
+                                                             const DevicePtr& device,
+                                                             const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+
     return device.getTicksSinceOrigin();
+}
+
+inline BaseObjectPtr ConfigServerDevice::lock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    device.asPtr<IDevicePrivate>().lock(context.user);
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::unlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    device.asPtr<IDevicePrivate>().unlock(context.user);
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::forceUnlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    device.asPtr<IDevicePrivate>().forceUnlock();
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::getLogFileInfos(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    return device.getLogFileInfos();
+}
+
+inline BaseObjectPtr ConfigServerDevice::getLog(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+
+    const auto Id = params.get("Id");
+    const auto size = params.get("Size");
+    const auto offset = params.get("Offset");
+
+    return device.getLog(Id, size, offset);
+}
+
+inline BaseObjectPtr ConfigServerDevice::getAvailableDevices(const RpcContext& context,
+                                                   const DevicePtr& device,
+                                                   const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    return device.getAvailableDevices();
+}
+
+inline BaseObjectPtr ConfigServerDevice::addDevice(const RpcContext& context,
+                                                   const DevicePtr& device,
+                                                   const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(device);
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto connectionString = params.get("ConnectionString");
+    PropertyObjectPtr config;
+    if (params.hasKey("Config"))
+        config = params.get("Config");
+
+    const auto dev = device.addDevice(connectionString, config);
+    return ComponentHolder(dev);
+}
+
+inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(device);
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto localId = params.get("LocalId");
+
+    const auto devs = device.getDevices(search::LocalId(localId));
+
+    if (devs.getCount() == 0)
+        throw NotFoundException("Device not found");
+
+    if (devs.getCount() > 1)
+        throw InvalidStateException("Duplicate device");
+
+    device.removeDevice(devs[0]);
+
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::getAvailableDeviceTypes(const RpcContext& context,
+                                                                 const DevicePtr& device,
+                                                                 const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+
+    const auto devTypes = device.getAvailableDeviceTypes();
+    return devTypes;
 }
 
 }

@@ -21,6 +21,7 @@
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"
 #include <coreobjects/property_object_class_factory.h>
+#include <coreobjects/user_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -30,13 +31,25 @@ class ConfigNestedPropertyObjectTest : public testing::Test
 public:
     void SetUp() override
     {
-        serverDevice = test_utils::createServerDevice();
-        serverDevice.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-        server = std::make_unique<ConfigProtocolServer>(serverDevice, std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
+        const auto anonymousUser = User("", "");
+
+        serverDevice = test_utils::createTestDevice();
+        serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+        server = std::make_unique<ConfigProtocolServer>(
+            serverDevice,
+            std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1),
+            anonymousUser,
+            ClientType::Control);
 
         clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(clientContext, std::bind(&ConfigNestedPropertyObjectTest::sendRequest, this, std::placeholders::_1), nullptr);
-
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                clientContext,
+                std::bind(&ConfigNestedPropertyObjectTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigNestedPropertyObjectTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
+                nullptr
+            );
         clientDevice = client->connect();
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
@@ -56,10 +69,17 @@ protected:
     }
 
     // client handling
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket) const
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
         auto replyPacket = server->processRequestAndGetReply(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
 };
 
@@ -325,10 +345,10 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
     // update the sync component in the client side
     clientSyncComponent.setSelectedSource(0);
 
-    ASSERT_EQ(clientSyncComponent.getSelectedSource(), 0); 
+    ASSERT_EQ(clientSyncComponent.getSelectedSource(), 0);
 
     // check that the server side has the same sync component
-    ASSERT_EQ(syncComponent.getSelectedSource(), 0);    
+    ASSERT_EQ(syncComponent.getSelectedSource(), 0);
 }
 
 
@@ -342,7 +362,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
 
     auto ptpSyncInterface = PropertyObject(typeManager, "PtpSyncInterface");
     ptpSyncInterface.setPropertyValue("Mode", 2);
-    
+
     PropertyObjectPtr status = ptpSyncInterface.getPropertyValue("Status");
     status.setPropertyValue("State", 2);
     status.setPropertyValue("Grandmaster", "1234");
@@ -367,7 +387,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
 
     PropertyObjectPtr ports = parameters.getPropertyValue("Ports");
     ports.addProperty(BoolProperty("Port1", true));
-        
+
     syncComponentPrivate.addInterface(ptpSyncInterface);
 
     SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
@@ -385,7 +405,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomInterfaceValues)
 
     PropertyObjectPtr clientParameters = clientPtpSyncInterface.getPropertyValue("Parameters");
     ASSERT_EQ(clientParameters.getPropertyValue("PtpConfigurationStructure"), newConfiguration);
-    
+
     PropertyObjectPtr clientPorts = clientParameters.getPropertyValue("Ports");
     ASSERT_EQ(clientPorts.getPropertyValue("Port1"), true);
 }
@@ -446,4 +466,48 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomModeOptions)
     auto modeProperty = interfaceClockSync.getProperty("Mode");
     ASSERT_EQ(modeProperty.getSelectionValues(), modeOptions);
     ASSERT_EQ(interfaceClockSync.getPropertySelectionValue("Mode"), "Off");
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, ModifyOnPropertyWrite)
+{
+
+    serverDevice.addProperty(StringProperty("EditableProperty", "defaultValue"));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg) 
+    {
+        if (arg.getValue() == "clientValue")
+            arg.setValue("serverValue");
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), "defaultValue");
+    clientDevice.setPropertyValue("EditableProperty", "clientValue");
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), "serverValue");   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, RestoreOnPropertyWrite)
+{
+
+    serverDevice.addProperty(StringProperty("EditableProperty", "defaultValue"));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg) 
+    {
+        if (arg.getValue() == "clientValue")
+            arg.setValue("defaultValue");
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), "defaultValue");
+    clientDevice.setPropertyValue("EditableProperty", "clientValue");
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), "defaultValue");   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueInsideCallback)
+{
+    serverDevice.addProperty(IntProperty("EditableProperty", 0));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() > 0)
+            obj.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("EditableProperty", 0);
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
+    clientDevice.setPropertyValue("EditableProperty", 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);   
 }

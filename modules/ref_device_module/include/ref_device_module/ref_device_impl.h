@@ -22,6 +22,7 @@
 #include <condition_variable>
 #include <ref_device_module/ref_channel_impl.h>
 #include <ref_device_module/ref_can_channel_impl.h>
+#include <opendaq/log_file_info_ptr.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -55,11 +56,18 @@ protected:
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;
 
+protected:
+    ListPtr<ILogFileInfo> ongetLogFileInfos() override;
+    StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
+
 private:
 
     void acqLoop();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
+    PropertyObjectPtr createProtectedObject() const;
 
+    void enableProtectedChannel();
+    void enableLogging();
     void updateNumberOfChannels(size_t numberOfChannels);
     void enableCANChannel(bool enableCANChannel);
     void updateAcqLoopTime(size_t loopTime);
@@ -74,11 +82,15 @@ private:
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
 
     std::vector<std::shared_ptr<RefChannelImpl>> channels;
+    ChannelPtr protectedChannel;
     //std::shared_ptr<RefCANChannelImpl> canChannel;
     
     UnitPtr domainUnit;
     FolderConfigPtr aiFolder;
     FolderConfigPtr canFolder;
+
+    bool loggingEnabled;
+    StringPtr loggingPath;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

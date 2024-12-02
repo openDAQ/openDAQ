@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -46,14 +48,25 @@ void defineIValidator(pybind11::module_ m, PyDaqIntf<daq::IValidator, daq::IBase
     cls.def("validate",
         [](daq::IValidator *object, const py::object& propObj, const py::object& value)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ValidatorPtr::Borrow(object);
             objectPtr.validate(pyObjectToBaseObject(propObj), pyObjectToBaseObject(value));
         },
         py::arg("prop_obj"), py::arg("value"),
         "Checks whether `value` adheres to the validity conditions of the validator.");
+    cls.def("validate_no_lock",
+        [](daq::IValidator *object, const py::object& propObj, const py::object& value)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ValidatorPtr::Borrow(object);
+            objectPtr.validateNoLock(pyObjectToBaseObject(propObj), pyObjectToBaseObject(value));
+        },
+        py::arg("prop_obj"), py::arg("value"),
+        "");
     cls.def_property_readonly("eval",
         [](daq::IValidator *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ValidatorPtr::Borrow(object);
             return objectPtr.getEval().toStdString();
         },

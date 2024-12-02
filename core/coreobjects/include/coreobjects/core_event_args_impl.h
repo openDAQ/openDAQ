@@ -61,6 +61,8 @@ namespace core_event_args_impl
                 return "TypeRemoved";
             case CoreEventId::DeviceDomainChanged:
                 return "DeviceDomainChanged";
+            case CoreEventId::DeviceLockStateChanged:
+                return "DeviceLockStateChanged";
             default:
                 break;
         }
@@ -205,7 +207,7 @@ inline bool CoreEventArgsImpl::validateParameters() const
         case CoreEventId::PropertyValueChanged:
             return parameters.hasKey("Name") && parameters.hasKey("Value") && parameters.hasKey("Path");
         case CoreEventId::PropertyObjectUpdateEnd:
-            return parameters.hasKey("UpdatedProperties") && parameters.get("UpdatedProperties").asPtrOrNull<IDict>().assigned() && parameters.hasKey("Path");
+            return parameters.hasKey("UpdatedProperties") && parameters.get("UpdatedProperties").supportsInterface<IDict>() && parameters.hasKey("Path");
         case CoreEventId::PropertyAdded:
             return parameters.hasKey("Property") && parameters.hasKey("Path");
         case CoreEventId::PropertyRemoved:
@@ -228,6 +230,8 @@ inline bool CoreEventArgsImpl::validateParameters() const
             return parameters.hasKey("TypeName");
         case CoreEventId::DeviceDomainChanged:
             return parameters.hasKey("DeviceDomain");
+        case CoreEventId::DeviceLockStateChanged:
+            return parameters.hasKey("IsLocked");
         default:
             break;
     }

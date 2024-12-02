@@ -1,14 +1,14 @@
-#include "coreobjects/property_object_factory.h"
-#include "gtest/gtest.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms_client/objects/tms_client_property_object_impl.h"
+#include <coreobjects/property_object_factory.h>
+#include <gtest/gtest.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms_client/objects/tms_client_property_object_impl.h>
 #include <opcuaclient/monitored_item_create_request.h>
 #include <opcuaclient/subscriptions.h>
 #include <future>
-#include "coreobjects/property_object_class_ptr.h"
-#include "opcuatms_server/objects/tms_server_property_object.h"
+#include <coreobjects/property_object_class_ptr.h>
+#include <opcuatms_server/objects/tms_server_property_object.h>
 #include "tms_object_integration_test.h"
-#include "opcuatms_client/objects/tms_client_property_object_factory.h"
+#include <opcuatms_client/objects/tms_client_property_object_factory.h>
 #include <coreobjects/property_object_class_factory.h>
 
 #include <coreobjects/callable_info_factory.h>
@@ -228,7 +228,7 @@ TEST_F(TmsPropertyObjectTest, TestPropertyOrder)
     }
 
     auto [serverObj, clientObj] = registerPropertyObject(obj);
-        auto serverProps = obj.getAllProperties();
+    auto serverProps = obj.getAllProperties();
     auto clientProps = clientObj.getAllProperties();
 
     ASSERT_EQ(serverProps.getCount(), clientProps.getCount());
@@ -236,4 +236,29 @@ TEST_F(TmsPropertyObjectTest, TestPropertyOrder)
     for (SizeT i = 0; i < serverProps.getCount(); ++i)
         ASSERT_EQ(serverProps[i].getName(), clientProps[i].getName());
 
+}
+
+TEST_F(TmsPropertyObjectTest, TestReadOnlyWrite)
+{
+    auto obj = PropertyObject();
+    obj.addProperty(IntPropertyBuilder("ReadOnly", 0).setReadOnly(true).build());
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+    auto serverProps = obj.getAllProperties();
+    auto clientProps = clientObj.getAllProperties();
+
+    ASSERT_EQ(clientObj.getPropertyValue("ReadOnly"), 0);
+    clientObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("ReadOnly", 100);
+    ASSERT_EQ(clientObj.getPropertyValue("ReadOnly"), 100);
+}
+
+TEST_F(TmsPropertyObjectTest, TestReadOnlyWriteFail)
+{
+    auto obj = PropertyObject();
+    obj.addProperty(IntPropertyBuilder("ReadOnly", 0).setReadOnly(true).build());
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+    auto serverProps = obj.getAllProperties();
+    auto clientProps = clientObj.getAllProperties();
+
+    ASSERT_EQ(clientObj.getPropertyValue("ReadOnly"), 0);
+    ASSERT_THROW(clientObj.setPropertyValue("ReadOnly", 100), AccessDeniedException);
 }

@@ -2,7 +2,9 @@ set(LIB_NAME py_opendaq)
 
 set(SRC_Headers
     include/py_opendaq/py_opendaq.h
+    include/py_opendaq/py_packet_buffer.h
 )
+
 set(SRC_Cpp
     py_opendaq.cpp
     generated/opendaq/py_instance.cpp
@@ -19,8 +21,10 @@ set(SRC_Cpp
     generated/component/py_tags_private.cpp
     generated/component/py_component_status_container.cpp
     generated/component/py_component_status_container_private.cpp
+    generated/component/py_update_parameters.cpp
     generated/context/py_context.cpp
     generated/device/py_device.cpp
+    generated/device/py_device_private.cpp
     generated/device/py_device_domain.cpp
     generated/device/py_device_info.cpp
     generated/device/py_device_info_config.cpp
@@ -28,6 +32,8 @@ set(SRC_Cpp
     generated/device/py_device_type.cpp
     generated/device/py_address_info.cpp
     generated/device/py_address_info_builder.cpp
+    generated/device/py_log_file_info.cpp
+    generated/device/py_log_file_info_builder.cpp
     generated/functionblock/py_channel.cpp
     generated/functionblock/py_function_block.cpp
     generated/functionblock/py_function_block_type.cpp
@@ -84,6 +90,8 @@ set(SRC_Cpp
     generated/signal/py_signal_config.cpp
     generated/signal/py_signal_events.cpp
     generated/signal/py_packet_destruct_callback.cpp
+    generated/signal/py_reference_domain_info.cpp
+    generated/signal/py_reference_domain_info_builder.cpp
     generated/streaming/py_streaming.cpp
     generated/streaming/py_streaming_type.cpp
     generated/streaming/py_mirrored_signal_config.cpp
@@ -93,6 +101,8 @@ set(SRC_Cpp
     generated/streaming/py_mirrored_device_config.cpp
     generated/synchronization/py_sync_component.cpp
     generated/synchronization/py_sync_component_private.cpp
+    generated/modulemanager/py_module_info.cpp
+    generated/component/py_component_type.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

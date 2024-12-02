@@ -4,8 +4,10 @@
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/custom_log.h>
 
+#include "opendaq/data_descriptor_factory.h"
 #include "opendaq/packet_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -395,7 +397,7 @@ ErrCode ConnectionImpl::getSamplesUntilNextGapPacket(SizeT* samples)
             {
                 case PacketType::Data:
                 {
-                    auto dataPacket = packet.template asPtrOrNull<IDataPacket>(true);
+                    auto dataPacket = packet.template asPtr<IDataPacket>(true);
                     if (dataPacket.assigned())
                     {
                         *samples += dataPacket.getSampleCount();
@@ -404,7 +406,7 @@ ErrCode ConnectionImpl::getSamplesUntilNextGapPacket(SizeT* samples)
                 }
                 case PacketType::Event:
                 {
-                    auto eventPacket = packet.template asPtrOrNull<IEventPacket>(true);
+                    auto eventPacket = packet.template asPtr<IEventPacket>(true);
                     if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
                     {
                         LOG_T("Samples until next gap packet = {}.", *samples)
@@ -620,10 +622,12 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        const auto params = packet.getParameters();
-        const DataDescriptorPtr valueDescriptor = params.get(event_packet_param::DATA_DESCRIPTOR);
-        const DataDescriptorPtr domainDescriptor = params.get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        if (!domainDescriptor.assigned())
+        bool domainDescriptorChanged;
+        DataDescriptorPtr newDomainDescriptor;
+        std::tie(std::ignore, domainDescriptorChanged, std::ignore, newDomainDescriptor) =
+            parseDataDescriptorEventPacket(packet);
+
+        if (!domainDescriptorChanged)
         {
             if (gapCheckState == GapCheckState::uninitialized)
             {
@@ -635,7 +639,14 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
             return;
         }
 
-        const auto rule = domainDescriptor.getRule();
+        if (!newDomainDescriptor.assigned())
+        {
+            LOGP_T("Gap check not available, domain descriptor is not assigned.")
+            gapCheckState = GapCheckState::not_available;
+            return;
+        }
+
+        const auto rule = newDomainDescriptor.getRule();
         if (rule.getType() != DataRuleType::Linear)
         {
             LOGP_T("Gap check not available, no linear rule.")
@@ -643,7 +654,7 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
             return;
         }
 
-        domainSampleType = domainDescriptor.getSampleType();
+        domainSampleType = newDomainDescriptor.getSampleType();
         if (domainSampleType == SampleType::Float64)
             delta.valueDouble = rule.getParameters()["delta"];
         else if (domainSampleType == SampleType::Int64 || domainSampleType == SampleType::UInt64)
@@ -669,15 +680,29 @@ void ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
 {
     if (packet.getType() == PacketType::Data)
     {
-        auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
-        if (dataPacket.assigned())
-        {
-            samplesCnt += dataPacket.getSampleCount();
-        }
+        auto dataPacket = packet.asPtr<IDataPacket>(true);
+        samplesCnt += dataPacket.getSampleCount();
     }
     else if (packet.getType() == PacketType::Event)
     {
         eventPacketsCnt++;
+        auto eventPacket = packet.asPtr<IEventPacket>(true);
+        if (!(eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED))
+            return;
+
+        const auto params = eventPacket.getParameters();
+        const DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
+        const DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+
+        if (valueDescriptorParam.assigned())
+        {
+            valueDataDescriptor = valueDescriptorParam;
+        }
+
+        if (domainDescriptorParam.assigned())
+        {
+            domainDataDescriptor = domainDescriptorParam;
+        }
     }
 }
 
@@ -703,6 +728,20 @@ void ConnectionImpl::onPacketDequeued(const PacketPtr& packet)
             gapPacketsCnt--;
         }  
     }
+}
+
+ErrCode ConnectionImpl::enqueueLastDescriptor()
+{
+    return withLock([this]
+    {
+        if (valueDataDescriptor.assigned() || domainDataDescriptor.assigned())
+        {
+            eventPacketsCnt++;
+            const auto dataDescriptorEventPacket = DataDescriptorChangedEventPacket(valueDataDescriptor, domainDataDescriptor);
+            packets.emplace_front(dataDescriptorEventPacket);
+        }
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ConnectionImpl::DomainValue ConnectionImpl::numberToDomainValue(const NumberPtr& number)

@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -50,6 +52,7 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
     cls.def_property_readonly("modules",
         [](daq::IModuleManager *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
             return objectPtr.getModules().detach();
         },
@@ -58,6 +61,7 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
     cls.def("add_module",
         [](daq::IModuleManager *object, daq::IModule* module)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
             objectPtr.addModule(module);
         },
@@ -66,6 +70,7 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
     cls.def("load_modules",
         [](daq::IModuleManager *object, daq::IContext* context)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
             objectPtr.loadModules(context);
         },

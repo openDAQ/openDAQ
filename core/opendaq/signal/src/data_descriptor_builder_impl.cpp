@@ -20,6 +20,7 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl()
     , resolution(nullptr)
     , structFields(List<IDataDescriptor>())
     , metadata(Dict<IString, IString>())
+    , referenceDomainInfo(nullptr)
 {
 }
 
@@ -35,6 +36,7 @@ DataDescriptorBuilderImpl::DataDescriptorBuilderImpl(const DataDescriptorPtr& de
     , resolution(descriptorCopy.getTickResolution())
     , structFields(descriptorCopy.getStructFields())
     , metadata(descriptorCopy.getMetadata())
+    , referenceDomainInfo(descriptorCopy.getReferenceDomainInfo())
 {
 }
 
@@ -200,6 +202,19 @@ ErrCode DataDescriptorBuilderImpl::getStructFields(IList** structFields)
 {
     OPENDAQ_PARAM_NOT_NULL(structFields);
     *structFields = this->structFields.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo)
+{
+    this->referenceDomainInfo = referenceDomainInfo;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DataDescriptorBuilderImpl::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainInfo);
+    *referenceDomainInfo = this->referenceDomainInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

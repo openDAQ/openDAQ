@@ -11,15 +11,15 @@ bool AppInputPort::processCommand(BaseObjectPtr& port, const std::vector<std::st
     if (command.empty())
         return false;
 
-    if (command[0] == "Connect")
+    if (command[0] == "connect")
         return connect(port, command, instance);
-    if (command[0] == "Disconnect")
+    if (command[0] == "disconnect")
         return disconnect(port);
-    if (command[0] == "Print")
+    if (command[0] == "print")
         return print(port, command);
-    if (command[0] == "Help")
+    if (command[0] == "help")
         return help();
-    if (command[0] == "Select")
+    if (command[0] == "select")
         return select(port, command);
 
     return false;
@@ -59,7 +59,7 @@ bool AppInputPort::print(const InputPortPtr& port, const std::vector<std::string
     if (command.size() != 2)
         return false;
 
-    if (command[1] == "Name")
+    if (command[1] == "name")
     {
         const auto name = port.getName();
         if (name.assigned() && name.getLength() > 0)

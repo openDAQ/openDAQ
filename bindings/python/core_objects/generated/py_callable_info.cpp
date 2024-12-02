@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_objects/py_core_objects.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -38,14 +40,15 @@ void defineICallableInfo(pybind11::module_ m, PyDaqIntf<daq::ICallableInfo, daq:
 {
     cls.doc() = "Provides information about the argument count and types, as well as the return type of Function/Procedure-type properties.";
 
-    m.def("CallableInfo", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& argumentInfo, daq::CoreType returnType){
-        return daq::CallableInfo_Create(getVariantValue<daq::IList*>(argumentInfo), returnType);
-    }, py::arg("argument_info"), py::arg("return_type"));
+    m.def("CallableInfo", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& argumentInfo, daq::CoreType returnType, const bool constFlag){
+        return daq::CallableInfo_Create(getVariantValue<daq::IList*>(argumentInfo), returnType, constFlag);
+    }, py::arg("argument_info"), py::arg("return_type"), py::arg("const_flag"));
 
 
     cls.def_property_readonly("return_type",
         [](daq::ICallableInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::CallableInfoPtr::Borrow(object);
             return objectPtr.getReturnType();
         },
@@ -53,9 +56,18 @@ void defineICallableInfo(pybind11::module_ m, PyDaqIntf<daq::ICallableInfo, daq:
     cls.def_property_readonly("arguments",
         [](daq::ICallableInfo *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::CallableInfoPtr::Borrow(object);
             return objectPtr.getArguments().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the list of arguments the callable function/procedure expects.");
+    cls.def_property_readonly("const",
+        [](daq::ICallableInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::CallableInfoPtr::Borrow(object);
+            return objectPtr.isConst();
+        },
+        "A flag indicating if function is marked as const. A const function promises not to modify the state of the device or any other objects under the openDAQ instance.");
 }

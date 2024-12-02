@@ -47,7 +47,6 @@ void FFTFbImpl::initProperties()
 
 void FFTFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure();
@@ -183,6 +182,7 @@ void FFTFbImpl::processEventPacket(const EventPacketPtr& packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
+        // TODO handle Null-descriptor params ('Null' sample type descriptors)
         const DataDescriptorPtr dataDesc = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
         const DataDescriptorPtr domainDesc = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
         processSignalDescriptorChanged(dataDesc, domainDesc);
@@ -191,7 +191,7 @@ void FFTFbImpl::processEventPacket(const EventPacketPtr& packet)
 
 void FFTFbImpl::calculate()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     while (!linearReader.getEmpty())
     {

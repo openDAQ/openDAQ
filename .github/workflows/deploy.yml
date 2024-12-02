@@ -24,10 +24,9 @@ env:
   simulator_app_artifact: SimulatorApp
   simulator_package_artifact: SimulatorPackage
   python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12
+  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   deploy_windows:
@@ -67,6 +66,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
 
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
@@ -202,6 +207,7 @@ jobs:
           path: |
             ${{ env.dotnetBuildPath }}
             !${{ env.dotnetBuildPath }}/**/*.json
+            !${{ env.dotnetBuildPath }}/**/*.exe
           #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
           retention-days: 1
 
@@ -414,8 +420,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: manylinux2014 gcc Release
-            image: quay.io/pypa/manylinux2014_x86_64
+          - name: manylinux_2_28 gcc Release
+            image: quay.io/pypa/manylinux_2_28_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
             additional_packages:
@@ -437,7 +443,7 @@ jobs:
           yum install -y git awscli
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
@@ -469,7 +475,7 @@ jobs:
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
         id: short-sha
-        uses: benjlevesque/short-sha@v2.2 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: benjlevesque/short-sha@v3.0
 
       - name: Rename Wheels (main)
         working-directory: ${{ env.wheels_path }}
@@ -480,7 +486,7 @@ jobs:
             mv "$filename" "$new_filename"
           done
 
-      - uses: aws-actions/configure-aws-credentials@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -494,14 +500,14 @@ jobs:
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_linux_x86_64_path }}" --recursive
 
       - name: Upload Wheels
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: Wheels (${{ matrix.name }})
           path: ${{ env.wheels_path }}
           retention-days: 7
 
   simulator-build:
-    runs-on: ubuntu-latest-4-cores
+    runs-on: Ubuntu-24.04-8-core
     name: Simulator build
     needs: [deploy_linux]
 
@@ -522,8 +528,10 @@ jobs:
 
       - name: Install tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y virtualbox vagrant
+          wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+          sudo apt update
+          sudo apt install -y virtualbox vagrant
 
       - name: Download package
         uses: actions/download-artifact@v4
@@ -642,15 +650,6 @@ jobs:
         working-directory: ${{ env.build_path }}/site/
         run: zip -r ${{ env.build_path }}/user_guide.zip .
 
-      - name: Run Antora to build protocols specs
-        run: >
-          [ "refs/heads/main" != "${{ github.ref }}" ] && npx antora antora-specs-playbook.yml
-          || (export DAQ_DEV_WEBSITE=docs-dev; npx antora antora-specs-playbook-dev.yml)
-
-      - name: Compress protocols specifications
-        working-directory: ${{ env.build_path }}/site_specs/
-        run: zip -r ${{ env.build_path }}/native_protocols_specs.zip .
-
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -661,11 +660,6 @@ jobs:
         run: |
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'user_guide.zip'
           aws s3 cp ${{ env.build_path }}/user_guide.zip "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
-
-      - name: Upload protocols specifications to S3
-        run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'native_protocols_specs.zip'
-          aws s3 cp ${{ env.build_path }}/native_protocols_specs.zip "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
 
       - name: Call the API to deploy the documentation
         run: |
@@ -680,12 +674,6 @@ jobs:
         with:
           name: openDAQ_SDK_User_Guide
           path: ${{ env.build_path }}/user_guide.zip
-          retention-days: 7
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: openDAQ_SDK_Native_protocols_specifications
-          path: ${{ env.build_path }}/native_protocols_specs.zip
           retention-days: 7
 
   # using reusable workflow

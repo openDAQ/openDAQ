@@ -18,6 +18,11 @@
 #include <testutils/testutils.h>
 #include <thread>
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
+#include <opendaq/instance_factory.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
+#include <chrono>
+#include <coretypes/filesystem.h>
 
 using namespace daq;
 using RefDeviceModuleTest = testing::Test;
@@ -44,19 +49,19 @@ TEST_F(RefDeviceModuleTest, CreateModule)
 TEST_F(RefDeviceModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "ReferenceDeviceModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "ReferenceDeviceModule");
 }
 
 TEST_F(RefDeviceModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
-    ASSERT_TRUE(module.getVersionInfo().assigned());
+    ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(RefDeviceModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
-    auto version = module.getVersionInfo();
+    auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), REF_DEVICE_MODULE_MAJOR_VERSION);
     ASSERT_EQ(version.getMinor(), REF_DEVICE_MODULE_MINOR_VERSION);
@@ -164,6 +169,50 @@ TEST_F(RefDeviceModuleTest, DeviceDomainOrigin)
     ASSERT_FALSE(static_cast<std::string>(res).empty());
 }
 
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainInfo().getReferenceDomainId();
+    ASSERT_EQ(res, "openDAQ_DevSer1");
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainInfo().getReferenceDomainOffset();
+    ASSERT_EQ(res, 0);
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceTimeSource)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainInfo().getReferenceTimeSource();
+    ASSERT_EQ(res, TimeSource::Unknown);
+}
+
+TEST_F(RefDeviceModuleTest, DeviceDomainUsesOffset)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto domain = device.getDomain();
+
+    auto res = domain.getReferenceDomainInfo().getUsesOffset();
+    ASSERT_EQ(res, UsesOffset::Unknown);
+}
+
 TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();
@@ -181,6 +230,38 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
     ASSERT_EQ(serverTypes.getCount(), 0u);
+
+    // Check module info for module
+    ModuleInfoPtr moduleInfo;
+    ASSERT_NO_THROW(moduleInfo = module.getModuleInfo());
+    ASSERT_NE(moduleInfo, nullptr);
+    ASSERT_EQ(moduleInfo.getName(), "ReferenceDeviceModule");
+    ASSERT_EQ(moduleInfo.getId(), "ReferenceDevice");
+
+    // Check version info for module
+    VersionInfoPtr versionInfoModule;
+    ASSERT_NO_THROW(versionInfoModule = moduleInfo.getVersionInfo());
+    ASSERT_NE(versionInfoModule, nullptr);
+    ASSERT_EQ(versionInfoModule.getMajor(), REF_DEVICE_MODULE_MAJOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getMinor(), REF_DEVICE_MODULE_MINOR_VERSION);
+    ASSERT_EQ(versionInfoModule.getPatch(), REF_DEVICE_MODULE_PATCH_VERSION);
+
+    // Check module and version info for device types
+    for (const auto& deviceType : deviceTypes)
+    {
+        ModuleInfoPtr moduleInfoDeviceType;
+        ASSERT_NO_THROW(moduleInfoDeviceType = deviceType.second.getModuleInfo());
+        ASSERT_NE(moduleInfoDeviceType, nullptr);
+        ASSERT_EQ(moduleInfoDeviceType.getName(), "ReferenceDeviceModule");
+        ASSERT_EQ(moduleInfoDeviceType.getId(), "ReferenceDevice");
+
+        VersionInfoPtr versionInfoDeviceType;
+        ASSERT_NO_THROW(versionInfoDeviceType = moduleInfoDeviceType.getVersionInfo());
+        ASSERT_NE(versionInfoDeviceType, nullptr);
+        ASSERT_EQ(versionInfoDeviceType.getMajor(), REF_DEVICE_MODULE_MAJOR_VERSION);
+        ASSERT_EQ(versionInfoDeviceType.getMinor(), REF_DEVICE_MODULE_MINOR_VERSION);
+        ASSERT_EQ(versionInfoDeviceType.getPatch(), REF_DEVICE_MODULE_PATCH_VERSION);
+    }
 }
 
 TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdNull)
@@ -843,5 +924,93 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_THROW(ptr = module.createDevice("daqref://device0", nullptr), InvalidParameterException);
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+}
+
+TEST_F(RefDeviceModuleTest, AddRemoveAddDevice)
+{
+    const auto instance = Instance();
+
+    auto dev0 = instance.addDevice("daqref://device0");
+    auto dev1 = instance.addDevice("daqref://device1");
+    instance.removeDevice(dev0);
+    instance.removeDevice(dev1);
+
+    dev0.release();
+    dev1.release();
+
+    ASSERT_NO_THROW(dev0 = instance.addDevice("daqref://device0"));
+    ASSERT_NO_THROW(dev1 = instance.addDevice("daqref://device1"));
+    ASSERT_TRUE(dev0.assigned());
+    ASSERT_TRUE(dev1.assigned());
+
+    instance.removeDevice(dev0);
+    instance.removeDevice(dev1);
+
+    ASSERT_NO_THROW(dev0 = instance.addDevice("daqref://device0"));
+    ASSERT_NO_THROW(dev1 = instance.addDevice("daqref://device1"));
+    ASSERT_TRUE(dev0.assigned());
+    ASSERT_TRUE(dev1.assigned());
+}
+
+StringPtr getFileLastModifiedTime(const std::string& path)
+{
+    auto ftime = fs::last_write_time(path);
+    auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
+    );
+    std::time_t cftime = std::chrono::system_clock::to_time_t(sctp);
+
+    std::ostringstream oss;
+    oss << std::put_time(std::gmtime(&cftime), "%Y-%m-%dT%H:%M:%SZ");
+    return oss.str();
+}
+
+TEST_F(RefDeviceModuleTest, EnableLogging)
+{
+    StringPtr loggerPath = "ref_device_simulator.log";
+
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(BoolProperty("EnableLogging", true));
+    config.addProperty(StringProperty("LoggingPath", loggerPath));
+
+    auto instanceBuilder = InstanceBuilder();
+    instanceBuilder.setRootDevice("daqref://device0", config);
+    auto sinks = DefaultSinks(loggerPath);
+    for (const auto& sink : sinks)
+        instanceBuilder.addLoggerSink(sink);
+
+    const auto instance = instanceBuilder.build();
+
+    {
+        auto logFiles = instance.getLogFileInfos();
+        auto logFileLastModified = getFileLastModifiedTime(loggerPath);
+        ASSERT_EQ(logFiles.getCount(), 1u);
+        auto logFile = logFiles[0];
+        
+        ASSERT_EQ(logFile.getName(), loggerPath);
+        ASSERT_NE(logFile.getSize(), 0);
+        ASSERT_EQ(logFile.getLastModified(), logFileLastModified);
+
+        StringPtr firstSymb = instance.getLog(loggerPath, 1, 0);
+        ASSERT_EQ(firstSymb, "[");
+
+        StringPtr wrongLog = instance.getLog("wrong.log", 1, 0);
+        ASSERT_EQ(wrongLog, "");
+    }
+
+    {
+        instance.getRootDevice().setPropertyValue("EnableLogging", false);
+        auto logFiles = instance.getLogFileInfos();
+        ASSERT_EQ(logFiles.getCount(), 0u);
+    }
+
+    {
+        instance.getRootDevice().setPropertyValue("EnableLogging", true);
+        auto logFiles = instance.getLogFileInfos();
+        ASSERT_EQ(logFiles.getCount(), 1u);
+
+        StringPtr firstSymb = instance.getLog(loggerPath, 1, 0);
+        ASSERT_EQ(firstSymb, "[");
+    }
 }

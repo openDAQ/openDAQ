@@ -1,9 +1,9 @@
-#include "opcuatms_server/objects/tms_server_channel.h"
-#include "opcuatms_server/objects/tms_server_folder.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "open62541/daqdevice_nodeids.h"
-#include "opendaq/io_folder_config.h"
-#include "opendaq/search_filter_factory.h"
+#include <opcuatms_server/objects/tms_server_channel.h>
+#include <opcuatms_server/objects/tms_server_folder.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <open62541/daqdevice_nodeids.h>
+#include <opendaq/io_folder_config.h>
+#include <opendaq/search_filter_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -49,7 +49,7 @@ void TmsServerFolder::addChildNodes()
 
 OpcUaNodeId TmsServerFolder::getTmsTypeId()
 {
-    if (object.asPtrOrNull<IIoFolderConfig>().assigned())
+    if (object.supportsInterface<IIoFolderConfig>())
         return OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_IOCOMPONENTTYPE);
     return OpcUaNodeId(NAMESPACE_DAQDEVICE, UA_DAQDEVICEID_DAQCOMPONENTTYPE);
 }

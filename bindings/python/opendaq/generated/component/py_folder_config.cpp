@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -54,6 +56,7 @@ void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq:
     cls.def("add_item",
         [](daq::IFolderConfig *object, daq::IComponent* item)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FolderConfigPtr::Borrow(object);
             objectPtr.addItem(item);
         },
@@ -62,6 +65,7 @@ void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq:
     cls.def("remove_item",
         [](daq::IFolderConfig *object, daq::IComponent* item)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FolderConfigPtr::Borrow(object);
             objectPtr.removeItem(item);
         },
@@ -70,6 +74,7 @@ void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq:
     cls.def("remove_item_with_local_id",
         [](daq::IFolderConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FolderConfigPtr::Borrow(object);
             objectPtr.removeItemWithLocalId(getVariantValue<daq::IString*>(localId));
         },
@@ -78,6 +83,7 @@ void defineIFolderConfig(pybind11::module_ m, PyDaqIntf<daq::IFolderConfig, daq:
     cls.def("clear",
         [](daq::IFolderConfig *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::FolderConfigPtr::Borrow(object);
             objectPtr.clear();
         },

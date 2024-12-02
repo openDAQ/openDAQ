@@ -7,6 +7,8 @@
 #include <config_protocol/config_server_signal.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <coretypes/cloneable.h>
+#include <config_protocol/config_server_access_control.h>
+#include <opendaq/custom_log.h>
 
 namespace daq::config_protocol
 {
@@ -63,7 +65,11 @@ ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalI
     return nullptr;
 }
 
-ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice, NotificationReadyCallback notificationReadyCallback, const UserPtr& user)
+ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
+                                           NotificationReadyCallback notificationReadyCallback,
+                                           const UserPtr& user,
+                                           ClientType connectionType,
+                                           const FolderConfigPtr& externalSignalsFolder)
     : rootDevice(std::move(rootDevice))
     , daqContext(this->rootDevice.getContext())
     , notificationReadyCallback(std::move(notificationReadyCallback))
@@ -72,7 +78,15 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice, NotificationRea
     , notificationSerializer(JsonSerializer())
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
+    , connectionType(connectionType)
+    , protocolVersion(0)
+    , supportedServerVersions(std::move(GetSupportedConfigProtocolVersions()))
+    , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
+    assert(user.assigned());
+    serializer.setUser(user);
+    notificationSerializer.setUser(user);
+
     buildRpcDispatchStructure();
 
     if (daqContext.assigned())
@@ -85,40 +99,27 @@ ConfigProtocolServer::~ConfigProtocolServer()
         daqContext.getOnCoreEvent() -= event(this, &ConfigProtocolServer::coreEventCallback);
 }
 
-template <class SmartPtr, class F>
-BaseObjectPtr ConfigProtocolServer::bindComponentWrapper(const F& f, const ParamsDictPtr& params)
+template <class SmartPtr>
+void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler)
 {
-    const auto componentGlobalId = static_cast<std::string>(params["ComponentGlobalId"]);
-    const auto component = findComponent(componentGlobalId);
+    auto wrappedHanler = [this, handler](const ParamsDictPtr& params)
+    {
+        RpcContext context;
+        context.protocolVersion = this->protocolVersion;
+        context.user = this->user;
+        context.connectionType = this->connectionType;
 
-    if (!component.assigned())
-        throw NotFoundException("Component not found");
+        const auto componentGlobalId = static_cast<std::string>(params["ComponentGlobalId"]);
+        const auto component = findComponent(componentGlobalId);
 
-    const auto ptr = component.asPtr<typename SmartPtr::DeclaredInterface>();
+        if (!component.assigned())
+            throw NotFoundException("Component not found");
 
-    return f(ptr, params);
-}
+        const auto componentPtr = component.asPtr<typename SmartPtr::DeclaredInterface>();
+        return handler(context, componentPtr, params);
+    };
 
-template <class SmartPtr, class Handler>
-void ConfigProtocolServer::addHandler(const std::string& name, const Handler& handler)
-{
-    using namespace std::placeholders;
-
-    auto h = std::bind(handler, _1, _2);
-
-    rpcDispatch.insert(
-        {
-            name,
-            [this, h](const ParamsDictPtr& params) -> BaseObjectPtr
-            {
-                return bindComponentWrapper<SmartPtr>(
-                        [&h](const SmartPtr& component, const ParamsDictPtr& params) -> BaseObjectPtr
-                        {
-                            return h(component, params);
-                        },
-                    params);
-            }
-        });
+    rpcDispatch.insert({name, wrappedHanler});
 }
 
 void ConfigProtocolServer::buildRpcDispatchStructure()
@@ -128,6 +129,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     rpcDispatch.insert({"GetComponent", std::bind(&ConfigProtocolServer::getComponent, this,  _1)});
     rpcDispatch.insert({"GetTypeManager", std::bind(&ConfigProtocolServer::getTypeManager, this, _1)});
     rpcDispatch.insert({"GetSerializedRootDevice", std::bind(&ConfigProtocolServer::getSerializedRootDevice, this,  _1)});
+    rpcDispatch.insert({"RemoveExternalSignals", std::bind(&ConfigProtocolServer::removeExternalSignals, this,  _1)});
 
     addHandler<ComponentPtr>("SetPropertyValue", &ConfigServerComponent::setPropertyValue);
     addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
@@ -144,28 +146,57 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
     addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock);
     addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
+    addHandler<DevicePtr>("Lock", &ConfigServerDevice::lock);
+    addHandler<DevicePtr>("Unlock", &ConfigServerDevice::unlock);
+    addHandler<DevicePtr>("ForceUnlock", &ConfigServerDevice::forceUnlock);
+    addHandler<DevicePtr>("getLogFileInfos", &ConfigServerDevice::getLogFileInfos);
+    addHandler<DevicePtr>("AddDevice", &ConfigServerDevice::addDevice);
+    addHandler<DevicePtr>("RemoveDevice", &ConfigServerDevice::removeDevice);
+    addHandler<DevicePtr>("GetAvailableDeviceTypes", &ConfigServerDevice::getAvailableDeviceTypes);
+    addHandler<DevicePtr>("GetLog", &ConfigServerDevice::getLog);
+    addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
-    addHandler<InputPortPtr>("ConnectSignal",
-                             [this](const InputPortPtr& inputPort, const ParamsDictPtr& params)
-                             {
-                                 const StringPtr signalId = params.get("SignalId");
-                                 const SignalPtr signal = findComponent(signalId);
-                                 return ConfigServerInputPort::connect(inputPort, signal);
-                             });
+    addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
+    addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
+    addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
 {
-    return processPacket(packetBuffer);
+    return processPacketAndGetReply(packetBuffer);
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(void* mem)
 {
     const PacketBuffer packetBuffer(mem, false);
-    return processPacket(packetBuffer);
+    return processPacketAndGetReply(packetBuffer);
+}
+
+PacketBuffer ConfigProtocolServer::generateConnectionRejectedReply(uint64_t requestId,
+                                                                   ErrCode errCode,
+                                                                   const StringPtr& message,
+                                                                   const SerializerPtr& serializer)
+{
+    assert(OPENDAQ_FAILED(errCode));
+
+    const auto jsonReply = prepareErrorResponse(errCode, message, serializer);
+
+    auto reply = PacketBuffer::createConnectionRejectedReply(requestId, jsonReply.getCharPtr(), jsonReply.getLength());
+    return reply;
+}
+
+void ConfigProtocolServer::processNoReplyRequest(const PacketBuffer& packetBuffer)
+{
+    processNoReplyPacket(packetBuffer);
+}
+
+void ConfigProtocolServer::processNoReplyRequest(void* mem)
+{
+    const PacketBuffer packetBuffer(mem, false);
+    processNoReplyPacket(packetBuffer);
 }
 
 void ConfigProtocolServer::sendNotification(const char* json, const size_t jsonSize) const
@@ -206,7 +237,7 @@ DevicePtr ConfigProtocolServer::getRootDevice()
     return rootDevice;
 }
 
-PacketBuffer ConfigProtocolServer::processPacket(const PacketBuffer& packetBuffer)
+PacketBuffer ConfigProtocolServer::processPacketAndGetReply(const PacketBuffer& packetBuffer)
 {
     const auto requestId = packetBuffer.getId();
     switch (packetBuffer.getPacketType())
@@ -214,22 +245,21 @@ PacketBuffer ConfigProtocolServer::processPacket(const PacketBuffer& packetBuffe
         case PacketType::GetProtocolInfo:
             {
                 packetBuffer.parseProtocolInfoRequest();
-                auto reply = PacketBuffer::createGetProtocolInfoReply(requestId, 0, {0});
+                auto reply = PacketBuffer::createGetProtocolInfoReply(requestId, 0, supportedServerVersions);
                 return reply;
             }
         case PacketType::UpgradeProtocol:
             {
                 uint16_t version;
                 packetBuffer.parseProtocolUpgradeRequest(version);
-                auto reply = PacketBuffer::createUpgradeProtocolReply(requestId, version == 0);
+                auto reply = PacketBuffer::createUpgradeProtocolReply(requestId, supportedServerVersions.find(version) != supportedServerVersions.end());
+                protocolVersion = version;
                 return reply;
             }
         case PacketType::Rpc:
             {
-                std::unique_ptr<char[]> json;
-
                 const auto jsonRequest = packetBuffer.parseRpcRequestOrReply();
-                const auto jsonReply = processRpc(jsonRequest);
+                const auto jsonReply = processRpcAndGetReply(jsonRequest);
 
                 auto reply = PacketBuffer::createRpcRequestOrReply(requestId, jsonReply.getCharPtr(), jsonReply.getLength());
                 return reply;
@@ -237,15 +267,21 @@ PacketBuffer ConfigProtocolServer::processPacket(const PacketBuffer& packetBuffe
         default:
             auto reply = PacketBuffer::createInvalidRequestReply(requestId);
             return reply;
-
     }
 }
 
-StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
+void ConfigProtocolServer::processNoReplyPacket(const PacketBuffer& packetBuffer)
 {
-    auto retObj = Dict<IString, IBaseObject>();
+    const auto jsonRequest = packetBuffer.parseNoReplyRpcRequest();
+    processNoReplyRpc(jsonRequest);
+}
+
+StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
+{
     try
     {
+        auto retObj = Dict<IString, IBaseObject>();
+
         const auto obj = deserializer.deserialize(jsonStr, nullptr);
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
@@ -259,22 +295,54 @@ StringPtr ConfigProtocolServer::processRpc(const StringPtr& jsonStr)
         retObj.set("ErrorCode", OPENDAQ_SUCCESS);
         if (retValue.assigned())
             retObj.set("ReturnValue", retValue);
+
+        serializer.reset();
+        retObj.serialize(serializer);
+        return serializer.getOutput();
     }
     catch (const daq::DaqException& e)
     {
-        retObj.set("ErrorCode", e.getErrCode());
-        retObj.set("ErrorMessage", e.what());
+        return prepareErrorResponse(e.getErrCode(), e.what(), this->serializer);
     }
     catch (const std::exception& e)
     {
-        retObj.set("ErrorCode", OPENDAQ_ERR_GENERALERROR);
-        retObj.set("ErrorMessage", e.what());
+        return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), this->serializer);
     }
 
+    return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, "General error during serialization", this->serializer);
+}
+
+StringPtr ConfigProtocolServer::prepareErrorResponse(Int errorCode, const StringPtr& message, const SerializerPtr& serializer)
+{
+    auto errorObject = Dict<IString, IBaseObject>();
+    errorObject.set("ErrorCode", errorCode);
+    errorObject.set("ErrorMessage", message);
+
     serializer.reset();
-    serializer.setUser(user);
-    retObj.serialize(serializer);
+    errorObject.serialize(serializer);
     return serializer.getOutput();
+}
+
+void ConfigProtocolServer::processNoReplyRpc(const StringPtr& jsonStr)
+{
+    StringPtr funcName;
+    try
+    {
+        const auto obj = deserializer.deserialize(jsonStr, nullptr);
+        const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
+
+        funcName = dictObj.get("Name");
+        ParamsDictPtr funcParams;
+        if (dictObj.hasKey("Params"))
+            funcParams = dictObj.get("Params");
+
+        callRpc(funcName, funcParams);
+    }
+    catch (const std::exception& e)
+    {
+        auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolServer");
+        LOG_W("RPC call {} failed with: {}", funcName.assigned() ? funcName : "not recognized", e.what());
+    }
 }
 
 BaseObjectPtr ConfigProtocolServer::callRpc(const StringPtr& name, const ParamsDictPtr& params)
@@ -304,21 +372,60 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
     if (!component.assigned())
         throw NotFoundException("Component not found");
 
+    ConfigServerAccessControl::protectObject(component, user, Permission::Read);
     return ComponentHolder(component);
 }
 
 BaseObjectPtr ConfigProtocolServer::getSerializedRootDevice(const ParamsDictPtr& params)
 {
+    ConfigServerAccessControl::protectObject(rootDevice, user, Permission::Read);
+
     serializer.reset();
     rootDevice.serialize(serializer);
 
     return serializer.getOutput();
 }
 
+BaseObjectPtr ConfigProtocolServer::connectSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const StringPtr signalId = params.get("SignalId");
+    const SignalPtr signal = findComponent(signalId);
+    if (signal.assigned() && streamingConsumer.isExternalSignal(signal))
+        throw InvalidParameterException("Mirrored external signal cannot be connected to server input port");
+    return ConfigServerInputPort::connect(context, inputPort, signal, params);
+}
+
+BaseObjectPtr ConfigProtocolServer::connectExternalSignal(const RpcContext& context,
+                                                          const InputPortPtr& inputPort,
+                                                          const ParamsDictPtr& params)
+{
+    const SignalPtr signal = streamingConsumer.getOrAddExternalSignal(params);
+    return ConfigServerInputPort::connect(context, inputPort, signal, params);
+}
+
+BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(rootDevice);
+    ConfigServerAccessControl::protectViewOnlyConnection(connectionType);
+
+    streamingConsumer.removeExternalSignals(params);
+    return nullptr;
+}
+
+BaseObjectPtr ConfigProtocolServer::acceptsSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const StringPtr signalId = params.get("SignalId");
+    const SignalPtr signal = findComponent(signalId);
+    return ConfigServerInputPort::accepts(context, inputPort, signal, user);
+}
+
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
-    const auto packed = packCoreEvent(component, eventArgs);
-    sendNotification(packed);
+    if (streamingConsumer.isForwardedCoreEvent(component, eventArgs))
+    {
+        const auto packed = packCoreEvent(component, eventArgs);
+        sendNotification(packed);
+    }
 }
 
 ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
@@ -348,6 +455,7 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::TypeAdded:
         case CoreEventId::TypeRemoved:
         case CoreEventId::DeviceDomainChanged:
+        case CoreEventId::DeviceLockStateChanged:
         default:
             packedEvent.pushBack(args);
     }
@@ -408,13 +516,25 @@ CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const Component
 
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const
 {
+    ConfigServerAccessControl::protectObject(rootDevice, user, Permission::Read);
+
     const auto typeManager = rootDevice.getContext().getTypeManager();
     return typeManager;
 }
 
-void ConfigProtocolServer::processClientToDeviceStreamingPacket(uint32_t signalNumericId, const PacketPtr& packet)
+void ConfigProtocolServer::processClientToServerStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
 {
-    // TODO
+    streamingConsumer.processClientToServerStreamingPacket(signalNumericId, packet);
+}
+
+uint16_t ConfigProtocolServer::getProtocolVersion() const
+{
+    return protocolVersion;
+}
+
+void ConfigProtocolServer::setProtocolVersion(uint16_t protocolVersion)
+{
+    this->protocolVersion = protocolVersion;
 }
 
 }

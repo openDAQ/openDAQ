@@ -48,6 +48,9 @@ public:
     ErrCode INTERFACE_FUNC setStartOnFullUnitOfDomain(Bool enabled) override;
     ErrCode INTERFACE_FUNC getStartOnFullUnitOfDomain(Bool* enabled) override;
 
+    ErrCode INTERFACE_FUNC setMinReadCount(SizeT minReadCount) override;
+    ErrCode INTERFACE_FUNC getMinReadCount(SizeT* minReadCount) override;
+
 private:
     ListPtr<IComponent> sources;
     SampleType valueReadType;
@@ -56,6 +59,7 @@ private:
     ReadTimeoutType readTimeoutType;
     Int requiredCommonSampleRate;
     Bool startOnFullUnitOfDomain;
+    SizeT minReadCount;
 };
 
 END_NAMESPACE_OPENDAQ

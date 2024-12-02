@@ -16,7 +16,14 @@
 
 #pragma once
 
+#include <coreobjects/property_object.h>
+
 BEGIN_NAMESPACE_OPENDAQ
+
+/*#
+ * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
+ * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user_ptr.h>")]
+ */
 
 /*!
  * @ingroup opendaq_devices
@@ -27,6 +34,12 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IDevicePrivate, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC setAsRoot() = 0;
+    virtual ErrCode INTERFACE_FUNC setDeviceConfig(IPropertyObject* config) = 0;
+    virtual ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) = 0;
+    virtual ErrCode INTERFACE_FUNC lock(IUser * user) = 0;
+    virtual ErrCode INTERFACE_FUNC unlock(IUser * user) = 0;
+    virtual ErrCode INTERFACE_FUNC isLockedInternal(Bool * locked) = 0;
+    virtual ErrCode INTERFACE_FUNC forceUnlock() = 0;
 };
 /*!@}*/
 

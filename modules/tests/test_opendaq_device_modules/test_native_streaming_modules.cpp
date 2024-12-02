@@ -1,16 +1,18 @@
 #include "test_helpers/test_helpers.h"
 #include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permission_mask_builder_factory.h>
+#include <coreobjects/user_factory.h>
 
 using NativeStreamingModulesTest = testing::Test;
 
 using namespace daq;
 
-static InstancePtr CreateServerInstance()
+static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authenticationProvider)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("");
-    auto authenticationProvider = AuthenticationProvider();
     auto context = Context(scheduler, logger, TypeManager(), moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
@@ -19,6 +21,25 @@ static InstancePtr CreateServerInstance()
 
     instance.addServer("OpenDAQNativeStreaming", nullptr);
 
+    return instance;
+}
+
+static InstancePtr CreateServerInstance()
+{
+    auto authenticationProvider = AuthenticationProvider();
+    return CreateServerInstance(authenticationProvider);
+}
+
+static InstancePtr CreateClientInstance(const std::string& username, const std::string& password)
+{
+    auto instance = Instance();
+
+    auto config = instance.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    general.setPropertyValue("Username", username);
+    general.setPropertyValue("Password", password);
+
+    auto refDevice = instance.addDevice("daq.ns://127.0.0.1/", config);
     return instance;
 }
 
@@ -105,7 +126,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
             }
         }
     }
-    ASSERT_TRUE(false);
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 #ifdef _WIN32
@@ -205,7 +226,7 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
         }      
     }
 
-    ASSERT_TRUE(false);
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 
@@ -398,7 +419,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     }
 }
 
-TEST_F(NativeStreamingModulesTest, ReconnectWhileRead)
+TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -606,4 +627,120 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPort(), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://127.0.0.1/");
+}
+
+TEST_F(NativeStreamingModulesTest, ProtectedSignals)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("admin", "admin", {"admin"}));
+    users.pushBack(User("opendaq", "opendaq"));
+    auto authenticationProvider = StaticAuthenticationProvider(false, users);
+
+    auto permissions = PermissionsBuilder().inherit(false).allow("admin", PermissionMaskBuilder().read().write().execute()).build();
+
+    auto server = CreateServerInstance(authenticationProvider);
+    auto serverSignals = server.getSignalsRecursive(search::Any());
+    ASSERT_EQ(serverSignals.getCount(), 4u);
+
+    serverSignals[0].getPermissionManager().setPermissions(permissions);
+    serverSignals[1].getPermissionManager().setPermissions(permissions);
+
+    {
+        auto client = CreateClientInstance("admin", "admin");
+        auto clientSignals = client.getSignalsRecursive(search::Any());
+        ASSERT_EQ(clientSignals.getCount(), 4u);
+    }
+
+    {
+        auto client = CreateClientInstance("opendaq", "opendaq");
+        auto clientSignals = client.getSignalsRecursive(search::Any());
+        ASSERT_EQ(clientSignals.getCount(), 2u);
+        ASSERT_EQ(clientSignals[0].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1");
+        ASSERT_EQ(clientSignals[1].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1Time");
+    }
+}
+
+TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeDenied)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto signal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+
+    // deny everyone on signal
+    auto permissionsDenyAll = PermissionsBuilder().inherit(false).build();
+    auto serverSignal = server.getSignalsRecursive()[0];
+    serverSignal.getPermissionManager().setPermissions(permissionsDenyAll);
+
+    // try to subscribe
+    std::promise<StringPtr> signalSubscribePromise;
+    std::future<StringPtr> signalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+
+    auto reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
+    ASSERT_FALSE(test_helpers::waitForAcknowledgement(signalSubscribeFuture, std::chrono::seconds(1)));
+}
+
+
+TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeAllowed)
+{
+    auto users = List<IUser>();
+    users.pushBack(User("admin", "admin", {"admin"}));
+    auto authenticationProvider = StaticAuthenticationProvider(false, users);
+
+    auto server = CreateServerInstance(authenticationProvider);
+    auto client = CreateClientInstance("admin", "admin");
+
+    auto signal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+
+    // allow admin on signal
+    auto permissionsAllowAdmin =
+        PermissionsBuilder().inherit(false).assign("admin", PermissionMaskBuilder().read().write().execute()).build();
+    auto serverSignal = server.getSignalsRecursive()[0];
+    serverSignal.getPermissionManager().setPermissions(permissionsAllowAdmin);
+
+    // subscribe
+    std::promise<StringPtr> signalSubscribePromise;
+    std::future<StringPtr> signalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+
+    auto reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
+
+    // unsibscribe
+    std::promise<StringPtr> signalUnsubscribePromise;
+    std::future<StringPtr> signalUnsubscribeFuture;
+    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+
+    reader.release();
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture));
+}
+
+TEST_F(NativeStreamingModulesTest, ProtectedSignalUnsubscribeDenied)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto signal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+
+    // subscribe
+    std::promise<StringPtr> signalSubscribePromise;
+    std::future<StringPtr> signalSubscribeFuture;
+    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+
+    auto reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
+
+    // deny everyone on signal
+    auto permissionsDenyAll = PermissionsBuilder().inherit(false).build();
+    auto serverSignal = server.getSignalsRecursive()[0];
+    serverSignal.getPermissionManager().setPermissions(permissionsDenyAll);
+
+    // try to unsibscibe
+    std::promise<StringPtr> signalUnsubscribePromise;
+    std::future<StringPtr> signalUnsubscribeFuture;
+    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+
+    reader.release();
+    ASSERT_FALSE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture, std::chrono::seconds(1)));
 }

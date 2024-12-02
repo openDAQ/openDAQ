@@ -68,7 +68,12 @@ run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_va
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated validator
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit_builder
-run_rtgen CoreObjects coreobjects coreobjects core_objects/generated component_type
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated user
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated authentication_provider
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permissions_builder
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permission_mask_builder
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permission_manager
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permissions
 
 #
 # opendaq
@@ -84,8 +89,10 @@ run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component   
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_private
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_status_container
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_status_container_private
+run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        update_parameters
 run_rtgen opendaq opendaq/context         opendaq opendaq/generated/context          context
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_private
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_domain
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_info_config
@@ -93,6 +100,8 @@ run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device      
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_type
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info_builder
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info_builder
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    channel
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block_type
@@ -147,6 +156,8 @@ run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal      
 run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           signal
 run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           signal_config
 run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           signal_events
+run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           reference_domain_info
+run_rtgen opendaq opendaq/signal          opendaq opendaq/generated/signal           reference_domain_info_builder
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        streaming
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_signal_config
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_signal_private
@@ -158,3 +169,6 @@ run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component   
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        tags_private
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component_private
+run_rtgen opendaq opendaq/modulemanager   opendaq opendaq/generated/modulemanager    module_info
+run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_type
+

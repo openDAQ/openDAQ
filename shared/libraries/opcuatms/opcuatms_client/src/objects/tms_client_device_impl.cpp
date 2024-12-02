@@ -12,6 +12,7 @@
 #include <opcuatms_client/objects/tms_client_io_folder_factory.h>
 #include <opcuatms_client/objects/tms_client_server_capability_factory.h>
 #include <opcuatms_client/objects/tms_client_sync_component_factory.h>
+#include <opcuatms_client/objects/tms_client_property_factory.h>
 #include <open62541/daqbsp_nodeids.h>
 #include <open62541/daqbt_nodeids.h>
 #include <open62541/daqdevice_nodeids.h>
@@ -85,6 +86,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
     findAndCreateSyncComponent();
+    findAndCreateProporties();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
@@ -256,6 +258,19 @@ void TmsClientDeviceImpl::findAndCreateSyncComponent()
                                        "Synchronization",
                                        clientContext,
                                        syncComponentNodeId));
+}
+
+void TmsClientDeviceImpl::findAndCreateProporties()
+{
+    if (auto it = this->introspectionVariableIdMap.find("UserName"); it != this->introspectionVariableIdMap.end())
+    {
+        introspectionVariableIdMap.emplace("userName", it->second);
+    }
+    
+    if (auto it = this->introspectionVariableIdMap.find("Location"); it != this->introspectionVariableIdMap.end())
+    {
+        introspectionVariableIdMap.emplace("location", it->second);
+    }
 }
 
 void TmsClientDeviceImpl::fetchTicksSinceOrigin()
@@ -622,6 +637,16 @@ void TmsClientDeviceImpl::onRemoveFunctionBlock(const FunctionBlockPtr& function
         throw OpcUaException(response->statusCode, "Failed to remove function block");
 
     removeNestedFunctionBlock(functionBlock);
+}
+
+ListPtr<ILogFileInfo> TmsClientDeviceImpl::ongetLogFileInfos()
+{
+    throw OpcUaClientCallNotAvailableException("getLogFileInfos is not available for OpcUA client device");
+}
+
+StringPtr TmsClientDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
+{
+    throw OpcUaClientCallNotAvailableException("GetLog is not available for OpcUA client device");
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

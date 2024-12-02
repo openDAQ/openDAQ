@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
@@ -50,6 +52,7 @@ void defineISubscriptionEventArgs(pybind11::module_ m, PyDaqIntf<daq::ISubscript
     cls.def_property_readonly("streaming_connection_string",
         [](daq::ISubscriptionEventArgs *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SubscriptionEventArgsPtr::Borrow(object);
             return objectPtr.getStreamingConnectionString().toStdString();
         },
@@ -57,6 +60,7 @@ void defineISubscriptionEventArgs(pybind11::module_ m, PyDaqIntf<daq::ISubscript
     cls.def_property_readonly("subscription_event_type",
         [](daq::ISubscriptionEventArgs *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::SubscriptionEventArgsPtr::Borrow(object);
             return objectPtr.getSubscriptionEventType();
         },

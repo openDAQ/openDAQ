@@ -2,6 +2,7 @@ set(BASE_NAME device)
 
 function(rtgen_component_${BASE_NAME})
     rtgen(SRC_Device device.h)
+    rtgen(SRC_DevicePrivate device_private.h)
     rtgen(SRC_DeviceDomain device_domain.h)
     rtgen(SRC_DeviceInfo device_info.h)
     rtgen(SRC_DeviceInfoInternal device_info_internal.h)
@@ -13,9 +14,13 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_AddressInfo address_info.h)
     rtgen(SRC_AddressInfoBuilder address_info_builder.h)
     rtgen(SRC_AddressInfoPrivate address_info_private.h)
+    rtgen(SRC_LogFileInfo log_file_info.h)
+    rtgen(SRC_LogFileInfoBuilder log_file_info_builder.h)
+    rtgen(SRC_UserLock user_lock.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Device_PublicHeaders}
+        ${SRC_DevicePrivate_PublicHeaders}
         ${SRC_DeviceDomain_PublicHeaders}
         ${SRC_DeviceInfo_PublicHeaders}
         ${SRC_DeviceInfoConfig_PublicHeaders}
@@ -27,11 +32,15 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_AddressInfo_PublicHeaders}
         ${SRC_AddressInfoBuilder_PublicHeaders}
         ${SRC_AddressInfoPrivate_PublicHeaders}
+        ${SRC_LogFileInfo_PublicHeaders}
+        ${SRC_LogFileInfoBuilder_PublicHeaders}
+        ${SRC_UserLock_PublicHeaders}
         PARENT_SCOPE
     )
     
     set(SRC_PrivateHeaders_Component_Generated
         ${SRC_Device_PrivateHeaders}
+        ${SRC_DevicePrivate_PrivateHeaders}
         ${SRC_DeviceDomain_PrivateHeaders}
         ${SRC_DeviceInfo_PrivateHeaders}
         ${SRC_DeviceInfoConfig_PrivateHeaders}
@@ -42,11 +51,15 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_DeviceType_PrivateHeaders}
         ${SRC_AddressInfo_PrivateHeaders}
         ${SRC_AddressInfoBuilder_PrivateHeaders}
+        ${SRC_LogFileInfo_PrivateHeaders}
+        ${SRC_LogFileInfoBuilder_PrivateHeaders}
+        ${SRC_UserLock_PrivateHeaders}
         PARENT_SCOPE
     )
     
     set(SRC_Cpp_Component_Generated
         ${SRC_Device_Cpp}
+        ${SRC_DevicePrivate_Cpp}
         ${SRC_DeviceDomain_Cpp}
         ${SRC_DeviceInfo_Cpp}
         ${SRC_DeviceInfoConfig_Cpp}
@@ -57,6 +70,9 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_DeviceType_Cpp}
         ${SRC_AddressInfo_Cpp}
         ${SRC_AddressInfoBuilder_Cpp}
+        ${SRC_LogFileInfo_Cpp}
+        ${SRC_LogFileInfoBuilder_Cpp}
+        ${SRC_UserLock_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -118,6 +134,23 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/address_info_impl.cpp
         ${SDK_SRC_DIR}/address_info_builder_impl.cpp
     )
+
+    source_group("device//log_file_info" FILES 
+        ${SDK_HEADERS_DIR}/log_file_info.h
+        ${SDK_HEADERS_DIR}/log_file_info_impl.h
+        ${SDK_HEADERS_DIR}/log_file_info_builder.h
+        ${SDK_HEADERS_DIR}/log_file_info_builder_impl.h
+        ${SDK_HEADERS_DIR}/log_file_info_factory.h
+        ${SDK_SRC_DIR}/log_file_info_builder_impl.cpp
+        ${SDK_SRC_DIR}/log_file_info_impl.cpp
+    )
+
+    source_group("device//user_lock" FILES 
+        ${SDK_HEADERS_DIR}/user_lock.h
+        ${SDK_HEADERS_DIR}/user_lock_factory.h
+        ${SDK_HEADERS_DIR}/user_lock_impl.h
+        ${SDK_SRC_DIR}/user_lock_impl.cpp
+    )
     
     source_group("device" FILES 
         ${SDK_HEADERS_DIR}/device_errors.h
@@ -142,6 +175,11 @@ set(SRC_PublicHeaders_Component
     server_capability_impl.h
     device_domain_factory.h
     address_info_factory.h
+    log_file_info.h
+    log_file_info_builder.h
+    log_file_info_factory.h
+    user_lock.h
+    user_lock_factory.h
     PARENT_SCOPE
 )
 
@@ -151,6 +189,9 @@ set(SRC_PrivateHeaders_Component
     device_domain_impl.h
     address_info_impl.h
     address_info_builder_impl.h
+    log_file_info_impl.h
+    log_file_info_builder_impl.h
+    user_lock_impl.h
     PARENT_SCOPE
 )
 
@@ -163,6 +204,9 @@ set(SRC_Cpp_Component
     device_domain_impl.cpp
     address_info_impl.cpp
     address_info_builder_impl.cpp
+    log_file_info_impl.cpp
+    log_file_info_builder_impl.cpp
+    user_lock_impl.cpp
     device.natvis
     PARENT_SCOPE
 )

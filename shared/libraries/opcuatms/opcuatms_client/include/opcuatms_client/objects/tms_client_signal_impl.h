@@ -15,9 +15,9 @@
  */
 
 #pragma once
-#include "opendaq/mirrored_signal_impl.h"
-#include "opcuatms_client/objects/tms_client_component_impl.h"
-#include "opendaq/data_descriptor_ptr.h"
+#include <opendaq/mirrored_signal_impl.h>
+#include <opcuatms_client/objects/tms_client_component_impl.h>
+#include <opendaq/data_descriptor_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

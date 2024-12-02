@@ -72,7 +72,6 @@ void PowerFbImpl::initProperties()
 
 void PowerFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure(false);
@@ -118,7 +117,7 @@ void PowerFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& voltag
 
 void PowerFbImpl::processPackets()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
 
     PacketPtr voltagePacket;
     PacketPtr currentPacket;
@@ -138,6 +137,7 @@ void PowerFbImpl::processPackets()
 
                     if (voltageEventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                     {
+                        // TODO handle Null-descriptor params ('Null' sample type descriptors)
                         DataDescriptorPtr valueDataDescriptor = voltageEventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
                         DataDescriptorPtr domainDataDescriptor =
                             voltageEventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
@@ -166,6 +166,7 @@ void PowerFbImpl::processPackets()
 
                     if (currentEventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                     {
+                        // TODO handle Null-descriptor params ('Null' sample type descriptors)
                         DataDescriptorPtr valueSignalDescriptor =
                             currentEventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
                         DataDescriptorPtr domainSignalDescriptor =
@@ -458,13 +459,13 @@ void PowerFbImpl::createSignals()
 
 void PowerFbImpl::onConnected(const InputPortPtr& inputPort)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
     LOG_T("Connected to port {}", inputPort.getLocalId())
 }
 
 void PowerFbImpl::onDisconnected(const InputPortPtr& inputPort)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
     LOG_T("Disconnected from port {}", inputPort.getLocalId())
 }
 

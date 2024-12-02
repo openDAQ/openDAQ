@@ -15,6 +15,7 @@ namespace RTGen.Python.Generators
         {
             GenerateMethods = false;
             VariantUsed = false;
+            BufferUsed = false;
         }
 
         public override IVersionInfo Version => new VersionInfo
@@ -59,6 +60,7 @@ namespace RTGen.Python.Generators
         }
 
         private bool VariantUsed;
+        private bool BufferUsed;
 
         private static string GetBriefDocumentationString(IDocComment documentation)
         {
@@ -76,10 +78,22 @@ namespace RTGen.Python.Generators
 
         protected override string GetIncludes(IRTFile rtFile)
         {
+            string includes = null;
             if (VariantUsed)
             {
-                return "#include \"py_core_objects/py_variant_extractor.h\"";
+                includes += "#include \"py_core_objects/py_variant_extractor.h\"";
             }
+
+            if (BufferUsed)
+            {
+                if (!string.IsNullOrEmpty(includes))
+                    includes += "\n";
+                includes += "#include \"py_opendaq/py_packet_buffer.h\"";
+            }
+
+            if (!string.IsNullOrEmpty(includes))
+                return includes;
+
             return base.GetIncludes(rtFile);
         }
 
@@ -205,15 +219,21 @@ namespace RTGen.Python.Generators
             {
                 variant.Append(", daq::IEvalValue*");
             }
-            variant.Append(String.Format(">& {0}", argument.Name));
-            return variant.ToString();
+            var typeName = variant.Append(String.Format(">")).ToString();
+            if (argument.AllowNull)
+                typeName = MakeTypeNameOptional(typeName);
+
+            return String.Format("{0}& {1}", typeName, argument.Name);
         }
 
         private string GenerateVariantExtractorForArgument(IArgument argument)
         {
             string extractorFunctionName = "getVariantValue";
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append(String.Format("{0}<{1}{2}>({3})", extractorFunctionName, argument.Type.FullName(false), argument.Type.Modifiers, argument.Name));
+            if (argument.AllowNull)
+                stringBuilder.Append(String.Format("{3}.has_value() ? {0}<{1}{2}>({3}.value()) : nullptr", extractorFunctionName, argument.Type.FullName(false), argument.Type.Modifiers, argument.Name));
+            else
+                stringBuilder.Append(String.Format("{0}<{1}{2}>({3})", extractorFunctionName, argument.Type.FullName(false), argument.Type.Modifiers, argument.Name));
             return stringBuilder.ToString();
         }
 
@@ -238,7 +258,11 @@ namespace RTGen.Python.Generators
                 }
                 else
                 {
-                    factoryLambda.Append(String.Format("{0} {1}", GetPyBind11TypeName(argument), argument.Name));
+                    var typeName = GetPyBind11TypeName(argument);
+                    if (argument.AllowNull)
+                        typeName = MakeTypeNameOptional(typeName) + "&";
+
+                    factoryLambda.Append(String.Format("{0} {1}", typeName, argument.Name));
                 }
                 if (argumentIndex < factory.Arguments.Length - 1)
                 {
@@ -262,7 +286,8 @@ namespace RTGen.Python.Generators
                 }
                 else
                 {
-                    factoryLambda.Append(argument.Name);
+                    var argName = GetAllowNullArgumentName(argument);
+                    factoryLambda.Append(argName);
                 }
                 if (argumentIndex < factory.Arguments.Length - 1)
                 {
@@ -291,6 +316,19 @@ namespace RTGen.Python.Generators
             return factoryLambda.ToString();
         }
 
+        private string GetAllowNullArgumentName(IArgument argument)
+        {
+            if (argument.AllowNull)
+                return String.Format("{0}.has_value() ? {0}.value() : nullptr", argument.Name);
+            else
+                return argument.Name;
+        }
+
+        private string MakeTypeNameOptional(string typeName)
+        {
+            return String.Format("std::optional<{0}>", typeName);
+        }
+
         private string GenerateFactoryConstructors()
         {
             StringBuilder factoriesImpl = new StringBuilder();
@@ -301,6 +339,8 @@ namespace RTGen.Python.Generators
 
             foreach (IRTFactory factory in RtFile.Factories)
             {
+                if (IsFactoryTemporarilyDisabled(factory))
+                    continue;
                 // TODO: temporary workaround to comment out WinDebugLoggerSink from non-Windows platforms
                 bool win32Only = (factory.PrettyName == "WinDebugLoggerSink");
                 if (win32Only)
@@ -417,6 +457,9 @@ namespace RTGen.Python.Generators
                         argumentAnnotations.Add("py::arg(\"" + argument.Name.ToLowerSnakeCase() + "\")" + defaultArgumentValueAssignment);
                     }
                 }
+
+                if (argument.RawBuffer != null)
+                    BufferUsed = true;
             }
 
             if (argumentsListIn.Count > 0)
@@ -432,6 +475,7 @@ namespace RTGen.Python.Generators
 
             impl.AppendLine(leadingSpaces + String.Format("[](daq::{0} *object{1})", interfaceName, argumentsIn));
             impl.AppendLine(leadingSpaces + "{");
+            impl.AppendLine(leadingSpaces + "    py::gil_scoped_release release;");
             impl.AppendLine(leadingSpaces + String.Format("    const auto objectPtr = daq::{0}::Borrow(object);", wrapperName));
 
             string doReturn = method.ReturnsByRef() ? "return " : "";
@@ -439,9 +483,13 @@ namespace RTGen.Python.Generators
             if (argumentsOut.Count > 0)
             {
                 IArgument argumentOut = argumentsOut[0];
-
+                if (argumentOut.RawBuffer != null)
+                {
+                    doReturn = "return std::make_unique<PyBuffer::Buffer>(objectPtr, ";
+                    convertToPython = String.Format(", objectPtr.{0}())", argumentOut.RawBuffer);
+                }
                 // we need to call .toStdString() to return a native string rather than openDAQ object
-                if (argumentOut.Type.Name == "IString")
+                else if (argumentOut.Type.Name == "IString")
                     convertToPython = ".toStdString()";
                 // objects need to be detached, while integers, booleans, enums etc. shouldn't be
                 else if (!argumentOut.Type.Flags.IsValueType && argumentOut.Type.UnmappedName != "void")
@@ -468,11 +516,6 @@ namespace RTGen.Python.Generators
         // TODO: a temporary set of functions that are not properly supported yet
         private bool isMethodTemporarilyDisabled(IMethod method)
         {
-            // These two methods return raw pointers,
-            // it's not exactly clear what the bindings are supposed to do here.
-            if (method.Name == "getData" || method.Name == "getRawData")
-                return true;
-
             foreach (IArgument argument in method.Overloads[0].Arguments)
             {
                 // IEvent is not properly supported yet,
@@ -480,6 +523,16 @@ namespace RTGen.Python.Generators
                 if (argument.Type.Name == "IEvent")
                     return true;
             }
+
+            return false;
+        }
+
+        private bool IsFactoryTemporarilyDisabled(IRTFactory factory)
+        {
+            if (factory.Name == "createDataPacketWithExternalMemory")
+                return true;
+            if (factory.Name == "createConstantDataPacketWithDomain")
+                return true;
 
             return false;
         }

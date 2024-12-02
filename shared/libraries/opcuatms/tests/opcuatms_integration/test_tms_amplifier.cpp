@@ -1,15 +1,15 @@
 #include <coreobjects/property_object_class_factory.h>
-#include "coreobjects/callable_info_factory.h"
-#include "coreobjects/property_object_factory.h"
-#include "coreobjects/unit_factory.h"
-#include "coretypes/type_manager_factory.h"
-#include "gtest/gtest.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms_client/objects/tms_client_property_object_factory.h"
-#include "opcuatms_client/objects/tms_client_property_object_impl.h"
-#include "opcuatms_server/objects/tms_server_property_object.h"
+#include <coreobjects/callable_info_factory.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/unit_factory.h>
+#include <coretypes/type_manager_factory.h>
+#include <gtest/gtest.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms_client/objects/tms_client_property_object_factory.h>
+#include <opcuatms_client/objects/tms_client_property_object_impl.h>
+#include <opcuatms_server/objects/tms_server_property_object.h>
 #include "tms_object_integration_test.h"
-#include "opendaq/instance_factory.h"
+#include <opendaq/instance_factory.h>
 
 using namespace daq;
 using namespace opcua::tms;

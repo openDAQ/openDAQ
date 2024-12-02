@@ -15,12 +15,14 @@
  */
 
 #pragma once
+#include <coretypes/deserializer.h>
+#include <coretypes/serialized_object.h>
+#include <coretypes/serializer.h>
 #include <coretypes/version_info.h>
-#include <coretypes/intfs.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class VersionInfoImpl : public ImplementationOf<IVersionInfo>
+class VersionInfoImpl : public GenericStructImpl<IVersionInfo, IStruct>
 {
 public:
     VersionInfoImpl(SizeT major, SizeT minor, SizeT patch);
@@ -29,10 +31,14 @@ public:
     ErrCode INTERFACE_FUNC getMinor(SizeT* minor) override;
     ErrCode INTERFACE_FUNC getPatch(SizeT* patch) override;
 
-private:
-    SizeT major;
-    SizeT minor;
-    SizeT patch;
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj);
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(VersionInfoImpl)
 
 END_NAMESPACE_OPENDAQ

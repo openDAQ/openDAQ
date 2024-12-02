@@ -130,7 +130,7 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
     virtual ErrCode INTERFACE_FUNC setStreamed(Bool streamed) = 0;
 
     /*!
-     * @brief Gets the signal last value
+     * @brief Gets the signal last value.
      * @param[out] value The IBaseObject value can be a nullptr if there is no value, or if the data type is not supported by the function.
      *
      * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64,

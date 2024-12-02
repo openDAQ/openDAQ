@@ -41,6 +41,12 @@ DECLARE_OPENDAQ_INTERFACE(ISignalPrivate, IBaseObject)
      * @param enabled Option for enabling method getLastValue
      */
     virtual ErrCode INTERFACE_FUNC enableKeepLastValue(Bool enabled) = 0;
+
+    /*!
+     * @brief Gets the signal serilized id. In local device the serilized id matached the signal global id. For remote id it is the signal id in the remote device.
+     * @param[out] serializeId The signal serilized id.
+     */
+    virtual ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) = 0;
 };
 /*!@}*/
 

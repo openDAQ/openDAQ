@@ -20,6 +20,7 @@
 
 #include <opendaq/context_ptr.h>
 #include <opendaq/signal_ptr.h>
+#include <opendaq/client_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -30,8 +31,10 @@ public:
                          const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                          SessionPtr session,
                          const std::string& clientId,
+                         OnFindSignalCallback findSignalHandler,
                          OnSignalSubscriptionCallback signalSubscriptionHandler,
-                         native_streaming::OnSessionErrorCallback errorHandler);
+                         native_streaming::OnSessionErrorCallback errorHandler,
+                         SizeT streamingPacketSendTimeout);
 
     void sendSignalAvailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
     void sendSignalUnavailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
@@ -48,19 +51,31 @@ public:
     void setReconnected(bool reconnected);
     bool getReconnected();
     UserPtr getUser();
+    void setClientType(ClientType clientType);
+    ClientType getClientType();
+    void setExclusiveControlDropOthers(bool enabled);
+    bool isExclusiveControlDropOthersEnabled();
+
+    bool isConfigProtocolUsed();
+    void triggerUseConfigProtocol();
 
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
-
     daq::native_streaming::ReadTask readSignalSubscribe(const void* data, size_t size);
     daq::native_streaming::ReadTask readSignalUnsubscribe(const void* data, size_t size);
     daq::native_streaming::ReadTask readTransportLayerProperties(const void* data, size_t size);
 
+    bool hasUserAccessToSignal(const SignalPtr& signal);
+
     OnStreamingRequestCallback streamingInitHandler;
+    OnFindSignalCallback findSignalHandler;
     OnSignalSubscriptionCallback signalSubscriptionHandler;
     OnTrasportLayerPropertiesCallback transportLayerPropsHandler;
 
     std::string clientId;
     bool reconnected;
+    bool useConfigProtocol;
+    ClientType clientType = ClientType::Control;
+    bool exclusiveControlDropOthers = false;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

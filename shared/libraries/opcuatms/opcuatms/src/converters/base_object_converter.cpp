@@ -1,6 +1,6 @@
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/core_types_utils.h"
-#include "opendaq/data_descriptor_ptr.h"
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/core_types_utils.h>
+#include <opendaq/data_descriptor_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -25,9 +25,9 @@ OpcUaVariant VariantConverter<IBaseObject>::ToVariant(const BaseObjectPtr& objec
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-#include "opcuatms/converters/selection_converter.h"
-#include "opcuatms/converter_maps.h"
-#include "opcuatms/converters/list_conversion_utils.h"
+#include <opcuatms/converters/selection_converter.h>
+#include <opcuatms/converter_maps.h>
+#include <opcuatms/converters/list_conversion_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -113,7 +113,7 @@ OpcUaVariant VariantConverter<IBaseObject>::ToArrayVariant(const ListPtr<IBaseOb
     if (targetType == &UA_TYPES[UA_TYPES_VARIANT])
         return ListConversionUtils::ToVariantTypeArrayVariant(list, context);
 
-    const auto elementType = list.asPtrOrNull<IListElementType>();
+    const auto elementType = list.asPtr<IListElementType>();
     IntfID elementId;
     elementType->getElementInterfaceId(&elementId);
 
@@ -138,7 +138,7 @@ OpcUaVariant VariantConverter<IBaseObject>::ToVariant(const BaseObjectPtr& objec
 
     const auto ids = object.asPtr<IInspectable>().getInterfaceIds();
     auto wrapConvertedValue = targetType == &UA_TYPES[UA_TYPES_EXTENSIONOBJECT] || targetType == &UA_TYPES[UA_TYPES_VARIANT];
-    wrapConvertedValue = wrapConvertedValue && !object.asPtrOrNull<IList>().assigned();
+    wrapConvertedValue = wrapConvertedValue && !object.supportsInterface<IList>();
 
     if (wrapConvertedValue)
     {

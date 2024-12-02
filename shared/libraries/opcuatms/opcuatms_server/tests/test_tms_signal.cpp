@@ -4,10 +4,10 @@
 #include <opendaq/range_factory.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/signal_ptr.h>
-#include "gtest/gtest.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms_server/objects/tms_server_input_port.h"
-#include "opcuatms_server/objects/tms_server_signal.h"
+#include <gtest/gtest.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms_server/objects/tms_server_input_port.h>
+#include <opcuatms_server/objects/tms_server_signal.h>
 #include "tms_server_test.h"
 
 using namespace daq;

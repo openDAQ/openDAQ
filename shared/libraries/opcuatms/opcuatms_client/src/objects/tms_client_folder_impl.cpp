@@ -1,7 +1,7 @@
 #include <opcuatms_client/objects/tms_client_component_factory.h>
 #include <opcuatms_client/objects/tms_client_folder_factory.h>
-#include "opcuatms_client/objects/tms_client_folder_impl.h"
-#include "opendaq/io_folder_impl.h"
+#include <opcuatms_client/objects/tms_client_folder_impl.h>
+#include <opendaq/io_folder_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

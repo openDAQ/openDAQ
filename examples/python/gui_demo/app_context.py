@@ -1,6 +1,8 @@
+import os
+
 import opendaq as daq
 
-from .utils import *
+from . import utils
 
 
 class DeviceInfoLocal:
@@ -11,6 +13,9 @@ class DeviceInfoLocal:
 
 
 class AppContext(object):
+
+    default_folders = {'Dev', 'FB', 'IO', 'IP', 'Sig'}
+
     def __init__(self):
 
         # logic
@@ -19,6 +24,7 @@ class AppContext(object):
         self.selected_node = None
         self.include_reference_devices = False
         self.view_hidden_components = False
+        self.metadata_fields = []
         # gui
         self.ui_scaling_factor = 1.0
         self.icons = {}
@@ -38,31 +44,29 @@ class AppContext(object):
             self.enabled_devices[conn] = {
                 'device_info': device_info, 'device': None}
 
-    def add_device(self, device_info, parent_device: daq.IDevice, config = None):
+    def add_device(self, device_info, parent_device: daq.IDevice, config=None):
         if device_info is None:
             return None
         if parent_device is None:
             return None
-        try:
-            device = parent_device.add_device(device_info.connection_string, config)
-            if device:
-                device_info.name = device.local_id
-                device_info.serial_number = device.info.serial_number
-                self.enabled_devices[device_info.connection_string] = {
-                    'device_info': device_info, 'device': device}
-                return device
-        except RuntimeError as e:
-            print(f'Error adding device {device_info.connection_string}: {e}')
-        return None
+
+        device = parent_device.add_device(
+            device_info.connection_string, config)
+        if device:
+            device_info.name = device.local_id
+            device_info.serial_number = device.info.serial_number
+            self.enabled_devices[device.info.connection_string] = {
+                'device_info': device_info, 'device': device}
+        return device
 
     def remove_device(self, device):
         if device is None:
             return
-        parent_device = get_nearest_device(device.parent)
+        parent_device = utils.get_nearest_device(device.parent)
         if parent_device is None:
             return
 
-        subdevices = list_all_subdevices(device)
+        subdevices = utils.list_all_subdevices(device)
         for subdevice in subdevices:
             del self.enabled_devices[subdevice.info.connection_string]
 
@@ -82,8 +86,8 @@ class AppContext(object):
 
     def load_icons(self, directory):
         images = {}
-        for file in get_files_in_directory(directory):
-            image = load_and_resize_image(os.path.join(directory, file))
+        for file in utils.get_files_in_directory(directory):
+            image = utils.load_and_resize_image(os.path.join(directory, file))
             images[file.split('.')[0]] = image
         self.icons = images
 
@@ -113,7 +117,7 @@ class AppContext(object):
             # found subdevice
             if part == 'Dev' and index + 2 <= n_parts:
                 # recreate device id
-                device_id = '/'.join(parts[:index+2])
+                device_id = '/'.join(parts[:index + 2])
                 # found server device
                 if self.is_server(device_id):
                     server_device_index = index + 1
@@ -121,18 +125,19 @@ class AppContext(object):
 
         # filter realitive to device id
         filtered_parts = []
-        for index, part in reversed(list(enumerate(parts[server_device_index:]))):
+        for index, part in reversed(
+                list(enumerate(parts[server_device_index:]))):
             if part not in ('IO', 'FB', 'Sig', 'Dev'):
                 filtered_parts.append(part)
 
         return '/'.join(reversed(filtered_parts))
 
-    def update_signals_for_device(self, device):
+    def update_signals_for_device(self, device: daq.IDevice):
         if device is None:
             return
 
         self.signals[device.global_id] = {}
-        for signal in device.signals_recursive:
+        for signal in device.get_signals_recursive(daq.AnySearchFilter() if self.view_hidden_components else None):
             short_id = self.short_id(signal.global_id)
 
             if short_id not in self.signals[device.global_id]:
@@ -149,3 +154,9 @@ class AppContext(object):
         if device is None:
             return {}
         return self.signals.get(device.global_id, {})
+
+    def properties_of_component(self, component: daq.IComponent):
+        if component is None:
+            return daq.IList()
+
+        return component.all_properties if self.view_hidden_components else component.visible_properties

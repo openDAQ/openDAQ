@@ -4,9 +4,10 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_ids.h>
-#include <opendaq/event_packet_params.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
+#include <opendaq/data_descriptor_factory.h>
 
 #include <coretypes/function.h>
 #include <coretypes/validation.h>
@@ -31,7 +32,15 @@ StreamReaderImpl::StreamReaderImpl(const SignalPtr& signal,
     domainReader = createReaderForType(domainReadType, nullptr);
 
     this->internalAddRef();
-    connectSignal(signal);
+    try
+    {
+        connectSignal(signal);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
@@ -49,8 +58,15 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     domainReader = createReaderForType(domainReadType, nullptr);
 
     this->internalAddRef();
-
-    connectInputPort(port);
+    try
+    {
+        connectInputPort(port);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
@@ -73,7 +89,16 @@ StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
     connection = inputPort.getConnection();
 
     this->internalAddRef();
-    readDescriptorFromPort();
+    try
+    {
+        if (connection.assigned())
+            readDescriptorFromPort();
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
@@ -84,8 +109,6 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     , skipEvents(old->skipEvents)
 {
     std::scoped_lock lock(old->mutex);
-    dataDescriptor = old->dataDescriptor;
-    domainDescriptor = old->domainDescriptor;
     old->invalid = true;
 
     info = old->info;
@@ -102,15 +125,29 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
     readCallback = old->readCallback;
 
     this->internalAddRef();
-    inputPort.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
+    try
+    {
+        if (connection.assigned())
+            readDescriptorFromPort();
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
 {
     if (!builder.assigned())
         throw ArgumentNullException("Builder must not be null");
-    
+
+    if ((builder.getValueReadType() == SampleType::Undefined || builder.getDomainReadType() == SampleType::Undefined) &&
+        builder.getSkipEvents())
+    {
+        throw InvalidParameterException("Reader cannot skip events when sample type is undefined");
+    }
+
     readMode = builder.getReadMode();
     timeoutType = builder.getReadTimeoutType();
     skipEvents = builder.getSkipEvents();
@@ -119,21 +156,25 @@ StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
     domainReader = createReaderForType(builder.getDomainReadType(), nullptr);
 
     this->internalAddRef();
-
-    if (auto port = builder.getInputPort(); port.assigned())
+    try
     {
-        if (port.getConnection().assigned())
-            throw InvalidParameterException("Signal has to be connected to port after reader is created");
-
-        connectInputPort(port);
+        if (auto port = builder.getInputPort(); port.assigned())
+        {
+            connectInputPort(port);
+        }
+        else if (auto signal = builder.getSignal(); signal.assigned())
+        {
+            connectSignal(builder.getSignal());
+        }
+        else 
+        {
+            throw ArgumentNullException("Signal or port must be set");
+        }
     }
-    else if (auto signal = builder.getSignal(); signal.assigned())
+    catch (...)
     {
-        connectSignal(builder.getSignal());
-    }
-    else 
-    {
-        throw ArgumentNullException("Signal or port must be set");
+        this->releaseWeakRefOnException();
+        throw;
     }
 }
 
@@ -161,8 +202,6 @@ void StreamReaderImpl::readDescriptorFromPort()
             return;
         }
     }
-
-    handleDescriptorChanged(DataDescriptorChangedEventPacket(dataDescriptor, domainDescriptor));
 }
 
 void StreamReaderImpl::connectSignal(const SignalPtr& signal)
@@ -177,14 +216,13 @@ void StreamReaderImpl::connectSignal(const SignalPtr& signal)
 void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port)
 {
     inputPort = port;
-    if (inputPort.getConnection().assigned())
-        throw InvalidParameterException("Signal has to be connected to port after reader is created");
 
     portBinder = PropertyObject();
     inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
+    connection = inputPort.getConnection();
 }
 
 ErrCode StreamReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
@@ -343,14 +381,12 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     if (!eventPacket.assigned())
         return;
 
-    auto params = eventPacket.getParameters();
-    DataDescriptorPtr newValueDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-    DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+    auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
+        parseDataDescriptorEventPacket(eventPacket);
 
-    // Check if value is stil convertible
-    if (newValueDescriptor.assigned())
+    // Check if value is still convertible
+    if (valueDescriptorChanged && newValueDescriptor.assigned())
     {
-        dataDescriptor = newValueDescriptor;
         if (valueReader->isUndefined())
         {
             inferReaderReadType(newValueDescriptor, valueReader);
@@ -363,8 +399,8 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
         }
     }
 
-    // Check if domain is stil convertible
-    if (newDomainDescriptor.assigned())
+    // Check if domain is still convertible
+    if (domainDescriptorChanged && newDomainDescriptor.assigned())
     {
         if (domainReader->isUndefined())
         {

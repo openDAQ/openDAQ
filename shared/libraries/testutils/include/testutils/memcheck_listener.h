@@ -23,9 +23,9 @@
     #endif // _MSC_VER 
 #endif // !NDEBUG
 
-#include <gtest/gtest.h>
+#include <testutils/base_test_listener.h>
 
-class MemCheckListener : public ::testing::EmptyTestEventListener
+class MemCheckListener : public BaseTestListener
 {
 public:
     static bool expectMemoryLeak;

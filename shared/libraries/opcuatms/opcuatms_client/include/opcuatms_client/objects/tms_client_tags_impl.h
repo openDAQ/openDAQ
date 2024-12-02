@@ -15,10 +15,10 @@
  */
 
 #pragma once
-#include "opendaq/tags_impl.h"
-#include "opcuaclient/opcuaclient.h"
-#include "opcuatms/opcuatms.h"
-#include "opcuatms_client/objects/tms_client_object_impl.h"
+#include <opendaq/tags_impl.h>
+#include <opcuaclient/opcuaclient.h>
+#include <opcuatms/opcuatms.h>
+#include <opcuatms_client/objects/tms_client_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

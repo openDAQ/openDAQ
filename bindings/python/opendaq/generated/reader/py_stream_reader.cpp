@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 
 #include "py_opendaq/py_typed_reader.h"
@@ -30,28 +32,35 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
 
     m.def(
         "StreamReader",
-        [](daq::ISignal* signal, daq::SampleType valueType, daq::SampleType domainType, daq::ReadTimeoutType timeoutType)
+        [](daq::ISignal* signal, daq::SampleType valueType, daq::SampleType domainType, daq::ReadMode mode, daq::ReadTimeoutType timeoutType, daq::Bool skipEvents)
         {
+            PyTypedReader::checkTypes(valueType, domainType);
             const auto signalPtr = daq::SignalPtr::Borrow(signal);
-            if (valueType != daq::SampleType::Invalid || domainType != daq::SampleType::Invalid)
-            {
-                PyTypedReader::checkTypes(valueType, domainType);
-                return daq::StreamReader(signalPtr, valueType, domainType, daq::ReadMode::Scaled, timeoutType).detach();
-            }
-            else
-                return daq::StreamReader(signalPtr, daq::ReadMode::Scaled, timeoutType).detach();
+            return daq::StreamReaderFromBuilder_Create(daq::StreamReaderBuilder()
+                    .setSignal(signal)
+                    .setValueReadType(valueType)
+                    .setDomainReadType(domainType)
+                    .setReadMode(mode)
+                    .setReadTimeoutType(timeoutType)
+                    .setSkipEvents(skipEvents));
         },
         py::arg("signal"),
-        py::arg("value_type") = daq::SampleType::Invalid,
-        py::arg("domain_type") = daq::SampleType::Invalid,
+        py::arg("value_type") = daq::SampleType::Float64,
+        py::arg("domain_type") = daq::SampleType::Int64,
+        py::arg("read_mode") = daq::ReadMode::Scaled,
         py::arg("timeout_type") = daq::ReadTimeoutType::All,
-        "");
+        py::arg("skip_events") = daq::True,
+        "A signal data reader that abstracts away reading of signal packets by keeping an internal read-position and automatically "
+        "advances it on subsequent reads.");
     m.def("StreamReaderFromExisting", &daq::StreamReaderFromExisting_Create);
 
     cls.def(
         "read",
         [](daq::IStreamReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
-        { return PyTypedReader::readValues(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
+        {
+            py::gil_scoped_release release;
+            return PyTypedReader::readValues(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); 
+        },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
         py::arg("return_status") = false,
@@ -60,7 +69,10 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
     cls.def(
         "read_with_domain",
         [](daq::IStreamReader* object, size_t count, const size_t timeoutMs, bool returnStatus)
-        { return PyTypedReader::readValuesWithDomain(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); },
+        {
+            py::gil_scoped_release release;
+            return PyTypedReader::readValuesWithDomain(daq::StreamReaderPtr::Borrow(object), count, timeoutMs, returnStatus); 
+        },
         py::arg("count"),
         py::arg("timeout_ms") = 0,
         py::arg("return_status") = false,
@@ -70,6 +82,7 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
         "skip_samples",
         [](daq::IStreamReader* object, size_t count, bool returnStatus)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StreamReaderPtr::Borrow(object);
             auto status = objectPtr.skipSamples(&count);
             return returnStatus ? SizeReaderStatusVariant<decltype(objectPtr)>{std::make_tuple(count, status.detach())} :

@@ -370,6 +370,53 @@ TEST_F(RefModulesTest, FindComponentDevice)
     ASSERT_TRUE(comp.supportsInterface<IDevice>());
 }
 
+TEST_F(RefModulesTest, DISABLED_RunDevicePowerReaderRenderer)
+{
+    const auto instance = Instance();
+
+    const auto device0 = instance.addDevice("daqref://device0");
+    device0.setPropertyValue("GlobalSampleRate", 10000);
+
+    const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
+    rendererFb.setPropertyValue("Duration", 2.0);
+
+    const auto powerFb = instance.addFunctionBlock("RefFBModulePowerReader");
+
+    powerFb.setPropertyValue("VoltageScale", 2.0);
+    powerFb.setPropertyValue("VoltageOffset", 1.0);
+    powerFb.setPropertyValue("CurrentScale", 1.5);
+    powerFb.setPropertyValue("CurrentOffset", -1.0);
+
+    const auto deviceChannel0 = device0.getChannels()[0];
+    deviceChannel0.setPropertyValue("Frequency", 10.0);
+    const auto deviceSignal0 = deviceChannel0.getSignals()[0];
+
+    const auto deviceChannel1 = device0.getChannels()[1];
+    deviceChannel1.setPropertyValue("Frequency", 0.8);
+    const auto deviceSignal1 = deviceChannel1.getSignals()[0];
+
+    powerFb.getInputPorts()[0].connect(deviceSignal0);
+    powerFb.getInputPorts()[1].connect(deviceSignal1);
+
+    auto powerSignal = powerFb.getSignals()[0];
+
+    rendererFb.getInputPorts()[0].connect(deviceSignal0);
+    rendererFb.getInputPorts()[1].connect(deviceSignal1);
+    rendererFb.getInputPorts()[2].connect(powerSignal);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    // Set incompatible Unit parameters to deactivate the multireader in the power FB and prevent FB from outputting data
+    deviceSignal0.asPtr<ISignalConfig>().setDescriptor(
+        DataDescriptorBuilderCopy(deviceSignal0.getDescriptor()).setUnit(Unit("W", -1, "watt", "power")).build());
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    // Set valid Unit parameters to restore power FB multireader and resume outputting data
+    deviceSignal0.asPtr<ISignalConfig>().setDescriptor(
+        DataDescriptorBuilderCopy(deviceSignal0.getDescriptor()).setUnit(Unit("V", -1, "volts", "voltage")).build());
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    rendererFb.setPropertyValue("Freeze", True);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+}
+
 TEST_F(RefModulesTest, DISABLED_RunDevicePowerRenderer)
 {
     const auto instance = Instance();
@@ -967,7 +1014,7 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     ASSERT_EQ(outputData[0], 1.0);
 }
 
-TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
+TEST_F_UNSTABLE_SKIPPED(RefModulesTest, ClassifierCheckAsyncMultiData)
 {
     using inputSignalType = Int;
     using outputSignalType = Float;

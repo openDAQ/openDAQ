@@ -15,9 +15,9 @@
  */
 
 #pragma once
-#include <opendaq/device_type.h>
-#include <coreobjects/component_type_impl.h>
+#include <opendaq/component_type_impl.h>
 #include <opendaq/component_type_builder_ptr.h>
+#include <opendaq/device_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -35,6 +35,14 @@ public:
     explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
 
     ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) override;
+
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* serializedId) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
+
 
 END_NAMESPACE_OPENDAQ

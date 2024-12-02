@@ -1,12 +1,16 @@
 #include <coreobjects/permission_mask_builder_impl.h>
 #include <coretypes/impl.h>
 #include <coretypes/validation.h>
-#include <coreobjects/permission_enum.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 PermissionMaskBuilderImpl::PermissionMaskBuilderImpl(Int permissionMask)
     : permissionMask(permissionMask)
+{
+}
+
+PermissionMaskBuilderImpl::PermissionMaskBuilderImpl()
+    : PermissionMaskBuilderImpl(0)
 {
 }
 
@@ -42,8 +46,18 @@ ErrCode INTERFACE_FUNC PermissionMaskBuilderImpl::build(Int* permissionMask)
     return OPENDAQ_SUCCESS;
 }
 
-// Factory
+// Factories
 
-OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionMaskBuilder, Int, permissionMask)
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               PermissionMaskBuilderImpl,
+                                                               IPermissionMaskBuilder,
+                                                               createPermissionMaskBuilder)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               PermissionMaskBuilderImpl,
+                                                               IPermissionMaskBuilder,
+                                                               createPermissionMaskBuilderFromMask,
+                                                               Int,
+                                                               permissionMask)
 
 END_NAMESPACE_OPENDAQ

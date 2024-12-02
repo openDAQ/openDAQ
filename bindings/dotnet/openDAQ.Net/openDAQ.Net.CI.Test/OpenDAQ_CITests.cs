@@ -37,6 +37,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         //Packet
     }
 
+    #region Helper functions
 
     private static void FillArray<TValueType>(TValueType[] array, TValueType value)
         where TValueType : struct
@@ -100,12 +101,229 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     }
 
 
+    //signature of ProcCallDelegate
+    ErrorCode MyNullCallbackProcedure(BaseObject? parameters)
+    {
+        Console.WriteLine($"in {nameof(MyNullCallbackProcedure)}()");
+
+        //expecting no parameters
+        if (parameters != null)
+        {
+            Console.WriteLine($"-> 'parameters' is not 'null'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+        }
+
+        Console.WriteLine($"-> got 'null'");
+
+        //tell API that everything was OK
+        return ErrorCode.OPENDAQ_SUCCESS;
+    }
+
+    //signature of ProcCallDelegate
+    ErrorCode MyBoolCallbackProcedure(BaseObject? parameters)
+    {
+        Console.WriteLine($"in {nameof(MyBoolCallbackProcedure)}()");
+
+        if (parameters == null)
+        {
+            Console.WriteLine($"-> 'parameters' is 'null'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+        }
+
+        //expecting one boolean parameter
+        var boolObj = parameters.Cast<BoolObject>();
+        if (boolObj == null)
+        {
+            Console.WriteLine($"-> 'parameters' is not a 'BoolObject'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+        }
+
+        Console.WriteLine($"-> got {boolObj.Value}");
+
+        //tell API that everything was OK
+        return ErrorCode.OPENDAQ_SUCCESS;
+    }
+
+    //signature of ProcCallDelegate
+    ErrorCode MyStringCallbackProcedure(BaseObject? parameters)
+    {
+        Console.WriteLine($"in {nameof(MyStringCallbackProcedure)}()");
+
+        if (parameters == null)
+        {
+            Console.WriteLine($"-> 'parameters' is 'null'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+        }
+
+        //expecting one string parameter
+        var stringObj = parameters.Cast<StringObject>();
+        if (stringObj == null)
+        {
+            Console.WriteLine($"-> 'parameters' is not a 'StringObject'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+        }
+
+        Console.WriteLine($"-> got \"{stringObj.CharPtr}\"");
+
+        //tell API that everything was OK
+        return ErrorCode.OPENDAQ_SUCCESS;
+    }
+
+    //signature of ProcCallDelegate
+    ErrorCode MyStringListCallbackProcedure(BaseObject? parameters)
+    {
+        Console.WriteLine($"in {nameof(MyStringListCallbackProcedure)}()");
+
+        if (parameters == null)
+        {
+            Console.WriteLine($"-> 'parameters' is 'null'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+        }
+
+        //expecting one string parameter
+        var stringListObj = parameters.CastList<StringObject>();
+        if (stringListObj == null)
+        {
+            Console.WriteLine($"-> 'parameters' is not a 'ListObject<StringObject>'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+        }
+
+        Console.WriteLine($"-> got {stringListObj.Count} strings:");
+        foreach (var stringObj in stringListObj)
+            Console.WriteLine($"   - \"{stringObj}\"");
+
+        //tell API that everything was OK
+        return ErrorCode.OPENDAQ_SUCCESS;
+    }
+
+    //signature of FuncCallDelegate
+    private ErrorCode MyBoolCallbackFunction(BaseObject? parameters, out BaseObject? result)
+    {
+        //initialize output
+        result = null;
+
+        Console.WriteLine($"in {nameof(MyBoolCallbackFunction)}()");
+
+        if (parameters == null)
+        {
+            Console.WriteLine($"-> 'parameters' is 'null'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+        }
+
+        //expecting one boolean parameter
+        var boolObj = parameters.Cast<BoolObject>();
+        if (boolObj == null)
+        {
+            Console.WriteLine($"-> 'parameters' is not a 'BoolObject'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+        }
+
+        Console.WriteLine($"-> got {boolObj.Value}");
+
+        //returning the given boolean parameter as result
+        result = boolObj.Value;
+
+        //tell API that everything was OK
+        return ErrorCode.OPENDAQ_SUCCESS;
+    }
+
+    //signature of FuncCallDelegate
+    ErrorCode MyIntegerToStringListCallbackFunction(BaseObject? parameters, out BaseObject? result)
+    {
+        //initialize output
+        result = null;
+
+        Console.WriteLine($"in {nameof(MyIntegerToStringListCallbackFunction)}()");
+
+        if (parameters == null)
+        {
+            Console.WriteLine($"-> 'parameters' is 'null'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+        }
+
+        //expecting one string parameter
+        var integerListObj = parameters?.CastList<IntegerObject>();
+        if (integerListObj == null)
+        {
+            Console.WriteLine($"-> 'parameters' is not a 'ListObject<IntegerObject>'");
+
+            //tell API that it was not OK
+            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+        }
+
+        Console.WriteLine($"-> got {integerListObj.Count} integers:");
+
+        //create the result list
+        var stringList = CoreTypesFactory.CreateList<StringObject>();
+        foreach (var integerObj in integerListObj)
+        {
+            Console.WriteLine($"   - {integerObj}");
+            stringList.Add($"string {integerObj}");
+        }
+
+        //returning the created string list
+        result = (BaseObject)stringList;
+
+        //tell API that everything was OK
+        return ErrorCode.OPENDAQ_SUCCESS;
+    }
+
+    //signature of FuncCallDelegate
+    ErrorCode MyNullToStringCallbackFunction(BaseObject? parameters, out BaseObject? result)
+    {
+        //in this callback we always return ErrorCode.OPENDAQ_SUCCESS
+
+        Console.WriteLine($"in {nameof(MyIntegerToStringListCallbackFunction)}()");
+
+        if (parameters != null)
+        {
+            Console.WriteLine($"-> 'parameters' is not 'null'");
+            result = "'parameters' was not 'null'";
+        }
+        else
+        {
+            Console.WriteLine($"-> 'parameters' is 'null'");
+            result = "'parameters' was 'null'";
+        }
+
+        //tell API that everything was OK
+        return ErrorCode.OPENDAQ_SUCCESS;
+    }
+
+    #endregion Helper functions
+
     [Test]
     public void Test_0000_GetVersion()
     {
-        Version coreTypesVersion = new();
+        Version coreTypesVersion   = new();
         Version coreObjectsVersion = new();
-        Version openDaqVersion = new();
+        Version openDaqVersion     = new();
+
+        var sdkAssembly         = typeof(CoreTypesFactory).Assembly;
+        var assemblyVersion     = sdkAssembly.GetName().Version;
+        var assemblyInfoVersion = sdkAssembly.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), true)
+                                  .Cast<System.Reflection.AssemblyInformationalVersionAttribute>()
+                                  .Single()?.InformationalVersion;
 
         Assert.Multiple(() =>
         {
@@ -117,6 +335,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Console.WriteLine($"CoreTypes SDK version   = {coreTypesVersion} / .NET Bindings version = {CoreTypesDllInfo.Version}");
         Console.WriteLine($"CoreObjects SDK version = {coreObjectsVersion} / .NET Bindings version = {CoreObjectsDllInfo.Version}");
         Console.WriteLine($"openDAQ SDK version     = {openDaqVersion} / .NET Bindings version = {OpenDAQDllInfo.Version}");
+        Console.WriteLine($"Assembly version        = {assemblyVersion}");
+        Console.WriteLine($"Assembly info version   = {assemblyInfoVersion}");
     }
 
     [Test]
@@ -167,6 +387,77 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         ((ListObject<BaseObject>)list).PrintReferenceCount();
         obj.PrintReferenceCount();
+    }
+
+    [Test]
+    public void Test_0002_ListObjectWithParamsNoExceptionTest()
+    {
+        Console.WriteLine("> creating string-list with exception");
+
+        Assert.DoesNotThrow(() =>
+        {
+            //<TValue> cannot be inferred from the items
+            var list = CoreTypesFactory.CreateList<StringObject>("item 1", "item 2", "item 3", "item 4");
+
+            Assert.That(list, Is.Not.Null);
+            Assert.That(list.Count, Is.EqualTo(4));
+            Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That((string)list[0], Is.EqualTo("item 1"));
+                Assert.That((string)list[1], Is.EqualTo("item 2"));
+                Assert.That((string)list[2], Is.EqualTo("item 3"));
+                Assert.That((string)list[3], Is.EqualTo("item 4"));
+            });
+        });
+    }
+
+    [Test]
+    public void Test_0003_ListObjectWithParamsNoErrorCodeTest()
+    {
+        Console.WriteLine("> creating string-list with error-code");
+
+        //<TValue> can be inferred from the out-parameter
+        ErrorCode errorcode = CoreTypesFactory.CreateList(out IListObject<StringObject> list,
+                                                          "item 1", "item 2", "item 3", "item 4");
+
+        Assert.That(errorcode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
+        Assert.That(list, Is.Not.Null);
+        Assert.That(list.Count, Is.EqualTo(4));
+        Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That((string)list[0], Is.EqualTo("item 1"));
+            Assert.That((string)list[1], Is.EqualTo("item 2"));
+            Assert.That((string)list[2], Is.EqualTo("item 3"));
+            Assert.That((string)list[3], Is.EqualTo("item 4"));
+        });
+    }
+
+    [Test]
+    public void Test_0004_ListObjectWithParamsArrayTest()
+    {
+        Console.WriteLine("> creating string-list with array");
+
+        //create StringObject array (no automatic cast)
+        StringObject[] items = new[] { (StringObject)"item 1", (StringObject)"item 2", (StringObject)"item 3", (StringObject)"item 4" };
+
+        Assert.DoesNotThrow(() =>
+        {
+            //<TValue> can be inferred from the array
+            var list = CoreTypesFactory.CreateList(items);
+
+            Assert.That(list, Is.Not.Null);
+            Assert.That(list.Count, Is.EqualTo(4));
+            Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That((string)list[0], Is.EqualTo("item 1"));
+                Assert.That((string)list[1], Is.EqualTo("item 2"));
+                Assert.That((string)list[2], Is.EqualTo("item 3"));
+                Assert.That((string)list[3], Is.EqualTo("item 4"));
+            });
+        });
     }
 
     [Test]
@@ -1174,5 +1465,191 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Assert.That(readFailures, Is.EqualTo(0), "*** There have been read failures.");
             Assert.That(readSamplesCount, Is.GreaterThan((nuint)0), "*** No samples received.");
         });
+    }
+
+
+    [Test]
+    public void Test_0501_ProcedureFailTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateProcedure");
+        var procedure = CoreTypesFactory.CreateProcedure(MyBoolCallbackProcedure);
+
+        Console.WriteLine("Dispatch(\"this is not a boolean\")");
+        Assert.Throws<OpenDaqException>(() => procedure.Dispatch("this is not a boolean"));
+    }
+
+    [Test]
+    public void Test_0502_ProcedureFailTest2()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateProcedure");
+        var procedure = CoreTypesFactory.CreateProcedure(MyBoolCallbackProcedure);
+
+        Console.WriteLine("Dispatch(null)");
+        Assert.Throws<OpenDaqException>(() => procedure.Dispatch(null));
+    }
+
+    [Test]
+    public void Test_0503_ProcedureNullFailTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateProcedure");
+        var procedure = CoreTypesFactory.CreateProcedure(MyNullCallbackProcedure);
+
+        Console.WriteLine("Dispatch(\"this is not null\")");
+        Assert.Throws<OpenDaqException>(() => procedure.Dispatch("this is not null"));
+    }
+
+
+    [Test]
+    public void Test_0511_ProcedureTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateProcedure");
+        var procedure = CoreTypesFactory.CreateProcedure(MyBoolCallbackProcedure);
+
+        Console.WriteLine("Dispatch(false)");
+        procedure.Dispatch(false);
+
+        Console.WriteLine("Dispatch(true)");
+        procedure.Dispatch(true);
+    }
+
+    [Test]
+    public void Test_0512_ProcedureMultiTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("2x CreateProcedure");
+        var procedure1 = CoreTypesFactory.CreateProcedure(MyBoolCallbackProcedure);
+        var procedure2 = CoreTypesFactory.CreateProcedure(MyStringCallbackProcedure);
+
+        Console.WriteLine("1: Dispatch(false)");
+        procedure1.Dispatch(false);
+
+        Console.WriteLine("2: Dispatch(\"Hello\")");
+        procedure2.Dispatch("Hello");
+
+        Console.WriteLine("1: Dispatch(true)");
+        procedure1.Dispatch(true);
+
+        Console.WriteLine("2: Dispatch(\"World\")");
+        procedure2.Dispatch("World");
+    }
+
+    [Test]
+    public void Test_0513_ProcedureListArgTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateProcedure");
+        var procedure = CoreTypesFactory.CreateProcedure(MyStringListCallbackProcedure);
+
+        Console.WriteLine("CreateList");
+        var stringList = CoreTypesFactory.CreateList<StringObject>();
+
+        stringList.Add("string 1");
+        stringList.Add("string 2");
+        stringList.Add("string 3");
+
+        Console.WriteLine("Dispatch(stringList)");
+        procedure.Dispatch((ListObject<StringObject>)stringList);
+    }
+
+    [Test]
+    public void Test_0514_ProcedureNullTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateProcedure");
+        var procedure = CoreTypesFactory.CreateProcedure(MyNullCallbackProcedure);
+
+        Console.WriteLine("Dispatch(null)");
+        procedure.Dispatch(null);
+    }
+
+
+    [Test]
+    public void Test_0551_FunctionFailTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateFunction");
+        var function = CoreTypesFactory.CreateFunction(MyBoolCallbackFunction);
+
+        Console.WriteLine("Call(\"this is not a boolean\")");
+        Assert.Throws<OpenDaqException>(() => function.Call("this is not a boolean"));
+    }
+
+
+    [Test]
+    public void Test_0561_FunctionBoolToBoolTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateFunction");
+        var function = CoreTypesFactory.CreateFunction(MyBoolCallbackFunction);
+
+        Console.WriteLine("Call(false)");
+        var result = function.Call(false)?.Cast<BoolObject>()?.Value;
+        Assert.That(result, Is.Not.Null, "*** Unexpected call result type.");
+        Assert.That(result, Is.False, "*** Unexpected call result for parameter 'false'.");
+
+        Console.WriteLine("Call(true)");
+        result = function.Call(true)?.Cast<BoolObject>()?.Value;
+        Assert.That(result, Is.Not.Null, "*** Unexpected call result type.");
+        Assert.That(result, Is.True, "*** Unexpected call result for parameter 'true'.");
+    }
+
+    [Test]
+    public void Test_0563_FunctionIntListToStringListTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateFunction");
+        var function = CoreTypesFactory.CreateFunction(MyIntegerToStringListCallbackFunction);
+
+        Console.WriteLine("CreateList");
+        var integerList = CoreTypesFactory.CreateList<IntegerObject>();
+
+        integerList.Add(1);
+        integerList.Add(2);
+        integerList.Add(3);
+        integerList.Add(4);
+
+        Console.WriteLine("Call(integerList)");
+        var result = function.Call((ListObject<IntegerObject>)integerList)?.CastList<StringObject>();
+        Assert.That(result, Is.Not.Null, "*** Unexpected call result type.");
+        Assert.That(result, Has.Count.EqualTo(integerList.Count), "*** Unexpected call result.");
+
+        Console.WriteLine($"-> returned {result.Count} strings:");
+        foreach (var stringObj in result)
+            Console.WriteLine($"   - {stringObj}");
+    }
+
+    [Test]
+    public void Test_0563_FunctionNullToStringTest()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+
+        Console.WriteLine("CreateFunction");
+        var function = CoreTypesFactory.CreateFunction(MyNullToStringCallbackFunction);
+
+        Console.WriteLine("Call(null)");
+        var result = function.Call(null)?.Cast<StringObject>();
+        Assert.That(result, Is.Not.Null, "*** Unexpected call result type.");
+
+        Console.WriteLine($"-> returned \"{result}\"");
+
+        Console.WriteLine("Call(\"not null\")");
+        result = function.Call("not null")?.Cast<StringObject>();
+        Assert.That(result, Is.Not.Null, "*** Unexpected call result type.");
+
+        Console.WriteLine($"-> returned \"{result}\"");
     }
 }

@@ -27,17 +27,17 @@ TEST_F(RegressionTestFolder, getItems)
     ASSERT_NO_THROW(items = folder.getItems());
     if (protocol == "opcua" || protocol == "nd")
     {
-        ASSERT_EQ(items.getCount(), 6);
+        ASSERT_EQ(items.getCount(), 7);
     }
     else if (protocol == "ns" || protocol == "lt")
     {
-        ASSERT_EQ(items.getCount(), 5);
+        ASSERT_EQ(items.getCount(), 6);
     }
 }
 
 TEST_F(RegressionTestFolder, isEmpty)
 {
-    Bool isEmpty;
+    Bool isEmpty = true;
     ASSERT_NO_THROW(isEmpty = folder.isEmpty());
     ASSERT_FALSE(isEmpty);
 }

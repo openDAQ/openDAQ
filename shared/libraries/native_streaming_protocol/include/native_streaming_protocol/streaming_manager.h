@@ -29,7 +29,7 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using SendPacketBufferCallback = std::function<void(const std::string& subscribedClientId,
-                                                    const packet_streaming::PacketBufferPtr& packetBuffer)>;
+                                                    packet_streaming::PacketBufferPtr&& packetBuffer)>;
 
 class StreamingManager
 {
@@ -44,7 +44,7 @@ public:
     /// @param sendPacketBufferCb The callback used to send the created packet buffer to the client.
     /// @throw NativeStreamingProtocolException if the signal is not registered.
     void sendPacketToSubscribers(const std::string& signalStringId,
-                                 const PacketPtr& packet,
+                                 PacketPtr&& packet,
                                  const SendPacketBufferCallback& sendPacketBufferCb);
 
     /// Registers a signal using its global ID as a unique key
@@ -63,8 +63,9 @@ public:
     /// Registers a connected client as a streaming client.
     /// @param clientId The unique string ID provided by the client or automatically assigned by the server.
     /// @param reconnected true if the client was reconnected, false otherwise.
+    /// @param enablePacketBufferTimestamps enables timestamp creation for PacketBuffers
     /// @throw NativeStreamingProtocolException if the client is already registered.
-    void registerClient(const std::string& clientId, bool reconnected);
+    void registerClient(const std::string& clientId, bool reconnected, bool enablePacketBufferTimestamps);
 
     /// Removes a registered client on disconnection.
     /// @param clientId The unique string ID provided by the client or automatically assigned by the server.
@@ -121,14 +122,17 @@ private:
         SignalPtr daqSignal;
         SignalNumericIdType numericId;
         std::unordered_set<std::string> subscribedClientsIds;
-        DataDescriptorPtr lastDataDescriptor;
+        DataDescriptorPtr lastDataDescriptorParam;
+        DataDescriptorPtr lastDomainDescriptorParam;
     };
 
     void sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
                        const PacketStreamingServerPtr& registeredSignal,
-                       const PacketPtr& packet,
+                       PacketPtr&& packet,
                        const std::string& clientId,
                        SignalNumericIdType singalNumericId);
+
+    bool removeSignalSubscriberNoLock(const std::string& signalStringId, const std::string& subscribedClientId);
 
     ContextPtr context;
     LoggerComponentPtr loggerComponent;

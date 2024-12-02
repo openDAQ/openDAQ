@@ -65,14 +65,15 @@ using OnConnectionStatusChangedCallback = std::function<void(ClientConnectionSta
 class NativeStreamingClientHandler;
 using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHandler>;
 
-class NativeStreamingClientHandler
+class NativeStreamingClientImpl : public std::enable_shared_from_this<NativeStreamingClientImpl>
 {
 public:
-    explicit NativeStreamingClientHandler(const ContextPtr& context,
-                                          const PropertyObjectPtr& transportLayerProperties,
-                                          const PropertyObjectPtr& authenticationObject);
+    explicit NativeStreamingClientImpl(const ContextPtr& context,
+                                       const PropertyObjectPtr& transportLayerProperties,
+                                       const PropertyObjectPtr& authenticationObject,
+                                       const std::shared_ptr<boost::asio::io_context>& ioContextPtr);
 
-    ~NativeStreamingClientHandler();
+    ~NativeStreamingClientImpl();
 
     bool connect(std::string host,
                  std::string port,
@@ -84,8 +85,6 @@ public:
     void sendConfigRequest(const config_protocol::PacketBuffer& packet);
     void sendStreamingRequest();
     void sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet);
-
-    std::shared_ptr<boost::asio::io_context> getIoContext();
 
     void resetStreamingHandlers();
     void setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
@@ -100,7 +99,6 @@ public:
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
 protected:
-    PropertyObjectPtr normalizeAuthenticationObject(const PropertyObjectPtr& authenticationObject);
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
     daq::native_streaming::Authentication initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject);
@@ -117,9 +115,6 @@ protected:
     void tryReconnect();
     void connectionStatusChanged(ClientConnectionStatus status);
 
-    void startTransportOperations();
-    void stopTransportOperations();
-
     enum class ConnectionResult
     {
         Connected = 0,
@@ -127,12 +122,14 @@ protected:
         ServerUnsupported
     };
 
+    void onConnectionFailed(const std::string& errorMessage, const ConnectionResult result);
+    void onSessionError(const std::string& errorMessage, SessionPtr session);
+    void onPacketBufferReceived(const packet_streaming::PacketBufferPtr& packetBuffer);
+
     ContextPtr context;
     PropertyObjectPtr transportLayerProperties;
     PropertyObjectPtr authenticationObject;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
-    std::thread ioThread;
-    LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
 
     // streaming callbacks
@@ -169,6 +166,50 @@ protected:
     Int connectionInactivityTimeout;
     std::chrono::milliseconds connectionTimeout;
     std::chrono::milliseconds reconnectionPeriod;
+};
+
+// wraps transport IO operations' context & thread and client handler
+class NativeStreamingClientHandler
+{
+public:
+    explicit NativeStreamingClientHandler(const ContextPtr& context,
+                                          const PropertyObjectPtr& transportLayerProperties,
+                                          const PropertyObjectPtr& authenticationObject);
+
+    ~NativeStreamingClientHandler();
+
+    std::shared_ptr<boost::asio::io_context> getIoContext();
+
+    // simply forwards calls to client handler
+    bool connect(std::string host, std::string port, std::string path = "/");
+
+    void subscribeSignal(const StringPtr& signalStringId);
+    void unsubscribeSignal(const StringPtr& signalStringId);
+
+    void sendConfigRequest(const config_protocol::PacketBuffer& packet);
+    void sendStreamingRequest();
+    void sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet);
+
+    void resetStreamingHandlers();
+    void setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
+                              const OnSignalUnavailableCallback& signalUnavailableHandler,
+                              const OnPacketCallback& packetHandler,
+                              const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback,
+                              const OnConnectionStatusChangedCallback& connectionStatusChangedCb,
+                              const OnStreamingInitDoneCallback& streamingInitDoneCb);
+
+    void resetConfigHandlers();
+    void setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
+                           const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
+
+protected:
+    void startTransportOperations();
+    void stopTransportOperations();
+
+    std::shared_ptr<boost::asio::io_context> ioContextPtr;
+    std::thread ioThread;
+    LoggerComponentPtr loggerComponent;
+    std::shared_ptr<NativeStreamingClientImpl> clientHandlerPtr;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

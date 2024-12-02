@@ -1,4 +1,5 @@
 #include "setup_regression.h"
+#include <testutils/testutils.h>
 
 class RegressionTestDevice : public testing::Test
 {
@@ -159,16 +160,31 @@ TEST_F(RegressionTestDevice, getDevices)
 
 TEST_F(RegressionTestDevice, getAvailableDevices)
 {
-    ListPtr<IDeviceInfo> infos;
-    ASSERT_NO_THROW(infos = device.getAvailableDevices());
-    ASSERT_EQ(infos.getCount(), 0);
+    if (protocol == "opcua" || protocol == "lt" || protocol == "ns")
+    {
+        ListPtr<IDeviceInfo> infos;
+        ASSERT_NO_THROW(infos = device.getAvailableDevices());
+        ASSERT_EQ(infos.getCount(), 0);
+    }
+    else if (protocol == "nd")
+    {
+        ASSERT_THROW_MSG(device.getAvailableDevices(), DaqException, "The client attempted to call a function that requires a newer version of the openDAQ server");
+    }
 }
 
 TEST_F(RegressionTestDevice, getAvailableDeviceTypes)
 {
-    DictPtr<IString, IDeviceType> types;
-    ASSERT_NO_THROW(types = device.getAvailableDeviceTypes());
-    ASSERT_EQ(types.getCount(), 0);
+    if (protocol == "opcua" || protocol == "lt" || protocol == "ns")
+    {
+        DictPtr<IString, IDeviceType> types;
+        ASSERT_NO_THROW(types = device.getAvailableDeviceTypes());
+        ASSERT_EQ(types.getCount(), 0);
+    }
+    else if (protocol == "nd")
+    {
+        ASSERT_THROW_MSG(
+            device.getAvailableDeviceTypes(), DaqException, "The client attempted to call a function that requires a newer version of the openDAQ server");
+    }
 }
 
 TEST_F(RegressionTestDevice, getFunctionBlocks)

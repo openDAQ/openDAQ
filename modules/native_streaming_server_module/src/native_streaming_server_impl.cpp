@@ -21,12 +21,15 @@ using namespace daq;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
-NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server("OpenDAQNativeStreamingServerModule", config, rootDevice, context, nullptr)
+NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice,
+                                                     const PropertyObjectPtr& config,
+                                                     const ContextPtr& context)
+    : Server("OpenDAQNativeStreaming", config, rootDevice, context)
     , readThreadActive(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
     , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
     , processingStrand(processingIOContext)
+    , rootDeviceGlobalId(rootDevice.getGlobalId().toStdString())
     , logger(context.getLogger())
     , loggerComponent(logger.getOrAddComponent(id))
     , serverStopped(false)
@@ -38,19 +41,26 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(DevicePtr rootDevice, Prope
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
+    StringPtr path = config.getPropertyValue("Path");
+
     ServerCapabilityConfigPtr serverCapabilityStreaming =
         ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming)
         .setPrefix("daq.ns")
         .setConnectionType("TCP/IP")
         .setPort(port);
-    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
+
+    serverCapabilityStreaming.addProperty(StringProperty("Path", path == "/" ? "" : path));
+    rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityStreaming);
 
     ServerCapabilityConfigPtr serverCapabilityConfig =
         ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
         .setPrefix("daq.nd")
         .setConnectionType("TCP/IP")
-        .setPort(port);
-    this->rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
+        .setPort(port)
+        .setProtocolVersion(std::to_string(GetLatestConfigProtocolVersion()));
+
+    serverCapabilityConfig.addProperty(StringProperty("Path", path == "/" ? "" : path));
+    rootDevice.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapabilityConfig);
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
 
@@ -86,9 +96,8 @@ void NativeStreamingServerImpl::componentAdded(ComponentPtr& /*sender*/, CoreEve
 {
     ComponentPtr addedComponent = eventArgs.getParameters().get("Component");
 
-    auto deviceGlobalId = rootDevice.getGlobalId().toStdString();
     auto addedComponentGlobalId = addedComponent.getGlobalId().toStdString();
-    if (addedComponentGlobalId.find(deviceGlobalId) != 0)
+    if (addedComponentGlobalId.find(rootDeviceGlobalId) != 0)
         return;
 
     LOG_I("Added Component: {};", addedComponentGlobalId);
@@ -99,10 +108,9 @@ void NativeStreamingServerImpl::componentRemoved(ComponentPtr& sender, CoreEvent
 {
     StringPtr removedComponentLocalId = eventArgs.getParameters().get("Id");
 
-    auto deviceGlobalId = rootDevice.getGlobalId().toStdString();
     auto removedComponentGlobalId =
         sender.getGlobalId().toStdString() + "/" + removedComponentLocalId.toStdString();
-    if (removedComponentGlobalId.find(deviceGlobalId) != 0)
+    if (removedComponentGlobalId.find(rootDeviceGlobalId) != 0)
         return;
 
     LOG_I("Component: {}; is removed", removedComponentGlobalId);
@@ -111,9 +119,8 @@ void NativeStreamingServerImpl::componentRemoved(ComponentPtr& sender, CoreEvent
 
 void NativeStreamingServerImpl::componentUpdated(ComponentPtr& updatedComponent)
 {
-    auto deviceGlobalId = rootDevice.getGlobalId().toStdString();
     auto updatedComponentGlobalId = updatedComponent.getGlobalId().toStdString();
-    if (updatedComponentGlobalId.find(deviceGlobalId) != 0)
+    if (updatedComponentGlobalId.find(rootDeviceGlobalId) != 0)
         return;
 
     LOG_I("Component: {}; is updated", updatedComponentGlobalId);
@@ -149,7 +156,7 @@ void NativeStreamingServerImpl::startTransportOperations()
         [this]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(transportIOContextPtr->get_executor());
+            auto workGuard = make_work_guard(*transportIOContextPtr);
             transportIOContextPtr->run();
             LOG_I("Transport IO thread finished");
         });
@@ -182,7 +189,7 @@ void NativeStreamingServerImpl::startProcessingOperations()
         [this]()
         {
             using namespace boost::asio;
-            executor_work_guard<io_context::executor_type> workGuard(processingIOContext.get_executor());
+            auto workGuard = make_work_guard(processingIOContext);
             processingIOContext.run();
             LOG_I("Processing thread finished");
         }
@@ -218,9 +225,9 @@ void NativeStreamingServerImpl::stopServerInternal()
     serverStopped = true;
 
     this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
-    if (this->rootDevice.assigned())
+    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
     {
-        const auto info = this->rootDevice.getInfo();
+        const auto info = rootDevice.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
         if (info.hasServerCapability("OpenDAQNativeStreaming"))
             infoInternal.removeServerCapability("OpenDAQNativeStreaming");
@@ -252,56 +259,78 @@ void NativeStreamingServerImpl::prepareServerHandler()
     // a new packet streaming client (used for client to device streaming);
     // and transfers ownership of these objects to the transport layer session
     SetUpConfigProtocolServerCb createConfigServerCb =
-        [this](SendConfigProtocolPacketCb sendConfigPacketCb, const UserPtr& user)
+        [this](SendConfigProtocolPacketCb sendConfigPacketCb, const UserPtr& user, ClientType connectionType)
     {
-        auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user);
-        ProcessConfigProtocolPacketCb processConfigRequestCb =
-            [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
-        {
-            auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
-            boost::asio::dispatch(
-                processingIOContext,
-                processingStrand.wrap(
-                    [configServer, sendConfigPacketCb, packetBufferPtr]()
-                    {
-                        auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
-                        sendConfigPacketCb(replyPacketBuffer);
-                    }
-                )
-            );
-        };
+        ProcessConfigProtocolPacketCb processConfigRequestCb = [](PacketBuffer&& packetBuffer) {};
+        OnPacketBufferReceivedCallback packetBufferReceivedHandler = [](const packet_streaming::PacketBufferPtr& packetBufferPtr) {};
 
-        auto packetStreamingClient = std::make_shared<packet_streaming::PacketStreamingClient>();
-        OnPacketBufferReceivedCallback packetBufferReceivedHandler =
-            [this, packetStreamingClient, configServer](const packet_streaming::PacketBufferPtr& packetBufferPtr)
+        if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         {
-            boost::asio::dispatch(
-                processingIOContext,
-                processingStrand.wrap(
-                    [configServer, packetStreamingClient, packetBufferPtr]()
-                    {
-                        packetStreamingClient->addPacketBuffer(packetBufferPtr);
-
-                        auto [signalNumericId, packet] = packetStreamingClient->getNextDaqPacket();
-                        while (packet.assigned())
+            auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user, connectionType, this->signals);
+            processConfigRequestCb =
+                [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
+            {
+                auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
+                boost::asio::dispatch(
+                    processingIOContext,
+                    processingStrand.wrap(
+                        [configServer, sendConfigPacketCb, packetBufferPtr]()
                         {
-                            configServer->processClientToDeviceStreamingPacket(signalNumericId, packet);
-                            std::tie(signalNumericId, packet) = packetStreamingClient->getNextDaqPacket();
+                            if (packetBufferPtr->getPacketType() == config_protocol::PacketType::NoReplyRpc)
+                            {
+                                configServer->processNoReplyRequest(*packetBufferPtr);
+                            }
+                            else
+                            {
+                                auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
+                                sendConfigPacketCb(replyPacketBuffer);
+                            }
                         }
-                    }
-                )
-            );
-        };
+                    )
+                );
+            };
+
+            auto packetStreamingClient = std::make_shared<packet_streaming::PacketStreamingClient>();
+            packetBufferReceivedHandler =
+                [this, packetStreamingClient, configServer](const packet_streaming::PacketBufferPtr& packetBufferPtr)
+            {
+                boost::asio::dispatch(
+                    processingIOContext,
+                    processingStrand.wrap(
+                        [configServer, packetStreamingClient, packetBufferPtr]()
+                        {
+                            packetStreamingClient->addPacketBuffer(packetBufferPtr);
+
+                            auto [signalNumericId, packet] = packetStreamingClient->getNextDaqPacket();
+                            while (packet.assigned())
+                            {
+                                configServer->processClientToServerStreamingPacket(signalNumericId, packet);
+                                std::tie(signalNumericId, packet) = packetStreamingClient->getNextDaqPacket();
+                            }
+                        }
+                    )
+                );
+            };
+        }
 
         return std::make_pair(processConfigRequestCb, packetBufferReceivedHandler);
     };
 
+    auto rootDeviceSignals = List<ISignal>();
+    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
+        rootDeviceSignals = rootDevice.getSignals(search::Recursive(search::Any()));
+
+    const SizeT maxAllowedConfigConnections = this->config.getPropertyValue("MaxAllowedConfigConnections");
+    const SizeT streamingPacketSendTimeout = this->config.getPropertyValue("StreamingPacketSendTimeout");
+
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
                                                                    transportIOContextPtr,
-                                                                   rootDevice.getSignals(search::Recursive(search::Any())),
+                                                                   rootDeviceSignals,
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler,
-                                                                   createConfigServerCb);
+                                                                   createConfigServerCb,
+                                                                   maxAllowedConfigConnections,
+                                                                   streamingPacketSendTimeout);
 }
 
 void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)
@@ -335,6 +364,25 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
     defaultConfig.addProperty(portProp);
     defaultConfig.addProperty(StringProperty("Path", "/"));
 
+    // default value "UNLIMITED_CONFIGURATION_CONNECTIONS = 0" stands for unlimited count of concurrent connections
+    const auto configConnectionsLimitProp = IntPropertyBuilder("MaxAllowedConfigConnections", UNLIMITED_CONFIGURATION_CONNECTIONS)
+                                                .setMinValue(0)
+                                                .build();
+    defaultConfig.addProperty(configConnectionsLimitProp);
+
+    const auto streamingPacketSendTimeoutPropDescription =
+        "Defines the timeout for sending streaming packets, measured in milliseconds. "
+        "If a timeout is set with this property, and the lifetime of the queued PacketBuffer awaiting transmission exceeds "
+        "the specified limit since the buffer's creation before starting the low-level write operation, the server will reset "
+        "the connection for the corresponding client that owns the queue, effectively clearing it. "
+        "The default value '0' signifies that the streaming server time to send out the packets is not limited, "
+        "i.e. the lifetime of PacketBuffers awaiting for transmission, along with the memory allocated for the queue, are both unlimited.";
+    const auto streamingPacketSendTimeoutProp = IntPropertyBuilder("StreamingPacketSendTimeout", UNLIMITED_PACKET_SEND_TIME)
+                                                    .setMinValue(0)
+                                                    .setDescription(streamingPacketSendTimeoutPropDescription)
+                                                    .build();
+    defaultConfig.addProperty(streamingPacketSendTimeoutProp);
+
     populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
 }
@@ -359,6 +407,7 @@ PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
     discoveryConfig.addProperty(StringProperty("ServiceCap", "OPENDAQ_NS"));
     discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
     discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("NativeStreamingPort")));
+    discoveryConfig.addProperty(StringProperty("ProtocolVersion", std::to_string(GetLatestConfigProtocolVersion())));
     return discoveryConfig;
 }
 
@@ -409,24 +458,13 @@ void NativeStreamingServerImpl::startReadThread()
                 PacketPtr packet = reader.read();
                 while (packet.assigned())
                 {
-                    serverHandler->sendPacket(signal, packet);
+                    serverHandler->sendPacket(signal, std::move(packet));
                     packet = reader.read();
                 }
             }
         }
 
         std::this_thread::sleep_for(readThreadSleepTime);
-    }
-}
-
-void NativeStreamingServerImpl::createReaders()
-{
-    signalReaders.clear();
-    auto signals = rootDevice.getSignals(search::Recursive(search::Any()));
-
-    for (const auto& signal : signals)
-    {
-        addReader(signal);
     }
 }
 

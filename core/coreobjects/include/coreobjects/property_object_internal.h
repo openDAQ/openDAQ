@@ -30,6 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC checkForReferences(IProperty* property, Bool* isReferenced) = 0;
+    virtual ErrCode INTERFACE_FUNC checkForReferencesNoLock(IProperty* property, Bool* isReferenced) = 0;
     virtual ErrCode INTERFACE_FUNC enableCoreEventTrigger() = 0;
     virtual ErrCode INTERFACE_FUNC disableCoreEventTrigger() = 0;
     virtual ErrCode INTERFACE_FUNC getCoreEventTrigger(IProcedure** trigger) = 0;
@@ -37,6 +38,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) = 0;
     virtual ErrCode INTERFACE_FUNC setPath(IString* path) = 0;
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) = 0;
+    virtual ErrCode INTERFACE_FUNC hasUserReadAccess(IBaseObject* userContext, Bool * hasAccessOut) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* name, IBaseObject** value) = 0;
+    virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* name, IBaseObject** value) = 0;
+    virtual ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* name, IBaseObject* value) = 0;
+    virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* name) = 0;
 };
 
 /*!@}*/

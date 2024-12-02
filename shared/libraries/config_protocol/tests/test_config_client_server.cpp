@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <gmock/gmock.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
@@ -15,6 +16,9 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/component_holder_ptr.h>
 #include <config_protocol/config_client_device_impl.h>
+#include <coreobjects/user_factory.h>
+#include <opendaq/device_type_factory.h>
+#include <opendaq/exceptions.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -36,10 +40,24 @@ public:
 
     void SetUp() override
     {
-        EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
-        server = std::make_unique<ConfigProtocolServer>(device, std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1), nullptr);
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(NullContext(), std::bind(&ConfigProtocolTest::sendRequest, this, std::placeholders::_1), std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1));
+        const auto anonymousUser = User("", "");
+        const auto permissions = PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+        device->getPermissionManager().setPermissions(permissions);
 
+        EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
+        server =
+            std::make_unique<ConfigProtocolServer>(device,
+                                                   std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1),
+                                                   anonymousUser,
+                                                   ClientType::Control);
+        client =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                NullContext(),
+                std::bind(&ConfigProtocolTest::sendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigProtocolTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
+                std::bind(&ConfigProtocolTest::onServerNotificationReceived, this, std::placeholders::_1)
+            );
         std::unique_ptr<IComponentFinder> m = std::make_unique<MockComponentFinder>();
         server->setComponentFinder(m);
     }
@@ -50,6 +68,11 @@ protected:
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     BaseObjectPtr notificationObj;
 
+    virtual PacketBuffer getRequestReplyFromServer(const PacketBuffer& requestPacket) const
+    {
+        return server->processRequestAndGetReply(requestPacket);
+    }
+
     // server handling
     void serverNotificationReady(const PacketBuffer& notificationPacket)
     {
@@ -57,10 +80,17 @@ protected:
     }
 
     // client handling
-    PacketBuffer sendRequest(const PacketBuffer& requestPacket)
+    PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
-        auto replyPacket = server->processRequestAndGetReply(requestPacket);
+        auto replyPacket = getRequestReplyFromServer(requestPacket);
         return replyPacket;
+    }
+
+    void sendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        server->processNoReplyRequest(requestPacket);
     }
 
     bool onServerNotificationReceived(const BaseObjectPtr& obj)
@@ -101,8 +131,10 @@ TEST_F(ConfigProtocolTest, SetPropertyValueComponent)
 {
     MockComponent::Strict component;
     component->addProperty(StringPropertyBuilder("PropName", "-").build());
+    component->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(component));
+    EXPECT_CALL(component.mock(), getParent(_)).WillOnce(Get<ComponentPtr>(nullptr));
 
     client->getClientComm()->setPropertyValue("/dev/comp/test", "PropName", "PropValue");
 
@@ -111,6 +143,14 @@ TEST_F(ConfigProtocolTest, SetPropertyValueComponent)
 
 TEST_F(ConfigProtocolTest, SetPropertyValueRoot)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     device->addProperty(StringPropertyBuilder("PropName", "-").build());
 
     client->getClientComm()->setPropertyValue("//root", "PropName", "PropValue");
@@ -120,6 +160,14 @@ TEST_F(ConfigProtocolTest, SetPropertyValueRoot)
 
 TEST_F(ConfigProtocolTest, SetProtectedPropertyValueRoot)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     device->addProperty(StringPropertyBuilder("PropName", "-").setReadOnly(True).build());
 
     ASSERT_THROW(client->getClientComm()->setPropertyValue("//root", "PropName", "PropValue"), AccessDeniedException);
@@ -130,6 +178,14 @@ TEST_F(ConfigProtocolTest, SetProtectedPropertyValueRoot)
 
 TEST_F(ConfigProtocolTest, ClearPropertyValueRoot)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     device->addProperty(StringPropertyBuilder("PropName", "-").build());
     device->setPropertyValue("PropName", "PropValue");
 
@@ -179,6 +235,14 @@ TEST_F(ConfigProtocolTest, GetChildObjectPropertyValue)
 
 TEST_F(ConfigProtocolTest, SetChildObjectPropertyValue)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     const auto defaultValue = PropertyObject();
     defaultValue.addProperty(StringPropertyBuilder("StringProp", "-").build());
     defaultValue.addProperty(IntPropertyBuilder("IntProp", 0).build());
@@ -192,6 +256,14 @@ TEST_F(ConfigProtocolTest, SetChildObjectPropertyValue)
 
 TEST_F(ConfigProtocolTest, CallProcedurePropertyOneParam)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     Int p1 = 0;
     device->addProperty(
         FunctionPropertyBuilder(
@@ -212,6 +284,14 @@ TEST_F(ConfigProtocolTest, CallProcedurePropertyOneParam)
 
 TEST_F(ConfigProtocolTest, CallProcedurePropertyTwoParams)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     Int p1 = 0;
     StringPtr p2;
     device->addProperty(
@@ -232,17 +312,18 @@ TEST_F(ConfigProtocolTest, CallProcedurePropertyTwoParams)
     ASSERT_EQ(p2, "value");
 }
 
-TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
+TEST_F(ConfigProtocolTest, GetAvailableFunctionBlockTypes)
 {
     const auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(StringPropertyBuilder("Prop", "value").build());
+    defaultConfig.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     auto fbTypes = Dict<IString, IFunctionBlockType>();
     fbTypes.set("Id", FunctionBlockType("Id", "Name", "Desc", defaultConfig));
 
     EXPECT_CALL(device.mock(), getAvailableFunctionBlockTypes(_)).WillOnce(daq::Get<DictPtr<IString, IFunctionBlockType>>(fbTypes));
 
-    const DictPtr<IString, IFunctionBlockType> value = client->getClientComm()->sendComponentCommand("//root", "GetAvailableFunctionBlockTypes");
+    const DictPtr<IString, IFunctionBlockType> value = client->getClientComm()->getAvailableFunctionBlockTypes("//root");
     ASSERT_EQ(fbTypes.get("Id"), value.get("Id"));
     ASSERT_EQ(fbTypes.get("Id").createDefaultConfig().getPropertyValue("Prop"), "value");
 }
@@ -250,11 +331,12 @@ TEST_F(ConfigProtocolTest, GetAvailableDeviceTypes)
 TEST_F(ConfigProtocolTest, GetDeviceInfo)
 {
     const auto devInfo = DeviceInfo("connectionString", "Name");
+    devInfo.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
 
     StringPtr fbId;
     EXPECT_CALL(device.mock(), getInfo(_)).WillOnce(daq::Get<DeviceInfoPtr>(devInfo));
 
-    const DeviceInfoPtr newDevInfo = client->getClientComm()->sendComponentCommand("//root", "GetInfo");
+    const DeviceInfoPtr newDevInfo = client->getClientComm()->getInfo("//root");
     ASSERT_EQ(newDevInfo.getConnectionString(), devInfo.getConnectionString());
     ASSERT_EQ(newDevInfo.getName(), devInfo.getName());
 }
@@ -273,8 +355,15 @@ TEST_F(ConfigProtocolTest, AddFunctionBlock)
                                                                    "fb");
             });
 
-    auto params = Dict<IString, IBaseObject>({{"TypeId", "fbId"}});
-    const ComponentHolderPtr fbHolder = client->getClientComm()->sendComponentCommand("//root", "AddFunctionBlock", params);
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillOnce(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
+    const ComponentHolderPtr fbHolder = client->getClientComm()->addFunctionBlock("//root", "fbId");
     ASSERT_EQ(fbHolder.getLocalId(), "fb");
     const FunctionBlockPtr fb = fbHolder.getComponent();
 
@@ -287,6 +376,14 @@ TEST_F(ConfigProtocolTest, RemoveFunctionBlock)
     auto functionBlocks = List<IFunctionBlock>(fb.ptr);
 
     EXPECT_CALL(fb.mock(), getLocalId(_)).WillRepeatedly(Get<StringPtr>(String("lid")));
+
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
 
     EXPECT_CALL(device.mock(), getFunctionBlocks(_, _))
         .WillRepeatedly([functionBlocks](IList** fbs, ISearchFilter* searchFilter)
@@ -312,11 +409,8 @@ TEST_F(ConfigProtocolTest, RemoveFunctionBlock)
                 return OPENDAQ_NOTFOUND;
             });
 
-    auto params = Dict<IString, IBaseObject>({{"LocalId", "lid"}});
-    ASSERT_NO_THROW(client->getClientComm()->sendComponentCommand("//root", "RemoveFunctionBlock", params));
-
-    params = Dict<IString, IBaseObject>({{"LocalId", "invalid"}});
-    ASSERT_THROW(client->getClientComm()->sendComponentCommand("//root", "RemoveFunctionBlock", params), NotFoundException);
+    ASSERT_NO_THROW(client->getClientComm()->removeFunctionBlock("//root", "lid"));
+    ASSERT_THROW(client->getClientComm()->removeFunctionBlock("//root", "invalid"), NotFoundException);
 }
 
 TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
@@ -324,13 +418,16 @@ TEST_F(ConfigProtocolTest, ConnectSignalToInputPort)
     MockInputPort::Strict inputPort;
     MockSignal::Strict signal;
 
+    inputPort->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
+    signal->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
+
     EXPECT_CALL(getMockComponentFinder(), findComponent(_))
         .WillOnce(Return(inputPort.ptr.asPtr<IComponent>()))
         .WillOnce(Return(signal.ptr.asPtr<IComponent>()));
     EXPECT_CALL(inputPort.mock(), connect(_)).WillOnce(Return(OPENDAQ_SUCCESS));
+    EXPECT_CALL(inputPort.mock(), getParent(_)).WillOnce(Get<ComponentPtr>(nullptr));
 
-    auto params = ParamsDict({{"SignalId", "sig"}});
-    client->getClientComm()->sendComponentCommand("/dev/comp/test", "ConnectSignal", params);
+    client->getClientComm()->connectSignal("/dev/comp/test", "sig");
 }
 
 TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
@@ -338,27 +435,63 @@ TEST_F(ConfigProtocolTest, DisconnectSignalFromInputPort)
     MockInputPort::Strict inputPort;
     MockSignal::Strict signal;
 
+    inputPort->getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(device->getPermissionManager());
+
     EXPECT_CALL(getMockComponentFinder(), findComponent(_)).WillOnce(Return(inputPort.ptr.asPtr<IComponent>()));
     EXPECT_CALL(inputPort.mock(), disconnect()).WillOnce(Return(OPENDAQ_SUCCESS));
+    EXPECT_CALL(inputPort.mock(), getParent(_)).WillOnce(Get<ComponentPtr>(nullptr));
 
-    client->getClientComm()->sendComponentCommand("/dev/comp/test", "DisconnectSignal");
+    client->getClientComm()->disconnectSignal("/dev/comp/test");
 }
 
 TEST_F(ConfigProtocolTest, GetTypeManager)
 {
     EXPECT_CALL(device.mock(), getContext(_)).WillRepeatedly(Get(NullContext()));
-    const TypeManagerPtr typeManager = client->getClientComm()->sendCommand("GetTypeManager");
+    const TypeManagerPtr typeManager = client->getClientComm()->getTypeManager();
 }
 
 TEST_F(ConfigProtocolTest, BeginEndUpdate)
 {
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
     device->addProperty(StringPropertyBuilder("PropName", "-").build());
     ASSERT_EQ(device->getPropertyValue("PropName"), "-");
 
-    client->getClientComm()->sendComponentCommand("//root", "BeginUpdate");
+    client->getClientComm()->beginUpdate("//root");
     client->getClientComm()->setPropertyValue("//root", "PropName", "val");
     ASSERT_EQ(device->getPropertyValue("PropName"), "-");
-    client->getClientComm()->sendComponentCommand("//root", "EndUpdate");
+    client->getClientComm()->endUpdate("//root");
+    ASSERT_EQ(device->getPropertyValue("PropName"), "val");
+}
+
+TEST_F(ConfigProtocolTest, BeginEndUpdateWithProps)
+{
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
+
+    device->addProperty(StringPropertyBuilder("PropName", "-").build());
+    ASSERT_EQ(device->getPropertyValue("PropName"), "-");
+
+    client->getClientComm()->beginUpdate("//root");
+
+    auto prop = Dict<IString, IBaseObject>({{"Name", "PropName"}, {"ProtectedAccess", False}, {"SetValue", True}, {"Value", "val"}});
+    auto props = List<IDict>(prop);
+
+    ASSERT_THROW(client->getClientComm()->endUpdate("//root", "", props), NotSupportedException);
+    server->setProtocolVersion(1);
+    client->getClientComm()->endUpdate("//root", "", props);
+
     ASSERT_EQ(device->getPropertyValue("PropName"), "val");
 }
 
@@ -366,6 +499,14 @@ TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
 {
     StringPtr deviceName;
     StringPtr deviceDescription;
+
+    EXPECT_CALL(device.mock(), isLocked(_))
+        .WillRepeatedly(
+            [](daq::Bool* locked) -> ErrCode
+            {
+                *locked = false;
+                return OPENDAQ_SUCCESS;
+            });
 
     EXPECT_CALL(device.mock(), setName(_)).WillOnce([&](IString* name)
     {
@@ -387,3 +528,41 @@ TEST_F(ConfigProtocolTest, SetNameAndDescriptionAttribute)
     ASSERT_EQ(deviceDescription, "devDescription");
 }
 
+TEST_F(ConfigProtocolTest, InputPortAcceptsSignal)
+{
+    MockInputPort::Strict inputPort;
+    MockSignal::Strict signal;
+
+    EXPECT_CALL(getMockComponentFinder(), findComponent(_))
+        .WillOnce(Return(inputPort.ptr.asPtr<IComponent>()))
+        .WillOnce(Return(signal.ptr.asPtr<IComponent>()));
+    EXPECT_CALL(inputPort.mock(), getParent(_)).WillRepeatedly(Get(Component(NullContext(), nullptr, "parent")));
+    EXPECT_CALL(inputPort.mock(), acceptsSignal(_, _)).WillOnce(Return(OPENDAQ_SUCCESS));
+
+    client->getClientComm()->acceptsSignal("/dev/comp/test", "sig");
+}
+
+class RejectConnectionTest : public ConfigProtocolTest
+{
+public:
+    RejectConnectionTest()
+        : ConfigProtocolTest()
+    {
+    }
+
+protected:
+    PacketBuffer getRequestReplyFromServer(const PacketBuffer& requestPacket) const override
+    {
+        return ConfigProtocolServer::generateConnectionRejectedReply(
+            requestPacket.getId(),
+            OPENDAQ_ERR_GENERALERROR,
+            "Test connection rejected",
+            JsonSerializer()
+        );
+    }
+};
+
+TEST_F(RejectConnectionTest, Connect)
+{
+    ASSERT_THROW_MSG(client->connect(), GeneralErrorException, "Test connection rejected");
+}

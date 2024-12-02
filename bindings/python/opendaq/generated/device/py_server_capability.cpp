@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -47,6 +49,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("connection_string",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getConnectionString().toStdString();
         },
@@ -54,6 +57,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("connection_strings",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getConnectionStrings().detach();
         },
@@ -62,6 +66,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("protocol_name",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getProtocolName().toStdString();
         },
@@ -69,6 +74,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("protocol_id",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getProtocolId().toStdString();
         },
@@ -76,6 +82,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("protocol_type",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getProtocolType();
         },
@@ -83,6 +90,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("prefix",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getPrefix().toStdString();
         },
@@ -90,6 +98,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("connection_type",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getConnectionType().toStdString();
         },
@@ -97,6 +106,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("core_events_enabled",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getCoreEventsEnabled();
         },
@@ -104,6 +114,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("addresses",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getAddresses().detach();
         },
@@ -112,6 +123,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("port",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getPort().detach();
         },
@@ -120,9 +132,18 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
     cls.def_property_readonly("address_info",
         [](daq::IServerCapability *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
             return objectPtr.getAddressInfo().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the list of address information objects.");
+    cls.def_property_readonly("protocol_version",
+        [](daq::IServerCapability *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getProtocolVersion().toStdString();
+        },
+        "Gets the protocol version supported by the device's protocol.");
 }

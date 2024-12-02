@@ -1,9 +1,9 @@
 #include <opcuatms/core_types_utils.h>
 #include <coreobjects/unit_factory.h>
-#include "opcuatms/converters/list_conversion_utils.h"
-#include "opcuatms/converters/struct_converter.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "open62541/types_daqbsp_generated.h"
+#include <opcuatms/converters/list_conversion_utils.h>
+#include <opcuatms/converters/struct_converter.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <open62541/types_daqbsp_generated.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -32,6 +32,7 @@ OpcUaObject<UA_EUInformationWithQuantity> StructConverter<IUnit, UA_EUInformatio
 {
     OpcUaObject<UA_EUInformationWithQuantity> tmsUnit;
 
+    tmsUnit->namespaceUri = UA_STRING_ALLOC("http://www.opcfoundation.org/UA/units/un/cefact");
     tmsUnit->unitId = object.getId();
     tmsUnit->description = UA_LOCALIZEDTEXT_ALLOC("en-US", object.getName().getCharPtr());
     tmsUnit->displayName = UA_LOCALIZEDTEXT_ALLOC("en-US", object.getSymbol().getCharPtr());

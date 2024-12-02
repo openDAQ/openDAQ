@@ -27,7 +27,7 @@ ErrCode FunctionBlockWrapperImpl::includeObject(IString* objectName,
 {
     const auto objectNameStr = StringPtr::Borrow(objectName).toStdString();
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (includeObjectsByDefault)
     {
@@ -58,7 +58,7 @@ ErrCode FunctionBlockWrapperImpl::excludeObject(IString* objectName,
 {
     const auto objectNameStr = StringPtr::Borrow(objectName).toStdString();
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (!includeObjectsByDefault)
     {
@@ -157,7 +157,7 @@ ErrCode FunctionBlockWrapperImpl::setPropertySelectionValues(IString* propertyNa
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     return wrapHandler(
         [this, &propertyName, &enumValues]()
@@ -226,7 +226,7 @@ ErrCode FunctionBlockWrapperImpl::getInputPorts(IList** ports, ISearchFilter* se
 
     const auto innerPorts = functionBlock.getInputPorts(searchFilter);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     auto portList = getObjects<IInputPort>(innerPorts,
                                                  includedInputPorts,
@@ -243,7 +243,7 @@ ErrCode FunctionBlockWrapperImpl::getSignals(IList** signals, ISearchFilter* sea
 
     const auto innerSignals = functionBlock.getSignals(searchFilter);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     auto signalList = getObjects<ISignal>(innerSignals,
                                            includedSignals,
@@ -260,7 +260,7 @@ ErrCode FunctionBlockWrapperImpl::getFunctionBlocks(IList** functionBlocks, ISea
 
     const auto innerFbs = functionBlock.getFunctionBlocks(searchFilter);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     auto fbList = getObjects<IFunctionBlock>(
         innerFbs,
@@ -295,7 +295,7 @@ ErrCode FunctionBlockWrapperImpl::setPropertyValue(IString* propertyName, IBaseO
 
     auto propertyNameStr = StringPtr::Borrow(propertyName);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     return wrapHandler(
         [this, &propertyNameStr, &value]()
@@ -340,7 +340,7 @@ ErrCode FunctionBlockWrapperImpl::getPropertyValue(IString* propertyName, IBaseO
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertyValue(propertyName, value);
@@ -352,7 +352,7 @@ ErrCode FunctionBlockWrapperImpl::getPropertySelectionValue(IString* propertyNam
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertySelectionValue(propertyName, value);
@@ -364,7 +364,7 @@ ErrCode FunctionBlockWrapperImpl::clearPropertyValue(IString* propertyName)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->clearPropertyValue(propertyName);
@@ -376,7 +376,7 @@ ErrCode FunctionBlockWrapperImpl::hasProperty(IString* propertyName, Bool* hasPr
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->hasProperty(propertyName, hasProperty);
@@ -418,7 +418,7 @@ ErrCode FunctionBlockWrapperImpl::getProperty(IString* propertyName, IProperty**
 
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     return wrapHandler(
         [this, &propertyNamePtr, &property]()
@@ -448,7 +448,7 @@ ErrCode FunctionBlockWrapperImpl::getProperties(const ListPtr<IProperty>& innerP
 {
     assert(properties != nullptr);
 
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     const auto propertyList = getObjects<IProperty>(innerProperties,
                                                     includedProperties,

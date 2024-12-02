@@ -8,6 +8,7 @@
 #include <opendaq/server_type_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/mock/mock_server_factory.h>
+#include <opendaq/module_info_factory.h>
 
 using namespace daq;
 
@@ -17,14 +18,13 @@ MockServerModuleImpl::MockServerModuleImpl(daq::ContextPtr ctx, IModuleManager* 
 {
 }
 
-ErrCode MockServerModuleImpl::getName(IString** name)
+daq::ErrCode INTERFACE_FUNC MockServerModuleImpl::getModuleInfo(daq::IModuleInfo** info)
 {
-    return createString(name, "MockServerModule");
-}
+    if (info == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
-ErrCode MockServerModuleImpl::getId(IString** id)
-{
-    return createString(id, "MockServer");
+    *info = ModuleInfo(VersionInfo(0, 0, 0), "MockModule", "mock").detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode MockServerModuleImpl::getAvailableDevices(IList** availableDevices)
@@ -77,9 +77,8 @@ ErrCode MockServerModuleImpl::getAvailableServerTypes(IDict** serverTypes)
 
 ErrCode MockServerModuleImpl::createServer(IServer** server,
                                            IString* serverType,
-                                           IDevice* /*rootDevice*/,
-                                           IPropertyObject* /*config*/
-                                           )
+                                           IDevice* rootDevice,
+                                           IPropertyObject* /*config*/)
 {
     const StringPtr serverTypePtr = StringPtr::Borrow(serverType);
     if (serverTypePtr == "MockServer" ||
@@ -87,21 +86,13 @@ ErrCode MockServerModuleImpl::createServer(IServer** server,
         serverTypePtr == "OpenDAQNativeStreaming" ||
         serverTypePtr == "OpenDAQOPCUA")
     {
-        *server = MockServer().detach();
+        const DevicePtr rootDevicePtr = DevicePtr::Borrow(rootDevice);
+        *server = MockServer(serverTypePtr, rootDevicePtr, rootDevicePtr.getContext()).detach();
     }
     else
     {
         return OPENDAQ_ERR_INVALIDPARAMETER;
     }
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MockServerModuleImpl::getVersionInfo(IVersionInfo** version)
-{
-    if (version == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *version = nullptr;
     return OPENDAQ_SUCCESS;
 }
 

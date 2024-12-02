@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2022-2024 openDAQ d.o.o.
  *
@@ -48,6 +47,7 @@ public:
     ErrCode INTERFACE_FUNC getStructFields(IList** structFields) override;
     ErrCode INTERFACE_FUNC getSampleSize(SizeT* sampleSize) override;
     ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSizes) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -59,6 +59,8 @@ public:
     // IDataRuleCalcPrivate
     void* INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize) const override;
     void INTERFACE_FUNC calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) const override;
+    void* INTERFACE_FUNC calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize) const override;
+    void INTERFACE_FUNC calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize, void** output) const override;
     Bool INTERFACE_FUNC hasDataRuleCalc() const override;
 
     // ISerializable
@@ -87,6 +89,8 @@ protected:
     ListPtr<IDataDescriptor> structFields;
 
     DictPtr<IString, IString> metadata;
+
+    ReferenceDomainInfoPtr referenceDomainInfo;
 
 private:
     ErrCode validate();

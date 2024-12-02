@@ -17,6 +17,7 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/listobject_factory.h>
+#include <thread>
 
 using namespace daq;
 
@@ -316,7 +317,7 @@ TEST_F(PropertyObjectTest, DeserializeJsonSimpleWithLocalProperty)
     ASSERT_EQ(json, deserializedJson);
 }
 
-TEST_F(PropertyObjectTest, DISABLED_SerializeList)
+TEST_F(PropertyObjectTest, SerializeList)
 {
     // Serializer fails to serialize default empty list property correctly.
 
@@ -327,7 +328,8 @@ TEST_F(PropertyObjectTest, DISABLED_SerializeList)
     auto serializer = JsonSerializer();
     auto deserializer = JsonDeserializer();
     obj.serialize(serializer);
-    const PropertyObjectPtr clone = deserializer.deserialize(serializer.getOutput());
+    const auto output = serializer.getOutput();
+    const PropertyObjectPtr clone = deserializer.deserialize(output);
     
     ASSERT_TRUE(clone.hasProperty("list"));
     ASSERT_TRUE(BaseObjectPtr::Equals(obj.getPropertyValue("list"), clone.getPropertyValue("list")));
@@ -2087,4 +2089,26 @@ TEST_F(BeginEndUpdatePropertyObjectTest, Recursive)
     ASSERT_TRUE(endUpdateCalled);
     ASSERT_EQ(propObj.getPropertyValue("StringProp"), "s");
     ASSERT_EQ(childPropObj.getPropertyValue("ChildStringProp"), "cs");
+}
+
+TEST_F(PropertyObjectTest, EnumerationPropertySetGet)
+{
+    // Add Enumeration type to Type Manager
+    const auto enumType = EnumerationType(
+        "EnumType", List<IString>("Option1", "Option2", "Option3"));
+    objManager.addType(enumType);
+
+    auto enumerationProperty = EnumerationPropertyBuilder("enumProp", Enumeration("EnumType", "Option1", objManager))
+                               .setDefaultValue(Enumeration("EnumType", "Option2", objManager))
+                               .build();
+    
+    // Create a PropertyObject with an Enumeration property
+    auto propObj = PropertyObject();
+    propObj.addProperty(enumerationProperty);
+
+    propObj.setPropertyValue("enumProp", Enumeration("EnumType", "Option1", objManager));
+    ASSERT_EQ(propObj.getPropertyValue("enumProp"), "Option1");
+
+    propObj.setPropertyValue("enumProp", EnumerationWithIntValue("EnumType", 2, objManager));
+    ASSERT_EQ(propObj.getPropertyValue("enumProp"), "Option3");
 }

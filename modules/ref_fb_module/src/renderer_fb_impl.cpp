@@ -133,13 +133,11 @@ void RendererFbImpl::initProperties()
 
 void RendererFbImpl::propertyChanged()
 {
-    std::scoped_lock lock(sync);
     readProperties();
 }
 
 void RendererFbImpl::resolutionChanged()
 {
-    std::scoped_lock lock(sync);
     readResolutionProperty();
     resChanged = true;
 }
@@ -644,7 +642,7 @@ void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget
 
 void RendererFbImpl::onConnected(const InputPortPtr& inputPort)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     subscribeToSignalCoreEvent(inputPort.getSignal());
     updateInputPorts();
@@ -653,7 +651,7 @@ void RendererFbImpl::onConnected(const InputPortPtr& inputPort)
 
 void RendererFbImpl::onDisconnected(const InputPortPtr& inputPort)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
 
     updateInputPorts();
     LOG_T("Disconnected from port {}", inputPort.getLocalId());
@@ -713,7 +711,7 @@ void RendererFbImpl::renderLoop()
     if (!font.loadFromMemory(ARIAL_TTF, sizeof(ARIAL_TTF)))
         throw std::runtime_error("Failed to load font.");
 
-    std::unique_lock<std::mutex> lock(sync);
+    auto lock = getUniqueLock();
     const auto defaultWaitTime = std::chrono::milliseconds(20);
     auto waitTime = defaultWaitTime;
     while (!stopRender && window.isOpen())
@@ -1191,6 +1189,7 @@ void RendererFbImpl::processSignalContext(SignalContext& signalContext)
             LOG_T("Processing {} event", eventPacket.getEventId())
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
+                // TODO handle Null-descriptor params ('Null' sample type descriptors)
                 DataDescriptorPtr valueSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
                 DataDescriptorPtr domainSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
                 processSignalDescriptorChanged(signalContext, valueSignalDescriptor, domainSignalDescriptor);

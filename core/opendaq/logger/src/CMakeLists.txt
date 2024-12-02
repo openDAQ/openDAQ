@@ -83,6 +83,7 @@ endfunction()
 set(SRC_PublicHeaders_Component 
     log.h
     log_level.h
+    logger_errors.h
     logger_factory.h
     logger_component_factory.h
     logger_sink_factory.h

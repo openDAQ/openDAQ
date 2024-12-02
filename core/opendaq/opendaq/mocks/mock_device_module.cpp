@@ -7,22 +7,13 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/module_info_factory.h>
 
 using namespace daq;
 
 MockDeviceModuleImpl::MockDeviceModuleImpl(daq::ContextPtr ctx)
     : ctx(std::move(ctx))
 {
-}
-
-ErrCode MockDeviceModuleImpl::getName(IString** name)
-{
-    return createString(name, "MockDeviceModule");
-}
-
-ErrCode MockDeviceModuleImpl::getId(IString** id)
-{
-    return createString(id, "MockDevice");
 }
 
 ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)
@@ -61,7 +52,11 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
                                            IComponent* parent,
                                            IPropertyObject* config)
 {
+    OPENDAQ_PARAM_NOT_NULL(device);
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
+
     StringPtr connStr = connectionString;
+    DevicePtr devicePtr;
     if (connStr == "daqmock://client_device")
     {
         const ModulePtr deviceModule(MockDeviceModule_Create(ctx));
@@ -71,8 +66,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
         manager.addModule(deviceModule);
         manager.addModule(fbModule);
 
-        auto clientDevice = Client(ctx, "client", nullptr, parent);
-        *device = clientDevice.detach();
+        devicePtr = Client(ctx, "client", nullptr, parent);
     }
     else if (connStr == "daqmock://phys_device")
     {
@@ -80,13 +74,13 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
         if (cnt != 0)
             id += std::to_string(cnt);
         cnt++;
-        DevicePtr physicalDevice(MockPhysicalDevice_Create(ctx, parent, StringPtr(id), config));
-        *device = physicalDevice.detach();
+        devicePtr = DevicePtr(MockPhysicalDevice_Create(ctx, parent, StringPtr(id), config));
     }
     else
     {
         return OPENDAQ_ERR_INVALIDPARAMETER;
     }
+    *device = devicePtr.detach();
 
     return OPENDAQ_SUCCESS;
 }
@@ -110,18 +104,21 @@ ErrCode MockDeviceModuleImpl::getAvailableServerTypes(IDict** serverTypes)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockDeviceModuleImpl::createServer(IServer** server, IString* /*serverType*/, IDevice* /*rootDevice*/, IPropertyObject* /*config*/)
+ErrCode MockDeviceModuleImpl::createServer(IServer** server,
+                                           IString* /*serverType*/,
+                                           IDevice* /*rootDevice*/,
+                                           IPropertyObject* /*config*/)
 {
     *server = nullptr;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockDeviceModuleImpl::getVersionInfo(IVersionInfo** version)
+ErrCode MockDeviceModuleImpl::getModuleInfo(daq::IModuleInfo** info)
 {
-    if (version == nullptr)
+    if (info == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *version = nullptr;
+    *info = ModuleInfo(VersionInfo(0, 0, 0), "MockModule", "mock").detach();
     return OPENDAQ_SUCCESS;
 }
 

@@ -22,7 +22,7 @@
 #include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/subscription_event_args_factory.h>
 
-#include "opendaq/event_packet_params.h"
+#include <opendaq/event_packet_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename... Interfaces>
@@ -77,6 +77,7 @@ public:
     // ISignal
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
+    ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
 protected:
     EventPacketPtr createDataDescriptorChangedEventPacket() override;
@@ -126,21 +127,20 @@ Bool MirroredSignalBase<Interfaces...>::onTriggerEvent(const EventPacketPtr& eve
 
     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        const auto params = eventPacket.getParameters();
-        const DataDescriptorPtr newSignalDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
-        const DataDescriptorPtr newDomainDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+        const auto [signalDescriptorChanged, domainDescriptorChanged, newSignalDescriptor, newDomainDescriptor] =
+            parseDataDescriptorEventPacket(eventPacket);
 
         std::scoped_lock lock(signalMutex);
 
         Bool changed = False;
 
-        if (newSignalDescriptor.assigned() && newSignalDescriptor != mirroredDataDescriptor)
+        if (signalDescriptorChanged && newSignalDescriptor != mirroredDataDescriptor)
         {
             mirroredDataDescriptor = newSignalDescriptor;
             changed = True;
         }
 
-        if (newDomainDescriptor.assigned() && mirroredDomainDataDescriptor != newDomainDescriptor)
+        if (domainDescriptorChanged && mirroredDomainDataDescriptor != newDomainDescriptor)
         {
             mirroredDomainDataDescriptor = newDomainDescriptor;
 
@@ -221,7 +221,7 @@ ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(IStreaming* stream
     const auto streamingPtr = StreamingPtr::Borrow(streaming);
     const auto connectionString = streamingPtr.getConnectionString();
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
@@ -251,7 +251,7 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* stream
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
 
@@ -348,12 +348,12 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
 
     if (syncLock)
     {
-        std::scoped_lock lock(this->sync);
-        this->lastDataPacket = nullptr;
+        auto lock = this->getRecursiveConfigLock();
+        this->lastDataValue = nullptr;
     }
     else
     {
-        this->lastDataPacket = nullptr;
+        this->lastDataValue = nullptr;
     }
 
     if (onUnsubscribeCompleteEvent.hasListeners())
@@ -470,7 +470,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamingSources(IList** streaming
 
     auto stringsPtr = List<IString>();
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     for (const auto& [connectionString, streamingRef] : streamingSourcesRefs)
     {
         auto streamingSource = streamingRef.getRef();
@@ -491,7 +491,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setActiveStreamingSource(IString* str
     const auto connectionStringPtr = StringPtr::Borrow(streamingConnectionString);
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned() &&
@@ -553,7 +553,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getActiveStreamingSource(IString** st
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
         *streamingConnectionString = activeStreamingSource.getConnectionString().addRefAndReturn();
@@ -568,7 +568,7 @@ ErrCode MirroredSignalBase<Interfaces...>::deactivateStreaming()
 {
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     ErrCode errCode = OPENDAQ_SUCCESS;
     if (listened && streamed)
@@ -603,15 +603,19 @@ template <typename... Interfaces>
 EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEventPacket()
 {
     const EventPacketPtr eventPacketFromConfig = Super::createDataDescriptorChangedEventPacket();
-    const auto params = eventPacketFromConfig.getParameters();
+
+    DataDescriptorPtr valueDescriptorFromConfig;
+    DataDescriptorPtr domainDescriptorFromConfig;
+    std::tie(std::ignore, std::ignore, valueDescriptorFromConfig, domainDescriptorFromConfig) =
+        parseDataDescriptorEventPacket(eventPacketFromConfig);
 
     std::scoped_lock lock(signalMutex);
     if (!mirroredDataDescriptor.assigned())
     {
-        mirroredDataDescriptor = params[event_packet_param::DATA_DESCRIPTOR];
+        mirroredDataDescriptor = valueDescriptorFromConfig;
         if (!mirroredDomainDataDescriptor.assigned())
         {
-            mirroredDomainDataDescriptor = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+            mirroredDomainDataDescriptor = domainDescriptorFromConfig;
             if (mirroredDomainSignal.assigned())
                 mirroredDomainSignal.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(mirroredDomainDataDescriptor);
             else
@@ -628,7 +632,8 @@ EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEve
         }
     }
 
-    return DataDescriptorChangedEventPacket(mirroredDataDescriptor, mirroredDomainDataDescriptor);
+    return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(mirroredDataDescriptor),
+                                            descriptorToEventPacketParam(mirroredDomainDataDescriptor));
 }
 
 template <typename... Interfaces>
@@ -690,7 +695,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamed(Bool* streamed)
 {
     OPENDAQ_PARAM_NOT_NULL(streamed);
 
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
     *streamed = this->streamed;
     return OPENDAQ_SUCCESS;
 }
@@ -698,7 +703,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamed(Bool* streamed)
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
 {
-    std::scoped_lock lock(this->sync);
+    auto lock = this->getRecursiveConfigLock();
 
     if (static_cast<bool>(streamed) == this->streamed)
         return OPENDAQ_IGNORED;
@@ -720,6 +725,12 @@ ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
         return errCode;
 
     return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode MirroredSignalBase<Interfaces...>::getSignalSerializeId(IString** serializeId)
+{
+    return this->getRemoteId(serializeId);
 }
 
 END_NAMESPACE_OPENDAQ

@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(OPENDAQ_EXAMPLES_VERSION 3.3.0)
+set(OPENDAQ_EXAMPLES_VERSION ${OPENDAQ_PACKAGE_VERSION})
 project(opendaq_examples VERSION ${OPENDAQ_EXAMPLES_VERSION})
 
 option(OPENDAQ_CONSOLE_APP "Console application example." ON)
 option(OPENDAQ_DEVICE "Device example without a discovery server." ON)
 option(OPENDAQ_CLIENT_DISCOVERY "Client example that connects to all discoverable ${SDK_NAME} devices." ON)
 option(OPENDAQ_CLIENT_LOCAL "Client example that connects to a ${SDK_NAME} device on localhost." ON)
+option(OPENDAQ_CLIENT_AUTHENTICATION "Client example that connects to a ${SDK_NAME} device on localhost using username and password." ON)
 option(OPENDAQ_QUICK_START_APP "Full example obtained by the end of the quick start guide." ON)
 option(OPENDAQ_STREAM_READER "Stream reader example that loads a reference device and outputs data" ON)
 option(OPENDAQ_MULTI_READER "Multi reader example that aligns multiple signals" ON)
@@ -32,6 +33,10 @@ endif()
 
 if (OPENDAQ_CLIENT_LOCAL)
   add_subdirectory(client_local)
+endif()
+
+if (OPENDAQ_CLIENT_AUTHENTICATION)
+  add_subdirectory(client_authentication)
 endif()
 
 if (OPENDAQ_DEVICE)

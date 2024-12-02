@@ -9,8 +9,10 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 
 using namespace daq;
 
-WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server("StreamingLtServer", config, rootDevice, context, nullptr)
+WebsocketStreamingServerImpl::WebsocketStreamingServerImpl(const DevicePtr& rootDevice,
+                                                           const PropertyObjectPtr& config,
+                                                           const ContextPtr& context)
+    : Server("OpenDAQLTStreaming", config, rootDevice, context)
     , websocketStreamingServer(rootDevice, context)
 {
     const uint16_t streamingPort = config.getPropertyValue("WebsocketStreamingPort");
@@ -66,6 +68,7 @@ PropertyObjectPtr WebsocketStreamingServerImpl::getDiscoveryConfig()
     discoveryConfig.addProperty(StringProperty("ServiceCap", "LT"));
     discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
     discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("WebsocketStreamingPort")));
+    discoveryConfig.addProperty(StringProperty("ProtocolVersion", ""));
     return discoveryConfig;
 }
 
@@ -98,15 +101,10 @@ PropertyObjectPtr WebsocketStreamingServerImpl::populateDefaultConfig(const Prop
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY,
-    WebsocketStreamingServer,
-    daq::IServer,
-    daq::DevicePtr,
-    rootDevice,
-    PropertyObjectPtr,
-    config,
-    const ContextPtr&,
-    context
-    )
+    INTERNAL_FACTORY, WebsocketStreamingServer, daq::IServer,
+    daq::DevicePtr, rootDevice,
+    PropertyObjectPtr, config,
+    const ContextPtr&, context
+)
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE

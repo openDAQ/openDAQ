@@ -28,13 +28,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
+static const SizeT UNLIMITED_CONFIGURATION_CONNECTIONS = 0;
+
 using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
 using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
 
 using ConfigServerCallbacks = std::pair<ProcessConfigProtocolPacketCb, OnPacketBufferReceivedCallback>;
-using SetUpConfigProtocolServerCb = std::function<ConfigServerCallbacks(SendConfigProtocolPacketCb cb, const UserPtr& user)>;
+using SetUpConfigProtocolServerCb = std::function<ConfigServerCallbacks(SendConfigProtocolPacketCb cb, const UserPtr& user, ClientType connectionType)>;
 
-class NativeStreamingServerHandler
+class NativeStreamingServerHandler : public std::enable_shared_from_this<NativeStreamingServerHandler>
 {
 public:
     explicit NativeStreamingServerHandler(const ContextPtr& context,
@@ -42,7 +44,9 @@ public:
                                           const ListPtr<ISignal>& signalsList,
                                           OnSignalSubscribedCallback signalSubscribedHandler,
                                           OnSignalUnsubscribedCallback signalUnsubscribedHandler,
-                                          SetUpConfigProtocolServerCb setUpConfigProtocolServerCb);
+                                          SetUpConfigProtocolServerCb setUpConfigProtocolServerCb,
+                                          SizeT maxAllowedConfigConnections = UNLIMITED_CONFIGURATION_CONNECTIONS,
+                                          SizeT streamingPacketSendTimeout = UNLIMITED_PACKET_SEND_TIME);
     ~NativeStreamingServerHandler() = default;
 
     void startServer(uint16_t port);
@@ -51,21 +55,39 @@ public:
     void addSignal(const SignalPtr& signal);
     void removeComponentSignals(const StringPtr& componentId);
 
-    void sendPacket(const SignalPtr& signal, const PacketPtr& packet);
+    void sendPacket(const SignalPtr& signal, PacketPtr&& packet);
 
 protected:
     void initSessionHandler(SessionPtr session);
     void handleTransportLayerProps(const PropertyObjectPtr& propertyObject, std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpTransportLayerPropsCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
-    void setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void setUpConfigProtocolCallbacks(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                                      config_protocol::PacketBuffer&& firstPacketBuffer);
+    void connectConfigProtocol(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                               config_protocol::PacketBuffer&& firstPacketBuffer);
+    void reportConnectError(std::shared_ptr<ServerSessionHandler> sessionHandler,
+                            config_protocol::PacketBuffer& firstPacketBuffer,
+                            ErrCode errorCode,
+                            const std::string& message);
+    bool isConnectionLimitReached();
+    bool isControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    bool isExclusiveControlConnectionRejected(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void incrementConfigConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
+    void decrementConfigConnectionCount(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpStreamingInitCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);
     void releaseSessionHandler(SessionPtr session);
+    std::shared_ptr<ServerSessionHandler> releaseSessionHandlerInternal(SessionPtr session, bool enableSyncLock);
     void handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
-                                  const std::string& signalStringId,
+                                  const SignalPtr& signal,
                                   bool subscribe,
                                   const std::string& clientId);
     bool onAuthenticate(const daq::native_streaming::Authentication& authentication, std::shared_ptr<void>& userContextOut);
+    void onSessionError(const std::string &errorMessage, SessionPtr session);
+    void releaseOtherControlConnectionsInternal(std::shared_ptr<ServerSessionHandler> currentSessionHandler,
+                                                std::vector<std::shared_ptr<ServerSessionHandler>>& releasedSessionHandlers);
+    ClientType parseClientTypeProp(const PropertyObjectPtr& propertyObject);
+    bool parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject);
 
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
@@ -84,6 +106,12 @@ protected:
 
     std::mutex sync;
     size_t connectedClientIndex;
+
+    SizeT maxAllowedConfigConnections;
+    SizeT configConnectionsCount;
+    SizeT controlConnectionsCount;
+    SizeT exclusiveControlConnectionsCount;
+    SizeT streamingPacketSendTimeout;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

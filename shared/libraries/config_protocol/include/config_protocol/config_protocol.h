@@ -22,10 +22,14 @@
 #include <coretypes/string_ptr.h>
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/baseobject_factory.h>
+#include <coreobjects/user_ptr.h>
+#include <opendaq/client_type.h>
+#include <set>
 
 namespace daq::config_protocol
 {
 
+using SignalNumericIdType = uint32_t;
 using ParamsDictPtr = DictPtr<IString, IBaseObject>;
 
 inline auto ParamsDict() -> decltype(Dict<IString, IBaseObject>())
@@ -45,7 +49,9 @@ enum PacketType: uint8_t
     UpgradeProtocol = 0x81,
     Rpc = 0x82,
     ServerNotification = 0x83,
-    InvalidRequest = 0x84
+    InvalidRequest = 0x84,
+    NoReplyRpc = 0x85,
+    ConnectionRejected = 0x86
 };
 
 #pragma pack(push, 1)
@@ -105,8 +111,8 @@ public:
     static PacketBuffer createGetProtocolInfoRequest(uint64_t id);
     void parseProtocolInfoRequest() const;
 
-    static PacketBuffer createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::vector<uint16_t>& supportedVersions);
-    void parseProtocolInfoReply(uint16_t& currentVersion, std::vector<uint16_t>& supportedVersions) const;
+    static PacketBuffer createGetProtocolInfoReply(uint64_t id, uint16_t currentVersion, const std::set<uint16_t>& supportedVersions);
+    void parseProtocolInfoReply(uint16_t& currentVersion, std::set<uint16_t>& supportedVersions) const;
 
     static PacketBuffer createUpgradeProtocolRequest(uint64_t id, uint16_t version);
     void parseProtocolUpgradeRequest(uint16_t& version) const;
@@ -122,6 +128,12 @@ public:
 
     static PacketBuffer createInvalidRequestReply(uint64_t id);
     void parseInvalidRequestReply() const;
+
+    static PacketBuffer createNoReplyRpcRequest(const char* json, size_t jsonSize);
+    StringPtr parseNoReplyRpcRequest() const;
+
+    static PacketBuffer createConnectionRejectedReply(uint64_t id, const char* json, size_t jsonSize);
+    StringPtr parseConnectionRejectedReply() const;
 
 private:
     PacketHeader* buffer;
@@ -149,8 +161,31 @@ inline auto format_as(PacketType type)
             return "ServerNotification";
         case InvalidRequest:
             return "InvalidRequest";
+        case NoReplyRpc:
+            return "NoReplyRpc";
+        case ConnectionRejected:
+            return "ConnectionRejected";
     }
     return "Unknown type";
 }
+
+class RpcContext
+{
+public:
+    uint16_t protocolVersion = 0;
+    UserPtr user;
+    ClientType connectionType = ClientType::Control;
+};
+
+inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
+{
+    return {0, 1, 2, 3, 4, 5, 6, 7};
+}
+
+inline constexpr uint16_t GetLatestConfigProtocolVersion()
+{
+    return 7; // *GetSupportedConfigProtocolVersions().rbegin();
+}
+
 
 }

@@ -25,22 +25,25 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
 
-PyDaqIntf<daq::IServer, daq::IBaseObject> declareIServer(pybind11::module_ m)
+PyDaqIntf<daq::IServer, daq::IFolder> declareIServer(pybind11::module_ m)
 {
-    return wrapInterface<daq::IServer, daq::IBaseObject>(m, "IServer");
+    return wrapInterface<daq::IServer, daq::IFolder>(m, "IServer");
 }
 
-void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject> cls)
+void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cls)
 {
     cls.doc() = "Represents a server. The server provides access to the openDAQ device. Depend of the implementation, it can support configuring the device, reading configuration, and data streaming.";
 
     cls.def("stop",
         [](daq::IServer *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerPtr::Borrow(object);
             objectPtr.stop();
         },
@@ -48,6 +51,7 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject
     cls.def_property_readonly("id",
         [](daq::IServer *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerPtr::Borrow(object);
             return objectPtr.getId().toStdString();
         },
@@ -55,8 +59,27 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IBaseObject
     cls.def("enable_discovery",
         [](daq::IServer *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::ServerPtr::Borrow(object);
             objectPtr.enableDiscovery();
         },
         "Enables the server to be discovered by the clients.");
+    cls.def_property_readonly("signals",
+        [](daq::IServer *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            return objectPtr.getSignals().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets a list of the server's signals.");
+    cls.def("get_signals",
+        [](daq::IServer *object, daq::ISearchFilter* searchFilter)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            return objectPtr.getSignals(searchFilter).detach();
+        },
+        py::arg("search_filter") = nullptr,
+        "Gets a list of the server's signals.");
 }

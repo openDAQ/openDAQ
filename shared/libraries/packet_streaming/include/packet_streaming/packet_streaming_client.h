@@ -43,7 +43,6 @@ public:
 
     bool areReferencesCleared() const;
 
-    EventPacketPtr getDataDescriptorChangedEventPacket(uint32_t signalId) const;
 private:
     DeserializerPtr jsonDeserializer;
     std::queue<std::tuple<uint32_t, PacketPtr>> queue;

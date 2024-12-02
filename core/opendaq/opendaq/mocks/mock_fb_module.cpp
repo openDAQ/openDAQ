@@ -4,9 +4,10 @@
 #include <opendaq/function_block_type_factory.h>
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/mock/mock_fb_factory.h>
-#include "opendaq/mock/mock_fb_module.h"
-#include "opendaq/mock/mock_fb.h"
+#include <opendaq/mock/mock_fb_module.h>
+#include <opendaq/mock/mock_fb.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/module_info_factory.h>
 
 using namespace daq;
 
@@ -15,14 +16,13 @@ MockFunctionBlockModuleImpl::MockFunctionBlockModuleImpl(daq::ContextPtr ctx)
 {
 }
 
-ErrCode MockFunctionBlockModuleImpl::getName(IString** name)
+ErrCode INTERFACE_FUNC MockFunctionBlockModuleImpl::getModuleInfo(daq::IModuleInfo** info)
 {
-    return createString(name, "MockFunctionBlockModule");
-}
+    if (info == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
-ErrCode MockFunctionBlockModuleImpl::getId(IString** id)
-{
-    return createString(id, "MockFunctionBlock");
+    *info = ModuleInfo(VersionInfo(0, 0, 0), "MockModule", "mock").detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode MockFunctionBlockModuleImpl::getAvailableDevices(IList** availableDevices)
@@ -56,6 +56,12 @@ ErrCode MockFunctionBlockModuleImpl::getAvailableFunctionBlockTypes(IDict** func
     auto type = CreateDeviceFunctionType();
     typesDict.set(type.getId(), type);
 
+    auto mockFbDynamicInputPortsType = MockFunctionBlockDynamicInputPortImpl::CreateType();
+    typesDict.set(mockFbDynamicInputPortsType.getId(), mockFbDynamicInputPortsType);
+
+    auto mockFbDynamicOutputPortsType = MockFunctionBlockDynamicOutputPortImpl::CreateType();
+    typesDict.set(mockFbDynamicOutputPortsType.getId(), mockFbDynamicOutputPortsType);
+
     *functionBlockTypes = typesDict.detach();
     return OPENDAQ_SUCCESS;
 }
@@ -78,6 +84,14 @@ ErrCode MockFunctionBlockModuleImpl::createFunctionBlock(IFunctionBlock** functi
     {
         *functionBlock = MockFunctionBlock(CreateDeviceFunctionType(), ctx, parent, localId, config).detach();
     }
+    else if (idPtr == MockFunctionBlockDynamicInputPortImpl::CreateType().getId())
+    {
+        *functionBlock = MockFunctionBlockDynamicInputPort(MockFunctionBlockDynamicInputPortImpl::CreateType(), ctx, parent, localId, config).detach();
+    }
+    else if (idPtr == MockFunctionBlockDynamicOutputPortImpl::CreateType().getId())
+    {
+        *functionBlock = MockFunctionBlockDynamicOutputPort(MockFunctionBlockDynamicOutputPortImpl::CreateType(), ctx, parent, localId, config).detach();
+    }
     else
     {
         return OPENDAQ_ERR_INVALIDPARAMETER;
@@ -92,18 +106,12 @@ ErrCode MockFunctionBlockModuleImpl::getAvailableServerTypes(IDict** serverTypes
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockFunctionBlockModuleImpl::createServer(IServer** server, IString* /*serverType*/, IDevice* /*rootDevice*/, IPropertyObject* /*config*/)
+ErrCode MockFunctionBlockModuleImpl::createServer(IServer** server,
+                                                  IString* /*serverType*/,
+                                                  IDevice* /*rootDevice*/,
+                                                  IPropertyObject* /*config*/)
 {
     *server = nullptr;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MockFunctionBlockModuleImpl::getVersionInfo(IVersionInfo** version)
-{
-    if (version == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *version = nullptr;
     return OPENDAQ_SUCCESS;
 }
 

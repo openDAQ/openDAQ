@@ -19,9 +19,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline ServerPtr MockServer()
+inline ServerPtr MockServer(const StringPtr& id, const DevicePtr& rootDevice, const ContextPtr& context)
 {
-    ServerPtr obj(MockServer_Create());
+    ServerPtr obj(MockServer_Create(id, rootDevice, context));
     return obj;
 }
 

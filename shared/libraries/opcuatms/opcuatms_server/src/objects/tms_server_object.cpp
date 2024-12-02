@@ -2,9 +2,9 @@
 #include <opendaq/instance_ptr.h>
 #include <opendaq/signal_ptr.h>
 #include <coreobjects/eval_value_ptr.h>
-#include "opcuatms/converters/variant_converter.h"
-#include "open62541/server.h"
-#include "open62541/daqbsp_nodeids.h"
+#include <opcuatms/converters/variant_converter.h>
+#include <open62541/server.h>
+#include <open62541/daqbsp_nodeids.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 

@@ -167,7 +167,7 @@ private:
         for (size_t i = 0; i < mockTriggerPackets.size(); i++)
         {
             auto domainPacket = DataPacket(triggerDomainSignalDescriptor, mockTriggerPackets[i].size());
-            auto domainPacketData = static_cast<Int*>(domainPacket.getData());
+            auto domainPacketData = static_cast<Int*>(domainPacket.getRawData());
             for (size_t ii = 0; ii < mockTriggerDomainPackets[i].size(); ii++)
                 *domainPacketData++ = static_cast<Int>(mockTriggerDomainPackets[i][ii]);
             triggerDomainPackets.push_back(domainPacket);
@@ -235,7 +235,15 @@ private:
             if (triggerModeChangeFoundAt != triggerModeChangesBeforePackets.end())
             {
                 // Change trigger mode if appropriate
-                fb.setPropertyValue("TriggerMode", newTriggerMode[triggerModeChangeFoundAt - triggerModeChangesBeforePackets.begin()]);
+                bool enableTrigger = newTriggerMode[triggerModeChangeFoundAt - triggerModeChangesBeforePackets.begin()];
+                if (enableTrigger && fb.getFunctionBlocks().getCount() == 0)
+                {
+                    fb.addFunctionBlock("RefFBModuleTrigger");
+                }
+                else if (!enableTrigger && fb.getFunctionBlocks().getCount() > 0)
+                {
+                    fb.removeFunctionBlock(fb.getFunctionBlocks()[0]);
+                }
             }
 
             // Create and send data packet for trigger
@@ -244,20 +252,12 @@ private:
                 // Prepare data packet for trigger
                 auto triggerDataPacket =
                     DataPacketWithDomain(triggerDomainPackets[i], triggerSignalDescriptor, mockTriggerPackets[i].size());
-                auto triggerPacketData = static_cast<TT*>(triggerDataPacket.getData());
+                auto triggerPacketData = static_cast<TT*>(triggerDataPacket.getRawData());
                 for (size_t ii = 0; ii < mockTriggerPackets[i].size(); ii++)
                     *triggerPacketData++ = static_cast<TT>(mockTriggerPackets[i][ii]);
 
-                // Find nested trigger function block
-                const auto& fbs = fb.getFunctionBlocks();
-                FunctionBlockPtr triggerFb = nullptr;
-                for (const auto& nfb : fbs)
-                {
-                    if (nfb.getLocalId() == "nfbt")
-                    {
-                        triggerFb = nfb;
-                    }
-                }
+                ASSERT_EQ(fb.getFunctionBlocks().getCount(), 1);
+                FunctionBlockPtr triggerFb = fb.getFunctionBlocks()[0];
 
                 // Nested trigger connect signal
                 triggerFb.getInputPorts()[0].connect(triggerSignal);
@@ -269,7 +269,7 @@ private:
 
             // Create data packet for statistics
             auto dataPacket = DataPacketWithDomain(domainPackets[i], signalDescriptor, mockPackets[i].size());
-            auto packetData = static_cast<T*>(dataPacket.getData());
+            auto packetData = static_cast<T*>(dataPacket.getRawData());
             for (size_t ii = 0; ii < mockPackets[i].size(); ii++)
                 *packetData++ = static_cast<T>(mockPackets[i][ii]);
 

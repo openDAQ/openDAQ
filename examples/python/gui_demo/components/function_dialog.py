@@ -1,15 +1,16 @@
-import opendaq as daq
 import tkinter as tk
+from tkinter import ttk
 
-from ..utils import *
-from .diaolog import Dialog
+import opendaq as daq
+
+from .dialog import Dialog
 
 
 class FunctionDialog(Dialog):
 
     def __init__(self, parent, node: daq.IProperty,
                  function, context, **kwargs):
-        Dialog.__init__(self, parent, "Execute Function", context, **kwargs)
+        Dialog.__init__(self, parent, 'Execute Function', context, **kwargs)
         self.node = node
         self.function = function
 
@@ -18,29 +19,29 @@ class FunctionDialog(Dialog):
         self.minsize(600, 200)
 
         # block with arguments
-        tk.Label(self, text='Arguments', anchor=tk.W).pack(
+        ttk.Label(self, text='Arguments', anchor=tk.W).pack(
             fill=tk.X,
             pady=5,
             padx=5)
-        self.arguments_frame = tk.Frame(self, border=1, relief=tk.GROOVE)
+        self.arguments_frame = ttk.Frame(self, border=1, relief=tk.GROOVE)
         self.arguments_frame.pack(fill=tk.X)
 
         if self.node.callable_info.arguments:
             for argument in self.node.callable_info.arguments:
                 self.arguments[argument.Name] = tk.StringVar(self)
-                frame = tk.Frame(self.arguments_frame)
+                frame = ttk.Frame(self.arguments_frame)
                 frame.pack(fill=tk.X)
-                tk.Label(
+                ttk.Label(
                     frame,
                     text=f'{argument.Name}:',
                     anchor=tk.W).pack(
                     fill=tk.X,
                     padx=5,
                     pady=(0, 5))
-                tk.Entry(frame, textvariable=self.arguments[argument.Name]).pack(
+                ttk.Entry(frame, textvariable=self.arguments[argument.Name]).pack(
                     fill=tk.X, padx=5, pady=(0, 5))
         else:
-            tk.Label(
+            ttk.Label(
                 self.arguments_frame,
                 text='No arguments').pack(
                 side=tk.LEFT,
@@ -48,7 +49,7 @@ class FunctionDialog(Dialog):
                 pady=20)
 
         # block with return value
-        tk.Label(
+        ttk.Label(
             self,
             text='Return value',
             anchor=tk.W).pack(
@@ -56,27 +57,27 @@ class FunctionDialog(Dialog):
             fill=tk.X,
             padx=5,
             pady=5)
-        self.return_value_frame = tk.Frame(self, border=1, relief=tk.GROOVE)
+        self.return_value_frame = ttk.Frame(self, border=1, relief=tk.GROOVE)
         self.return_value_frame.pack(side=tk.TOP, fill=tk.X)
         self.return_value = tk.StringVar(self)
-        tk.Entry(
+        ttk.Entry(
             self.return_value_frame,
             textvariable=self.return_value,
             state=tk.DISABLED).pack(side=tk.LEFT, fill=tk.X, padx=5, pady=10, expand=True)
-        tk.Button(self.return_value_frame, text='Copy', command=self.copy_return_value).pack(
+        ttk.Button(self.return_value_frame, text='Copy', command=self.copy_return_value).pack(
             side=tk.LEFT,
             padx=(0, 5),
             pady=10)
 
         # buttons
-        self.buttons_frame = tk.Frame(self)
+        self.buttons_frame = ttk.Frame(self)
         self.buttons_frame.pack(side=tk.BOTTOM, fill=tk.X)
-        self.exec_button = tk.Button(
+        self.exec_button = ttk.Button(
             self.buttons_frame,
             text='Execute',
             command=self.exec_clicked)
         self.exec_button.pack(side=tk.RIGHT, padx=5, pady=5)
-        self.cancel_button = tk.Button(
+        self.cancel_button = ttk.Button(
             self.buttons_frame,
             text='Close',
             command=self.cancel_clicked)

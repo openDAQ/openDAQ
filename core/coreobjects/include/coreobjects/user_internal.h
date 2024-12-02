@@ -25,10 +25,20 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IUserInternal, IBaseObject)
 {
     /*!
-     * @brief Returns hashed password as a string in Modular Crypt Format.
-     * @param password[out] The hashed password as a string in Modular Crypt Format.
+     * @brief Returns the user's password, which can either be in plain text or hashed using the Bcrypt algorithm.
+     * Hashed passwords should follow the Modular Crypt Format. For security purposes, hashed passwords are preferred.
+     * 
+     * @param passwordHash[out] Returns the user's password, which can either be in plain text or hashed using the Bcrypt algorithm.
      */
     virtual ErrCode INTERFACE_FUNC getPasswordHash(IString** passwordHash) = 0;
+
+
+    /*!
+     * @brief Returns true if user is anonymous. Anonymous user is any user without defined username and passowrd.
+     *
+     * @param anonymous[out] Returns true if user is anonymous.
+     */
+    virtual ErrCode INTERFACE_FUNC isAnonymous(Bool* anonymous) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

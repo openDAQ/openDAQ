@@ -39,6 +39,7 @@ RefChannelImpl::RefChannelImpl(const RefChannelInit& init)
     , re(std::random_device()())
     , fixedPacketSize(false)
     , packetSize(0)
+    , referenceDomainId(init.referenceDomainId)
 {
 }
 
@@ -114,7 +115,7 @@ void RefChannelImpl::initProperties()
     objPtr.setPropertyValue("GetAndSetCounter",
                             Function([this](Int val)
                             {
-                                std::scoped_lock lock(sync);
+                                auto lock = this->getRecursiveConfigLock();
                                 const auto cnt = counter;
                                 this->setCounter(val, false);
                                 return cnt;
@@ -261,7 +262,7 @@ void RefChannelImpl::signalTypeChanged()
 
 void RefChannelImpl::resetCounter()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getRecursiveConfigLock();
     counter = 0;
 }
 
@@ -269,7 +270,7 @@ void RefChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
 {
     if (shouldLock)
     {
-        std::scoped_lock lock(sync);
+        auto lock = this->getRecursiveConfigLock();
 	    counter = cnt;
     }
     else
@@ -297,7 +298,7 @@ uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) co
 
 void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
     const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
     auto newSamples = samplesSinceStart - samplesGenerated;
 
@@ -462,7 +463,7 @@ double RefChannelImpl::coerceSampleRate(const double wantedSampleRate)
 
 void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
 {
-    std::scoped_lock lock(sync);
+    const auto lock = getRecursiveConfigLock();
     globalSampleRate = coerceSampleRate(newGlobalSampleRate);
     if (objPtr.getPropertyValue("UseGlobalSampleRate"))
         signalTypeChanged();

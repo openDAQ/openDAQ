@@ -10,14 +10,17 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_SERVER_MODULE
 using namespace daq;
 using namespace daq::opcua;
 
-OpcUaServerImpl::OpcUaServerImpl(DevicePtr rootDevice, PropertyObjectPtr config, const ContextPtr& context)
-    : Server("OpenDAQOPCUAServerModule", config, rootDevice, context, nullptr)
+OpcUaServerImpl::OpcUaServerImpl(const DevicePtr& rootDevice,
+                                 const PropertyObjectPtr& config,
+                                 const ContextPtr& context)
+    : Server("OpenDAQOPCUA", config, rootDevice, context)
     , server(rootDevice, context)
     , context(context)
 {
     const uint16_t port = config.getPropertyValue("Port");
 
     server.setOpcUaPort(port);
+    server.setOpcUaPath(config.getPropertyValue("Path"));
     server.start();
 }
 
@@ -61,6 +64,19 @@ PropertyObjectPtr OpcUaServerImpl::createDefaultConfig(const ContextPtr& context
     return defaultConfig;
 }
 
+PropertyObjectPtr OpcUaServerImpl::populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context)
+{
+    const auto defConfig = createDefaultConfig(context);
+    for (const auto& prop : defConfig.getAllProperties())
+    {
+        const auto name = prop.getName();
+        if (config.hasProperty(name))
+            defConfig.setPropertyValue(name, config.getPropertyValue(name));
+    }
+
+    return defConfig;
+}
+
 PropertyObjectPtr OpcUaServerImpl::getDiscoveryConfig()
 {
     auto discoveryConfig = PropertyObject();
@@ -68,6 +84,7 @@ PropertyObjectPtr OpcUaServerImpl::getDiscoveryConfig()
     discoveryConfig.addProperty(StringProperty("ServiceCap", "OPENDAQ"));
     discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
     discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("Port")));
+    discoveryConfig.addProperty(StringProperty("ProtocolVersion", ""));
     return discoveryConfig;
 }
 
@@ -82,9 +99,9 @@ ServerTypePtr OpcUaServerImpl::createType(const ContextPtr& context)
 void OpcUaServerImpl::onStopServer()
 {
     server.stop();
-    if (this->rootDevice.assigned())
+    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
     {
-        const auto info = this->rootDevice.getInfo();
+        const auto info = rootDevice.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
         if (info.hasServerCapability("OpenDAQOPCUAConfiguration"))
             infoInternal.removeServerCapability("OpenDAQOPCUAConfiguration");

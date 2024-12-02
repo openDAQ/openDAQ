@@ -1,7 +1,7 @@
-#include "coretypes/validation.h"
-#include "opcuatms_client/objects/tms_client_procedure_factory.h"
-#include "opcuatms/converters/variant_converter.h"
-#include "opcuatms/converters/list_conversion_utils.h"
+#include <coretypes/validation.h>
+#include <opcuatms_client/objects/tms_client_procedure_factory.h>
+#include <opcuatms/converters/variant_converter.h>
+#include <opcuatms/converters/list_conversion_utils.h>
 #include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -32,10 +32,9 @@ ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
             lastProccessDescription = "Creating call request with no args";
             callRequest = OpcUaCallMethodRequest(methodId, parentId, 0);
         }
-        else if (argsPtr.asPtrOrNull<IList>().assigned())
+        else if (auto argsList = argsPtr.asPtrOrNull<IList>(); argsList.assigned())
         {
             lastProccessDescription = "Creating call request with list of arguments";
-            auto argsList = argsPtr.asPtrOrNull<IList>();
             OpcUaVariant varArgs = ListConversionUtils::ToVariantTypeArrayVariant(argsList, daqContext);
             callRequest = OpcUaCallMethodRequest(methodId, parentId, argsList.getCount(), (UA_Variant*) varArgs->data);
         }

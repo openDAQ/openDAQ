@@ -1,5 +1,6 @@
 #include <coreobjects/property_object_class_factory.h>
 #include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/context_factory.h>
@@ -240,6 +241,12 @@ public:
     {
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
 };
 
 TEST_F(SignalTest, IsComponent)
@@ -383,6 +390,26 @@ TEST_F(SignalTest, SignalDescriptor)
 
     signal.setDescriptor(dataDescriptor);
     ASSERT_EQ(signal.getDescriptor(), dataDescriptor);
+
+    signal.setDescriptor(nullptr);
+    ASSERT_FALSE(signal.getDescriptor().assigned());
+}
+
+TEST_F(SignalTest, SignalNullTypeDescriptor)
+{
+    SignalConfigPtr signal;
+    const auto nullDescriptor = NullDataDescriptor();
+
+    ASSERT_THROW_MSG(signal = SignalWithDescriptor(NullContext(), nullDescriptor, nullptr, "sig"),
+                     InvalidSampleTypeException,
+                     "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
+
+    ASSERT_NO_THROW(signal = SignalWithDescriptor(NullContext(), nullptr, nullptr, "sig"));
+    ASSERT_THROW_MSG(signal.setDescriptor(nullDescriptor),
+                     InvalidSampleTypeException,
+                     "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
+
+    ASSERT_FALSE(signal.getDescriptor().assigned());
 }
 
 TEST_F(SignalTest, SignalDescriptorStruct)
@@ -488,17 +515,16 @@ TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
     auto dataPacket2 = DataPacket(descriptor2, 5);
     auto data2 = static_cast<double*>(dataPacket2.getData());
     data2[4] = 4.2;
-    signal2.sendPacket(dataPacket2);
+
+    // Throws because descriptor2 has the same name as descriptor1 (but is different)
+    // and hence the the struct type can't be added to the type manager and hence
+    // later can't be found in the type manager
+    ASSERT_THROW(signal2.sendPacket(dataPacket2), NotFoundException);
 
     const auto lv1 = signal1.getLastValue();
     StructPtr sp1;
     ASSERT_NO_THROW(sp1 = lv1.asPtr<IStruct>());
     ASSERT_EQ(sp1.get("Int32"), 4);
-
-    // Throws because descriptor2 has the same name as descriptor1 (but is different)
-    // and hence the the struct type can't be added to the type manager and hence
-    // later can't be found in the type manager
-    ASSERT_THROW(signal2.getLastValue(), NotFoundException);
 }
 
 TEST_F(SignalTest, SendNullPacket)
@@ -1680,11 +1706,8 @@ TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
     *B = 15.1;
 
     // Send our packet
-    signal.sendPacket(dataPacket);
-
-    // Call getLastValue
     // Throws becuase we didn't use signal.setDescriptor
-    ASSERT_THROW(signal.getLastValue(), NotFoundException);
+    ASSERT_THROW(signal.sendPacket(dataPacket), NotFoundException);
 }
 
 TEST_F(SignalTest, GetLastValueStructNested)

@@ -41,7 +41,7 @@ To create an application that simulates an openDAQ(TM) Device, we build and run 
 ----
 cmake -DCMAKE_BUILD_TYPE=Release -DOPENDAQ_CREATE_DEVICE_SIMULATOR=ON -Bbuild .
 cd build
-cmake --build .
+cmake --build . --config Release
 ----
 
 We start the simulated device:
@@ -50,7 +50,7 @@ We start the simulated device:
 ----
 # Windows
 cd Release
-quick_start_simulator.exe
+.\quick_start_simulator.exe
 ----
 
 [source,bash]
@@ -155,7 +155,7 @@ instance = opendaq.Instance()
 C#::
 +
 --
-We start by editing our code with a basic application skeleton in a new `.cs` file, starting with creating a openDAQ(TM) instance:
+We start by editing our code in `Program.cs` from xref:quick_start_setting_up_csharp.adoc[Setting up C#] and create an openDAQ(TM) instance:
 
 [source,csharp]
 ----
@@ -267,7 +267,7 @@ Device name: Device 1, Connection string: daqref://device1
 
 Connection strings in openDAQ(TM) are used to connect to a device. They always appear in the format of "_prefix_://_address_". The prefix is used to differentiate between different modules that will be used for connection to the device:
 
-* "Simulator device" has a connection string that starts with `daq://`. Devices running an openDAQ(TM) server have a connection string of the format `daq://Manufacturer_SerialNumber`. We might discover multiple servers of the same device. They will be grouped under the same connection string, and their information made available in the "Sever capabilities" field as shown in the previous code snippet. When connecting via a connection string with the `daq://` prefix, openDAQ(TM) will automatically choose the most optimal connection protocol.
+* "Simulator device" has a connection string that starts with `daq://`. Devices running an openDAQ(TM) server have a connection string of the format `daq://Manufacturer_SerialNumber`. We might discover multiple servers of the same device. They will be grouped under the same connection string, and their information made available in the "Server capabilities" field as shown in the previous code snippet. When connecting via a connection string with the `daq://` prefix, openDAQ(TM) will automatically choose the most optimal connection protocol.
 * "Reference device" has a connection string that starts with `daqref://`. Said prefix corresponds to the openDAQ(TM) simulator devices that can be created locally. They are used by our simulator virtual image/application.
 
 NOTE: Any device with an undefined manufacturer, serial number, or without an openDAQ(TM) server (with no "server capabilities") will not use the  `daq://Manufacturer_SerialNumber` connection string format, but will use the one provided by an individual device/client implementation (Eg. `daqref://`)
@@ -714,7 +714,7 @@ int main(int argc, const char* argv[])
         daq::SizeT count = 100;
         timeReader.readWithDomain(samples, timeStamps, &count);
         if (count > 0)
-            std::cout << "Value: " << samples[count - 1] << ", Time: " << timeStamps[count - 1] << std::endl;
+            std::cout << "Value: " << samples[count - 1] << ", Domain: " << timeStamps[count - 1] << std::endl;
     }
 
     return 0;

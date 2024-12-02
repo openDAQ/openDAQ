@@ -36,7 +36,6 @@ rtgen(SRC_Coercer coercer.h)
 rtgen(SRC_Validator validator.h)
 rtgen(SRC_Unit unit.h)
 rtgen(SRC_UnitBuilder unit_builder.h)
-rtgen(SRC_ComponentType component_type.h)
 rtgen(SRC_CoreEventArgs core_event_args.h)
 rtgen(SRC_User user.h)
 rtgen(SRC_UserInternal user_internal.h)
@@ -46,6 +45,7 @@ rtgen(SRC_PermissionManagerInternal permission_manager_internal.h)
 rtgen(SRC_PermisisonsBuilder permissions_builder.h)
 rtgen(SRC_PermisisonMaskBuilder permission_mask_builder.h)
 rtgen(SRC_Permisisons permissions.h)
+rtgen(SRC_PermisisonsInternal permissions_internal.h)
 
 get_target_property(CORE_CONTAINERS_SRCS core_containers INTERFACE_SOURCES)
 
@@ -142,10 +142,6 @@ source_group("unit" FILES ${SDK_HEADERS_DIR}/unit.h
                           unit_builder_impl.cpp
 )
 
-source_group("component_type" FILES ${SDK_HEADERS_DIR}/component_type.h
-                                    ${SDK_HEADERS_DIR}/component_type_impl.h
-)
-
 source_group("core_event_args" FILES ${SDK_HEADERS_DIR}/core_event_args.h
                                      ${SDK_HEADERS_DIR}/core_event_args_factory.h
                                      ${SDK_HEADERS_DIR}/core_event_args_impl.h
@@ -171,7 +167,6 @@ source_group("permission_manager" FILES ${SDK_HEADERS_DIR}/permission_manager.h
                                         ${SDK_HEADERS_DIR}/permission_manager_internal.h
                                         ${SDK_HEADERS_DIR}/permission_manager_impl.h
                                         permission_manager_impl.cpp
-                                        ${SDK_HEADERS_DIR}/permission_enum.h
 )
 
 source_group("permission_builder" FILES ${SDK_HEADERS_DIR}/permissions_builder.h
@@ -183,6 +178,7 @@ source_group("permission_builder" FILES ${SDK_HEADERS_DIR}/permissions_builder.h
                                         ${SDK_HEADERS_DIR}/permission_mask_builder_impl.h
                                         permission_mask_builder_impl.cpp
                                         ${SDK_HEADERS_DIR}/permissions.h
+                                        ${SDK_HEADERS_DIR}/permissions_internal.h
                                         ${SDK_HEADERS_DIR}/permissions_impl.h
                                         permissions_impl.cpp
 )
@@ -245,7 +241,6 @@ set(SRC_PublicHeaders coreobjects.h
                       exceptions.h
                       errors.h
                       unit_factory.h
-                      component_type.h
                       core_event_args_factory.h 
                       core_event_args_ids.h 
                       core_event_args_impl.h
@@ -262,7 +257,6 @@ set(SRC_PublicHeaders coreobjects.h
                       permissions_builder_factory.h
                       permission_mask_builder.h
                       permission_mask_builder_factory.h
-                      permission_enum.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -283,10 +277,10 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        property_builder_impl.h
                        property_object_class_builder_impl.h
                        property_object_internal.h
-                       component_type_impl.h
                        user_impl.h
                        authentication_provider_impl.h
                        permission_manager_impl.h
+                       permissions_internal.h
                        permissions_impl.h
                        permissions_builder_impl.h
                        permission_mask_builder_impl.h
@@ -315,7 +309,6 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_Coercer}
                                ${SRC_Unit}
                                ${SRC_UnitBuilder}
-                               ${SRC_ComponentType}
                                ${SRC_CoreEventArgs}
                                ${SRC_User}
                                ${SRC_UserInternal}
@@ -350,6 +343,7 @@ target_link_libraries(${LIB_NAME}
     PRIVATE
         daq::core_containers
         rapidjson
+        bcrypt::bcrypt
         $<BUILD_INTERFACE:Boost::algorithm>
         $<BUILD_INTERFACE:std::filesystem>
 )

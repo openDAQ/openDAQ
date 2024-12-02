@@ -147,6 +147,7 @@ public:
         signalSubscribedHandler =
             [this](const SignalPtr& signal)
         {
+            // called only when signal first time subscribed by any client
             if (initialEventPacket.assigned())
                 serverHandler->sendPacket(signal, initialEventPacket);
             signalSubscribedPromise.set_value(signal);
@@ -160,7 +161,7 @@ public:
             signalUnsubscribedPromise.set_value(signal);
         };
 
-        setUpConfigProtocolServerCb = [](SendConfigProtocolPacketCb sendPacketCb, const UserPtr& user)
+        setUpConfigProtocolServerCb = [](SendConfigProtocolPacketCb sendPacketCb, const UserPtr& user, ClientType connectionType)
         {
             return std::make_pair(nullptr, nullptr);
         };
@@ -243,12 +244,14 @@ protected:
 
 TEST_P(StreamingProtocolTest, CreateServerNoSignals)
 {
+    // maxAllowedConfigConnections = 1 is used here to verify that the limit does not impact streaming connections
     serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
                                                                    ioContextPtrServer,
                                                                    List<ISignal>(),
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler,
-                                                                   setUpConfigProtocolServerCb);
+                                                                   setUpConfigProtocolServerCb,
+                                                                   1);
 }
 
 TEST_P(StreamingProtocolTest, CreateClient)
@@ -539,7 +542,7 @@ TEST_P(StreamingProtocolTest, RemoveSubscribedSignal)
 TEST_P(StreamingProtocolTest, InitialEventPacketOnSubscribe)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
-    auto firstEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+    auto firstEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor());
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
     StringPtr clientSignalStringId;
@@ -586,7 +589,7 @@ TEST_P(StreamingProtocolTest, InitialEventPacketOnSubscribe)
 TEST_P(StreamingProtocolTest, InitialEventPacketPostSubscribe)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
-    auto firstEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+    auto firstEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor());
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
     // do not send event packet on first subscribe request
@@ -621,7 +624,7 @@ TEST_P(StreamingProtocolTest, InitialEventPacketPostSubscribe)
 TEST_P(StreamingProtocolTest, SendEventPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
-    auto firstEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+    auto firstEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor());
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 
     startServer(List<ISignal>(serverSignal), firstEventPacket);
@@ -672,7 +675,7 @@ TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
-    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor());
 
     startServer(List<ISignal>(serverSignal), serverEventPacket);
 
@@ -697,7 +700,7 @@ TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
 TEST_P(StreamingProtocolTest, SendDataPacket)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
-    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, nullptr);
+    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor());
     auto serverDataPacket = DataPacket(valueDescriptor, 100);
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
 

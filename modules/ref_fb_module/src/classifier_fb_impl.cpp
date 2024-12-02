@@ -63,9 +63,9 @@ void ClassifierFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("InputHighValue") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto customLowValueProp = FloatProperty("inputLowValue", -10.0, EvalValue("$UseCustomInputRange"));
+    const auto customLowValueProp = FloatProperty("InputLowValue", -10.0, EvalValue("$UseCustomInputRange"));
     objPtr.addProperty(customLowValueProp);
-    objPtr.getOnPropertyValueWrite("inputLowValue") +=
+    objPtr.getOnPropertyValueWrite("InputLowValue") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
     const auto outputNameProp = StringProperty("OutputName", "");
@@ -78,7 +78,6 @@ void ClassifierFbImpl::initProperties()
 
 void ClassifierFbImpl::propertyChanged(bool configure)
 {
-    std::scoped_lock lock(sync);
     readProperties();
     if (configure)
         this->configure();
@@ -92,7 +91,7 @@ void ClassifierFbImpl::readProperties()
     classCount = objPtr.getPropertyValue("ClassCount");
     useCustomInputRange = objPtr.getPropertyValue("UseCustomInputRange");
     inputHighValue = objPtr.getPropertyValue("InputHighValue");
-    inputLowValue = objPtr.getPropertyValue("inputLowValue");
+    inputLowValue = objPtr.getPropertyValue("InputLowValue");
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
     if (blockSize == 0)
@@ -260,7 +259,7 @@ void ClassifierFbImpl::configure()
 
 void ClassifierFbImpl::processData()
 {
-    std::scoped_lock lock(sync);
+    auto lock = this->getAcquisitionLock();
     while (!linearReader.getEmpty())
     {
         size_t blocksToRead = 1;
@@ -285,6 +284,7 @@ void ClassifierFbImpl::processEventPacket(const EventPacketPtr& packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
+        // TODO handle Null-descriptor params ('Null' sample type descriptors)
         DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
         DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
         processSignalDescriptorChanged(inputDataDescriptor, inputDomainDataDescriptor);

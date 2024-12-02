@@ -42,6 +42,7 @@ protected:
 private:
 
     size_t maxNumberOfDevices;
+    void clearRemovedDevices();
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

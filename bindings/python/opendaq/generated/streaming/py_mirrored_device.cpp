@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 
@@ -41,6 +43,7 @@ void defineIMirroredDevice(pybind11::module_ m, PyDaqIntf<daq::IMirroredDevice, 
     cls.def_property_readonly("streaming_sources",
         [](daq::IMirroredDevice *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredDevicePtr::Borrow(object);
             return objectPtr.getStreamingSources().detach();
         },

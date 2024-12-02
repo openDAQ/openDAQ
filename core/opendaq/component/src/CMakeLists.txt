@@ -1,6 +1,8 @@
 set(BASE_NAME component)
 
 function(rtgen_component_${BASE_NAME})
+    rtgen(SRC_ComponentType component_type.h)
+    rtgen(SRC_ComponentTypePrivate component_type_private.h)
     rtgen(SRC_Component component.h)
     rtgen(SRC_SearchFilter search_filter.h)
     rtgen(SRC_Folder folder.h)
@@ -16,9 +18,12 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ComponentStatusContainerPrivate component_status_container_private.h)
     rtgen(SRC_ComponentHolder component_holder.h)
     rtgen(SRC_ComponentTypeBuilder component_type_builder.h)
+    rtgen(SRC_ComponentUpdateContext component_update_context.h)
+    rtgen(SRC_UpdateParameters update_parameters.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Component_PublicHeaders}
+        ${SRC_ComponentTypePrivate_PublicHeaders}
         ${SRC_Folder_PublicHeaders}
         ${SRC_FolderConfig_PublicHeaders}
         ${SRC_IoFolder_PublicHeaders}
@@ -34,6 +39,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ComponentStatusContainerPrivate_PublicHeaders}
         ${SRC_ComponentHolder_PublicHeaders}
         ${SRC_ComponentTypeBuilder_PublicHeaders}
+        ${SRC_ComponentUpdateContext_PublicHeaders}
+        ${SRC_UpdateParameters_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -54,6 +61,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ComponentStatusContainer_Cpp}
         ${SRC_ComponentStatusContainerPrivate_Cpp}
         ${SRC_ComponentHolder_Cpp}
+        ${SRC_ComponentUpdateContext_Cpp}
+        ${SRC_UpdateParameters_Cpp}
         PARENT_SCOPE
     )
 
@@ -83,6 +92,11 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/component_impl.cpp
         ${SDK_SRC_DIR}/folder_impl.cpp
         ${SDK_SRC_DIR}/component_deserialize_context_impl.cpp
+        ${SDK_HEADERS_DIR}/component_update_context.h
+        ${SDK_HEADERS_DIR}/component_update_context_impl.h
+        ${SDK_HEADERS_DIR}/update_parameters.h
+        ${SDK_HEADERS_DIR}/update_parameters_impl.h
+        ${SDK_SRC_DIR}/update_parameters_impl.cpp
     )
     
     source_group("component//search_filter" FILES 
@@ -115,12 +129,17 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/component_holder_impl.cpp
     )
     
-    source_group("component_type" FILES ${SDK_HEADERS_DIR}/component_type_builder.h
-                                    ${SDK_HEADERS_DIR}/component_type_builder_factory.h
+    source_group("component_type" FILES 
+        ${SDK_HEADERS_DIR}/component_type.h
+        ${SDK_HEADERS_DIR}/component_type_impl.h
+        ${SDK_HEADERS_DIR}/component_type_builder.h
+        ${SDK_HEADERS_DIR}/component_type_builder_factory.h
+        ${SDK_HEADERS_DIR}/component_type_private.h
     )
 endfunction()
 
 set(SRC_PublicHeaders_Component 
+    component_type.h
     component_impl.h
     component_ptr.custom.h
     folder_factory.h
@@ -140,14 +159,20 @@ set(SRC_PublicHeaders_Component
     component_errors.h
     component_exceptions.h
     component_type_builder_factory.h
+    component_update_context.h
+    component_update_context_impl.h
+    update_parameters.h
+    update_parameters_factory.h
     PARENT_SCOPE
 )
 
 set(SRC_PrivateHeaders_Component
+    component_type_impl.h
     search_filter_impl.h
     tags_impl.h      
     component_status_container_private.h
     component_holder_impl.h
+    update_parameters_impl.h
     PARENT_SCOPE
 )
 
@@ -159,5 +184,6 @@ set(SRC_Cpp_Component
     tags_impl.cpp
     component_status_container_impl.cpp
     component_holder_impl.cpp
+    update_parameters_impl.cpp
     PARENT_SCOPE
 )

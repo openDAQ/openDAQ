@@ -86,3 +86,54 @@ To run the GUI, invoke the package from the command line using `-m` flag:
 ```bash
 $ python -m opendaq
 ```
+
+Changelog
+---------
+
+Role Management, Access Control and Authentication
+
+- Ability to authenticate as a user when connecting to devices.
+
+- Depending on their role, users have read/write/execute permissions defined at the openDAQ component level.
+
+Exclusive control client
+
+- Ability to connect as an “Exclusive control” client, ensuring that no other clients can be connected as control clients.
+
+IPv6 connectivity
+
+- IPv6 can now be used to connect to openDAQ devices.
+
+GUI application improvements
+
+- Major improvements to the usability of the GUI application accessible through “py -m opendaq”.
+
+Enable device discovery in openDAQ
+
+- A discovery server has been added to openDAQ, allowing devices to advertise themselves via mDNS without the use of external software.
+
+Data streaming stability and performance improvements
+
+- The Native and LT streaming protocols have been improved with new connectivity features such as reconnect.
+
+- The Native protocol connection can be customized with new connection parameters when connecting to an openDAQ device.
+
+openDAQ reader rework and usability improvements
+
+- The openDAQ readers have been reworked to adopt the builder pattern, as well as to allow for them to be created with input ports as constructor parameters instead of signals.
+
+- Readers have been extended with a “Reader status” output when reading data, indicating whether an event has been encountered.
+
+- General API rework of the reader integration into the openDAQ Python bindings.
+
+Client-to-server streaming with the openDAQ native communication protocol
+
+- Data can now be streamed from the openDAQ client to the server via the native communication protocol.
+
+Save/Load configuration rework and stabilization
+
+- Device setup saving and loading has been stabilized for various edge cases including nested function blocks and components created dynamically during the loading process.
+
+Several stability, usability, and performance improvements
+
+General bug fixes

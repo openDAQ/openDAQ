@@ -280,7 +280,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 
         if (this->deviceInfo.assigned())
         {
-            this->deviceInfo.template as<IDeviceInfoInternal>(true)->setEditableProperties(this->getChangeableDeviceInfoFields());
+            this->deviceInfo.template as<IDeviceInfoInternal>(true)->setChangeableProperties(this->getChangeableDeviceInfoFields());
             this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
             this->deviceInfo.freeze();
         }

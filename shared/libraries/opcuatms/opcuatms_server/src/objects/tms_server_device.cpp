@@ -124,7 +124,6 @@ void TmsServerDevice::bindCallbacks()
 
 void TmsServerDevice::populateDeviceInfo()
 {
-
     auto createNode = [this](std::string name, CoreType type)
     {
         OpcUaNodeId newNodeId(0);
@@ -160,7 +159,7 @@ void TmsServerDevice::populateDeviceInfo()
     // Editable properties of deviceInfo are actualy references to the device properties
     // they are going to be added by device itself
     {
-        const auto editableProps = deviceInfo.asPtr<IDeviceInfoInternal>().getEditableProperties();
+        const auto editableProps = deviceInfo.asPtr<IDeviceInfoInternal>(true).getChangeableProperties();
         for (const auto& propName : deviceInfo.getCustomInfoPropertyNames())
         {
             bool isEditable = false;
@@ -175,17 +174,6 @@ void TmsServerDevice::populateDeviceInfo()
             if (!isEditable)
                 customInfoNames.pushBack(propName);
         }
-
-        // we want to let client now that these properties are part of device info
-        const auto editablePropsInfo = PropertyObject();
-        for (const auto & propName : editableProps)
-        {
-            editablePropsInfo.addProperty(BoolPropertyBuilder(propName, true).setReadOnly(true).build());
-        }
-
-        auto tmsEditableProperties = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-            nodeId, editablePropsInfo, numberInList++, "DeviceInfoEditableProperties");
-        this->deviceInfoEditableProperties.push_back(std::move(tmsEditableProperties));
     }
     
     std::unordered_set<std::string> customInfoNamesSet;

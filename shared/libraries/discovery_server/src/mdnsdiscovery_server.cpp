@@ -34,7 +34,7 @@ MdnsDiscoveredDevice::MdnsDiscoveredDevice(const std::string& serviceName,
     if (this->serviceName.back() != '.')
         this->serviceName += ".";
 
-    daq::ListPtr<daq::IString> editableProps = deviceInfo.getPropertyValue("editableProperties");
+    daq::ListPtr<daq::IString> editableProps = deviceInfo.getPropertyValue("changeableProperties");
 
     for (const auto& prop : deviceInfo.getAllProperties())
     {

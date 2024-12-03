@@ -145,7 +145,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     });
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object", propertyNamePtr);
+        LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
     }
     return OPENDAQ_SUCCESS;
 }

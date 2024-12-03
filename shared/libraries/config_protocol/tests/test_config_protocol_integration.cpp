@@ -588,14 +588,19 @@ TEST_F(ConfigProtocolIntegrationTest, TestGetLastValue)
 
 TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
 {
-    const auto serverDeviceInfo = serverDevice.getInfo();
-    const auto clientDeviceInfo = clientDevice.getInfo();
+    const auto serverSubDevice = serverDevice.getDevices()[1];
+    const auto clientSubDevice = clientDevice.getDevices()[1];
+
+    const auto serverDeviceInfo = serverSubDevice.getInfo();
+    const auto clientDeviceInfo = clientSubDevice.getInfo();
+
+    ASSERT_EQ(serverDeviceInfo.asPtr<IDeviceInfoInternal>().getChangeableProperties(), clientDeviceInfo.asPtr<IDeviceInfoInternal>().getChangeableProperties());
 
     ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
 
-    clientDevice.setName("new_name");
-    clientDevice.setPropertyValue("location", "new_location");
+    clientSubDevice.setName("new_name");
+    clientSubDevice.setPropertyValue("location", "new_location");
     
     ASSERT_EQ("new_name", clientDeviceInfo.getName());
     ASSERT_EQ("new_location", clientDeviceInfo.getLocation());

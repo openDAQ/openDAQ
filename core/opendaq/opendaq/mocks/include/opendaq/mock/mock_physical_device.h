@@ -34,6 +34,7 @@ public:
     bool allowAddDevicesFromModules() override;
 
     void setDeviceDomainHelper(const DeviceDomainPtr& deviceDomain);
+    ListPtr<IString> getChangeableDeviceInfoFields() override;
 
 protected:
     void startAcq();

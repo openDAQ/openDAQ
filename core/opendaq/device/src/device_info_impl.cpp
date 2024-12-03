@@ -44,8 +44,8 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     Super::addProperty(ObjectProperty("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
     defaultPropertyNames.insert("configurationConnectionInfo");
 
-    Super::addProperty(ListProperty("editableProperties", List<IString>(), false));
-    defaultPropertyNames.insert("editableProperties");
+    Super::addProperty(ListProperty("changeableProperties", List<IString>(), false));
+    defaultPropertyNames.insert("changeableProperties");
 
     if (customSdkVersion.assigned())
         Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
@@ -734,22 +734,22 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setEditableProperties(IList* editableProperties)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setChangeableProperties(IList* changeableProperties)
 {
-    if (editableProperties == nullptr)
+    if (changeableProperties == nullptr)
         return OPENDAQ_IGNORED;
-    return Super::setProtectedPropertyValue(String("editableProperties"), editableProperties);
+    return Super::setProtectedPropertyValue(String("changeableProperties"), changeableProperties);
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperties(IList** editableProperties)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getChangeableProperties(IList** changeableProperties)
 {
-    OPENDAQ_PARAM_NOT_NULL(editableProperties);
+    OPENDAQ_PARAM_NOT_NULL(changeableProperties);
     
     auto props = List<IString>();
-    for (const auto & propName: editablePropertyNames)
+    for (const auto & propName: changeablePropertyNames)
         props.pushBack(String(propName));
-    *editableProperties = props.detach();
+    *changeableProperties = props.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -759,7 +759,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(ISt
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    if (editablePropertyNames.empty())
+    if (changeablePropertyNames.empty())
         return OPENDAQ_NOTFOUND;
     
     auto owner = Super::getPropertyObjectParent();
@@ -771,7 +771,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(ISt
     if (!owner.hasProperty(name))
         return OPENDAQ_NOTFOUND;
      
-    if (editablePropertyNames.count(name))
+    if (changeablePropertyNames.count(name))
     { 
         return owner->getPropertyValue(propertyName, value);
     }
@@ -805,23 +805,23 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValueNoLock(
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyEditableProperties(const PropertyObjectPtr& owner)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyChangeableProperties(const PropertyObjectPtr& owner)
 {
     if (!owner.assigned())
         return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Editable fields cannot be set without setting the owner.");
 
-    if (editablePropertyNames.size())
+    if (changeablePropertyNames.size())
         return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Editable properties have already been applied.");
 
-    ListPtr<IString> editableProperties = this->objPtr.getPropertyValue("editableProperties");
-    for (const auto & prop : editableProperties)
+    ListPtr<IString> changeableProperties = this->objPtr.getPropertyValue("changeableProperties");
+    for (const auto & prop : changeableProperties)
     {
         PropertyPtr ownerProp;
         ErrCode errCode = owner->getProperty(String(prop), &ownerProp);
         if (OPENDAQ_FAILED(errCode))
             continue;
 
-        editablePropertyNames.insert(prop.toStdString());
+        changeablePropertyNames.insert(prop.toStdString());
         this->addProperty(ownerProp.asPtr<IPropertyInternal>(true).clone());
     }
     
@@ -836,7 +836,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         return errCode;
     
     if (newOwner != nullptr)
-        errCode = applyEditableProperties(newOwner);
+        errCode = applyChangeableProperties(newOwner);
    return errCode; 
 }
 

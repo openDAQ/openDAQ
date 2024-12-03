@@ -174,7 +174,6 @@ class AddDeviceDialog(Dialog):
                 self.select_parent_device(device.global_id)
                 self.event_port.emit()
             except Exception as e:
-                msg = str(e)
                 utils.show_error('Error adding device', f'{connection_string}: {str(e)}', self)
                 return
 

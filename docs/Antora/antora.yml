@@ -1,12 +1,12 @@
 name: opendaq
 title: openDAQ Documentation
-version: 3.10.0
+version: 3.10.1
 start_page: ROOT:introduction.adoc
 asciidoc:
   attributes:
     page-toclevels: 3@
     experimental: true
-    version: 3.10.0
+    version: 3.10.1
 nav:
 - modules/getting_started/nav-getting_started.adoc
 - modules/howto_guides/nav-howto-guides.adoc

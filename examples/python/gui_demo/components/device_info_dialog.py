@@ -11,8 +11,7 @@ from .dialog import Dialog
 class DeviceInfoDialog(Dialog):
 
     def __init__(self, parent, node: daq.IDeviceInfo, context: AppContext, title='', **kwargs):
-        super().__init__(parent, f'Device {
-            node.name} info', context, **kwargs)
+        super().__init__(parent, f'Device {node.name} info', context, **kwargs)
 
         self.parent = parent
         self.node = node

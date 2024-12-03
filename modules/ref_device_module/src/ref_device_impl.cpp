@@ -414,7 +414,7 @@ StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint)
     return oss.str();
 }
 
-ListPtr<ILogFileInfo> RefDeviceImpl::ongetLogFileInfos()
+ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
 {    
     {
         auto lock = getAcquisitionLock();

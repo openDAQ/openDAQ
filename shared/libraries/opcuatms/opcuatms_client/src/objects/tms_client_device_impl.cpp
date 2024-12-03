@@ -639,9 +639,9 @@ void TmsClientDeviceImpl::onRemoveFunctionBlock(const FunctionBlockPtr& function
     removeNestedFunctionBlock(functionBlock);
 }
 
-ListPtr<ILogFileInfo> TmsClientDeviceImpl::ongetLogFileInfos()
+ListPtr<ILogFileInfo> TmsClientDeviceImpl::onGetLogFileInfos()
 {
-    throw OpcUaClientCallNotAvailableException("getLogFileInfos is not available for OpcUA client device");
+    throw OpcUaClientCallNotAvailableException("getLogFileInfo is not available for OpcUA client device");
 }
 
 StringPtr TmsClientDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)

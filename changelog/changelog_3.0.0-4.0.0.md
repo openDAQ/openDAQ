@@ -1,3 +1,12 @@
+# 04.12.2024
+## Description
+- Module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`
+
+```
+-m [function] ListPtr<ILogFileInfo> Device::ongetLogFileInfos()
++m [function] ListPtr<ILogFileInfo> Device::onGetLogFileInfos()
+```
+
 # 25.11.2024
 ## Description
 - Delete the fields `id`, `name`, and `versionInfo` from the `IModule` interface and add them to the new `IModuleInfo` interface, which is a new field in the `IModule` interface

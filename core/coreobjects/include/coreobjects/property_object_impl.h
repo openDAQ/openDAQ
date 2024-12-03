@@ -1783,6 +1783,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
         }
         else
         {
+            if (propValues.find(prop.getName()) == propValues.end())
+                return OPENDAQ_IGNORED;
+
             BaseObjectPtr newVal;
             const ErrCode err = callPropertyValueWrite(prop, newVal, PropertyEventType::Clear, isUpdating);
 
@@ -1795,11 +1798,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             if (!newVal.assigned())
             {
                 auto it = propValues.find(prop.getName());
-                if (it == propValues.end())
-                {
-                    return OPENDAQ_IGNORED;
-                }
-
                 if (it->second.assigned())
                 {
                     const auto ownable = it->second.template asPtrOrNull<IOwnable>(true);

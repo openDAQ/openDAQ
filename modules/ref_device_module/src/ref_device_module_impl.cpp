@@ -58,7 +58,6 @@ std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo
         maxNumberOfDevices = 1;
     }
 
-    clearRemovedDevices();
     if (options.hasKey("Name"))
         customName = options.get("Name");
 
@@ -86,16 +85,6 @@ std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo
 DevicePtr RefDeviceModule::createDevice(const templates::DeviceParams& params)
 {
     return createWithImplementation<IDevice, RefDeviceBase>(params);
-}
-
-void RefDeviceModule::clearRemovedDevices()
-{
-    for (auto& device : devices)
-    {
-        const bool isNull = !device.assigned() || !device.getRef().assigned();
-        if (isNull || device.getRef().isRemoved())
-            device = nullptr;
-    }
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

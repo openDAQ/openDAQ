@@ -29,20 +29,16 @@ public:
 class RefDeviceModule final : public templates::ModuleTemplate
 {
 public:
-
     explicit RefDeviceModule(const ContextPtr& context);
 
 protected:
-
     templates::ModuleParams buildModuleParams() override;
     std::vector<templates::DeviceTypeParams> getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options) override;
     std::vector<templates::DeviceInfoParams> getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options) override;
     DevicePtr createDevice(const templates::DeviceParams& params) override;
 
 private:
-
     size_t maxNumberOfDevices;
-    void clearRemovedDevices();
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

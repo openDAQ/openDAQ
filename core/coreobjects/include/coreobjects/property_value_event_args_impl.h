@@ -28,11 +28,13 @@ class PropertyValueEventArgsImpl : public EventArgsBase<IPropertyValueEventArgs>
 public:
     explicit PropertyValueEventArgsImpl(const PropertyPtr& property,
                                         const ObjectPtr<IBaseObject>& value,
+                                        const ObjectPtr<IBaseObject>& oldValue,
                                         PropertyEventType type,
                                         Bool isUpdating)
         : EventArgsImplTemplate<IPropertyValueEventArgs>(0, "PropertyValueEvent")
         , property(property)
         , newValue(value)
+        , oldValue(oldValue)
         , type(type)
         , updating(isUpdating)
     {
@@ -40,6 +42,7 @@ public:
 
     ErrCode INTERFACE_FUNC getProperty(IProperty** prop) override;
     ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getOldValue(IBaseObject** value) override;
     ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getPropertyEventType(PropertyEventType* changeType) override;
     ErrCode INTERFACE_FUNC getIsUpdating(Bool* isUpdating) override;
@@ -47,6 +50,7 @@ public:
 private:
     PropertyPtr property;
     BaseObjectPtr newValue;
+    BaseObjectPtr oldValue;
     PropertyEventType type;
     Bool updating;
 };

@@ -22,10 +22,11 @@ BEGIN_NAMESPACE_OPENDAQ
 
 inline PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
                                                         const BaseObjectPtr& newValue,
+                                                        const BaseObjectPtr& oldValue,
                                                         PropertyEventType changeType,
                                                         Bool isUpdating)
 {
-    return PropertyValueEventArgsPtr(PropertyValueEventArgs_Create(propChanged, newValue, changeType, isUpdating));
+    return PropertyValueEventArgsPtr(PropertyValueEventArgs_Create(propChanged, newValue, oldValue, changeType, isUpdating));
 }
 
 END_NAMESPACE_OPENDAQ

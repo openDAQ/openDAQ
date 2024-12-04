@@ -133,17 +133,17 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
 {
     auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
+                                   .setRootDevice("daqref://device0")
                                    .build();
-    server.addDevice("daqref://device1");
 
     // set initial username and location
     server.setPropertyValue("userName", "testUser1");
     server.setPropertyValue("location", "testLocation1");
+    server.setPropertyValue("CustomChangeableField", "newValue");
 
-    ASSERT_EQ(server.getPropertyValue("userName"), "testUser1");
-    ASSERT_EQ(server.getPropertyValue("location"), "testLocation1");
     ASSERT_EQ(server.getInfo().getPropertyValue("userName"), "testUser1");
     ASSERT_EQ(server.getInfo().getPropertyValue("location"), "testLocation1");
+    ASSERT_EQ(server.getInfo().getPropertyValue("CustomChangeableField"), "newValue");
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery/username_location/";
@@ -153,8 +153,9 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
     // update the username and location after server creation
     server.setPropertyValue("userName", "testUser2");
     server.setPropertyValue("location", "testLocation2");
+    server.setPropertyValue("CustomChangeableField", "newValue2");
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     auto client = Instance();
     DevicePtr device;
@@ -167,6 +168,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
 
             ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser2");
             ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation2");
+            ASSERT_EQ(deviceInfo.getPropertyValue("CustomChangeableField"), "newValue2");
             if (capability.getProtocolName() == "OpenDAQNativeStreaming")
                 return;
         }

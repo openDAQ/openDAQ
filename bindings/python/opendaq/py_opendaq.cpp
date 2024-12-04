@@ -116,6 +116,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIComponentPrivate = declareIComponentPrivate(m);
     auto classIComponentStatusContainer = declareIComponentStatusContainer(m);
     auto classIComponentStatusContainerPrivate = declareIComponentStatusContainerPrivate(m);
+    auto classIConnectionStatusContainerPrivate = declareIConnectionStatusContainerPrivate(m);
     auto classIAddressInfo = declareIAddressInfo(m);
     auto classIAddressInfoBuilder = declareIAddressInfoBuilder(m);
     auto classISyncComponent = declareISyncComponent(m);
@@ -215,6 +216,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIComponentPrivate(m, classIComponentPrivate);
     defineIComponentStatusContainer(m, classIComponentStatusContainer);
     defineIComponentStatusContainerPrivate(m, classIComponentStatusContainerPrivate);
+    defineIConnectionStatusContainerPrivate(m, classIConnectionStatusContainerPrivate);
     defineIAddressInfo(m, classIAddressInfo);
     defineIAddressInfoBuilder(m, classIAddressInfoBuilder);
     defineISyncComponent(m, classISyncComponent);

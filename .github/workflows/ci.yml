@@ -28,12 +28,11 @@ env:
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   dotnet_test_path: ${{ github.workspace }}/build/bindings/CSharp/test_results
   python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12
+  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
   nuget_artifact: Packages (openDAQ.Net NuGet)
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # Workaround for: https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
 
 jobs:
   build_windows:
@@ -98,6 +97,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
@@ -431,7 +436,7 @@ jobs:
 
       # PROTOCOL REGRESSION TEST END
 
-  build_linux_centos:
+  build_linux_manylinux:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
     # ${{ }} expression syntax because of leading '!'
@@ -445,8 +450,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: manylinux2014 gcc Release
-            image: quay.io/pypa/manylinux2014_x86_64
+          - name: manylinux_2_28 gcc Release
+            image: quay.io/pypa/manylinux_2_28_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
             additional_packages:
@@ -471,7 +476,7 @@ jobs:
         run : git config --global --add safe.directory '*'
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
@@ -514,7 +519,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (${{ matrix.name }})
           path: /junit_reports/unit
@@ -526,14 +531,14 @@ jobs:
 
       - name: Upload package
         if: matrix.cpack != ''
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: Packages (${{ matrix.name }})
           path: ${{ env.package_path }}
           retention-days: 7
 
       - name: Upload PIP packages
-        uses: actions/upload-artifact@v3 # TODO https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/
+        uses: actions/upload-artifact@v4
         with:
           name: PIP Package (${{ matrix.name }})
           path: ${{ env.build_path }}/wheels/opendaq*.whl
@@ -553,14 +558,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macos-12 clang Release
+          - name: macos-13 clang Release
             cmake_generator: Ninja
             cmake_build_type: Release
-            runner: macos-12
-          # - name: macos-12 clang Debug
+            runner: macos-13
+          # - name: macos-13 clang Debug
             # cmake_generator: Ninja
             # cmake_build_type: Debug
-            # runner: macos-12
+            # runner: macos-13
 
     steps:
       - name: Checkout
@@ -627,6 +632,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'

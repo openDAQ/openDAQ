@@ -1,4 +1,4 @@
-# 26.11.2024
+# 04.12.2024
 ## Description
 - Implement editable device info fields that can be modified by the owner (device).
 - Broadcast modified device info properties via mDNS.
@@ -9,6 +9,31 @@
 - For classes inheriting from `Device`, the method `onGetInfo` **should not freeze the device info** prematurely.
   - Device info will be frozen after attaching editable properties in `Device`.
   - Freezing the info earlier would prevent custom properties, which are not included in the device info, from being added.
+
+# 28.11.2024:
+## Description
+- Introduces separate container accessible per device for connection statuses
+- Introduces new core event type "ConnectionStatusChanged" to notify when configuration or streaming connection status of the device changed
+    limitations: streaming connections statuses are neither serialized nor propagated through the native configuration protocol
+- daq Context always has TypeManager assigned
+- "ConnectionStatusType" added to TypeManager by default
+- Makes connection status accessible directly from Streaming object
+
+## Required integration changes
+- Breaks binary compatibility
+- Introduces new mechanism for retrieving connection status of the device
+
+```
++ [interface] IConnectionStatusContainerPrivate : public IBaseObject
++ [function] IConnectionStatusContainerPrivate::addConfigurationConnectionStatus(IString* connectionString, IEnumeration* initialValue)
++ [function] IConnectionStatusContainerPrivate::addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IStreaming* streamingObject)
++ [function] IConnectionStatusContainerPrivate::removeStreamingConnectionStatus(IString* connectionString)
++ [function] IConnectionStatusContainerPrivate::updateConnectionStatus(IString* connectionString, IEnumeration* value, IStreaming* streamingObject)
+
++ [function] IDevice::getConnectionStatusContainer(IComponentStatusContainer** statusContainer)
+
++ [function] IStreaming::getConnectionStatus(IEnumeration** connectionStatus)
+```
 
 # 25.11.2024
 ## Description

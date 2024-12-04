@@ -428,6 +428,23 @@ void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventA
     }
 }
 
+bool ConfigProtocolServer::isForwardedCoreEvent(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
+{
+    const auto coreEventId = static_cast<CoreEventId>(eventArgs.getEventId());
+
+    if (coreEventId == CoreEventId::ConnectionStatusChanged)
+    {
+        if (eventArgs.getParameters().get("StatusName") == "ConfigurationStatus")
+            return true;
+        else
+            return false;
+    }
+    else
+    {
+        return streamingConsumer.isForwardedCoreEvent(component, eventArgs);
+    }
+}
+
 ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
 {
     const auto globalId = component.assigned() ? component.getGlobalId() : "";
@@ -456,6 +473,7 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::TypeRemoved:
         case CoreEventId::DeviceDomainChanged:
         case CoreEventId::DeviceLockStateChanged:
+        case CoreEventId::ConnectionStatusChanged:
         default:
             packedEvent.pushBack(args);
     }

@@ -22,6 +22,7 @@
 #include <coretypes/validation.h>
 #include <coreobjects/eval_value_factory.h>
 #include <coreobjects/core_event_args_impl.h>
+#include <opendaq/component_deserialize_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -229,13 +230,17 @@ inline ConstCharPtr TagsImpl::SerializeId()
     return "Tags";
 }
 
-inline ErrCode TagsImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
+inline ErrCode TagsImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction*, IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(serialized);
     OPENDAQ_PARAM_NOT_NULL(obj);
 
+    const auto contextPtr = BaseObjectPtr::Borrow(context);
+    const auto deserializerContext = contextPtr.assigned() ? contextPtr.asPtrOrNull<IComponentDeserializeContext>() : nullptr;
+    const ProcedurePtr triggerCoreEvent = deserializerContext.assigned() ? deserializerContext.getTriggerCoreEvent() : nullptr;
+
     ObjectPtr<ITagsPrivate> tags;
-    auto errCode = createObject<ITagsPrivate, TagsImpl>(&tags);
+    auto errCode = createObject<ITagsPrivate, TagsImpl>(&tags, triggerCoreEvent);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
@@ -243,7 +248,11 @@ inline ErrCode TagsImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
 
     const auto list = serializedObj.readList<IString>("list");
     for (const auto& tag : list)
-        tags->add(tag);
+    {
+        errCode = tags->add(tag);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
 
     *obj = tags.detach();
 

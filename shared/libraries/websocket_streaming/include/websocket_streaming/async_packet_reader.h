@@ -48,7 +48,7 @@ protected:
     ContextPtr context;
     OnPacketCallback onPacketCallback;
     std::thread readThread;
-    bool readThreadStarted = false;
+    std::atomic<bool> readThreadStarted{false};
     std::chrono::milliseconds sleepTime;
     std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
 

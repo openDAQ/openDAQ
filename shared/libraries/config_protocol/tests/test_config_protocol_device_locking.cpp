@@ -412,6 +412,32 @@ TEST_F(ConfigProtocolDeviceLockingTest, DisconnectSignal)
     }
 }
 
+TEST_F(ConfigProtocolDeviceLockingTest, AcceptsSingal)
+{
+    auto device = createDevice();
+
+    auto serverInputPort = device.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0];
+    serverInputPort.disconnect();
+
+    setupServerAndClient(device, UserTomaz);
+
+    clientDevice.lock();
+
+    {
+        auto inputPort = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0];
+        auto signal = clientDevice.getDevices()[0].getSignals()[0];
+        ASSERT_TRUE(inputPort.acceptsSignal(signal));
+    }
+
+    clientDevice.unlock();
+
+    {
+        auto inputPort = clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0];
+        auto signal = clientDevice.getDevices()[0].getSignals()[0];
+        ASSERT_TRUE(inputPort.acceptsSignal(signal));
+    }
+}
+
 TEST_F(ConfigProtocolDeviceLockingTest, NestedSetValue)
 {
     auto device = createDevice();

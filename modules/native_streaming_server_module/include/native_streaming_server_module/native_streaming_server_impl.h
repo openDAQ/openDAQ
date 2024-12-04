@@ -67,7 +67,7 @@ protected:
     static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 
     std::thread readThread;
-    bool readThreadActive;
+    std::atomic<bool> readThreadActive;
     std::chrono::milliseconds readThreadSleepTime;
     std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
 

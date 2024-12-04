@@ -34,9 +34,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Provides access to private methods of the Component status container.
  *
  * Said methods allow for adding new statuses and setting a value for existing statuses stored in
- * the component status container.
+ * the component status container. Device connection statuses, however, are managed independently
+ * via IConnectionStatusContainerPrivate.
  *
- * Status changed Core events are triggered whenever there is a change in the status of the openDAQ Component.
+ * "StatusChanged" Core events are triggered whenever there is a change in the status of the openDAQ Component.
  */
 DECLARE_OPENDAQ_INTERFACE(IComponentStatusContainerPrivate, IBaseObject)
 {

@@ -74,6 +74,7 @@ private:
     void componentRemoved(const CoreEventArgsPtr& args);
     void deviceDomainChanged(const CoreEventArgsPtr& args);
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
+    void connectionStatusChanged(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -265,6 +266,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
         case CoreEventId::DeviceLockStateChanged:
             deviceLockStatusChanged(args);
             break;
+        case CoreEventId::ConnectionStatusChanged:
+            connectionStatusChanged(args);
+            break;
         case CoreEventId::PropertyValueChanged:
         case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::PropertyAdded:
@@ -407,6 +411,22 @@ inline void GenericConfigClientDeviceImpl<TDeviceBase>::deviceLockStatusChanged(
 
     if (isLocked)
         this->userLock.lock();
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::connectionStatusChanged(const CoreEventArgsPtr& args)
+{
+    ComponentStatusContainerPtr connectionStatusContainer;
+    checkErrorInfo(TDeviceBase::getConnectionStatusContainer(&connectionStatusContainer));
+    const auto parameters = args.getParameters();
+    const StringPtr connectionString = parameters.get("ConnectionString");
+    const StringPtr statusName = parameters.get("StatusName");
+    const EnumerationPtr value = parameters.get("StatusValue");
+    const auto addedStatuses = connectionStatusContainer.getStatuses();
+
+    // ignores status change if it was not added initially
+    if (addedStatuses.hasKey(statusName))
+        connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatus(connectionString, value, nullptr);
 }
 
 }

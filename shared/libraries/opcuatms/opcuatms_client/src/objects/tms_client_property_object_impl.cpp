@@ -189,13 +189,25 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* propertyN
 }
 
 template <typename Impl>
-ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* propertyName, IEvent** event)
+ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* /*propertyName*/, IEvent** /*event*/)
 {
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 }
 
 template <typename Impl>
-ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* propertyName, IEvent** event)
+ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* /*propertyName*/, IEvent** /*event*/)
+{
+    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+}
+
+template <class Impl>
+ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueWrite(IEvent** /*event*/)
+{
+    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+}
+
+template <class Impl>
+ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueRead(IEvent** /*event*/)
 {
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 }

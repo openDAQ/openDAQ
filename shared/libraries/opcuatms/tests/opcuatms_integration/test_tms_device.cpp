@@ -525,9 +525,6 @@ TEST_F(TmsDeviceTest, DeviceInfoChanges)
     clientSubDevice.setName("new_name");
     clientSubDevice.setPropertyValue("location", "new_location");
 
-    while (true);
-    
-    
     ASSERT_EQ("new_name", clientDeviceInfo.getName());
     ASSERT_EQ("new_location", clientDeviceInfo.getLocation());
 

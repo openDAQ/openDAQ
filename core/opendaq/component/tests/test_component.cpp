@@ -12,6 +12,9 @@
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/component_exceptions.h>
+#include <opendaq/component_impl.h>
+
+#include "testutils/testutils.h"
 
 using namespace daq;
 using namespace testing;
@@ -243,4 +246,66 @@ TEST_F(ComponentTest, Remove)
     ASSERT_THROW(component.setDescription("ignored"), ComponentRemovedException);
     ASSERT_THROW(component.setVisible(false), ComponentRemovedException);
     ASSERT_THROW(component.setActive(true), ComponentRemovedException);
+}
+
+class MyTestComponent : public ComponentImpl<IComponent>
+{
+public:
+    MyTestComponent(const ContextPtr& context,
+        const ComponentPtr& parent)
+        : ComponentImpl<IComponent>(context, parent, "foo")
+    {
+    }
+
+    void initComponentErrorStateStatusPublic()
+    {
+        this->initComponentErrorStateStatus();
+    }
+
+    void setComponentErrorStateStatusPublic(const ComponentErrorState& status)
+    {
+        this->setComponentErrorStateStatus(status);
+    }
+};
+
+TEST_F(ComponentTest, SetComponentErrorStateStatusWithoutInit)
+{
+    auto component = createWithImplementation<IComponent, MyTestComponent>(NullContext(), nullptr);
+    auto implPtr = dynamic_cast<MyTestComponent*>(component.getObject());
+
+    ASSERT_THROW_MSG(implPtr->setComponentErrorStateStatusPublic(ComponentErrorState::Error),
+                     NotFoundException,
+                     "ComponentStatus has not been added to statusContainer. initComponentErrorStateStatus needs to be called before "
+                     "setComponentErrorStateStatus.")
+}
+
+TEST_F(ComponentTest, InitThenSetComponentErrorStateStatus)
+{
+    auto component = createWithImplementation<IComponent, MyTestComponent>(NullContext(), nullptr);
+    auto implPtr = dynamic_cast<MyTestComponent*>(component.getObject());
+    auto container = component.getStatusContainer();
+
+    implPtr->initComponentErrorStateStatusPublic();
+
+    ASSERT_EQ(
+        container.getStatus("ComponentStatus"),
+        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentErrorState::Ok), component.getContext().getTypeManager()));
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", component.getContext().getTypeManager()));
+
+    implPtr->setComponentErrorStateStatusPublic(ComponentErrorState::Error);
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"),
+              EnumerationWithIntValue(
+                  "ComponentStatusType", static_cast<Int>(ComponentErrorState::Error), component.getContext().getTypeManager()));
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Error", component.getContext().getTypeManager()));
+
+    implPtr->setComponentErrorStateStatusPublic(ComponentErrorState::Warning);
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"),
+              EnumerationWithIntValue(
+                  "ComponentStatusType", static_cast<Int>(ComponentErrorState::Warning), component.getContext().getTypeManager()));
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", component.getContext().getTypeManager()));
 }

@@ -304,6 +304,10 @@ void ContextImpl::registerOpenDaqTypes()
                                     .build();
 
     typeManager->addType(ptpSyncInterface);
+
+    // Add component status types to the type manager
+    const auto componentStatusType = EnumerationType("ComponentStatusType", List<IString>("Ok", "Warning", "Error"));
+    typeManager->addType(componentStatusType);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

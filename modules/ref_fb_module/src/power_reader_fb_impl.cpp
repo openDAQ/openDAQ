@@ -25,6 +25,7 @@ namespace PowerReader
 PowerReaderFbImpl::PowerReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    initComponentErrorStateStatus();
     createInputPorts();
     createSignals();
     initProperties();
@@ -197,16 +198,28 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
             this->currentDescriptor = currentDescriptor;
 
         if (this->domainDescriptor == NullDataDescriptor())
+        {
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Input domain descriptor is not set");
             throw std::runtime_error("Input domain descriptor is not set");
+        }
         if (this->voltageDescriptor == NullDataDescriptor())
+        {
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Input voltage descriptor is not set");
             throw std::runtime_error("Input voltage descriptor is not set");
+        }
+            
         if (this->currentDescriptor == NullDataDescriptor())
+        {
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Input current descriptor is not set");
             throw std::runtime_error("Input current descriptor is not set");
+        }
 
-        if (this->voltageDescriptor.assigned() &&
-            this->voltageDescriptor.getUnit().assigned() &&
+        if (this->voltageDescriptor.assigned() && this->voltageDescriptor.getUnit().assigned() &&
             this->voltageDescriptor.getUnit().getSymbol() != "V")
+        {
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Invalid voltage signal unit");
             throw std::runtime_error("Invalid voltage signal unit");
+        }
 
         const auto powerDataDescriptorBuilder =
             DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("W", -1, "watt", "power"));
@@ -227,6 +240,7 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
     }
     catch (const std::exception& e)
     {
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Failed to set descriptor for power signal");
         LOG_W("Failed to set descriptor for power signal: {}", e.what())
         reader.setActive(False);
     }

@@ -235,7 +235,7 @@ inline bool CoreEventArgsImpl::validateParameters() const
         case CoreEventId::DeviceLockStateChanged:
             return parameters.hasKey("IsLocked");
         case CoreEventId::StatusChanged:
-            return parameters.getCount() == 1;
+            return parameters.getCount() == 2;
         case CoreEventId::ConnectionStatusChanged:
             return parameters.hasKey("StatusName")
                    && parameters.hasKey("StatusValue")

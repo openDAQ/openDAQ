@@ -28,6 +28,7 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent
     , inputPortCount(0)
     , axisColor(150, 150, 150)
 {
+    initComponentErrorStateStatus();
     initProperties();
     updateInputPorts();
 
@@ -172,7 +173,12 @@ void RendererFbImpl::readProperties()
     LOG_T("Properties: Custom2dMinRange {}", custom2dMinRange);
     LOG_T("Properties: Custom2dMaxRange {}", custom2dMaxRange);
     if (custom2dMinRange > custom2dMaxRange)
+    {
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Error,
+                                                "Property custom2dMaxRange have to be more then custom2dMinRange");
         LOG_E("Property custom2dMaxRange have to be more then custom2dMinRange");
+    }
+        
 }
 
 void RendererFbImpl::readResolutionProperty()
@@ -691,7 +697,8 @@ void RendererFbImpl::updateSingleXAxis() {
             if (firstSignalDimension != curSignalDimension) 
             {
                 singleXAxis = false;
-                LOG_W("Renderer has multiple input signals with different dimension. Property singleXAxis has turned off");
+                setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Renderer has multiple input signals with different dimension. Property singleXAxis has turned off");
+                LOG_W("Renderer has multiple input signals with different dimension. Property singleXAxis has turned off")
                 break;
             }
         }
@@ -709,7 +716,11 @@ void RendererFbImpl::renderLoop()
 
     sf::Font font;
     if (!font.loadFromMemory(ARIAL_TTF, sizeof(ARIAL_TTF)))
-        throw std::runtime_error("Failed to load font.");
+    {
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Failed to load font");
+        throw std::runtime_error("Failed to load font");
+    }
+        
 
     auto lock = getUniqueLock();
     const auto defaultWaitTime = std::chrono::milliseconds(20);
@@ -857,7 +868,11 @@ void RendererFbImpl::prepareSingleXAxis()
     {
         auto sigIt = signalContexts.begin();
         if (!sigIt->valid)
+        {
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "First signal not valid");
             throw InvalidStateException("First signal not valid");
+        }
+            
 
         hasTimeOrigin = sigIt->hasTimeOrigin;
         SAMPLE_TYPE_DISPATCH(sigIt->domainSampleType, domainStampToDomainValue, lastDomainValue, *sigIt, sigIt->lastDomainStamp)
@@ -872,7 +887,8 @@ void RendererFbImpl::prepareSingleXAxis()
 
             if (sigIt->hasTimeOrigin != hasTimeOrigin)
             {
-               throw InvalidStateException("time origin set on some signals but not all");
+               setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Time origin set on some signals, but not all of them");
+               throw InvalidStateException("Time origin set on some signals, but not all of them");
                return;
             }
 
@@ -880,13 +896,15 @@ void RendererFbImpl::prepareSingleXAxis()
             {
                if (domainUnit != sigIt->domainUnit)
                {
-                   throw InvalidStateException("domain unit not equal");
+                   setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Domain unit not equal");
+                   throw InvalidStateException("Domain unit not equal");
                    return;
                }
 
                if (domainQuantity != sigIt->domainQuantity)
                {
-                   throw InvalidStateException("domain quantity not equal");
+                   setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Domain quantity not equal");
+                   throw InvalidStateException("Domain quantity not equal");
                    return;
                }
             }
@@ -914,7 +932,8 @@ void RendererFbImpl::prepareSingleXAxis()
     }
     catch (const std::exception& e)
     {
-        LOG_W("Unable to configure single X axis: {}", e.what());
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Unable to configure single X axis");
+        LOG_W("Unable to configure single X axis: {}", e.what())
     }
 }
 
@@ -1292,6 +1311,7 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
             }
             catch (const std::exception& e)
             {
+                setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Invalid data rule parameters");
                 throw InvalidPropertyException("Invalid data rule parameters: {}", e.what());
             }
             signalContext.isExplicit = false;
@@ -1336,6 +1356,7 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
             }
             catch (...)
             {
+                setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Invalid origin, ignored");
                 LOG_W("Invalid origin, ignored: {}", origin)
             }
         }
@@ -1343,6 +1364,7 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
         const auto dataDescriptor = signalContext.inputDataSignalDescriptor;
         if (dataDescriptor.getDimensions().getCount() > 1)  // matrix not supported on the input
         {
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Matrix signals not supported");
             LOG_W("Matrix signals not supported")
             return;
         }
@@ -1366,6 +1388,7 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
     }
     catch (const std::exception& e)
     {
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Signal descriptor changed error");
         LOG_E("Signal descriptor changed error: {}", e.what())
     }
 }
@@ -1481,7 +1504,11 @@ std::chrono::system_clock::time_point RendererFbImpl::timeStrToTimePoint(std::st
     std::chrono::system_clock::time_point timePoint;
     timeStringStream >> date::parse("%FT%T%z", timePoint);
     if (timeStringStream.fail())
+    {
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Invalid format");
         throw std::runtime_error("Invalid format");
+    }
+        
 
     return timePoint;
 }

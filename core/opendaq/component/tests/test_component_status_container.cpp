@@ -5,6 +5,8 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 
+#include "opendaq/instance_factory.h"
+
 using namespace daq;
 using namespace testing;
 
@@ -111,4 +113,40 @@ TEST_F(ComponentStatusContainerTest, SerializeDeserialize)
     ComponentStatusContainerPtr deserializedStatusContainer = deserializer.deserialize(serialized, deserializeContext);
 
     ASSERT_EQ(deserializedStatusContainer.getStatuses(), statusContainer.getStatuses());
+
+    // Status message is and empty string
+    ASSERT_EQ(deserializedStatusContainer.getStatusMessage(statusName), "");
+}
+
+TEST_F(ComponentStatusContainerTest, SerializeDeserializeWithMessage)
+{
+    const auto ctx = NullContext();
+    const auto typeManager = ctx.getTypeManager();
+    const auto statusType = EnumerationType("ComponentStatusContainerType", List<IString>("On", "Off"));
+    typeManager.addType(statusType);
+
+    const auto statusInitValue = Enumeration("ComponentStatusContainerType", "On", typeManager);
+
+    const auto statusContainer = ComponentStatusContainer();
+    const auto statusName = String("testStatus");
+    const auto statusMessage = String("testMessage");
+    auto componentStatusContainerPrivate = statusContainer.asPtr<IComponentStatusContainerPrivate>();
+    componentStatusContainerPrivate.addStatusWithMessage(statusName, statusInitValue, statusMessage);
+
+    auto serializer = JsonSerializer(False);
+    statusContainer.serialize(serializer);
+
+    auto serialized = serializer.getOutput();
+
+    auto deserializer = JsonDeserializer();
+    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr, nullptr);
+    ComponentStatusContainerPtr deserializedStatusContainer = deserializer.deserialize(serialized, deserializeContext);
+
+    ASSERT_EQ(deserializedStatusContainer.getStatuses(), statusContainer.getStatuses());
+    ASSERT_EQ(deserializedStatusContainer.getStatusMessage(statusName), statusMessage);
+
+    // Some additional tests for setStatusWithMessage and getStatusMessage
+    const auto newStatusMessage = String("222testMessage222");
+    componentStatusContainerPrivate.setStatusWithMessage(statusName, statusInitValue, newStatusMessage);
+    ASSERT_EQ(statusContainer.getStatusMessage(statusName), newStatusMessage);
 }

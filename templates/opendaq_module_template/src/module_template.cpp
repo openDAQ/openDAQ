@@ -9,7 +9,7 @@ ListPtr<IDeviceInfo> ModuleTemplateHooks::onGetAvailableDevices()
 {
     std::scoped_lock lock(module_->sync);
     auto deviceInfo = List<IDeviceInfo>();
-    const auto options = context.getModuleOptions(id);
+    const auto options = context.getModuleOptions(moduleInfo.getId());
 
     const auto availableDevTypes = module_->getAvailableDeviceTypes(options);
     std::map<std::string, DeviceTypeParams> devTypesMap;
@@ -30,7 +30,7 @@ ListPtr<IDeviceInfo> ModuleTemplateHooks::onGetAvailableDevices()
 DictPtr<IString, IDeviceType> ModuleTemplateHooks::onGetAvailableDeviceTypes()
 {
     std::scoped_lock lock(module_->sync);
-    const auto options = context.getModuleOptions(id);
+    const auto options = context.getModuleOptions(moduleInfo.getId());
     const auto deviceTypes = module_->getAvailableDeviceTypes(options);
 
     auto typesDict = Dict<IString, IDeviceType>();
@@ -59,7 +59,7 @@ DevicePtr ModuleTemplateHooks::onCreateDevice(const StringPtr& connectionString,
     const std::string address = s.substr(s.find(delimiter) + delimiter.length(), s.length());
 
     DeviceTypeParams typeInfo;
-    const auto options = context.getModuleOptions(id);
+    const auto options = context.getModuleOptions(moduleInfo.getId());
 
     bool found = false;
     for (const auto& availableDeviceType : module_->getAvailableDeviceTypes(options))

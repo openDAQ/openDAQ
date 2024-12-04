@@ -1,6 +1,7 @@
 #pragma once
 #include <opendaq/device_impl.h>
 #include <opendaq_module_template/component_template_base.h>
+#include <opendaq/log_file_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
@@ -25,6 +26,9 @@ protected:
     virtual void initSyncComponent(const SyncComponentPrivatePtr& syncComponent);
     virtual void initCustomComponents();
     virtual DeviceDomainPtr initDeviceDomain();  // TODO: Pass builder as param when implemented
+    virtual ListPtr<ILogFileInfo> getLogFileInfos();
+    virtual StringPtr getLog(const StringPtr& id, Int size, Int offset);
+
 
     virtual uint64_t getTicksSinceOrigin();
 
@@ -66,7 +70,7 @@ public:
         this->device->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
         this->device->context = this->context;
 
-        std::scoped_lock lock(sync);
+        auto lock = this->getAcquisitionLock();
 
         this->device->handleConfig(params.config);
         this->device->handleOptions(params.options);
@@ -91,6 +95,8 @@ private:
     
     DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;
+    ListPtr<ILogFileInfo> onGetLogFileInfos() override;
+    StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;

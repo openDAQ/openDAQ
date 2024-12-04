@@ -33,7 +33,7 @@ public:
         this->channel->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
         this->channel->context = this->context;
 
-        std::scoped_lock lock(sync);
+        auto lock = this->getAcquisitionLock();
 
         // TODO: Check if this is needed
         // this->channel->handleOptions(params.options);

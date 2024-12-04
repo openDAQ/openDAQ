@@ -50,15 +50,13 @@ protected:
     void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
     DeviceDomainPtr initDeviceDomain() override;
     void initSyncComponent(const SyncComponentPrivatePtr& syncComponent) override;
+    ListPtr<ILogFileInfo> getLogFileInfos() override;
+    StringPtr getLog(const StringPtr& id, Int size, Int offset) override;
 
     void start() override;
     
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;
-
-protected:
-    ListPtr<ILogFileInfo> ongetLogFileInfos() override;
-    StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
 private:
 
@@ -66,10 +64,10 @@ private:
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
     PropertyObjectPtr createProtectedObject() const;
 
-    void enableProtectedChannel();
     void enableLogging();
     void updateNumberOfChannels(size_t numberOfChannels);
     void enableCANChannel(bool enableCANChannel);
+    void enableProtectedChannel();
     void updateAcqLoopTime(size_t loopTime);
     void updateDeviceSampleRate(double sampleRate);
 

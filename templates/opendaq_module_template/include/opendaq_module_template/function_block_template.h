@@ -33,7 +33,7 @@ public:
         this->functionBlock->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
         this->functionBlock->context = this->context;
 
-        std::scoped_lock lock(sync);
+        auto lock = this->getAcquisitionLock();
 
         this->functionBlock->handleConfig(params.config);
         this->functionBlock->handleOptions(params.options);

@@ -60,6 +60,10 @@ if (CMAKE_COMPILER_IS_GNUCXX AND MINGW)
     target_compile_options(${LIB_NAME} PRIVATE -Wno-error)
 endif()
 
+if (MSVC)
+    target_compile_options(${LIB_NAME} PRIVATE /bigobj)
+endif()
+
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
                                               $<INSTALL_INTERFACE:include>

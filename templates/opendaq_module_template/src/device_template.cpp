@@ -23,6 +23,16 @@ DeviceDomainPtr DeviceTemplate::initDeviceDomain()
     return {};
 }
 
+ListPtr<ILogFileInfo> DeviceTemplate::getLogFileInfos()
+{
+    return {};
+}
+
+StringPtr DeviceTemplate::getLog(const StringPtr& /*id*/, Int /*size*/, Int /*offset*/)
+{
+    return {};
+}
+
 uint64_t DeviceTemplate::getTicksSinceOrigin()
 {
     return 0;
@@ -57,7 +67,17 @@ void DeviceTemplate::setDeviceDomain(const DeviceDomainPtr& deviceDomain) const
 
 uint64_t DeviceTemplateHooks::onGetTicksSinceOrigin()
 {
-    return 0;
+    return device->getTicksSinceOrigin();
+}
+
+ListPtr<ILogFileInfo> DeviceTemplateHooks::onGetLogFileInfos()
+{
+    return device->getLogFileInfos();
+}
+
+StringPtr DeviceTemplateHooks::onGetLog(const StringPtr& id, Int size, Int offset)
+{
+    return device->getLog(id, size, offset);
 }
 
 bool DeviceTemplateHooks::allowAddDevicesFromModules()

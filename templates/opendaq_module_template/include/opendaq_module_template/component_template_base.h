@@ -16,6 +16,9 @@ public:
     virtual ~ComponentTemplateBase() = default;
 
     ComponentPtr getComponent();
+    std::unique_ptr<RecursiveConfigLockGuard> getRecursiveConfigLock();
+    std::lock_guard<std::mutex> getAcquisitionLock();
+    std::unique_lock<std::mutex> getUniqueLock();
     
     void removeComponentWithId(const FolderConfigPtr& parentFolder, const std::string& componentId) const;
     void removeComponent(const FolderConfigPtr& parentFolder, const ComponentPtr& component) const;
@@ -44,7 +47,6 @@ public:
 
     LoggerComponentPtr loggerComponent;
     ContextPtr context;
-    std::mutex sync;
     Type* componentImpl;
     PropertyObjectPtr objPtr;
 };
@@ -67,6 +69,24 @@ template <typename Type>
 ComponentPtr ComponentTemplateBase<Type>::getComponent()
 {
     return componentImpl->objPtr;
+}
+
+template <typename Type>
+std::unique_ptr<RecursiveConfigLockGuard> ComponentTemplateBase<Type>::getRecursiveConfigLock()
+{
+    return componentImpl->getRecursiveConfigLock();
+}
+
+template <typename Type>
+std::lock_guard<std::mutex> ComponentTemplateBase<Type>::getAcquisitionLock()
+{
+    return componentImpl->getAcquisitionLock();
+}
+
+template <typename Type>
+std::unique_lock<std::mutex> ComponentTemplateBase<Type>::getUniqueLock()
+{
+    return componentImpl->getUniqueLock();
 }
 
 template <typename Type>

@@ -16,6 +16,8 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 static constexpr size_t DEFAULT_NUMBER_OF_CHANNELS = 2;
 static constexpr bool DEFAULT_ENABLE_CAN_CHANNEL = false;
+static constexpr bool DEFAULT_ENABLE_PROTECTED_CHANNEL = false;
+static constexpr bool DEFAULT_ENABLE_LOGGING = false;
 static constexpr double DEFAULT_DEVICE_SAMPLE_RATE = 1000;
 static constexpr int DEFAULT_ACQ_LOOP_TIME = 20;
 
@@ -29,6 +31,7 @@ RefDeviceImpl::RefDeviceImpl()
     , stopAcq(false)
     , microSecondsFromEpochToDeviceStart(0)
     , domainUnit(UnitBuilder().setName("microsecond").setSymbol("us").setQuantity("time").build())
+    , loggingEnabled(false)
 {
 }
 
@@ -47,22 +50,22 @@ void RefDeviceImpl::handleConfig(const PropertyObjectPtr& config)
 {
     const auto obj = getDevice();
 
-    if (config.hasProperty("NumberOfChannels"))
-        obj.setPropertyValue("NumberOfChannels", config.getPropertyValue("NumberOfChannels"));
-
-    if (config.hasProperty("EnableCANChannel"))
-        obj.setPropertyValue("EnableCANChannel", config.getPropertyValue("EnableCANChannel"));
+    obj.setPropertyValue("NumberOfChannels", config.getPropertyValue("NumberOfChannels"));
+    obj.setPropertyValue("EnableCANChannel", config.getPropertyValue("EnableCANChannel"));
+    obj.setPropertyValue("EnableProtectedChannel", config.getPropertyValue("EnableProtectedChannel"));
+    obj.setPropertyValue("EnableLogging", config.getPropertyValue("EnableLogging"));
+    obj.setPropertyValue("LoggingPath", config.getPropertyValue("LoggingPath"));
 }
 
 void RefDeviceImpl::handleOptions(const DictPtr<IString, IBaseObject>& options)
 {
     const auto obj = getDevice();
 
-    if (options.hasKey("NumberOfChannels"))
-        obj.setPropertyValue("NumberOfChannels", options.get("NumberOfChannels"));
-
-    if (options.hasKey("EnableCANChannel"))
-        obj.setPropertyValue("EnableCANChannel", options.get("EnableCANChannel"));
+    obj.setPropertyValue("NumberOfChannels", options.get("NumberOfChannels"));
+    obj.setPropertyValue("EnableCANChannel", options.get("EnableCANChannel"));
+    obj.setPropertyValue("EnableProtectedChannel", options.get("EnableProtectedChannel"));
+    obj.setPropertyValue("EnableLogging", options.get("EnableLogging"));
+    obj.setPropertyValue("LoggingPath", options.get("LoggingPath"));
 }
 
 void RefDeviceImpl::initProperties()
@@ -79,6 +82,11 @@ void RefDeviceImpl::initProperties()
     obj.addProperty(acqLoopTimeProp);
     obj.addProperty(IntProperty("NumberOfChannels", DEFAULT_NUMBER_OF_CHANNELS));
     obj.addProperty(BoolProperty("EnableCANChannel", DEFAULT_ENABLE_CAN_CHANNEL));
+    obj.addProperty(BoolProperty("EnableProtectedChannel", DEFAULT_ENABLE_PROTECTED_CHANNEL));
+    obj.addProperty(ObjectProperty("Protected", createProtectedObject()));
+    obj.addProperty(BoolProperty("EnableLogging", DEFAULT_ENABLE_LOGGING));
+
+    enableLogging();
 }
 
 BaseObjectPtr RefDeviceImpl::onPropertyWrite(const templates::PropertyEventArgs& args)
@@ -91,6 +99,8 @@ BaseObjectPtr RefDeviceImpl::onPropertyWrite(const templates::PropertyEventArgs&
         updateAcqLoopTime(args.value);
     else if (args.propertyName == "EnableCANChannel")
         enableCANChannel(args.value);
+    else if (args.propertyName == "EnableProtectedChannel")
+        enableProtectedChannel();
 
     return nullptr;
 }
@@ -218,15 +228,6 @@ void RefDeviceImpl::updateNumberOfChannels(size_t numberOfChannels)
 {
     LOG_I("Properties: NumberOfChannels {}", numberOfChannels)
 
-        if (config.hasProperty("EnableProtectedChannel"))
-            enableProtectedChannel = config.getPropertyValue("EnableProtectedChannel");
-        
-        if (config.hasProperty("EnableLogging"))
-            loggingEnabled = config.getPropertyValue("EnableLogging");
-
-        if (config.hasProperty("LoggingPath"))
-            loggingPath = config.getPropertyValue("LoggingPath");
-    auto lock = this->getRecursiveLock();
     const auto deviceSampleRate = getDevice().getPropertyValue("SampleRate");
 
     if (numberOfChannels < channels.size())
@@ -242,12 +243,6 @@ void RefDeviceImpl::updateNumberOfChannels(size_t numberOfChannels)
     const auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     for (auto i = channels.size() + 1; i < numberOfChannels + 1; i++)
     {
-        RefChannelInit init{ i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
-        auto localId = fmt::format("RefCh{}", i);
-        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, localId, init);
-        RefChannelInit init{i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
-        auto chLocalId = fmt::format("RefCh{}", i);
-        auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init);
         RefChannelInit init{ i, deviceSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
 
         templates::ChannelParams params;
@@ -282,46 +277,42 @@ void RefDeviceImpl::enableCANChannel(bool /*enableCANChannel*/)
 
 void RefDeviceImpl::enableProtectedChannel()
 {
-    bool enabled = objPtr.getPropertyValue("EnableProtectedChannel");
+    //bool enabled = objPtr.getPropertyValue("EnableProtectedChannel");
 
-    if (!enabled)
-    {
-        if (protectedChannel.assigned() && hasChannel(aiFolder, protectedChannel))
-            removeChannel(aiFolder, protectedChannel);
+    //if (!enabled)
+    //{
+    //    if (protectedChannel.assigned() && hasChannel(aiFolder, protectedChannel))
+    //        removeChannel(aiFolder, protectedChannel);
 
-        protectedChannel.release();
-    }
-    else
-    {
-        auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
-        auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-        size_t index = channels.size();
+    //    protectedChannel.release();
+    //}
+    //else
+    //{
+    //    auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
+    //    auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
+    //    size_t index = channels.size();
 
-        RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
-        const auto channelLocalId = "ProtectedChannel";
+    //    RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
+    //    const auto channelLocalId = "ProtectedChannel";
 
-        auto permissions = PermissionsBuilder()
-                               .inherit(false)
-                               .assign("admin", PermissionMaskBuilder().read().write().execute())
-                               .build();
+    //    auto permissions = PermissionsBuilder()
+    //                           .inherit(false)
+    //                           .assign("admin", PermissionMaskBuilder().read().write().execute())
+    //                           .build();
 
-        protectedChannel = createAndAddChannelWithPermissions<RefChannelImpl>(aiFolder, channelLocalId, permissions, init);
-    }
+    //    protectedChannel = createAndAddChannelWithPermissions<RefChannelImpl>(aiFolder, channelLocalId, permissions, init);
+    //}
 }
 
 void RefDeviceImpl::updateAcqLoopTime(size_t loopTime)
 {
     LOG_I("Properties: AcquisitionLoopTime {}", loopTime)
-        
-    auto lock = this->getRecursiveLock();
     this->acqLoopTime = loopTime;
 }
 
 void RefDeviceImpl::updateDeviceSampleRate(double sampleRate)
 {
     LOG_I("Properties: GlobalSampleRate {}", sampleRate)
-        
-    auto lock = this->getRecursiveLock();
     for (auto& ch : channels)
         ch->globalSampleRateChanged(sampleRate);
 }
@@ -341,7 +332,7 @@ StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint)
     return oss.str();
 }
 
-ListPtr<ILogFileInfo> RefDeviceImpl::ongetLogFileInfos()
+ListPtr<ILogFileInfo> RefDeviceImpl::getLogFileInfos()
 {    
     {
         auto lock = getAcquisitionLock();
@@ -379,7 +370,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::ongetLogFileInfos()
     return List<ILogFileInfo>(logFileInfo);
 }
 
-StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
+StringPtr RefDeviceImpl::getLog(const StringPtr& id, Int size, Int offset)
 {
     {
         auto lock = getAcquisitionLock();

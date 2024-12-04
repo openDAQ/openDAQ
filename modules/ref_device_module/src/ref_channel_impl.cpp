@@ -134,7 +134,6 @@ BaseObjectPtr RefChannelImpl::onPropertyWrite(const templates::PropertyEventArgs
     if (args.isUpdating)
         return ChannelTemplate::onPropertyWrite(args);
     
-    std::scoped_lock lock(sync);
     if (signalTypeProps.count(args.propertyName))
         signalTypeChanged();
     else if (waveformProps.count(args.propertyName))
@@ -147,11 +146,8 @@ BaseObjectPtr RefChannelImpl::onPropertyWrite(const templates::PropertyEventArgs
 
 BaseObjectPtr RefChannelImpl::onPropertyRead(const templates::PropertyEventArgs& args)
 {
-    {
-        std::scoped_lock lock(sync);
-        if (args.propertyName == "SampleRate" && objPtr.getPropertyValue("UseGlobalSampleRate"))
-            return globalSampleRate;
-    }
+    if (args.propertyName == "SampleRate" && objPtr.getPropertyValue("UseGlobalSampleRate"))
+        return globalSampleRate;
 
     return ChannelTemplate::onPropertyRead(args);
 }
@@ -175,7 +171,6 @@ void RefChannelImpl::onEndUpdate(const templates::UpdateEndArgs& args)
     if (!(changeSignalType || changeWaveform || changePacketSize))
         return;
     
-    std::scoped_lock lock(sync);
     if (changeSignalType)
         signalTypeChanged();
     if (changeWaveform)

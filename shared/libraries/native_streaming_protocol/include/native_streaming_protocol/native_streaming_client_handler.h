@@ -33,34 +33,13 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
-enum class ClientConnectionStatus
-{
-    Connected = 0,
-    Reconnecting,
-    Unrecoverable
-};
-
-inline ConstCharPtr convertConnectionStatusToString(ClientConnectionStatus status)
-{
-    switch (status)
-    {
-        case ClientConnectionStatus::Connected:
-            return "Connected";
-        case ClientConnectionStatus::Reconnecting:
-            return "Reconnecting";
-        case ClientConnectionStatus::Unrecoverable:
-            return "Unrecoverable";
-    }
-
-    return "InvalidConnectionStatus";
-}
 
 using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
                                                      const StringPtr& serializedSignal)>;
 using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
 using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
 using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
-using OnConnectionStatusChangedCallback = std::function<void(ClientConnectionStatus status)>;
+using OnConnectionStatusChangedCallback = std::function<void(const EnumerationPtr& status)>;
 
 class NativeStreamingClientHandler;
 using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHandler>;
@@ -113,7 +92,7 @@ protected:
 
     void checkReconnectionResult(const boost::system::error_code& ec);
     void tryReconnect();
-    void connectionStatusChanged(ClientConnectionStatus status);
+    void connectionStatusChanged(const EnumerationPtr& status);
 
     enum class ConnectionResult
     {

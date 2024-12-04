@@ -31,6 +31,7 @@ public:
                                          const ComponentPtr& parent,
                                          const StringPtr& localId,
                                          IntfID* intfID,
+                                         const ProcedurePtr& triggerCoreEvent = nullptr,
                                          const TypeManagerPtr& typeManager = nullptr);
 
 
@@ -42,7 +43,8 @@ public:
     ErrCode INTERFACE_FUNC clone(IComponent* newParent,
                                  IString* newLocalId,
                                  IComponentDeserializeContext** newComponentDeserializeContext,
-                                 IntfID* newIntfID) override;
+                                 IntfID* newIntfID,
+                                 IProcedure* newTriggerCoreEvent) override;
 
 private:
     ConfigProtocolClientCommPtr clientComm;

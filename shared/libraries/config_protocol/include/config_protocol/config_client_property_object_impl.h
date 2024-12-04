@@ -626,7 +626,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
         const auto deserializer = JsonDeserializer();
 
         const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-            this->clientComm, this->remoteGlobalId, nullptr, nullptr, nullptr, nullptr, nullptr, this->manager.getRef());
+            this->clientComm, this->remoteGlobalId, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, this->manager.getRef());
 
         const PropertyObjectPtr clientPropObj =
             deserializer.deserialize(serializer.getOutput(),

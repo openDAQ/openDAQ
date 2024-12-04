@@ -88,4 +88,13 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
             return objectPtr.getConnectionString().toStdString();
         },
         "Gets the string representation of a connection address used to connect to the streaming service of the device.");
+    cls.def_property_readonly("connection_status",
+        [](daq::IStreaming *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamingPtr::Borrow(object);
+            return objectPtr.getConnectionStatus().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Retrieves the current status of the streaming connection.");
 }

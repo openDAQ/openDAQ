@@ -46,9 +46,6 @@ public:
     std::promise< StringPtr > unsubscribedAckPromise;
     std::future< StringPtr > unsubscribedAckFuture;
 
-    std::promise< ClientConnectionStatus > connectionStatusPromise;
-    std::future< ClientConnectionStatus > connectionStatusFuture;
-
     std::promise< void > streamingInitPromise;
     std::future< void > streamingInitFuture;
 
@@ -81,9 +78,6 @@ public:
 
         unsubscribedAckPromise = std::promise< StringPtr >();
         unsubscribedAckFuture = unsubscribedAckPromise.get_future();
-
-        connectionStatusPromise = std::promise< ClientConnectionStatus >();
-        connectionStatusFuture = connectionStatusPromise.get_future();
 
         streamingInitPromise = std::promise< void >();
         streamingInitFuture = streamingInitPromise.get_future();
@@ -123,7 +117,7 @@ public:
                 unsubscribedAckPromise.set_value(signalStringId);
         };
 
-        connectionStatusChangedHandler = [this](ClientConnectionStatus status)
+        connectionStatusChangedHandler = [this](const EnumerationPtr& status)
         {
             connectionStatusPromise.set_value(status);
         };
@@ -305,9 +299,9 @@ TEST_P(StreamingProtocolTest, Reconnection)
     for (auto& client : clients)
     {
         ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-        ASSERT_EQ(client.connectionStatusFuture.get(), ClientConnectionStatus::Reconnecting);
+        ASSERT_EQ(client.connectionStatusFuture.get(), "Reconnecting");
 
-        client.connectionStatusPromise = std::promise< ClientConnectionStatus >();
+        client.connectionStatusPromise = std::promise< EnumerationPtr >();
         client.connectionStatusFuture = client.connectionStatusPromise.get_future();
     }
 
@@ -316,9 +310,9 @@ TEST_P(StreamingProtocolTest, Reconnection)
     for (auto& client : clients)
     {
         ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-        ASSERT_EQ(client.connectionStatusFuture.get(), ClientConnectionStatus::Connected);
+        ASSERT_EQ(client.connectionStatusFuture.get(), "Connected");
 
-        client.connectionStatusPromise = std::promise< ClientConnectionStatus >();
+        client.connectionStatusPromise = std::promise< EnumerationPtr >();
         client.connectionStatusFuture = client.connectionStatusPromise.get_future();
 
         client.clientHandler->sendStreamingRequest();

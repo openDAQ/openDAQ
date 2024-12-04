@@ -28,9 +28,10 @@ inline ComponentDeserializeContextPtr ComponentDeserializeContext(const ContextP
                                                                   const ComponentPtr& root,
                                                                   const ComponentPtr& parent,
                                                                   const StringPtr& localId,
-                                                                  IntfID* id = nullptr)
+                                                                  IntfID* id = nullptr,
+                                                                  const ProcedurePtr& triggerCoreEvent = nullptr)
 {
-    ComponentDeserializeContextPtr obj(ComponentDeserializeContext_Create(context, root, parent, localId, id));
+    ComponentDeserializeContextPtr obj(ComponentDeserializeContext_Create(context, root, parent, localId, id, triggerCoreEvent));
     return obj;
 }
 

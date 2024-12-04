@@ -11,9 +11,6 @@ using namespace daq::packet_streaming;
 class ClientAttributes : public ClientAttributesBase
 {
 public:
-    std::promise< ClientConnectionStatus > connectionStatusPromise;
-    std::future< ClientConnectionStatus > connectionStatusFuture;
-
     void setUp()
     {
         ClientAttributesBase::setUp();
@@ -21,11 +18,8 @@ public:
         clientHandler = std::make_shared<NativeStreamingClientHandler>(
             clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
 
-        connectionStatusPromise = std::promise< ClientConnectionStatus >();
-        connectionStatusFuture = connectionStatusPromise.get_future();
-
         clientHandler->setConfigHandlers([](config_protocol::PacketBuffer&&) {},
-                                         [](ClientConnectionStatus) {});
+                                         [](const EnumerationPtr&) {});
     }
 
     void tearDown()

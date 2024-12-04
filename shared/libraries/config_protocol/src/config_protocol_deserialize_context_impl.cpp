@@ -10,8 +10,9 @@ ConfigProtocolDeserializeContextImpl::ConfigProtocolDeserializeContextImpl(const
                                                                            const ComponentPtr& parent,
                                                                            const StringPtr& localId,
                                                                            IntfID* inftID,
+                                                                           const ProcedurePtr& triggerCoreEvent,
                                                                            const TypeManagerPtr& typeManager)
-    : GenericComponentDeserializeContextImpl(context.assigned() ? context : clientComm->getDaqContext(), root, parent, localId, inftID)
+    : GenericComponentDeserializeContextImpl(context.assigned() ? context : clientComm->getDaqContext(), root, parent, localId, inftID, triggerCoreEvent)
     , clientComm(clientComm)
     , remoteGlobalId(remoteGlobalId)
     , typeManager(typeManager)
@@ -45,7 +46,8 @@ TypeManagerPtr ConfigProtocolDeserializeContextImpl::getTypeManager()
 ErrCode ConfigProtocolDeserializeContextImpl::clone(IComponent* newParent,
                                                     IString* newLocalId,
                                                     IComponentDeserializeContext** newComponentDeserializeContext,
-                                                    IntfID* newIntfID)
+                                                    IntfID* newIntfID,
+                                                    IProcedure* newTriggerCoreEvent)
 {
     OPENDAQ_PARAM_NOT_NULL(newLocalId);
     OPENDAQ_PARAM_NOT_NULL(newComponentDeserializeContext);
@@ -62,7 +64,8 @@ ErrCode ConfigProtocolDeserializeContextImpl::clone(IComponent* newParent,
         this->root,
         newParent,
         newLocalId,
-        newIntfID);
+        newIntfID,
+        newTriggerCoreEvent);
 }
 
 }

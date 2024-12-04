@@ -1,3 +1,20 @@
+# 5.12.2024:
+## Description
+- Add Component status types to the Type Manager in `context_impl.cpp` ("Ok", "Warning", and "Error")
+- Define `ComponentErrorState` enum in `component.h`
+- Declare and define `initComponentErrorStateStatus`, `setComponentErrorStateStatus`, and `setComponentErrorStateStatusWithMessage` in `component_impl.h`
+- Add `getStatusMessage` in `component_status_container.h`, and `addStatusWithMessage`, `setStatusWithMessage` in `component_status_container_private.h`, implement all three in `component_status_container_impl.h`
+- Use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage` in all reference Function Blocks
+
+## Required integration changes
+- None, however, developers of Function Blocks are encouraged to use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage`
+
+```
++ [function] IComponentStatusContainer::getStatusMessage(IString* name, IString** message)
++ [function] IComponentStatusContainerPrivate::addStatusWithMessage(IString* name, IEnumeration* initialValue, IString* message)
++ [function] IComponentStatusContainerPrivate::setStatusWithMessage(IString* name, IEnumeration* value, IString* message)
+```
+
 # 04.12.2024
 ## Description
 - Module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`

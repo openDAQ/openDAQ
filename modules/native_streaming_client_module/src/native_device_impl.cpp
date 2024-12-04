@@ -571,8 +571,6 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
     }
 
     newDeviceInfo.asPtr<IDeviceInfoInternal>(true).setChangeableProperties(deviceInfo.asPtr<IDeviceInfoInternal>().getChangeableProperties());
-    newDeviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
-    newDeviceInfo.freeze();
 
     deviceInfo = newDeviceInfo;
 }

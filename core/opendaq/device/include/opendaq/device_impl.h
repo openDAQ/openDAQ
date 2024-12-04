@@ -279,16 +279,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         this->deviceInfo = devInfo.detach();
 
         if (this->deviceInfo.assigned())
-        {
             this->deviceInfo.template as<IDeviceInfoInternal>(true)->setChangeableProperties(this->getChangeableDeviceInfoFields());
-            this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
-            this->deviceInfo.freeze();
-        }
     }
 
     if (this->deviceInfo.assigned())
-        this->deviceInfo.getPermissionManager().template asPtr<IPermissionManagerInternal>().setParent(this->permissionManager);
-
+    {
+        this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
+        this->deviceInfo.freeze();
+    }
     *info = this->deviceInfo.addRefAndReturn();
     return errCode;
 }
@@ -1650,7 +1648,6 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("deviceInfo"))
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
-        deviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
     }
 
     if (serializedObject.hasKey("deviceDomain"))

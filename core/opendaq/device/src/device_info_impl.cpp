@@ -738,6 +738,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setChangeableProperties
 {
     if (changeableProperties == nullptr)
         return OPENDAQ_IGNORED;
+    if (changeablePropertyNames.size())
+        return OPENDAQ_IGNORED;
     return Super::setProtectedPropertyValue(String("changeableProperties"), changeableProperties);
 }
 
@@ -808,10 +810,9 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyChangeableProperties(const PropertyObjectPtr& owner)
 {
     if (!owner.assigned())
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Editable fields cannot be set without setting the owner.");
-
+        return OPENDAQ_IGNORED;
     if (changeablePropertyNames.size())
-        return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Editable properties have already been applied.");
+        return OPENDAQ_IGNORED;
 
     ListPtr<IString> changeableProperties = this->objPtr.getPropertyValue("changeableProperties");
     for (const auto & prop : changeableProperties)
@@ -835,9 +836,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     if (OPENDAQ_FAILED(errCode))
         return errCode;
     
-    if (newOwner != nullptr)
-        errCode = applyChangeableProperties(newOwner);
-   return errCode; 
+    applyChangeableProperties(newOwner);
+    return errCode; 
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

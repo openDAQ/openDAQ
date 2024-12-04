@@ -833,7 +833,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
-    if (errCode == OPENDAQ_IGNORE)
+    if (errCode == OPENDAQ_IGNORED)
         return errCode;
    
     applyChangeableProperties(newOwner);

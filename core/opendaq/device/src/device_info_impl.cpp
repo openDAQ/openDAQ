@@ -746,6 +746,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setChangeableProperties
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getChangeableProperties(IList** changeableProperties)
 {
+    OPENDAQ_PARAM_NOT_NULL(changeableProperties);
+
     BaseObjectPtr obj;
     ErrCode errCode = this->getPropertyValue(String("changeableProperties"), &obj);
     if (OPENDAQ_FAILED(errCode))
@@ -770,13 +772,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(ISt
 
     auto name = StringPtr::Borrow(propertyName);
 
-    if (!owner.hasProperty(name))
-        return OPENDAQ_NOTFOUND;
-     
-    if (changeablePropertyNames.count(name))
-    { 
+    if (changeablePropertyNames.count(name) && owner.hasProperty(name))
         return owner->getPropertyValue(propertyName, value);
-    }
 
     return OPENDAQ_NOTFOUND;
 }
@@ -835,7 +832,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     ErrCode errCode = Super::setOwner(newOwner);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
-    
+
+    if (errCode == OPENDAQ_IGNORE)
+        return errCode;
+   
     applyChangeableProperties(newOwner);
     return errCode; 
 }

@@ -173,9 +173,8 @@ class AddDeviceDialog(Dialog):
                     self.parent_device_tree, '', self.context.instance)
                 self.select_parent_device(device.global_id)
                 self.event_port.emit()
-            except RuntimeError as e:
-                utils.show_error('Error adding device', f'{
-                                 connection_string}: {e}', self)
+            except Exception as e:
+                utils.show_error('Error adding device', f'{connection_string}: {str(e)}', self)
                 return
 
     def handle_add_device(self):

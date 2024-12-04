@@ -811,6 +811,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyChangeableProperti
     if (changeablePropertyNames.size())
         return OPENDAQ_IGNORED;
 
+    auto lock = this->getRecursiveConfigLock();
+    auto was_frozen = this->frozen;
+    this->frozen = false;
+
     ListPtr<IString> changeableProperties = this->objPtr.getPropertyValue("changeableProperties");
     for (const auto & prop : changeableProperties)
     {
@@ -822,6 +826,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyChangeableProperti
         changeablePropertyNames.insert(prop.toStdString());
         this->addProperty(ownerProp.asPtr<IPropertyInternal>(true).clone());
     }
+
+    this->frozen = was_frozen;
     
     return OPENDAQ_SUCCESS;
 }

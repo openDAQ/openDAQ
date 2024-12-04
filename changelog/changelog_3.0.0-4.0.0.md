@@ -1,14 +1,12 @@
 # 04.12.2024
 ## Description
 - Implement editable device info fields that can be modified by the owner (device).
-- Broadcast modified device info properties via mDNS.
-- Broadcast all device info properties via mDNS.
+- Broadcast modified string-type device info properties via mDNS.
+- Broadcast all string-type device info properties via mDNS.
 
 ## Required integration changes
-- In the generic class `Device`, there is a variable `deviceInfo` and a method `getInfo`. The `getInfo` method triggers the virtual method `onGetInfo` if **deviceInfo is not already set**. This process involves registering editable fields and storing the value returned by `onGetInfo` into the deviceInfo variable.
-- For classes inheriting from `Device`, the method `onGetInfo` **should not freeze the device info** prematurely.
-  - Device info will be frozen after attaching editable properties in `Device`.
-  - Freezing the info earlier would prevent custom properties, which are not included in the device info, from being added.
+- The base device class includes a virtual method `getChangeableDeviceInfoFields()`, which returns a list of property names. For these properties, the device info should return the value from the device if the device exists and contains the property.
+- If the device info does not have a property from the list, it will clone the property from the device and add it to the device info.
 
 # 28.11.2024:
 ## Description

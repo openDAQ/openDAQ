@@ -746,13 +746,13 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setChangeableProperties
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getChangeableProperties(IList** changeableProperties)
 {
-    OPENDAQ_PARAM_NOT_NULL(changeableProperties);
-    
-    auto props = List<IString>();
-    for (const auto & propName: changeablePropertyNames)
-        props.pushBack(String(propName));
-    *changeableProperties = props.detach();
-    return OPENDAQ_SUCCESS;
+    BaseObjectPtr obj;
+    ErrCode errCode = this->getPropertyValue(String("changeableProperties"), &obj);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    *changeableProperties = obj.asPtrOrNull<IList, ListPtr<IString>>().detach();
+    return errCode;
 }
 
 template <typename TInterface, typename ... Interfaces>

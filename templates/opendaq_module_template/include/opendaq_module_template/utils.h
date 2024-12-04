@@ -156,7 +156,6 @@ struct FunctionBlockParams
     ComponentPtr parent;
 
     PropertyObjectPtr config;
-    DictPtr<IString, IBaseObject> options;
 
     std::string logName;
     std::string localId;
@@ -169,7 +168,6 @@ struct DeviceParams
     ComponentPtr parent;
 
     PropertyObjectPtr config;
-    DictPtr<IString, IBaseObject> options;
 
     std::string typeId;
     std::string address;
@@ -184,6 +182,7 @@ struct ModuleParams
     std::string name;
     std::string id;
     std::string logName;
+    DictPtr<IString, IBaseObject> options;
 };
 
 // Validation classes

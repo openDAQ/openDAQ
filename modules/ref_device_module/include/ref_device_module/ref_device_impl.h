@@ -29,19 +29,16 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 class RefDeviceBase final : public templates::DeviceTemplateHooks
 {
 public:
-
     RefDeviceBase(const templates::DeviceParams& params);
 };
 
 class RefDeviceImpl final : public templates::DeviceTemplate
 {
 public:
-
     explicit RefDeviceImpl();
     ~RefDeviceImpl() override;
 
 protected:
-    
     uint64_t getTicksSinceOrigin() override;
     void handleConfig(const PropertyObjectPtr& config) override;
     void handleOptions(const DictPtr<IString, IBaseObject>& options) override;
@@ -59,7 +56,6 @@ protected:
     bool allowAddFunctionBlocksFromModules() override;
 
 private:
-
     void acqLoop();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
     PropertyObjectPtr createProtectedObject() const;

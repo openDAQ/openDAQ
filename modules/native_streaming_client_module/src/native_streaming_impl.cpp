@@ -26,7 +26,6 @@ NativeStreamingImpl::NativeStreamingImpl(
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
     , onDeviceConnectionStatusChangedCb(onDeviceConnectionStatusChangedCb)
-    , connectionStatus(ClientConnectionStatus::Connected)
     , processingIOContextPtr(processingIOContextPtr)
     , protocolInitFuture(protocolInitPromise.get_future())
     , streamingInitTimeout(std::chrono::milliseconds(streamingInitTimeout))
@@ -87,28 +86,19 @@ void NativeStreamingImpl::signalUnavailableHandler(const StringPtr& signalString
     }
 }
 
-void NativeStreamingImpl::updateConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status)
+void NativeStreamingImpl::updateConnectionStatus(const EnumerationPtr& status)
 {
-    if (status == ClientConnectionStatus::Connected)
-    {
-        completeReconnection();
-    }
-    else if (status == ClientConnectionStatus::Reconnecting)
-    {
-        startReconnection();
-    }
-
-    connectionStatus = status;
-
     if (onDeviceConnectionStatusChangedCb)
     {
         onDeviceConnectionStatusChangedCb(status);
     }
+
+    Super::updateConnectionStatus(status);
 }
 
-void NativeStreamingImpl::processConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status)
+void NativeStreamingImpl::processConnectionStatus(const EnumerationPtr& status)
 {
-    if (status == ClientConnectionStatus::Connected)
+    if (status == "Connected")
     {
         this->transportClientHandler->sendStreamingRequest();
         protocolInitPromise = std::promise<void>();
@@ -121,9 +111,9 @@ void NativeStreamingImpl::processConnectionStatus(opendaq_native_streaming_proto
                     return;
 
                 if (protocolInitFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-                    updateConnectionStatus(ClientConnectionStatus::Connected);
+                    updateConnectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()));
                 else
-                    updateConnectionStatus(ClientConnectionStatus::Unrecoverable);
+                    updateConnectionStatus(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()));
             }
         );
     }
@@ -188,7 +178,7 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnConnectionStatusChangedCallback onConnectionStatusChangedCb =
-        [this, thisRef](ClientConnectionStatus status)
+        [this, thisRef](const EnumerationPtr& status)
     {
         dispatch(
             *processingIOContextPtr,
@@ -270,7 +260,7 @@ void NativeStreamingImpl::initClientHandlerCallbacks()
         );
     };
     OnConnectionStatusChangedCallback onConnectionStatusChangedCb =
-        [this](ClientConnectionStatus status)
+        [this](const EnumerationPtr& status)
     {
         dispatch(
             *processingIOContextPtr,

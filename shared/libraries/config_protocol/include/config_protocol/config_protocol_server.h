@@ -125,6 +125,7 @@ private:
     void addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler);
     
     void coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
+    bool isForwardedCoreEvent(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
     
     ListPtr<IBaseObject> packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
     CoreEventArgsPtr processCoreEventArgs(const CoreEventArgsPtr& args);

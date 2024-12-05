@@ -4,6 +4,6 @@ namespace daq
 {
 
 OPENDAQ_DEFINE_CLASS_FACTORY(
-    LIBRARY_FACTORY, ComponentDeserializeContext, IContext*, context, IComponent*, root, IComponent*, parent, IString*, localId, IntfID*, intfID);
+    LIBRARY_FACTORY, ComponentDeserializeContext, IContext*, context, IComponent*, root, IComponent*, parent, IString*, localId, IntfID*, intfID, IProcedure*, triggerCoreEvent);
 
 }

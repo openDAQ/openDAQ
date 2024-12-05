@@ -18,6 +18,7 @@
 #include <coretypes/baseobject.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/event_packet_ptr.h>
+#include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -53,6 +54,12 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingPrivate, IBaseObject)
      * @retval OPENDAQ_ERR_NOTFOUND if a signal with corresponding remote Id was not added to the Streaming.
      */
     virtual ErrCode INTERFACE_FUNC detachRemovedSignal(const StringPtr& signalRemoteId) = 0;
+
+    /*!
+     * @brief Sets the reference to the device that owns the streaming object.
+     * @param device The device to which the streaming object is attached.
+     */
+    virtual ErrCode INTERFACE_FUNC setOwnerDevice(const DevicePtr& device) = 0;
 };
 /*!@}*/
 

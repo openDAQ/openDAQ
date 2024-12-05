@@ -26,7 +26,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-enum class ProtocolType: uint32_t
+enum class ProtocolType: EnumType
 {
     Unknown = 0,
     Configuration,

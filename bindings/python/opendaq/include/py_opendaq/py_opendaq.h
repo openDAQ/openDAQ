@@ -105,6 +105,7 @@ PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> declareIComponentPrivate(pyb
 PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::module_ m);
 PyDaqIntf<daq::IComponentStatusContainer, daq::IBaseObject> declareIComponentStatusContainer(pybind11::module_ m);
 PyDaqIntf<daq::IComponentStatusContainerPrivate, daq::IBaseObject> declareIComponentStatusContainerPrivate(pybind11::module_ m);
+PyDaqIntf<daq::IConnectionStatusContainerPrivate, daq::IBaseObject> declareIConnectionStatusContainerPrivate(pybind11::module_ m);
 PyDaqIntf<daq::IAddressInfo, daq::IPropertyObject> declareIAddressInfo(pybind11::module_ m);
 PyDaqIntf<daq::IAddressInfoBuilder, daq::IBaseObject> declareIAddressInfoBuilder(pybind11::module_ m);
 PyDaqIntf<daq::ISyncComponent, daq::IComponent> declareISyncComponent(pybind11::module_ m);
@@ -215,6 +216,7 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
 void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> cls);
 void defineIComponentStatusContainer(pybind11::module_ m, PyDaqIntf<daq::IComponentStatusContainer, daq::IBaseObject> cls);
 void defineIComponentStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentStatusContainerPrivate, daq::IBaseObject> cls);
+void defineIConnectionStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::IConnectionStatusContainerPrivate, daq::IBaseObject> cls);
 void defineIAddressInfo(pybind11::module_ m, PyDaqIntf<daq::IAddressInfo, daq::IPropertyObject> cls);
 void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoBuilder, daq::IBaseObject> cls);
 void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, daq::IComponent> cls);

@@ -1087,61 +1087,23 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
     if (serializedObject.hasKey("name"))
         name = serializedObject.readString("name");
 
+    const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+    auto intfID = deserializeContext.getIntfID();
+    const auto triggerCoreEvent = [this](const CoreEventArgsPtr& args)
+    {
+        if (!this->coreEventMuted)
+            this->triggerCoreEvent(args);
+    };
+    const auto clonedDeserializeContext = deserializeContext.clone(deserializeContext.getParent(),
+                                                                   deserializeContext.getLocalId(),
+                                                                   &intfID,
+                                                                   triggerCoreEvent);
+
     if (serializedObject.hasKey("tags"))
-        tags = serializedObject.readObject(
-            "tags",
-            context,
-            [this](const StringPtr& typeId,
-                   const SerializedObjectPtr& object,
-                   const BaseObjectPtr& context,
-                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
-            {
-                if (typeId == TagsImpl::SerializeId())
-                {
-                    ObjectPtr<ITagsPrivate> tags;
-                    auto errCode = createObject<ITagsPrivate, TagsImpl>(&tags,
-                        [this](const CoreEventArgsPtr& args)
-                        {
-                            if (!this->coreEventMuted)
-                                triggerCoreEvent(args);
-                        });
-                    if (OPENDAQ_FAILED(errCode))
-                        return errCode;
-
-                    const auto list = object.readList<IString>("list", context, factoryCallback);
-                    for (const auto& tag : list)
-                        tags->add(tag);
-
-                    return tags;
-                }
-                return nullptr;
-            });
+        tags = serializedObject.readObject("tags", clonedDeserializeContext);
 
     if (serializedObject.hasKey("statuses"))
-        statusContainer = serializedObject.readObject(
-            "statuses",
-            context,
-            [this](const StringPtr& typeId,
-                   const SerializedObjectPtr& object,
-                   const BaseObjectPtr& context,
-                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
-            {
-                if (typeId == ComponentStatusContainerImpl::SerializeId())
-                {
-                    auto container = createWithImplementation<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(
-                        [this](const CoreEventArgsPtr& args)
-                        {
-                            if (!this->coreEventMuted)
-                                triggerCoreEvent(args);
-                        });
-
-                    DictPtr<IString, IEnumeration> statuses = object.readObject("statuses", context, factoryCallback);
-                    for (const auto& [name, value] : statuses)
-                        container->addStatus(name, value);
-                    return container;
-                }
-                return nullptr;
-            });
+        statusContainer = serializedObject.readObject("statuses", clonedDeserializeContext);
 }
 
 template <class Intf, class... Intfs>

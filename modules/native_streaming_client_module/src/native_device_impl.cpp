@@ -28,7 +28,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , reconnectionProcessingThreadId(reconnectionProcessingThreadId)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
     , transportClientHandler(transportProtocolClient)
-    , connectionStatus(ClientConnectionStatus::Connected)
+    , connectionStatus(Enumeration("ConnectionStatusType", "Connected", context.getTypeManager()))
     , acceptNotificationPackets(true)
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
@@ -251,9 +251,9 @@ void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPt
     }
 }
 
-void NativeDeviceHelper::connectionStatusChangedHandler(ClientConnectionStatus status)
+void NativeDeviceHelper::connectionStatusChangedHandler(const EnumerationPtr& status)
 {
-    if (status == ClientConnectionStatus::Connected)
+    if (status == "Connected")
     {
         try
         {
@@ -279,7 +279,7 @@ void NativeDeviceHelper::connectionStatusChangedHandler(ClientConnectionStatus s
     auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
     if (!device.assigned())
         return;
-    device.asPtr<INativeDevicePrivate>()->publishConnectionStatus(convertConnectionStatusToString(connectionStatus));
+    device.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus);
 }
 
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
@@ -323,7 +323,7 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
     };
 
     OnConnectionStatusChangedCallback connectionStatusChangedCb =
-        [this](ClientConnectionStatus status)
+        [this](const EnumerationPtr& status)
     {
         boost::asio::dispatch(
             *reconnectionProcessingIOContextPtr,
@@ -349,7 +349,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
 
     // using a thread id is a hacky way to disable all config requests
     // except those related to reconnection until reconnection is finished
-    if (connectionStatus != ClientConnectionStatus::Connected &&
+    if (connectionStatus != "Connected" &&
         std::this_thread::get_id() != reconnectionProcessingThreadId)
     {
         unregisterConfigRequest(reqId);
@@ -376,7 +376,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
     {
         unregisterConfigRequest(reqId);
         LOG_E("Native configuration protocol request id {} timed out", reqId);
-        if (connectionStatus == ClientConnectionStatus::Connected)
+        if (connectionStatus == "Connected")
             throw GeneralErrorException("Native configuration protocol request id {} timed out", reqId);
         else
             throw ConnectionLostException("Native configuration protocol request id {} timed out due to disconnection", reqId);
@@ -450,7 +450,7 @@ void NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& 
 {
     // using a thread id is a hacky way to disable all config requests
     // except those related to reconnection until reconnection is finished
-    if (connectionStatus != ClientConnectionStatus::Connected &&
+    if (connectionStatus != "Connected" &&
         std::this_thread::get_id() != reconnectionProcessingThreadId)
     {
         throw ConnectionLostException();
@@ -482,33 +482,21 @@ NativeDeviceImpl::~NativeDeviceImpl()
     }
 }
 
-void NativeDeviceImpl::initStatuses()
-{
-    if (!this->context.getTypeManager().hasType("ConnectionStatusType"))
-    {
-        const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected",
-                                                                                      "Reconnecting",
-                                                                                      "Unrecoverable"));
-        this->context.getTypeManager().addType(statusType);
-    }
-    const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
-}
-
 // INativeDevicePrivate
-void NativeDeviceImpl::publishConnectionStatus(ConstCharPtr statusValue)
+void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status)
 {
-    auto newStatusValue = this->statusContainer.getStatus("ConnectionStatus");
-    newStatusValue = statusValue;
-
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", newStatusValue);
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", status);
+    this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), status, nullptr);
 }
 
 void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString)
 {
-    initStatuses();
     attachDeviceHelper(deviceHelper);
     updateDeviceInfo(connectionString);
+
+    const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
+    this->connectionStatusContainer.addConfigurationConnectionStatus(deviceInfo.getConnectionString(), statusInitValue);
 }
 
 ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,

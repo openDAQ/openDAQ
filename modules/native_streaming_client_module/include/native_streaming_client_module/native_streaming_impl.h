@@ -58,8 +58,8 @@ protected:
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
 
-    void updateConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status);
-    void processConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status);
+    void updateConnectionStatus(const EnumerationPtr& status) override;
+    void processConnectionStatus(const EnumerationPtr& status);
 
     void initClientHandlerCallbacks();
     void upgradeClientHandlerCallbacks();
@@ -72,8 +72,6 @@ protected:
     ProcedurePtr onDeviceSignalAvailableCallback;
     ProcedurePtr onDeviceSignalUnavailableCallback;
     opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb;
-
-    opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
 

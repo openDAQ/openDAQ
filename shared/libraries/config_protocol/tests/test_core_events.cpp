@@ -21,6 +21,7 @@
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"
 #include <coreobjects/user_factory.h>
+#include <opendaq/mock/mock_streaming_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -873,6 +874,8 @@ TEST_F(ConfigCoreEventTest, StatusChanged)
         }
         changeCount++;
     };
+
+    ASSERT_EQ(clientDevice.getStatusContainer().getStatus("TestStatus"), "Status0");
     
     statusContainer.setStatus("TestStatus", statusValue);
     statusContainer.setStatus("TestStatus", statusValue);
@@ -882,6 +885,60 @@ TEST_F(ConfigCoreEventTest, StatusChanged)
     ASSERT_EQ(changeCount, 3);
 }
 
+TEST_F(ConfigCoreEventTest, ConnectionStatusChanged)
+{
+    const StreamingPtr mockStreaming = MockStreaming("MockStreaming", serverDevice.getContext());
+    const auto typeManager = serverDevice.getContext().getTypeManager();
+    const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", typeManager);
+    const auto statusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
+
+    const auto connectionStatusContainer = serverDevice.getConnectionStatusContainer().asPtr<IConnectionStatusContainerPrivate>();
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr", statusInitValue, mockStreaming);
+
+    int changeCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ConnectionStatusChanged));
+        ASSERT_EQ(args.getEventName(), "ConnectionStatusChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
+        ASSERT_EQ(args.getParameters().get("StatusName"), "ConfigurationStatus");
+        ASSERT_TRUE(args.getParameters().hasKey("ProtocolType"));
+        ASSERT_EQ(args.getParameters().get("ProtocolType"), (Int)ProtocolType::Configuration);
+        ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
+        ASSERT_EQ(args.getParameters().get("ConnectionString"), "ConfigConnStr");
+        ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
+        ASSERT_FALSE(args.getParameters().get("StreamingObject").assigned());
+        ASSERT_EQ(comp, clientDevice);
+
+        ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+        if (changeCount % 2 == 0)
+        {
+            ASSERT_EQ(args.getParameters().get("StatusValue"), statusValue);
+            ASSERT_EQ(args.getParameters().get("StatusValue"), "Reconnecting");
+        }
+        else
+        {
+            ASSERT_EQ(args.getParameters().get("StatusValue"), statusInitValue);
+            ASSERT_EQ(args.getParameters().get("StatusValue"), "Connected");
+        }
+        changeCount++;
+    };
+
+    ASSERT_EQ(clientDevice.getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+
+    connectionStatusContainer.updateConnectionStatus("ConfigConnStr", statusValue, nullptr);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnStr", statusValue, nullptr);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnStr", statusInitValue, nullptr);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnStr", statusValue, nullptr);
+
+    // core events with streaming connection status change are not forwarded to client
+    connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusValue, mockStreaming);
+    connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusInitValue, mockStreaming);
+    connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusValue, mockStreaming);
+
+    ASSERT_EQ(changeCount, 3);
+}
 
 TEST_F(ConfigCoreEventTest, TypeAdded)
 {

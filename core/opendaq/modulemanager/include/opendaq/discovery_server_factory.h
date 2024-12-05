@@ -19,8 +19,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-
-
 inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger)
 {
     DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger));

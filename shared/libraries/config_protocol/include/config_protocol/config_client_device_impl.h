@@ -56,7 +56,7 @@ public:
     void onRemoveDevice(const DevicePtr& device) override;
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
 
-    ListPtr<ILogFileInfo> ongetLogFileInfos() override;
+    ListPtr<ILogFileInfo> onGetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
     ErrCode INTERFACE_FUNC lock(IUser* user) override;
@@ -180,7 +180,7 @@ PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAdd
 }
 
 template <class TDeviceBase>
-ListPtr<ILogFileInfo> GenericConfigClientDeviceImpl<TDeviceBase>::ongetLogFileInfos()
+ListPtr<ILogFileInfo> GenericConfigClientDeviceImpl<TDeviceBase>::onGetLogFileInfos()
 {
     return this->clientComm->getLogFileInfos(this->remoteGlobalId);
 }

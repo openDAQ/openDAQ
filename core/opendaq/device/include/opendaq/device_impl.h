@@ -197,7 +197,7 @@ protected:
     virtual ServerPtr onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveServer(const ServerPtr& server);
 
-    virtual ListPtr<ILogFileInfo> ongetLogFileInfos();
+    virtual ListPtr<ILogFileInfo> onGetLogFileInfos();
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
     DevicePtr getParentDevice();
 
@@ -907,7 +907,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLocked(Bool* locked)
 }
 
 template <typename TInterface, typename... Interfaces>
-ListPtr<ILogFileInfo> GenericDevice<TInterface, Interfaces...>::ongetLogFileInfos()
+ListPtr<ILogFileInfo> GenericDevice<TInterface, Interfaces...>::onGetLogFileInfos()
 {
     return List<ILogFileInfo>();
 }
@@ -918,7 +918,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getLogFileInfos(IList** logFil
     OPENDAQ_PARAM_NOT_NULL(logFileInfos);
 
     ListPtr<ILogFileInfo> logFileInfosPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::ongetLogFileInfos, logFileInfosPtr);
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetLogFileInfos, logFileInfosPtr);
 
     *logFileInfos = logFileInfosPtr.detach();
     return errCode;

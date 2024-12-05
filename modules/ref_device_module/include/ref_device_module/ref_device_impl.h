@@ -43,7 +43,7 @@ public:
     bool allowAddFunctionBlocksFromModules() override;
 
 protected:
-    ListPtr<ILogFileInfo> ongetLogFileInfos() override;
+    ListPtr<ILogFileInfo> onGetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
 private:

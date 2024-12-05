@@ -1,4 +1,13 @@
 # 04.12.2024
+## Description
+- Module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`
+
+```
+-m [function] ListPtr<ILogFileInfo> Device::ongetLogFileInfos()
++m [function] ListPtr<ILogFileInfo> Device::onGetLogFileInfos()
+```
+
+# 04.12.2024
 ##
 - Add "Any read/write" events to property object.
 - These events are triggered whenever any property value is read/written.

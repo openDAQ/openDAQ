@@ -137,6 +137,8 @@ public:
 
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IString* propertyName, IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) override;
+    ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) override;
 
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;

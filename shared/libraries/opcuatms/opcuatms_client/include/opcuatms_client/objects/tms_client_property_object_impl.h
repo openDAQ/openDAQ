@@ -115,6 +115,8 @@ public:
     ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IString* propertyName, IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) override;
+    ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) override;
     ErrCode INTERFACE_FUNC getVisibleProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
     ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;

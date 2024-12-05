@@ -54,6 +54,8 @@ public:
     ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IString* propertyName, IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) override;
+    ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) override;
     ErrCode INTERFACE_FUNC getVisibleProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
     ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
@@ -290,13 +292,25 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* proper
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* propertyName, IEvent** event)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* /*propertyName*/, IEvent** /*event*/)
 {
     return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* propertyName, IEvent** event)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* /*propertyName*/, IEvent** /*event*/)
+{
+    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueWrite(IEvent** /*event*/)
+{
+    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueRead(IEvent** /*event*/)
 {
     return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
 }

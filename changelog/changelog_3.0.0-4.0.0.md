@@ -1,3 +1,13 @@
+# 04.12.2024
+##
+- Add "Any read/write" events to property object.
+- These events are triggered whenever any property value is read/written.
+
+```
++ [function] IPropertyObject::getOnAnyPropertyValueWrite(IEvent** event)
++ [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
+```
+
 # 28.11.2024:
 ## Description
 - Introduces separate container accessible per device for connection statuses

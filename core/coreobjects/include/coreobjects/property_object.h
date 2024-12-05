@@ -261,6 +261,34 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) = 0;
 
+    // [templateType(event, IPropertyObject, IPropertyValueEventArgs)]
+    /*!
+     * @brief Gets the Event that is triggered whenever any Property value is written. The event is triggered after the specific Property
+     * event.
+     * @param[out] event The write Event.
+     *
+     * A handler can be added to the event containing a callback function which is invoked whenever the event is triggered.
+     * The callback function requires two parameters - a Property object, as well as a "Property value event args" object.
+     * The callback will be invoked with the Property object holding the written-to property as the first argument The second argument
+     * holds an event args object that contains the written value, event type (Update), and a method of overriding the written value.
+     * If the written value is overridden, the overridden value is stored in the Property object instead.
+     */
+    virtual ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) = 0;
+
+    // [templateType(event, IPropertyObject, IPropertyValueEventArgs)]
+    /*!
+     * @brief Gets the Event that is triggered whenever any Property value is read.The event is triggered after the specific Property
+     * event.
+     * @param[out] event The read Event.
+     *
+     * A handler can be added to the event containing a callback function which is invoked whenever the event is triggered.
+     * The callback function requires two parameters - a Property object, as well as a "Property value event args" object.
+     * The callback will be invoked with the Property object holding the read value as the first argument. The second argument
+     * holds an event args object that contains the read Property value, event type (Read), and a method of overriding the read value.
+     * If the read value is overridden, the overridden value is read instead.
+     */
+    virtual ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) = 0;
+
     // [elementType(properties, IProperty)]
     /*!
      * @brief Returns a list of visible properties contained in the Property object.

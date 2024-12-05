@@ -656,6 +656,16 @@ ErrCode InstanceImpl::getOnPropertyValueRead(IString* propertyName, IEvent** eve
     return rootDevice->getOnPropertyValueRead(propertyName, event);
 }
 
+ErrCode InstanceImpl::getOnAnyPropertyValueWrite(IEvent** event)
+{
+    return rootDevice->getOnAnyPropertyValueWrite(event);
+}
+
+ErrCode InstanceImpl::getOnAnyPropertyValueRead(IEvent** event)
+{
+    return rootDevice->getOnAnyPropertyValueRead(event);
+}
+
 ErrCode InstanceImpl::beginUpdate()
 {
     return rootDevice->beginUpdate();

@@ -1,4 +1,4 @@
-# 5.12.2024:
+# 5.12.2024
 ## Description
 - Add Component status types to the Type Manager in `context_impl.cpp` ("Ok", "Warning", and "Error")
 - Define `ComponentErrorState` enum in `component.h`
@@ -34,7 +34,7 @@
 + [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
 ```
 
-# 28.11.2024:
+# 28.11.2024
 ## Description
 - Introduces separate container accessible per device for connection statuses
 - Introduces new core event type "ConnectionStatusChanged" to notify when configuration or streaming connection status of the device changed
@@ -97,7 +97,7 @@
 ## Description
 - Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool* isLockedOut)
 
-# 12.11.2024:
+# 12.11.2024
 ## Description
 - Improved component updates.
 - Removed generation of local ID for client device in instance.
@@ -131,7 +131,7 @@
 + [function] IUserLock::isLocked(Bool* isLockedOut)
 ```
 
-# 29.10.2024:
+# 29.10.2024
 ## Description
 - Implement thread synchronization mechanism in property objects
 - Provides new internal method to allow for recursive locking in onWrite/onRead events via `GenericPropertyObjectImpl::getRecursiveConfigLock()`

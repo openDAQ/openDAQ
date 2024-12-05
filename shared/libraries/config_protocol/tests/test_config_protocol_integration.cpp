@@ -588,23 +588,44 @@ TEST_F(ConfigProtocolIntegrationTest, TestGetLastValue)
 
 TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
 {
-    const auto serverDeviceInfo = serverDevice.getInfo();
-    const auto clientDeviceInfo = clientDevice.getInfo();
+    const auto serverSubDevice = serverDevice.getDevices()[1];
+    const auto clientSubDevice = clientDevice.getDevices()[1];
+
+    const auto serverDeviceInfo = serverSubDevice.getInfo();
+    const auto clientDeviceInfo = clientSubDevice.getInfo();
+
+    const auto serverChangeableProperties = serverDeviceInfo.asPtr<IDeviceInfoInternal>().getChangeableProperties();
+    const auto clientChangeableProperties = clientDeviceInfo.asPtr<IDeviceInfoInternal>().getChangeableProperties();
+
+    ASSERT_EQ(serverChangeableProperties.getCount(), 3);
+    ASSERT_EQ(serverChangeableProperties, clientChangeableProperties);
+
+    // set fields on server
+    serverSubDevice.setName("new_name");
+    serverSubDevice.setPropertyValue("location", "new_location");
+    serverSubDevice.setPropertyValue("TestChangeableField", "new_value");
+
+    ASSERT_EQ("new_name", serverDeviceInfo.getName());
+    ASSERT_EQ("new_location", serverDeviceInfo.getLocation());
+    ASSERT_EQ("new_value", serverDeviceInfo.getPropertyValue("TestChangeableField"));
 
     ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
-
-    const auto info1 = serverDeviceInfo.getLocation();
-    const auto info2 = clientDeviceInfo.getLocation();
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+    ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
 
-    clientDevice.setName("new_name");
-    clientDevice.setPropertyValue("location", "new_location");
-    
-    ASSERT_EQ("new_name", clientDeviceInfo.getName());
-    ASSERT_EQ("new_location", clientDeviceInfo.getLocation());
+    // set fields on client
+    clientSubDevice.setName("new_client_name");
+    clientSubDevice.setPropertyValue("location", "new_client_location");
+    clientSubDevice.setPropertyValue("TestChangeableField", "new_client_value");
+
+
+    ASSERT_EQ("new_client_name", clientDeviceInfo.getName());
+    ASSERT_EQ("new_client_location", clientDeviceInfo.getLocation());
+    ASSERT_EQ("new_client_value", clientDeviceInfo.getPropertyValue("TestChangeableField"));
 
     ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+    ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
 }
 
 TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)

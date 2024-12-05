@@ -213,7 +213,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
     }
 
-    deviceInfo.freeze();
     return deviceInfo;
 }
 

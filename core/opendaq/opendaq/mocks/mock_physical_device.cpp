@@ -69,11 +69,19 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx,
     this->tags.add("phys_device");
 
     this->setDeviceDomain(DeviceDomain(Ratio(123, 456), "Origin", Unit("UnitSymbol", 987, "UnitName", "UnitQuantity")));
+    thisPtr.addProperty(StringProperty("TestChangeableField", "Test").detach());
 }
 
 MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
 {
     stopAcq();
+}
+
+ListPtr<IString> MockPhysicalDeviceImpl::getChangeableDeviceInfoFields() 
+{
+    auto list = Device::getChangeableDeviceInfoFields();
+    list.pushBack("TestChangeableField");
+    return list;
 }
 
 DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
@@ -95,7 +103,6 @@ DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
     deviceInfo.addProperty(StringProperty("custom_string", "custom_string"));
     deviceInfo.addProperty(IntProperty("custom_int", 1));
     deviceInfo.addProperty(FloatProperty("custom_float", 1.123));
-    deviceInfo.freeze();
     return deviceInfo;
 }
 

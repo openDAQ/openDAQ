@@ -39,7 +39,6 @@ public:
         auto deviceInfo = daq::DeviceInfo("conn");
         deviceInfo.setName("test");
         deviceInfo.setLocation("test");
-        deviceInfo.freeze();
         return deviceInfo;
     }
 };

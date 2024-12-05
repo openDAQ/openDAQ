@@ -20,6 +20,7 @@
 #include <opendaq/device.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/signal_ptr.h>
@@ -201,6 +202,8 @@ protected:
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
     DevicePtr getParentDevice();
 
+    virtual ListPtr<IString> getChangeableDeviceInfoFields();
+
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -259,6 +262,12 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 }
 
 template <typename TInterface, typename... Interfaces>
+ListPtr<IString> GenericDevice<TInterface, Interfaces...>::getChangeableDeviceInfoFields()
+{
+    return {"userName", "location"};
+}
+
+template <typename TInterface, typename... Interfaces>
 DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
 {
     return deviceInfo;
@@ -281,16 +290,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         this->deviceInfo = devInfo.detach();
 
         if (this->deviceInfo.assigned())
-        {
-            this->deviceInfo.template asPtr<IOwnable>().setOwner(this->objPtr);
-            if (!this->deviceInfo.isFrozen())
-                this->deviceInfo.freeze();
-        }
+            this->deviceInfo.template as<IDeviceInfoInternal>(true)->setChangeableProperties(this->getChangeableDeviceInfoFields());
     }
 
     if (this->deviceInfo.assigned())
-        this->deviceInfo.getPermissionManager().template asPtr<IPermissionManagerInternal>().setParent(this->permissionManager);
-
+    {
+        this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
+        this->deviceInfo.freeze();
+    }
     *info = this->deviceInfo.addRefAndReturn();
     return errCode;
 }
@@ -1669,8 +1676,6 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("deviceInfo"))
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
-        deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
-        deviceInfo.freeze();
     }
 
     if (serializedObject.hasKey("deviceDomain"))

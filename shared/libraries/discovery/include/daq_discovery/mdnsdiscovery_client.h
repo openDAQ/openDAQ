@@ -32,7 +32,8 @@
 #include <vector>
 #include <unordered_set>
 
-#include "coretypes/string_ptr.h"
+#include <coretypes/string_ptr.h>
+#include <coretypes/listobject_factory.h>
 #include "daq_discovery/common.h"
 
 #ifdef _WIN32

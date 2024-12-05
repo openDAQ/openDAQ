@@ -1,7 +1,6 @@
 #include <native_streaming_client_module/native_streaming_client_module_impl.h>
 #include <native_streaming_client_module/version.h>
 #include <coretypes/version_info_factory.h>
-#include <daq_discovery/daq_discovery_client.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_type_factory.h>
@@ -16,6 +15,7 @@
 #include <config_protocol/config_protocol_client.h>
 #include <opendaq/address_info_factory.h>
 #include <opendaq/client_type.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace discovery;
@@ -32,26 +32,6 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     , pseudoDeviceIndex(0)
     , transportClientIndex(0)
     , discoveryClient(
-        {
-            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
-            {
-                auto cap = ServerCapability(NativeStreamingDeviceTypeId, "OpenDAQNativeStreaming", ProtocolType::Streaming);
-
-                SetupProtocolAddresses(discoveredDevice, cap, "daq.ns");
-                if (discoveredDevice.servicePort > 0)
-                    cap.setPort(discoveredDevice.servicePort);
-                return cap;
-            },
-            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
-            {
-                auto cap = ServerCapability(NativeConfigurationDeviceTypeId, "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming);
-
-                SetupProtocolAddresses(discoveredDevice, cap, "daq.nd");
-                cap.setCoreEventsEnabled(true);
-                cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
-                return cap;
-            }
-        },
         {"OPENDAQ_NS"}
     )
 {
@@ -135,13 +115,11 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
 
 ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
 {
-    auto availableDevices = discoveryClient.discoverDevices();
-    for (const auto& device : availableDevices)
+    auto availableDevices = List<IDeviceInfo>();
+    for (const auto& device : discoveryClient.discoverMdnsDevices())
     {
-        if (ConnectionStringHasPrefix(device.getConnectionString(), NativeStreamingDevicePrefix))
-            device.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
-        else if (ConnectionStringHasPrefix(device.getConnectionString(), NativeConfigurationDevicePrefix))
-            device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
+        availableDevices.pushBack(populateDiscoveredConfigurationDevice(device));
+        availableDevices.pushBack(populateDiscoveredStreamingDevice(device));
     }
     return availableDevices;
 }
@@ -873,6 +851,42 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
     {
         return false;
     }
+}
+
+DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice)
+{
+    PropertyObjectPtr deviceInfo = DeviceInfo("");
+    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
+
+    auto cap = ServerCapability(NativeConfigurationDeviceTypeId, "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming);
+
+    SetupProtocolAddresses(discoveredDevice, cap, "daq.nd");
+    cap.setCoreEventsEnabled(true);
+    cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
+
+    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(cap.getConnectionString());
+    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
+
+    return deviceInfo;
+}
+
+DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice)
+{
+    PropertyObjectPtr deviceInfo = DeviceInfo("");
+    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
+
+    auto cap = ServerCapability(NativeStreamingDeviceTypeId, "OpenDAQNativeStreaming", ProtocolType::Streaming);
+
+    SetupProtocolAddresses(discoveredDevice, cap, "daq.ns");
+    if (discoveredDevice.servicePort > 0)
+        cap.setPort(discoveredDevice.servicePort);
+
+    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(cap.getConnectionString());
+    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
+
+    return deviceInfo;
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

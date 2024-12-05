@@ -1,15 +1,11 @@
 #include <daq_discovery/daq_discovery_client.h>
-#include <opendaq/device_info_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
-#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
-DiscoveryClient::DiscoveryClient(std::vector<ServerCapabilityCallback> serverCapabilityCbs,
-                                 std::unordered_set<std::string> requiredCaps)
+DiscoveryClient::DiscoveryClient(std::unordered_set<std::string> requiredCaps)
     : requiredCaps(std::move(requiredCaps))
-    , serverCapabilityCallbacks(std::move(serverCapabilityCbs))
 {
 }
 
@@ -19,14 +15,9 @@ void DiscoveryClient::initMdnsClient(const ListPtr<IString>& serviceNames, std::
     mdnsClient->setDiscoveryDuration(discoveryDuration);
 }
 
-daq::ListPtr<daq::IDeviceInfo> DiscoveryClient::discoverDevices() const
+std::vector<MdnsDiscoveredDevice> DiscoveryClient::discoverMdnsDevices() const
 {
-    return discoverMdnsDevices();
-}
-
-ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
-{
-    auto discovered = List<IDeviceInfo>();
+    std::vector<MdnsDiscoveredDevice> discovered;
     if (mdnsClient == nullptr)
         return discovered;
 
@@ -34,23 +25,15 @@ ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
 
     for (const auto& device : mdnsDevices)
     {
-        for (const auto& serverCapabilityFormatCallback : serverCapabilityCallbacks)
-        {
-            if (DeviceInfoPtr deviceInfo = createDeviceInfo(device); deviceInfo.assigned())
-            {
-                auto serverCapability = serverCapabilityFormatCallback(device);
-                deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
-                deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(serverCapability.getConnectionString());
-                discovered.pushBack(deviceInfo);
-            }
-        }
+        if (verifyDiscoveredDevice(device))
+            discovered.push_back(device);
     }
 
     return discovered;
 }
 
 template <typename T>
-void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValue)
+void addInfoProperty(PropertyObjectPtr& info, std::string propName, T propValue)
 {
     if (info.hasProperty(propName))
     {
@@ -93,10 +76,18 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
     }
 }
 
-DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const
+void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info, const MdnsDiscoveredDevice& device)
+{
+    for (const auto& prop : device.properties)
+    {
+        addInfoProperty(info, prop.first, prop.second);
+    }
+}
+
+bool DiscoveryClient::verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const
 {
     if (discoveredDevice.ipv4Address.empty() && discoveredDevice.ipv6Address.empty())
-        return nullptr;
+        return false;
 
     std::unordered_set<std::string> requiredCapsCopy = requiredCaps;
     auto caps = discoveredDevice.getPropertyOrDefault("caps");
@@ -116,17 +107,7 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
             requiredCapsCopy.erase(segment);
     }
 
-    if (!requiredCapsCopy.empty())
-        return nullptr;
-
-    DeviceInfoConfigPtr deviceInfo = DeviceInfo("");
-
-    for (const auto& prop : discoveredDevice.properties)
-    {
-        addInfoProperty(deviceInfo, prop.first, prop.second);
-    }
-    
-    return deviceInfo;
+    return requiredCapsCopy.empty();
 }
 
 END_NAMESPACE_DISCOVERY

@@ -19,5 +19,5 @@ add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${MODULE_NAME})
 target_include_directories(${MODULE_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
 target_link_libraries(${MODULE_NAME} PUBLIC mdns::mdns
-                                            daq::opendaq
+                                            daq::coreobjects
 )

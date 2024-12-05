@@ -8,6 +8,16 @@
 - The base device class includes a virtual method `getChangeableDeviceInfoFields()`, which returns a list of property names. For these properties, the device info should return the value from the device if the device exists and contains the property.
 - If the device info does not have a property from the list, it will clone the property from the device and add it to the device info.
 
+# 04.12.2024
+## Description
+- Add "Any read/write" events to property object.
+- These events are triggered whenever any property value is read/written.
+
+```
++ [function] IPropertyObject::getOnAnyPropertyValueWrite(IEvent** event)
++ [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
+```
+
 # 28.11.2024:
 ## Description
 - Introduces separate container accessible per device for connection statuses

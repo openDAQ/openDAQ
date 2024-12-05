@@ -141,6 +141,8 @@ public:
 
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IString* propertyName, IEvent** event) override;
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) override;
+    virtual ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) override;
+    virtual ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) override;
 
     virtual ErrCode INTERFACE_FUNC beginUpdate() override;
     virtual ErrCode INTERFACE_FUNC endUpdate() override;
@@ -312,6 +314,10 @@ private:
 
     StringPtr className;
     PropertyObjectClassPtr objectClass;
+    
+    const std::string AnyReadEventName = "DAQ_AnyReadEvent";
+    const std::string AnyWriteEventName = "DAQ_AnyWriteEvent";
+
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueWriteEvents;
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
     EndUpdateEventEmitter endUpdateEvent;
@@ -408,6 +414,11 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 
     this->permissionManager.setPermissions(
         PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
+
+    PropertyValueEventEmitter readEmitter;
+    PropertyValueEventEmitter writeEmitter;
+    valueReadEvents.emplace(AnyReadEventName, readEmitter);
+    valueWriteEvents.emplace(AnyWriteEventName, writeEmitter);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -575,6 +586,11 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
         }
     }
 
+    if (valueWriteEvents[AnyWriteEventName].hasListeners())
+    {
+        valueWriteEvents[AnyWriteEventName](objPtr, args);
+    }
+
     const auto argsValue = args.getValue();
     if (argsValue != newValue)
     {
@@ -614,6 +630,11 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
         {
             valueReadEvents[name](objPtr, args);
         }
+    }
+
+    if (valueReadEvents[AnyReadEventName].hasListeners())
+    {
+        valueReadEvents[AnyReadEventName](objPtr, args);
     }
 
     return args.getValue();
@@ -2058,6 +2079,26 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
     }
 
     *event = valueReadEvents[name].addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnAnyPropertyValueWrite(IEvent** event)
+{
+    if (event == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    *event = valueWriteEvents[AnyWriteEventName].addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnAnyPropertyValueRead(IEvent** event)
+{
+    if (event == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+    
+    *event = valueReadEvents[AnyReadEventName].addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

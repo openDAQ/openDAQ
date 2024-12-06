@@ -13,8 +13,7 @@
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/component_exceptions.h>
 #include <opendaq/component_impl.h>
-
-#include "testutils/testutils.h"
+#include <testutils/testutils.h>
 
 using namespace daq;
 using namespace testing;

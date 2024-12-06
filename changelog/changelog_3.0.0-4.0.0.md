@@ -1,7 +1,7 @@
 # 5.12.2024
 ## Description
 - Add Component status types to the Type Manager in `context_impl.cpp` ("Ok", "Warning", and "Error")
-- Define `ComponentErrorState` enum in `component.h`
+- Define `ComponentErrorState`
 - Declare and define `initComponentErrorStateStatus`, `setComponentErrorStateStatus`, and `setComponentErrorStateStatusWithMessage` in `component_impl.h`
 - Add `getStatusMessage` in `component_status_container.h`, and `addStatusWithMessage`, `setStatusWithMessage` in `component_status_container_private.h`, implement all three in `component_status_container_impl.h`
 - Use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage` in all reference Function Blocks

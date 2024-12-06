@@ -39,13 +39,6 @@ BEGIN_NAMESPACE_OPENDAQ
  * [includeHeader("<coretypes/event_wrapper.h>")]
  */
 
-enum class ComponentErrorState : EnumType
-{
-    Ok = 0,
-    Warning,
-    Error
-};
-
 /*!
  * @brief Acts as a base interface for components, such as device, function block, channel and signal.
  *

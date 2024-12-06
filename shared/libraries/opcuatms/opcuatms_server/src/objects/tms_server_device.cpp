@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <set>
 #include <stdexcept>
 #include <opendaq/device_ptr.h>
 #include <opendaq/device_info_internal_ptr.h>
@@ -124,7 +125,13 @@ void TmsServerDevice::bindCallbacks()
 
 void TmsServerDevice::populateDeviceInfo()
 {
-    auto createNode = [this](std::string name, CoreType type)
+    auto deviceInfo = object.getInfo();
+
+    std::set<std::string> changeableProps;
+    for (const auto& prop : deviceInfo.asPtr<IDeviceInfoInternal>(true).getChangeableProperties())
+        changeableProps.insert(prop);
+
+    auto createNode = [this, &changeableProps](std::string name, CoreType type)
     {
         OpcUaNodeId newNodeId(0);
         AddVariableNodeParams params(newNodeId, nodeId);
@@ -148,34 +155,17 @@ void TmsServerDevice::populateDeviceInfo()
         }
         
         params.typeDefinition = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_PROPERTYTYPE));
+
+        if (changeableProps.count(name))
+           params.attr->accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+        else
+            params.attr->accessLevel = UA_ACCESSLEVELMASK_READ;
         server->addVariableNode(params);
     };
 
-    auto deviceInfo = object.getInfo();
-
     createNode("OpenDaqPackageVersion", ctString);
 
-    auto customInfoNames = List<IString>();
-    // Editable properties of deviceInfo are actualy references to the device properties
-    // they are going to be added by device itself
-    {
-        const auto editableProps = deviceInfo.asPtr<IDeviceInfoInternal>(true).getChangeableProperties();
-        for (const auto& propName : deviceInfo.getCustomInfoPropertyNames())
-        {
-            bool isEditable = false;
-            for (const auto& editableProp : editableProps)
-            {
-                if (propName == editableProp)
-                {
-                    isEditable = true;
-                    break;
-                }
-            }
-            if (!isEditable)
-                customInfoNames.pushBack(propName);
-        }
-    }
-    
+    const auto customInfoNames = deviceInfo.getCustomInfoPropertyNames();
     std::unordered_set<std::string> customInfoNamesSet;
 
     for (auto propName : customInfoNames)

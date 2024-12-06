@@ -36,6 +36,32 @@ namespace detail
 {
     static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "ServerCapabilities", "Synchronization"};
 
+    static std::unordered_map<std::string, std::string> deviceInfoFieldMap = {
+        {"AssetId", "assetId"},
+        {"ComponentName", "name"},
+        {"DeviceClass", "deviceClass"},
+        {"DeviceManual", "deviceManual"},
+        {"DeviceRevision", "deviceRevision"},
+        {"HardwareRevision", "hardwareRevision"},
+        {"Manufacturer", "manufacturer"},
+        {"ManufacturerUri", "manufacturerUri"},
+        {"Model", "model"},
+        {"ProductCode", "productCode"},
+        {"ProductInstanceUri", "productInstanceUri"},
+        {"RevisionCounter", "revisionCounter"},
+        {"SerialNumber", "serialNumber"},
+        {"SoftwareRevision", "softwareRevision"},
+        {"MacAddress", "macAddress"},
+        {"ParentMacAddress", "parentMacAddress"},
+        {"Platform", "platform"},
+        {"Position", "position"},
+        {"SystemType", "systemType"},
+        {"SystemUUID", "systemUuid"},
+        {"OpenDaqPackageVersion", "sdkVersion"},
+        {"Location", "location"},
+        {"UserName", "userName"},
+    };
+
     static std::unordered_map<std::string, std::function<void(const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
         {"AssetId", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setAssetId(v.toString()); }},
         {"ComponentName", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setName(v.toString()); }},
@@ -140,6 +166,16 @@ void TmsClientDeviceImpl::onRemoveDevice(const DevicePtr& /*device*/)
     throw OpcUaClientCallNotAvailableException();
 }
 
+static bool IsVersionHigher(const std::string &version, int major, int minor)
+{
+    int majorVersion = 0, minorVersion = 0;
+    std::stringstream ss(version);
+    ss >> majorVersion;
+    ss.ignore();
+    ss >> minorVersion;
+    return majorVersion > major || (majorVersion == major && minorVersion >= minor);
+}
+
 DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 {
     auto deviceInfo = DeviceInfo("", this->client->readDisplayName(this->nodeId));
@@ -151,23 +187,41 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
     auto reader = AttributeReader(client, clientContext->getMaxNodesPerRead());
 
     for (const auto& [browseName, ref] : references.byBrowseName)
+    {
         reader.addAttribute({ref->nodeId.nodeId, UA_ATTRIBUTEID_VALUE});
-
+        reader.addAttribute({ref->nodeId.nodeId, UA_ATTRIBUTEID_ACCESSLEVEL});
+    }
     reader.read();
 
+    std::unordered_map<std::string, OpcUaNodeId> cheangeableProperties;
     for (const auto& [browseName, ref] : references.byBrowseName)
     {
         const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         const auto value = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE);
+        const auto accessLevel = reader.getValue(refNodeId, UA_ATTRIBUTEID_ACCESSLEVEL).toInteger();
 
+        if (browseName == "NumberInList")
+            continue;
+        if (browseName == "Active")
+            continue;
+        if (browseName == "Visible")
+            continue;
+        if (browseName == "Tags")
+            continue;
+
+        if (accessLevel & UA_ACCESSLEVELMASK_WRITE)
+        {
+            if (detail::deviceInfoFieldMap.count(browseName))
+                cheangeableProperties.emplace(detail::deviceInfoFieldMap[browseName], refNodeId);
+            else
+                cheangeableProperties.emplace(browseName, refNodeId);
+        }
+       
         if (detail::deviceInfoSetterMap.count(browseName))
         {
             detail::deviceInfoSetterMap[browseName](deviceInfo, value);
             continue;
         }
-
-        if (browseName == "NumberInList")
-            continue;
 
         try
         {
@@ -202,16 +256,25 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
             LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->globalId, e.what());
         }
     }
-    
-    findAndCreateServerCapabilities(deviceInfo);
 
-    for (const auto & cap : deviceInfo.getServerCapabilities())
+    auto cheangeablePropertiesList = List<IString>();
+    const std::string sdkVersion = deviceInfo.getSdkVersion();
+    if (sdkVersion.empty() || IsVersionHigher(sdkVersion, 3, 11))
     {
-        if (cap.getProtocolId() == "OpenDAQOPCUAConfiguration")
+        for (const auto& [propName, refNodeId] : cheangeableProperties)
         {
-            deviceInfo.setConnectionString(cap.getConnectionString());
+            Impl::addProperty(deviceInfo.getProperty(propName).asPtr<IPropertyInternal>(true).clone());
+            cheangeablePropertiesList.pushBack(propName);
+            introspectionVariableIdMap.emplace(propName, refNodeId);
         }
     }
+    else
+    {
+        cheangeablePropertiesList = List<IString>("userName", "location");
+    }
+    deviceInfo.as<IDeviceInfoInternal>(true)->setChangeableProperties(cheangeablePropertiesList);
+    
+    findAndCreateServerCapabilities(deviceInfo);
 
     return deviceInfo;
 }
@@ -646,6 +709,11 @@ ListPtr<ILogFileInfo> TmsClientDeviceImpl::ongetLogFileInfos()
 StringPtr TmsClientDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
 {
     throw OpcUaClientCallNotAvailableException("GetLog is not available for OpcUA client device");
+}
+
+ListPtr<IString> TmsClientDeviceImpl::getChangeableDeviceInfoFields()
+{
+    return nullptr;
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

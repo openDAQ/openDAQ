@@ -34,6 +34,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     createAndSetDefaultStringProperty("connectionString", "");
     createAndSetDefaultStringProperty("sdkVersion", "");
     createAndSetDefaultStringProperty("location", "");
+    createAndSetDefaultStringProperty("userName", "");
 
     Super::setProtectedPropertyValue(String("name"), name);
     Super::setProtectedPropertyValue(String("connectionString"), connectionString);

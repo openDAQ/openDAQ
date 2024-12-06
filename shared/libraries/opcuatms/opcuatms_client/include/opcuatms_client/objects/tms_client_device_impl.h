@@ -24,6 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>
 {
 public:
+    using Impl = MirroredDeviceBase<ITmsClientComponent>;
     using Super = TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>;
     explicit TmsClientDeviceImpl(const ContextPtr& ctx,
                                  const ComponentPtr& parent,
@@ -53,6 +54,7 @@ protected:
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
     ListPtr<ILogFileInfo> ongetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
+    ListPtr<IString> getChangeableDeviceInfoFields() override;
 
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
 

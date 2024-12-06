@@ -34,15 +34,6 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
     if (!this->typeManager.assigned())
         this->typeManager = TypeManager();
 
-    if (!this->typeManager.hasType("ConnectionStatusType"))
-    {
-        const auto statusType = EnumerationType("ConnectionStatusType", List<IString>("Connected",
-                                                                                      "Reconnecting",
-                                                                                      "Unrecoverable",
-                                                                                      "Removed"));
-        this->typeManager.addType(statusType);
-    }
-
     if (!this->authenticationProvider.assigned())
         this->authenticationProvider = AuthenticationProvider();
 
@@ -304,6 +295,13 @@ void ContextImpl::registerOpenDaqTypes()
                                     .build();
 
     typeManager->addType(ptpSyncInterface);
+
+    // Add component status types to the type manager
+    const auto componentStatusType = EnumerationType("ComponentStatusType", List<IString>("Ok", "Warning", "Error"));
+    typeManager->addType(componentStatusType);
+
+    const auto connectionStatusType = EnumerationType("ConnectionStatusType", List<IString>("Connected", "Reconnecting", "Unrecoverable", "Removed"));
+    typeManager.addType(connectionStatusType);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

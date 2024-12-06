@@ -1102,46 +1102,15 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
                              "domain_sig");
 
     const auto scalingFb = instance.addFunctionBlock("RefFBModuleScaling");
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Disconnected");
 
-    auto statusTest = [](const char* expectedValue)
-    {
-        return [expectedValue](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
-        {
-            ASSERT_EQ(static_cast<CoreEventId>(args.getEventId()), CoreEventId::StatusChanged);
-            ASSERT_TRUE(args.getParameters().hasKey("InputStatus"));
-            ASSERT_EQ(args.getParameters().get("InputStatus"), expectedValue);
-        };
-    };
+    // ComponentStatus is Ok
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", instance.getContext().getTypeManager()));
 
-    auto connectedStatusTest = statusTest("Connected");
-    auto disconnectedStatusTest = statusTest("Disconnected");
-    auto invalidStatusTest = statusTest("Invalid");
-
-    // incomplete descriptors - domain signal not assigned
-    scalingFb.getOnComponentCoreEvent() += invalidStatusTest;
+    // Incomplete descriptors - domain signal not assigned
     scalingFb.getInputPorts()[0].connect(signal);
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Invalid");
-    scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
-
-    // complete descriptors, valid signal
-    signal.setDomainSignal(domainSignal);
-    scalingFb.getOnComponentCoreEvent() += connectedStatusTest;
-    scalingFb.getInputPorts()[0].connect(signal);
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Connected");
-    scalingFb.getOnComponentCoreEvent() -= connectedStatusTest;
-
-    scalingFb.getOnComponentCoreEvent() += disconnectedStatusTest;
-    scalingFb.getInputPorts()[0].disconnect();
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Disconnected");
-    scalingFb.getOnComponentCoreEvent() -= disconnectedStatusTest;
-
-    // complete descriptors, wrong sample type
-    signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Binary).build());
-    scalingFb.getOnComponentCoreEvent() += invalidStatusTest;
-    scalingFb.getInputPorts()[0].connect(signal);
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Invalid");
-    scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Warning", instance.getContext().getTypeManager()));
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatusMessage("ComponentStatus"), "No domain input");
 }
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceScalingPerformanceTest)

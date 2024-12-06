@@ -51,7 +51,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
         {
             if (types.get(typeName) == typePtr)
                 return OPENDAQ_SUCCESS;        // Already exists and is exactly the same, which we don't mind
-            return OPENDAQ_ERR_ALREADYEXISTS;  // Already exists with the same name, but is actually diffrent
+            return OPENDAQ_ERR_ALREADYEXISTS;  // Already exists with the same name, but is actually different
         }
 
         const ErrCode err = types->set(typeName, typePtr);

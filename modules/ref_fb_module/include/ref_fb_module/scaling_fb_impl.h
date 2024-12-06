@@ -67,7 +67,6 @@ private:
 
     void processEventPacket(const EventPacketPtr& packet);
     void onPacketReceived(const InputPortPtr& port) override;
-    void onDisconnected(const InputPortPtr& port) override;
 
     void processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
                                         const DataDescriptorPtr& inputDomainDataDescriptor);
@@ -77,9 +76,6 @@ private:
     void initProperties();
     void propertyChanged(bool configure);
     void readProperties();
-
-    void initStatuses();
-    void setInputStatus(const StringPtr& value);
 };
 
 }

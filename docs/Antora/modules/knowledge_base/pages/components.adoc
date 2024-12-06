@@ -89,7 +89,7 @@ folders.
 
 Each component within the openDAQ(TM) tree may have one or more implementation-specific predefined statuses.
 Each status is uniquely named within the component's scope and is assigned an openDAQ(TM) enumeration type value.
-An example of such a status is the "InputStatus" of the xref:function_blocks.adoc#scaling_fb[Scaling Function Block]:
+All components have a predefined status named "ComponentStatus" that is used, for example, by all reference Function Block implementations, such as the xref:function_blocks.adoc#scaling_fb[Scaling Function Block]:
 
 [cols="1,3"]
 |===
@@ -97,20 +97,19 @@ An example of such a status is the "InputStatus" of the xref:function_blocks.ado
 | **Status value**
 | **Description**
 
-| "Disconnected"
-| No xref:signals.adoc[Signal] is connected to the xref:function_blocks.adoc#input_port[Input Port] of the Function block
+| "Ok"
+| Everything is working fine. This is the initial state.
 
-| "Invalid"
-| A Signal is connected to the Input Port of Function block, but scaling is not possible because its xref:signals.adoc#data_descriptor[DataDescriptor]
-does not fulfill the scaling conditions, or the xref:signals.adoc#domain_signal[Domain Signal] is not assigned
+| "Warning"
+| There's a warning.
 
-| "Connected"
-| The connected signal is valid and can be scaled
+| "Error"
+| Something went wrong.
 
 |===
 
 This example code snippet showcases the addition of the Scaling Function Block and the printing of
-all its statuses names along with the current value of "InputStatus":
+all its statuses names along with the current value ("Ok" by default) and message (empty string by default) of "ComponentStatus":
 
 [tabs]
 ====
@@ -123,8 +122,11 @@ std::cout << "The Scaling Function Block available statuses: ";
 for (const auto& [name, _] : scalingFb.getStatusContainer().getStatuses())
     std::cout << "\"" << name << "\"; ";
 std::cout << std::endl
-          << "The Scaling Function Block \"InputStatus\" is "
-          << scalingFb.getStatusContainer().getStatus("InputStatus")
+          << "The Scaling Function Block \"ComponentStatus\" is "
+          << scalingFb.getStatusContainer().getStatus("ComponentStatus")
+          << std::endl
+          << "The message is "
+          << scalingFb.getStatusContainer().getStatusMessage("ComponentStatus")
           << std::endl;
 ----
 C#::
@@ -136,8 +138,10 @@ Console.WriteLine("The Scaling Function Block available statuses: ");
 foreach (string statusName in functionBlock.StatusContainer.Statuses.Keys)
     Console.WriteLine($"\"{statusName}\"");
 Console.WriteLine();
-Console.WriteLine("The Scaling Function Block \"InputStatus\" is {0}",
-                  scalingFb.StatusContainer.GetStatus("InputStatus"));
+Console.WriteLine("The Scaling Function Block \"ComponentStatus\" is {0}",
+                  scalingFb.StatusContainer.GetStatus("ComponentStatus"));
+Console.WriteLine("The message is {0}",
+                  scalingFb.StatusContainer.GetStatusMessage("ComponentStatus"));
 ----
 ====
 

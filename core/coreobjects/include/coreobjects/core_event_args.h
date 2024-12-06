@@ -212,6 +212,7 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The event contains the following parameters:
  *  - The new status value encapsulated within an Enumeration object as a value and the status name as a key
+ *  - The new status message under the key "Message"
  *
  * The ID of the event is 120, and the event name is "StatusChanged".
  *

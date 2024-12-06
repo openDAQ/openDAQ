@@ -93,7 +93,7 @@ static ModulePtr CreateModule()
 {
     ModulePtr module;
     auto logger = Logger();
-    createModule(&module, Context(Scheduler(logger), logger, nullptr, nullptr, nullptr));
+    createModule(&module, Context(Scheduler(logger), logger, TypeManager(), nullptr, nullptr));
     return module;
 }
 

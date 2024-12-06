@@ -54,6 +54,22 @@ DECLARE_OPENDAQ_INTERFACE(IComponentStatusContainerPrivate, IBaseObject)
      * @param value The new value of the component status.
      */
     virtual ErrCode INTERFACE_FUNC setStatus(IString* name, IEnumeration* value) = 0;
+
+    /*!
+     * @brief Adds the new status with given name, initial value, and message.
+     * @param name The name of the component status.
+     * @param initialValue The initial value of the component status.
+     * @param message The message of the component status.
+     */
+    virtual ErrCode INTERFACE_FUNC addStatusWithMessage(IString* name, IEnumeration* initialValue, IString* message) = 0;
+
+    /*!
+     * @brief Sets the value for the existing component status with a message.
+     * @param name The name of the component status.
+     * @param value The new value of the component status.
+     * @param message The new message of the component status.
+     */
+    virtual ErrCode INTERFACE_FUNC setStatusWithMessage(IString* name, IEnumeration* value, IString* message) = 0;
 };
 /*!@}*/
 

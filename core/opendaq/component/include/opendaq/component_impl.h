@@ -1131,7 +1131,7 @@ template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::initComponentErrorStateStatus() const
 {
     // Component error state status is added ("Ok" when a component is created)
-    const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>();
+    const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
     const auto componentStatusValue =
         EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentErrorState::Ok), this->context.getTypeManager());
     statusContainerPrivate.addStatus("ComponentStatus", componentStatusValue);
@@ -1158,7 +1158,7 @@ void ComponentImpl<Intf, Intfs...>::setComponentErrorStateStatusWithMessage(cons
     }
 
     // Set status if initialized
-    const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>();
+    const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
     const auto componentStatusValue =
         EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(status), this->context.getTypeManager());
     statusContainerPrivate.setStatusWithMessage("ComponentStatus", componentStatusValue, message);

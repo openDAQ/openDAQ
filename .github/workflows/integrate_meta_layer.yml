@@ -1,0 +1,78 @@
+name: Integrate Meta-Layer
+
+on:
+  workflow_dispatch:
+    inputs:
+      meta_opendaq_sdk_ref:
+        description: 'The branch or commit SHA of the meta-opendaq-sdk layer to use'
+        required: true
+        default: 'dunfell'
+  # Run every Friday at 5:00 UTC
+  schedule:
+    - cron: '0 5 * * 5'
+
+env:
+  poky_dir: ${{ github.workspace }}/poky
+  poky_yoctoproject_ref: dunfell
+  meta_openembedded_ref: dunfell
+  opendaq_sdk_sha: ${{ github.sha }}
+  opendaq_sdk_branch_ref: ${{ github.ref }}
+  meta_opendaq_sdk_ref: ${{ inputs.meta_opendaq_sdk_ref || 'dunfell' }}
+
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-8-core
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+          echo "deb https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
+          sudo apt update
+          sudo apt install -y mono-devel
+          sudo apt install -y diffstat
+          sudo apt install -y chrpath
+
+      - name: Clone poky repo
+        run: |
+          git clone --branch ${{ env.poky_yoctoproject_ref }} https://git.yoctoproject.org/poky ${{ env.poky_dir }}
+
+      - name: Clone meta-layer dependencies
+        run: |
+          git clone --branch ${{ env.meta_openembedded_ref }} https://git.openembedded.org/meta-openembedded meta-openembedded
+          git clone --branch ${{ env.meta_opendaq_sdk_ref }} https://github.com/openDAQ/meta-opendaq-sdk meta-opendaq-sdk
+        working-directory: ${{ env.poky_dir }}
+
+      - name: Set environment
+        run: |
+          echo "opendaq_sdk_branch=$(echo '${{ env.opendaq_sdk_branch_ref }}' | sed 's|refs/heads/||g')" >> $GITHUB_ENV
+
+      - name: Build opendaq-sdk image
+        env:
+          opendaq_sdk_sha: ${{ env.opendaq_sdk_sha }}
+          opendaq_sdk_branch: ${{ env.opendaq_sdk_branch }}
+        run: |
+          source oe-init-build-env
+          bitbake-layers add-layer ../meta-openembedded/meta-oe ../meta-opendaq-sdk
+          echo 'CORE_IMAGE_EXTRA_INSTALL += "opendaq-sdk"' >> conf/local.conf
+          echo 'HOSTTOOLS += "mono"' >> conf/local.conf
+          echo 'INHERIT += "rm_work"' >> conf/local.conf
+          echo 'SRCREV_opendaq-sdk:pn-opendaq-sdk = "${{ env.opendaq_sdk_sha }}"' >> conf/local.conf
+          echo 'OPENDAQ_SDK_BRANCH:pn-opendaq-sdk = "${{ env.opendaq_sdk_branch }}"' >> conf/local.conf
+          bitbake opendaq-sdk
+        working-directory: ${{ env.poky_dir }}
+
+      - name: Update sdk hash in meta-opendaq-sdk
+        env:
+          opendaq_sdk_sha: ${{ env.opendaq_sdk_sha }}
+          opendaq_sdk_branch: ${{ env.opendaq_sdk_branch }}
+        run: |
+          sed -i 's|OPENDAQ_SDK_BRANCH ?= .*|OPENDAQ_SDK_BRANCH ?= \"${{ env.opendaq_sdk_branch }}\"|' ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
+          sed -i 's/SRCREV_opendaq-sdk = .*/SRCREV_opendaq-sdk = \"${{ env.opendaq_sdk_sha }}\"/' ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
+          git add ./recipes-opendaq/opendaq-sdk/opendaq-sdk_git.bb
+          git commit -m "Update opendaq-sdk ref"
+        working-directory: ${{ env.poky_dir }}/meta-opendaq-sdk

@@ -220,6 +220,11 @@ public:
         return eventPtr;
     }
 
+    EventPtr<TSender, TEventArgs> getEventPtr()
+    {
+        return eventPtr;
+    }
+
 private:
     friend EventEmitter<TSender, TEventArgs>;
 

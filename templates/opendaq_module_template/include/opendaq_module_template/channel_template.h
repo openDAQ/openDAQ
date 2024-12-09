@@ -25,7 +25,7 @@ public:
 
     ChannelTemplateHooks(std::shared_ptr<ChannelTemplate> channel, const ChannelParams& params, const StringPtr& className = "")
         : ChannelParamsValidation(params)
-        , Channel(params.type, params.context, params.parent, params.localId, className)
+        , Channel(params.type, params.context, params.parent.getRef(), params.localId, className)
         , channel(std::move(channel))
     {
         this->channel->componentImpl = this; // TODO: Figure out safe ptr operations for this

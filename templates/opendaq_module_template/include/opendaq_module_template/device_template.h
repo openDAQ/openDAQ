@@ -1,6 +1,7 @@
 #pragma once
 #include <opendaq/device_impl.h>
 #include <opendaq_module_template/component_template_base.h>
+#include <opendaq/io_folder_config_ptr.h>
 #include <opendaq/log_file_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
@@ -40,7 +41,7 @@ std::shared_ptr<ChannelTemplateImpl> DeviceTemplate::createAndAddChannel(const C
 {
     LOG_T("Adding channel {}", channelId)
     ChannelPtr ch = createWithImplementation<IChannel, ChannelHooksImpl>(channelParams, std::forward<Params>(params)...);
-    channelParams.parent.addItem(ch);
+    channelParams.parent.getRef().addItem(ch);
     
     auto implPtr = static_cast<ChannelHooksImpl*>(ch.getObject());
     return implPtr->template getChannelTemplate<ChannelTemplateImpl>();
@@ -52,7 +53,7 @@ public:
 
     DeviceTemplateHooks(std::shared_ptr<DeviceTemplate> device, const DeviceParams& params, const StringPtr& className = "")
         : DeviceParamsValidation(params)
-        , Device(params.context, params.parent, params.localId, className, params.info.getName())
+        , Device(params.context, params.parent.assigned() ? params.parent.getRef() : nullptr, params.localId, className, params.info.getName())
         , device(std::move(device))
         , info(params.info)
     {

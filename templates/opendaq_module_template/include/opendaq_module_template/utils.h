@@ -123,7 +123,7 @@ struct ChannelParams
 
     FunctionBlockTypePtr type;
     ContextPtr context;
-    IoFolderConfigPtr parent;
+    WeakRefPtr<IIoFolderConfig> parent;
 };
 
 struct FunctionBlockParams
@@ -133,7 +133,7 @@ struct FunctionBlockParams
 
     FunctionBlockTypePtr type;
     ContextPtr context;
-    ComponentPtr parent;
+    WeakRefPtr<IComponent> parent;
 
     PropertyObjectPtr config;
 };
@@ -145,7 +145,7 @@ struct DeviceParams
 
     DeviceInfoPtr info;
     ContextPtr context;
-    ComponentPtr parent;
+    WeakRefPtr<IComponent> parent;
 
     PropertyObjectPtr config;
 
@@ -199,9 +199,9 @@ public:
             throw InvalidParameterException("Log name is not set");
         if (!params.context.assigned())
             throw InvalidParameterException("Context is not set");
-        if (!params.parent.assigned())
+        if (!params.parent.assigned() || !params.parent.getRef().assigned())
             throw InvalidParameterException("Parent is not set");
-        if (!params.parent.asPtrOrNull<IIoFolderConfig>().assigned())
+        if (!params.parent.getRef().asPtrOrNull<IIoFolderConfig>().assigned())
             throw InvalidParameterException("Channel parent folder is not an IO folder");
         
         this->params = params; 

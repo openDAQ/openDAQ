@@ -25,7 +25,7 @@ public:
 
     FunctionBlockTemplateHooks(std::shared_ptr<FunctionBlockTemplate> functionBlock, const FunctionBlockParams& params, const StringPtr& className = "")
         : FunctionBlockParamsValidation(params)
-        , FunctionBlock(params.type, params.context, params.parent, params.localId, className)
+        , FunctionBlock(params.type, params.context, params.parent.getRef(), params.localId, className)
         , functionBlock(std::move(functionBlock))
     {
         this->functionBlock->componentImpl = this; // TODO: Figure out safe ptr operations for this

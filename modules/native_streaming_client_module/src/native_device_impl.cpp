@@ -2,6 +2,7 @@
 #include <native_streaming_client_module/native_streaming_impl.h>
 
 #include <opendaq/custom_log.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <regex>
 #include <boost/asio/dispatch.hpp>
 
@@ -543,7 +544,8 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 
             newDeviceInfo.addProperty(internalProp.clone());
         }
-        if (propName != "connectionString" && propName != "Name")
+
+        if (propName != "connectionString" && propName != "name")
         {
             const auto propValue = deviceInfo.getPropertyValue(propName);
             if (propValue.assigned())
@@ -556,7 +558,7 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
         newDeviceInfo.addProperty(IntProperty("NativeConfigProtocolVersion", clientComm->getProtocolVersion()));
     }
 
-    newDeviceInfo.freeze();
+    newDeviceInfo.asPtr<IDeviceInfoInternal>(true).setChangeableProperties(deviceInfo.asPtr<IDeviceInfoInternal>().getChangeableProperties());
 
     deviceInfo = newDeviceInfo;
 }

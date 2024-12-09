@@ -1,7 +1,9 @@
 #include <iostream>
 #include <string>
+#include <set>
 #include <stdexcept>
 #include <opendaq/device_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opcuatms_server/objects/tms_server_device.h>
 #include <opcuatms/core_types_utils.h>
 #include <opcuatms/type_mappings.h>
@@ -16,6 +18,7 @@
 #include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms/converters/list_conversion_utils.h>
 #include <opcuatms_server/objects/tms_server_function_block_type.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -122,8 +125,13 @@ void TmsServerDevice::bindCallbacks()
 
 void TmsServerDevice::populateDeviceInfo()
 {
+    auto deviceInfo = object.getInfo();
 
-    auto createNode = [this](std::string name, CoreType type)
+    std::set<std::string> changeableProps;
+    for (const auto& prop : deviceInfo.asPtr<IDeviceInfoInternal>(true).getChangeableProperties())
+        changeableProps.insert(prop);
+
+    auto createNode = [this, &changeableProps](std::string name, CoreType type)
     {
         OpcUaNodeId newNodeId(0);
         AddVariableNodeParams params(newNodeId, nodeId);
@@ -147,10 +155,13 @@ void TmsServerDevice::populateDeviceInfo()
         }
         
         params.typeDefinition = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_PROPERTYTYPE));
+
+        if (changeableProps.count(name))
+           params.attr->accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+        else
+            params.attr->accessLevel = UA_ACCESSLEVELMASK_READ;
         server->addVariableNode(params);
     };
-
-    auto deviceInfo = object.getInfo();
 
     createNode("OpenDaqPackageVersion", ctString);
 

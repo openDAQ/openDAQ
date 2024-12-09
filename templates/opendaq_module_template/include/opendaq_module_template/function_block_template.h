@@ -37,7 +37,6 @@ public:
 
         this->functionBlock->applyConfig(params.config);
         this->functionBlock->initProperties();
-        registerCallbacks<FunctionBlockTemplate>(objPtr, this->functionBlock);
         this->functionBlock->initSignals(signals);
         this->functionBlock->initFunctionBlocks(functionBlocks);
         this->functionBlock->initInputPorts(inputPorts);

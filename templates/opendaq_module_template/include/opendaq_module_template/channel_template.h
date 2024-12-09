@@ -33,12 +33,9 @@ public:
         this->channel->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
         this->channel->context = this->context;
 
-        auto lock = this->getAcquisitionLock();
+        auto lock = this->getRecursiveConfigLock();
 
-        // TODO: Check if this is needed
-        // this->channel->handleOptions(params.options);
         this->channel->initProperties();
-        registerCallbacks<ChannelTemplate>(objPtr, this->channel);
         this->channel->initSignals(signals);
         this->channel->initFunctionBlocks(functionBlocks);
         this->channel->initInputPorts(inputPorts);

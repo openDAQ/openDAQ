@@ -60,7 +60,7 @@ private:
     static DeviceInfoPtr createDeviceInfo(const DeviceInfoParams& infoParams, const DeviceTypeParams& typeParams);
 
     static void populateModuleOptions(const DictPtr<IString, IBaseObject>& userOptions, const DictPtr<IString, IBaseObject>& defaultOptions);
-    DictPtr<IString, IBaseObject> mergeModuleOptions(const PropertyObjectPtr& userOptions, const PropertyObjectPtr& defaultOptions) const;
+    DictPtr<IString, IBaseObject> mergeModuleOptions(const DictPtr<IString, IBaseObject>& userOptions, const DictPtr<IString, IBaseObject>& defaultOptions) const;
     
     static void populateDefaultConfig(const PropertyObjectPtr& userConfig, const PropertyObjectPtr& defaultConfig);
     PropertyObjectPtr mergeConfig(const PropertyObjectPtr& userConfig, const PropertyObjectPtr& defaultConfig) const;

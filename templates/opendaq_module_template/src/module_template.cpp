@@ -9,7 +9,6 @@ ListPtr<IDeviceInfo> ModuleTemplateHooks::onGetAvailableDevices()
 {
     std::scoped_lock lock(module_->sync);
     auto deviceInfo = List<IDeviceInfo>();
-    const auto options = context.getModuleOptions(moduleInfo.getId());
 
     const auto availableDevTypes = module_->getAvailableDeviceTypes(options);
     std::map<std::string, DeviceTypeParams> devTypesMap;
@@ -30,7 +29,6 @@ ListPtr<IDeviceInfo> ModuleTemplateHooks::onGetAvailableDevices()
 DictPtr<IString, IDeviceType> ModuleTemplateHooks::onGetAvailableDeviceTypes()
 {
     std::scoped_lock lock(module_->sync);
-    const auto options = context.getModuleOptions(moduleInfo.getId());
     const auto deviceTypes = module_->getAvailableDeviceTypes(options);
 
     auto typesDict = Dict<IString, IDeviceType>();
@@ -205,8 +203,8 @@ void ModuleTemplateHooks::populateModuleOptions(const DictPtr<IString, IBaseObje
     }
 }
 
-DictPtr<IString, IBaseObject> ModuleTemplateHooks::mergeModuleOptions(const PropertyObjectPtr& userOptions,
-                                                                      const PropertyObjectPtr& defaultOptions) const
+DictPtr<IString, IBaseObject> ModuleTemplateHooks::mergeModuleOptions(const DictPtr<IString, IBaseObject>& userOptions,
+                                                                      const DictPtr<IString, IBaseObject>& defaultOptions) const
 {
     try
     {

@@ -119,6 +119,7 @@ uint64_t RefDeviceImpl::getTicksSinceOrigin()
     return static_cast<uint64_t>((microSecondsFromEpochToDeviceStart + getMicroSecondsSinceDeviceStart()).count());
 }
 
+// TODO: Handle begin/end update
 BaseObjectPtr RefDeviceImpl::onPropertyWrite(const templates::PropertyEventArgs& args)
 {
     if (args.propertyName == "NumberOfChannels")

@@ -269,43 +269,4 @@ struct UpdateEndArgs
     Bool isParentUpdating;
 };
 
-// TODO: Should we have structs as input to the functions instead of individual parameters?
-template <typename Impl>
-static void registerCallbacks(const PropertyObjectPtr& obj, std::shared_ptr<Impl> templateImpl)
-{
-    for (const auto& prop : obj.getAllProperties())
-    {
-        obj.getOnPropertyValueWrite(prop.getName()) +=
-            [&templateImpl](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
-            {
-                PropertyEventArgs propArgs{obj, args.getProperty(), args.getProperty().getName(), args.getValue(), args.getIsUpdating()};
-                const auto val = templateImpl->onPropertyWrite(propArgs);
-                if (val.assigned() && args.getValue() != val)
-                    args.setValue(val);
-            };
-
-        obj.getOnPropertyValueRead(prop.getName()) +=
-            [&templateImpl](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
-            {
-                PropertyEventArgs propArgs{obj, args.getProperty(), args.getProperty().getName(), args.getValue(), args.getIsUpdating()};
-                const auto val = templateImpl->onPropertyRead(propArgs);
-                if (val.assigned() && args.getValue() != val)
-                    args.setValue(val);
-            };
-
-        if (prop.getValueType() == ctObject)
-            registerCallbacks(obj.getPropertyValue(prop.getName()), templateImpl);
-    }
-
-    obj.getOnEndUpdate() += [&templateImpl](const PropertyObjectPtr& obj, const EndUpdateEventArgsPtr& args)
-    {
-        std::set<StringPtr> changedProperties;
-        for (const auto& prop : args.getProperties())
-            changedProperties.insert(prop);
-
-        UpdateEndArgs updateArgs{obj, changedProperties, args.getIsParentUpdating()};
-        templateImpl->onEndUpdate(updateArgs);
-    };
-}
-
 END_NAMESPACE_OPENDAQ_TEMPLATES

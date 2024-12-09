@@ -39,6 +39,7 @@ protected:
 
 private:
     static PropertyObjectPtr createDefaultConfig();
+    static DictPtr<IString, IBaseObject> createDefaultModuleOptions();
     size_t maxNumberOfDevices;
 };
 

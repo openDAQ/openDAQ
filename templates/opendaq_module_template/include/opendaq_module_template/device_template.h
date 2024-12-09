@@ -64,12 +64,11 @@ public:
         this->device->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
         this->device->context = this->context;
 
-        auto lock = this->getAcquisitionLock();
+        auto lock = this->getRecursiveConfigLock();
         
         this->device->initProperties();
         this->device->applyConfig(params.config);
 
-        registerCallbacks<DeviceTemplate>(objPtr, this->device);
         setDeviceDomain(this->device->initDeviceDomain());
         this->device->initIOFolder(ioFolder);
         this->device->initDevices(devices);

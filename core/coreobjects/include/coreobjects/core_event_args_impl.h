@@ -234,8 +234,6 @@ inline bool CoreEventArgsImpl::validateParameters() const
             return parameters.hasKey("DeviceDomain");
         case CoreEventId::DeviceLockStateChanged:
             return parameters.hasKey("IsLocked");
-        case CoreEventId::StatusChanged:
-            return parameters.getCount() == 1;
         case CoreEventId::ConnectionStatusChanged:
             return parameters.hasKey("StatusName")
                    && parameters.hasKey("StatusValue")

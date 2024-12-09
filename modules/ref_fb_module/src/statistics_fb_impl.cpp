@@ -15,6 +15,7 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
                                    const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    initComponentErrorStateStatus();
     initProperties();
 
     avgSignal = createAndAddSignal("avg");
@@ -61,10 +62,18 @@ FunctionBlockPtr StatisticsFbImpl::onAddFunctionBlock(const StringPtr& typeId, c
     {
         auto lock = this->getAcquisitionLock();
         if (this->functionBlocks.getItems().getCount())
+        {
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Only one nested function block is supported");
             throw AlreadyExistsException("Only one nested function block is supported");
+        }
+            
         
         if (typeId != "RefFBModuleTrigger")
-            throw NotSupportedException("Statistics function block only supports nested trigger function block");
+        {
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error,
+                                                    "Statistics function block only supports nested trigger function block");
+            LOG_E("Statistics function block only supports nested trigger function block")
+        }
 
         PropertyObjectPtr triggerConfig = config;
         if (!triggerConfig.assigned())
@@ -116,7 +125,7 @@ void StatisticsFbImpl::readProperties()
     LOG_D("Properties: BlockSize {}, DomainSignalType {}, Overlap {}",
           blockSize,
           objPtr.getPropertySelectionValue("DomainSignalType").toString(),
-          overlap);
+          overlap)
 }
 
 void StatisticsFbImpl::configure()
@@ -124,20 +133,23 @@ void StatisticsFbImpl::configure()
     valid = false;
     if (!inputValueDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
     {
-        LOG_W("Incomplete input signal descriptors");
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Incomplete input signal descriptors");
+        LOG_W("Incomplete input signal descriptors")
         return;
     }
 
     if (inputDomainDataDescriptor.getSampleType() != SampleType::Int64 && inputDomainDataDescriptor.getSampleType() != SampleType::UInt64)
     {
-        LOG_W("Incompatible domain data sample type {}", convertSampleTypeToString(inputDomainDataDescriptor.getSampleType()));
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Incompatible domain data sample type");
+        LOG_W("Incompatible domain data sample type {}", convertSampleTypeToString(inputDomainDataDescriptor.getSampleType()))
         return;
     }
 
     const auto domainRule = inputDomainDataDescriptor.getRule();
     if (domainRule.getType() != DataRuleType::Linear)
     {
-        LOG_W("Domain rule type is not Linear");
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Domain rule type is not Linear");
+        LOG_W("Domain rule type is not Linear")
         return;
     }
     const auto domainRuleParams = domainRule.getParameters();
@@ -171,14 +183,16 @@ void StatisticsFbImpl::configure()
     if (inputValueDataDescriptor.getSampleType() == SampleType::Struct ||
         inputValueDataDescriptor.getDimensions().getCount() > 0)  // arrays not supported on the input
     {
-        LOG_W("Incompatible input value data descriptor");
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Incompatible input value data descriptor");
+        LOG_W("Incompatible input value data descriptor")
         return;
     }
 
     sampleType = inputValueDataDescriptor.getSampleType();
     if (!acceptSampleType(sampleType))
     {
-        LOG_W("Incompatible input data sample type {}", convertSampleTypeToString(sampleType));
+        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Invalid sample type");
+        LOG_W("Incompatible input data sample type {}", convertSampleTypeToString(sampleType))
         return;
     }
     sampleSize = getSampleSize(sampleType);
@@ -296,7 +310,8 @@ void StatisticsFbImpl::validateTriggerDescriptors(const DataDescriptorPtr& value
         const auto type = valueDataDescriptor.getSampleType();
         if (acceptSampleType(type))
         {
-            LOG_W("Invalid nested trigger value sample type!");
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Invalid nested trigger value sample type");
+            LOG_W("Invalid nested trigger value sample type")
             return;
         }
     }
@@ -304,7 +319,8 @@ void StatisticsFbImpl::validateTriggerDescriptors(const DataDescriptorPtr& value
     {
         if (domainDataDescriptor.getSampleType() != SampleType::Int64)
         {
-            LOG_W("Invalid nested trigger domain sample type!");
+            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Invalid nested trigger domain sample type");
+            LOG_W("Invalid nested trigger domain sample type")
             return;
         }
     }
@@ -565,7 +581,8 @@ void StatisticsFbImpl::calculate(
                     calcUntyped<SampleType::Int64, SampleType::Invalid>(data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
                     break;
                 default:
-                    LOG_C("Incompatible domain sample type {}", convertSampleTypeToString(sampleType));
+                    setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Incompatible domain sample type");
+                    LOG_C("Incompatible domain sample type {}", convertSampleTypeToString(sampleType))
                     assert(false);
             }
             break;
@@ -603,7 +620,8 @@ void StatisticsFbImpl::calculate(
                     calcUntyped<SampleType::Int64, SampleType::Int64>(data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
                     break;
                 default:
-                    LOG_C("Incompatible domain sample type {}", convertSampleTypeToString(sampleType));
+                    setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Incompatible domain sample type");
+                    LOG_C("Incompatible domain sample type {}", convertSampleTypeToString(sampleType))
                     assert(false);
             }
             break;
@@ -651,7 +669,8 @@ void StatisticsFbImpl::calculate(
                         data, firstTick, outAvgData, outRmsData, outDomainData, avgCount);
                     break;
                 default:
-                    LOG_C("Incompatible domain sample type {}", convertSampleTypeToString(sampleType));
+                    setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Incompatible domain sample type");
+                    LOG_C("Incompatible domain sample type {}", convertSampleTypeToString(sampleType))
                     assert(false);
             }
             break;

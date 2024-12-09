@@ -36,6 +36,8 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     auto classIProcedure = declareIProcedure(m);
     auto classIFunction = declareIFunction(m);
 
+    auto classIEvent = declareIEvent(m);
+    auto classIEventHandler = declareIEventHandler(m);
     auto classIEventArgs = declareIEventArgs(m);
     auto classIType = declareIType(m);
     auto classISimpleType = declareISimpleType(m);
@@ -62,6 +64,8 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     defineIProcedure(m, classIProcedure);
     defineIFunction(m, classIFunction);
 
+    defineIEvent(m, classIEvent);
+    defineIEventHandler(m, classIEventHandler);
     defineIEventArgs(m, classIEventArgs);
     defineIType(m, classIType);
     defineISimpleType(m, classISimpleType);

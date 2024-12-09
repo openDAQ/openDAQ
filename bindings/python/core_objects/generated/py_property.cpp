@@ -260,28 +260,24 @@ void defineIProperty(pybind11::module_ m, PyDaqIntf<daq::IProperty, daq::IBaseOb
         },
         py::return_value_policy::take_ownership,
         "Gets the Struct type object of the Property, if the Property is a Struct property.");
-    /*
     cls.def_property_readonly("on_property_value_write",
         [](daq::IProperty *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyPtr::Borrow(object);
-            return objectPtr.getOnPropertyValueWrite().detach();
+            return objectPtr.getOnPropertyValueWrite().getEventPtr().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the event object that is triggered when a value is written to the corresponding Property value.");
-    */
-    /*
     cls.def_property_readonly("on_property_value_read",
         [](daq::IProperty *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyPtr::Borrow(object);
-            return objectPtr.getOnPropertyValueRead().detach();
+            return objectPtr.getOnPropertyValueRead().getEventPtr().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the event object that is triggered when the corresponding Property value is read.");
-    */
     cls.def_property("value",
         [](daq::IProperty *object)
         {

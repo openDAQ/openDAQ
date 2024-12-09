@@ -45,12 +45,12 @@ bool DeviceTemplate::allowAddDevicesFromModules()
 
 bool DeviceTemplate::allowAddFunctionBlocksFromModules()
 {
-    return false;
-}
+    ComponentPtr parent;
+    checkErrorInfo(this->componentImpl->getParent(&parent));
+    if (!parent.assigned())
+        return true;
 
-DevicePtr DeviceTemplate::getDevice() const
-{
-    return componentImpl->objPtr;
+    return false;
 }
 
 IoFolderConfigPtr DeviceTemplate::createAndAddIOFolder(const std::string& folderId, const IoFolderConfigPtr& parent) const

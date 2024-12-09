@@ -35,8 +35,7 @@ public:
 
         auto lock = this->getAcquisitionLock();
 
-        this->functionBlock->handleConfig(params.config);
-        this->functionBlock->handleOptions(params.options);
+        this->functionBlock->applyConfig(params.config);
         this->functionBlock->initProperties();
         registerCallbacks<FunctionBlockTemplate>(objPtr, this->functionBlock);
         this->functionBlock->initSignals(signals);

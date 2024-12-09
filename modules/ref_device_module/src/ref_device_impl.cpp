@@ -18,6 +18,7 @@ static constexpr size_t DEFAULT_NUMBER_OF_CHANNELS = 2;
 static constexpr bool DEFAULT_ENABLE_CAN_CHANNEL = false;
 static constexpr bool DEFAULT_ENABLE_PROTECTED_CHANNEL = false;
 static constexpr bool DEFAULT_ENABLE_LOGGING = false;
+static constexpr char DEFAULT_LOGGING_PATH[] = "ref_device_simulator.log";
 static constexpr double DEFAULT_DEVICE_SAMPLE_RATE = 1000;
 static constexpr int DEFAULT_ACQ_LOOP_TIME = 20;
 
@@ -31,7 +32,6 @@ RefDeviceImpl::RefDeviceImpl()
     , stopAcq(false)
     , microSecondsFromEpochToDeviceStart(0)
     , domainUnit(UnitBuilder().setName("microsecond").setSymbol("us").setQuantity("time").build())
-    , loggingEnabled(false)
 {
 }
 
@@ -46,47 +46,77 @@ RefDeviceImpl::~RefDeviceImpl()
     acqThread.join();
 }
 
-void RefDeviceImpl::handleConfig(const PropertyObjectPtr& config)
-{
-    const auto obj = getDevice();
-
-    obj.setPropertyValue("NumberOfChannels", config.getPropertyValue("NumberOfChannels"));
-    obj.setPropertyValue("EnableCANChannel", config.getPropertyValue("EnableCANChannel"));
-    obj.setPropertyValue("EnableProtectedChannel", config.getPropertyValue("EnableProtectedChannel"));
-    obj.setPropertyValue("EnableLogging", config.getPropertyValue("EnableLogging"));
-    obj.setPropertyValue("LoggingPath", config.getPropertyValue("LoggingPath"));
-}
-
-void RefDeviceImpl::handleOptions(const DictPtr<IString, IBaseObject>& options)
-{
-    const auto obj = getDevice();
-
-    obj.setPropertyValue("NumberOfChannels", options.get("NumberOfChannels"));
-    obj.setPropertyValue("EnableCANChannel", options.get("EnableCANChannel"));
-    obj.setPropertyValue("EnableProtectedChannel", options.get("EnableProtectedChannel"));
-    obj.setPropertyValue("EnableLogging", options.get("EnableLogging"));
-    obj.setPropertyValue("LoggingPath", options.get("LoggingPath"));
-}
-
 void RefDeviceImpl::initProperties()
 {
-    const auto obj = getDevice();
-
     const auto globalSampleRateProp =
         FloatPropertyBuilder("SampleRate", DEFAULT_DEVICE_SAMPLE_RATE).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
 
     const auto acqLoopTimeProp =
         IntPropertyBuilder("AcquisitionLoopTime", DEFAULT_ACQ_LOOP_TIME).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
-    
-    obj.addProperty(globalSampleRateProp);
-    obj.addProperty(acqLoopTimeProp);
-    obj.addProperty(IntProperty("NumberOfChannels", DEFAULT_NUMBER_OF_CHANNELS));
-    obj.addProperty(BoolProperty("EnableCANChannel", DEFAULT_ENABLE_CAN_CHANNEL));
-    obj.addProperty(BoolProperty("EnableProtectedChannel", DEFAULT_ENABLE_PROTECTED_CHANNEL));
-    obj.addProperty(ObjectProperty("Protected", createProtectedObject()));
-    obj.addProperty(BoolProperty("EnableLogging", DEFAULT_ENABLE_LOGGING));
 
-    enableLogging();
+    const auto loggingPathProp = StringPropertyBuilder("LoggingPath", DEFAULT_LOGGING_PATH).setReadOnly(true).build();
+
+    objPtr.addProperty(globalSampleRateProp);
+    objPtr.addProperty(acqLoopTimeProp);
+    objPtr.addProperty(IntProperty("NumberOfChannels", DEFAULT_NUMBER_OF_CHANNELS));
+    objPtr.addProperty(BoolProperty("EnableCANChannel", DEFAULT_ENABLE_CAN_CHANNEL));
+    objPtr.addProperty(BoolProperty("EnableProtectedChannel", DEFAULT_ENABLE_PROTECTED_CHANNEL));
+    objPtr.addProperty(BoolProperty("LoggingEnabled", DEFAULT_ENABLE_LOGGING));
+    objPtr.addProperty(loggingPathProp);
+    objPtr.addProperty(ObjectProperty("ProtectedObject", createProtectedObject()));
+}
+
+void RefDeviceImpl::applyConfig(const PropertyObjectPtr& config)
+{
+    objPtr.setPropertyValue("NumberOfChannels", config.getPropertyValue("NumberOfChannels"));
+    objPtr.setPropertyValue("EnableCANChannel", config.getPropertyValue("EnableCANChannel"));
+    objPtr.setPropertyValue("EnableProtectedChannel", config.getPropertyValue("EnableProtectedChannel"));
+    objPtr.setPropertyValue("LoggingEnabled", config.getPropertyValue("EnableLogging"));
+    loggingPath = config.getPropertyValue("LoggingPath");
+    objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("LoggingPath", loggingPath);
+}
+
+// TODO: Add reference domain implementation
+DeviceDomainPtr RefDeviceImpl::initDeviceDomain()
+{
+    startTime = std::chrono::steady_clock::now();
+    microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+    return DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), domainUnit);
+}
+
+void RefDeviceImpl::initIOFolder(const IoFolderConfigPtr& ioFolder)
+{
+    aiFolder = createAndAddIOFolder("AI", ioFolder);
+    canFolder = createAndAddIOFolder("CAN", ioFolder);
+
+    updateNumberOfChannels(objPtr.getPropertyValue("NumberOfChannels"));
+    enableCANChannel(objPtr.getPropertyValue("EnableCANChannel"));
+}
+
+// TODO: Add actual synchronization implementation
+void RefDeviceImpl::initSyncComponent(const SyncComponentPrivatePtr& syncComponent)
+{
+    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "PtpSyncInterface"));
+    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "InterfaceClockSync"));
+    syncComponent.setSyncLocked(true);
+}
+
+void RefDeviceImpl::start()
+{
+    updateAcqLoopTime(objPtr.getPropertyValue("AcquisitionLoopTime"));
+    acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
+}
+
+// TODO: Change to TAI
+std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
+{
+    const auto currentTime = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
+}
+
+uint64_t RefDeviceImpl::getTicksSinceOrigin()
+{
+    return static_cast<uint64_t>((microSecondsFromEpochToDeviceStart + getMicroSecondsSinceDeviceStart()).count());
 }
 
 BaseObjectPtr RefDeviceImpl::onPropertyWrite(const templates::PropertyEventArgs& args)
@@ -105,142 +135,26 @@ BaseObjectPtr RefDeviceImpl::onPropertyWrite(const templates::PropertyEventArgs&
     return nullptr;
 }
 
-uint64_t RefDeviceImpl::getTicksSinceOrigin()
+void RefDeviceImpl::removeRedundantChannels(size_t numberOfChannels)
 {
-    return static_cast<uint64_t>((microSecondsFromEpochToDeviceStart + getMicroSecondsSinceDeviceStart()).count());
-}
+    if (numberOfChannels > channels.size())
+        return;
 
-std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
-{
-    const auto currentTime = std::chrono::steady_clock::now();
-    return std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
-}
-
-void RefDeviceImpl::initIOFolder(const IoFolderConfigPtr& ioFolder)
-{
-    aiFolder = createAndAddIOFolder("AI", ioFolder);
-    canFolder = createAndAddIOFolder("CAN", ioFolder);
-
-    const auto obj = getDevice();
-    updateNumberOfChannels(obj.getPropertyValue("NumberOfChannels"));
-    enableCANChannel(obj.getPropertyValue("EnableCANChannel"));
-}
-
-PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
-{
-    const auto func = Function([](Int a, Int b) { return a + b; });
-
-    const auto funcProp =
-        FunctionPropertyBuilder("Sum", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
-            .setReadOnly(false)
-            .build();
-
-    auto protectedObject = PropertyObject();
-    protectedObject.addProperty(StringProperty("Owner", "openDAQ TM"));
-    protectedObject.addProperty(funcProp);
-    protectedObject.setPropertyValue("Sum", func);
-
-    // group "everyone" has a read-only access to the protected object
-    // group "admin" can change the protected object and call methods on it
-
-    auto permissions = PermissionsBuilder()
-                           .inherit(false)
-                           .assign("everyone", PermissionMaskBuilder().read())
-                           .assign("admin", PermissionMaskBuilder().read().write().execute())
-                           .build();
-
-    protectedObject.getPermissionManager().setPermissions(permissions);
-
-    return protectedObject;
-}
-
-DeviceDomainPtr RefDeviceImpl::initDeviceDomain()
-{
-    startTime = std::chrono::steady_clock::now();
-    microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
-    return DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), domainUnit);
-}
-
-void RefDeviceImpl::start()
-{
-    updateAcqLoopTime(getDevice().getPropertyValue("AcquisitionLoopTime"));
-    acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
-}
-
-bool RefDeviceImpl::allowAddDevicesFromModules()
-{
-    return false;
-}
-
-bool RefDeviceImpl::allowAddFunctionBlocksFromModules()
-{
-    return true;
-}
-
-void RefDeviceImpl::initSyncComponent(const SyncComponentPrivatePtr& syncComponent)
-{
-    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "PtpSyncInterface"));
-    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "InterfaceClockSync"));
-    syncComponent.setSyncLocked(true);
-}
-
-void RefDeviceImpl::acqLoop()
-{
-    using namespace std::chrono_literals;
-    using milli = std::chrono::milliseconds;
-
-    auto startLoopTime = std::chrono::high_resolution_clock::now();
-    const auto loopTime = milli(acqLoopTime);
-
-    auto lock = getUniqueLock();
-
-    while (!stopAcq)
-    {
-        const auto time = std::chrono::high_resolution_clock::now();
-        const auto loopDuration = std::chrono::duration_cast<milli>(time - startLoopTime);
-        const auto waitTime = loopDuration.count() >= loopTime.count() ? milli(0) : milli(loopTime.count() - loopDuration.count());
-        startLoopTime = time;
-
-        cv.wait_for(lock, waitTime);
-        if (!stopAcq)
+    const auto removeFunc = [this](const std::shared_ptr<RefChannelImpl>& ch)
         {
-            const auto curTime = getMicroSecondsSinceDeviceStart();
+            LOG_T("Removed AI Channel: {}", ch.getLocalId())
+            removeComponent(aiFolder, ch->getChannel());
+        };
 
-            for (const auto& ch : channels)
-                ch->collectSamples(curTime);
-
-            //if (canChannel.assigned())
-            //{
-            //    auto chPrivate = canChannel.asPtr<IRefChannel>();
-            //    chPrivate->collectSamples(curTime);
-            //}
-
-            //if (protectedChannel.assigned())
-            //{
-            //    auto chPrivate = protectedChannel.asPtr<IRefChannel>();
-            //    chPrivate->collectSamples(curTime);
-            //}
-        }
-    }
+    std::for_each(std::next(channels.begin(), numberOfChannels), channels.end(), removeFunc);
+    channels.erase(std::next(channels.begin(), numberOfChannels), channels.end());
 }
 
-void RefDeviceImpl::updateNumberOfChannels(size_t numberOfChannels)
+void RefDeviceImpl::addMissingChannels(size_t numberOfChannels)
 {
-    LOG_I("Properties: NumberOfChannels {}", numberOfChannels)
-
-    const auto deviceSampleRate = getDevice().getPropertyValue("SampleRate");
-
-    if (numberOfChannels < channels.size())
-    {
-        std::for_each(std::next(channels.begin(), numberOfChannels), channels.end(), [this](const std::shared_ptr<RefChannelImpl>& ch)
-            {
-                LOG_T("Removed AI Channel: {}", ch.getLocalId())
-                removeComponent(aiFolder, ch->getChannel());
-            });
-        channels.erase(std::next(channels.begin(), numberOfChannels), channels.end());
-    }
-
     const auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
+    const auto deviceSampleRate = objPtr.getPropertyValue("SampleRate");
+
     for (auto i = channels.size() + 1; i < numberOfChannels + 1; i++)
     {
         RefChannelInit init{ i, deviceSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
@@ -253,7 +167,15 @@ void RefDeviceImpl::updateNumberOfChannels(size_t numberOfChannels)
         params.logName = "RefChannel";
 
         channels.push_back(createAndAddChannel<RefChannelBase, RefChannelImpl, const RefChannelInit&>(params, init));
+        LOG_T("Added AI Channel: {}", localId)
     }
+}
+
+void RefDeviceImpl::updateNumberOfChannels(size_t numberOfChannels)
+{
+    LOG_I("Properties: NumberOfChannels {}", numberOfChannels)
+    removeRedundantChannels(numberOfChannels);
+    addMissingChannels(numberOfChannels);
 }
 
 void RefDeviceImpl::enableCANChannel(bool /*enableCANChannel*/)
@@ -317,11 +239,6 @@ void RefDeviceImpl::updateDeviceSampleRate(double sampleRate)
         ch->globalSampleRateChanged(sampleRate);
 }
 
-void RefDeviceImpl::enableLogging()
-{
-    loggingEnabled = objPtr.getPropertyValue("EnableLogging");
-}
-
 StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint) 
 {
     std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
@@ -334,19 +251,12 @@ StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint)
 
 ListPtr<ILogFileInfo> RefDeviceImpl::getLogFileInfos()
 {    
-    {
-        auto lock = getAcquisitionLock();
-        if (!loggingEnabled)
-        {
-            return List<ILogFileInfo>();
-        }
-    }
+    if (!objPtr.getPropertyValue("LoggingEnabled"))
+        return List<ILogFileInfo>();
 
     fs::path path(loggingPath);
     if (!fs::exists(path))
-    {
         return List<ILogFileInfo>();
-    }
 
     SizeT size = fs::file_size(path);
 
@@ -371,16 +281,13 @@ ListPtr<ILogFileInfo> RefDeviceImpl::getLogFileInfos()
 }
 
 StringPtr RefDeviceImpl::getLog(const StringPtr& id, Int size, Int offset)
-{
-    {
-        auto lock = getAcquisitionLock();
-        if (!loggingEnabled)
-            return "";
+{;
+    if(!objPtr.getPropertyValue("LoggingEnabled"))
+        return "";
 
-        if (id != loggingPath)
-            return "";
-    }
-    
+    if (id != loggingPath)
+        return "";
+
     std::ifstream file(loggingPath.toStdString(), std::ios::binary);
     if (!file.is_open())
         return "";
@@ -402,6 +309,75 @@ StringPtr RefDeviceImpl::getLog(const StringPtr& id, Int size, Int offset)
     file.close();
 
     return String(buffer.data(), size);
+}
+
+// TODO: Change to representative example
+PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
+{
+    const auto func = Function([](Int a, Int b) { return a + b; });
+
+    const auto funcProp =
+        FunctionPropertyBuilder("Sum", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
+            .setReadOnly(false)
+            .build();
+
+    auto protectedObject = PropertyObject();
+    protectedObject.addProperty(StringProperty("Owner", "openDAQ TM"));
+    protectedObject.addProperty(funcProp);
+    protectedObject.setPropertyValue("Sum", func);
+
+    // group "everyone" has a read-only access to the protected object
+    // group "admin" can change the protected object and call methods on it
+
+    auto permissions = PermissionsBuilder()
+                           .inherit(false)
+                           .assign("everyone", PermissionMaskBuilder().read())
+                           .assign("admin", PermissionMaskBuilder().read().write().execute())
+                           .build();
+
+    protectedObject.getPermissionManager().setPermissions(permissions);
+
+    return protectedObject;
+}
+
+void RefDeviceImpl::acqLoop()
+{
+    using namespace std::chrono_literals;
+    using milli = std::chrono::milliseconds;
+
+    auto startLoopTime = std::chrono::high_resolution_clock::now();
+    const auto loopTime = milli(acqLoopTime);
+
+    auto lock = getUniqueLock();
+
+    while (!stopAcq)
+    {
+        const auto time = std::chrono::high_resolution_clock::now();
+        const auto loopDuration = std::chrono::duration_cast<milli>(time - startLoopTime);
+        const auto waitTime = loopDuration.count() >= loopTime.count() ? milli(0) : milli(loopTime.count() - loopDuration.count());
+        startLoopTime = time;
+
+        cv.wait_for(lock, waitTime);
+        if (!stopAcq)
+        {
+            const auto curTime = getMicroSecondsSinceDeviceStart();
+
+            for (const auto& ch : channels)
+                ch->collectSamples(curTime);
+
+            //if (canChannel.assigned())
+            //{
+            //    auto chPrivate = canChannel.asPtr<IRefChannel>();
+            //    chPrivate->collectSamples(curTime);
+            //}
+
+            //if (protectedChannel.assigned())
+            //{
+            //    auto chPrivate = protectedChannel.asPtr<IRefChannel>();
+            //    chPrivate->collectSamples(curTime);
+            //}
+        }
+    }
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

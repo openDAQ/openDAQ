@@ -13,7 +13,7 @@ template <typename Type>
 class ComponentTemplateBase
 {
 public:
-    virtual ~ComponentTemplateBase() = default;
+    virtual ~ComponentTemplateBase(){}
 
     ComponentPtr getComponent();
     std::unique_ptr<RecursiveConfigLockGuard> getRecursiveConfigLock();
@@ -30,12 +30,10 @@ public:
 
     virtual void initSignals(const FolderConfigPtr& signalsFolder);
     virtual void initFunctionBlocks(const FolderConfigPtr& fbFolder);
-    virtual void handleOptions(const DictPtr<IString, IBaseObject>& options);
 
     virtual void initProperties();
     virtual void initTags(const TagsPrivatePtr& tags);
     virtual void initStatuses(const ComponentStatusContainerPrivatePtr& statusContainer);
-    virtual void propertyChanged(const StringPtr& propertyName);
     virtual ComponentAttributeConfig getAttributeConfig();
     
     virtual void start();
@@ -44,18 +42,17 @@ public:
     virtual BaseObjectPtr onPropertyRead(const PropertyEventArgs& args);
     virtual void onEndUpdate(const UpdateEndArgs& args);
 
-
     LoggerComponentPtr loggerComponent;
     ContextPtr context;
     Type* componentImpl;
-    PropertyObjectPtr objPtr;
+    ComponentPtr objPtr;
 };
 
 class AddableComponentTemplateBase
 {
 public:
     virtual ~AddableComponentTemplateBase() = default;
-    virtual void handleConfig(const PropertyObjectPtr& config);
+    virtual void applyConfig(const PropertyObjectPtr& config);
 };
 
 class FunctionBlockTemplateBase
@@ -156,19 +153,19 @@ SignalPtr ComponentTemplateBase<Type>::createAndAddSignal(const SignalParams& pa
     signal.setPublic(attributes.isPublic.value);
 
     ListPtr<IString> lockedAttrs = List<IString>();
-    if (attributes.description.locked)
+    if (attributes.description.readOnly)
         lockedAttrs.pushBack("Description");
-    if (attributes.name.locked)
+    if (attributes.name.readOnly)
         lockedAttrs.pushBack("Name");
-    if (attributes.active.locked)
+    if (attributes.active.readOnly)
         lockedAttrs.pushBack("Active");
-    if (attributes.visible.locked)
+    if (attributes.visible.readOnly)
         lockedAttrs.pushBack("Visible");
-    if (attributes.isPublic.locked)
+    if (attributes.isPublic.readOnly)
         lockedAttrs.pushBack("Public");
-    if (attributes.domainSignal.locked)
+    if (attributes.domainSignal.readOnly)
         lockedAttrs.pushBack("DomainSignal");
-    if (attributes.relatedSignals.locked)
+    if (attributes.relatedSignals.readOnly)
         lockedAttrs.pushBack("RelatedSignals");
 
     componentPrivate.lockAttributes(lockedAttrs);
@@ -177,7 +174,7 @@ SignalPtr ComponentTemplateBase<Type>::createAndAddSignal(const SignalParams& pa
     return signal;
 }
 
-inline void AddableComponentTemplateBase::handleConfig(const PropertyObjectPtr& /*config*/)
+inline void AddableComponentTemplateBase::applyConfig(const PropertyObjectPtr& /*config*/)
 {
 }
 
@@ -196,11 +193,6 @@ void ComponentTemplateBase<Type>::initFunctionBlocks(const FolderConfigPtr& /*fb
 }
 
 template <typename Type>
-void ComponentTemplateBase<Type>::handleOptions(const DictPtr<IString, IBaseObject>& /*options*/)
-{
-}
-
-template <typename Type>
 void ComponentTemplateBase<Type>::initProperties()
 {
 }
@@ -212,11 +204,6 @@ void ComponentTemplateBase<Type>::initTags(const TagsPrivatePtr& /*tags*/)
 
 template <typename Type>
 void ComponentTemplateBase<Type>::initStatuses(const ComponentStatusContainerPrivatePtr& /*statusContainer*/)
-{
-}
-
-template <typename Type>
-void ComponentTemplateBase<Type>::propertyChanged(const StringPtr& /*propertyName*/)
 {
 }
 

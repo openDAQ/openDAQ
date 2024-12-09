@@ -22,6 +22,7 @@ protected:
     virtual ModuleParams buildModuleParams();
     virtual std::vector<DeviceTypeParams> getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options);
     virtual std::vector<DeviceInfoParams> getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options);
+    virtual PropertyObjectPtr createDefaultConfiguration(const StringPtr& typeId);
     virtual DevicePtr createDevice(const DeviceParams& params);
     virtual void deviceRemoved(const std::string& deviceLocalId);
 
@@ -45,6 +46,9 @@ public:
     {
         this->module_->moduleImpl = this;
         this->module_->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
+        const auto userOptions = this->context.getModuleOptions(params.id);
+        const auto defaultOptions = params.defaultOptions.assigned() ? params.defaultOptions : Dict<IString, IBaseObject>();
+        this->options = mergeModuleOptions(userOptions, defaultOptions);
     }   
 
 private:
@@ -52,10 +56,18 @@ private:
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
+
     static DeviceInfoPtr createDeviceInfo(const DeviceInfoParams& infoParams, const DeviceTypeParams& typeParams);
+
+    static void populateModuleOptions(const DictPtr<IString, IBaseObject>& userOptions, const DictPtr<IString, IBaseObject>& defaultOptions);
+    DictPtr<IString, IBaseObject> mergeModuleOptions(const PropertyObjectPtr& userOptions, const PropertyObjectPtr& defaultOptions) const;
     
+    static void populateDefaultConfig(const PropertyObjectPtr& userConfig, const PropertyObjectPtr& defaultConfig);
+    PropertyObjectPtr mergeConfig(const PropertyObjectPtr& userConfig, const PropertyObjectPtr& defaultConfig) const;
+
     friend class ModuleTemplate;
     std::shared_ptr<ModuleTemplate> module_;
+    DictPtr<IString, IBaseObject> options;
 };
 
 

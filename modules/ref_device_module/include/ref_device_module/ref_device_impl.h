@@ -39,28 +39,27 @@ public:
     ~RefDeviceImpl() override;
 
 protected:
-    uint64_t getTicksSinceOrigin() override;
-    void handleConfig(const PropertyObjectPtr& config) override;
-    void handleOptions(const DictPtr<IString, IBaseObject>& options) override;
     void initProperties() override;
-    BaseObjectPtr onPropertyWrite(const templates::PropertyEventArgs& args) override;
-    void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
+    void applyConfig(const PropertyObjectPtr& config) override;
+
     DeviceDomainPtr initDeviceDomain() override;
+    void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
     void initSyncComponent(const SyncComponentPrivatePtr& syncComponent) override;
+    void start() override;
+
+    uint64_t getTicksSinceOrigin() override;
+    BaseObjectPtr onPropertyWrite(const templates::PropertyEventArgs& args) override;
+
     ListPtr<ILogFileInfo> getLogFileInfos() override;
     StringPtr getLog(const StringPtr& id, Int size, Int offset) override;
-
-    void start() override;
-    
-    bool allowAddDevicesFromModules() override;
-    bool allowAddFunctionBlocksFromModules() override;
 
 private:
     void acqLoop();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
     PropertyObjectPtr createProtectedObject() const;
 
-    void enableLogging();
+    void removeRedundantChannels(size_t numberOfChannels);
+    void addMissingChannels(size_t numberOfChannels);
     void updateNumberOfChannels(size_t numberOfChannels);
     void enableCANChannel(bool enableCANChannel);
     void enableProtectedChannel();
@@ -71,6 +70,7 @@ private:
     size_t acqLoopTime;
     std::condition_variable cv;
     bool stopAcq;
+    StringPtr loggingPath;
 
     std::chrono::steady_clock::time_point startTime;
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
@@ -82,9 +82,6 @@ private:
     UnitPtr domainUnit;
     FolderConfigPtr aiFolder;
     FolderConfigPtr canFolder;
-
-    bool loggingEnabled;
-    StringPtr loggingPath;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

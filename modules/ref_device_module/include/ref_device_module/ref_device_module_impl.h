@@ -38,6 +38,7 @@ protected:
     DevicePtr createDevice(const templates::DeviceParams& params) override;
 
 private:
+    static PropertyObjectPtr createDefaultConfig();
     size_t maxNumberOfDevices;
 };
 

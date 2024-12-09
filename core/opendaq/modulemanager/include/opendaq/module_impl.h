@@ -365,7 +365,7 @@ public:
         return Dict<IString, IStreamingType>();
     }
 
-    virtual ServerPtr onCreateServer(const StringPtr& serverType, const PropertyObjectPtr& serverConfig, const DevicePtr& rootDevice)
+    virtual ServerPtr onCreateServer(const StringPtr& /*serverType*/, const PropertyObjectPtr& /*serverConfig*/, const DevicePtr& /*rootDevice*/)
     {
         return nullptr;
     }
@@ -418,24 +418,23 @@ private:
 
     static void populateDefaultConfig(const PropertyObjectPtr& defaultObj, const PropertyObjectPtr& userInput)
     {
-        for (const auto& prop : defaultObj.getAllProperties())
+        for (const auto& defaultProp : defaultObj.getAllProperties())
+        {
+            const auto propName = defaultProp.getName();
+
+            if (userInput.hasProperty(propName))
             {
-                const auto propName = prop.getName();
+                const auto userProp = userInput.getProperty(propName);
 
-                if (userInput.hasProperty(propName))
-                {
-                    const auto userProp = userInput.getProperty(propName);
-                    const auto defaultProp = defaultObj.getProperty(propName);
+                if (userProp.getValueType() != defaultProp.getValueType())
+                    continue;
 
-                    if (userProp.getValueType() != defaultProp.getValueType())
-                        continue;
-
-                    if (userProp.getValueType() == ctObject)
-                        populateDefaultConfig(defaultProp.getValue(), userProp.getValue());
-                    else
-                        defaultObj.setPropertyValue(propName, userProp.getValue());
-                }
+                if (userProp.getValueType() == ctObject)
+                    populateDefaultConfig(defaultProp.getValue(), userProp.getValue());
+                else
+                    defaultObj.setPropertyValue(propName, userProp.getValue());
             }
+        }
     }
 
     PropertyObjectPtr mergeConfig(const PropertyObjectPtr& userConfig, const ComponentTypePtr& type) const

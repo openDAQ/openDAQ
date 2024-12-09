@@ -39,6 +39,7 @@ std::vector<templates::DeviceTypeParams> RefDeviceModule::getAvailableDeviceType
     params.name = "Reference device";
     params.description = "Reference device";
     params.connectionStringPrefix = CONNECTION_STRING_PREFIX;
+    params.defaultConfiguration = createDefaultConfig();
     return {params};
 }
 
@@ -53,9 +54,12 @@ std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo
     if (options.hasKey("SerialNumber"))
     {
         customSerial = options.get("SerialNumber");
-        if (maxNumberOfDevices > 1)
-            LOG_W("Max number of reference devices cannot be greater than 1 if a custom serial number is provided through module options.")
         maxNumberOfDevices = 1;
+
+        if (maxNumberOfDevices > 1)
+        {
+            LOG_W("Max number of reference devices cannot be greater than 1 if a custom serial number is provided through module options.")
+        }
     }
 
     if (options.hasKey("Name"))
@@ -65,17 +69,19 @@ std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo
     for (size_t i = 0; i < maxNumberOfDevices; ++i)
     {
         templates::DeviceInfoParams info;
+
         info.address = fmt::format("device{}", i);
-        info.typeId = DEVICE_TYPE_ID;
+        info.typeId = std::string(DEVICE_TYPE_ID);
         info.name = customName.assigned() ? customName.toStdString() : fmt::format("Reference device {}", i);
-        info.manufacturer = "openDAQ";
-        info.manufacturerUri = "https://www.opendaq.com/";
-        info.model = "Reference device";
-        info.productCode = "REF_DEV";
-        info.deviceRevision = "1.0";
-        info.hardwareRevision = "1.0";
-        info.softwareRevision = "1.0";
-        info.serialNumber = customSerial.assigned() ? customSerial.toStdString() : fmt::format("ref_dev_{}", i);
+        info.manufacturer = {"openDAQ"};
+        info.manufacturerUri = {"https://www.opendaq.com/"};
+        info.model = {"Reference device"};
+        info.productCode = {"REF_DEV"};
+        info.deviceRevision = {"1.0"};
+        info.hardwareRevision = {"1.0"};
+        info.softwareRevision = {"1.0"};
+        info.serialNumber = customSerial.assigned() ? customSerial.toStdString() : fmt::format("RefDev{}", i);
+
         params.push_back(info);
     }
 
@@ -85,6 +91,21 @@ std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo
 DevicePtr RefDeviceModule::createDevice(const templates::DeviceParams& params)
 {
     return createWithImplementation<IDevice, RefDeviceBase>(params);
+}
+
+PropertyObjectPtr RefDeviceModule::createDefaultConfig()
+{
+    const auto defaultConfig = PropertyObject();
+
+    defaultConfig.addProperty(IntProperty("NumberOfChannels", 2));
+    defaultConfig.addProperty(BoolProperty("EnableCANChannel", False));
+    defaultConfig.addProperty(BoolProperty("EnableProtectedChannel", False));
+    defaultConfig.addProperty(StringProperty("SerialNumber", ""));
+    defaultConfig.addProperty(BoolProperty("EnableLogging", False));
+    defaultConfig.addProperty(StringProperty("LoggingPath", "ref_device_simulator.log"));
+    defaultConfig.addProperty(StringProperty("Name", ""));
+
+    return defaultConfig;
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

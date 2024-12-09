@@ -10,9 +10,6 @@ class DeviceTemplateHooks;
 class DeviceTemplate : public ComponentTemplateBase<DeviceTemplateHooks>, public AddableComponentTemplateBase
 {
 public:
-
-    DevicePtr getDevice() const;
-
     template <class ChannelImpl, class ChannelTemplateImpl, class... Params>
     std::shared_ptr<ChannelTemplateImpl> createAndAddChannel(const ChannelParams& channelParams, Params&&... params) const;
     IoFolderConfigPtr createAndAddIOFolder(const std::string& folderId, const IoFolderConfigPtr& parent) const;
@@ -20,24 +17,21 @@ public:
     void setDeviceDomain(const DeviceDomainPtr& deviceDomain) const;
 
 protected:
-    
     virtual void initIOFolder(const IoFolderConfigPtr& ioFolder);
     virtual void initDevices(const FolderConfigPtr& devicesFolder);
     virtual void initSyncComponent(const SyncComponentPrivatePtr& syncComponent);
     virtual void initCustomComponents();
     virtual DeviceDomainPtr initDeviceDomain();  // TODO: Pass builder as param when implemented
+    
+    virtual uint64_t getTicksSinceOrigin();
     virtual ListPtr<ILogFileInfo> getLogFileInfos();
     virtual StringPtr getLog(const StringPtr& id, Int size, Int offset);
-
-
-    virtual uint64_t getTicksSinceOrigin();
 
     // Should this be handled differently?
     virtual bool allowAddDevicesFromModules();
     virtual bool allowAddFunctionBlocksFromModules();
     
 private:
-
     friend class DeviceTemplateHooks;
 };
 
@@ -71,10 +65,9 @@ public:
         this->device->context = this->context;
 
         auto lock = this->getAcquisitionLock();
-
-        this->device->handleConfig(params.config);
-        this->device->handleOptions(params.options);
+        
         this->device->initProperties();
+        this->device->applyConfig(params.config);
 
         registerCallbacks<DeviceTemplate>(objPtr, this->device);
         setDeviceDomain(this->device->initDeviceDomain());

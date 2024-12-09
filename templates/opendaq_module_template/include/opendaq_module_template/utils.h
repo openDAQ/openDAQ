@@ -4,119 +4,96 @@
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
-// Helpers
-
-struct PropertyParams
-{
-    CoreType valueType;
-    StringPtr name;
-    StringPtr description;
-    BaseObjectPtr defaultValue;
-
-    ListPtr<IBaseObject> selectionValues;
-    EvalValuePtr referencePropertyEval;
-    CallableInfoPtr callableInfo;
-    
-    ValidatorPtr validator;
-    CoercerPtr coercer;
-    ListPtr<IBaseObject> suggestedValues;
-    BooleanPtr visible;
-    BooleanPtr readOnly;
-    NumberPtr min;
-    NumberPtr max;
-    UnitPtr unit;
-};
-
-static PropertyPtr createProperty(const PropertyParams& params)
-{
-    const auto builder = PropertyBuilder(params.name)
-                         .setName(params.name)
-                         .setDescription(params.description)
-                         .setDefaultValue(params.defaultValue)
-                         .setSelectionValues(params.selectionValues)
-                         .setReferencedProperty(params.referencePropertyEval).setCallableInfo(params.callableInfo)
-                         .setValidator(params.validator)
-                         .setCoercer(params.coercer)
-                         .setSuggestedValues(params.suggestedValues)
-                         .setVisible(params.visible)
-                         .setReadOnly(params.readOnly)
-                         .setMinValue(params.min)
-                         .setMaxValue(params.max)
-                         .setUnit(params.unit);
-
-    return builder.build();
-}
-
 // Attribute definitions
 
 struct AttributeTemplate
 {
-    bool locked;
+    AttributeTemplate(): readOnly(false){}
+    AttributeTemplate(bool readOnly): readOnly(readOnly){}
+
+    bool readOnly;
 };
 
 struct BoolAttribute : AttributeTemplate
 {
+    BoolAttribute(bool value) : value(value){}
+    BoolAttribute(bool value, bool _readOnly) : AttributeTemplate(_readOnly){ this->value = value; }
     bool value;
+};
+
+struct IntAttribute : AttributeTemplate
+{
+    IntAttribute(int value) : value(value){}
+    IntAttribute(int value, bool _readOnly) : AttributeTemplate(_readOnly){ this->value = value; }
+    int value;
 };
 
 struct StringAttribute : AttributeTemplate
 {
+    StringAttribute(const std::string& value) : value(value){}
+    StringAttribute(const std::string& value, bool _readOnly) : AttributeTemplate(_readOnly){ this->value = value; }
     std::string value;
 };
 
 struct SignalAttribute : AttributeTemplate
 {
+    SignalAttribute(const SignalPtr& value) : value(value){}
+    SignalAttribute(const SignalPtr& value, bool _readOnly) : AttributeTemplate(_readOnly){ this->value = value; }
     SignalPtr value;
 };
 
 struct SignalListAttribute : AttributeTemplate
 {
+    SignalListAttribute(const ListPtr<ISignal>& value) : value(value){}
+    SignalListAttribute(const ListPtr<ISignal>& value, bool _readOnly) : AttributeTemplate(_readOnly){ this->value = value; }
     ListPtr<ISignal> value;
 };
 
 struct ComponentAttributeConfig
 {
-    StringAttribute description {true, ""};
-    StringAttribute name {false, ""};
-    BoolAttribute active {false, true};
+    StringAttribute description{"", true};
+    StringAttribute name {"", false};
+    BoolAttribute active {true, false};
     BoolAttribute visible {true, true};
 };
 
 struct SignalAttributeConfig : ComponentAttributeConfig
 {
     BoolAttribute isPublic {true, true};
-    SignalAttribute domainSignal {true, nullptr};
-    SignalListAttribute relatedSignals{true, {}};
+    SignalAttribute domainSignal {nullptr, true};
+    SignalListAttribute relatedSignals{{}, true};
 };
 
 // Device information
 
 struct DeviceInfoParams
 {
-    std::string address;
-    std::string typeId;
-    std::string name;
-    std::string manufacturer;
-    std::string manufacturerUri;
-    std::string model;
-    std::string productCode;
-    std::string deviceRevision;
-    std::string hardwareRevision;
-    std::string softwareRevision;
-    std::string deviceManual;
-    std::string deviceClass;
-    std::string serialNumber;
-    std::string productInstanceUri;
-    int revisionCounter;
-    std::string assetId;
-    std::string macAddress;
-    std::string parentMacAddress;
-    std::string platform;
-    int position;
-    std::string systemType;
-    std::string systemUuid;
-    std::string location;
-    std::map<std::string, std::string> other;
+    DeviceInfoParams(){}
+
+    StringAttribute address{""};
+    StringAttribute typeId{""};
+    StringAttribute name{""};
+    StringAttribute manufacturer{""};
+    StringAttribute manufacturerUri{""};
+    StringAttribute model{""};
+    StringAttribute productCode{""};
+    StringAttribute deviceRevision{""};
+    StringAttribute hardwareRevision{""};
+    StringAttribute softwareRevision{""};
+    StringAttribute deviceManual{""};
+    StringAttribute deviceClass{""};
+    StringAttribute serialNumber{""};
+    StringAttribute productInstanceUri{""};
+    IntAttribute revisionCounter{0};
+    StringAttribute assetId{""};
+    StringAttribute macAddress{""};
+    StringAttribute parentMacAddress{""};
+    StringAttribute platform{""};
+    IntAttribute position{0};
+    StringAttribute systemType{""};
+    StringAttribute systemUuid{""};
+    StringAttribute location{""};
+    std::map<std::string, StringAttribute> other;
 };
 
 struct DeviceTypeParams
@@ -141,28 +118,31 @@ struct SignalParams
 
 struct ChannelParams
 {
+    std::string logName;
+    std::string localId;
+
     FunctionBlockTypePtr type;
     ContextPtr context;
     IoFolderConfigPtr parent;
-
-    std::string logName;
-    std::string localId;
 };
 
 struct FunctionBlockParams
 {
+    std::string logName;
+    std::string localId;
+
     FunctionBlockTypePtr type;
     ContextPtr context;
     ComponentPtr parent;
 
     PropertyObjectPtr config;
-
-    std::string logName;
-    std::string localId;
 };
 
 struct DeviceParams
 {
+    std::string logName;
+    std::string localId;
+
     DeviceInfoPtr info;
     ContextPtr context;
     ComponentPtr parent;
@@ -171,9 +151,6 @@ struct DeviceParams
 
     std::string typeId;
     std::string address;
-    
-    std::string logName;
-    std::string localId;
 };
 
 struct ModuleParams
@@ -182,7 +159,7 @@ struct ModuleParams
     std::string name;
     std::string id;
     std::string logName;
-    DictPtr<IString, IBaseObject> options;
+    DictPtr<IString, IBaseObject> defaultOptions;
 };
 
 // Validation classes

@@ -15,6 +15,7 @@ MultiReaderBuilderImpl::MultiReaderBuilderImpl()
     , requiredCommonSampleRate(-1)
     , startOnFullUnitOfDomain(false)
     , minReadCount(1)
+    , offsetTolerance(nullptr)
 {
 }
 
@@ -143,6 +144,19 @@ ErrCode MultiReaderBuilderImpl::getMinReadCount(SizeT* minReadCount)
     OPENDAQ_PARAM_NOT_NULL(minReadCount);
 
     *minReadCount = this->minReadCount;
+    return OPENDAQ_SUCCESS;
+}
+ErrCode MultiReaderBuilderImpl::setTickOffsetTolerance(IRatio* offsetTolerance)
+{
+    this->offsetTolerance = offsetTolerance;
+
+    return OPENDAQ_SUCCESS;
+}
+ErrCode MultiReaderBuilderImpl::getTickOffsetTolerance(IRatio** offsetTolerance)
+{
+    OPENDAQ_PARAM_NOT_NULL(offsetTolerance);
+
+    *offsetTolerance = this->offsetTolerance;
     return OPENDAQ_SUCCESS;
 }
 

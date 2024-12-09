@@ -103,6 +103,10 @@ public:
     virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) override;
 
     virtual SampleType getReadType() const noexcept override;
+
+    template<typename TDataType>
+    static SizeT getTickOffset(const Comparable& from, const Comparable& to);
+
 private:
     template <typename TDataType>
     ErrCode readValues(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT toRead) const;

@@ -13,6 +13,7 @@
 #include <fmt/ostream.h>
 #include <set>
 #include <thread>
+#include <optional>
 
 using namespace std::chrono;
 
@@ -36,6 +37,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     : requiredCommonSampleRate(requiredCommonSampleRate)
     , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
     , minReadCount(minReadCount)
+    , tickOffsetTolerance(nullptr)
 {
     this->internalAddRef();
     try
@@ -66,6 +68,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     startOnFullUnitOfDomain = old->startOnFullUnitOfDomain;
     isActive = old->isActive;
     minReadCount = old->minReadCount;
+    tickOffsetTolerance = old->tickOffsetTolerance;
 
     bool fromInputPorts;
 
@@ -97,6 +100,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
 
 MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
     : minReadCount(1)
+    , tickOffsetTolerance(nullptr)
 {
     if (!readerConfig.assigned())
         throw ArgumentNullException("Existing reader must not be null");
@@ -139,6 +143,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
     , minReadCount(builder.getMinReadCount())
+    , tickOffsetTolerance(builder.getTickOffsetTolerance())
 {
     internalAddRef();
     try
@@ -331,6 +336,10 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()
 {
+    std::optional<std::int64_t> lastSampleRate = std::nullopt;
+
+    sameSampleRates = true;
+
     if (requiredCommonSampleRate > 0)
     {
         commonSampleRate = requiredCommonSampleRate;
@@ -341,6 +350,15 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
         for (const auto& signal : signals)
         {
             commonSampleRate = std::lcm<std::int64_t>(signal.sampleRate, commonSampleRate);
+
+            if (!lastSampleRate.has_value())
+                lastSampleRate = signal.sampleRate;
+
+            if (tickOffsetTolerance.assigned() && lastSampleRate.value() != signal.sampleRate)
+            {
+                sameSampleRates = false;
+                LOG_W("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
+            }
         }
     }
 
@@ -1190,6 +1208,21 @@ void MultiReaderImpl::sync()
     for (auto& signal : signals)
     {
         synced = signal.sync(*commonStart) && synced;
+    }
+
+    if (synced)
+    {
+        for (auto& signal: signals)
+        {
+            auto output = static_cast<void*>(nullptr);
+            auto info = signal.info;
+            auto domainPacket = info.dataPacket.getDomainPacket();
+            signal.domainReader->setTransformIgnore(true);
+            signal.domainReader->readData(domainPacket, info.prevSampleIndex, &output, 1);
+            signal.domainReader->setTransformIgnore(false);
+
+
+        }
     }
 
     LOG_T("Synced: {}", synced);

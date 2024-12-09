@@ -260,6 +260,24 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
 
 template <typename TReadType>
 template <typename TDataType>
+SizeT TypedReader<TReadType>::getTickOffset(const Comparable& from, const Comparable& to)
+{
+    using namespace reader;
+    if constexpr (std::is_convertible_v<TDataType, TReadType>)
+    {
+        TReadType fromTicks;
+        TReadType toTicks;
+        from.getValue(&fromTicks);
+        to.getValue(&toTicks);
+        auto offset = fromTicks - toTicks;
+        return offset;
+    }
+
+    return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered", nullptr);
+}
+
+template <typename TReadType>
+template <typename TDataType>
 SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo,
                                               const Comparable& start,
                                               void* inputBuffer,

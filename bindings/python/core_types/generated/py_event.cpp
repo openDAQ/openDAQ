@@ -27,7 +27,7 @@
 
 #include <pybind11/gil.h>
 
-// #include "coretypes/event_ptr.h"
+#include "coretypes/event_ptr.h"
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
 

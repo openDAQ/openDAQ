@@ -15,7 +15,6 @@
  */
 
 #pragma once
-#include <coretypes/delegate.hpp>
 #include <coretypes/common.h>
 #include <coretypes/intfs.h>
 #include <coretypes/objectptr.h>
@@ -30,7 +29,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class PyEventHandlerImpl : public ImplementationOf<IEventHandler>
 {
 public:
-    using Subscription = delegate<EventHandlerSignature>;
+    using Subscription = EventHandler;
 
     explicit PyEventHandlerImpl(Subscription&& sub) : subscription(std::move(sub))
     {
@@ -49,22 +48,11 @@ public:
         {
             return errorFromException(e);
         }
-        catch (const std::exception& e)
+        catch (const std::exception&)
         {
             return OPENDAQ_ERR_GENERALERROR;
         }
 
-        return OPENDAQ_SUCCESS;
-    }
-
-    ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) override
-    {
-        if (hashCode == nullptr)
-        {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
-        }
-
-        *hashCode = subscription.hashCode;
         return OPENDAQ_SUCCESS;
     }
 

@@ -39,6 +39,8 @@ class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, IDevic
 public:
     using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoInternal, Interfaces...>;
 
+    DeviceInfoConfigImpl();
+
     explicit DeviceInfoConfigImpl(const StringPtr& name, 
                                   const StringPtr& connectionString, 
                                   const StringPtr& customSdkVersion = nullptr,
@@ -46,7 +48,6 @@ public:
 
     DeviceInfoConfigImpl(IDeviceInfoConfig* deviceInfoToCopy,
                          const ListPtr<IString>& changeableDefaultPropertyNames = nullptr);
-    DeviceInfoConfigImpl();
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;

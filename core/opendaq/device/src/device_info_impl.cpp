@@ -46,12 +46,31 @@ inline std::string ToLowerCase(const std::string &input)
     return boost::algorithm::to_lower_copy(input);
 }
 
+template <typename TInterface, typename ... Interfaces>
+DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
+    : Super()
+{
+    createAndSetStringProperty("name", "");
+
+    Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
+    Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
+
+    this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
+    {
+        const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
+        if (ownerPtr.assigned())
+        {
+            value.setValue(ownerPtr.getName());
+        }
+    };
+}
+
 template <typename TInterface, typename... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name,
                                                                       const StringPtr& connectionString,
                                                                       const StringPtr& customSdkVersion,
                                                                       const ListPtr<IString>& changeableDefaultPropertyNames)
-    : Super()
+    : DeviceInfoConfigImpl()
 {
     if (changeableDefaultPropertyNames.assigned())
     {
@@ -62,7 +81,6 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
             throw InvalidParameterException("The property `name` is reserved and cannot be changed.");
     }
 
-    createAndSetStringProperty("name", "");
     createAndSetStringProperty("manufacturer", "");
     createAndSetStringProperty("manufacturerUri", "");
     createAndSetStringProperty("model", "");
@@ -87,9 +105,6 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     createAndSetStringProperty("location", "");
     createAndSetStringProperty("userName", "");
 
-    Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
-    Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
-
     Super::setProtectedPropertyValue(String("name"), name);
     Super::setProtectedPropertyValue(String("connectionString"), connectionString);
 
@@ -98,34 +113,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     else
         Super::setProtectedPropertyValue(String("sdkVersion"), String(OPENDAQ_PACKAGE_VERSION));
 
-    this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
-    {
-        const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
-        {
-            value.setValue(ownerPtr.getName());
-        }
-    };
-
     this->changeableDefaultPropertyNames.clear();
-}
-
-template <typename TInterface, typename ... Interfaces>
-DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
-    : Super()
-{
-    Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
-    Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
-
-    createAndSetStringProperty("name", "");
-    this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
-    {
-        const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
-        {
-            value.setValue(ownerPtr.getName());
-        }
-    };
 }
 
 template <typename TInterface, typename ... Interfaces>

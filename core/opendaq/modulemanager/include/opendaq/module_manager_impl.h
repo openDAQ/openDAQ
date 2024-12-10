@@ -31,6 +31,7 @@
 #include <boost/asio/io_context.hpp>
 #include <opendaq/module_ptr.h>
 #include <tsl/ordered_map.h>
+#include <daq_discovery/daq_discovery_client.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 struct ModuleLibrary;
@@ -54,6 +55,7 @@ public:
     ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override;
     ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr) override;
+    ErrCode INTERFACE_FUNC changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config) override;
 
 private:
     
@@ -104,6 +106,8 @@ private:
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;
 
     static PropertyObjectPtr createGeneralConfig();
+    DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
+    static std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
 
     bool modulesLoaded;
     std::vector<std::string> paths;
@@ -117,6 +121,9 @@ private:
 
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
+
+    DictPtr<IString, IDeviceInfo> availableDevicesWithIpConfig;
+    discovery::DiscoveryClient discoveryClient; // for discovering devices which has IP modification feature enabled
 };
 
 END_NAMESPACE_OPENDAQ

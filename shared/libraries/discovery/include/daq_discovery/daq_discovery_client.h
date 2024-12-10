@@ -30,6 +30,11 @@ public:
 
     static void populateDiscoveredInfoProperties(PropertyObjectPtr& info, const MdnsDiscoveredDevice& device);
 
+    ErrCode applyIpConfiguration(const StringPtr& manufacturer,
+                                 const StringPtr& serialNumber,
+                                 const StringPtr& ifaceName,
+                                 const PropertyObjectPtr& config);
+
 protected:
     bool verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const;
 

@@ -18,6 +18,8 @@
 #include <coretypes/stringobject.h>
 #include <opendaq/device_info.h>
 #include <opendaq/logger.h>
+#include <coretypes/listobject.h>
+#include <coretypes/function.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -40,6 +42,9 @@ DECLARE_OPENDAQ_INTERFACE(IDiscoveryServer, IBaseObject)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
     MdnsDiscoveryServer, IDiscoveryServer, 
-    ILogger*, logger)
+    ILogger*, logger,
+    IList*, netInterfaceNames,
+    IProcedure*, modifyIpConfigCallback,
+    IFunction*, retrieveIpConfigCallback)
 
 END_NAMESPACE_OPENDAQ

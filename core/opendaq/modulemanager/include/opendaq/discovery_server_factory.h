@@ -16,12 +16,16 @@
 
 #pragma once
 #include <opendaq/discovery_server_ptr.h>
+#include <opendaq/logger_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger)
+inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger,
+                                              const ListPtr<IString>& netInterfaceNames,
+                                              const ProcedurePtr& modifyIpConfigCallback,
+                                              const FunctionPtr& retrieveIpConfigCallback)
 {
-    DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger));
+    DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger, netInterfaceNames, modifyIpConfigCallback, retrieveIpConfigCallback));
     return obj;
 }
 

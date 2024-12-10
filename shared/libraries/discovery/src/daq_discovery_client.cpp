@@ -84,6 +84,30 @@ void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info, 
     }
 }
 
+ErrCode DiscoveryClient::applyIpConfiguration(const StringPtr& manufacturer,
+                                              const StringPtr& serialNumber,
+                                              const StringPtr& ifaceName,
+                                              const PropertyObjectPtr& config)
+{
+    TxtProperties requestProperties;
+
+    requestProperties["manufacturer"] = manufacturer.toStdString();
+    requestProperties["serialNumber"] = serialNumber.toStdString();
+    requestProperties["ifaceName"] = ifaceName.toStdString();
+
+    const bool dhcpMode = config.getPropertyValue("dhcp");
+    requestProperties["dhcp"] = dhcpMode ? "1" : "0";
+    ListPtr<IString> addressesList = config.getPropertyValue("addresses");
+    std::string addressesString;
+    for (const auto& addr : addressesList)
+        addressesString += addr.toStdString() + ";";
+    requestProperties["addresses"] = addressesString;
+    StringPtr gateway = config.getPropertyValue("gateway");
+    requestProperties["gateway"] = gateway.toStdString();
+
+    return mdnsClient->requestIpConfigModification(MDNSDiscoveryClient::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties);
+}
+
 bool DiscoveryClient::verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const
 {
     if (discoveredDevice.ipv4Address.empty() && discoveredDevice.ipv6Address.empty())

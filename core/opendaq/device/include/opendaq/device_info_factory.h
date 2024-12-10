@@ -37,6 +37,12 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     return obj;
 }
 
+inline DeviceInfoConfigPtr DeviceInfoFromExisting(const DeviceInfoConfigPtr& deviceInfo, const ListPtr<IString>& changeableDefaultPropertyNames = nullptr)
+{
+    DeviceInfoConfigPtr obj(DeviceInfoConfigFromExisting_Create(deviceInfo, changeableDefaultPropertyNames));
+    return obj;
+}
+
 inline ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType)
 {
     ServerCapabilityConfigPtr obj(ServerCapability_Create(protocolId, protocolName, protocolType));

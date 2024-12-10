@@ -25,7 +25,17 @@
 ```
 
 # 04.12.2024
-##
+## Description
+- Implement editable device info fields that can be modified by the owner (device).
+- Broadcast modified string-type device info properties via mDNS.
+- Broadcast all string-type device info properties via mDNS.
+
+## Required integration changes
+- The base device class includes a virtual method `getChangeableDeviceInfoFields()`, which returns a list of property names. For these properties, the device info should return the value from the device if the device exists and contains the property.
+- If the device info does not have a property from the list, it will clone the property from the device and add it to the device info.
+
+# 04.12.2024
+## Description
 - Add "Any read/write" events to property object.
 - These events are triggered whenever any property value is read/written.
 

@@ -1276,7 +1276,8 @@ public:
             return OPENDAQ_ERR_ARGUMENT_NULL;
         }
 
-        return daqTry([&]() {
+        return daqTry([&]
+        {
             auto defaultValueObj = defaultValue;
 
             if (defaultValueObj.assigned())
@@ -1306,7 +1307,7 @@ public:
 
             *clonedProperty = prop.detach();
             return OPENDAQ_SUCCESS;
-        });
+         });
     }
 
     ErrCode INTERFACE_FUNC cloneWithOwner(IPropertyObject* owner, IProperty** clonedProperty) override

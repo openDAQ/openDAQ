@@ -88,28 +88,28 @@ void TmsServerProperty::bindCallbacks()
         if (!parentObj.getProperty(name).asPtr<IPropertyInternal>().getReferencedPropertyUnresolved().assigned())
         {
             addReadCallback(name, [this, name]
-                {
-                    const auto value = this->parent.getRef().getPropertyValue(name);
-                    return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
-                });
+            {
+                const auto value = this->parent.getRef().getPropertyValue(name);
+                return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
+            });
 
             if (!parentObj.supportsInterface<IFreezable>() || !parentObj.isFrozen())
             {
                 addWriteCallback(name, [this, name](const OpcUaVariant& variant) 
-                    {
-                        const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-                        this->parent.getRef().setPropertyValue(name, value);
-                        return UA_STATUSCODE_GOOD;
-                    });
+                {
+                    const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+                    this->parent.getRef().setPropertyValue(name, value);
+                    return UA_STATUSCODE_GOOD;
+                });
             }
         }
         else
         {
-                addReadCallback(name, [this, name]
-                {
-                    const auto refProp = this->parent.getRef().getProperty(name).asPtr<IPropertyInternal>().getReferencedPropertyUnresolved();
-                    return VariantConverter<IBaseObject>::ToVariant(refProp.getEval(), nullptr, daqContext);
-                });
+            addReadCallback(name, [this, name]
+            {
+                const auto refProp = this->parent.getRef().getProperty(name).asPtr<IPropertyInternal>().getReferencedPropertyUnresolved();
+                return VariantConverter<IBaseObject>::ToVariant(refProp.getEval(), nullptr, daqContext);
+            });
         }
 
     }

@@ -2,6 +2,7 @@
 #include <native_streaming_client_module/native_streaming_impl.h>
 
 #include <opendaq/custom_log.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <regex>
 #include <boost/asio/dispatch.hpp>
 
@@ -530,33 +531,20 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
-    const auto newDeviceInfo = DeviceInfo(connectionString, deviceInfo.getName());
-
+    auto changeableProperties = List<IString>();
     for (const auto& prop : deviceInfo.getAllProperties())
     {
-        const auto propName = prop.getName();
-        if (!newDeviceInfo.hasProperty(propName))
-        {
-            const auto internalProp = prop.asPtrOrNull<IPropertyInternal>(true);
-            if (!internalProp.assigned())
-                continue;
-
-            newDeviceInfo.addProperty(internalProp.clone());
-        }
-        if (propName != "connectionString" && propName != "Name")
-        {
-            const auto propValue = deviceInfo.getPropertyValue(propName);
-            if (propValue.assigned())
-                newDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propName, propValue);
-        }
+        if (!prop.getReadOnly())
+            changeableProperties.pushBack(prop.getName());
     }
+    const auto newDeviceInfo = DeviceInfoFromExisting(deviceInfo, changeableProperties);
+    newDeviceInfo.setConnectionString(connectionString);
 
     if (!newDeviceInfo.hasProperty("NativeConfigProtocolVersion"))
     {
-        newDeviceInfo.addProperty(IntProperty("NativeConfigProtocolVersion", clientComm->getProtocolVersion()));
+        auto propBuilder = IntPropertyBuilder("NativeConfigProtocolVersion", clientComm->getProtocolVersion()).setReadOnly(true);
+        newDeviceInfo.addProperty(propBuilder.build());
     }
-
-    newDeviceInfo.freeze();
 
     deviceInfo = newDeviceInfo;
 }

@@ -1,7 +1,9 @@
 #include <iostream>
 #include <string>
+#include <set>
 #include <stdexcept>
 #include <opendaq/device_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opcuatms_server/objects/tms_server_device.h>
 #include <opcuatms/core_types_utils.h>
 #include <opcuatms/type_mappings.h>
@@ -16,6 +18,7 @@
 #include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms/converters/list_conversion_utils.h>
 #include <opcuatms_server/objects/tms_server_function_block_type.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -52,6 +55,7 @@ namespace detail
         {"Position", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<uint16_t>(info.getPosition())}; }},
         {"SystemType", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemType().getCharPtr()}; }},
         {"SystemUUID", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }},
+        {"OpenDaqPackageVersion", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSdkVersion().getCharPtr()}; }},
     };
 }
 
@@ -90,40 +94,40 @@ bool TmsServerDevice::createOptionalNode(const OpcUaNodeId& nodeId)
 void TmsServerDevice::bindCallbacks()
 {
     this->addReadCallback("Domain", [this]
+    {
+        const auto deviceDomain = object.getDomain();
+        if (!deviceDomain.assigned())
+            return OpcUaVariant{};
+
+        const auto functionBlockNodeId = getChildNodeId("Domain");
+        try
         {
+            OpcUaObject<UA_DeviceDomainStructure> uaDeviceDomain;
+            uaDeviceDomain->resolution.numerator = deviceDomain.getTickResolution().getNumerator();
+            uaDeviceDomain->resolution.denominator = deviceDomain.getTickResolution().getDenominator();
+            uaDeviceDomain->origin = ConvertToOpcUaString(deviceDomain.getOrigin()).getDetachedValue();
+            uaDeviceDomain->ticksSinceOrigin = object.getTicksSinceOrigin();
+            auto unit = StructConverter<IUnit, UA_EUInformationWithQuantity>::ToTmsType(deviceDomain.getUnit());
+            uaDeviceDomain->unit = unit.getDetachedValue();
 
-            const auto deviceDomain = object.getDomain();
-            if (!deviceDomain.assigned())
-                return OpcUaVariant{};
-
-            const auto functionBlockNodeId = getChildNodeId("Domain");
-            try
-            {
-                OpcUaObject<UA_DeviceDomainStructure> uaDeviceDomain;
-                uaDeviceDomain->resolution.numerator = deviceDomain.getTickResolution().getNumerator();
-                uaDeviceDomain->resolution.denominator = deviceDomain.getTickResolution().getDenominator();
-                uaDeviceDomain->origin = ConvertToOpcUaString(deviceDomain.getOrigin()).getDetachedValue();
-                uaDeviceDomain->ticksSinceOrigin = object.getTicksSinceOrigin();
-                auto unit = StructConverter<IUnit, UA_EUInformationWithQuantity>::ToTmsType(deviceDomain.getUnit());
-                uaDeviceDomain->unit = unit.getDetachedValue();
-
-                OpcUaVariant v;
-                v.setScalar(*uaDeviceDomain);
-                return v;
-            }
-            catch (...)
-            {
-                return OpcUaVariant{};
-            }
-      });
+            OpcUaVariant v;
+            v.setScalar(*uaDeviceDomain);
+            return v;
+        }
+        catch (...)
+        {
+            return OpcUaVariant{};
+        }
+    });
 
     Super::bindCallbacks();
 }
 
 void TmsServerDevice::populateDeviceInfo()
 {
+    auto deviceInfo = object.getInfo();
 
-    auto createNode = [this](std::string name, CoreType type)
+    auto createNode = [this](std::string name, CoreType type, bool isReadOnly = true)
     {
         OpcUaNodeId newNodeId(0);
         AddVariableNodeParams params(newNodeId, nodeId);
@@ -147,10 +151,13 @@ void TmsServerDevice::populateDeviceInfo()
         }
         
         params.typeDefinition = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_PROPERTYTYPE));
+
+        if (isReadOnly)
+            params.attr->accessLevel = UA_ACCESSLEVELMASK_READ;
+        else
+            params.attr->accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
         server->addVariableNode(params);
     };
-
-    auto deviceInfo = object.getInfo();
 
     createNode("OpenDaqPackageVersion", ctString);
 
@@ -161,7 +168,8 @@ void TmsServerDevice::populateDeviceInfo()
     {
         try
         {
-            createNode(propName, deviceInfo.getProperty(propName).getValueType());
+            auto prop = deviceInfo.getProperty(propName);
+            createNode(propName, prop.getValueType(), prop.getReadOnly());
             customInfoNamesSet.insert(propName);
         }
         catch(...)
@@ -182,11 +190,6 @@ void TmsServerDevice::populateDeviceInfo()
         if (detail::componentFieldToVariant.count(browseName))
         {
             auto v = detail::componentFieldToVariant[browseName](deviceInfo);
-            server->writeValue(reference.nodeId.nodeId, *v);
-        }
-        else if (browseName == "OpenDaqPackageVersion")
-        {
-            auto v = OpcUaVariant{deviceInfo.getSdkVersion().getCharPtr()};
             server->writeValue(reference.nodeId.nodeId, *v);
         }
         else if (customInfoNamesSet.count(browseName))

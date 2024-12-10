@@ -1936,8 +1936,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
     if (objectClass.assigned())
     {
         auto propList = objectClass.getProperties(True);
+        allProperties.reserve(propList.getCount() + localProperties.size());
         for (const auto& prop : propList)
             allProperties.push_back(prop);
+    }
+    else
+    {
+        allProperties.reserve(localProperties.size());
     }
 
     for (const auto& prop : localProperties)
@@ -2830,9 +2835,18 @@ WeakRefPtr<IPropertyObject> GenericPropertyObjectImpl<PropObjInterface, Interfac
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
 {
+    if (getPropertyObjectParent() == newOwner)
+        return OPENDAQ_IGNORED;
+
     this->owner = newOwner;
 
-    const PermissionManagerPtr parentManager = this->owner.assigned() ? this->owner.getRef().getPermissionManager() : nullptr;
+    PermissionManagerPtr parentManager;
+    if (newOwner != nullptr)
+    {
+        auto newOwnerPtr = PropertyObjectPtr::Borrow(newOwner);
+        parentManager = newOwnerPtr.getPermissionManager();
+    }
+
     this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
 
     return OPENDAQ_SUCCESS;

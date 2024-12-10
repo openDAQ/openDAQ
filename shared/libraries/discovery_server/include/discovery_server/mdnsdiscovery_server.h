@@ -18,6 +18,7 @@
 #pragma once
 
 #include <discovery_server/common.h>
+#include <coreobjects/property_object_impl.h>
 #include <mutex>
 #include <string>
 #include <map>
@@ -41,16 +42,23 @@ BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
 struct MdnsDiscoveredDevice
 {
-    MdnsDiscoveredDevice(const std::string& serviceName, uint32_t servicePort, const std::unordered_map<std::string, std::string>& properties);
+    MdnsDiscoveredDevice(const std::string& serviceName, 
+                         uint32_t servicePort, 
+                         const std::unordered_map<std::string, std::string>& properties,
+                         const daq::PropertyObjectPtr& deviceInfo);
 
 private:
     friend class MDNSDiscoveryServer;
 
+    size_t size() const;
+    mdns_record_t createRecord(const std::string& name, const std::string& value) const;
     void populateRecords(std::vector<mdns_record_t>& records) const;
 
     std::string serviceName;
     uint16_t servicePort;
     std::unordered_map<std::string, std::string> properties;
+    const daq::PropertyObjectPtr deviceInfo;
+    mutable std::vector<std::pair<std::string, std::string>> dynamicProperties;
 
     std::string serviceInstance;
     std::string serviceQualified;

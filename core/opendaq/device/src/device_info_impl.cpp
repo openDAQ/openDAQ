@@ -155,12 +155,12 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(IDeviceInf
     // add custom properties
     for (const auto& propName : customProperties)
     {
-        PropertyPtr ptr;
-        errCode = deviceInfoToCopy->getProperty(String(propName), &ptr);
+        PropertyPtr prop;
+        errCode = deviceInfoToCopy->getProperty(String(propName), &prop);
         if (OPENDAQ_FAILED(errCode))
             continue;
-        Super::addProperty(PropertyBuilderCopy(ptr).build());
-        Super::setProtectedPropertyValue(String(propName), ptr.getValue());
+        Super::addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+        Super::setProtectedPropertyValue(String(propName), prop.getValue());
     }
 }
 
@@ -879,12 +879,11 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyChangeableProperti
         const auto name = prop.getName();
         if (!owner.hasProperty(name))
         {
-            ErrCode errCode = owner->addProperty(PropertyBuilderCopy(prop).build());
+            ErrCode errCode = owner->addProperty(prop.template asPtr<IPropertyInternal>(true).clone());
             if (OPENDAQ_FAILED(errCode))
                 continue;
             owner.setPropertyValue(name, prop.getValue());
         }
-
     }
 
     return OPENDAQ_SUCCESS;

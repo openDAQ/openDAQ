@@ -483,12 +483,6 @@ inline PropertyPtr PropertyFromBuilder(const PropertyBuilderPtr& builder)
     return obj;
 }
 
-inline PropertyBuilderPtr PropertyBuilderCopy(const PropertyPtr& property)
-{
-    PropertyBuilderPtr obj(PropertyBuilderFromExisting_Create(property));
-    return obj;
-}
-
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

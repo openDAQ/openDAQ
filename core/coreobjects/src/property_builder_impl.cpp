@@ -106,9 +106,4 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     IEnumeration*, defaultValue
 )
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, PropertyBuilder, 
-    IPropertyBuilder, createPropertyBuilderFromExisting,
-    IProperty*, propertyToCopy
-)
 END_NAMESPACE_OPENDAQ

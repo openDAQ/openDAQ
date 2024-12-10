@@ -4,49 +4,94 @@
 #include "coretypes/impl.h"
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_info_factory.h>
+#include <boost/algorithm/string.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ
 
+namespace detail
+{
+    static const std::unordered_set<std::string> defaultDeviceInfoPropertyNames = 
+    {
+        "name", 
+        "manufacturer", 
+        "manufacturerUri", 
+        "model", 
+        "productCode", 
+        "deviceRevision", 
+        "hardwareRevision",
+        "softwareRevision", 
+        "deviceManual", 
+        "deviceClass", 
+        "serialNumber",
+        "productInstanceUri",
+        "revisionCounter",
+        "assetId",
+        "macAddress",
+        "parentMacAddress",
+        "platform",
+        "position",
+        "systemType",
+        "systemUuid",
+        "connectionString",
+        "sdkVersion",
+        "location",
+        "userName",
+        "serverCapabilities",
+        "configurationConnectionInfo"
+    };
+}
+
+inline std::string ToLowerCase(const std::string &input) 
+{
+    return boost::algorithm::to_lower_copy(input);
+}
+
 template <typename TInterface, typename... Interfaces>
-DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion)
+DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name,
+                                                                      const StringPtr& connectionString,
+                                                                      const StringPtr& customSdkVersion,
+                                                                      const ListPtr<IString>& changeableDefaultPropertyNames)
     : Super()
 {
-    createAndSetDefaultStringProperty("name", "");
-    createAndSetDefaultStringProperty("manufacturer", "");
-    createAndSetDefaultStringProperty("manufacturerUri", "");
-    createAndSetDefaultStringProperty("model", "");
-    createAndSetDefaultStringProperty("productCode", "");
-    createAndSetDefaultStringProperty("deviceRevision", "");
-    createAndSetDefaultStringProperty("hardwareRevision", "");
-    createAndSetDefaultStringProperty("softwareRevision", "");
-    createAndSetDefaultStringProperty("deviceManual", "");
-    createAndSetDefaultStringProperty("deviceClass", "");
-    createAndSetDefaultStringProperty("serialNumber", "");
-    createAndSetDefaultStringProperty("productInstanceUri", "");
-    createAndSetDefaultIntProperty("revisionCounter", 0);
-    createAndSetDefaultStringProperty("assetId", "");
-    createAndSetDefaultStringProperty("macAddress", "");
-    createAndSetDefaultStringProperty("parentMacAddress", "");
-    createAndSetDefaultStringProperty("platform", "");
-    createAndSetDefaultIntProperty("position", 0);
-    createAndSetDefaultStringProperty("systemType", "");
-    createAndSetDefaultStringProperty("systemUuid", "");
-    createAndSetDefaultStringProperty("connectionString", "");
-    createAndSetDefaultStringProperty("sdkVersion", "");
-    createAndSetDefaultStringProperty("location", "");
-    createAndSetDefaultStringProperty("userName", "");
+    if (changeableDefaultPropertyNames.assigned())
+    {
+        for (const auto& propName : changeableDefaultPropertyNames)
+            this->changeableDefaultPropertyNames.insert(ToLowerCase(propName));
+
+        if (this->changeableDefaultPropertyNames.count("name") == 1)
+            throw InvalidParameterException("The property `name` is reserved and cannot be changed.");
+    }
+
+    createAndSetStringProperty("name", "");
+    createAndSetStringProperty("manufacturer", "");
+    createAndSetStringProperty("manufacturerUri", "");
+    createAndSetStringProperty("model", "");
+    createAndSetStringProperty("productCode", "");
+    createAndSetStringProperty("deviceRevision", "");
+    createAndSetStringProperty("hardwareRevision", "");
+    createAndSetStringProperty("softwareRevision", "");
+    createAndSetStringProperty("deviceManual", "");
+    createAndSetStringProperty("deviceClass", "");
+    createAndSetStringProperty("serialNumber", "");
+    createAndSetStringProperty("productInstanceUri", "");
+    createAndSetIntProperty("revisionCounter", 0);
+    createAndSetStringProperty("assetId", "");
+    createAndSetStringProperty("macAddress", "");
+    createAndSetStringProperty("parentMacAddress", "");
+    createAndSetStringProperty("platform", "");
+    createAndSetIntProperty("position", 0);
+    createAndSetStringProperty("systemType", "");
+    createAndSetStringProperty("systemUuid", "");
+    createAndSetStringProperty("connectionString", "");
+    createAndSetStringProperty("sdkVersion", "");
+    createAndSetStringProperty("location", "");
+    createAndSetStringProperty("userName", "");
+
+    Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
+    Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
 
     Super::setProtectedPropertyValue(String("name"), name);
     Super::setProtectedPropertyValue(String("connectionString"), connectionString);
-
-    Super::addProperty(ObjectProperty("serverCapabilities", PropertyObject()));
-    defaultPropertyNames.insert("serverCapabilities");
-
-    Super::addProperty(ObjectProperty("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)));
-    defaultPropertyNames.insert("configurationConnectionInfo");
-
-    Super::addProperty(ListProperty("changeableProperties", List<IString>(), false));
-    defaultPropertyNames.insert("changeableProperties");
 
     if (customSdkVersion.assigned())
         Super::setProtectedPropertyValue(String("sdkVersion"), customSdkVersion);
@@ -61,12 +106,62 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
             value.setValue(ownerPtr.getName());
         }
     };
+
+    this->changeableDefaultPropertyNames.clear();
 }
 
 template <typename TInterface, typename ... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
-    : DeviceInfoConfigImpl<TInterface, Interfaces...>("", "")
+    : Super()
 {
+    Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
+    Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
+
+    createAndSetStringProperty("name", "");
+    this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
+    {
+        const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
+        if (ownerPtr.assigned())
+        {
+            value.setValue(ownerPtr.getName());
+        }
+    };
+}
+
+template <typename TInterface, typename ... Interfaces>
+DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(IDeviceInfoConfig* deviceInfoToCopy,
+                                                                      const ListPtr<IString>& changeableDefaultPropertyNames)
+    : DeviceInfoConfigImpl<TInterface, Interfaces...>("", "", nullptr, changeableDefaultPropertyNames)
+{
+    // todo make posible to create empty device info
+    if (deviceInfoToCopy == nullptr)
+        return;
+
+    // updating the default properties
+    for (const auto& propName : detail::defaultDeviceInfoPropertyNames)
+    {
+        BaseObjectPtr value;
+        ErrCode errCode = deviceInfoToCopy->getPropertyValue(String(propName), &value);
+        if (OPENDAQ_SUCCEEDED(errCode))
+            continue;
+        Super::setProtectedPropertyValue(String(propName), value);
+    }
+
+    ListPtr<IString> customProperties;
+    ErrCode errCode = deviceInfoToCopy->getCustomInfoPropertyNames(&customProperties);
+    if (OPENDAQ_FAILED(errCode))
+        return;
+
+    // add custom properties
+    for (const auto& propName : customProperties)
+    {
+        PropertyPtr ptr;
+        errCode = deviceInfoToCopy->getProperty(String(propName), &ptr);
+        if (OPENDAQ_FAILED(errCode))
+            continue;
+        Super::addProperty(PropertyBuilderCopy(ptr).build());
+        Super::setProtectedPropertyValue(String(propName), ptr.getValue());
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -324,7 +419,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getCustomInfoPropertyNa
     for (auto prop : propList)
     {
         auto name = prop.getName();
-        if (!defaultPropertyNames.count(name))
+        if (!detail::defaultDeviceInfoPropertyNames.count(name))
             customPropNameList.pushBack(name);
     }
 
@@ -515,50 +610,39 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::Deserialize(ISerialized
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializePropertyObject(
-                    serialized,
-                    context,
-                    factoryCallback,
-                       [](const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr& className)
-                       {
-                           const auto info = createWithImplementation<IDeviceInfo, DeviceInfoConfigBase>();
-                           return info;
-                       }).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = Super::DeserializePropertyObject(
+            serialized,
+            context,
+            factoryCallback,
+            [](const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr& className)
+            {
+                const auto info = createWithImplementation<IDeviceInfo, DeviceInfoConfigBase>();
+                return info;
+            }).detach();
+    });
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value)
+bool DeviceInfoConfigImpl<TInterface, Interfaces...>::isPropertyChangeable(const StringPtr& propertyName)
 {
-    defaultPropertyNames.insert(name);
-    return createAndSetStringProperty(name, value);
+    return changeableDefaultPropertyNames.count(ToLowerCase(propertyName)) == 1;
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetStringProperty(const StringPtr& name, const StringPtr& value)
 {
     auto info = StringPropertyBuilder(name, value);
-    info.setReadOnly(true);
-
+    info.setReadOnly(!isPropertyChangeable(name));
     return Super::addProperty(info.build());
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetDefaultIntProperty(const StringPtr& name, const BaseObjectPtr& value)
-{
-    defaultPropertyNames.insert(name);
-    return createAndSetIntProperty(name, value);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetIntProperty(const StringPtr& name, const IntegerPtr& value)
 {
     auto info = IntPropertyBuilder(name, value);
-    info.setReadOnly(true);
-
+    info.setReadOnly(!isPropertyChangeable(name));
     return Super::addProperty(info.build());
 }
 
@@ -734,29 +818,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setChangeableProperties(IList* changeableProperties)
-{
-    if (changeableProperties == nullptr)
-        return OPENDAQ_IGNORED;
-    if (changeablePropertyNames.size())
-        return OPENDAQ_IGNORED;
-    return Super::setProtectedPropertyValue(String("changeableProperties"), changeableProperties);
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getChangeableProperties(IList** changeableProperties)
-{
-    OPENDAQ_PARAM_NOT_NULL(changeableProperties);
-
-    BaseObjectPtr obj;
-    ErrCode errCode = this->getPropertyValue(String("changeableProperties"), &obj);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
-    *changeableProperties = obj.asPtrOrNull<IList, ListPtr<IString>>().detach();
-    return errCode;
-}
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(IString* propertyName, IBaseObject** value)
@@ -764,32 +825,30 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(ISt
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    if (changeablePropertyNames.empty())
+    PropertyPtr prop;
+    ErrCode err = Super::getProperty(propertyName, &prop);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    if (prop.getReadOnly())
         return OPENDAQ_NOTFOUND;
-    
+
     auto owner = Super::getPropertyObjectParent();
     if (!owner.assigned())
         return OPENDAQ_NOTFOUND;
 
-    auto name = StringPtr::Borrow(propertyName);
+    err = owner->getPropertyValue(propertyName, value);
+    if (OPENDAQ_FAILED(err))
+        return OPENDAQ_NOTFOUND;
 
-    if (changeablePropertyNames.count(name) && owner.hasProperty(name))
-        return owner->getPropertyValue(propertyName, value);
-
-    return OPENDAQ_NOTFOUND;
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
     auto lock = this->getRecursiveConfigLock();
-    ErrCode errCode = getEditableProperty(propertyName, value);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-    
-    if (errCode == OPENDAQ_NOTFOUND)
-        errCode = Super::getPropertyValueNoLock(propertyName, value); 
-    return errCode;
+    return this->getPropertyValueNoLock(propertyName, value);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -809,27 +868,25 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyChangeableProperti
 {
     if (!owner.assigned())
         return OPENDAQ_IGNORED;
-    if (changeablePropertyNames.size())
-        return OPENDAQ_IGNORED;
 
     auto lock = this->getRecursiveConfigLock();
-    auto was_frozen = this->frozen;
-    this->frozen = false;
-
-    ListPtr<IString> changeableProperties = this->objPtr.getPropertyValue("changeableProperties");
-    for (const auto & prop : changeableProperties)
+    const auto properties = this->objPtr.getAllProperties();
+    for (const auto& prop: properties)
     {
-        PropertyPtr ownerProp;
-        ErrCode errCode = owner->getProperty(String(prop), &ownerProp);
-        if (OPENDAQ_FAILED(errCode))
+        if (prop.getReadOnly())
             continue;
 
-        changeablePropertyNames.insert(prop.toStdString());
-        this->addProperty(ownerProp.asPtr<IPropertyInternal>(true).clone());
+        const auto name = prop.getName();
+        if (!owner.hasProperty(name))
+        {
+            ErrCode errCode = owner->addProperty(PropertyBuilderCopy(prop).build());
+            if (OPENDAQ_FAILED(errCode))
+                continue;
+            owner.setPropertyValue(name, prop.getValue());
+        }
+
     }
 
-    this->frozen = was_frozen;
-    
     return OPENDAQ_SUCCESS;
 }
 
@@ -859,6 +916,12 @@ extern "C"
 ErrCode PUBLIC_EXPORT createDeviceInfoConfigWithCustomSdkVersion(IDeviceInfoConfig** objTmp, IString* name, IString* connectionString, IString* sdkVersion)
 {
     return createObject<IDeviceInfoConfig, DeviceInfoConfigImpl<>, IString*, IString*, IString*>(objTmp, name, connectionString, sdkVersion);
+}
+
+extern "C"
+ErrCode PUBLIC_EXPORT createDeviceInfoConfigFromExisting(IDeviceInfoConfig** objTmp, IDeviceInfoConfig* deviceInfoToCopy, IList* changeableDefaultPropertyNames)
+{
+    return createObject<IDeviceInfoConfig, DeviceInfoConfigImpl<>, IDeviceInfoConfig*, IList*>(objTmp, deviceInfoToCopy, changeableDefaultPropertyNames);
 }
 
 #endif

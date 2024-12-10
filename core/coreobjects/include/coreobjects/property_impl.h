@@ -1276,34 +1276,10 @@ public:
             return OPENDAQ_ERR_ARGUMENT_NULL;
         }
 
-        return daqTry([&]() {
-            auto defaultValueObj = defaultValue;
-
-            if (defaultValueObj.assigned())
-            {
-                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
-                if (cloneableDefaultValue.assigned())
-                    defaultValueObj = cloneableDefaultValue.clone();
-            }
-
-            auto prop = PropertyBuilder(name)
-                        .setValueType(valueType)
-                        .setDescription(description)
-                        .setUnit(unit)
-                        .setMinValue(minValue)
-                        .setMaxValue(maxValue)
-                        .setDefaultValue(defaultValueObj)
-                        .setVisible(visible)
-                        .setReadOnly(readOnly)
-                        .setSelectionValues(selectionValues)
-                        .setSuggestedValues(suggestedValues)
-                        .setReferencedProperty(refProp)
-                        .setCoercer(coercer)
-                        .setValidator(validator)
-                        .setCallableInfo(callableInfo)
-                        .setOnPropertyValueRead(onValueRead)
-                        .setOnPropertyValueWrite(onValueWrite).build();
-
+        return daqTry([&]
+        {
+            PropertyPtr selfPtr = this->borrowPtr<PropertyPtr>();
+            auto prop = PropertyBuilderCopy(selfPtr).build();
             *clonedProperty = prop.detach();
             return OPENDAQ_SUCCESS;
         });

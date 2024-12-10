@@ -520,6 +520,11 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IEnumeration*, defaultValue
 )
 
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, PropertyBuilderFromExisting, IPropertyBuilder,
+    IProperty*, propertyToCopy
+)
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

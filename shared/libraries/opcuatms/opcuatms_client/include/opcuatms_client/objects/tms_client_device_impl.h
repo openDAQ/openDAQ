@@ -54,7 +54,7 @@ protected:
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
     ListPtr<ILogFileInfo> ongetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
-    ListPtr<IString> getChangeableDeviceInfoFields() override;
+    ListPtr<IString> getChangeableDeviceInfoDefaultFields() override;
 
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
 

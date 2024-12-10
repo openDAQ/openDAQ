@@ -78,6 +78,7 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
     devInfo.setModel("Reference device");
     devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("DevSer{}", id)));
     devInfo.setDeviceType(CreateType());
+    devInfo.addProperty(StringProperty("CustomChangeableField", "default value"));
 
     return devInfo;
 }
@@ -98,13 +99,6 @@ DeviceTypePtr RefDeviceImpl::CreateType()
                       "Reference device",
                       "daqref",
                       defaultConfig);
-}
-
-ListPtr<IString> RefDeviceImpl::getChangeableDeviceInfoFields()
-{
-    auto list = Device::getChangeableDeviceInfoFields();
-    list.pushBack("CustomChangeableField");
-    return list;
 }
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
@@ -309,8 +303,6 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     objPtr.addProperty(BoolProperty("EnableLogging", loggingEnabled));
     objPtr.getOnPropertyValueWrite("EnableLogging") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableLogging(); };
-
-    objPtr.addProperty(StringProperty("CustomChangeableField", "default value"));
 }
 
 void RefDeviceImpl::updateNumberOfChannels()

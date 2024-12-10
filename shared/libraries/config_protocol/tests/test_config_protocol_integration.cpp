@@ -594,36 +594,30 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
     const auto serverDeviceInfo = serverSubDevice.getInfo();
     const auto clientDeviceInfo = clientSubDevice.getInfo();
 
-    const auto serverChangeableProperties = serverDeviceInfo.asPtr<IDeviceInfoInternal>().getChangeableProperties();
-    const auto clientChangeableProperties = clientDeviceInfo.asPtr<IDeviceInfoInternal>().getChangeableProperties();
-
-    ASSERT_EQ(serverChangeableProperties.getCount(), 3);
-    ASSERT_EQ(serverChangeableProperties, clientChangeableProperties);
-
     // set fields on server
-    serverSubDevice.setName("new_name");
+    serverSubDevice.setPropertyValue("userName", "new_name");
     serverSubDevice.setPropertyValue("location", "new_location");
     serverSubDevice.setPropertyValue("TestChangeableField", "new_value");
 
-    ASSERT_EQ("new_name", serverDeviceInfo.getName());
+    ASSERT_EQ("new_name", serverDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ("new_location", serverDeviceInfo.getLocation());
     ASSERT_EQ("new_value", serverDeviceInfo.getPropertyValue("TestChangeableField"));
 
-    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+    ASSERT_EQ(serverDeviceInfo.getPropertyValue("userName"), clientDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
     ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
 
     // set fields on client
-    clientSubDevice.setName("new_client_name");
+    clientSubDevice.setPropertyValue("userName", "new_client_name");
     clientSubDevice.setPropertyValue("location", "new_client_location");
     clientSubDevice.setPropertyValue("TestChangeableField", "new_client_value");
 
 
-    ASSERT_EQ("new_client_name", clientDeviceInfo.getName());
+    ASSERT_EQ("new_client_name", clientDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ("new_client_location", clientDeviceInfo.getLocation());
     ASSERT_EQ("new_client_value", clientDeviceInfo.getPropertyValue("TestChangeableField"));
 
-    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+    ASSERT_EQ(serverDeviceInfo.getPropertyValue("userName"), clientDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
     ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
 }

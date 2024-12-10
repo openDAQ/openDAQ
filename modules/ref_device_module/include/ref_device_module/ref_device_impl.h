@@ -46,8 +46,6 @@ protected:
     ListPtr<ILogFileInfo> ongetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
-    ListPtr<IString> getChangeableDeviceInfoFields() override;
-
 private:
     void initClock();
     void initIoFolder();

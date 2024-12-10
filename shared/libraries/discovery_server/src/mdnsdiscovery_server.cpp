@@ -34,23 +34,11 @@ MdnsDiscoveredDevice::MdnsDiscoveredDevice(const std::string& serviceName,
     if (this->serviceName.back() != '.')
         this->serviceName += ".";
 
-    daq::ListPtr<daq::IString> editableProps = deviceInfo.getPropertyValue("changeableProperties");
-
     for (const auto& prop : deviceInfo.getAllProperties())
     {
-        if (prop.getValueType() == CoreType::ctString)
+        if ((Int)prop.getValueType() <= (Int)CoreType::ctString)
         {
-            bool found = false;
-            for (const auto& editableProp : editableProps)
-            {
-                if (prop == editableProp)
-                {
-                    found = true;
-                    break;
-                }
-            }
-            
-            if (found)
+            if (prop.getReadOnly())
                 this->properties[prop.getName()] = (std::string)prop.getValue();
             else
                 dynamicProperties.push_back({prop.getName(), ""});

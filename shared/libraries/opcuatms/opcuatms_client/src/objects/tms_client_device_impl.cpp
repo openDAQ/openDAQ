@@ -196,10 +196,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
     std::unordered_map<std::string, OpcUaNodeId> cheangeableProperties;
     for (const auto& [browseName, ref] : references.byBrowseName)
     {
-        const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-        const auto value = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE);
-        const auto accessLevel = reader.getValue(refNodeId, UA_ATTRIBUTEID_ACCESSLEVEL).toInteger();
-
         if (browseName == "NumberInList")
             continue;
         if (browseName == "Active")
@@ -209,7 +205,12 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         if (browseName == "Tags")
             continue;
 
-        if (accessLevel & UA_ACCESSLEVELMASK_WRITE)
+        const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+        const auto value = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE);
+        const auto accessLevel = reader.getValue(refNodeId, UA_ATTRIBUTEID_ACCESSLEVEL).toInteger();
+        const bool isReadOnly = !(accessLevel & UA_ACCESSLEVELMASK_WRITE);
+
+        if (!isReadOnly)
         {
             if (detail::deviceInfoFieldMap.count(browseName))
                 cheangeableProperties.emplace(detail::deviceInfoFieldMap[browseName], refNodeId);
@@ -240,14 +241,17 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
                 }
                 else
                 {
+                    PropertyBuilderPtr propertyBuilder;
                     if (value.isString())
-                        deviceInfo.addProperty(StringProperty(browseName, value.toString()));
+                        propertyBuilder = StringPropertyBuilder(browseName, value.toString());
                     else if (value.isBool())
-                        deviceInfo.addProperty(BoolProperty(browseName, value.toBool()));
+                        propertyBuilder = BoolPropertyBuilder(browseName, value.toBool());
                     else if (value.isDouble())
-                        deviceInfo.addProperty(FloatProperty(browseName, value.toDouble()));
+                        propertyBuilder = FloatPropertyBuilder(browseName, value.toDouble());
                     else if (value.isInteger())
-                        deviceInfo.addProperty(IntProperty(browseName, value.toInteger()));
+                        propertyBuilder = IntPropertyBuilder(browseName, value.toInteger());
+                    if (propertyBuilder.assigned())
+                        deviceInfo.addProperty(propertyBuilder.setReadOnly(isReadOnly).build());
                 }
             }
         }
@@ -272,7 +276,8 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
     {
         cheangeablePropertiesList = List<IString>("userName", "location");
     }
-    deviceInfo.as<IDeviceInfoInternal>(true)->setChangeableProperties(cheangeablePropertiesList);
+
+    deviceInfo = DeviceInfoFromExisting(deviceInfo, cheangeablePropertiesList);
     
     findAndCreateServerCapabilities(deviceInfo);
 
@@ -711,7 +716,7 @@ StringPtr TmsClientDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offse
     throw OpcUaClientCallNotAvailableException("GetLog is not available for OpcUA client device");
 }
 
-ListPtr<IString> TmsClientDeviceImpl::getChangeableDeviceInfoFields()
+ListPtr<IString> TmsClientDeviceImpl::getChangeableDeviceInfoDefaultFields()
 {
     return nullptr;
 }

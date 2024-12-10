@@ -202,7 +202,7 @@ protected:
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
     DevicePtr getParentDevice();
 
-    virtual ListPtr<IString> getChangeableDeviceInfoFields();
+    virtual ListPtr<IString> getChangeableDeviceInfoDefaultFields();
 
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
@@ -262,7 +262,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
 }
 
 template <typename TInterface, typename... Interfaces>
-ListPtr<IString> GenericDevice<TInterface, Interfaces...>::getChangeableDeviceInfoFields()
+ListPtr<IString> GenericDevice<TInterface, Interfaces...>::getChangeableDeviceInfoDefaultFields()
 {
     return {"userName", "location"};
 }
@@ -290,7 +290,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         this->deviceInfo = devInfo.detach();
 
         if (this->deviceInfo.assigned())
-            this->deviceInfo.template as<IDeviceInfoInternal>(true)->setChangeableProperties(this->getChangeableDeviceInfoFields());
+            this->deviceInfo = DeviceInfoFromExisting(this->deviceInfo, this->getChangeableDeviceInfoDefaultFields());
     }
 
     if (this->deviceInfo.assigned())

@@ -25,6 +25,7 @@
 #include <coreobjects/unit_ptr.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
+#include <coreobjects/property_object_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -170,6 +171,40 @@ public:
         : PropertyBuilderImpl(name, BaseObjectPtr(defaultValue))
     {
         this->valueType = ctEnumeration;
+    }
+
+    PropertyBuilderImpl(IProperty* propertyToCopy)
+        : PropertyBuilderImpl()
+    {
+        if (propertyToCopy == nullptr)
+            throw ArgumentNullException{"Property cannot be null"};
+        const auto propPtr = PropertyPtr::Borrow(propertyToCopy);
+
+        auto defaultValueObj = propPtr.getDefaultValue();
+        if (defaultValueObj.assigned())
+        {
+            auto cloneableDefaultValue = defaultValueObj.asPtrOrNull<IPropertyObjectInternal>(true);
+            if (cloneableDefaultValue.assigned())
+                defaultValueObj = cloneableDefaultValue.clone();
+        }
+
+        this->name = propPtr.getName();
+        this->valueType = propPtr.getValueType();
+        this->description = propPtr.getDescription();
+        this->unit = propPtr.getUnit();
+        this->minValue = propPtr.getMinValue();
+        this->maxValue = propPtr.getMaxValue();
+        this->defaultValue = defaultValueObj;
+        this->visible = propPtr.getVisible();
+        this->readOnly = propPtr.getReadOnly();
+        this->selectionValues = propPtr.getSelectionValues();
+        this->suggestedValues = propPtr.getSuggestedValues();
+        this->refProp = propPtr.getReferencedProperty();
+        this->coercer = propPtr.getCoercer();
+        this->validator = propPtr.getValidator();
+        this->callableInfo = propPtr.getCallableInfo();
+        this->onValueWrite = (IEvent*)propPtr.getOnPropertyValueWrite();
+        this->onValueRead = (IEvent*)propPtr.getOnPropertyValueRead();
     }
 
     ErrCode INTERFACE_FUNC build(IProperty** property) override

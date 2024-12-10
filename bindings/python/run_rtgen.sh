@@ -33,9 +33,9 @@ function run_rtgen {
 # core types
 #
 core_type_files=(
-"event_handler"
-"event"
-"event_args"
+# "event"
+# "event_args"
+# "event_handler"
 "simple_type"
 #"struct"
 "struct_type"

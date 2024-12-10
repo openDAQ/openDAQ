@@ -95,7 +95,7 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
-            return objectPtr.getOnCoreEvent().getEventPtr().detach();//.detach();
+            return objectPtr.getOnCoreEvent().getEventPtr().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the Core Event object that triggers whenever a change happens within the openDAQ core structure.");

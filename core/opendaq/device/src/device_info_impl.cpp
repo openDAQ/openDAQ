@@ -130,7 +130,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(IDeviceInf
     {
         BaseObjectPtr value;
         ErrCode errCode = deviceInfoToCopy->getPropertyValue(String(propName), &value);
-        if (OPENDAQ_SUCCEEDED(errCode))
+        if (OPENDAQ_FAILED(errCode))
             continue;
         Super::setProtectedPropertyValue(String(propName), value);
     }

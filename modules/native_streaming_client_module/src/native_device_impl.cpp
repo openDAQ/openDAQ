@@ -541,7 +541,10 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
     newDeviceInfo.setConnectionString(connectionString);
 
     if (!newDeviceInfo.hasProperty("NativeConfigProtocolVersion"))
-        newDeviceInfo.addProperty(IntProperty("NativeConfigProtocolVersion", clientComm->getProtocolVersion()));
+    {
+        auto propBuilder = IntPropertyBuilder("NativeConfigProtocolVersion", clientComm->getProtocolVersion()).setReadOnly(true);
+        newDeviceInfo.addProperty(propBuilder.build());
+    }
 
     deviceInfo = newDeviceInfo;
 }

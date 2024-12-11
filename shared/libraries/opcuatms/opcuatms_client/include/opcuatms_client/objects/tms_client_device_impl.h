@@ -67,6 +67,7 @@ private:
     SizeT ticksSinceOrigin{};
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    ListPtr<IString> changeableDeviceInfoDefaultFields;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

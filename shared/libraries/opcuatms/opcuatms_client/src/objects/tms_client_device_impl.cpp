@@ -261,26 +261,23 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
     }
 
-    auto cheangeablePropertiesList = List<IString>();
     const std::string sdkVersion = deviceInfo.getSdkVersion();
     if (sdkVersion.empty() || IsVersionHigher(sdkVersion, 3, 11))
     {
+        changeableDeviceInfoDefaultFields = List<IString>();
         for (const auto& [propName, refNodeId] : cheangeableProperties)
         {
             Impl::addProperty(deviceInfo.getProperty(propName).asPtr<IPropertyInternal>(true).clone());
-            cheangeablePropertiesList.pushBack(propName);
+            changeableDeviceInfoDefaultFields.pushBack(propName);
             introspectionVariableIdMap.emplace(propName, refNodeId);
         }
     }
     else
     {
-        cheangeablePropertiesList = List<IString>("userName", "location");
+        changeableDeviceInfoDefaultFields = nullptr;
     }
 
-    deviceInfo = DeviceInfoFromExisting(deviceInfo, cheangeablePropertiesList);
-    
     findAndCreateServerCapabilities(deviceInfo);
-
     return deviceInfo;
 }
 
@@ -510,7 +507,7 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
                     capabilityCopy.addProperty(prop.asPtr<IPropertyInternal>().clone());
 
                 // AddressInfo is a special case, add it as a child object property of type IAddressInfo
-                if  (name == "AddressInfo")
+                if (name == "AddressInfo")
                 {
                     const auto addrInfoId = clientContext->getReferenceBrowser()->getChildNodeId(optionNodeId, "AddressInfo");
                     const auto& addrInfoRefs = getChildReferencesOfType(addrInfoId, OpcUaNodeId(NAMESPACE_DAQBT, UA_DAQBTID_VARIABLEBLOCKTYPE));
@@ -718,7 +715,9 @@ StringPtr TmsClientDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offse
 
 ListPtr<IString> TmsClientDeviceImpl::getChangeableDeviceInfoDefaultFields()
 {
-    return nullptr;
+    if (changeableDeviceInfoDefaultFields.assigned())
+        return changeableDeviceInfoDefaultFields;
+    return {"userName", "location"};
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

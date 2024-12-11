@@ -34,6 +34,30 @@ namespace detail
         return v;
     }
 
+    static std::unordered_map<std::string, std::string> componentFieldToDeviceInfo = {
+        {"AssetId", "assetId"},
+        {"ComponentName", "name"},
+        {"DeviceClass", "deviceClass"},
+        {"DeviceManual", "deviceManual"},
+        {"DeviceRevision", "deviceRevision"},
+        {"HardwareRevision", "hardwareRevision"},
+        {"Manufacturer", "manufacturer"},
+        {"ManufacturerUri", "manufacturerUri"},
+        {"Model", "model"},
+        {"ProductCode", "productCode"},
+        {"ProductInstanceUri", "productInstanceUri"},
+        {"RevisionCounter", "revisionCounter"},
+        {"SerialNumber", "serialNumber"},
+        {"SoftwareRevision", "softwareRevision"},
+        {"MacAddress", "macAddress"},
+        {"ParentMacAddress", "parentMacAddress"},
+        {"Platform", "platform"},
+        {"Position", "position"},
+        {"SystemType", "systemType"},
+        {"SystemUUID", "systemUuid"},
+        {"OpenDaqPackageVersion", "sdkVersion"},
+    };
+
     static std::unordered_map<std::string, std::function<OpcUaVariant(const DeviceInfoPtr&)>> componentFieldToVariant = {
         {"AssetId", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getAssetId().getCharPtr()}; }},
         {"ComponentName", [](const DeviceInfoPtr& info) { return createLocalizedTextVariant(info.getName().getCharPtr()); }},
@@ -191,6 +215,15 @@ void TmsServerDevice::populateDeviceInfo()
         {
             auto v = detail::componentFieldToVariant[browseName](deviceInfo);
             server->writeValue(reference.nodeId.nodeId, *v);
+
+            // set access level for property
+            const auto propName = detail::componentFieldToDeviceInfo[browseName];
+            const auto prop = deviceInfo.getProperty(propName);
+            const auto readOnly = prop.getReadOnly();
+            UA_Byte accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+            if (readOnly)
+                accessLevel = accessLevel & ~UA_ACCESSLEVELMASK_WRITE;
+            server->setAccessLevel(reference.nodeId.nodeId, accessLevel);
         }
         else if (customInfoNamesSet.count(browseName))
         {

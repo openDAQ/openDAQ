@@ -384,7 +384,7 @@ void SignalReader::skipUntilLastEventPacket()
         connection.dequeueAll();
 }
 
-bool SignalReader::sync(const Comparable& commonStart)
+bool SignalReader::sync(const Comparable& commonStart, SizeT* tickOffset)
 {
     if (synced == SyncStatus::Synchronized)
         return true;
@@ -398,12 +398,14 @@ bool SignalReader::sync(const Comparable& commonStart)
     while (info.dataPacket.assigned())
     {
         auto domainPacket = info.dataPacket.getDomainPacket();
+        auto tickOffset = SizeT{};
 
         info.prevSampleIndex = domainReader->getOffsetTo(
             domainInfo,
             commonStart,
             domainPacket.getData(),
-            domainPacket.getSampleCount()
+            domainPacket.getSampleCount(),
+            tickOffset
         );
 
         if (info.prevSampleIndex == static_cast<SizeT>(-1))

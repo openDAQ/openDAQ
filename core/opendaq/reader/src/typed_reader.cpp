@@ -1,3 +1,4 @@
+#include <coretypes/validation.h>
 #include <opendaq/typed_reader.h>
 #include <opendaq/sample_type.h>
 #include <opendaq/packet_factory.h>
@@ -211,32 +212,33 @@ template <typename ReadType>
 SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
                                          const Comparable& start,
                                          void* inputBuffer,
-                                         SizeT size)
+                                         SizeT size,
+                                         SizeT* tickOffset)
 {
     switch (dataSampleType)
     {
         case SampleType::Float32:
-            return getOffsetToData<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::Float64:
-            return getOffsetToData<SampleTypeToType<SampleType::Float64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Float64>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::UInt8:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt8>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt8>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::Int8:
-            return getOffsetToData<SampleTypeToType<SampleType::Int8>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int8>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::Int16:
-            return getOffsetToData<SampleTypeToType<SampleType::Int16>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int16>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::UInt16:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt16>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt16>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::Int32:
-            return getOffsetToData<SampleTypeToType<SampleType::Int32>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int32>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::UInt32:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt32>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt32>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::Int64:
-            return getOffsetToData<SampleTypeToType<SampleType::Int64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int64>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::UInt64:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt64>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::RangeInt64:
-            return getOffsetToData<SampleTypeToType<SampleType::RangeInt64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::RangeInt64>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
         case SampleType::ComplexFloat32:
         case SampleType::ComplexFloat64:
         case SampleType::Binary:
@@ -260,28 +262,11 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
 
 template <typename TReadType>
 template <typename TDataType>
-SizeT TypedReader<TReadType>::getTickOffset(const Comparable& from, const Comparable& to)
-{
-    using namespace reader;
-    if constexpr (std::is_convertible_v<TDataType, TReadType>)
-    {
-        TReadType fromTicks;
-        TReadType toTicks;
-        from.getValue(&fromTicks);
-        to.getValue(&toTicks);
-        auto offset = fromTicks - toTicks;
-        return offset;
-    }
-
-    return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered", nullptr);
-}
-
-template <typename TReadType>
-template <typename TDataType>
 SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo,
                                               const Comparable& start,
                                               void* inputBuffer,
-                                              SizeT size) const
+                                              SizeT size,
+                                              SizeT* tickOffset) const
 {
     if (!inputBuffer)
         throw ArgumentNullException{};
@@ -321,6 +306,16 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
 
             if (GreaterEqual<TReadType>::Check(domainInfo.multiplier, static_cast<TReadType>(dataStart[i]), startValue))
             {
+                if (tickOffset)
+                {
+                    // tick offset will be expressed in maxResolution ticks
+                    if constexpr (IsTemplateOf<TReadType, RangeType>::value)
+                        *tickOffset = static_cast<TReadType>(dataStart[i]).start - startValue.start;
+                    else  if constexpr (!daq::IsTemplateOf<TReadType, daq::Complex_Number>::value)
+                        *tickOffset = static_cast<TReadType>(dataStart[i]) - startValue;
+                    else
+                        throw NotSupportedException();
+                }
                 return i / valuesPerSample;
             }
         }

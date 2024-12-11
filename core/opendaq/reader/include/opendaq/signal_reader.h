@@ -75,7 +75,7 @@ struct SignalReader
     bool isFirstPacketEvent();
     EventPacketPtr readUntilNextDataPacket();
     void skipUntilLastEventPacket();
-    bool sync(const Comparable& commonStart);
+    bool sync(const Comparable& commonStart, SizeT* tickOffset = nullptr);
 
     ErrCode readPackets();
     ErrCode readPacketData();

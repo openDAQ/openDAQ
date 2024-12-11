@@ -1188,7 +1188,6 @@ void MultiReaderImpl::readDomainStart()
 
     LOG_T("---");
     LOG_T("DomainStart: {}", *commonStart);
-
     if (startOnFullUnitOfDomain)
     {
         commonStart->roundUpOnUnitOfDomain();
@@ -1205,23 +1204,27 @@ void MultiReaderImpl::readDomainStart()
 void MultiReaderImpl::sync()
 {
     bool synced = true;
+    auto tickOffset = SizeT{};
+    auto tickOffsetMax = std::numeric_limits<SizeT>::max();
+    auto tickOffsetMin = SizeT{0};
+
     for (auto& signal : signals)
     {
-        synced = signal.sync(*commonStart) && synced;
+        synced = signal.sync(*commonStart, &tickOffset) && synced;
+        if (tickOffsetMax < tickOffset)
+            tickOffsetMax = tickOffset;
+        if (tickOffsetMin > tickOffset)
+            tickOffsetMin = tickOffset;
     }
 
-    if (synced)
+    if (tickOffsetTolerance.assigned() && sameSampleRates)
     {
-        for (auto& signal: signals)
+        auto maxTicksDifference = tickOffsetMax - tickOffsetMin;
+        auto tolerance = static_cast<SizeT>(tickOffsetTolerance / readResolution);
+        if (tolerance > maxTicksDifference)
         {
-            auto output = static_cast<void*>(nullptr);
-            auto info = signal.info;
-            auto domainPacket = info.dataPacket.getDomainPacket();
-            signal.domainReader->setTransformIgnore(true);
-            signal.domainReader->readData(domainPacket, info.prevSampleIndex, &output, 1);
-            signal.domainReader->setTransformIgnore(false);
-
-
+            LOG_W("Ticks offset tolerance exceeded.");
+            synced = false;
         }
     }
 

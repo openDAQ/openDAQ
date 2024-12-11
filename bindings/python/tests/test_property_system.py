@@ -530,6 +530,79 @@ class TestPropertySystem(opendaq_test.TestCase):
         self.assertEqual(property_object.get_property_value(
             'dict')['complex'], complex(1, 1))
 
+    def test_events(self):
+        write_counter = 0
+
+        def on_write_handler(sender, args):
+            nonlocal write_counter
+            write_counter += 1
+
+        def increase_write_counter():
+            nonlocal write_counter
+            write_counter += 1
+
+        # event handlers
+        on_write_func = opendaq.EventHandler(on_write_handler)
+        on_write_lambda = opendaq.EventHandler(
+            lambda sender, args: increase_write_counter())
+
+        # assign property to object
+        property_object = opendaq.PropertyObject()
+        property = opendaq.StringProperty('property', 'value', True)
+        property_object.add_property(property)
+
+        # add event handlers
+        property_object.get_on_property_value_write('property') + on_write_func
+        property_object.get_on_property_value_write('property') + on_write_lambda
+
+        # write property, event handlers should be called, check subscriber count, and write counter
+        property.value = 'new_value'
+        self.assertEqual(property_object.get_on_property_value_write(
+            'property').subscriber_count, 2)
+        self.assertEqual(write_counter, 2)
+
+        # remove event handler check
+        property_object.get_on_property_value_write('property') - on_write_lambda
+        self.assertEqual(property_object.get_on_property_value_write(
+            'property').subscriber_count, 1)
+
+        # mute event handler check
+        property_object.get_on_property_value_write('property') | on_write_func
+        property.value = 'new_value2'
+        self.assertEqual(write_counter, 2)
+        self.assertAlmostEqual(property_object.get_on_property_value_write(
+            'property').subscriber_count, 1)
+
+        # unmute event handler check
+        property_object.get_on_property_value_write('property') & on_write_func
+        property.value = 'new_value3'
+        self.assertEqual(write_counter, 3)
+        self.assertAlmostEqual(property_object.get_on_property_value_write(
+            'property').subscriber_count, 1)
+
+        # mute event check
+        property_object.get_on_property_value_write('property').mute()
+        property.value = 'new_value4'
+        self.assertEqual(write_counter, 3)
+        self.assertAlmostEqual(property_object.get_on_property_value_write(
+            'property').subscriber_count, 1)
+
+        # unmute event check
+        property_object.get_on_property_value_write('property').unmute()
+        property.value = 'new_value5'
+        self.assertEqual(write_counter, 4)
+        self.assertAlmostEqual(property_object.get_on_property_value_write(
+            'property').subscriber_count, 1)
+
+        # check event handler equality
+        self.assertEqual(on_write_func, property_object.get_on_property_value_write(
+            'property').subscribers[0])
+
+        # check clear
+        property_object.get_on_property_value_write('property').clear()
+        self.assertEqual(property_object.get_on_property_value_write(
+            'property').subscriber_count, 0)
+
 
 if __name__ == '__main__':
     unittest.main()

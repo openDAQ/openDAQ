@@ -398,7 +398,6 @@ bool SignalReader::sync(const Comparable& commonStart, SizeT* tickOffset)
     while (info.dataPacket.assigned())
     {
         auto domainPacket = info.dataPacket.getDomainPacket();
-        auto tickOffset = SizeT{};
 
         info.prevSampleIndex = domainReader->getOffsetTo(
             domainInfo,

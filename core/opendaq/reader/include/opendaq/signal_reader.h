@@ -29,7 +29,8 @@ enum class SyncStatus
 {
     Unsynchronized,
     Synchronizing,
-    Synchronized
+    Synchronized,
+    SynchronizationFailed
 };
 
 struct SignalInfo

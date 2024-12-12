@@ -117,7 +117,9 @@ private:
     void readSamplesAndSetRemainingSamples(SizeT samples);
 
     void readDomainStart();
-    void sync();
+    bool sync();
+
+    void setActiveInternal(Bool isActive);
 
     MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr);
 

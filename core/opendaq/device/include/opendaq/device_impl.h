@@ -288,16 +288,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         DeviceInfoPtr devInfo;
         errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
         this->deviceInfo = devInfo.detach();
-
-        if (this->deviceInfo.assigned())
-            this->deviceInfo = DeviceInfoFromExisting(this->deviceInfo, this->getChangeableDeviceInfoDefaultFields());
     }
 
     if (this->deviceInfo.assigned())
-    {
         this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
-        this->deviceInfo.freeze();
-    }
+
     *info = this->deviceInfo.addRefAndReturn();
     return errCode;
 }

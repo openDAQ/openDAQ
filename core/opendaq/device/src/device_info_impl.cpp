@@ -59,9 +59,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     {
         const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
         if (ownerPtr.assigned())
-        {
             value.setValue(ownerPtr.getName());
-        }
     };
 }
 
@@ -77,8 +75,9 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
         for (const auto& propName : changeableDefaultPropertyNames)
             this->changeableDefaultPropertyNames.insert(ToLowerCase(propName));
 
-        if (this->changeableDefaultPropertyNames.count("name") == 1)
-            throw InvalidParameterException("The property `name` is reserved and cannot be changed.");
+        this->changeableDefaultPropertyNames.erase("name");
+        this->changeableDefaultPropertyNames.erase("serverCapabilities");
+        this->changeableDefaultPropertyNames.erase("configurationConnectionInfo");
     }
 
     createAndSetStringProperty("manufacturer", "");
@@ -117,39 +116,9 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
 }
 
 template <typename TInterface, typename ... Interfaces>
-DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(IDeviceInfoConfig* deviceInfoToCopy,
-                                                                      const ListPtr<IString>& changeableDefaultPropertyNames)
+DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const ListPtr<IString>& changeableDefaultPropertyNames)
     : DeviceInfoConfigImpl<TInterface, Interfaces...>("", "", nullptr, changeableDefaultPropertyNames)
 {
-    // todo make posible to create empty device info
-    if (deviceInfoToCopy == nullptr)
-        return;
-
-    // updating the default properties
-    for (const auto& propName : detail::defaultDeviceInfoPropertyNames)
-    {
-        BaseObjectPtr value;
-        ErrCode errCode = deviceInfoToCopy->getPropertyValue(String(propName), &value);
-        if (OPENDAQ_FAILED(errCode))
-            continue;
-        Super::setProtectedPropertyValue(String(propName), value);
-    }
-
-    ListPtr<IString> customProperties;
-    ErrCode errCode = deviceInfoToCopy->getCustomInfoPropertyNames(&customProperties);
-    if (OPENDAQ_FAILED(errCode))
-        return;
-
-    // add custom properties
-    for (const auto& propName : customProperties)
-    {
-        PropertyPtr prop;
-        errCode = deviceInfoToCopy->getProperty(String(propName), &prop);
-        if (OPENDAQ_FAILED(errCode))
-            continue;
-        Super::addProperty(prop.asPtr<IPropertyInternal>(true).clone());
-        Super::setProtectedPropertyValue(String(propName), prop.getValue());
-    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -161,7 +130,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setName(IString* name)
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getName(IString** name)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *name = getStringProperty("name").detach();
         return OPENDAQ_SUCCESS;
     });
@@ -176,7 +146,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setConnectionString(ISt
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConnectionString(IString** connectionString)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *connectionString = getStringProperty("connectionString").detach();
         return OPENDAQ_SUCCESS;
     });
@@ -229,7 +200,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setManufacturerUri(IStr
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getManufacturerUri(IString** manufacturerUri)
 {
-    return daqTry([&]() {
+    return daqTry([&]
+    {
         *manufacturerUri = getStringProperty("manufacturerUri").detach();
         return OPENDAQ_SUCCESS;
     });
@@ -694,7 +666,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
     if (!serverCapabilitiesPtr.hasProperty(protocolId))
         return OPENDAQ_ERR_NOTFOUND;
 
-    
     return serverCapabilitiesPtr->removeProperty(protocolId);
 }
 
@@ -906,9 +877,9 @@ ErrCode PUBLIC_EXPORT createDeviceInfoConfigWithCustomSdkVersion(IDeviceInfoConf
 }
 
 extern "C"
-ErrCode PUBLIC_EXPORT createDeviceInfoConfigFromExisting(IDeviceInfoConfig** objTmp, IDeviceInfoConfig* deviceInfoToCopy, IList* changeableDefaultPropertyNames)
+ErrCode PUBLIC_EXPORT createDeviceInfoConfigWithChanegableFields(IDeviceInfoConfig** objTmp, IList* changeableDefaultPropertyNames)
 {
-    return createObject<IDeviceInfoConfig, DeviceInfoConfigImpl<>, IDeviceInfoConfig*, IList*>(objTmp, deviceInfoToCopy, changeableDefaultPropertyNames);
+    return createObject<IDeviceInfoConfig, DeviceInfoConfigImpl<>, IList*>(objTmp, changeableDefaultPropertyNames);
 }
 
 #endif

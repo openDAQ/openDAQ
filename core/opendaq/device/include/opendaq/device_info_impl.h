@@ -46,8 +46,7 @@ public:
                                   const StringPtr& customSdkVersion = nullptr,
                                   const ListPtr<IString>& changeableDefaultPropertyNames = nullptr);
 
-    DeviceInfoConfigImpl(IDeviceInfoConfig* deviceInfoToCopy,
-                         const ListPtr<IString>& changeableDefaultPropertyNames = nullptr);
+    DeviceInfoConfigImpl(const ListPtr<IString>& changeableDefaultPropertyNames);
 
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;

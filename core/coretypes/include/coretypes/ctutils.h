@@ -95,7 +95,8 @@ inline void checkErrorInfo(ErrCode errCode)
     {
         IString* message = nullptr;
         ConstCharPtr msgCharPtr = nullptr;
-        Finally final([&message]() {
+        Finally final([&message]
+        {
             if (message != nullptr)
                 message->releaseRef();
         });

@@ -78,7 +78,7 @@ MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
 
 DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = DeviceInfo("");
+    auto deviceInfo = DeviceInfoWithChanegableFields(this->getChangeableDeviceInfoDefaultFields());
     deviceInfo.setName("MockPhysicalDevice");
     deviceInfo.setConnectionString("daqmock://phys_device");
     deviceInfo.setManufacturer("manufacturer");

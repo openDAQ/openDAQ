@@ -531,22 +531,14 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
-    auto changeableProperties = List<IString>();
-    for (const auto& prop : deviceInfo.getAllProperties())
-    {
-        if (!prop.getReadOnly())
-            changeableProperties.pushBack(prop.getName());
-    }
-    const auto newDeviceInfo = DeviceInfoFromExisting(deviceInfo, changeableProperties);
-    newDeviceInfo.setConnectionString(connectionString);
+    deviceInfo.asPtr<IDeviceInfoConfig>(true).setConnectionString(connectionString);
 
-    if (!newDeviceInfo.hasProperty("NativeConfigProtocolVersion"))
+    if (!deviceInfo.hasProperty("NativeConfigProtocolVersion"))
     {
         auto propBuilder = IntPropertyBuilder("NativeConfigProtocolVersion", clientComm->getProtocolVersion()).setReadOnly(true);
-        newDeviceInfo.addProperty(propBuilder.build());
+        deviceInfo.addProperty(propBuilder.build());
     }
-
-    deviceInfo = newDeviceInfo;
+    deviceInfo.freeze();
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

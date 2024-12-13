@@ -121,6 +121,8 @@ public:
         DevicePtr createdDevice;
         errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, mergeConfig(config, deviceType));
 
+        createdDevice.getInfo();
+
         *device = createdDevice.detach();
         return errCode;
     }

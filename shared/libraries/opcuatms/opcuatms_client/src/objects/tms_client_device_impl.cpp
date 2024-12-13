@@ -178,8 +178,6 @@ static bool IsVersionHigher(const std::string &version, int major, int minor)
 
 DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = DeviceInfo("", this->client->readDisplayName(this->nodeId));
-
     auto browseFilter = BrowseFilter();
     browseFilter.nodeClass = UA_NODECLASS_VARIABLE;
     const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, browseFilter);
@@ -193,7 +191,48 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
     }
     reader.read();
 
-    std::unordered_map<std::string, OpcUaNodeId> cheangeableProperties;
+    bool serverSupportsEditableProperties = true;
+    if (references.byBrowseName.contains("OpenDaqPackageVersion"))
+    {
+        const auto refNodeId = OpcUaNodeId(references.byBrowseName.at("OpenDaqPackageVersion")->nodeId.nodeId);
+        const auto sdkVersion = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE).toString();
+        serverSupportsEditableProperties = sdkVersion.empty() || IsVersionHigher(sdkVersion, 3, 11);
+    }
+
+    std::set<std::string> changeableProperties;
+    if (serverSupportsEditableProperties)
+    {
+        for (const auto& [browseName, ref] : references.byBrowseName)
+        {
+            const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+            const auto accessLevel = reader.getValue(refNodeId, UA_ATTRIBUTEID_ACCESSLEVEL).toInteger();
+            const bool isReadOnly = !(accessLevel & UA_ACCESSLEVELMASK_WRITE);
+
+            if (isReadOnly)
+                continue;
+            
+            std::string propertyName = browseName;
+            if (detail::deviceInfoFieldMap.count(propertyName))
+                propertyName = detail::deviceInfoFieldMap[propertyName];
+            
+            changeableProperties.insert(propertyName);
+        }
+    }
+    else
+    {
+        changeableProperties = {"userName", "location"};
+    }
+
+    DeviceInfoConfigPtr deviceInfo;
+    {
+        auto propNames = List<IString>();
+        for (const auto& name : changeableProperties)
+            propNames.pushBack(String(name));
+        deviceInfo = DeviceInfoWithChanegableFields(propNames);
+    }
+
+    deviceInfo.setName(this->client->readDisplayName(this->nodeId));
+
     for (const auto& [browseName, ref] : references.byBrowseName)
     {
         if (browseName == "NumberInList")
@@ -207,51 +246,48 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
         const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
         const auto value = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE);
-        const auto accessLevel = reader.getValue(refNodeId, UA_ATTRIBUTEID_ACCESSLEVEL).toInteger();
-        const bool isReadOnly = !(accessLevel & UA_ACCESSLEVELMASK_WRITE);
-
-        if (!isReadOnly)
-        {
-            if (detail::deviceInfoFieldMap.count(browseName))
-                cheangeableProperties.emplace(detail::deviceInfoFieldMap[browseName], refNodeId);
-            else
-                cheangeableProperties.emplace(browseName, refNodeId);
-        }
        
-        if (detail::deviceInfoSetterMap.count(browseName))
-        {
-            detail::deviceInfoSetterMap[browseName](deviceInfo, value);
-            continue;
-        }
-
         try
         {
-            if (value.isScalar())
+            if (!value.isScalar())
+                continue;
+
+            if (detail::deviceInfoSetterMap.count(browseName))
             {
-                if (deviceInfo.hasProperty(browseName))
+                detail::deviceInfoSetterMap[browseName](deviceInfo, value);
+                continue;
+            }
+            
+            if (deviceInfo.hasProperty(browseName))
+            {
+                if (value.isString())
+                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toString());
+                else if (value.isBool())
+                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toBool());
+                else if (value.isDouble())
+                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toDouble());
+                else if (value.isInteger())
+                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toInteger());
+            }
+            else
+            {
+                PropertyBuilderPtr propertyBuilder;
+                if (value.isString())
+                    propertyBuilder = StringPropertyBuilder(browseName, value.toString());
+                else if (value.isBool())
+                    propertyBuilder = BoolPropertyBuilder(browseName, value.toBool());
+                else if (value.isDouble())
+                    propertyBuilder = FloatPropertyBuilder(browseName, value.toDouble());
+                else if (value.isInteger())
+                    propertyBuilder = IntPropertyBuilder(browseName, value.toInteger());
+
+                if (propertyBuilder.assigned())
                 {
-                    if (value.isString())
-                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toString());
-                    else if (value.isBool())
-                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toBool());
-                    else if (value.isDouble())
-                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toDouble());
-                    else if (value.isInteger())
-                        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toInteger());
-                }
-                else
-                {
-                    PropertyBuilderPtr propertyBuilder;
-                    if (value.isString())
-                        propertyBuilder = StringPropertyBuilder(browseName, value.toString());
-                    else if (value.isBool())
-                        propertyBuilder = BoolPropertyBuilder(browseName, value.toBool());
-                    else if (value.isDouble())
-                        propertyBuilder = FloatPropertyBuilder(browseName, value.toDouble());
-                    else if (value.isInteger())
-                        propertyBuilder = IntPropertyBuilder(browseName, value.toInteger());
-                    if (propertyBuilder.assigned())
-                        deviceInfo.addProperty(propertyBuilder.setReadOnly(isReadOnly).build());
+                    const bool isReadOnly = changeableProperties.count(browseName) == 0;
+                    const auto property = propertyBuilder.setReadOnly(isReadOnly).build();
+                    deviceInfo.addProperty(property);
+                    if (!isReadOnly)
+                        introspectionVariableIdMap.emplace(browseName, refNodeId);
                 }
             }
         }
@@ -259,22 +295,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         {
             LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->globalId, e.what());
         }
-    }
-
-    const std::string sdkVersion = deviceInfo.getSdkVersion();
-    if (sdkVersion.empty() || IsVersionHigher(sdkVersion, 3, 11))
-    {
-        changeableDeviceInfoDefaultFields = List<IString>();
-        for (const auto& [propName, refNodeId] : cheangeableProperties)
-        {
-            Impl::addProperty(deviceInfo.getProperty(propName).asPtr<IPropertyInternal>(true).clone());
-            changeableDeviceInfoDefaultFields.pushBack(propName);
-            introspectionVariableIdMap.emplace(propName, refNodeId);
-        }
-    }
-    else
-    {
-        changeableDeviceInfoDefaultFields = nullptr;
     }
 
     findAndCreateServerCapabilities(deviceInfo);

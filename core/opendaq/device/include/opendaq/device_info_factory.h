@@ -37,9 +37,9 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     return obj;
 }
 
-inline DeviceInfoConfigPtr DeviceInfoFromExisting(const DeviceInfoConfigPtr& deviceInfo, const ListPtr<IString>& changeableDefaultPropertyNames = nullptr)
+inline DeviceInfoConfigPtr DeviceInfoWithChanegableFields(const ListPtr<IString>& changeableDefaultPropertyNames)
 {
-    DeviceInfoConfigPtr obj(DeviceInfoConfigFromExisting_Create(deviceInfo, changeableDefaultPropertyNames));
+    DeviceInfoConfigPtr obj(DeviceInfoConfigWithChanegableFields_Create(changeableDefaultPropertyNames));
     return obj;
 }
 

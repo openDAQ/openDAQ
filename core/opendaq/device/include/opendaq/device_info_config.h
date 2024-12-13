@@ -209,8 +209,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 
 //[factory(Hide)]
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, DeviceInfoConfigFromExisting, IDeviceInfoConfig,
-    IDeviceInfoConfig*, deviceInfoToCopy,
+    LIBRARY_FACTORY, DeviceInfoConfigWithChanegableFields, IDeviceInfoConfig,
     IList*, changeableDefaultPropertyNames)
 
 END_NAMESPACE_OPENDAQ

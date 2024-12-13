@@ -202,8 +202,6 @@ protected:
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
     DevicePtr getParentDevice();
 
-    virtual ListPtr<IString> getChangeableDeviceInfoDefaultFields();
-
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -256,15 +254,6 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     devices.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     ioFolder.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     servers.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
-
-    this->addProperty(StringProperty("userName", ""));
-    this->addProperty(StringProperty("location", ""));
-}
-
-template <typename TInterface, typename... Interfaces>
-ListPtr<IString> GenericDevice<TInterface, Interfaces...>::getChangeableDeviceInfoDefaultFields()
-{
-    return {"userName", "location"};
 }
 
 template <typename TInterface, typename... Interfaces>

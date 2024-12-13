@@ -54,7 +54,6 @@ protected:
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
     ListPtr<ILogFileInfo> ongetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
-    ListPtr<IString> getChangeableDeviceInfoDefaultFields() override;
 
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
 
@@ -67,7 +66,6 @@ private:
     SizeT ticksSinceOrigin{};
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
-    ListPtr<IString> changeableDeviceInfoDefaultFields;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

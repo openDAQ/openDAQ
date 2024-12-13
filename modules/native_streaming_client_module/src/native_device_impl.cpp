@@ -538,7 +538,6 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
         auto propBuilder = IntPropertyBuilder("NativeConfigProtocolVersion", clientComm->getProtocolVersion()).setReadOnly(true);
         deviceInfo.addProperty(propBuilder.build());
     }
-    deviceInfo.freeze();
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

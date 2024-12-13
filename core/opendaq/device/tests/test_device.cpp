@@ -36,7 +36,8 @@ public:
 
     daq::DeviceInfoPtr onGetInfo() override
     {
-        auto deviceInfo = daq::DeviceInfo("conn");
+        auto deviceInfo = daq::DeviceInfoWithChanegableFields({"userName", "location"});
+        deviceInfo.setConnectionString("conn");
         deviceInfo.setName("test");
         deviceInfo.setLocation("test");
         return deviceInfo;

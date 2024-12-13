@@ -733,11 +733,4 @@ StringPtr TmsClientDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offse
     throw OpcUaClientCallNotAvailableException("GetLog is not available for OpcUA client device");
 }
 
-ListPtr<IString> TmsClientDeviceImpl::getChangeableDeviceInfoDefaultFields()
-{
-    if (changeableDeviceInfoDefaultFields.assigned())
-        return changeableDeviceInfoDefaultFields;
-    return {"userName", "location"};
-}
-
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

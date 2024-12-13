@@ -519,18 +519,19 @@ TEST_F(TmsDeviceTest, DeviceInfoChanges)
     const auto clientSubDevice = clientDevice.getDevices()[1];
     const auto clientDeviceInfo = clientSubDevice.getInfo();
 
-    // ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
     ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
 
-    // clientSubDevice.setName("new_name");
+    clientSubDevice.setName("new_name");
     clientSubDevice.setPropertyValue("location", "new_location");
     clientSubDevice.setPropertyValue("TestChangeableField", "new_value");
 
-    // ASSERT_EQ("new_name", clientDeviceInfo.getName());
+    ASSERT_EQ("new_name", clientDeviceInfo.getName());
     ASSERT_EQ("new_location", clientDeviceInfo.getLocation());
     ASSERT_EQ("new_value", clientDeviceInfo.getPropertyValue("TestChangeableField"));
 
-    // ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+    ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
 }

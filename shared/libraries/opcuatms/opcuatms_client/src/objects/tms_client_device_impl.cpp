@@ -36,7 +36,8 @@ namespace detail
 {
     static std::unordered_set<std::string> defaultComponents = {"Sig", "FB", "IO", "ServerCapabilities", "Synchronization"};
 
-    static std::unordered_map<std::string, std::string> deviceInfoFieldMap = {
+    static std::unordered_map<std::string, std::string> deviceInfoFieldMap = 
+    {
         {"AssetId", "assetId"},
         {"ComponentName", "name"},
         {"DeviceClass", "deviceClass"},
@@ -62,7 +63,8 @@ namespace detail
         {"UserName", "userName"},
     };
 
-    static std::unordered_map<std::string, std::function<void(const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = {
+    static std::unordered_map<std::string, std::function<void(const DeviceInfoConfigPtr&, const OpcUaVariant&)>> deviceInfoSetterMap = 
+    {
         {"AssetId", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setAssetId(v.toString()); }},
         {"ComponentName", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setName(v.toString()); }},
         {"DeviceClass", [](const DeviceInfoConfigPtr& info, const OpcUaVariant& v) { info.setDeviceClass(v.toString()); }},
@@ -199,7 +201,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         serverSupportsEditableProperties = sdkVersion.empty() || IsVersionHigher(sdkVersion, 3, 11);
     }
 
-    std::set<std::string> changeableProperties;
+    auto changeableProperties = List<IString>();
     if (serverSupportsEditableProperties)
     {
         for (const auto& [browseName, ref] : references.byBrowseName)
@@ -210,31 +212,39 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
             if (isReadOnly)
                 continue;
+            if (browseName == "NumberInList")
+                continue;
+            if (browseName == "Active")
+                continue;
+            if (browseName == "Visible")
+                continue;
+            if (browseName == "Tags")
+                continue;
             
             std::string propertyName = browseName;
             if (detail::deviceInfoFieldMap.count(propertyName))
                 propertyName = detail::deviceInfoFieldMap[propertyName];
-            
-            changeableProperties.insert(propertyName);
+
+            deviceInfoChangeableFields.emplace(propertyName, refNodeId);
         }
+        for (const auto& [name, _] : deviceInfoChangeableFields)
+            changeableProperties.pushBack(String(name));
     }
     else
     {
         changeableProperties = {"userName", "location"};
     }
 
-    DeviceInfoConfigPtr deviceInfo;
-    {
-        auto propNames = List<IString>();
-        for (const auto& name : changeableProperties)
-            propNames.pushBack(String(name));
-        deviceInfo = DeviceInfoWithChanegableFields(propNames);
-    }
-
+    auto deviceInfo = DeviceInfoWithChanegableFields(changeableProperties);
     deviceInfo.setName(this->client->readDisplayName(this->nodeId));
 
     for (const auto& [browseName, ref] : references.byBrowseName)
     {
+        const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+        const auto value = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE);
+
+        if (!value.isScalar())
+            continue;
         if (browseName == "NumberInList")
             continue;
         if (browseName == "Active")
@@ -243,51 +253,46 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
             continue;
         if (browseName == "Tags")
             continue;
-
-        const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
-        const auto value = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE);
        
         try
         {
-            if (!value.isScalar())
-                continue;
-
-            if (detail::deviceInfoSetterMap.count(browseName))
+            if (auto it = detail::deviceInfoSetterMap.find(browseName); it != detail::deviceInfoSetterMap.end())
             {
-                detail::deviceInfoSetterMap[browseName](deviceInfo, value);
+                it->second(deviceInfo, value);
                 continue;
             }
+
+            std::string propertyName = browseName;
+            if (auto it = detail::deviceInfoFieldMap.find(propertyName); it != detail::deviceInfoFieldMap.end())
+                propertyName = it->second;
             
-            if (deviceInfo.hasProperty(browseName))
+            if (deviceInfo.hasProperty(propertyName))
             {
                 if (value.isString())
-                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toString());
+                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, value.toString());
                 else if (value.isBool())
-                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toBool());
+                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, value.toBool());
                 else if (value.isDouble())
-                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toDouble());
+                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, value.toDouble());
                 else if (value.isInteger())
-                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(browseName, value.toInteger());
+                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, value.toInteger());
             }
             else
             {
                 PropertyBuilderPtr propertyBuilder;
                 if (value.isString())
-                    propertyBuilder = StringPropertyBuilder(browseName, value.toString());
+                    propertyBuilder = StringPropertyBuilder(propertyName, value.toString());
                 else if (value.isBool())
-                    propertyBuilder = BoolPropertyBuilder(browseName, value.toBool());
+                    propertyBuilder = BoolPropertyBuilder(propertyName, value.toBool());
                 else if (value.isDouble())
-                    propertyBuilder = FloatPropertyBuilder(browseName, value.toDouble());
+                    propertyBuilder = FloatPropertyBuilder(propertyName, value.toDouble());
                 else if (value.isInteger())
-                    propertyBuilder = IntPropertyBuilder(browseName, value.toInteger());
+                    propertyBuilder = IntPropertyBuilder(propertyName, value.toInteger());
 
                 if (propertyBuilder.assigned())
                 {
-                    const bool isReadOnly = changeableProperties.count(browseName) == 0;
-                    const auto property = propertyBuilder.setReadOnly(isReadOnly).build();
-                    deviceInfo.addProperty(property);
-                    if (!isReadOnly)
-                        introspectionVariableIdMap.emplace(browseName, refNodeId);
+                    const bool isReadOnly = deviceInfoChangeableFields.count(propertyName) == 0;
+                    deviceInfo.addProperty(propertyBuilder.setReadOnly(isReadOnly).build());
                 }
             }
         }
@@ -299,6 +304,72 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
     findAndCreateServerCapabilities(deviceInfo);
     return deviceInfo;
+}
+
+ErrCode TmsClientDeviceImpl::addProperty(IProperty* property)
+{
+    if (property == nullptr)
+        return OPENDAQ_ERR_INVALID_ARGUMENT;
+    
+    auto propPtr = PropertyPtr::Borrow(property);
+    if (deviceInfoChangeableFields.count(propPtr.getName()))
+        return Impl::addProperty(property);
+
+    return Super::addProperty(property);
+}
+
+ErrCode TmsClientDeviceImpl::getPropertyValue(IString* propertyName, IBaseObject** value)
+{
+    if (propertyName == nullptr)
+    {
+        LOG_W("Failed to get value for property with nullptr name on OpcUA client property object");
+        return OPENDAQ_SUCCESS;
+    }
+    auto propertyNamePtr = StringPtr::Borrow(propertyName);
+
+    if (auto it = deviceInfoChangeableFields.find(propertyNamePtr); it != deviceInfoChangeableFields.end())
+    {
+        const auto variant = client->readValue(it->second);
+        auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+        Impl::setProtectedPropertyValue(propertyName, object);
+        *value = object.detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::getPropertyValue(propertyName, value);
+}
+
+ErrCode TmsClientDeviceImpl::setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite)
+{
+    if (propertyName == nullptr)
+    {
+        LOG_W("Failed to set value for property with nullptr name on OpcUA client property object");
+        return OPENDAQ_SUCCESS;
+    }
+    auto propertyNamePtr = StringPtr::Borrow(propertyName);
+
+    if (auto it = deviceInfoChangeableFields.find(propertyNamePtr); it != deviceInfoChangeableFields.end())
+    {
+        PropertyPtr prop;
+        ErrCode errCode = getProperty(propertyName, &prop);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        if (!protectedWrite && prop.getReadOnly())
+            return OPENDAQ_ERR_ACCESSDENIED;
+
+        auto valuePtr = BaseObjectPtr(value);
+        const auto ct = prop.getValueType();
+        const auto valueCt = valuePtr.getCoreType();
+        if (ct != valueCt)
+            valuePtr = valuePtr.convertTo(ct);
+
+        const auto variant = VariantConverter<IBaseObject>::ToVariant(valuePtr, nullptr, daqContext);
+        client->writeValue(it->second, variant);
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::setPropertyValueInternal(propertyName, value, protectedWrite);
 }
 
 void TmsClientDeviceImpl::fetchTimeDomain()

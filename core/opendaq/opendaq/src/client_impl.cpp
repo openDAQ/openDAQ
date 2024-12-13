@@ -25,7 +25,7 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
 
 DeviceInfoPtr ClientImpl::onGetInfo()
 {
-    return DeviceInfo("daqmock://client_device", "OpenDAQClient");;
+    return DeviceInfo("daqmock://client_device", "OpenDAQClient");
 }
 
 bool ClientImpl::allowAddDevicesFromModules()

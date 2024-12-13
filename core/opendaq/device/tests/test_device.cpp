@@ -164,6 +164,7 @@ TEST_F(DeviceTest, CustomComponentSubItems)
 TEST_F(DeviceTest, DefaultProperties)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    device.getInfo();
     ASSERT_EQ(device.getPropertyValue("location"), "");
     ASSERT_EQ(device.getPropertyValue("userName"), "");
 }

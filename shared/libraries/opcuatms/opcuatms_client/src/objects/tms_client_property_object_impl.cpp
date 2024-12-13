@@ -155,7 +155,7 @@ template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
     BaseObjectPtr object;
-    TmsClientPropertyObjectBaseImpl::getPropertyValue(propertyName, &object);
+    getPropertyValue(propertyName, &object);
     return Impl::getPropertySelectionValue(propertyName, value);
 }
 

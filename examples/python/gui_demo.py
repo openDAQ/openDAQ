@@ -456,9 +456,8 @@ class App(tk.Tk):
                         self.tree_popup.entryconfig(
                             'Add Function block', state=tk.NORMAL, command=lambda: self.add_function_block_dialog_show(node))
                     if not daq.IChannel.can_cast_from(node):
-                        if utils.get_nearest_fb(node.parent) is None:
-                            self.tree_popup.entryconfig(
-                                'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_function_block(node))
+                        self.tree_popup.entryconfig(
+                            'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_function_block(node))
                 elif daq.IDevice.can_cast_from(node):
                     node = daq.IDevice.cast_from(node)
                     if node.available_function_block_types:
@@ -605,12 +604,13 @@ class App(tk.Tk):
 
         node = daq.IFunctionBlock.cast_from(node)
 
-        device = utils.get_nearest_device(node.parent)
-        if device is None:
-            return
+        # searching nearest fb up the tree
+        # if no parent fb found, then trying to remove from nearest parent device
+        device = utils.get_nearest_device(node.parent, self.context.instance)
+        parent_fb = utils.get_nearest_fb(node.parent, device)
 
-        device.remove_function_block(node)
-        self.context.selected_node = device
+        parent_fb.remove_function_block(node)
+        self.context.selected_node = parent_fb
         self.tree_update(self.context.selected_node)
 
     def handle_tree_menu_remove_device(self, node):

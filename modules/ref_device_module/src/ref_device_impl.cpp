@@ -31,7 +31,7 @@ RefDeviceImpl::RefDeviceImpl()
     : acqLoopTime(0)
     , stopAcq(false)
     , microSecondsFromEpochToDeviceStart(0)
-    , domainUnit(UnitBuilder().setName("microsecond").setSymbol("us").setQuantity("time").build())
+    , domainUnit(UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build())
 {
 }
 

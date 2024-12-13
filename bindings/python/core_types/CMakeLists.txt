@@ -33,6 +33,8 @@ set(SRC_Cpp
     src/py_procedure.cpp
     src/py_function.cpp
     #
+    generated/py_event_handler.cpp
+    generated/py_event.cpp
     generated/py_event_args.cpp
     generated/py_type.cpp
     generated/py_simple_type.cpp

@@ -168,6 +168,7 @@ void ConfigClientBaseFolderImpl<Impl>::handleRemoteCoreObjectInternal(const Comp
         case CoreEventId::TypeAdded:
         case CoreEventId::TypeRemoved:
         case CoreEventId::DeviceDomainChanged:
+        case CoreEventId::ConnectionStatusChanged:
         default:
             break;
     }

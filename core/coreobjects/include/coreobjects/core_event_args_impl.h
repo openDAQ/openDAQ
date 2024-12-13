@@ -63,6 +63,8 @@ namespace core_event_args_impl
                 return "DeviceDomainChanged";
             case CoreEventId::DeviceLockStateChanged:
                 return "DeviceLockStateChanged";
+            case CoreEventId::ConnectionStatusChanged:
+                return "ConnectionStatusChanged";
             default:
                 break;
         }
@@ -232,6 +234,12 @@ inline bool CoreEventArgsImpl::validateParameters() const
             return parameters.hasKey("DeviceDomain");
         case CoreEventId::DeviceLockStateChanged:
             return parameters.hasKey("IsLocked");
+        case CoreEventId::ConnectionStatusChanged:
+            return parameters.hasKey("StatusName")
+                   && parameters.hasKey("StatusValue")
+                   && parameters.hasKey("ConnectionString")
+                   && parameters.hasKey("ProtocolType")
+                   && parameters.hasKey("StreamingObject");
         default:
             break;
     }

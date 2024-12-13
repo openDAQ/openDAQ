@@ -46,6 +46,8 @@
 #include <opendaq/component_errors.h>
 #include <opendaq/component_update_context_impl.h>
 #include <opendaq/component_update_context_ptr.h>
+#include <opendaq/component_status_container_ptr.h>
+#include <opendaq/component_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -55,6 +57,13 @@ BEGIN_NAMESPACE_OPENDAQ
 #endif
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
+
+enum class ComponentErrorState : EnumType
+{
+    Ok = 0,
+    Warning,
+    Error
+};
 
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>
@@ -168,6 +177,10 @@ protected:
     PropertyObjectPtr getPropertyObjectParent() override;
 
     static bool validateComponentId(const std::string& id);
+
+    void initComponentErrorStateStatus() const;
+    void setComponentErrorStateStatus(const ComponentErrorState& status) const;
+    void setComponentErrorStateStatusWithMessage(const ComponentErrorState& status, const StringPtr& message) const;
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
@@ -1087,61 +1100,23 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
     if (serializedObject.hasKey("name"))
         name = serializedObject.readString("name");
 
+    const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+    auto intfID = deserializeContext.getIntfID();
+    const auto triggerCoreEvent = [this](const CoreEventArgsPtr& args)
+    {
+        if (!this->coreEventMuted)
+            this->triggerCoreEvent(args);
+    };
+    const auto clonedDeserializeContext = deserializeContext.clone(deserializeContext.getParent(),
+                                                                   deserializeContext.getLocalId(),
+                                                                   &intfID,
+                                                                   triggerCoreEvent);
+
     if (serializedObject.hasKey("tags"))
-        tags = serializedObject.readObject(
-            "tags",
-            context,
-            [this](const StringPtr& typeId,
-                   const SerializedObjectPtr& object,
-                   const BaseObjectPtr& context,
-                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
-            {
-                if (typeId == TagsImpl::SerializeId())
-                {
-                    ObjectPtr<ITagsPrivate> tags;
-                    auto errCode = createObject<ITagsPrivate, TagsImpl>(&tags,
-                        [this](const CoreEventArgsPtr& args)
-                        {
-                            if (!this->coreEventMuted)
-                                triggerCoreEvent(args);
-                        });
-                    if (OPENDAQ_FAILED(errCode))
-                        return errCode;
-
-                    const auto list = object.readList<IString>("list", context, factoryCallback);
-                    for (const auto& tag : list)
-                        tags->add(tag);
-
-                    return tags;
-                }
-                return nullptr;
-            });
+        tags = serializedObject.readObject("tags", clonedDeserializeContext);
 
     if (serializedObject.hasKey("statuses"))
-        statusContainer = serializedObject.readObject(
-            "statuses",
-            context,
-            [this](const StringPtr& typeId,
-                   const SerializedObjectPtr& object,
-                   const BaseObjectPtr& context,
-                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
-            {
-                if (typeId == ComponentStatusContainerImpl::SerializeId())
-                {
-                    auto container = createWithImplementation<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(
-                        [this](const CoreEventArgsPtr& args)
-                        {
-                            if (!this->coreEventMuted)
-                                triggerCoreEvent(args);
-                        });
-
-                    DictPtr<IString, IEnumeration> statuses = object.readObject("statuses", context, factoryCallback);
-                    for (const auto& [name, value] : statuses)
-                        container->addStatus(name, value);
-                    return container;
-                }
-                return nullptr;
-            });
+        statusContainer = serializedObject.readObject("statuses", clonedDeserializeContext);
 }
 
 template <class Intf, class... Intfs>
@@ -1150,6 +1125,43 @@ bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
     if (id.find('/') != std::string::npos)
         throw InvalidParameterException("Component id " + id + " contains '/'");
     return id.find(' ') == std::string::npos;
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::initComponentErrorStateStatus() const
+{
+    // Component error state status is added ("Ok" when a component is created)
+    const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
+    const auto componentStatusValue =
+        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentErrorState::Ok), this->context.getTypeManager());
+    statusContainerPrivate.addStatus("ComponentStatus", componentStatusValue);
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::setComponentErrorStateStatus(const ComponentErrorState& status) const
+{
+    setComponentErrorStateStatusWithMessage(status, "");
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::setComponentErrorStateStatusWithMessage(const ComponentErrorState& status, const StringPtr& message) const
+{
+    // Fail with explicit message of what happened if not initialized
+    try
+    {
+        auto dummy = this->statusContainer.getStatus("ComponentStatus");
+    }
+    catch (const NotFoundException&)
+    {
+        throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentErrorStateStatus needs to be called "
+                                "before setComponentErrorStateStatus.");
+    }
+
+    // Set status if initialized
+    const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
+    const auto componentStatusValue =
+        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(status), this->context.getTypeManager());
+    statusContainerPrivate.setStatusWithMessage("ComponentStatus", componentStatusValue, message);
 }
 
 using StandardComponent = ComponentImpl<>;

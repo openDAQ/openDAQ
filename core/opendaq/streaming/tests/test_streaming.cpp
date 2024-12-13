@@ -89,16 +89,22 @@ TEST_F(StreamingTest, SignalAvailableUnavailableFail)
 
 TEST_F(StreamingTest, StartCompleteReconnection)
 {
+    ASSERT_EQ(streaming.ptr.getConnectionStatus(), "Connected");
+
     // reconnection cannot be completed without being started
     ASSERT_THROW(streaming.mock().triggerReconnectionCompletion(), InvalidStateException);
 
     ASSERT_NO_THROW(streaming.mock().triggerReconnectionStart());
+    ASSERT_EQ(streaming.ptr.getConnectionStatus(), "Reconnecting");
+
     // reconnection can be restarted multiple times before completion
     ASSERT_NO_THROW(streaming.mock().triggerReconnectionStart());
 
     ASSERT_THROW(streaming.mock().makeSignalUnavailable("Signal"), NotFoundException);
 
     ASSERT_NO_THROW(streaming.mock().triggerReconnectionCompletion());
+    ASSERT_EQ(streaming.ptr.getConnectionStatus(), "Connected");
+
     ASSERT_THROW(streaming.mock().triggerReconnectionCompletion(), InvalidStateException);
 }
 

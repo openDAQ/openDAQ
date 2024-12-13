@@ -34,9 +34,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Provides access to private methods of the Component status container.
  *
  * Said methods allow for adding new statuses and setting a value for existing statuses stored in
- * the component status container.
+ * the component status container. Device connection statuses, however, are managed independently
+ * via IConnectionStatusContainerPrivate.
  *
- * Status changed Core events are triggered whenever there is a change in the status of the openDAQ Component.
+ * "StatusChanged" Core events are triggered whenever there is a change in the status of the openDAQ Component.
  */
 DECLARE_OPENDAQ_INTERFACE(IComponentStatusContainerPrivate, IBaseObject)
 {
@@ -53,6 +54,22 @@ DECLARE_OPENDAQ_INTERFACE(IComponentStatusContainerPrivate, IBaseObject)
      * @param value The new value of the component status.
      */
     virtual ErrCode INTERFACE_FUNC setStatus(IString* name, IEnumeration* value) = 0;
+
+    /*!
+     * @brief Adds the new status with given name, initial value, and message.
+     * @param name The name of the component status.
+     * @param initialValue The initial value of the component status.
+     * @param message The message of the component status.
+     */
+    virtual ErrCode INTERFACE_FUNC addStatusWithMessage(IString* name, IEnumeration* initialValue, IString* message) = 0;
+
+    /*!
+     * @brief Sets the value for the existing component status with a message.
+     * @param name The name of the component status.
+     * @param value The new value of the component status.
+     * @param message The new message of the component status.
+     */
+    virtual ErrCode INTERFACE_FUNC setStatusWithMessage(IString* name, IEnumeration* value, IString* message) = 0;
 };
 /*!@}*/
 

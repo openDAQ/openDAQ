@@ -1,3 +1,64 @@
+# 5.12.2024
+## Description
+- Add Component status types to the Type Manager in `context_impl.cpp` ("Ok", "Warning", and "Error")
+- Define `ComponentErrorState`
+- Declare and define `initComponentErrorStateStatus`, `setComponentErrorStateStatus`, and `setComponentErrorStateStatusWithMessage` in `component_impl.h`
+- Add `getStatusMessage` in `component_status_container.h`, and `addStatusWithMessage`, `setStatusWithMessage` in `component_status_container_private.h`, implement all three in `component_status_container_impl.h`
+- Use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage` in all reference Function Blocks
+
+## Required integration changes
+- None, however, developers of Function Blocks are encouraged to use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage`
+
+```
++ [function] IComponentStatusContainer::getStatusMessage(IString* name, IString** message)
++ [function] IComponentStatusContainerPrivate::addStatusWithMessage(IString* name, IEnumeration* initialValue, IString* message)
++ [function] IComponentStatusContainerPrivate::setStatusWithMessage(IString* name, IEnumeration* value, IString* message)
+```
+
+# 04.12.2024
+## Description
+- Module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`
+
+```
+-m [function] ListPtr<ILogFileInfo> Device::ongetLogFileInfos()
++m [function] ListPtr<ILogFileInfo> Device::onGetLogFileInfos()
+```
+
+# 04.12.2024
+##
+- Add "Any read/write" events to property object.
+- These events are triggered whenever any property value is read/written.
+
+```
++ [function] IPropertyObject::getOnAnyPropertyValueWrite(IEvent** event)
++ [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
+```
+
+# 28.11.2024
+## Description
+- Introduces separate container accessible per device for connection statuses
+- Introduces new core event type "ConnectionStatusChanged" to notify when configuration or streaming connection status of the device changed
+    limitations: streaming connections statuses are neither serialized nor propagated through the native configuration protocol
+- daq Context always has TypeManager assigned
+- "ConnectionStatusType" added to TypeManager by default
+- Makes connection status accessible directly from Streaming object
+
+## Required integration changes
+- Breaks binary compatibility
+- Introduces new mechanism for retrieving connection status of the device
+
+```
++ [interface] IConnectionStatusContainerPrivate : public IBaseObject
++ [function] IConnectionStatusContainerPrivate::addConfigurationConnectionStatus(IString* connectionString, IEnumeration* initialValue)
++ [function] IConnectionStatusContainerPrivate::addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IStreaming* streamingObject)
++ [function] IConnectionStatusContainerPrivate::removeStreamingConnectionStatus(IString* connectionString)
++ [function] IConnectionStatusContainerPrivate::updateConnectionStatus(IString* connectionString, IEnumeration* value, IStreaming* streamingObject)
+
++ [function] IDevice::getConnectionStatusContainer(IComponentStatusContainer** statusContainer)
+
++ [function] IStreaming::getConnectionStatus(IEnumeration** connectionStatus)
+```
+
 # 25.11.2024
 ## Description
 - Delete the fields `id`, `name`, and `versionInfo` from the `IModule` interface and add them to the new `IModuleInfo` interface, which is a new field in the `IModule` interface
@@ -36,7 +97,7 @@
 ## Description
 - Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool* isLockedOut)
 
-# 12.11.2024:
+# 12.11.2024
 ## Description
 - Improved component updates.
 - Removed generation of local ID for client device in instance.
@@ -70,7 +131,7 @@
 + [function] IUserLock::isLocked(Bool* isLockedOut)
 ```
 
-# 29.10.2024:
+# 29.10.2024
 ## Description
 - Implement thread synchronization mechanism in property objects
 - Provides new internal method to allow for recursive locking in onWrite/onRead events via `GenericPropertyObjectImpl::getRecursiveConfigLock()`

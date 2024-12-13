@@ -296,6 +296,11 @@ ErrCode INTERFACE_FUNC InstanceImpl::getLog(IString** log, IString* id, Int size
     return rootDevice->getLog(log, id, size, offset);
 }
 
+ErrCode InstanceImpl::getConnectionStatusContainer(IComponentStatusContainer** statusContainer)
+{
+    return rootDevice->getConnectionStatusContainer(statusContainer);
+}
+
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
 {
     OPENDAQ_PARAM_NOT_NULL(currentRootDevice);
@@ -649,6 +654,16 @@ ErrCode InstanceImpl::getOnPropertyValueWrite(IString* propertyName, IEvent** ev
 ErrCode InstanceImpl::getOnPropertyValueRead(IString* propertyName, IEvent** event)
 {
     return rootDevice->getOnPropertyValueRead(propertyName, event);
+}
+
+ErrCode InstanceImpl::getOnAnyPropertyValueWrite(IEvent** event)
+{
+    return rootDevice->getOnAnyPropertyValueWrite(event);
+}
+
+ErrCode InstanceImpl::getOnAnyPropertyValueRead(IEvent** event)
+{
+    return rootDevice->getOnAnyPropertyValueRead(event);
 }
 
 ErrCode InstanceImpl::beginUpdate()

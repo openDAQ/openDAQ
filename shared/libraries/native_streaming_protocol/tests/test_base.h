@@ -33,9 +33,15 @@ public:
     std::shared_ptr<daq::opendaq_native_streaming_protocol::NativeStreamingClientHandler> clientHandler;
     daq::ContextPtr clientContext;
 
+    std::promise< daq::EnumerationPtr > connectionStatusPromise;
+    std::future< daq::EnumerationPtr > connectionStatusFuture;
+
     void setUp()
     {
         clientContext = NullContext(Logger(nullptr, daq::LogLevel::Trace));
+
+        connectionStatusPromise = std::promise< daq::EnumerationPtr >();
+        connectionStatusFuture = connectionStatusPromise.get_future();
     }
 
     void tearDown()

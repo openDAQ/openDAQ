@@ -42,8 +42,7 @@ protected:
 
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
-    void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
-    void initStatuses(const ContextPtr& ctx);
+    void connectionStatusChangedHandler(const EnumerationPtr& status);
     void publishConnectionStatus();
     void createNativeStreaming(opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
                                std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
@@ -54,7 +53,7 @@ protected:
     SignalPtr createSignal(const StringPtr& signalStringId, const StringPtr& serializedSignal);
 
     StringPtr connectionString;
-    opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
+    EnumerationPtr connectionStatus;
     StreamingPtr nativeStreaming;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignals;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignalsReconnection;

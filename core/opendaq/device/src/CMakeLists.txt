@@ -17,6 +17,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_LogFileInfo log_file_info.h)
     rtgen(SRC_LogFileInfoBuilder log_file_info_builder.h)
     rtgen(SRC_UserLock user_lock.h)
+    rtgen(SRC_ConnectionStatusContainerPrivate connection_status_container_private.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Device_PublicHeaders}
@@ -35,6 +36,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_LogFileInfo_PublicHeaders}
         ${SRC_LogFileInfoBuilder_PublicHeaders}
         ${SRC_UserLock_PublicHeaders}
+        ${SRC_ConnectionStatusContainerPrivate_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -54,6 +56,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_LogFileInfo_PrivateHeaders}
         ${SRC_LogFileInfoBuilder_PrivateHeaders}
         ${SRC_UserLock_PrivateHeaders}
+        ${SRC_ConnectionStatusContainerPrivate_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -73,6 +76,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_LogFileInfo_Cpp}
         ${SRC_LogFileInfoBuilder_Cpp}
         ${SRC_UserLock_Cpp}
+        ${SRC_ConnectionStatusContainerPrivate_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -92,6 +96,8 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/device_info_factory.h
         ${SDK_HEADERS_DIR}/device_private.h
         ${SDK_SRC_DIR}/device_info_impl.cpp
+        ${SDK_HEADERS_DIR}/connection_status_container_private.h
+        ${SDK_HEADERS_DIR}/connection_status_container_impl.h
     )
     
     source_group("device//device_domain" FILES 
@@ -180,6 +186,7 @@ set(SRC_PublicHeaders_Component
     log_file_info_factory.h
     user_lock.h
     user_lock_factory.h
+    connection_status_container_private.h
     PARENT_SCOPE
 )
 
@@ -192,6 +199,7 @@ set(SRC_PrivateHeaders_Component
     log_file_info_impl.h
     log_file_info_builder_impl.h
     user_lock_impl.h
+    connection_status_container_impl.h
     PARENT_SCOPE
 )
 

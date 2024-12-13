@@ -778,6 +778,7 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
                 LOG_W("Ticks offset tolerance exceeded. Set reader to inactive state.");
 
                 syncStatus = SyncStatus::SynchronizationFailed;
+                setActiveInternal(false);
             }
             else
             {
@@ -1225,8 +1226,8 @@ bool MultiReaderImpl::sync()
 {
     bool synced = true;
     auto tickOffset = SizeT{};
-    auto tickOffsetMax = std::numeric_limits<SizeT>::max();
-    auto tickOffsetMin = SizeT{0};
+    auto tickOffsetMax = SizeT{0};
+    auto tickOffsetMin = std::numeric_limits<SizeT>::max();
 
     for (auto& signal : signals)
     {
@@ -1241,7 +1242,7 @@ bool MultiReaderImpl::sync()
     {
         auto maxTicksDifference = tickOffsetMax - tickOffsetMin;
         auto tolerance = static_cast<SizeT>(tickOffsetTolerance / readResolution);
-        if (tolerance > maxTicksDifference)
+        if (maxTicksDifference >= tolerance)
             synced = false;
     }
 
@@ -1315,20 +1316,22 @@ ErrCode MultiReaderImpl::setActive(Bool isActive)
 {
     std::scoped_lock lock{mutex, notify.mutex};
 
-    bool modified = this->isActive != static_cast<bool>(isActive);
-    this->isActive = isActive;
+    setActiveInternal(isActive);
 
-    for (auto& signalReader : signals)
-    {
-        if (modified)
-            signalReader.synced = SyncStatus::Unsynchronized;
-
-        if (signalReader.port.assigned())
-            signalReader.port.setActive(this->isActive);
-
-        if (modified && !this->isActive)
-            signalReader.skipUntilLastEventPacket();
-    }
+//    bool modified = this->isActive != static_cast<bool>(isActive);
+//    this->isActive = isActive;
+//
+//    for (auto& signalReader : signals)
+//    {
+//        if (modified)
+//            signalReader.synced = SyncStatus::Unsynchronized;
+//
+//        if (signalReader.port.assigned())
+//            signalReader.port.setActive(this->isActive);
+//
+//        if (modified && !this->isActive)
+//            signalReader.skipUntilLastEventPacket();
+//    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -1395,7 +1398,20 @@ ErrCode MultiReaderImpl::markAsInvalid()
 
 void MultiReaderImpl::setActiveInternal(Bool isActive)
 {
+    bool modified = this->isActive != static_cast<bool>(isActive);
+    this->isActive = isActive;
 
+    for (auto& signalReader : signals)
+    {
+        if (modified)
+            signalReader.synced = SyncStatus::Unsynchronized;
+
+        if (signalReader.port.assigned())
+            signalReader.port.setActive(this->isActive);
+
+        if (modified && !this->isActive)
+            signalReader.skipUntilLastEventPacket();
+    }
 }
 
 #pragma endregion ReaderConfig

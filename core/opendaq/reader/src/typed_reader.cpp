@@ -1,10 +1,10 @@
 #include <coretypes/validation.h>
-#include <opendaq/typed_reader.h>
-#include <opendaq/sample_type.h>
+#include <opendaq/multi_typed_reader.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
+#include <opendaq/sample_type.h>
 #include <opendaq/signal_errors.h>
-#include <opendaq/multi_typed_reader.h>
+#include <opendaq/typed_reader.h>
 
 #include <utility>
 
@@ -209,11 +209,8 @@ ErrCode TypedReader<ReadType>::readData(void* inputBuffer, SizeT offset, void** 
 }
 
 template <typename ReadType>
-SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
-                                         const Comparable& start,
-                                         void* inputBuffer,
-                                         SizeT size,
-                                         SizeT* tickOffset)
+SizeT TypedReader<ReadType>::getOffsetTo(
+    const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size, SizeT* tickOffset)
 {
     switch (dataSampleType)
     {
@@ -245,10 +242,7 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
         case SampleType::String:
         case SampleType::Struct:
             return makeErrorInfo(
-                OPENDAQ_ERR_NOT_SUPPORTED,
-                fmt::format("Using the SampleType {} as a domain is not supported", dataSampleType),
-                nullptr
-            );
+                OPENDAQ_ERR_NOT_SUPPORTED, fmt::format("Using the SampleType {} as a domain is not supported", dataSampleType), nullptr);
         case SampleType::Invalid:
             return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
         case SampleType::Null:
@@ -262,15 +256,12 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
 
 template <typename TReadType>
 template <typename TDataType>
-SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo,
-                                              const Comparable& start,
-                                              void* inputBuffer,
-                                              SizeT size,
-                                              SizeT* tickOffset) const
+SizeT TypedReader<TReadType>::getOffsetToData(
+    const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size, SizeT* tickOffset) const
 {
     if (!inputBuffer)
         throw ArgumentNullException{};
-        
+
     using namespace reader;
 
     if constexpr (std::is_convertible_v<TDataType, TReadType>)
@@ -293,6 +284,9 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
         // [[maybe_unused]]
         // int a = 5;
 
+        auto epochResolution = Ratio(std::chrono::system_clock::period::num, std::chrono::system_clock::period::den);
+        auto commonStartValue = TReadType{};  // in maxResolution
+
         for (std::size_t i = 0; i < size * valuesPerSample; ++i)
         {
             // debug
@@ -304,17 +298,47 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
             // ss1 << toSysTime(adjusted, domainInfo.epoch, domainInfo.readResolution);
             // std::string s1 = ss1.str();
 
-            if (GreaterEqual<TReadType>::Check(domainInfo.multiplier, static_cast<TReadType>(dataStart[i]), startValue))
+            auto readValue = static_cast<TReadType>(dataStart[i]);
+            if (GreaterEqual<TReadType>::Check(domainInfo.multiplier, readValue, startValue))
             {
                 if (tickOffset)
                 {
-                    // tick offset will be expressed in maxResolution ticks
-                    if constexpr (IsTemplateOf<TReadType, RangeType>::value)
-                        *tickOffset = static_cast<TReadType>(dataStart[i]).start - startValue.start;
-                    else  if constexpr (!daq::IsTemplateOf<TReadType, daq::Complex_Number>::value)
-                        *tickOffset = static_cast<TReadType>(dataStart[i]) - startValue;
+                    if constexpr (!IsTemplateOf<TReadType, daq::Complex_Number>::value)
+                    {
+                        auto adjustedValue =
+                            GreaterEqual<TReadType>::Adjust(readValue, domainInfo.multiplier);  // in domainInfo.maxResolution
+                        auto adjustedValueSysClock =
+                            (adjustedValue * domainInfo.resolution.getNumerator() * epochResolution.getDenominator()) /
+                            (domainInfo.resolution.getDenominator() * epochResolution.getNumerator());
+
+                        auto timePoint =
+                            domainInfo.epoch + std::chrono::system_clock::duration(adjustedValueSysClock); /* convert from maxResolution to domainInfo.epoch resolution */
+                        auto epochTicksDiff =
+                            timePoint -
+                            start.getValue(&commonStartValue); /* should be converted from maxResolution to domainInfo.epoch resolution */
+                        *tickOffset = (epochTicksDiff * epochResolution.getNumerator() * domainInfo.resolution.getDenominator()) /
+                                      (epochResolution.getDenominator() * domainInfo.resolution.getNumerator());
+                    }
+                    else if constexpr (IsTemplateOf<TReadType, daq::RangeType>::value)
+                    {
+                        auto adjustedValue =
+                            GreaterEqual<TReadType>::Adjust(readValue.start, domainInfo.multiplier);  // in domainInfo.maxResolution
+                        auto adjustedValueSysClock =
+                            (adjustedValue * domainInfo.resolution.getNumerator() * epochResolution.getDenominator()) /
+                            (domainInfo.resolution.getDenominator() * epochResolution.getNumerator());
+                        auto timePoint =
+                            domainInfo.epoch + adjustedValueSysClock; /* convert from maxResolution to domainInfo.epoch resolution */
+                        auto epochTicksDiff =
+                            timePoint -
+                            start.getValue(
+                                &commonStartValue.start); /* should be converted from maxResolution to domainInfo.epoch resolution */
+                        *tickOffset = (epochTicksDiff * epochResolution.getNumerator() * domainInfo.resolution.getDenominator()) /
+                                      (epochResolution.getDenominator() * domainInfo.resolution.getNumerator());
+                    }
                     else
+                    {
                         throw NotSupportedException();
+                    }
                 }
                 return i / valuesPerSample;
             }
@@ -329,10 +353,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
     else
     {
         return makeErrorInfo(
-            OPENDAQ_ERR_NOT_SUPPORTED,
-            "Implicit conversion from packet data-type to the read data-type is not supported.",
-            nullptr
-        );
+            OPENDAQ_ERR_NOT_SUPPORTED, "Implicit conversion from packet data-type to the read data-type is not supported.", nullptr);
     }
 }
 
@@ -389,10 +410,7 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
     else
     {
         return makeErrorInfo(
-            OPENDAQ_ERR_NOT_SUPPORTED,
-            "Implicit conversion from packet data-type to the read data-type is not supported.",
-            nullptr
-        );
+            OPENDAQ_ERR_NOT_SUPPORTED, "Implicit conversion from packet data-type to the read data-type is not supported.", nullptr);
     }
 }
 

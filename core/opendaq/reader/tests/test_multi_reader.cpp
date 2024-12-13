@@ -4686,3 +4686,59 @@ TEST_P(MinReadCountTest, MinReadCount)
 }
 
 INSTANTIATE_TEST_SUITE_P(MinReadCountSuite, MinReadCountTest, testing::Values(0, 1000));
+
+TEST_F(MultiReaderTest, TestTickOffsetExceeded)
+{
+    using namespace std::chrono_literals;
+    constexpr auto kPacketSize = SizeT{10};
+    constexpr auto kSignalCount = SizeT{10};
+    constexpr auto delta = SizeT{1};
+    const auto resolution = Ratio(delta, 10);
+
+    const auto okTolerance = Ratio(11, 100);
+    const auto failTolerance = Ratio(9, 100);
+    const auto boundTolerance = Ratio(1, 10);
+
+    auto epoch = std::chrono::system_clock::now();
+    auto dataBuffers = std::vector<void*>(kSignalCount, nullptr);
+    auto domainBuffers = std::vector<void*>(kSignalCount, nullptr);
+
+    for (int i = 0; i < kSignalCount; ++i)
+    {
+        // auto epochString = reader::timePointString(epoch);
+        auto epochString = date::format("%FT%T%z", epoch);
+        auto domainSignal = createDomainSignal(epochString, resolution, LinearDataRule(1, 0));
+        auto domainSampleSize = domainSignal.getDescriptor().getSampleSize();
+        auto dataSignal = addSignal(0, kPacketSize, domainSignal);
+        auto dataSampleSize = dataSignal.signal.getDescriptor().getSampleSize();
+        domainBuffers[i] = std::calloc(kPacketSize, domainSampleSize);
+        dataBuffers[i] = std::calloc(kPacketSize, dataSampleSize);
+        epoch += 10ms;
+    }
+
+    auto multiReaderBuilder = MultiReaderBuilder();
+    auto ports = portsList();
+    auto signals = signalsToList();
+    ASSERT_EQ(ports.getCount(), signals.getCount());
+    for (int i = 0; i < ports.getCount(); ++i)
+    {
+        ports[i].connect(signals[i]);
+        multiReaderBuilder.addInputPort(ports[i]);
+    }
+    multiReaderBuilder.setTickOffsetTolerance(failTolerance);
+
+    auto multiReader = multiReaderBuilder.build();
+
+    for (auto& signal: readSignals)
+        signal.createAndSendPacket(0);
+
+    auto count = SizeT{0};
+    auto status = multiReader.read(nullptr, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    count = 10;
+    status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 0);
+    ASSERT_EQ(multiReader.getActive(), false);
+}

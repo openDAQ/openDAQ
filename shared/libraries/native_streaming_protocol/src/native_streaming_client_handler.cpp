@@ -398,8 +398,14 @@ void NativeStreamingClientImpl::initClient(std::string host,
         [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
-            thisPtr->onConnectionFailed(fmt::format("Handshake failed: {}", ec.message()),
-                                        ConnectionResult::ServerUnsupported);
+        {
+            if (ec.value() == boost::asio::error::connection_reset)
+                thisPtr->onConnectionFailed(fmt::format("Handshake failed (server reset the connection): {}", ec.message()),
+                                            ConnectionResult::ServerUnreachable);
+            else
+                thisPtr->onConnectionFailed(fmt::format("Handshake failed: {}", ec.message()),
+                                            ConnectionResult::ServerUnsupported);
+        }
     };
     LogCallback logCallback =
         [thisWeakPtr = this->weak_from_this()](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg)

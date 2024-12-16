@@ -1,3 +1,29 @@
+# 5.12.2024
+## Description
+- Add Component status types to the Type Manager in `context_impl.cpp` ("Ok", "Warning", and "Error")
+- Define `ComponentErrorState`
+- Declare and define `initComponentErrorStateStatus`, `setComponentErrorStateStatus`, and `setComponentErrorStateStatusWithMessage` in `component_impl.h`
+- Add `getStatusMessage` in `component_status_container.h`, and `addStatusWithMessage`, `setStatusWithMessage` in `component_status_container_private.h`, implement all three in `component_status_container_impl.h`
+- Use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage` in all reference Function Blocks
+
+## Required integration changes
+- None, however, developers of Function Blocks are encouraged to use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage`
+
+```
++ [function] IComponentStatusContainer::getStatusMessage(IString* name, IString** message)
++ [function] IComponentStatusContainerPrivate::addStatusWithMessage(IString* name, IEnumeration* initialValue, IString* message)
++ [function] IComponentStatusContainerPrivate::setStatusWithMessage(IString* name, IEnumeration* value, IString* message)
+```
+
+# 04.12.2024
+## Description
+- Module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`
+
+```
+-m [function] ListPtr<ILogFileInfo> Device::ongetLogFileInfos()
++m [function] ListPtr<ILogFileInfo> Device::onGetLogFileInfos()
+```
+
 # 04.12.2024
 ## Description
 - Implement editable device info fields that can be modified by the owner (device).
@@ -18,7 +44,7 @@
 + [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
 ```
 
-# 28.11.2024:
+# 28.11.2024
 ## Description
 - Introduces separate container accessible per device for connection statuses
 - Introduces new core event type "ConnectionStatusChanged" to notify when configuration or streaming connection status of the device changed
@@ -81,7 +107,7 @@
 ## Description
 - Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool* isLockedOut)
 
-# 12.11.2024:
+# 12.11.2024
 ## Description
 - Improved component updates.
 - Removed generation of local ID for client device in instance.
@@ -115,7 +141,7 @@
 + [function] IUserLock::isLocked(Bool* isLockedOut)
 ```
 
-# 29.10.2024:
+# 29.10.2024
 ## Description
 - Implement thread synchronization mechanism in property objects
 - Provides new internal method to allow for recursive locking in onWrite/onRead events via `GenericPropertyObjectImpl::getRecursiveConfigLock()`

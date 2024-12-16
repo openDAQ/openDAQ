@@ -47,12 +47,17 @@ TEST_F(ComponentsTest, DeviceFolderTypes)
 TEST_F(ComponentsTest, ComponentStatuses)
 {
     auto instance = docs_test_helpers::setupInstance();
+
     const auto scalingFb = instance.addFunctionBlock("RefFBModuleScaling");
     auto statuses = scalingFb.getStatusContainer().getStatuses();
 
-    ASSERT_GT(statuses.getCount(), 0u);
-    ASSERT_TRUE(statuses.hasKey("InputStatus"));
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Disconnected");
+    auto status = scalingFb.getStatusContainer().getStatus("ComponentStatus");
+    auto message = scalingFb.getStatusContainer().getStatusMessage("ComponentStatus");
+
+    ASSERT_GT(statuses.getCount(), 0);
+    ASSERT_TRUE(status == Enumeration("ComponentStatusType", "Ok", instance.getContext().getTypeManager()));
+    ASSERT_EQ(status, Enumeration("ComponentStatusType", "Ok", instance.getContext().getTypeManager()));
+    ASSERT_EQ(message, "");
 }
 
 END_NAMESPACE_OPENDAQ

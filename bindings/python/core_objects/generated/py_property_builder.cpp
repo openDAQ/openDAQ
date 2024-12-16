@@ -100,6 +100,7 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
         return daq::EnumerationPropertyBuilder_Create(getVariantValue<daq::IString*>(name), defaultValue);
     }, py::arg("name"), py::arg("default_value"));
 
+
     cls.def("build",
         [](daq::IPropertyBuilder *object)
         {

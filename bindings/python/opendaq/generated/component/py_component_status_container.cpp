@@ -50,7 +50,7 @@ void defineIComponentStatusContainer(pybind11::module_ m, PyDaqIntf<daq::ICompon
             return objectPtr.getStatus(getVariantValue<daq::IString*>(name)).detach();
         },
         py::arg("name"),
-        "Gets the the current value of Component status with a given name.");
+        "Gets the current value of Component status with a given name.");
     cls.def_property_readonly("statuses",
         [](daq::IComponentStatusContainer *object)
         {

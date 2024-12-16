@@ -64,6 +64,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 InstanceImpl::~InstanceImpl()
 {
     stopAndRemoveServers();
+    rootDevice.remove();
     rootDevice.release();
 }
 
@@ -132,8 +133,13 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers);
 }
 
-void InstanceImpl::stopAndRemoveServers()
+void InstanceImpl::stopAndRemoveServers() const
 {
+    Bool removed = false;
+    rootDevice.asPtr<IRemovable>()->isRemoved(&removed);
+    if (removed)
+        return;
+
     for (const auto& server : rootDevice.getServers())
     {
         server.stop();

@@ -168,7 +168,7 @@ private:
 
     bool rootDeviceSet;
 
-    void stopAndRemoveServers();
+    void stopAndRemoveServers() const;
     DevicePtr createDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr);
 
     template<class F>

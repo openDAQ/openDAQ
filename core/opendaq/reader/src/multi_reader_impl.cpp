@@ -772,22 +772,12 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
                 readDomainStart();
             }
 
-            bool synced = sync();
-            if (!synced && tickOffsetTolerance.assigned())
-            {
-                LOG_W("Ticks offset tolerance exceeded. Set reader to inactive state.");
+            sync();
 
-                syncStatus = SyncStatus::SynchronizationFailed;
-                setActiveInternal(false);
-            }
-            else
+            syncStatus = getSyncStatus();
+            if (syncStatus == SyncStatus::Synchronized)
             {
-                // Re-check samples available after dropping them to sync
-                syncStatus = getSyncStatus();
-                if (syncStatus == SyncStatus::Synchronized)
-                {
-                    min = getMinSamplesAvailable();
-                }
+                min = getMinSamplesAvailable();
             }
         }
         catch (const DaqException& e)
@@ -1209,46 +1199,68 @@ void MultiReaderImpl::readDomainStart()
 
     LOG_T("---");
     LOG_T("DomainStart: {}", *commonStart);
+
     if (startOnFullUnitOfDomain)
     {
         commonStart->roundUpOnUnitOfDomain();
+        for (auto& signal: signals)
+            signal.roundUpOffsetOnUnitOfDomain();
         LOG_T("Rounded DomainStart: {}", *commonStart);
     }
     else
     {
         const RatioPtr interval = Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
         commonStart->roundUpOnDomainInterval(interval);
+        for (auto& signal: signals)
+            signal.roundUpOffsetOnDomainInterval(interval);
         LOG_T("Aligned DomainStart: {}", *commonStart);
+    }
+
+    int64_t minOffsetRemainder = std::numeric_limits<int64_t>::max();
+    int64_t maxOffsetRemainder = 0;
+    auto maxResolutionTicks = Ratio(readResolution.getDenominator(), readResolution.getNumerator());
+    for (auto& signal: signals)
+    {
+        int64_t offsetRemainder = 0;
+        if (startOnFullUnitOfDomain)
+        {
+            const auto interval = Ratio(1, 1);
+            auto intervalMaxResolutionTicks = (interval.getNumerator() * maxResolutionTicks.getNumerator()) /
+                                              (interval.getDenominator() * maxResolutionTicks.getDenominator());
+            offsetRemainder = signal.domainInfo.offset % intervalMaxResolutionTicks;
+        }
+        else
+        {
+            const RatioPtr interval = Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
+            auto intervalMaxResolutionTicks = (interval.getNumerator() * maxResolutionTicks.getNumerator()) /
+                                              (interval.getDenominator() * maxResolutionTicks.getDenominator());
+            offsetRemainder = signal.domainInfo.offset % intervalMaxResolutionTicks;
+        }
+
+        if (maxOffsetRemainder < offsetRemainder)
+            maxOffsetRemainder = offsetRemainder;
+        if (minOffsetRemainder > offsetRemainder)
+            minOffsetRemainder = offsetRemainder;
+    }
+
+    auto tickCount = readResolution.getDenominator() / readResolution.getNumerator();
+    auto tickCountTolerance = tickCount * tickOffsetTolerance.getNumerator() /
+                              tickOffsetTolerance.getDenominator();
+    if (maxOffsetRemainder - minOffsetRemainder > tickCountTolerance)
+    {
+        LOG_W("Syncronization error");
     }
 }
 
-bool MultiReaderImpl::sync()
+void MultiReaderImpl::sync()
 {
     bool synced = true;
-    auto tickOffset = SizeT{};
-    auto tickOffsetMax = SizeT{0};
-    auto tickOffsetMin = std::numeric_limits<SizeT>::max();
-
     for (auto& signal : signals)
     {
-        synced = signal.sync(*commonStart, &tickOffset) && synced;
-        if (tickOffsetMax < tickOffset)
-            tickOffsetMax = tickOffset;
-        if (tickOffsetMin > tickOffset)
-            tickOffsetMin = tickOffset;
-    }
-
-    if (tickOffsetTolerance.assigned() && sameSampleRates)
-    {
-        auto maxTicksDifference = tickOffsetMax - tickOffsetMin;
-        auto tolerance = static_cast<SizeT>(tickOffsetTolerance / readResolution);
-        if (maxTicksDifference >= tolerance)
-            synced = false;
+        synced = signal.sync(*commonStart) && synced;
     }
 
     LOG_T("Synced: {}", synced);
-
-    return synced;
 }
 
 #pragma endregion MultiReaderInfo

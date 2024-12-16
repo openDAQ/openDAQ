@@ -84,6 +84,9 @@ struct SignalReader
 
     void* getValuePacketData(const DataPacketPtr& packet) const;
 
+    void roundUpOffsetOnUnitOfDomain();
+    void roundUpOffsetOnDomainInterval(const RatioPtr& interval);
+
     LoggerComponentPtr loggerComponent;
 
     std::unique_ptr<Reader> valueReader;
@@ -99,6 +102,7 @@ struct SignalReader
     std::int64_t sampleRate;
     std::int64_t commonSampleRate;
     std::int32_t sampleRateDivider;
+    std::int64_t offsetRemainder;
     
     bool invalid{false};
     SyncStatus synced{SyncStatus::Unsynchronized};

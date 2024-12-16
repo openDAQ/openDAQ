@@ -117,7 +117,7 @@ private:
     void readSamplesAndSetRemainingSamples(SizeT samples);
 
     void readDomainStart();
-    bool sync();
+    void sync();
 
     void setActiveInternal(Bool isActive);
 

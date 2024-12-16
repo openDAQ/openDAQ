@@ -141,6 +141,7 @@ public:
 
     void roundUpOnUnitOfDomain() override
     {
+        // calc maxResolution num/den
         auto num = info.resolution.getNumerator() * info.multiplier.getDenominator();
         auto den = info.resolution.getDenominator() * info.multiplier.getNumerator();
 
@@ -168,9 +169,6 @@ public:
 
         value = (((value * num + den - 1) / den) * den) / num;
     }
-
-
-
 
     void print(std::ostream& os) const override
     {

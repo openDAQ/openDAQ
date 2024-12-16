@@ -1,11 +1,11 @@
-#include <opendaq/event_packet_ids.h>
-#include <opendaq/signal_reader.h>
-#include <opendaq/event_packet_utils.h>
-#include <opendaq/reader_errors.h>
 #include <opendaq/custom_log.h>
-#include <opendaq/packet_factory.h>
-#include <opendaq/reader_factory.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/event_packet_ids.h>
+#include <opendaq/event_packet_utils.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/reader_errors.h>
+#include <opendaq/reader_factory.h>
+#include <opendaq/signal_reader.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -524,6 +524,43 @@ void* SignalReader::getValuePacketData(const DataPacketPtr& packet) const
     }
 
     throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
+}
+
+void SignalReader::roundUpOffsetOnUnitOfDomain()
+{
+    // calc maxResolution num/den
+    auto num = domainInfo.resolution.getNumerator() * domainInfo.multiplier.getDenominator();
+    auto den = domainInfo.resolution.getDenominator() * domainInfo.multiplier.getNumerator();
+
+    const Int gcd = std::gcd(num, den);
+    num /= gcd;
+    den /= gcd;
+
+    if (den % num != 0)
+        throw NotSupportedException("Resolution must be aligned on full unit of domain");
+
+    auto intervalTicksCount = den / num;
+    offsetRemainder = domainInfo.offset % intervalTicksCount;
+
+    LOG_D("Offset remainder: {}", offsetRemainder);
+}
+
+void SignalReader::roundUpOffsetOnDomainInterval(const RatioPtr& interval)
+{
+    auto num = domainInfo.resolution.getNumerator() * domainInfo.multiplier.getDenominator() * interval.getDenominator();
+    auto den = domainInfo.resolution.getDenominator() * domainInfo.multiplier.getNumerator() * interval.getNumerator();
+
+    const Int gcd = std::gcd(num, den);
+    num /= gcd;
+    den /= gcd;
+
+    if (den % num != 0)
+        throw NotSupportedException("Resolution must be aligned on full unit of domain");
+
+    auto intervalTicksCount = den / num;
+    offsetRemainder = domainInfo.offset % intervalTicksCount;
+
+    LOG_D("Offset remainder: {}", offsetRemainder);
 }
 
 ErrCode SignalReader::readPacketData()

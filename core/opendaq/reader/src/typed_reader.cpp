@@ -284,8 +284,11 @@ SizeT TypedReader<TReadType>::getOffsetToData(
         // [[maybe_unused]]
         // int a = 5;
 
+        using SysPeriod = std::chrono::system_clock::period;
         auto epochResolution = Ratio(std::chrono::system_clock::period::num, std::chrono::system_clock::period::den);
         auto commonStartValue = TReadType{};  // in maxResolution
+        startV->getValue(&commonStartValue);
+        auto commonStartValueSysTime = toSysTime(commonStartValue, domainInfo.readEpoch, domainInfo.readResolution);
 
         for (std::size_t i = 0; i < size * valuesPerSample; ++i)
         {
@@ -305,35 +308,24 @@ SizeT TypedReader<TReadType>::getOffsetToData(
                 {
                     if constexpr (!IsTemplateOf<TReadType, daq::Complex_Number>::value)
                     {
-                        auto adjustedValue =
-                            GreaterEqual<TReadType>::Adjust(readValue, domainInfo.multiplier);  // in domainInfo.maxResolution
-                        auto adjustedValueSysClock =
-                            (adjustedValue * domainInfo.resolution.getNumerator() * epochResolution.getDenominator()) /
-                            (domainInfo.resolution.getDenominator() * epochResolution.getNumerator());
-
-                        auto timePoint =
-                            domainInfo.epoch + std::chrono::system_clock::duration(adjustedValueSysClock); /* convert from maxResolution to domainInfo.epoch resolution */
-                        auto epochTicksDiff =
-                            timePoint -
-                            start.getValue(&commonStartValue); /* should be converted from maxResolution to domainInfo.epoch resolution */
-                        *tickOffset = (epochTicksDiff * epochResolution.getNumerator() * domainInfo.resolution.getDenominator()) /
-                                      (epochResolution.getDenominator() * domainInfo.resolution.getNumerator());
+                        auto adjustedValue = GreaterEqual<TReadType>::Adjust(readValue, domainInfo.multiplier);  // in domainInfo.maxResolution
+                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.readEpoch, domainInfo.readResolution);
+                        auto diffSysTime = (adjustedValueSysTime - commonStartValueSysTime).count();
+                        auto diff = diffSysTime *
+                                    (SysPeriod::num * domainInfo.readResolution.getDenominator()) /
+                                    (SysPeriod::den * domainInfo.readResolution.getNumerator());
+                        *tickOffset = diff;
                     }
                     else if constexpr (IsTemplateOf<TReadType, daq::RangeType>::value)
                     {
                         auto adjustedValue =
                             GreaterEqual<TReadType>::Adjust(readValue.start, domainInfo.multiplier);  // in domainInfo.maxResolution
-                        auto adjustedValueSysClock =
-                            (adjustedValue * domainInfo.resolution.getNumerator() * epochResolution.getDenominator()) /
-                            (domainInfo.resolution.getDenominator() * epochResolution.getNumerator());
-                        auto timePoint =
-                            domainInfo.epoch + adjustedValueSysClock; /* convert from maxResolution to domainInfo.epoch resolution */
-                        auto epochTicksDiff =
-                            timePoint -
-                            start.getValue(
-                                &commonStartValue.start); /* should be converted from maxResolution to domainInfo.epoch resolution */
-                        *tickOffset = (epochTicksDiff * epochResolution.getNumerator() * domainInfo.resolution.getDenominator()) /
-                                      (epochResolution.getDenominator() * domainInfo.resolution.getNumerator());
+                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.readEpoch, domainInfo.readResolution);
+                        auto diffSysTime = (adjustedValueSysTime - commonStartValueSysTime).count();
+                        auto diff = diffSysTime *
+                                    (SysPeriod::num * domainInfo.readResolution.getDenominator()) /
+                                    (SysPeriod::den * domainInfo.readResolution.getNumerator());
+                        *tickOffset = diff;
                     }
                     else
                     {

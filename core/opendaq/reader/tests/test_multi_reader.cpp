@@ -4692,18 +4692,17 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
     using namespace std::chrono_literals;
     constexpr auto kPacketSize = SizeT{10};
     constexpr auto kSignalCount = SizeT{10};
-    constexpr auto delta = SizeT{1};
-    const auto resolution = Ratio(delta, 10);
+    const auto resolution = Ratio(1, 10);
 
-    const auto okTolerance = Ratio(11, 100);
-    const auto failTolerance = Ratio(9, 100);
-    const auto boundTolerance = Ratio(1, 10);
+    const auto okTolerance = Ratio(10, 100);
+    const auto failTolerance = Ratio(8, 100);
+    const auto boundTolerance = Ratio(9, 100);
 
     auto epoch = std::chrono::system_clock::now();
     auto dataBuffers = std::vector<void*>(kSignalCount, nullptr);
     auto domainBuffers = std::vector<void*>(kSignalCount, nullptr);
 
-    for (int i = 0; i < kSignalCount; ++i)
+    for (auto i = 0; i < kSignalCount; ++i)
     {
         // auto epochString = reader::timePointString(epoch);
         auto epochString = date::format("%FT%T%z", epoch);
@@ -4720,7 +4719,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
     auto ports = portsList();
     auto signals = signalsToList();
     ASSERT_EQ(ports.getCount(), signals.getCount());
-    for (int i = 0; i < ports.getCount(); ++i)
+    for (auto i = 0; i < ports.getCount(); ++i)
     {
         ports[i].connect(signals[i]);
         multiReaderBuilder.addInputPort(ports[i]);

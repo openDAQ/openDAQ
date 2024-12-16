@@ -1307,7 +1307,7 @@ public:
 
             *clonedProperty = prop.detach();
             return OPENDAQ_SUCCESS;
-         });
+        });
     }
 
     ErrCode INTERFACE_FUNC cloneWithOwner(IPropertyObject* owner, IProperty** clonedProperty) override

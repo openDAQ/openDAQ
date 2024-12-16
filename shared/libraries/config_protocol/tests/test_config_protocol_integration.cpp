@@ -612,7 +612,6 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
     clientSubDevice.setPropertyValue("location", "new_client_location");
     clientSubDevice.setPropertyValue("TestChangeableField", "new_client_value");
 
-
     ASSERT_EQ("new_client_name", clientDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ("new_client_location", clientDeviceInfo.getLocation());
     ASSERT_EQ("new_client_value", clientDeviceInfo.getPropertyValue("TestChangeableField"));

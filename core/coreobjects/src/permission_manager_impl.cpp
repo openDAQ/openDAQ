@@ -149,7 +149,7 @@ PermissionManagerInternalPtr PermissionManagerImpl::getParentManager()
     {
         const auto parentPtr = parent.getRef();
         if (parentPtr.assigned())
-            return parentPtr.asPtr<IPermissionManagerInternal>();
+            return parentPtr.asPtr<IPermissionManagerInternal>().detach();
     }
     return nullptr;
 }

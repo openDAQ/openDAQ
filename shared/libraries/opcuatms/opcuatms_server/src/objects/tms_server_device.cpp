@@ -220,9 +220,11 @@ void TmsServerDevice::populateDeviceInfo()
             const auto propName = detail::componentFieldToDeviceInfo[browseName];
             const auto prop = deviceInfo.getProperty(propName);
             const auto readOnly = prop.getReadOnly();
-            UA_Byte accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
+            UA_Byte accessLevel;
             if (readOnly)
-                accessLevel = accessLevel & ~UA_ACCESSLEVELMASK_WRITE;
+                accessLevel = UA_ACCESSLEVELMASK_READ;
+            else
+                accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
             server->setAccessLevel(reference.nodeId.nodeId, accessLevel);
         }
         else if (customInfoNamesSet.count(browseName))

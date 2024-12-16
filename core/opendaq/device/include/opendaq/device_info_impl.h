@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/device_info_config_ptr.h>
+#include <opendaq/device_info_config.h>
 #include <coretypes/freezable.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>

@@ -201,6 +201,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         serverSupportsEditableProperties = sdkVersion.empty() || IsVersionHigher(sdkVersion, 3, 11);
     }
 
+    std::set<std::string> ignoreProps = {"NumberInList", "Active", "Visible", "Tags"};
     auto changeableProperties = List<IString>();
     if (serverSupportsEditableProperties)
     {
@@ -212,13 +213,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
             if (isReadOnly)
                 continue;
-            if (browseName == "NumberInList")
-                continue;
-            if (browseName == "Active")
-                continue;
-            if (browseName == "Visible")
-                continue;
-            if (browseName == "Tags")
+            if (ignoreProps.count(browseName))
                 continue;
             
             std::string propertyName = browseName;
@@ -245,13 +240,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 
         if (!value.isScalar())
             continue;
-        if (browseName == "NumberInList")
-            continue;
-        if (browseName == "Active")
-            continue;
-        if (browseName == "Visible")
-            continue;
-        if (browseName == "Tags")
+        if (ignoreProps.count(browseName))
             continue;
        
         try
@@ -268,14 +257,18 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
             
             if (deviceInfo.hasProperty(propertyName))
             {
+                BaseObjectPtr daqValue;
                 if (value.isString())
-                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, value.toString());
+                    daqValue = String(value.toString());
                 else if (value.isBool())
-                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, value.toBool());
+                    daqValue = Bool(value.toBool());
                 else if (value.isDouble())
-                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, value.toDouble());
+                    daqValue = Float(value.toDouble());
                 else if (value.isInteger())
-                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, value.toInteger());
+                    daqValue = Int(value.toInteger());
+
+                if (daqValue.assigned())
+                    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, daqValue);
             }
             else
             {

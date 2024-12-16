@@ -320,15 +320,28 @@ ErrCode TmsClientDeviceImpl::getPropertyValue(IString* propertyName, IBaseObject
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    if (auto it = deviceInfoChangeableFields.find(propertyNamePtr); it != deviceInfoChangeableFields.end())
+    ErrCode errCode = daqTry([&]
     {
-        const auto variant = client->readValue(it->second);
-        auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-        Impl::setProtectedPropertyValue(propertyName, object);
-        *value = object.detach();
+        if (auto it = deviceInfoChangeableFields.find(propertyNamePtr); it != deviceInfoChangeableFields.end())
+        {
+            const auto variant = client->readValue(it->second);
+            auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+            Impl::setProtectedPropertyValue(propertyName, object);
+            *value = object.detach();
+            return OPENDAQ_SUCCESS;
+        }
+        return OPENDAQ_NOTFOUND;
+    });
+
+    if (errCode == OPENDAQ_SUCCESS)
+        return OPENDAQ_SUCCESS;
+
+    if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
         return OPENDAQ_SUCCESS;
     }
-
+    
     return Super::getPropertyValue(propertyName, value);
 }
 
@@ -341,24 +354,42 @@ ErrCode TmsClientDeviceImpl::setPropertyValueInternal(IString* propertyName, IBa
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    if (auto it = deviceInfoChangeableFields.find(propertyNamePtr); it != deviceInfoChangeableFields.end())
+    StringPtr lastProcessDescription = "";
+    ErrCode errCode = daqTry([&]
     {
-        PropertyPtr prop;
-        ErrCode errCode = getProperty(propertyName, &prop);
-        if (OPENDAQ_FAILED(errCode))
+        if (auto it = deviceInfoChangeableFields.find(propertyNamePtr); it != deviceInfoChangeableFields.end())
+        {
+            PropertyPtr prop;
+            ErrCode errCode = getProperty(propertyName, &prop);
+            if (OPENDAQ_FAILED(errCode))
+                return errCode;
+
+            lastProcessDescription = "Checking existing property is read-only";
+            if (!protectedWrite && prop.getReadOnly())
+                return OPENDAQ_ERR_ACCESSDENIED;
+
+            auto valuePtr = BaseObjectPtr(value);
+            const auto ct = prop.getValueType();
+            const auto valueCt = valuePtr.getCoreType();
+            if (ct != valueCt)
+                valuePtr = valuePtr.convertTo(ct);
+
+            lastProcessDescription = "Writing property value";
+            const auto variant = VariantConverter<IBaseObject>::ToVariant(valuePtr, nullptr, daqContext);
+            client->writeValue(it->second, variant);
+            return OPENDAQ_SUCCESS;
+        }
+        return OPENDAQ_NOTFOUND;
+    });
+
+    if (errCode == OPENDAQ_SUCCESS)
+        return OPENDAQ_SUCCESS;
+
+    if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProcessDescription);
+        if (errCode == OPENDAQ_ERR_NOTFOUND || errCode == OPENDAQ_ERR_ACCESSDENIED)
             return errCode;
-
-        if (!protectedWrite && prop.getReadOnly())
-            return OPENDAQ_ERR_ACCESSDENIED;
-
-        auto valuePtr = BaseObjectPtr(value);
-        const auto ct = prop.getValueType();
-        const auto valueCt = valuePtr.getCoreType();
-        if (ct != valueCt)
-            valuePtr = valuePtr.convertTo(ct);
-
-        const auto variant = VariantConverter<IBaseObject>::ToVariant(valuePtr, nullptr, daqContext);
-        client->writeValue(it->second, variant);
         return OPENDAQ_SUCCESS;
     }
 

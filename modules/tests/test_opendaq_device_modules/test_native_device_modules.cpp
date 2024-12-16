@@ -2631,8 +2631,6 @@ TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
     ASSERT_EQ(server.getPropertyValue("location"), "location2");
     ASSERT_EQ(serverInfo.getPropertyValue("userName"), "user2");
     ASSERT_EQ(serverInfo.getPropertyValue("location"), "location2");
-
-
 }
 
 using NativeC2DStreamingTest = testing::Test;

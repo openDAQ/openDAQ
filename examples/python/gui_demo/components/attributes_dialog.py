@@ -233,7 +233,7 @@ class AttributesDialog(Dialog):
             locked = utils.yes_no[locked_flag]
             iid = f'{parent}.{key}'
             if type(value) is bool:
-                value = yes_no[value]
+                value = utils.yes_no[value]
             elif type(value) is dict:
                 self.tree.insert(
                     parent, tk.END, iid=iid, text=key, values=('', locked))

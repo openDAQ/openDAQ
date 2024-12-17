@@ -279,7 +279,7 @@ StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
     {
         auto retObj = Dict<IString, IBaseObject>();
 
-        const auto obj = deserializer.deserialize(jsonStr, nullptr);
+        const auto obj = deserializer.deserialize(jsonStr, daqContext.getTypeManager());
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         const auto funcName = dictObj.get("Name");
@@ -325,7 +325,7 @@ void ConfigProtocolServer::processNoReplyRpc(const StringPtr& jsonStr)
     StringPtr funcName;
     try
     {
-        const auto obj = deserializer.deserialize(jsonStr, nullptr);
+        const auto obj = deserializer.deserialize(jsonStr, daqContext.getTypeManager());
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         funcName = dictObj.get("Name");

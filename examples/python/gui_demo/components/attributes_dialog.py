@@ -119,7 +119,7 @@ class AttributesDialog(Dialog):
         if not node:
             return
 
-        sel = utils.treeview_get_first_selection(self.tree)
+        sel = utils.treeview_get_first_selection(self.tree)[1:]
         if sel not in self.attributes:
             return
 

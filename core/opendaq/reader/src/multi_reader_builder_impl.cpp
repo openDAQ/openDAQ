@@ -156,7 +156,7 @@ ErrCode MultiReaderBuilderImpl::getTickOffsetTolerance(IRatio** offsetTolerance)
 {
     OPENDAQ_PARAM_NOT_NULL(offsetTolerance);
 
-    *offsetTolerance = this->offsetTolerance;
+    *offsetTolerance = this->offsetTolerance.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

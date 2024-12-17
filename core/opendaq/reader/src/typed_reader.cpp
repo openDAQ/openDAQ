@@ -210,32 +210,32 @@ ErrCode TypedReader<ReadType>::readData(void* inputBuffer, SizeT offset, void** 
 
 template <typename ReadType>
 SizeT TypedReader<ReadType>::getOffsetTo(
-    const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size, SizeT* tickOffset)
+    const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size)
 {
     switch (dataSampleType)
     {
         case SampleType::Float32:
-            return getOffsetToData<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::Float64:
-            return getOffsetToData<SampleTypeToType<SampleType::Float64>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::Float64>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::UInt8:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt8>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt8>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::Int8:
-            return getOffsetToData<SampleTypeToType<SampleType::Int8>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::Int8>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::Int16:
-            return getOffsetToData<SampleTypeToType<SampleType::Int16>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::Int16>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::UInt16:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt16>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt16>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::Int32:
-            return getOffsetToData<SampleTypeToType<SampleType::Int32>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::Int32>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::UInt32:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt32>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt32>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::Int64:
-            return getOffsetToData<SampleTypeToType<SampleType::Int64>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::Int64>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::UInt64:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt64>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt64>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::RangeInt64:
-            return getOffsetToData<SampleTypeToType<SampleType::RangeInt64>::Type>(domainInfo, start, inputBuffer, size, tickOffset);
+            return getOffsetToData<SampleTypeToType<SampleType::RangeInt64>::Type>(domainInfo, start, inputBuffer, size);
         case SampleType::ComplexFloat32:
         case SampleType::ComplexFloat64:
         case SampleType::Binary:
@@ -256,8 +256,7 @@ SizeT TypedReader<ReadType>::getOffsetTo(
 
 template <typename TReadType>
 template <typename TDataType>
-SizeT TypedReader<TReadType>::getOffsetToData(
-    const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size, SizeT* tickOffset) const
+SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size) const
 {
     if (!inputBuffer)
         throw ArgumentNullException{};
@@ -284,12 +283,6 @@ SizeT TypedReader<TReadType>::getOffsetToData(
         // [[maybe_unused]]
         // int a = 5;
 
-        using SysPeriod = std::chrono::system_clock::period;
-        auto epochResolution = Ratio(std::chrono::system_clock::period::num, std::chrono::system_clock::period::den);
-        auto commonStartValue = TReadType{};  // in maxResolution
-        startV->getValue(&commonStartValue);
-        auto commonStartValueSysTime = toSysTime(commonStartValue, domainInfo.readEpoch, domainInfo.readResolution);
-
         for (std::size_t i = 0; i < size * valuesPerSample; ++i)
         {
             // debug
@@ -304,34 +297,6 @@ SizeT TypedReader<TReadType>::getOffsetToData(
             auto readValue = static_cast<TReadType>(dataStart[i]);
             if (GreaterEqual<TReadType>::Check(domainInfo.multiplier, readValue, startValue))
             {
-                if (tickOffset)
-                {
-                    if constexpr (!IsTemplateOf<TReadType, daq::Complex_Number>::value)
-                    {
-                        auto adjustedValue = GreaterEqual<TReadType>::Adjust(readValue, domainInfo.multiplier);  // in domainInfo.maxResolution
-                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.readEpoch, domainInfo.readResolution);
-                        auto diffSysTime = (adjustedValueSysTime - commonStartValueSysTime).count();
-                        auto diff = diffSysTime *
-                                    (SysPeriod::num * domainInfo.readResolution.getDenominator()) /
-                                    (SysPeriod::den * domainInfo.readResolution.getNumerator());
-                        *tickOffset = diff;
-                    }
-                    else if constexpr (IsTemplateOf<TReadType, daq::RangeType>::value)
-                    {
-                        auto adjustedValue =
-                            GreaterEqual<TReadType>::Adjust(readValue.start, domainInfo.multiplier);  // in domainInfo.maxResolution
-                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.readEpoch, domainInfo.readResolution);
-                        auto diffSysTime = (adjustedValueSysTime - commonStartValueSysTime).count();
-                        auto diff = diffSysTime *
-                                    (SysPeriod::num * domainInfo.readResolution.getDenominator()) /
-                                    (SysPeriod::den * domainInfo.readResolution.getNumerator());
-                        *tickOffset = diff;
-                    }
-                    else
-                    {
-                        throw NotSupportedException();
-                    }
-                }
                 return i / valuesPerSample;
             }
         }

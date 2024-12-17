@@ -4694,8 +4694,8 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
     constexpr auto kSignalCount = SizeT{10};
     const auto resolution = Ratio(1, 10);
 
-    const auto okTolerance = Ratio(10, 100);
     const auto failTolerance = Ratio(8, 100);
+    const auto okTolerance = Ratio(10, 100);
     const auto boundTolerance = Ratio(9, 100);
 
     auto epoch = std::chrono::system_clock::now();
@@ -4715,10 +4715,13 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
         epoch += 10ms;
     }
 
-    auto multiReaderBuilder = MultiReaderBuilder();
     auto ports = portsList();
     auto signals = signalsToList();
+
     ASSERT_EQ(ports.getCount(), signals.getCount());
+
+    // Unaccepted tick offset
+    auto multiReaderBuilder = MultiReaderBuilder();
     for (auto i = 0; i < ports.getCount(); ++i)
     {
         ports[i].connect(signals[i]);
@@ -4740,4 +4743,37 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
     ASSERT_EQ(count, 0);
     ASSERT_EQ(multiReader.getActive(), false);
+
+    // Accepted tick offset
+    epoch = std::chrono::system_clock::now();
+    for (const auto& signal: signals)
+    {
+        auto domainDescriptor = signal.getDomainSignal().getDescriptor();
+        auto domainDescriptorBuilder = DataDescriptorBuilderCopy(domainDescriptor);
+        auto epochString = date::format("%FT%T%z", epoch);
+        domainDescriptorBuilder.setOrigin(epochString);
+        auto newDomainDescriptor = domainDescriptorBuilder.build();
+        signal.getDomainSignal().asPtr<ISignalConfig>().setDescriptor(newDomainDescriptor);
+    }
+
+    count = SizeT{0};
+    status = multiReader.read(nullptr, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+    multiReader.setActive(true);
+
+    for (auto& signal: readSignals)
+        signal.createAndSendPacket(signal.packetSize);
+
+    count = 10;
+    status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 10);
+    ASSERT_EQ(multiReader.getActive(), true);
+
+    for (auto i = 0; i < kSignalCount; ++i)
+    {
+        std::free(domainBuffers[i]);
+        std::free(dataBuffers[i]);
+    }
 }

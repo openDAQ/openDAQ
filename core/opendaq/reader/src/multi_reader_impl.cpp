@@ -709,6 +709,7 @@ SyncStatus MultiReaderImpl::getSyncStatus() const
     {
         switch (signal.synced)
         {
+            case SyncStatus::SynchronizationFailed:
             case SyncStatus::Unsynchronized:
                 return signal.synced;
             case SyncStatus::Synchronizing:
@@ -773,11 +774,19 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
             }
 
             sync();
-
             syncStatus = getSyncStatus();
-            if (syncStatus == SyncStatus::Synchronized)
+            switch (syncStatus)
             {
-                min = getMinSamplesAvailable();
+                case SyncStatus::Synchronized:
+                    min = getMinSamplesAvailable();
+                    break;
+                case SyncStatus::SynchronizationFailed:
+                    setActiveInternal(false);
+                    LOG_W("Tick offset tolerance exceeded. Moved to inactive state.");
+                    break;
+                default:
+                    LOG_W("Unhandled sync status.");
+                    break;
             }
         }
         catch (const DaqException& e)
@@ -1203,61 +1212,65 @@ void MultiReaderImpl::readDomainStart()
     if (startOnFullUnitOfDomain)
     {
         commonStart->roundUpOnUnitOfDomain();
-        for (auto& signal: signals)
-            signal.roundUpOffsetOnUnitOfDomain();
         LOG_T("Rounded DomainStart: {}", *commonStart);
     }
     else
     {
         const RatioPtr interval = Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
         commonStart->roundUpOnDomainInterval(interval);
-        for (auto& signal: signals)
-            signal.roundUpOffsetOnDomainInterval(interval);
         LOG_T("Aligned DomainStart: {}", *commonStart);
-    }
-
-    int64_t minOffsetRemainder = std::numeric_limits<int64_t>::max();
-    int64_t maxOffsetRemainder = 0;
-    auto maxResolutionTicks = Ratio(readResolution.getDenominator(), readResolution.getNumerator());
-    for (auto& signal: signals)
-    {
-        int64_t offsetRemainder = 0;
-        if (startOnFullUnitOfDomain)
-        {
-            const auto interval = Ratio(1, 1);
-            auto intervalMaxResolutionTicks = (interval.getNumerator() * maxResolutionTicks.getNumerator()) /
-                                              (interval.getDenominator() * maxResolutionTicks.getDenominator());
-            offsetRemainder = signal.domainInfo.offset % intervalMaxResolutionTicks;
-        }
-        else
-        {
-            const RatioPtr interval = Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
-            auto intervalMaxResolutionTicks = (interval.getNumerator() * maxResolutionTicks.getNumerator()) /
-                                              (interval.getDenominator() * maxResolutionTicks.getDenominator());
-            offsetRemainder = signal.domainInfo.offset % intervalMaxResolutionTicks;
-        }
-
-        if (maxOffsetRemainder < offsetRemainder)
-            maxOffsetRemainder = offsetRemainder;
-        if (minOffsetRemainder > offsetRemainder)
-            minOffsetRemainder = offsetRemainder;
-    }
-
-    auto tickCount = readResolution.getDenominator() / readResolution.getNumerator();
-    auto tickCountTolerance = tickCount * tickOffsetTolerance.getNumerator() /
-                              tickOffsetTolerance.getDenominator();
-    if (maxOffsetRemainder - minOffsetRemainder > tickCountTolerance)
-    {
-        LOG_W("Syncronization error");
     }
 }
 
 void MultiReaderImpl::sync()
 {
+    int64_t minOffsetRemainder = std::numeric_limits<int64_t>::max();
+    int64_t maxOffsetRemainder = 0;
+    auto maxResolutionTicks = Ratio(readResolution.getDenominator(), readResolution.getNumerator());
     bool synced = true;
+
     for (auto& signal : signals)
     {
         synced = signal.sync(*commonStart) && synced;
+
+        if (tickOffsetTolerance.assigned())
+        {
+            int64_t offsetRemainder = 0;
+            if (startOnFullUnitOfDomain)
+            {
+                const auto interval = Ratio(1, 1);
+                auto intervalMaxResolutionTicks = (interval.getNumerator() * maxResolutionTicks.getNumerator()) /
+                                                  (interval.getDenominator() * maxResolutionTicks.getDenominator());
+                offsetRemainder = signal.domainInfo.offset % intervalMaxResolutionTicks;
+            }
+            else
+            {
+                const RatioPtr interval = Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
+                auto intervalMaxResolutionTicks = (interval.getNumerator() * maxResolutionTicks.getNumerator()) /
+                                                  (interval.getDenominator() * maxResolutionTicks.getDenominator());
+                offsetRemainder = signal.domainInfo.offset % intervalMaxResolutionTicks;
+            }
+
+            if (maxOffsetRemainder < offsetRemainder)
+                maxOffsetRemainder = offsetRemainder;
+            if (minOffsetRemainder > offsetRemainder)
+                minOffsetRemainder = offsetRemainder;
+        }
+    }
+
+    if (tickOffsetTolerance.assigned())
+    {
+        auto tickCount = readResolution.getDenominator() / readResolution.getNumerator();
+        auto tickCountTolerance = tickCount * tickOffsetTolerance.getNumerator() /
+                                  tickOffsetTolerance.getDenominator();
+
+        if (maxOffsetRemainder - minOffsetRemainder > tickCountTolerance)
+        {
+            LOG_W("Synchronization error");
+            synced = false;
+            for (auto& signal : signals)
+                signal.synced = SyncStatus::SynchronizationFailed;
+        }
     }
 
     LOG_T("Synced: {}", synced);
@@ -1329,21 +1342,6 @@ ErrCode MultiReaderImpl::setActive(Bool isActive)
     std::scoped_lock lock{mutex, notify.mutex};
 
     setActiveInternal(isActive);
-
-//    bool modified = this->isActive != static_cast<bool>(isActive);
-//    this->isActive = isActive;
-//
-//    for (auto& signalReader : signals)
-//    {
-//        if (modified)
-//            signalReader.synced = SyncStatus::Unsynchronized;
-//
-//        if (signalReader.port.assigned())
-//            signalReader.port.setActive(this->isActive);
-//
-//        if (modified && !this->isActive)
-//            signalReader.skipUntilLastEventPacket();
-//    }
 
     return OPENDAQ_SUCCESS;
 }

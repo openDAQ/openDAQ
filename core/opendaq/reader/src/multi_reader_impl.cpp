@@ -774,19 +774,15 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
             }
 
             sync();
+
             syncStatus = getSyncStatus();
-            switch (syncStatus)
+            if (syncStatus == SyncStatus::Synchronized)
             {
-                case SyncStatus::Synchronized:
-                    min = getMinSamplesAvailable();
-                    break;
-                case SyncStatus::SynchronizationFailed:
-                    setActiveInternal(false);
-                    LOG_W("Tick offset tolerance exceeded. Moved to inactive state.");
-                    break;
-                default:
-                    LOG_W("Unhandled sync status.");
-                    break;
+                min = getMinSamplesAvailable();
+            }
+            if (syncStatus == SyncStatus::SynchronizationFailed)
+            {
+                setActiveInternal(false);
             }
         }
         catch (const DaqException& e)
@@ -1224,53 +1220,34 @@ void MultiReaderImpl::readDomainStart()
 
 void MultiReaderImpl::sync()
 {
-    int64_t minOffsetRemainder = std::numeric_limits<int64_t>::max();
-    int64_t maxOffsetRemainder = 0;
-    auto maxResolutionTicks = Ratio(readResolution.getDenominator(), readResolution.getNumerator());
     bool synced = true;
-
+    system_clock::rep earliestTime = std::numeric_limits<system_clock::rep>::max();
+    system_clock::rep latestTime = 0;
     for (auto& signal : signals)
     {
-        synced = signal.sync(*commonStart) && synced;
+        system_clock::rep firstSampleAbsoluteTime;
+        synced = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
 
-        if (tickOffsetTolerance.assigned())
-        {
-            int64_t offsetRemainder = 0;
-            if (startOnFullUnitOfDomain)
-            {
-                const auto interval = Ratio(1, 1);
-                auto intervalMaxResolutionTicks = (interval.getNumerator() * maxResolutionTicks.getNumerator()) /
-                                                  (interval.getDenominator() * maxResolutionTicks.getDenominator());
-                offsetRemainder = signal.domainInfo.offset % intervalMaxResolutionTicks;
-            }
-            else
-            {
-                const RatioPtr interval = Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
-                auto intervalMaxResolutionTicks = (interval.getNumerator() * maxResolutionTicks.getNumerator()) /
-                                                  (interval.getDenominator() * maxResolutionTicks.getDenominator());
-                offsetRemainder = signal.domainInfo.offset % intervalMaxResolutionTicks;
-            }
-
-            if (maxOffsetRemainder < offsetRemainder)
-                maxOffsetRemainder = offsetRemainder;
-            if (minOffsetRemainder > offsetRemainder)
-                minOffsetRemainder = offsetRemainder;
-        }
+        if (earliestTime > firstSampleAbsoluteTime)
+            earliestTime = firstSampleAbsoluteTime;
+        if (latestTime < firstSampleAbsoluteTime)
+            latestTime = firstSampleAbsoluteTime;
     }
 
     if (tickOffsetTolerance.assigned())
     {
-        auto tickCount = readResolution.getDenominator() / readResolution.getNumerator();
-        auto tickCountTolerance = tickCount * tickOffsetTolerance.getNumerator() /
-                                  tickOffsetTolerance.getDenominator();
-
-        if (maxOffsetRemainder - minOffsetRemainder > tickCountTolerance)
-        {
-            LOG_W("Synchronization error");
+        auto toleranceLength =
+            (system_clock::period::den * tickOffsetTolerance.getNumerator()) /
+            (system_clock::period::num * tickOffsetTolerance.getDenominator());
+        auto diff = latestTime - earliestTime;
+        if (diff > toleranceLength)
             synced = false;
-            for (auto& signal : signals)
-                signal.synced = SyncStatus::SynchronizationFailed;
-        }
+    }
+
+    if (!synced)
+    {
+        for (auto& signal: signals)
+            signal.synced = SyncStatus::SynchronizationFailed;
     }
 
     LOG_T("Synced: {}", synced);

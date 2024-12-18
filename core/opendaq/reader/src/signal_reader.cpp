@@ -384,7 +384,7 @@ void SignalReader::skipUntilLastEventPacket()
         connection.dequeueAll();
 }
 
-bool SignalReader::sync(const Comparable& commonStart, SizeT* tickOffset)
+bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp)
 {
     if (synced == SyncStatus::Synchronized)
         return true;
@@ -403,7 +403,8 @@ bool SignalReader::sync(const Comparable& commonStart, SizeT* tickOffset)
             domainInfo,
             commonStart,
             domainPacket.getData(),
-            domainPacket.getSampleCount()
+            domainPacket.getSampleCount(),
+            firstSampleAbsoluteTimestamp
         );
 
         if (info.prevSampleIndex == static_cast<SizeT>(-1))

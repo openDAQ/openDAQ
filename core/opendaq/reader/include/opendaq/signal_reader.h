@@ -76,7 +76,7 @@ struct SignalReader
     bool isFirstPacketEvent();
     EventPacketPtr readUntilNextDataPacket();
     void skipUntilLastEventPacket();
-    bool sync(const Comparable& commonStart, SizeT* tickOffset = nullptr);
+    bool sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp = nullptr);
 
     ErrCode readPackets();
     ErrCode readPacketData();
@@ -99,7 +99,7 @@ struct SignalReader
     std::int64_t sampleRate;
     std::int64_t commonSampleRate;
     std::int32_t sampleRateDivider;
-    
+
     bool invalid{false};
     SyncStatus synced{SyncStatus::Unsynchronized};
 

@@ -33,7 +33,11 @@ public:
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) = 0;
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) = 0;
     
-    virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size) = 0;
+    virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
+                              const Comparable& start,
+                              void* inputBuffer,
+                              SizeT size,
+                              std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) = 0;
     virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) = 0;
 
     [[nodiscard]] virtual bool isUndefined() const noexcept;
@@ -66,7 +70,11 @@ public:
         throw InvalidStateException();
     }
 
-    SizeT getOffsetTo(const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size) override
+    SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
+                      const Comparable& start,
+                      void* inputBuffer,
+                      SizeT size,
+                      std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) override
     {
         throw InvalidStateException();
     }
@@ -98,7 +106,11 @@ public:
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) override;
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) override;
 
-    virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size) override;
+    virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
+                              const Comparable& start,
+                              void* inputBuffer,
+                              SizeT size,
+                              std::chrono::system_clock::rep* firstSampleAbsoluteTime) override;
 
     virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) override;
 
@@ -109,7 +121,11 @@ private:
     ErrCode readValues(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT toRead) const;
 
     template <typename TDataType>
-    SizeT getOffsetToData(const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size) const;
+    SizeT getOffsetToData(const ReaderDomainInfo& domainInfo,
+                          const Comparable& start,
+                          void* inputBuffer,
+                          SizeT size,
+                          std::chrono::system_clock::rep* absoluteTimestamp = nullptr) const;
 
     SizeT valuesPerSample{1};
 

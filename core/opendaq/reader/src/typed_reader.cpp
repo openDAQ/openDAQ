@@ -209,33 +209,36 @@ ErrCode TypedReader<ReadType>::readData(void* inputBuffer, SizeT offset, void** 
 }
 
 template <typename ReadType>
-SizeT TypedReader<ReadType>::getOffsetTo(
-    const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size)
+SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
+                                         const Comparable& start,
+                                         void* inputBuffer,
+                                         SizeT size,
+                                         std::chrono::system_clock::rep* firstSampleAbsoluteTime)
 {
     switch (dataSampleType)
     {
         case SampleType::Float32:
-            return getOffsetToData<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Float64:
-            return getOffsetToData<SampleTypeToType<SampleType::Float64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Float64>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::UInt8:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt8>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt8>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Int8:
-            return getOffsetToData<SampleTypeToType<SampleType::Int8>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int8>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Int16:
-            return getOffsetToData<SampleTypeToType<SampleType::Int16>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int16>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::UInt16:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt16>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt16>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Int32:
-            return getOffsetToData<SampleTypeToType<SampleType::Int32>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int32>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::UInt32:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt32>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt32>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Int64:
-            return getOffsetToData<SampleTypeToType<SampleType::Int64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int64>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::UInt64:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt64>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::RangeInt64:
-            return getOffsetToData<SampleTypeToType<SampleType::RangeInt64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::RangeInt64>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::ComplexFloat32:
         case SampleType::ComplexFloat64:
         case SampleType::Binary:
@@ -256,7 +259,11 @@ SizeT TypedReader<ReadType>::getOffsetTo(
 
 template <typename TReadType>
 template <typename TDataType>
-SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo, const Comparable& start, void* inputBuffer, SizeT size) const
+SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo,
+                                              const Comparable& start,
+                                              void* inputBuffer,
+                                              SizeT size,
+                                              std::chrono::system_clock::rep* absoluteTimestamp) const
 {
     if (!inputBuffer)
         throw ArgumentNullException{};
@@ -297,6 +304,26 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
             auto readValue = static_cast<TReadType>(dataStart[i]);
             if (GreaterEqual<TReadType>::Check(domainInfo.multiplier, readValue, startValue))
             {
+                if (absoluteTimestamp)
+                {
+                    if constexpr (!IsTemplateOf<TReadType, daq::Complex_Number>::value)
+                    {
+                        auto adjustedValue = GreaterEqual<TReadType>::Adjust(readValue, domainInfo.multiplier);  // in domainInfo.maxResolution
+                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.epoch, domainInfo.readResolution);
+                        *absoluteTimestamp = adjustedValueSysTime.time_since_epoch().count();
+                    }
+                    else if constexpr (IsTemplateOf<TReadType, daq::RangeType>::value)
+                    {
+                        auto adjustedValue =
+                            GreaterEqual<TReadType>::Adjust(readValue.start, domainInfo.multiplier);  // in domainInfo.maxResolution
+                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.epoch, domainInfo.readResolution);
+                        *absoluteTimestamp = adjustedValueSysTime.time_since_epoch().count();
+                    }
+                    else
+                    {
+                        throw NotSupportedException();
+                    }
+                }
                 return i / valuesPerSample;
             }
         }

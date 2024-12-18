@@ -815,7 +815,7 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
             {
                 rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
             }
-            catch (const std::exception& e)
+            catch (...)
             {
                 return 0;
             }

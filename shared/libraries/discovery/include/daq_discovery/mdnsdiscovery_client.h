@@ -440,7 +440,7 @@ inline void MDNSDiscoveryClient::setupDiscoveryQuery()
         for (size_t i = 0; i < types.size(); i++)
         {
             discoveryQueries[offset + i].name = name.c_str();
-            discoveryQueries[offset + i].length = name.size();
+            discoveryQueries[offset + i].name_length = name.size();
             discoveryQueries[offset + i].type = types[i];
         }
     }

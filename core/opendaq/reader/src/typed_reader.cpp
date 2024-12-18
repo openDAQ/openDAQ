@@ -309,14 +309,14 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                     if constexpr (!IsTemplateOf<TReadType, daq::Complex_Number>::value)
                     {
                         auto adjustedValue = GreaterEqual<TReadType>::Adjust(readValue, domainInfo.multiplier);  // in domainInfo.maxResolution
-                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.epoch, domainInfo.readResolution);
+                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.epoch, domainInfo.resolution);
                         *absoluteTimestamp = adjustedValueSysTime.time_since_epoch().count();
                     }
                     else if constexpr (IsTemplateOf<TReadType, daq::RangeType>::value)
                     {
                         auto adjustedValue =
                             GreaterEqual<TReadType>::Adjust(readValue.start, domainInfo.multiplier);  // in domainInfo.maxResolution
-                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.epoch, domainInfo.readResolution);
+                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.epoch, domainInfo.resolution);
                         *absoluteTimestamp = adjustedValueSysTime.time_since_epoch().count();
                     }
                     else

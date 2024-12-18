@@ -47,7 +47,7 @@ struct ReaderDomainInfo
 #endif
 
         // In system-clock ticks
-        offset = epoch.time_since_epoch().count() - minEpoch.time_since_epoch().count(); 
+        offset = epoch.time_since_epoch().count() - minEpoch.time_since_epoch().count();
 
         LOG_T("Epoch: {}", timePointString(epoch))
         LOG_T("Offset: {}", offset)
@@ -63,14 +63,9 @@ struct ReaderDomainInfo
         LOG_T("Adj. offset: {}", offset)
     }
 
-    void setEpochOffsetRemainder(std::int64_t remainder)
-    {
-    }
-
     RatioPtr resolution{};
     RatioPtr multiplier{};
     std::int64_t offset{};
-    std::int64_t roundedOffset{};
     std::chrono::system_clock::time_point epoch{};
 
     LoggerComponentPtr loggerComponent;

@@ -1241,13 +1241,12 @@ void MultiReaderImpl::sync()
             (system_clock::period::num * tickOffsetTolerance.getDenominator());
         auto diff = latestTime - earliestTime;
         if (diff > toleranceLength)
-            synced = false;
-    }
+        {
+            for (auto& signal: signals)
+                signal.synced = SyncStatus::SynchronizationFailed;
 
-    if (!synced)
-    {
-        for (auto& signal: signals)
-            signal.synced = SyncStatus::SynchronizationFailed;
+            synced = false;
+        }
     }
 
     LOG_T("Synced: {}", synced);

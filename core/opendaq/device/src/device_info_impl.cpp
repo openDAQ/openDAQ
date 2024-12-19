@@ -856,7 +856,12 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyChangeableProperti
                 continue;
 
             if (errCode != OPENDAQ_ERR_ALREADYEXISTS)
-                owner.setPropertyValue(name, prop.getValue());       
+                owner.setPropertyValue(name, prop.getValue());
+
+            owner.getOnPropertyValueWrite(name) += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+            {
+                Super::setPropertyValue(args.getProperty().getName(), args.getValue());
+            };
         }
     }
 

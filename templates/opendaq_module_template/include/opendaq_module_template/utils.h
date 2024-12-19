@@ -3,7 +3,6 @@
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
-
 // Attribute definitions
 
 struct AttributeTemplate
@@ -269,6 +268,12 @@ struct UpdateEndArgs
     PropertyObjectPtr owner;
     std::set<StringPtr> changedProperties;
     Bool isParentUpdating;
+};
+
+struct AcquisitionLoopParams
+{
+    bool enableLoop = false;
+    std::chrono::milliseconds loopTime = std::chrono::milliseconds(100);
 };
 
 

@@ -36,7 +36,6 @@ class RefDeviceImpl final : public templates::DeviceTemplate
 {
 public:
     explicit RefDeviceImpl();
-    ~RefDeviceImpl() override;
 
 protected:
     void initProperties() override;
@@ -47,6 +46,9 @@ protected:
     void initSyncComponent(const SyncComponentPrivatePtr& syncComponent) override;
     void start() override;
 
+    templates::AcquisitionLoopParams getAcquisitionLoopParameters() override;
+    void onAcquisitionLoop() override;
+
     uint64_t getTicksSinceOrigin() override;
     BaseObjectPtr onPropertyWrite(const templates::PropertyEventArgs& args) override;
 
@@ -54,7 +56,6 @@ protected:
     StringPtr getLog(const StringPtr& id, Int size, Int offset) override;
 
 private:
-    void acqLoop();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
     PropertyObjectPtr createProtectedObject() const;
 
@@ -66,10 +67,6 @@ private:
     void updateAcqLoopTime(size_t loopTime);
     void updateDeviceSampleRate(double sampleRate);
 
-    std::thread acqThread;
-    size_t acqLoopTime;
-    std::condition_variable cv;
-    bool stopAcq;
     StringPtr loggingPath;
 
     std::chrono::steady_clock::time_point startTime;

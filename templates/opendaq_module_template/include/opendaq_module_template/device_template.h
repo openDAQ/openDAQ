@@ -17,6 +17,7 @@ public:
     IoFolderConfigPtr createAndAddIOFolder(const std::string& folderId, const IoFolderConfigPtr& parent) const;
 
     void setDeviceDomain(const DeviceDomainPtr& deviceDomain) const;
+    void updateAcquisitionLoop(const AcquisitionLoopParams& params);
 
 protected:
     virtual void initIOFolder(const IoFolderConfigPtr& ioFolder);
@@ -32,6 +33,9 @@ protected:
     // Should this be handled differently?
     virtual bool allowAddDevicesFromModules();
     virtual bool allowAddFunctionBlocksFromModules();
+
+    virtual AcquisitionLoopParams getAcquisitionLoopParameters();
+    virtual void onAcquisitionLoop();
     
 private:
     friend class DeviceTemplateHooks;
@@ -57,6 +61,8 @@ public:
         , DeviceParamsValidation(params)
         , Device(params.context, params.parent.assigned() ? params.parent.getRef() : nullptr, params.localId, className, params.info.getName())
         , info(params.info)
+        , loopRunning(false)
+        , stopAcq(false)
     {
         if (!this->info.isFrozen())
             this->info.freeze();
@@ -84,7 +90,17 @@ public:
         this->templateImpl->initStatuses(statusContainer);
 
         this->templateImpl->start();
-    }   
+
+        this->acqParams = this->templateImpl->getAcquisitionLoopParameters();
+        startLoop();
+    }
+
+    ~DeviceTemplateHooks() override
+    {
+        stopLoop();
+    }
+    
+    void updateAcquisitionLoop(const AcquisitionLoopParams& params);
 
 private:
     
@@ -96,10 +112,21 @@ private:
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;
     void removed() override;
-    
+
+    void startLoop();
+    void stopLoop();
+    void acqLoop();
+
     friend class DeviceTemplate;
     friend class ComponentTemplateBase<DeviceTemplateHooks>;
     DeviceInfoPtr info;
+
+    std::mutex loopSync;
+    AcquisitionLoopParams acqParams;
+    std::thread acqThread;
+    std::condition_variable cv;
+    bool loopRunning;
+    bool stopAcq;
 };
 
 END_NAMESPACE_OPENDAQ_TEMPLATES

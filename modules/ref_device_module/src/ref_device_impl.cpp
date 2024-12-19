@@ -28,22 +28,9 @@ RefDeviceBase::RefDeviceBase(const templates::DeviceParams& params)
 }
 
 RefDeviceImpl::RefDeviceImpl()
-    : acqLoopTime(0)
-    , stopAcq(false)
-    , microSecondsFromEpochToDeviceStart(0)
+    : microSecondsFromEpochToDeviceStart(0)
     , domainUnit(UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build())
 {
-}
-
-RefDeviceImpl::~RefDeviceImpl()
-{
-    {
-        auto lock = this->getRecursiveConfigLock();
-        stopAcq = true;
-    }
-
-    cv.notify_one();
-    acqThread.join();
 }
 
 void RefDeviceImpl::initProperties()
@@ -104,7 +91,14 @@ void RefDeviceImpl::initSyncComponent(const SyncComponentPrivatePtr& syncCompone
 void RefDeviceImpl::start()
 {
     updateAcqLoopTime(objPtr.getPropertyValue("AcquisitionLoopTime"));
-    acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
+}
+
+templates::AcquisitionLoopParams RefDeviceImpl::getAcquisitionLoopParameters()
+{
+    templates::AcquisitionLoopParams params;
+    params.enableLoop = true;
+    params.loopTime = std::chrono::milliseconds(DEFAULT_ACQ_LOOP_TIME);
+    return params;
 }
 
 // TODO: Change to TAI
@@ -230,7 +224,7 @@ void RefDeviceImpl::enableProtectedChannel()
 void RefDeviceImpl::updateAcqLoopTime(size_t loopTime)
 {
     LOG_I("Properties: AcquisitionLoopTime {}", loopTime)
-    this->acqLoopTime = loopTime;
+    this->componentImpl->updateAcquisitionLoop(templates::AcquisitionLoopParams{true, std::chrono::milliseconds(loopTime)});
 }
 
 void RefDeviceImpl::updateDeviceSampleRate(double sampleRate)
@@ -341,44 +335,24 @@ PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
     return protectedObject;
 }
 
-void RefDeviceImpl::acqLoop()
+void RefDeviceImpl::onAcquisitionLoop()
 {
-    using namespace std::chrono_literals;
-    using milli = std::chrono::milliseconds;
+    const auto curTime = getMicroSecondsSinceDeviceStart();
 
-    auto startLoopTime = std::chrono::high_resolution_clock::now();
-    const auto loopTime = milli(acqLoopTime);
+    for (const auto& ch : channels)
+        ch->collectSamples(curTime);
 
-    auto lock = getUniqueLock();
+    //if (canChannel.assigned())
+    //{
+    //    auto chPrivate = canChannel.asPtr<IRefChannel>();
+    //    chPrivate->collectSamples(curTime);
+    //}
 
-    while (!stopAcq)
-    {
-        const auto time = std::chrono::high_resolution_clock::now();
-        const auto loopDuration = std::chrono::duration_cast<milli>(time - startLoopTime);
-        const auto waitTime = loopDuration.count() >= loopTime.count() ? milli(0) : milli(loopTime.count() - loopDuration.count());
-        startLoopTime = time;
-
-        cv.wait_for(lock, waitTime);
-        if (!stopAcq)
-        {
-            const auto curTime = getMicroSecondsSinceDeviceStart();
-
-            for (const auto& ch : channels)
-                ch->collectSamples(curTime);
-
-            //if (canChannel.assigned())
-            //{
-            //    auto chPrivate = canChannel.asPtr<IRefChannel>();
-            //    chPrivate->collectSamples(curTime);
-            //}
-
-            //if (protectedChannel.assigned())
-            //{
-            //    auto chPrivate = protectedChannel.asPtr<IRefChannel>();
-            //    chPrivate->collectSamples(curTime);
-            //}
-        }
-    }
+    //if (protectedChannel.assigned())
+    //{
+    //    auto chPrivate = protectedChannel.asPtr<IRefChannel>();
+    //    chPrivate->collectSamples(curTime);
+    //}
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

@@ -12,11 +12,6 @@ public:
     {
     }
 
-    ~TemplateHooksBase()
-    {
-        templateImpl->removed();
-    }
-
     void registerCallbacks(const PropertyObjectPtr& objPtr);
     std::shared_ptr<Impl> templateImpl;
 };

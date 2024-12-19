@@ -1,15 +1,16 @@
+#include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_impl.h>
 #include <opendaq/component_ptr.h>
 #include <coretypes/validation.h>
 #include "coretypes/impl.h"
 #include <coreobjects/property_object_factory.h>
-#include <opendaq/device_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename TInterface, typename... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const StringPtr& name, const StringPtr& connectionString, const StringPtr& customSdkVersion)
     : Super()
+    , networkInterfaces(Dict<IString, INetworkInterface>())
 {
     createAndSetDefaultStringProperty("name", "");
     createAndSetDefaultStringProperty("manufacturer", "");
@@ -716,6 +717,50 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
     if (OPENDAQ_FAILED(err))
         return err;
     *connectionInfo = obj.asPtr<IServerCapability>().detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addNetworkInteface(IString* name, INetworkInterface* networkInterface)
+{
+    if (this->frozen)
+    {
+        return OPENDAQ_ERR_FROZEN;
+    }
+
+    OPENDAQ_PARAM_NOT_NULL(networkInterface);
+    OPENDAQ_PARAM_NOT_NULL(name);
+
+    const auto nameObj = StringPtr::Borrow(name);
+    if (nameObj == "")
+        return OPENDAQ_ERR_INVALIDPARAMETER;
+
+    if (networkInterfaces.hasKey(name))
+        return OPENDAQ_ERR_ALREADYEXISTS;
+
+    return networkInterfaces->set(name, networkInterface);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getNetworkInterfaces(IDict** interfaces)
+{
+    OPENDAQ_PARAM_NOT_NULL(interfaces);
+
+    *interfaces = this->networkInterfaces.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getNetworkInterface(IString* interfaceName, INetworkInterface** interface)
+{
+    OPENDAQ_PARAM_NOT_NULL(interfaceName);
+    OPENDAQ_PARAM_NOT_NULL(interface);
+
+    if (!networkInterfaces.hasKey(interfaceName))
+        return OPENDAQ_ERR_NOTFOUND;
+
+    *interface = networkInterfaces.get(interfaceName).addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -31,6 +31,7 @@
 #include <coreobjects/property_object_internal.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/client_type.h>
+#include <opendaq/network_interface_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 static OrphanedModules orphanedModules;
@@ -1366,22 +1367,31 @@ std::pair<StringPtr, DeviceInfoPtr> ModuleManagerImpl::populateDiscoveredDevice(
     StringPtr manufacturer = deviceInfo.getManufacturer();
     StringPtr serialNumber = deviceInfo.getSerialNumber();
 
-    bool hasInterface = false;
-    if (deviceInfo.hasProperty("interfaces"))
+    // Filter-out devices that don't have manufacturer, serial number and at least one advertised network interface
+    if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0 && deviceInfo.hasProperty("interfaces"))
     {
-        hasInterface = true;
+        StringPtr interfacesString = deviceInfo.getPropertyValue("interfaces");
+        const auto thisPtr = this->borrowPtr<BaseObjectPtr>();
+
+        std::string interfaceName;
+        std::stringstream ss(interfacesString.toStdString());
+        while (std::getline(ss, interfaceName, ';'))
+        {
+            if (!interfaceName.empty())
+            {
+                const auto networkInterface = NetworkInterface(interfaceName, manufacturer, serialNumber, thisPtr);
+                deviceInfo.asPtr<IDeviceInfoInternal>(true).addNetworkInteface(interfaceName, networkInterface);
+            }
+        }
+
+        if (deviceInfo.getNetworkInterfaces().getCount() > 0)
+        {
+            StringPtr id = "daq://" + manufacturer + "_" + serialNumber;
+            return {id, deviceInfo};
+        }
     }
 
-    // Filter-out devices that don't have manufacturer, serial number and at least one advertised network interface
-    if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0 || !hasInterface)
-    {
-        return {nullptr, nullptr};
-    }
-    else
-    {
-        StringPtr id = "daq://" + manufacturer + "_" + serialNumber;
-        return {id, deviceInfo};
-    }
+    return {nullptr, nullptr};
 }
 
 std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connectionString) const

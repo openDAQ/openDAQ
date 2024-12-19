@@ -457,7 +457,7 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
     ipConfig.addProperty(StringProperty("gateway", "123.4.1.4"));
     SizeT modifyCallCount = 0;
 
-    auto netInterfaceNames = List<IString>("eth0");
+
     ProcedurePtr modifyIpConfigCallback = [&](const StringPtr& ifaceName, const PropertyObjectPtr& config)
     {
         ++modifyCallCount;
@@ -478,7 +478,7 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
                                     .setRootDevice("daqref://device1", refDevConfig)
-                                    .setNetInterfaceNames(netInterfaceNames)
+                                    .setNetInterfaceNames(List<IString>("eth0"))
                                     .setModifyIpConfigCallback(modifyIpConfigCallback)
                                     .setRetrieveIpConfigCallback(retrieveIpConfigCallback)
                                     .build();
@@ -495,12 +495,10 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
     {
         if (devInfo.getConnectionString() == "daq://openDAQ_sim01")
         {
-            EXPECT_TRUE(devInfo.hasProperty("interfaces"));
-            EXPECT_EQ(devInfo.getPropertyValue("interfaces"), "eth0");
+            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
+            EXPECT_NO_THROW(devInfo.getNetworkInterface("eth0").submitConfiguration(ipConfig));
         }
     }
-
-    instance.getContext().getModuleManager().asPtr<IModuleManagerUtils>(true).changeIpConfig("eth0", "openDAQ", "sim01", ipConfig);
 
     EXPECT_EQ(modifyCallCount, 1u);
 }

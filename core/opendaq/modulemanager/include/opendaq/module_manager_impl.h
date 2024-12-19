@@ -107,7 +107,7 @@ private:
 
     static PropertyObjectPtr createGeneralConfig();
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
-    static std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
+    std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
 
     bool modulesLoaded;
     std::vector<std::string> paths;

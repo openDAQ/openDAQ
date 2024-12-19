@@ -19,6 +19,7 @@
 #include <coreobjects/property_object.h>
 #include <opendaq/device_type.h>
 #include <opendaq/server_capability.h>
+#include <opendaq/network_interface.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -280,6 +281,11 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * @retval OPENDAQ_ERR_NOTFOUND if the server capability is not available.
      */
     virtual ErrCode INTERFACE_FUNC getServerCapability(IString* protocolId, IServerCapability** serverCapability) = 0;
+
+    // [templateType(interfaces, IString, INetworkInterface)]
+    virtual ErrCode INTERFACE_FUNC getNetworkInterfaces(IDict** interfaces) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getNetworkInterface(IString* interfaceName, INetworkInterface** interface) = 0;
 };
 /*!@}*/
 

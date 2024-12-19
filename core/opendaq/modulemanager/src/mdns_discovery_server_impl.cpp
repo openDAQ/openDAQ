@@ -224,11 +224,13 @@ PropertyObjectPtr MdnsDiscoveryServerImpl::populateIpConfigProps(const discovery
 
     config.addProperty(BoolProperty("dhcp", txtProps.at("dhcp") == "1"));
 
-    std::vector<std::string> addresses;
+    auto addresses = List<IString>();
     std::string address;
     std::stringstream ss(txtProps.at("addresses"));
-    while (std::getline(ss, address, ';')) if (!address.empty() || !ss.eof()) addresses.push_back(address);
-    config.addProperty(ListProperty("addresses", ListPtr<IString>::FromVector(addresses)));
+    while (std::getline(ss, address, ';'))
+        if (!address.empty())
+            addresses.pushBack(address);
+    config.addProperty(ListProperty("addresses", addresses));
 
     config.addProperty(StringProperty("gateway", txtProps.at("gateway")));
 

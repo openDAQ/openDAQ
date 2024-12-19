@@ -20,7 +20,12 @@ target_include_directories(${MODULE_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../
                                                  ${Boost_INCLUDE_DIRS}
 )
 
+if (WIN32)
+    set(BCRYPT_LIB bcrypt.dll)
+endif()
+
 target_link_libraries(${MODULE_NAME} PUBLIC mdns::mdns
                                             daq::coreobjects
+                                            ${BCRYPT_LIB}
                                             $<BUILD_INTERFACE:Boost::uuid>
 )

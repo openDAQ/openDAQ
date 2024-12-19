@@ -182,6 +182,7 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
 {
     auto browseFilter = BrowseFilter();
     browseFilter.nodeClass = UA_NODECLASS_VARIABLE;
+    browseFilter.typeDefinition = OpcUaNodeId(UA_NODEID_NUMERIC(0, UA_NS0ID_PROPERTYTYPE));
     const auto& references = clientContext->getReferenceBrowser()->browseFiltered(nodeId, browseFilter);
 
     auto reader = AttributeReader(client, clientContext->getMaxNodesPerRead());
@@ -208,10 +209,12 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         for (const auto& [browseName, ref] : references.byBrowseName)
         {
             const auto refNodeId = OpcUaNodeId(ref->nodeId.nodeId);
+            const auto value = reader.getValue(refNodeId, UA_ATTRIBUTEID_VALUE);
             const auto accessLevel = reader.getValue(refNodeId, UA_ATTRIBUTEID_ACCESSLEVEL).toInteger();
-            const bool isReadOnly = !(accessLevel & UA_ACCESSLEVELMASK_WRITE);
 
-            if (isReadOnly)
+            if (!value.isScalar())
+                continue;
+            if ((accessLevel & UA_ACCESSLEVELMASK_WRITE) == 0)
                 continue;
             if (ignoreProps.count(browseName))
                 continue;
@@ -225,9 +228,26 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         for (const auto& [name, _] : deviceInfoChangeableFields)
             changeableProperties.pushBack(String(name));
     }
-    else
+    
     {
-        changeableProperties = {"userName", "location"};
+        Bool hasProperty;
+        this->hasProperty(String("userName"), &hasProperty);
+        if (hasProperty)
+        {
+            PropertyPtr userNameProp;
+            this->getProperty(String("userName"), &userNameProp);
+            if (userNameProp.assigned() && !userNameProp.getReadOnly())
+                changeableProperties.pushBack(String("userName"));
+        }
+
+        this->hasProperty(String("location"), &hasProperty);
+        if (hasProperty)
+        {
+            PropertyPtr locationProp;
+            this->getProperty(String("location"), &locationProp);
+            if (locationProp.assigned() && !locationProp.getReadOnly())
+                changeableProperties.pushBack(String("location"));
+        }  
     }
 
     auto deviceInfo = DeviceInfoWithChanegableFields(changeableProperties);
@@ -443,12 +463,16 @@ void TmsClientDeviceImpl::findAndCreateProporties()
 {
     if (auto it = this->introspectionVariableIdMap.find("UserName"); it != this->introspectionVariableIdMap.end())
     {
+        Impl::addProperty(TmsClientProperty(daqContext, clientContext, it->second, "userName"));
         introspectionVariableIdMap.emplace("userName", it->second);
+        // this->introspectionVariableIdMap.erase("UserName");
     }
-    
+
     if (auto it = this->introspectionVariableIdMap.find("Location"); it != this->introspectionVariableIdMap.end())
     {
+        Impl::addProperty(TmsClientProperty(daqContext, clientContext, it->second, "location"));
         introspectionVariableIdMap.emplace("location", it->second);
+        // this->introspectionVariableIdMap.erase("Location");
     }
 }
 

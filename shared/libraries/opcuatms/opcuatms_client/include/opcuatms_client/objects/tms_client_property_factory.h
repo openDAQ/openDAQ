@@ -20,28 +20,22 @@
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INLINE_FACTORY,
-                                        TmsClientProperty,
-                                        IProperty,
-                                        const daq::ContextPtr&,
-                                        daqContext,
-                                        const daq::opcua::tms::TmsClientContextPtr&,
-                                        ctx,
-                                        const opcua::OpcUaNodeId&,
-                                        nodeId)
+    TmsClientProperty, IProperty,
+    const daq::ContextPtr&, daqContext,
+    const daq::opcua::tms::TmsClientContextPtr&, ctx,
+    const opcua::OpcUaNodeId&, nodeId,
+    const daq::StringPtr&, propertyName)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INLINE_FACTORY,
-                                       TmsClientProperty,
-                                       IProperty,
-                                       const daq::ContextPtr&,
-                                       daqContext,
-                                       const daq::opcua::tms::TmsClientContextPtr&,
-                                       client,
-                                       const opcua::OpcUaNodeId&,
-                                       nodeId)
+    TmsClientProperty, IProperty,
+    const daq::ContextPtr&, daqContext,
+    const daq::opcua::tms::TmsClientContextPtr&, client,
+    const opcua::OpcUaNodeId&, nodeId,
+    const daq::StringPtr&, propertyName)
 
-inline PropertyPtr TmsClientProperty(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const OpcUaNodeId& nodeId)
+inline PropertyPtr TmsClientProperty(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const OpcUaNodeId& nodeId, const StringPtr& propertyName = nullptr)
 {
-    PropertyPtr obj(TmsClientProperty_Create(daqContext, ctx, nodeId));
+    PropertyPtr obj(TmsClientProperty_Create(daqContext, ctx, nodeId, propertyName));
     return obj;
 }
 

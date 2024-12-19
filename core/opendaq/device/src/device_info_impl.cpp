@@ -777,30 +777,24 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
     return OPENDAQ_SUCCESS;
 }
 
-
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(IString* propertyName, IBaseObject** value)
+PropertyPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(const StringPtr& propertyName)
 {
-    OPENDAQ_PARAM_NOT_NULL(propertyName);
-    OPENDAQ_PARAM_NOT_NULL(value);
-
-    PropertyPtr prop;
-    ErrCode err = Super::getProperty(propertyName, &prop);
+    PropertyPtr deviceInfoProp;
+    ErrCode err = Super::getProperty(propertyName, &deviceInfoProp);
     if (OPENDAQ_FAILED(err))
-        return err;
+        return {};
 
-    if (prop.getReadOnly())
-        return OPENDAQ_NOTFOUND;
+    if (deviceInfoProp.getReadOnly())
+        return {};
 
     auto owner = Super::getPropertyObjectParent();
     if (!owner.assigned())
-        return OPENDAQ_NOTFOUND;
+        return {};
 
-    err = owner->getPropertyValue(propertyName, value);
-    if (OPENDAQ_FAILED(err))
-        return OPENDAQ_NOTFOUND;
-
-    return OPENDAQ_SUCCESS;
+    PropertyPtr ownerProp;
+    err = owner->getProperty(propertyName, &ownerProp);
+    return ownerProp;
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -813,13 +807,32 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValue(IStrin
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValueNoLock(IString* propertyName, IBaseObject** value)
 {
-    ErrCode errCode = getEditableProperty(propertyName, value);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-    
-    if (errCode == OPENDAQ_NOTFOUND)
-        errCode = Super::getPropertyValueNoLock(propertyName, value); 
-    return errCode;
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+    OPENDAQ_PARAM_NOT_NULL(value);
+    auto editableProp = getEditableProperty(propertyName);
+    if (editableProp.assigned())
+        return editableProp->getValue(value);
+
+    return Super::getPropertyValueNoLock(propertyName, value); 
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPropertyValue(IString* propertyName, IBaseObject* value)
+{
+    auto lock = this->getRecursiveConfigLock();
+    return this->setPropertyValueNoLock(propertyName, value);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPropertyValueNoLock(IString* propertyName, IBaseObject* value)
+{
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+    OPENDAQ_PARAM_NOT_NULL(value);
+    auto editableProp = getEditableProperty(propertyName);
+    if (editableProp.assigned())
+        return editableProp->setValue(value);
+
+    return Super::setPropertyValueNoLock(propertyName, value);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -839,9 +852,11 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyChangeableProperti
         if (!owner.hasProperty(name))
         {
             ErrCode errCode = owner->addProperty(prop.template asPtr<IPropertyInternal>(true).clone());
-            if (OPENDAQ_FAILED(errCode))
+            if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_ALREADYEXISTS)
                 continue;
-            owner.setPropertyValue(name, prop.getValue());
+
+            if (errCode != OPENDAQ_ERR_ALREADYEXISTS)
+                owner.setPropertyValue(name, prop.getValue());       
         }
     }
 

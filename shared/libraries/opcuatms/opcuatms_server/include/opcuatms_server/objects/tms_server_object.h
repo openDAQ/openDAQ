@@ -72,7 +72,7 @@ public:
     virtual void createNonhierarchicalReferences();
     virtual void onCoreEvent(const CoreEventArgsPtr& eventArgs);
 
-protected:
+// protected:
     virtual void validate();
     virtual opcua::OpcUaNodeId getRequestedNodeId();
     virtual opcua::OpcUaNodeId getReferenceType();

@@ -40,6 +40,18 @@ public:
         deviceInfo.setConnectionString("conn");
         deviceInfo.setName("test");
         deviceInfo.setLocation("test");
+        deviceInfo.addProperty(daq::StringProperty("CustomChangeableField", "default value"));
+        deviceInfo.addProperty(daq::StringPropertyBuilder("CustomChangeableFieldUpdatedOnWrite", "").setReadOnly(true).build());
+        deviceInfo.addProperty(daq::StringPropertyBuilder("CustomChangeableFieldUpdatedOnRead", "").setReadOnly(true).build());
+        deviceInfo.getOnPropertyValueWrite("CustomChangeableField") += [this](daq::PropertyObjectPtr& obj, daq::PropertyValueEventArgsPtr& args) 
+        {
+            obj.asPtr<daq::IPropertyObjectProtected>(true).setProtectedPropertyValue("CustomChangeableFieldUpdatedOnWrite", args.getValue());
+        };
+        deviceInfo.getOnPropertyValueRead("CustomChangeableFieldUpdatedOnRead") += [this](daq::PropertyObjectPtr& obj, daq::PropertyValueEventArgsPtr& args) 
+        {
+            args.setValue(obj.getPropertyValue("CustomChangeableField"));
+        };
+
         return deviceInfo;
     }
 };
@@ -109,6 +121,26 @@ TEST_F(DeviceTest, DeviceInfoNameLocationSync)
 
     ASSERT_EQ(info.getLocation(), "new_loc");
     ASSERT_EQ(info.getName(), "new_name");
+}
+
+TEST_F(DeviceTest, DeviceInfoForwardCallbacks)
+{
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    auto info = device.getInfo();
+
+    // ASSERT_TRUE(device.hasProperty("CustomChangeableField"));
+    // ASSERT_FALSE(device.hasProperty("CustomChangeableFieldUpdatedOnWrite"));
+    // ASSERT_FALSE(device.hasProperty("CustomChangeableFieldUpdatedOnRead"));
+
+    // ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "default value");
+    // ASSERT_EQ(info.getPropertyValue("CustomChangeableFieldUpdatedOnWrite"), "");
+    // ASSERT_EQ(info.getPropertyValue("CustomChangeableFieldUpdatedOnRead"), "default value");
+
+    // device.setPropertyValue("CustomChangeableField", "new_value");
+    // ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "new_value");
+    // ASSERT_EQ(info.getPropertyValue("CustomChangeableFieldUpdatedOnWrite"), "new_value");
+    // ASSERT_EQ(info.getPropertyValue("CustomChangeableFieldUpdatedOnRead"), "new_value");
+    
 }
 
 TEST_F(DeviceTest, Folders)

@@ -535,3 +535,34 @@ TEST_F(TmsDeviceTest, DeviceInfoChanges)
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
     ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
 }
+
+
+TEST_F(TmsDeviceTest, DeviceInfoChangesGateway)
+{
+    const auto ctx = NullContext();
+    const DevicePtr serverDevice = createDevice();
+     
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
+    const auto nodeId = serverTmsDevice.registerOpcUaNode();
+    const auto serverDeviceInfo = serverDevice.getDevices()[1].getInfo();
+     
+    const auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
+    const auto clientSubDevice = clientDevice.getDevices()[1];
+    const auto clientDeviceInfo = clientSubDevice.getInfo();
+
+    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+    ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+    ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
+
+    clientSubDevice.setName("new_name");
+    clientSubDevice.setPropertyValue("location", "new_location");
+    clientSubDevice.setPropertyValue("TestChangeableField", "new_value");
+
+    ASSERT_EQ("new_name", clientDeviceInfo.getName());
+    ASSERT_EQ("new_location", clientDeviceInfo.getLocation());
+    ASSERT_EQ("new_value", clientDeviceInfo.getPropertyValue("TestChangeableField"));
+
+    ASSERT_EQ(serverDeviceInfo.getName(), clientDeviceInfo.getName());
+    ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
+    ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
+}

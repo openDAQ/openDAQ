@@ -24,7 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 class TmsClientPropertyImpl : public TmsClientObjectImpl, public PropertyImpl
 {
 public:
-    explicit TmsClientPropertyImpl(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const opcua::OpcUaNodeId& nodeId);
+    explicit TmsClientPropertyImpl(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const opcua::OpcUaNodeId& nodeId, const StringPtr& propertyName = nullptr);
 
 protected:
     LoggerComponentPtr loggerComponent;

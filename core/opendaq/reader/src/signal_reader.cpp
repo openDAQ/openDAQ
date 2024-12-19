@@ -103,6 +103,7 @@ static std::string printSync(SyncStatus synced)
 {
     switch (synced)
     {
+        case SyncStatus::SynchronizationFailed:
         case SyncStatus::Unsynchronized:
             return "Unsynchronized";
         case SyncStatus::Synchronizing:

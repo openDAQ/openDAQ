@@ -4719,7 +4719,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
     auto ports = portsList();
     auto signals = signalsToList();
     ASSERT_EQ(ports.getCount(), signals.getCount());
-    for (auto i = 0; i < ports.getCount(); ++i)
+    for (SizeT i = 0; i < ports.getCount(); ++i)
     {
         ports[i].connect(signals[i]);
         multiReaderBuilder.addInputPort(ports[i]);
@@ -4741,7 +4741,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
     ASSERT_EQ(count, 0);
     ASSERT_FALSE(multiReader.getActive());
 
-    for (auto i = 0; i < kSignalCount; ++i)
+    for (SizeT i = 0; i < kSignalCount; ++i)
     {
         std::free(domainBuffers[i]);
         std::free(dataBuffers[i]);
@@ -4765,7 +4765,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceededByOffset)
 
     auto epochString = date::format("%FT%T%z", epoch);
     auto start = SizeT{0};
-    for (auto i = 0; i < kSignalCount; ++i)
+    for (SizeT i = 0; i < kSignalCount; ++i)
     {
         // auto epochString = reader::timePointString(epoch);
         auto domainSignal = createDomainSignal(epochString, resolution, LinearDataRule(2, start++));
@@ -4780,7 +4780,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceededByOffset)
     auto ports = portsList();
     auto signals = signalsToList();
     ASSERT_EQ(ports.getCount(), signals.getCount());
-    for (auto i = 0; i < ports.getCount(); ++i)
+    for (SizeT i = 0; i < ports.getCount(); ++i)
     {
         ports[i].connect(signals[i]);
         multiReaderBuilder.addInputPort(ports[i]);
@@ -4802,7 +4802,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceededByOffset)
     ASSERT_EQ(count, 0);
     ASSERT_EQ(multiReader.getActive(), false);
 
-    for (auto i = 0; i < kSignalCount; ++i)
+    for (SizeT i = 0; i < kSignalCount; ++i)
     {
         std::free(domainBuffers[i]);
         std::free(dataBuffers[i]);

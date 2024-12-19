@@ -263,7 +263,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                                               const Comparable& start,
                                               void* inputBuffer,
                                               SizeT size,
-                                              std::chrono::system_clock::rep* absoluteTimestamp) const
+                                              [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp) const
 {
     if (!inputBuffer)
         throw ArgumentNullException{};

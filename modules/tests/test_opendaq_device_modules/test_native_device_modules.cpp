@@ -13,6 +13,7 @@
 #include <chrono>
 #include <coretypes/filesystem.h>
 #include <opendaq/client_type.h>
+#include <opendaq/component_impl.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -988,6 +989,34 @@ TEST_F(NativeDeviceModulesTest, GetStatuses)
     ASSERT_EQ(connectionStatuses.get("ConfigurationStatus").getValue(), "Connected");
     ASSERT_TRUE(connectionStatuses.hasKey("StreamingStatus_OpenDAQNativeStreaming_1"));
     ASSERT_EQ(connectionStatuses.get("StreamingStatus_OpenDAQNativeStreaming_1").getValue(), "Connected");
+}
+
+TEST_F(NativeDeviceModulesTest, ChangeStatusOnServer)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "On");
+
+    std::promise<std::tuple<StringPtr, StringPtr>> testStatusPromise;
+    std::future<std::tuple<StringPtr, StringPtr>> testStatusFuture = testStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        {
+            if (args.getParameters().hasKey("TestStatus"))
+                testStatusPromise.set_value(std::tuple<StringPtr, StringPtr>(
+                    args.getParameters().get("TestStatus").asPtr<IEnumeration>().getValue(), args.getParameters().get("Message")));
+        }
+    };
+
+    server.getStatusContainer().asPtr<IComponentStatusContainerPrivate>(true).setStatusWithMessage(
+        "TestStatus", Enumeration("StatusType", "Off", server.getContext().getTypeManager()), "MsgOff");
+
+    ASSERT_TRUE(testStatusFuture.wait_for(std::chrono::seconds(50)) == std::future_status::ready);
+    ASSERT_EQ(testStatusFuture.get(), std::tuple(String("Off"), String("MsgOff")));
 }
 
 TEST_F(NativeDeviceModulesTest, RemoveDevice)

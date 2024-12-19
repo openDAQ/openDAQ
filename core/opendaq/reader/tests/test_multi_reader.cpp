@@ -4702,7 +4702,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
     auto dataBuffers = std::vector<void*>(kSignalCount, nullptr);
     auto domainBuffers = std::vector<void*>(kSignalCount, nullptr);
 
-    for (auto i = 0; i < kSignalCount; ++i)
+    for (SizeT i = 0; i < kSignalCount; ++i)
     {
         // auto epochString = reader::timePointString(epoch);
         auto epochString = date::format("%FT%T%z", epoch);

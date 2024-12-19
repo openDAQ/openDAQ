@@ -141,7 +141,7 @@ protected:
     PropertyPtr addVariableBlockProperty(const StringPtr& propName, const OpcUaNodeId& propNodeId);
     void browseRawProperties();
     bool isIgnoredMethodPeoperty(const std::string& browseName);
-    ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite);
+    virtual ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite);
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

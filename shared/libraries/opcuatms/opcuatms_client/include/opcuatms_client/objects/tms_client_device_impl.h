@@ -24,6 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>
 {
 public:
+    using Impl = MirroredDeviceBase<ITmsClientComponent>;
     using Super = TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>;
     explicit TmsClientDeviceImpl(const ContextPtr& ctx,
                                  const ComponentPtr& parent,
@@ -34,6 +35,8 @@ public:
     
     ErrCode INTERFACE_FUNC getDomain(IDeviceDomain** deviceDomain) override;
 
+    ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
 protected:
     void findAndCreateSubdevices();
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
@@ -58,6 +61,8 @@ protected:
 
     void removed() override;
 
+    ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite) override;
+
 private:
     void fetchTimeDomain();
     void fetchTicksSinceOrigin();
@@ -65,6 +70,7 @@ private:
     SizeT ticksSinceOrigin{};
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    std::unordered_map<std::string, opcua::OpcUaNodeId> deviceInfoChangeableFields;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

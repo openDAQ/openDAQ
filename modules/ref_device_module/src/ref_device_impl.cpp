@@ -54,6 +54,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     enableCANChannel();
     enableProtectedChannel();
     updateAcqLoopTime();
+    enableLogging();
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
@@ -71,12 +72,14 @@ RefDeviceImpl::~RefDeviceImpl()
 
 DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
 {
-    auto devInfo = DeviceInfo(fmt::format("daqref://device{}", id));
+    auto devInfo = DeviceInfoWithChanegableFields({"userName", "location"});
     devInfo.setName(fmt::format("Device {}", id));
+    devInfo.setConnectionString(fmt::format("daqref://device{}", id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
     devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("DevSer{}", id)));
     devInfo.setDeviceType(CreateType());
+    devInfo.addProperty(StringProperty("CustomChangeableField", "default value"));
 
     return devInfo;
 }
@@ -101,9 +104,7 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
-    deviceInfo.freeze();
-    return deviceInfo;
+    return RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
 }
 
 uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
@@ -303,7 +304,6 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     objPtr.addProperty(BoolProperty("EnableLogging", loggingEnabled));
     objPtr.getOnPropertyValueWrite("EnableLogging") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableLogging(); };
-    enableLogging();
 }
 
 void RefDeviceImpl::updateNumberOfChannels()

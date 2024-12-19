@@ -452,6 +452,12 @@ void OpcUaServer::setDescription(const OpcUaNodeId& nodeId, const std::string& t
     setDescription(nodeId, localizedText);
 }
 
+void OpcUaServer::setAccessLevel(const OpcUaNodeId& nodeId, UA_Byte accessLevel)
+{
+    const auto status = UA_Server_writeAccessLevel(server, *nodeId, accessLevel);
+    CheckStatusCodeException(status);
+}
+
 void OpcUaServer::writeValue(const OpcUaNodeId& nodeId, const OpcUaVariant& value)
 {
     CheckStatusCodeException(UA_Server_writeValue(server, *nodeId, *value));

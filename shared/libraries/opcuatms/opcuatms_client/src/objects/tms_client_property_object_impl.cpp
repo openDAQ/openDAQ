@@ -123,7 +123,8 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
     StringPtr lastProccessDescription = "";
-    ErrCode errCode = daqTry([&]() {
+    ErrCode errCode = daqTry([&]
+    {
         if (const auto& introIt = introspectionVariableIdMap.find(propertyNamePtr); introIt != introspectionVariableIdMap.cend())
         {
             const auto variant = client->readValue(introIt->second);
@@ -145,7 +146,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     });
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object", propertyNamePtr);
+        LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
     }
     return OPENDAQ_SUCCESS;
 }

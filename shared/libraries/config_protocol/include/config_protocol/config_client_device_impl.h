@@ -368,8 +368,6 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     if (serialized.hasKey("deviceInfo"))
     {
         this->deviceInfo = serialized.readObject("deviceInfo");
-        this->deviceInfo.template asPtr<IOwnable>().setOwner(this->objPtr);
-        this->deviceInfo.freeze();
     }
 }
 

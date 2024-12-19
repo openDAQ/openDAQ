@@ -36,10 +36,12 @@ public:
 
     daq::DeviceInfoPtr onGetInfo() override
     {
-        auto deviceInfo = daq::DeviceInfo("conn");
+        auto deviceInfo = daq::DeviceInfoWithChanegableFields({"userName", "location"});
+        deviceInfo.setConnectionString("conn");
         deviceInfo.setName("test");
         deviceInfo.setLocation("test");
-        deviceInfo.freeze();
+        deviceInfo.addProperty(daq::StringProperty("CustomChangeableField", "default value"));
+
         return deviceInfo;
     }
 };
@@ -111,6 +113,42 @@ TEST_F(DeviceTest, DeviceInfoNameLocationSync)
     ASSERT_EQ(info.getName(), "new_name");
 }
 
+TEST_F(DeviceTest, DeviceInfoForwardCallbacks)
+{
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    auto info = device.getInfo();
+    daq::SizeT readCounter = 0;
+    info.getOnPropertyValueRead("CustomChangeableField") += [&readCounter](daq::PropertyObjectPtr& obj, daq::PropertyValueEventArgsPtr& args)
+    {
+        readCounter++;
+    };
+
+    daq::SizeT writeCounter = 0;
+    info.getOnPropertyValueWrite("CustomChangeableField") += [&writeCounter](daq::PropertyObjectPtr& obj, daq::PropertyValueEventArgsPtr& args) 
+    {
+        writeCounter++;
+    };
+
+    ASSERT_TRUE(device.hasProperty("CustomChangeableField"));
+
+    ASSERT_EQ(device.getPropertyValue("CustomChangeableField"), "default value");
+    ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "default value");
+    ASSERT_EQ(writeCounter, 0u);
+
+    device.setPropertyValue("CustomChangeableField", "new_value");
+    ASSERT_EQ(device.getPropertyValue("CustomChangeableField"), "new_value");
+    ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "new_value");
+    ASSERT_EQ(writeCounter, 1u);
+
+    info.setPropertyValue("CustomChangeableField", "new_value2");
+    ASSERT_EQ(device.getPropertyValue("CustomChangeableField"), "new_value2");
+    ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "new_value2");
+    ASSERT_EQ(writeCounter, 2u);
+
+    // we are reading actualy the owner property
+    ASSERT_EQ(readCounter, 0u);
+}
+
 TEST_F(DeviceTest, Folders)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
@@ -164,6 +202,7 @@ TEST_F(DeviceTest, CustomComponentSubItems)
 TEST_F(DeviceTest, DefaultProperties)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    device.getInfo();
     ASSERT_EQ(device.getPropertyValue("location"), "");
     ASSERT_EQ(device.getPropertyValue("userName"), "");
 }

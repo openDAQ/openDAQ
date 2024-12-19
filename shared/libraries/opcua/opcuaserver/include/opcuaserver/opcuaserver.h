@@ -91,6 +91,8 @@ public:
     void setDescription(const OpcUaNodeId& nodeId, const OpcUaObject<UA_LocalizedText>& localizedText);
     void setDescription(const OpcUaNodeId& nodeId, const std::string& text);
 
+    void setAccessLevel(const OpcUaNodeId& nodeId, UA_Byte accessLevel);
+
     void writeValue(const OpcUaNodeId& nodeId, const OpcUaVariant& var);
     OpcUaVariant readValue(const OpcUaNodeId& nodeId);
     OpcUaNodeId readDataType(const OpcUaNodeId& typeNodeId);

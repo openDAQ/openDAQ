@@ -1,4 +1,5 @@
 #include "test_helpers/test_helpers.h"
+#include <opendaq/module_manager_utils_ptr.h>
 
 using ModulesDefaultConfigTest = testing::Test;
 
@@ -446,4 +447,60 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         instance.removeDevice(device);
     }
+}
+
+TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
+{
+    auto ipConfig = PropertyObject();
+    ipConfig.addProperty(BoolProperty("dhcp", True));
+    ipConfig.addProperty(ListProperty("addresses", List<IString>("128.5.54.4/16")));
+    ipConfig.addProperty(StringProperty("gateway", "123.4.1.4"));
+    SizeT modifyCallCount = 0;
+
+    auto netInterfaceNames = List<IString>("eth0");
+    ProcedurePtr modifyIpConfigCallback = [&](const StringPtr& ifaceName, const PropertyObjectPtr& config)
+    {
+        ++modifyCallCount;
+        EXPECT_EQ(ifaceName, "eth0");
+        EXPECT_EQ(ipConfig.getPropertyValue("dhcp"), config.getPropertyValue("dhcp"));
+        EXPECT_EQ(ipConfig.getPropertyValue("addresses"), config.getPropertyValue("addresses"));
+        EXPECT_EQ(ipConfig.getPropertyValue("gateway"), config.getPropertyValue("gateway"));
+    };
+    FunctionPtr retrieveIpConfigCallback = [&](const StringPtr& ifaceName) -> PropertyObjectPtr
+    {
+        return ipConfig;
+    };
+
+    PropertyObjectPtr refDevConfig = PropertyObject();
+    refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
+    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+    const auto serverInstance = InstanceBuilder()
+                                    .addDiscoveryServer("mdns")
+                                    .setRootDevice("daqref://device1", refDevConfig)
+                                    .setNetInterfaceNames(netInterfaceNames)
+                                    .setModifyIpConfigCallback(modifyIpConfigCallback)
+                                    .setRetrieveIpConfigCallback(retrieveIpConfigCallback)
+                                    .build();
+
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    for (const auto& server : serverInstance.getServers())
+        server.enableDiscovery();
+
+    const auto instance = Instance();
+    auto availableDevices = instance.getAvailableDevices();
+
+    for (const auto& devInfo : availableDevices)
+    {
+        if (devInfo.getConnectionString() == "daq://openDAQ_sim01")
+        {
+            EXPECT_TRUE(devInfo.hasProperty("interfaces"));
+            EXPECT_EQ(devInfo.getPropertyValue("interfaces"), "eth0");
+        }
+    }
+
+    instance.getContext().getModuleManager().asPtr<IModuleManagerUtils>(true).changeIpConfig("eth0", "openDAQ", "sim01", ipConfig);
+
+    EXPECT_EQ(modifyCallCount, 1u);
 }

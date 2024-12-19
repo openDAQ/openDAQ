@@ -28,6 +28,8 @@ public:
 
     SignalPtr createAndAddSignal(const SignalParams& params) const;
 
+    virtual void removed();
+
     virtual void initSignals(const FolderConfigPtr& signalsFolder);
     virtual void initFunctionBlocks(const FolderConfigPtr& fbFolder);
 
@@ -172,6 +174,11 @@ SignalPtr ComponentTemplateBase<Type>::createAndAddSignal(const SignalParams& pa
 
     componentImpl->signals.addItem(signal);
     return signal;
+}
+
+template <typename Type>
+void ComponentTemplateBase<Type>::removed()
+{
 }
 
 inline void AddableComponentTemplateBase::applyConfig(const PropertyObjectPtr& /*config*/)

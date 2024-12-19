@@ -1,6 +1,7 @@
 #pragma once
 #include <opendaq/function_block_impl.h>
 #include <opendaq_module_template/component_template_base.h>
+#include <opendaq_module_template/hooks_template_base.h>
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
@@ -19,39 +20,44 @@ private:
     friend class FunctionBlockTemplateHooks;
 };
 
-class FunctionBlockTemplateHooks : public FunctionBlockParamsValidation, public FunctionBlock
+class FunctionBlockTemplateHooks
+    : public TemplateHooksBase<FunctionBlockTemplate>,
+      public FunctionBlockParamsValidation,
+      public FunctionBlock
 {
 public:
 
-    FunctionBlockTemplateHooks(std::shared_ptr<FunctionBlockTemplate> functionBlock, const FunctionBlockParams& params, const StringPtr& className = "")
-        : FunctionBlockParamsValidation(params)
+    FunctionBlockTemplateHooks(const std::shared_ptr<FunctionBlockTemplate>& functionBlock, const FunctionBlockParams& params, const StringPtr& className = "")
+        : TemplateHooksBase(functionBlock)
+        , FunctionBlockParamsValidation(params)
         , FunctionBlock(params.type, params.context, params.parent.getRef(), params.localId, className)
-        , functionBlock(std::move(functionBlock))
     {
-        this->functionBlock->componentImpl = this; // TODO: Figure out safe ptr operations for this
-        this->functionBlock->objPtr = this->borrowPtr<PropertyObjectPtr>();
-        this->functionBlock->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
-        this->functionBlock->context = this->context;
+        this->templateImpl->componentImpl = this;
+        this->templateImpl->objPtr = this->thisPtr<PropertyObjectPtr>();
+        this->templateImpl->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
+        this->templateImpl->context = this->context;
 
         auto lock = this->getAcquisitionLock();
+        registerCallbacks(objPtr);
 
-        this->functionBlock->applyConfig(params.config);
-        this->functionBlock->initProperties();
-        this->functionBlock->initSignals(signals);
-        this->functionBlock->initFunctionBlocks(functionBlocks);
-        this->functionBlock->initInputPorts(inputPorts);
+        this->templateImpl->initProperties();
+        this->templateImpl->applyConfig(params.config);
+        this->templateImpl->initSignals(signals);
+        this->templateImpl->initFunctionBlocks(functionBlocks);
+        this->templateImpl->initInputPorts(inputPorts);
               
-        this->functionBlock->initTags(tags);
-        this->functionBlock->initStatuses(statusContainer);
+        this->templateImpl->initTags(tags);
+        this->templateImpl->initStatuses(statusContainer);
 
-        this->functionBlock->start();
+        this->templateImpl->start();
     }   
 
 private:
     
+    void removed() override;
+
     friend class FunctionBlockTemplate;
     friend class ComponentTemplateBase<FunctionBlockTemplateHooks>;
-    std::shared_ptr<FunctionBlockTemplate> functionBlock;
 };
 
 END_NAMESPACE_OPENDAQ_TEMPLATES

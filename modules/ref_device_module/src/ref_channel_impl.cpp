@@ -222,9 +222,7 @@ void RefChannelImpl::buildSignalDescriptors()
     if (waveformType == WaveformType::ConstantValue)
         valueDescriptor.setRule(ConstantDataRule());
 
-    valueSignal.setDescriptor(valueDescriptor.build());
     deltaT = getDeltaT(sampleRate);
-
     const auto timeDescriptor = DataDescriptorBuilder()
                                 .setSampleType(SampleType::Int64)
                                 .setUnit(Unit("s", -1, "seconds", "time"))
@@ -232,8 +230,15 @@ void RefChannelImpl::buildSignalDescriptors()
                                 .setRule(LinearDataRule(deltaT, 0))
                                 .setOrigin(getEpoch())
                                 .setName("Time AI " + std::to_string(index + 1));
+    
+    this->valueDescriptor = valueDescriptor.build();
+    this->timeDescriptor = timeDescriptor.build();
+}
 
-    timeSignal.setDescriptor(timeDescriptor.build());
+void RefChannelImpl::setSignalDescriptors() const
+{
+    valueSignal.setDescriptor(valueDescriptor);
+    timeSignal.setDescriptor(timeDescriptor);
 }
 
 void RefChannelImpl::updateSignalParams()
@@ -252,6 +257,7 @@ void RefChannelImpl::signalTypeChanged()
 {
     updateSignalParams();
     buildSignalDescriptors();
+    setSignalDescriptors();
     updateSamplesGenerated();
 }
 
@@ -274,15 +280,25 @@ void RefChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
 
 void RefChannelImpl::initSignals(const FolderConfigPtr& signalsFolder)
 {
-    templates::SignalParams valueSigParams;
-    valueSigParams.localId = fmt::format("AI{}", index);
-    valueSignal = createAndAddSignal(valueSigParams);
+    waveformChanged();
+    updateSignalParams();
+    updateSamplesGenerated();
+    packetSizeChanged();
+    resetCounter();
+    buildSignalDescriptors();
 
     templates::SignalParams timeSigParams;
     timeSigParams.localId = fmt::format("AI{}Time", index);
     timeSigParams.attributes.visible.value = false;
-    timeSigParams.attributes.domainSignal.value = valueSignal;
+    timeSigParams.descriptor = timeDescriptor;
     timeSignal = createAndAddSignal(timeSigParams);
+
+    templates::SignalParams valueSigParams;
+    valueSigParams.localId = fmt::format("AI{}", index);
+    valueSigParams.descriptor = valueDescriptor;
+    valueSigParams.attributes.domainSignal.value = timeSignal;
+    valueSignal = createAndAddSignal(valueSigParams);
+
 }
 
 uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const

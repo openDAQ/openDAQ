@@ -7,4 +7,11 @@ FunctionBlockPtr FunctionBlockTemplate::getFunctionBlock() const
     return componentImpl->objPtr;
 }
 
+void FunctionBlockTemplateHooks::removed()
+{
+    templateImpl->removed();
+    templateImpl.reset();
+    FunctionBlockImpl::removed();
+}
+
 END_NAMESPACE_OPENDAQ_TEMPLATES

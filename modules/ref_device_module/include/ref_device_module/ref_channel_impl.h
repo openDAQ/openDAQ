@@ -65,6 +65,7 @@ private:
     
     void updateSamplesGenerated();
     void buildSignalDescriptors();
+    void setSignalDescriptors() const;
     void updateSignalParams();
     void signalTypeChanged();
 
@@ -76,6 +77,9 @@ private:
 
     [[nodiscard]] static Int getDeltaT(double sr);
     [[nodiscard]] static double coerceSampleRate(double wantedSampleRate);
+
+    DataDescriptorPtr valueDescriptor;
+    DataDescriptorPtr timeDescriptor;
 
     WaveformType waveformType;
     double freq;

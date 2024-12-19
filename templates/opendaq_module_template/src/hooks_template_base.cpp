@@ -1,0 +1,5 @@
+#include <opendaq_module_template/hooks_template_base.h>
+
+BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
+
+END_NAMESPACE_OPENDAQ_TEMPLATES

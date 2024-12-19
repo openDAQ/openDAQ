@@ -399,7 +399,7 @@ TEST_F(RefDeviceModuleTest, ChannelName)
     for (const auto& ch : channels)
     {
         std::string chName = ch.getFunctionBlockType().getName();
-        ASSERT_EQ(chName, fmt::format("AI{}", ++i));
+        ASSERT_EQ(chName, fmt::format("Reference Channel", ++i));
     }
 }
 
@@ -450,6 +450,7 @@ TEST_F(RefDeviceModuleTest, ChannelSampleRate)
     ASSERT_DOUBLE_EQ(sampleRate, 10000.0);
 
     ASSERT_TRUE(channel.getProperty("SampleRate").getVisible());
+    device.remove();
 }
 
 TEST_F(RefDeviceModuleTest, CoerceChannelSampleRate)

@@ -1,6 +1,7 @@
 #pragma once
 #include <opendaq/channel_impl.h>
 #include <opendaq_module_template/component_template_base.h>
+#include <opendaq_module_template/hooks_template_base.h>
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
@@ -19,31 +20,34 @@ private:
     friend class ChannelTemplateHooks;
 };
 
-class ChannelTemplateHooks : public ChannelParamsValidation, public Channel
+class ChannelTemplateHooks
+    : public TemplateHooksBase<ChannelTemplate>, public ChannelParamsValidation, public Channel
 {
 public:
 
-    ChannelTemplateHooks(std::shared_ptr<ChannelTemplate> channel, const ChannelParams& params, const StringPtr& className = "")
-        : ChannelParamsValidation(params)
-        , Channel(params.type, params.context, params.parent.getRef(), params.localId, className)
-        , channel(std::move(channel))
+    ChannelTemplateHooks(const std::shared_ptr<ChannelTemplate>& ch, const ChannelParams& params)
+        : TemplateHooksBase(ch)
+        , ChannelParamsValidation(params)
+        , Channel(params.type, params.context, params.parent.getRef(), params.localId, params.className)
     {
-        this->channel->componentImpl = this; // TODO: Figure out safe ptr operations for this
-        this->channel->objPtr = this->borrowPtr<PropertyObjectPtr>();
-        this->channel->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
-        this->channel->context = this->context;
+        this->templateImpl->componentImpl = this;
+        this->templateImpl->objPtr = this->thisPtr<PropertyObjectPtr>();
+        this->templateImpl->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
+        this->templateImpl->context = this->context;
 
         auto lock = this->getRecursiveConfigLock();
+        
+        registerCallbacks(objPtr);
 
-        this->channel->initProperties();
-        this->channel->initSignals(signals);
-        this->channel->initFunctionBlocks(functionBlocks);
-        this->channel->initInputPorts(inputPorts);
+        this->templateImpl->initProperties();
+        this->templateImpl->initSignals(signals);
+        this->templateImpl->initFunctionBlocks(functionBlocks);
+        this->templateImpl->initInputPorts(inputPorts);
               
-        this->channel->initTags(tags);
-        this->channel->initStatuses(statusContainer);
+        this->templateImpl->initTags(tags);
+        this->templateImpl->initStatuses(statusContainer);
 
-        this->channel->start();
+        this->templateImpl->start();
     }
 
     template <class TemplateImpl>
@@ -51,15 +55,16 @@ public:
 
 private:
     
+    void removed() override;
+
     friend class ChannelTemplate;
     friend class ComponentTemplateBase<ChannelTemplateHooks>;
-    std::shared_ptr<ChannelTemplate> channel;
 };
 
 template <class TemplateImpl>
 std::shared_ptr<TemplateImpl> ChannelTemplateHooks::getChannelTemplate()
 {
-    return std::shared_ptr<TemplateImpl>(channel, reinterpret_cast<TemplateImpl*>(channel.get())); 
+    return std::shared_ptr<TemplateImpl>(templateImpl, reinterpret_cast<TemplateImpl*>(templateImpl.get())); 
 }
 
 END_NAMESPACE_OPENDAQ_TEMPLATES

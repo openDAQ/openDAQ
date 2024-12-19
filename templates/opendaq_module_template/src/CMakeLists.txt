@@ -11,6 +11,7 @@ set(SRC_Include
     io_folder_template.h
     component_template.h
     component_template_base.h
+    hooks_template_base.h
     component_helpers.h
     utils.h
 )
@@ -21,6 +22,7 @@ set(SRC_Srcs
     function_block_template.cpp
     module_template.cpp
     component_template_base.cpp
+    hooks_template_base.cpp
     component_helpers.cpp
     io_folder_template.cpp
     component_template.cpp
@@ -31,6 +33,7 @@ prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
 source_group("templates" FILES ${MODULE_HEADERS_DIR}/channel_template.h
                                ${MODULE_HEADERS_DIR}/component_template_base.h
+                               ${MODULE_HEADERS_DIR}/hooks_template_base.h
                                ${MODULE_HEADERS_DIR}/function_block_template.h
                                ${MODULE_HEADERS_DIR}/module_template.h
                                ${MODULE_HEADERS_DIR}/device_template.h
@@ -38,6 +41,7 @@ source_group("templates" FILES ${MODULE_HEADERS_DIR}/channel_template.h
                                ${MODULE_HEADERS_DIR}/component_template.h
                                channel_template.cpp
                                component_template_base.cpp
+                               hooks_template_base.cpp
                                function_block_template.cpp
                                module_template.cpp
                                device_template.cpp

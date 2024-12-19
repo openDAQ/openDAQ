@@ -205,7 +205,7 @@ struct IPropertyBuilder;
  * adhere to the original key and item type.
  *
  * Containers cannot contain Object-type values, Container-type values (List, Dictionary),
- * or Function-type values. Same applies for they Key type of dictionary objects.
+ * or Function-type values. Same applies for the Key type of dictionary objects.
  * 
  * Importantly, Container-type properties cannot have empty default values as of now. If the
  * default values are empty, the Key and Item type deduction will not work properly,

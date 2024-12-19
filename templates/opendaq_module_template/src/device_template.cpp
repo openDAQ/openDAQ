@@ -67,29 +67,35 @@ void DeviceTemplate::setDeviceDomain(const DeviceDomainPtr& deviceDomain) const
 
 uint64_t DeviceTemplateHooks::onGetTicksSinceOrigin()
 {
-    return device->getTicksSinceOrigin();
+    return templateImpl->getTicksSinceOrigin();
 }
 
 ListPtr<ILogFileInfo> DeviceTemplateHooks::onGetLogFileInfos()
 {
-    return device->getLogFileInfos();
+    return templateImpl->getLogFileInfos();
 }
 
 StringPtr DeviceTemplateHooks::onGetLog(const StringPtr& id, Int size, Int offset)
 {
-    return device->getLog(id, size, offset);
+    return templateImpl->getLog(id, size, offset);
 }
 
 bool DeviceTemplateHooks::allowAddDevicesFromModules()
 {
-    return device->allowAddDevicesFromModules();
+    return templateImpl->allowAddDevicesFromModules();
 }
 
 bool DeviceTemplateHooks::allowAddFunctionBlocksFromModules()
 {
-    return device->allowAddFunctionBlocksFromModules();
+    return templateImpl->allowAddFunctionBlocksFromModules();
 }
 
+void DeviceTemplateHooks::removed()
+{
+    templateImpl->removed();
+    templateImpl.reset();
+    GenericDevice::removed();
+}
 
 DeviceInfoPtr DeviceTemplateHooks::onGetInfo()
 {

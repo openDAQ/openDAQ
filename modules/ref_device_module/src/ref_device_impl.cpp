@@ -38,7 +38,7 @@ RefDeviceImpl::RefDeviceImpl()
 RefDeviceImpl::~RefDeviceImpl()
 {
     {
-        auto lock = this->getAcquisitionLock();
+        auto lock = this->getRecursiveConfigLock();
         stopAcq = true;
     }
 

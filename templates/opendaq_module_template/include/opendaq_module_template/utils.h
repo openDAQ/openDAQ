@@ -120,6 +120,7 @@ struct ChannelParams
 {
     std::string logName;
     std::string localId;
+    std::string className = "";
 
     FunctionBlockTypePtr type;
     ContextPtr context;
@@ -130,6 +131,7 @@ struct FunctionBlockParams
 {
     std::string logName;
     std::string localId;
+    std::string className = "";
 
     FunctionBlockTypePtr type;
     ContextPtr context;
@@ -268,5 +270,6 @@ struct UpdateEndArgs
     std::set<StringPtr> changedProperties;
     Bool isParentUpdating;
 };
+
 
 END_NAMESPACE_OPENDAQ_TEMPLATES

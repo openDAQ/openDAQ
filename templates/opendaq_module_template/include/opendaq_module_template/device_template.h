@@ -1,6 +1,7 @@
 #pragma once
 #include <opendaq/device_impl.h>
 #include <opendaq_module_template/component_template_base.h>
+#include <opendaq_module_template/hooks_template_base.h>
 #include <opendaq/io_folder_config_ptr.h>
 #include <opendaq/log_file_info_ptr.h>
 
@@ -47,41 +48,42 @@ std::shared_ptr<ChannelTemplateImpl> DeviceTemplate::createAndAddChannel(const C
     return implPtr->template getChannelTemplate<ChannelTemplateImpl>();
 }
 
-class DeviceTemplateHooks : public DeviceParamsValidation, public Device
+class DeviceTemplateHooks : public TemplateHooksBase<DeviceTemplate>, public DeviceParamsValidation, public Device
 {
 public:
 
-    DeviceTemplateHooks(std::shared_ptr<DeviceTemplate> device, const DeviceParams& params, const StringPtr& className = "")
-        : DeviceParamsValidation(params)
+    DeviceTemplateHooks(const std::shared_ptr<DeviceTemplate>& device, const DeviceParams& params, const StringPtr& className = "")
+        : TemplateHooksBase(device)
+        , DeviceParamsValidation(params)
         , Device(params.context, params.parent.assigned() ? params.parent.getRef() : nullptr, params.localId, className, params.info.getName())
-        , device(std::move(device))
         , info(params.info)
     {
         if (!this->info.isFrozen())
             this->info.freeze();
             
-        this->device->componentImpl = this; // TODO: Figure out safe ptr operations for this
-        this->device->objPtr = this->borrowPtr<PropertyObjectPtr>();
-        this->device->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
-        this->device->context = this->context;
+        this->templateImpl->componentImpl = this;
+        this->templateImpl->objPtr = this->thisPtr<PropertyObjectPtr>();
+        this->templateImpl->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
+        this->templateImpl->context = this->context;
 
         auto lock = this->getRecursiveConfigLock();
+        registerCallbacks(objPtr);
         
-        this->device->initProperties();
-        this->device->applyConfig(params.config);
+        this->templateImpl->initProperties();
+        this->templateImpl->applyConfig(params.config);
 
-        setDeviceDomain(this->device->initDeviceDomain());
-        this->device->initIOFolder(ioFolder);
-        this->device->initDevices(devices);
-        this->device->initSignals(signals);
-        this->device->initFunctionBlocks(functionBlocks);
-        this->device->initCustomComponents();
-        this->device->initSyncComponent(syncComponent);
+        setDeviceDomain(this->templateImpl->initDeviceDomain());
+        this->templateImpl->initIOFolder(ioFolder);
+        this->templateImpl->initDevices(devices);
+        this->templateImpl->initSignals(signals);
+        this->templateImpl->initFunctionBlocks(functionBlocks);
+        this->templateImpl->initCustomComponents();
+        this->templateImpl->initSyncComponent(syncComponent);
 
-        this->device->initTags(tags);
-        this->device->initStatuses(statusContainer);
+        this->templateImpl->initTags(tags);
+        this->templateImpl->initStatuses(statusContainer);
 
-        this->device->start();
+        this->templateImpl->start();
     }   
 
 private:
@@ -93,10 +95,10 @@ private:
 
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;
+    void removed() override;
     
     friend class DeviceTemplate;
     friend class ComponentTemplateBase<DeviceTemplateHooks>;
-    std::shared_ptr<DeviceTemplate> device;
     DeviceInfoPtr info;
 };
 

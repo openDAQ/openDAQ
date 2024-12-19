@@ -81,6 +81,15 @@ public:
     ErrCode INTERFACE_FUNC getDiscoveryServers(IList** serverNames) override;
     ErrCode INTERFACE_FUNC addDiscoveryServer(IString* serverName) override;
 
+    ErrCode INTERFACE_FUNC setNetInterfaceNames(IList* netInterfaceNames) override;
+    ErrCode INTERFACE_FUNC getNetInterfaceNames(IList** netInterfaceNames) override;
+
+    ErrCode INTERFACE_FUNC setModifyIpConfigCallback(IProcedure* modifyIpConfigCallback) override;
+    ErrCode INTERFACE_FUNC getModifyIpConfigCallback(IProcedure** modifyIpConfigCallback) override;
+
+    ErrCode INTERFACE_FUNC setRetrieveIpConfigCallback(IFunction* retrieveIpConfigCallback) override;
+    ErrCode INTERFACE_FUNC getRetrieveIpConfigCallback(IFunction** retrieveIpConfigCallback) override;
+
 private:
     static DictPtr<IString, IBaseObject> GetDefaultOptions();
 
@@ -106,6 +115,10 @@ private:
     DictPtr<IString, IBaseObject> options;
     PropertyObjectPtr rootDeviceConfig{nullptr};
     ListPtr<IString> discoveryServers;
+
+    ListPtr<IString> netInterfaceNames;
+    ProcedurePtr modifyIpConfigCallback;
+    FunctionPtr retrieveIpConfigCallback;
 };
 
 END_NAMESPACE_OPENDAQ

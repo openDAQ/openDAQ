@@ -25,7 +25,9 @@
 #include <vector>
 #include <thread>
 #include <atomic>
+#include <functional>
 #include <mdns.h>
+#include <unordered_set>
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -39,22 +41,25 @@
 
 BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
-struct MdnsDiscoveredDevice
+using TxtProperties = std::unordered_map<std::string, std::string>;
+
+struct MdnsDiscoveredService
 {
-    MdnsDiscoveredDevice(const std::string& serviceName, uint32_t servicePort, const std::unordered_map<std::string, std::string>& properties);
+    MdnsDiscoveredService(const std::string& serviceName, uint32_t servicePort, const std::unordered_map<std::string, std::string>& properties);
 
 private:
     friend class MDNSDiscoveryServer;
 
-    void populateRecords(std::vector<mdns_record_t>& records) const;
-
     std::string serviceName;
     uint16_t servicePort;
-    std::unordered_map<std::string, std::string> properties;
+    TxtProperties properties;
 
     std::string serviceInstance;
     std::string serviceQualified;
 };
+
+using ModifyIpConfigCallback = std::function<TxtProperties(const std::string& ifaceName, const TxtProperties& properties)>;
+using RetrieveIpConfigCallback = std::function<TxtProperties(const std::string& ifaceName)>;
 
 class MDNSDiscoveryServer
 {
@@ -62,15 +67,27 @@ public:
 	explicit MDNSDiscoveryServer();
     ~MDNSDiscoveryServer();
 
-    bool addDevice(const std::string& id, MdnsDiscoveredDevice& device);
-    bool removeDevice(const std::string& id);
+    bool registerService(const std::string& id, MdnsDiscoveredService& service);
+    bool unregisterService(const std::string& id);
+
+    bool registerIpModificationService(MdnsDiscoveredService& service,
+                                       const ModifyIpConfigCallback& modifyIpConfigCb,
+                                       const RetrieveIpConfigCallback& retrieveIpConfigCb);
+    bool isServiceRegistered(const std::string& id);
+
+    static constexpr const char* DAQ_IP_MODIFICATION_SERVICE_NAME = "_opendaq-ip-modification._udp.local.";
+    static constexpr const char* DAQ_IP_MODIFICATION_SERVICE_ID = "OpenDAQIPC";
+    static constexpr const char* DAQ_IP_MODIFICATION_SERVICE_VERSION = "0";
     
 private:
+    static constexpr const uint8_t IP_MODIFICATION_OPCODE = 0xF;
+    static constexpr const uint8_t IP_GET_CONFIG_OPCODE = 0x8;
+
     void start();
     void stop();
     void serviceLoop();
 
-    void goodbyeMulticast(const MdnsDiscoveredDevice& device);
+    void goodbyeMulticast(const MdnsDiscoveredService& service);
 
     std::string getHostname();
     
@@ -78,14 +95,36 @@ private:
     void openServerSockets(std::vector<int>& sockets);
 
     int serviceCallback(int sock, const struct sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
-                 uint16_t query_id, uint16_t rtype, uint16_t rclass, uint32_t ttl, const void* data,
-                 size_t size, size_t name_offset, size_t name_length, size_t record_offset,
-                 size_t record_length, void* user_data);
+                 uint16_t query_id, uint16_t rtype, uint16_t rclass, uint32_t ttl, const void* buffer,
+                 size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
+                 size_t rdata_length, void* user_data, uint8_t opcode);
 
-    mdns_record_t createPtrRecord(const MdnsDiscoveredDevice& device) const;
-    mdns_record_t createSrvRecord(const MdnsDiscoveredDevice& device) const;
-    mdns_record_t createARecord(const MdnsDiscoveredDevice& device) const;
-    mdns_record_t createAaaaRecord(const MdnsDiscoveredDevice& device) const;
+    int nonDiscoveryCallback(int sock, const sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
+        uint16_t query_id, uint16_t rtype, uint16_t rclass, const void* buffer,
+        size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
+        size_t rdata_length, void* user_data, uint8_t opcode);
+
+    int discoveryCallback(int sock, const sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
+        uint16_t query_id, uint16_t rtype, uint16_t rclass, const void* buffer,
+        size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
+        size_t rdata_length, void* user_data);
+
+    mdns_record_t createPtrRecord(const MdnsDiscoveredService& service) const;
+    mdns_record_t createSrvRecord(const MdnsDiscoveredService& service) const;
+    mdns_record_t createARecord(const MdnsDiscoveredService& service) const;
+    mdns_record_t createAaaaRecord(const MdnsDiscoveredService& service) const;
+    void populateTxtRecords(const std::string& recordName, const TxtProperties& props, std::vector<mdns_record_t>& records) const;
+
+    TxtProperties readTxtRecord(size_t size, const void* buffer, size_t rdata_offset, size_t rdata_length);
+
+    void sendIpConfigResponse(int sock,
+                              const sockaddr* to,
+                              size_t addrlen,
+                              uint16_t query_id,
+                              TxtProperties& resProps,
+                              uint8_t opcode,
+                              bool unicast,
+                              const std::string& uuid);
 
     std::string hostName;
     sockaddr_in serviceAddressIpv4;
@@ -95,9 +134,15 @@ private:
     std::atomic<bool> running {false};
     std::thread serviceThread;
     
-    std::map<std::string, MdnsDiscoveredDevice> devices;
+    std::map<std::string, MdnsDiscoveredService> services;
 
     std::vector<int> sockets;
+
+    std::string manufacturer;
+    std::string serialNumber;
+    ModifyIpConfigCallback modifyIpConfigCallback{nullptr};
+    RetrieveIpConfigCallback retrieveIpConfigCallback{nullptr};
+    std::unordered_set<std::string> processedIpConfigReqIds;
 };
 
 END_NAMESPACE_DISCOVERY_SERVICE

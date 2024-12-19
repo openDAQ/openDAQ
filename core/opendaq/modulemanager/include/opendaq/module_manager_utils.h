@@ -116,6 +116,8 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * The local ID of created server component is equal to the name of the server type.
      */
     virtual ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr) = 0;
+
+    virtual ErrCode INTERFACE_FUNC changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config) = 0;
 };
 /*!@}*/
 

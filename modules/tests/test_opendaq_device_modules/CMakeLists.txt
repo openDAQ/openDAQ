@@ -50,6 +50,10 @@ if (OPENDAQ_ENABLE_NATIVE_STREAMING)
     )
 endif()
 
+if (MSVC)
+    target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
+
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY bin

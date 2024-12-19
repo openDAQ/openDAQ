@@ -62,7 +62,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param[out] status: Represents the status of the reader.
      * - If the reader is invalid, IReaderStatus::getValid returns false.
      * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
-     * - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
      */
     virtual ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0, IMultiReaderStatus** status = nullptr) = 0;
 

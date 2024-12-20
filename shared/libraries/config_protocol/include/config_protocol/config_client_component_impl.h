@@ -54,6 +54,7 @@ protected:
                                                     const FunctionPtr& factoryCallback);
 
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+    void remoteUpdateStatuses(const SerializedObjectPtr& serializedStatuses);
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
 private:
@@ -193,6 +194,40 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
 }
 
 template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::remoteUpdateStatuses(const SerializedObjectPtr& serializedStatuses)
+{
+    if (serializedStatuses.hasKey("statuses"))
+    {
+        const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
+            this->clientComm, std::string{}, this->context, nullptr, nullptr, nullptr, nullptr);
+
+        DictPtr<IString, IString> messagesDict;
+        if (serializedStatuses.hasKey("messages"))
+            messagesDict = serializedStatuses.readObject("messages", deserializeContext, nullptr);
+        else
+            messagesDict = Dict<IString, IString>();
+
+        const DictPtr<IString, IEnumeration> statusDict = serializedStatuses.readObject("statuses", deserializeContext, nullptr);
+        const auto statuses = this->statusContainer.getStatuses();
+        const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
+
+        for (const auto& [name, value] : statusDict)
+        {
+            StringPtr msg;
+            if (messagesDict.hasKey(name))
+                msg = messagesDict.get(name);
+            else
+                msg = String("");
+
+            if (statuses.hasKey(name))
+                statusContainerPrivate.setStatusWithMessage(name, value, msg);
+            else
+                statusContainerPrivate.addStatusWithMessage(name, value, msg);
+        }
+    }
+}
+
+template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr& serialized)
 {
     ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
@@ -208,6 +243,12 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
 
     if (serialized.hasKey("name"))
        this->name = serialized.readString("name");
+
+    if (serialized.hasKey("statuses"))
+    {
+        const auto serializedStatuses = serialized.readSerializedObject("statuses");
+        remoteUpdateStatuses(serializedStatuses);
+    }
 }
 
 template <class Impl>

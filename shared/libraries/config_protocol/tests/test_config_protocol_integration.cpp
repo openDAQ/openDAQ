@@ -597,28 +597,22 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
     // set fields on server
     serverSubDevice.setPropertyValue("userName", "new_name");
     serverSubDevice.setPropertyValue("location", "new_location");
-    serverSubDevice.setPropertyValue("TestChangeableField", "new_value");
 
     ASSERT_EQ("new_name", serverDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ("new_location", serverDeviceInfo.getLocation());
-    ASSERT_EQ("new_value", serverDeviceInfo.getPropertyValue("TestChangeableField"));
 
     ASSERT_EQ(serverDeviceInfo.getPropertyValue("userName"), clientDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
-    ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
 
     // set fields on client
     clientSubDevice.setPropertyValue("userName", "new_client_name");
     clientSubDevice.setPropertyValue("location", "new_client_location");
-    clientSubDevice.setPropertyValue("TestChangeableField", "new_client_value");
 
     ASSERT_EQ("new_client_name", clientDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ("new_client_location", clientDeviceInfo.getLocation());
-    ASSERT_EQ("new_client_value", clientDeviceInfo.getPropertyValue("TestChangeableField"));
 
     ASSERT_EQ(serverDeviceInfo.getPropertyValue("userName"), clientDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
-    ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
 }
 
 TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)

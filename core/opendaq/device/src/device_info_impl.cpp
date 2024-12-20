@@ -75,9 +75,14 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
         for (const auto& propName : changeableDefaultPropertyNames)
             this->changeableDefaultPropertyNames.insert(ToLowerCase(propName));
 
+        this->changeableDefaultPropertyNames.insert("username");
+        this->changeableDefaultPropertyNames.insert("location");
+
         this->changeableDefaultPropertyNames.erase("name");
-        this->changeableDefaultPropertyNames.erase("serverCapabilities");
-        this->changeableDefaultPropertyNames.erase("configurationConnectionInfo");
+        this->changeableDefaultPropertyNames.erase("connectionString");
+        this->changeableDefaultPropertyNames.erase("sdkversion");
+        this->changeableDefaultPropertyNames.erase("servercapabilities");
+        this->changeableDefaultPropertyNames.erase("configurationconnectionInfo");
     }
 
     createAndSetStringProperty("manufacturer", "");
@@ -609,15 +614,13 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetIntProperty
 template <typename TInterface, typename... Interfaces>
 StringPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getStringProperty(const StringPtr& name)
 {
-    const auto obj = this->template borrowPtr<PropertyObjectPtr>();
-    return obj.getPropertyValue(name).template asPtr<IString>();
+    return objPtr.getPropertyValue(name).template asPtr<IString>();
 }
 
 template <typename TInterface, typename ... Interfaces>
 Int DeviceInfoConfigImpl<TInterface, Interfaces...>::getIntProperty(const StringPtr& name)
 {
-    const auto obj = this->template borrowPtr<PropertyObjectPtr>();
-    return obj.getPropertyValue(name).template asPtr<IInteger>();
+    return objPtr.getPropertyValue(name).template asPtr<IInteger>();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -778,108 +781,33 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
 }
 
 template <typename TInterface, typename ... Interfaces>
-PropertyPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getEditableProperty(const StringPtr& propertyName)
-{
-    PropertyPtr deviceInfoProp;
-    ErrCode err = Super::getProperty(propertyName, &deviceInfoProp);
-    if (OPENDAQ_FAILED(err))
-        return {};
-
-    if (deviceInfoProp.getReadOnly())
-        return {};
-
-    auto owner = Super::getPropertyObjectParent();
-    if (!owner.assigned())
-        return {};
-
-    PropertyPtr ownerProp;
-    err = owner->getProperty(propertyName, &ownerProp);
-    return ownerProp;
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value)
-{
-    auto lock = this->getRecursiveConfigLock();
-    return this->getPropertyValueNoLock(propertyName, value);
-}
-
-template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValueNoLock(IString* propertyName, IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
-    OPENDAQ_PARAM_NOT_NULL(value);
-    auto editableProp = getEditableProperty(propertyName);
-    if (editableProp.assigned())
-        return editableProp->getValue(value);
+    auto propertyNamePtr = StringPtr::Borrow(propertyName);
+   
+    if (propertyNamePtr == "userName" || propertyNamePtr == "location")
+    {
+        auto owner = Super::getPropertyObjectParent();
+        if (owner.assigned())
+            return owner->getPropertyValue(propertyName, value);
+    }
 
     return Super::getPropertyValueNoLock(propertyName, value); 
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPropertyValue(IString* propertyName, IBaseObject* value)
-{
-    auto lock = this->getRecursiveConfigLock();
-    return this->setPropertyValueNoLock(propertyName, value);
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPropertyValueNoLock(IString* propertyName, IBaseObject* value)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
-    OPENDAQ_PARAM_NOT_NULL(value);
-    auto editableProp = getEditableProperty(propertyName);
-    if (editableProp.assigned())
-        return editableProp->setValue(value);
-
-    return Super::setPropertyValueNoLock(propertyName, value);
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::applyChangeableProperties(const PropertyObjectPtr& owner)
-{
-    if (!owner.assigned())
-        return OPENDAQ_IGNORED;
-
-    auto lock = this->getRecursiveConfigLock();
-    const auto properties = this->objPtr.getAllProperties();
-    for (const auto& prop: properties)
+    auto propertyNamePtr = StringPtr::Borrow(propertyName);
+    if (propertyNamePtr == "userName" || propertyNamePtr == "location")
     {
-        if (prop.getReadOnly())
-            continue;
-
-        const auto name = prop.getName();
-        if (!owner.hasProperty(name))
-        {
-            ErrCode errCode = owner->addProperty(prop.template asPtr<IPropertyInternal>(true).clone());
-            if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_ALREADYEXISTS)
-                continue;
-
-            if (errCode != OPENDAQ_ERR_ALREADYEXISTS)
-                owner.setPropertyValue(name, prop.getValue());
-
-            owner.getOnPropertyValueWrite(name) += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
-            {
-                Super::setPropertyValue(args.getProperty().getName(), args.getValue());
-            };
-        }
+        auto owner = Super::getPropertyObjectParent();
+        if (owner.assigned())
+            return owner->setPropertyValue(propertyName, value);
     }
-
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
-{
-    ErrCode errCode = Super::setOwner(newOwner);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
-    if (errCode == OPENDAQ_IGNORED)
-        return errCode;
-   
-    applyChangeableProperties(newOwner);
-    return errCode; 
+    return Super::setPropertyValueNoLock(propertyName, value);
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

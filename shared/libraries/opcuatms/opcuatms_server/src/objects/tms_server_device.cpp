@@ -56,6 +56,8 @@ namespace detail
         {"SystemType", "systemType"},
         {"SystemUUID", "systemUuid"},
         {"OpenDaqPackageVersion", "sdkVersion"},
+        {"Location", "location"},
+        {"UserName", "userName"},
     };
     
     static std::unordered_map<std::string, std::function<OpcUaVariant(const DeviceInfoPtr&)>> componentFieldToVariant = {
@@ -217,9 +219,6 @@ void TmsServerDevice::populateDeviceInfo()
         }
 
         server->setAccessLevel(nodeId, UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE);
-
-        // skip adding device property
-        this->tmsPropertyObject->ignoredProps.insert(propName);
 
         if (const auto it = detail::componentFieldToVariant.find(browseName); it != detail::componentFieldToVariant.end())
             tmsPropertyObject->addReadCallback(nodeId, std::bind(it->second, deviceInfo));

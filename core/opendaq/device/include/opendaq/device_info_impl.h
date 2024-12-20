@@ -115,13 +115,8 @@ public:
     ErrCode INTERFACE_FUNC getConfigurationConnectionInfo(IServerCapability** connectionInfo) override;
 
     // IPropertyObject
-    ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
-    ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
-
-    // IOwnable
-    virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
 
 private:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -129,8 +124,6 @@ private:
     StringPtr getStringProperty(const StringPtr& name);
     Int getIntProperty(const StringPtr& name);
 
-    ErrCode applyChangeableProperties(const PropertyObjectPtr& owner);
-    PropertyPtr getEditableProperty(const StringPtr& propertyName);
     bool isPropertyChangeable(const StringPtr& propertyName);
 
     std::set<std::string> changeableDefaultPropertyNames;

@@ -735,7 +735,7 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     auto lock = getRecursiveConfigLock();
-    return setPropertyValueInternal(propertyName, value, true, false, updateCount > 0);
+    return setPropertyValueNoLock(propertyName, value);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1445,7 +1445,7 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
     auto lock = getRecursiveConfigLock();
-    return getPropertyValueInternal(propertyName, value);
+    return getPropertyValueNoLock(propertyName, value);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1458,7 +1458,7 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
     auto lock = getRecursiveConfigLock();
-    return getPropertySelectionValueInternal(propertyName, value);
+    return getPropertySelectionValueNoLock(propertyName, value);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1560,7 +1560,7 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValue(IString* propertyName)
 {
     auto lock = getRecursiveConfigLock();
-    return clearPropertyValueInternal(propertyName, false, updateCount > 0);
+    return clearPropertyValueNoLock(propertyName);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2384,7 +2384,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForReferences(IProperty* property, Bool* isReferenced)
 {
     auto lock = getRecursiveConfigLock();
-    return checkForReferencesInternal(property, isReferenced);
+    return checkForReferencesNoLock(property, isReferenced);
 }
 
 template <typename PropObjInterface, typename... Interfaces>

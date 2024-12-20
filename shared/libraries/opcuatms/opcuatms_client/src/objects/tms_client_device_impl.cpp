@@ -228,27 +228,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         for (const auto& [name, _] : deviceInfoChangeableFields)
             changeableProperties.pushBack(String(name));
     }
-    
-    {
-        Bool hasProperty;
-        this->hasProperty(String("userName"), &hasProperty);
-        if (hasProperty)
-        {
-            PropertyPtr userNameProp;
-            this->getProperty(String("userName"), &userNameProp);
-            if (userNameProp.assigned() && !userNameProp.getReadOnly())
-                changeableProperties.pushBack(String("userName"));
-        }
-
-        this->hasProperty(String("location"), &hasProperty);
-        if (hasProperty)
-        {
-            PropertyPtr locationProp;
-            this->getProperty(String("location"), &locationProp);
-            if (locationProp.assigned() && !locationProp.getReadOnly())
-                changeableProperties.pushBack(String("location"));
-        }  
-    }
 
     auto deviceInfo = DeviceInfoWithChanegableFields(changeableProperties);
     deviceInfo.setName(this->client->readDisplayName(this->nodeId));
@@ -265,12 +244,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
        
         try
         {
-            if (auto it = detail::deviceInfoSetterMap.find(browseName); it != detail::deviceInfoSetterMap.end())
-            {
-                it->second(deviceInfo, value);
-                continue;
-            }
-
             std::string propertyName = browseName;
             if (auto it = detail::deviceInfoFieldMap.find(propertyName); it != detail::deviceInfoFieldMap.end())
                 propertyName = it->second;
@@ -315,105 +288,31 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
     }
 
+    for (const auto & [propName, nodeId] : deviceInfoChangeableFields)
+    {
+        try
+        {
+            deviceInfo.getOnPropertyValueWrite(propName) += [this, &nodeId](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+            {
+                const auto variant = VariantConverter<IBaseObject>::ToVariant(args.getValue(), nullptr, daqContext);
+                client->writeValue(nodeId, variant);   
+            };
+
+            deviceInfo.getOnPropertyValueRead(propName) += [this, &nodeId](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+            {
+                const auto variant = client->readValue(nodeId);
+                const auto daqValue = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+                args.setValue(daqValue);
+            };
+        }
+        catch (...)
+        {
+
+        }
+    }
+
     findAndCreateServerCapabilities(deviceInfo);
     return deviceInfo;
-}
-
-ErrCode TmsClientDeviceImpl::addProperty(IProperty* property)
-{
-    if (property == nullptr)
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
-    
-    auto propPtr = PropertyPtr::Borrow(property);
-    if (deviceInfoChangeableFields.count(propPtr.getName()))
-        return Impl::addProperty(property);
-
-    return Super::addProperty(property);
-}
-
-ErrCode TmsClientDeviceImpl::getPropertyValue(IString* propertyName, IBaseObject** value)
-{
-    if (propertyName == nullptr)
-    {
-        LOG_W("Failed to get value for property with nullptr name on OpcUA client property object");
-        return OPENDAQ_SUCCESS;
-    }
-    auto propertyNamePtr = StringPtr::Borrow(propertyName);
-
-    ErrCode errCode = daqTry([&]
-    {
-        if (auto it = deviceInfoChangeableFields.find(propertyNamePtr); it != deviceInfoChangeableFields.end())
-        {
-            const auto variant = client->readValue(it->second);
-            auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-            Impl::setProtectedPropertyValue(propertyName, object);
-            *value = object.detach();
-            return OPENDAQ_SUCCESS;
-        }
-        return OPENDAQ_NOTFOUND;
-    });
-
-    if (errCode == OPENDAQ_SUCCESS)
-        return OPENDAQ_SUCCESS;
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
-        return OPENDAQ_SUCCESS;
-    }
-    
-    return Super::getPropertyValue(propertyName, value);
-}
-
-ErrCode TmsClientDeviceImpl::setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite)
-{
-    if (propertyName == nullptr)
-    {
-        LOG_W("Failed to set value for property with nullptr name on OpcUA client property object");
-        return OPENDAQ_SUCCESS;
-    }
-    auto propertyNamePtr = StringPtr::Borrow(propertyName);
-
-    StringPtr lastProcessDescription = "";
-    ErrCode errCode = daqTry([&]
-    {
-        if (auto it = deviceInfoChangeableFields.find(propertyNamePtr); it != deviceInfoChangeableFields.end())
-        {
-            PropertyPtr prop;
-            ErrCode errCode = getProperty(propertyName, &prop);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
-
-            lastProcessDescription = "Checking existing property is read-only";
-            if (!protectedWrite && prop.getReadOnly())
-                return OPENDAQ_ERR_ACCESSDENIED;
-
-            auto valuePtr = BaseObjectPtr(value);
-            const auto ct = prop.getValueType();
-            const auto valueCt = valuePtr.getCoreType();
-            if (ct != valueCt)
-                valuePtr = valuePtr.convertTo(ct);
-
-            lastProcessDescription = "Writing property value";
-            const auto variant = VariantConverter<IBaseObject>::ToVariant(valuePtr, nullptr, daqContext);
-            client->writeValue(it->second, variant);
-            return OPENDAQ_SUCCESS;
-        }
-        return OPENDAQ_NOTFOUND;
-    });
-
-    if (errCode == OPENDAQ_SUCCESS)
-        return OPENDAQ_SUCCESS;
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProcessDescription);
-        if (errCode == OPENDAQ_ERR_NOTFOUND || errCode == OPENDAQ_ERR_ACCESSDENIED)
-            return errCode;
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::setPropertyValueInternal(propertyName, value, protectedWrite);
 }
 
 void TmsClientDeviceImpl::fetchTimeDomain()
@@ -463,14 +362,12 @@ void TmsClientDeviceImpl::findAndCreateProporties()
 {
     if (auto it = this->introspectionVariableIdMap.find("UserName"); it != this->introspectionVariableIdMap.end())
     {
-        Impl::addProperty(TmsClientProperty(daqContext, clientContext, it->second, "userName"));
         introspectionVariableIdMap.emplace("userName", it->second);
         // this->introspectionVariableIdMap.erase("UserName");
     }
 
     if (auto it = this->introspectionVariableIdMap.find("Location"); it != this->introspectionVariableIdMap.end())
     {
-        Impl::addProperty(TmsClientProperty(daqContext, clientContext, it->second, "location"));
         introspectionVariableIdMap.emplace("location", it->second);
         // this->introspectionVariableIdMap.erase("Location");
     }

@@ -35,8 +35,6 @@ public:
     
     ErrCode INTERFACE_FUNC getDomain(IDeviceDomain** deviceDomain) override;
 
-    ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
-    ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
 protected:
     void findAndCreateSubdevices();
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
@@ -60,8 +58,6 @@ protected:
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
 
     void removed() override;
-
-    ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite) override;
 
 private:
     void fetchTimeDomain();

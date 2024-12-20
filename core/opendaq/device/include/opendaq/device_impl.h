@@ -254,6 +254,9 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     devices.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     ioFolder.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     servers.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
+
+    this->addProperty(StringProperty("userName", ""));
+    this->addProperty(StringProperty("location", ""));
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -25,7 +25,22 @@
 ```
 
 # 04.12.2024
-##
+## Description
+- Implement editable device info fields that can be modified by the owner (device).
+- Broadcast modified string-type device info properties via mDNS.
+- Broadcast all string-type device info properties via mDNS.
+
+## Required integration changes
+All read-write properties of device info are recognized as editable properties. This means that when setting the owner of a device info object, the device info will add those properties to the owner (if they do not already exist). Additionally, reading those properties from the device info will actually read them from the owner (device).
+
+By default, all default properties of device info are read-only. To create a device info object with read-write access for a specific set of properties, the factory `DeviceInfoWithChangeableFields` was implemented.
+
+```
++ [factory] DeviceInfoConfigPtr DeviceInfoWithChanegableFields(const ListPtr<IString>& changeableDefaultPropertyNames)
+```
+
+# 04.12.2024
+## Description
 - Add "Any read/write" events to property object.
 - These events are triggered whenever any property value is read/written.
 

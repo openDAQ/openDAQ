@@ -25,8 +25,11 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IStructType, daq::IType> declareIStructType(pybind11::module_ m)
 {
@@ -37,12 +40,19 @@ void defineIStructType(pybind11::module_ m, PyDaqIntf<daq::IStructType, daq::ITy
 {
     cls.doc() = "Struct types define the fields (names and value types, as well as optional default values) of Structs with a name matching that of the Struct type.";
 
-    m.def("StructType", &daq::StructType_Create);
-    m.def("StructTypeNoDefaults", &daq::StructTypeNoDefaults_Create);
+    m.def("StructType", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IList*, py::list, daq::IEvalValue*>& names, std::variant<daq::IList*, py::list, daq::IEvalValue*>& defaultValues, std::variant<daq::IList*, py::list, daq::IEvalValue*>& types){
+        return daq::StructType_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IList*>(names), getVariantValue<daq::IList*>(defaultValues), getVariantValue<daq::IList*>(types));
+    }, py::arg("name"), py::arg("names"), py::arg("default_values"), py::arg("types"));
+
+    m.def("StructTypeNoDefaults", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IList*, py::list, daq::IEvalValue*>& names, std::variant<daq::IList*, py::list, daq::IEvalValue*>& types){
+        return daq::StructTypeNoDefaults_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IList*>(names), getVariantValue<daq::IList*>(types));
+    }, py::arg("name"), py::arg("names"), py::arg("types"));
+
 
     cls.def_property_readonly("field_names",
         [](daq::IStructType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructTypePtr::Borrow(object);
             return objectPtr.getFieldNames().detach();
         },
@@ -51,6 +61,7 @@ void defineIStructType(pybind11::module_ m, PyDaqIntf<daq::IStructType, daq::ITy
     cls.def_property_readonly("field_default_values",
         [](daq::IStructType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructTypePtr::Borrow(object);
             return objectPtr.getFieldDefaultValues().detach();
         },
@@ -59,6 +70,7 @@ void defineIStructType(pybind11::module_ m, PyDaqIntf<daq::IStructType, daq::ITy
     cls.def_property_readonly("field_types",
         [](daq::IStructType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructTypePtr::Borrow(object);
             return objectPtr.getFieldTypes().detach();
         },

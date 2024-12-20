@@ -42,13 +42,14 @@ namespace details
     };
 }
 
-TmsClientPropertyImpl::TmsClientPropertyImpl(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const opcua::OpcUaNodeId& nodeId)
+TmsClientPropertyImpl::TmsClientPropertyImpl(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const opcua::OpcUaNodeId& nodeId, const StringPtr& propertyName)
     : TmsClientObjectImpl(daqContext, ctx, nodeId)
 {
     if (!this->daqContext.getLogger().assigned())
         throw ArgumentNullException("Logger must not be null");
 
     this->loggerComponent = this->daqContext.getLogger().getOrAddComponent("TmsClientPropertyImpl");
+    this->name = propertyName;
     
     clientContext->readObjectAttributes(nodeId);
 
@@ -59,7 +60,8 @@ TmsClientPropertyImpl::TmsClientPropertyImpl(const ContextPtr& daqContext, const
 void TmsClientPropertyImpl::readBasicInfo()
 {
     auto reader = clientContext->getAttributeReader();
-    this->name = String(reader->getValue(nodeId, UA_ATTRIBUTEID_DISPLAYNAME).toString());
+    if (!this->name.assigned())
+        this->name = String(reader->getValue(nodeId, UA_ATTRIBUTEID_DISPLAYNAME).toString());
     this->description = String(reader->getValue(nodeId, UA_ATTRIBUTEID_DESCRIPTION).toString());
 
     const auto dataType = reader->getValue(nodeId, UA_ATTRIBUTEID_DATATYPE).toNodeId();

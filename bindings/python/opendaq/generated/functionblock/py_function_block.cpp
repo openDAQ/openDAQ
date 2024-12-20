@@ -138,7 +138,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
             return objectPtr.getAvailableFunctionBlockTypes().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets all neasted function block types that are supported, containing their description.");
+        "Gets all nested function block types that are supported, containing their description.");
     cls.def("add_function_block",
         [](daq::IFunctionBlock *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId, daq::IPropertyObject* config)
         {
@@ -147,7 +147,7 @@ void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, da
             return objectPtr.addFunctionBlock(getVariantValue<daq::IString*>(typeId), config).detach();
         },
         py::arg("type_id"), py::arg("config") = nullptr,
-        "Creates and adds a function block as the neasted of current function block with the provided unique ID and returns it.");
+        "Creates and adds a function block as the nested of current function block with the provided unique ID and returns it.");
     cls.def("remove_function_block",
         [](daq::IFunctionBlock *object, daq::IFunctionBlock* functionBlock)
         {

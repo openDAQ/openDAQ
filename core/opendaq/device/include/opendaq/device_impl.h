@@ -20,6 +20,7 @@
 #include <opendaq/device.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/signal_container_impl.h>
 #include <opendaq/signal_ptr.h>
@@ -279,17 +280,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         DeviceInfoPtr devInfo;
         errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
         this->deviceInfo = devInfo.detach();
-
-        if (this->deviceInfo.assigned())
-        {
-            this->deviceInfo.template asPtr<IOwnable>().setOwner(this->objPtr);
-            if (!this->deviceInfo.isFrozen())
-                this->deviceInfo.freeze();
-        }
     }
 
     if (this->deviceInfo.assigned())
-        this->deviceInfo.getPermissionManager().template asPtr<IPermissionManagerInternal>().setParent(this->permissionManager);
+        this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
 
     *info = this->deviceInfo.addRefAndReturn();
     return errCode;
@@ -1669,8 +1663,6 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("deviceInfo"))
     {
         deviceInfo = serializedObject.readObject("deviceInfo");
-        deviceInfo.asPtr<IOwnable>().setOwner(this->objPtr);
-        deviceInfo.freeze();
     }
 
     if (serializedObject.hasKey("deviceDomain"))

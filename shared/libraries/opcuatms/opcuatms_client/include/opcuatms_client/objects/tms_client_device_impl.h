@@ -24,6 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>
 {
 public:
+    using Impl = MirroredDeviceBase<ITmsClientComponent>;
     using Super = TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>;
     explicit TmsClientDeviceImpl(const ContextPtr& ctx,
                                  const ComponentPtr& parent,
@@ -65,6 +66,7 @@ private:
     SizeT ticksSinceOrigin{};
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    std::unordered_map<std::string, opcua::OpcUaNodeId> deviceInfoChangeableFields;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

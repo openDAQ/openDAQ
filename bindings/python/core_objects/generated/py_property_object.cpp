@@ -144,6 +144,24 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         },
         py::arg("property_name"),
         "Gets the Event that is triggered whenever a Property value of a Property named `propertyName` is read.");
+    cls.def_property_readonly("on_any_property_value_write",
+        [](daq::IPropertyObject *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            return objectPtr.getOnAnyPropertyValueWrite().getEventPtr().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the Event that is triggered whenever any Property value is written. The event is triggered after the specific Property event.");
+    cls.def_property_readonly("on_any_property_value_read",
+        [](daq::IPropertyObject *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            return objectPtr.getOnAnyPropertyValueRead().getEventPtr().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the Event that is triggered whenever any Property value is read.The event is triggered after the specific Property event.");
     cls.def_property_readonly("visible_properties",
         [](daq::IPropertyObject *object)
         {

@@ -8,10 +8,12 @@ BEGIN_NAMESPACE_OPENDAQ
 StringImpl::StringImpl(ConstCharPtr data, SizeT length)
     : hashCode(0)
     , hashCalculated(false)
+    , length(length)
 {
     if (data == nullptr)
     {
         this->str = nullptr;
+        this->length = 0;
     }
     else
     {
@@ -82,8 +84,21 @@ ErrCode StringImpl::equals(IBaseObject* other, Bool* equal) const
 
     if (OPENDAQ_SUCCEEDED(other->borrowInterface(IString::Id, reinterpret_cast<void**>(&otherString))))
     {
+        SizeT otherLength;
+        auto err = otherString->getLength(&otherLength);
+
+        if (OPENDAQ_FAILED(err))
+        {
+            return OPENDAQ_SUCCESS;
+        }
+
+        if (otherLength != length)
+        {
+            return OPENDAQ_SUCCESS;
+        }
+
         ConstCharPtr otherValue;
-        auto err = otherString->getCharPtr(&otherValue);
+        err = otherString->getCharPtr(&otherValue);
 
         if (OPENDAQ_FAILED(err))
         {
@@ -111,11 +126,7 @@ ErrCode StringImpl::getCharPtr(ConstCharPtr* value)
 
 ErrCode StringImpl::getLength(SizeT* size)
 {
-    if (str != nullptr)
-        *size = strlen(str);
-    else
-        *size = 0;
-
+    *size = length;
     return OPENDAQ_SUCCESS;
 }
 
@@ -155,7 +166,7 @@ ErrCode StringImpl::toInt(Int* val)
 
 ErrCode StringImpl::toBool(Bool* val)
 {
-    if (str == nullptr || strlen(str) == 0)
+    if (length == 0)
         *val = False;
 #if defined(_WIN32)
     else if (_stricmp("True", str) == 0)

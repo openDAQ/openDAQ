@@ -28,7 +28,7 @@ namespace Scaling
 ScalingFbImpl::ScalingFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
-    initComponentErrorStateStatus();
+    initComponentStatus();
     createInputPorts();
     createSignals();
     initProperties();
@@ -114,19 +114,19 @@ void ScalingFbImpl::configure()
     {
         if (inputDomainDataDescriptor == NullDataDescriptor())
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "No domain input");
+            setComponentStatusWithMessage(ComponentStatus::Warning, "No domain input");
             throw std::runtime_error("No domain input");
         }
 
         if (inputDataDescriptor == NullDataDescriptor())
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "No value input");
+            setComponentStatusWithMessage(ComponentStatus::Warning, "No value input");
             throw std::runtime_error("No value input");
         }
 
         if (inputDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Arrays not supported");
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Arrays not supported");
             throw std::runtime_error("Arrays not supported");
         }
 
@@ -142,7 +142,7 @@ void ScalingFbImpl::configure()
             inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Invalid sample type");
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 

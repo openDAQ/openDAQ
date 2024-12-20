@@ -58,7 +58,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
 
-enum class ComponentErrorState : EnumType
+enum class ComponentStatus : EnumType
 {
     Ok = 0,
     Warning,
@@ -178,9 +178,9 @@ protected:
 
     static bool validateComponentId(const std::string& id);
 
-    void initComponentErrorStateStatus() const;
-    void setComponentErrorStateStatus(const ComponentErrorState& status) const;
-    void setComponentErrorStateStatusWithMessage(const ComponentErrorState& status, const StringPtr& message) const;
+    void initComponentStatus() const;
+    void setComponentStatus(const ComponentStatus& status) const;
+    void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
@@ -1128,23 +1128,23 @@ bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::initComponentErrorStateStatus() const
+void ComponentImpl<Intf, Intfs...>::initComponentStatus() const
 {
     // Component error state status is added ("Ok" when a component is created)
     const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
     const auto componentStatusValue =
-        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentErrorState::Ok), this->context.getTypeManager());
+        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentStatus::Ok), this->context.getTypeManager());
     statusContainerPrivate.addStatus("ComponentStatus", componentStatusValue);
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::setComponentErrorStateStatus(const ComponentErrorState& status) const
+void ComponentImpl<Intf, Intfs...>::setComponentStatus(const ComponentStatus& status) const
 {
-    setComponentErrorStateStatusWithMessage(status, "");
+    setComponentStatusWithMessage(status, "");
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::setComponentErrorStateStatusWithMessage(const ComponentErrorState& status, const StringPtr& message) const
+void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const
 {
     // Fail with explicit message of what happened if not initialized
     try
@@ -1153,8 +1153,8 @@ void ComponentImpl<Intf, Intfs...>::setComponentErrorStateStatusWithMessage(cons
     }
     catch (const NotFoundException&)
     {
-        throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentErrorStateStatus needs to be called "
-                                "before setComponentErrorStateStatus.");
+        throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called "
+                                "before setComponentStatus.");
     }
 
     // Set status if initialized

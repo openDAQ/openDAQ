@@ -74,10 +74,16 @@ void DeviceTemplate::setDeviceDomain(const DeviceDomainPtr& deviceDomain) const
     componentImpl->setDeviceDomain(deviceDomain);
 }
 
-void DeviceTemplate::updateAcquisitionLoop(const AcquisitionLoopParams& params)
+void DeviceTemplate::updateAcquisitionLoop(const AcquisitionLoopParams& params) const
 {
     LOG_T("Updating acquisition loop")
     componentImpl->updateAcquisitionLoop(params);
+}
+
+DeviceInfoPtr DeviceTemplate::getInfo() const
+{
+    LOG_T("Getting device info")
+    return componentImpl->info;
 }
 
 uint64_t DeviceTemplateHooks::onGetTicksSinceOrigin()

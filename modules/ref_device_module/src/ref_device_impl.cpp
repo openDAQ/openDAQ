@@ -14,6 +14,7 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
+using namespace templates;
 static constexpr size_t DEFAULT_NUMBER_OF_CHANNELS = 2;
 static constexpr bool DEFAULT_ENABLE_CAN_CHANNEL = false;
 static constexpr bool DEFAULT_ENABLE_PROTECTED_CHANNEL = false;
@@ -22,7 +23,7 @@ static constexpr char DEFAULT_LOGGING_PATH[] = "ref_device_simulator.log";
 static constexpr double DEFAULT_DEVICE_SAMPLE_RATE = 1000;
 static constexpr int DEFAULT_ACQ_LOOP_TIME = 20;
 
-RefDeviceBase::RefDeviceBase(const templates::DeviceParams& params)
+RefDeviceBase::RefDeviceBase(const DeviceParams& params)
     : DeviceTemplateHooks(std::make_shared<RefDeviceImpl>(), params)
 {
 }
@@ -68,7 +69,10 @@ DeviceDomainPtr RefDeviceImpl::initDeviceDomain()
 {
     startTime = std::chrono::steady_clock::now();
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
-    return DeviceDomain(RefChannelImpl::getResolution(), RefChannelImpl::getEpoch(), domainUnit);
+    return DeviceDomain(RefChannelImpl::getResolution(),
+                        RefChannelImpl::getEpoch(),
+                        domainUnit,
+                        ReferenceDomainInfoBuilder().setReferenceDomainId(objPtr.getLocalId()).setReferenceDomainOffset(0).build());
 }
 
 void RefDeviceImpl::initIOFolder(const IoFolderConfigPtr& ioFolder)
@@ -80,22 +84,14 @@ void RefDeviceImpl::initIOFolder(const IoFolderConfigPtr& ioFolder)
     enableCANChannel(objPtr.getPropertyValue("EnableCANChannel"));
 }
 
-// TODO: Add actual synchronization implementation
-void RefDeviceImpl::initSyncComponent(const SyncComponentPrivatePtr& syncComponent)
-{
-    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "PtpSyncInterface"));
-    syncComponent.addInterface(PropertyObject(this->context.getTypeManager(), "InterfaceClockSync"));
-    syncComponent.setSyncLocked(true);
-}
-
 void RefDeviceImpl::start()
 {
     updateAcqLoopTime(objPtr.getPropertyValue("AcquisitionLoopTime"));
 }
 
-templates::AcquisitionLoopParams RefDeviceImpl::getAcquisitionLoopParameters()
+AcquisitionLoopParams RefDeviceImpl::getAcquisitionLoopParameters()
 {
-    templates::AcquisitionLoopParams params;
+    AcquisitionLoopParams params;
     params.enableLoop = true;
     params.loopTime = std::chrono::milliseconds(DEFAULT_ACQ_LOOP_TIME);
     return params;
@@ -114,7 +110,7 @@ uint64_t RefDeviceImpl::getTicksSinceOrigin()
 }
 
 // TODO: Handle begin/end update
-BaseObjectPtr RefDeviceImpl::onPropertyWrite(const templates::PropertyEventArgs& args)
+BaseObjectPtr RefDeviceImpl::onPropertyWrite(const PropertyEventArgs& args)
 {
     if (args.propertyName == "NumberOfChannels")
         updateNumberOfChannels(args.value);
@@ -154,14 +150,14 @@ void RefDeviceImpl::addMissingChannels(size_t numberOfChannels)
     {
         RefChannelInit init{ i, deviceSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
 
-        templates::ChannelParams params;
+        ChannelParams params;
         params.context = this->context;
-        params.localId = fmt::format("AI_{}", i);
+        params.localId = fmt::format("AI{}", i);
         params.parent = aiFolder;
         params.type = FunctionBlockType("RefChannel", "Reference Channel", "Simulates waveform data");
         params.logName = "RefChannel";
 
-        channels.push_back(createAndAddChannel<RefChannelBase, RefChannelImpl, const RefChannelInit&>(params, init));
+        channels.push_back(createAndAddChannel<RefChannelBase, RefChannelImpl>(params, init));
         LOG_T("Added AI Channel: {}", localId)
     }
 }
@@ -221,13 +217,13 @@ void RefDeviceImpl::enableProtectedChannel()
     //}
 }
 
-void RefDeviceImpl::updateAcqLoopTime(size_t loopTime)
+void RefDeviceImpl::updateAcqLoopTime(size_t loopTime) const
 {
     LOG_I("Properties: AcquisitionLoopTime {}", loopTime)
-    this->componentImpl->updateAcquisitionLoop(templates::AcquisitionLoopParams{true, std::chrono::milliseconds(loopTime)});
+    this->componentImpl->updateAcquisitionLoop(AcquisitionLoopParams{true, std::chrono::milliseconds(loopTime)});
 }
 
-void RefDeviceImpl::updateDeviceSampleRate(double sampleRate)
+void RefDeviceImpl::updateDeviceSampleRate(double sampleRate) const
 {
     LOG_I("Properties: GlobalSampleRate {}", sampleRate)
     for (auto& ch : channels)
@@ -307,7 +303,7 @@ StringPtr RefDeviceImpl::getLog(const StringPtr& id, Int size, Int offset)
 }
 
 // TODO: Change to representative example
-PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
+PropertyObjectPtr RefDeviceImpl::createProtectedObject()
 {
     const auto func = Function([](Int a, Int b) { return a + b; });
 
@@ -321,7 +317,7 @@ PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
     protectedObject.addProperty(funcProp);
     protectedObject.setPropertyValue("Sum", func);
 
-    // group "everyone" has a read-only access to the protected object
+    // group "everyone" has read-only access to the protected object
     // group "admin" can change the protected object and call methods on it
 
     auto permissions = PermissionsBuilder()

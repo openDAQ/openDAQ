@@ -3,6 +3,7 @@
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
+
 // Attribute definitions
 
 struct AttributeTemplate
@@ -253,7 +254,6 @@ public:
 
 // Internal Helpers
 
-
 struct PropertyEventArgs
 {
     PropertyObjectPtr owner;
@@ -273,7 +273,7 @@ struct UpdateEndArgs
 struct AcquisitionLoopParams
 {
     bool enableLoop = false;
-    std::chrono::milliseconds loopTime = std::chrono::milliseconds(100);
+    std::chrono::milliseconds loopTime = std::chrono::milliseconds(50);
 };
 
 

@@ -17,7 +17,8 @@ public:
     IoFolderConfigPtr createAndAddIOFolder(const std::string& folderId, const IoFolderConfigPtr& parent) const;
 
     void setDeviceDomain(const DeviceDomainPtr& deviceDomain) const;
-    void updateAcquisitionLoop(const AcquisitionLoopParams& params);
+    void updateAcquisitionLoop(const AcquisitionLoopParams& params) const;
+    DeviceInfoPtr getInfo() const;
 
 protected:
     virtual void initIOFolder(const IoFolderConfigPtr& ioFolder);
@@ -76,7 +77,6 @@ public:
         registerCallbacks(objPtr);
         
         this->templateImpl->initProperties();
-        this->templateImpl->applyConfig(params.config);
 
         setDeviceDomain(this->templateImpl->initDeviceDomain());
         this->templateImpl->initIOFolder(ioFolder);
@@ -88,7 +88,8 @@ public:
 
         this->templateImpl->initTags(tags);
         this->templateImpl->initStatuses(statusContainer);
-
+        
+        this->templateImpl->applyConfig(params.config);
         this->templateImpl->start();
 
         this->acqParams = this->templateImpl->getAcquisitionLoopParameters();

@@ -70,7 +70,7 @@ DevicePtr ModuleTemplateHooks::onCreateDevice(const StringPtr& connectionString,
     }
 
     if (!found)
-        throw InvalidParameterException("Device with given connection string prefix was not found");
+        throw NotFoundException("Device with given connection string prefix was not found");
 
     DeviceInfoParams deviceInfo;
     
@@ -86,7 +86,7 @@ DevicePtr ModuleTemplateHooks::onCreateDevice(const StringPtr& connectionString,
     }
     
     if (!found)
-        throw InvalidParameterException("Device with address {} was not found", address);
+        throw NotFoundException("Device with address {} was not found", address);
 
     DeviceInfoPtr info = createDeviceInfo(deviceInfo, typeInfo);
 
@@ -104,13 +104,14 @@ DevicePtr ModuleTemplateHooks::onCreateDevice(const StringPtr& connectionString,
     params.logName = typeInfo.name;
     params.localId = deviceInfo.manufacturer.value + "_" + deviceInfo.serialNumber.value;
 
+    clearRemovedDevices();
     if (module_->devices.count(params.localId))
         throw AlreadyExistsException{"Device with local ID \"{}\" already exist", params.localId};
 
     auto device = module_->createDevice(params);
     if (!device.assigned())
         throw InvalidParameterException("Device creation failed");
-    module_->devices.insert(device.getLocalId());
+    module_->devices.insert(std::pair(device.getLocalId(), device));
 
     if (parent.assigned())
     {
@@ -272,6 +273,19 @@ PropertyObjectPtr ModuleTemplateHooks::mergeConfig(const PropertyObjectPtr& user
         LOG_W("Failed to merge configuration: {}", e.what())
         return userConfig;
     }
+}
+
+void ModuleTemplateHooks::clearRemovedDevices() const
+{
+    std::vector<std::string> toRemove;
+    for (const auto& [localId, device] : module_->devices)
+    {
+        if (!device.assigned() || !device.getRef().assigned())
+            toRemove.push_back(localId);
+    }
+
+    for (const auto& localId : toRemove)
+        module_->devices.erase(localId);
 }
 
 std::vector<DeviceTypeParams> ModuleTemplate::getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& /*options*/)

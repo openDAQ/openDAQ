@@ -18,7 +18,6 @@
 #include <ref_device_module/common.h>
 #include <opendaq/channel_ptr.h>
 #include <opendaq_module_template/device_template.h>
-#include <thread>
 #include <condition_variable>
 #include <ref_device_module/ref_channel_impl.h>
 #include <ref_device_module/ref_can_channel_impl.h>
@@ -43,7 +42,6 @@ protected:
 
     DeviceDomainPtr initDeviceDomain() override;
     void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
-    void initSyncComponent(const SyncComponentPrivatePtr& syncComponent) override;
     void start() override;
 
     templates::AcquisitionLoopParams getAcquisitionLoopParameters() override;
@@ -57,15 +55,15 @@ protected:
 
 private:
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
-    PropertyObjectPtr createProtectedObject() const;
+    static PropertyObjectPtr createProtectedObject();
 
     void removeRedundantChannels(size_t numberOfChannels);
     void addMissingChannels(size_t numberOfChannels);
     void updateNumberOfChannels(size_t numberOfChannels);
     void enableCANChannel(bool enableCANChannel);
     void enableProtectedChannel();
-    void updateAcqLoopTime(size_t loopTime);
-    void updateDeviceSampleRate(double sampleRate);
+    void updateAcqLoopTime(size_t loopTime) const;
+    void updateDeviceSampleRate(double sampleRate) const;
 
     StringPtr loggingPath;
 
@@ -73,7 +71,7 @@ private:
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
 
     std::vector<std::shared_ptr<RefChannelImpl>> channels;
-    ChannelPtr protectedChannel;
+    //ChannelPtr protectedChannel;
     //std::shared_ptr<RefCANChannelImpl> canChannel;
     
     UnitPtr domainUnit;

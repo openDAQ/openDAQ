@@ -159,7 +159,7 @@ TEST_F_UNSTABLE_SKIPPED(QuickStartTest, QuickStartAppReaderWebsocket)
     ASSERT_TRUE(device.assigned());
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[0], ReadTimeoutType::Any);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[1], ReadTimeoutType::Any);
 
     {
         daq::SizeT count = 0;

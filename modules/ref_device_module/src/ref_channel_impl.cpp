@@ -298,7 +298,6 @@ void RefChannelImpl::initSignals(const FolderConfigPtr& signalsFolder)
     valueSigParams.descriptor = valueDescriptor;
     valueSigParams.attributes.domainSignal.value = timeSignal;
     valueSignal = createAndAddSignal(valueSigParams);
-
 }
 
 uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const

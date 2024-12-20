@@ -23,6 +23,9 @@ void TemplateHooksBase<Impl>::registerCallbacks(const PropertyObjectPtr& objPtr)
         [&](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
         {
             PropertyEventArgs propArgs{obj, args.getProperty(), args.getProperty().getName(), args.getValue(), args.getIsUpdating()};
+            if (args.getPropertyEventType() == PropertyEventType::Clear)
+                propArgs.value = args.getProperty().getDefaultValue();
+
             const auto val = templateImpl->onPropertyWrite(propArgs);
             if (val.assigned() && args.getValue() != val)
                 args.setValue(val);
@@ -31,7 +34,7 @@ void TemplateHooksBase<Impl>::registerCallbacks(const PropertyObjectPtr& objPtr)
     objPtr.getOnAnyPropertyValueRead() +=
         [&](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
         {
-            PropertyEventArgs propArgs{obj, args.getProperty(), args.getProperty().getName(), args.getValue(), args.getIsUpdating()};
+        PropertyEventArgs propArgs{obj, args.getProperty(), args.getProperty().getName(), args.getValue(), args.getIsUpdating()};
             const auto val = templateImpl->onPropertyRead(propArgs);
             if (val.assigned() && args.getValue() != val)
                 args.setValue(val);

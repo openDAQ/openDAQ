@@ -107,12 +107,12 @@ void ComponentTemplateBase<Type>::removeComponentWithId(const FolderConfigPtr& p
 template <typename Type>
 void ComponentTemplateBase<Type>::removeComponent(const FolderConfigPtr& parentFolder, const ComponentPtr& component) const
 {
-    if (parentFolder.assigned())
+    if (!parentFolder.assigned())
         throw NotAssignedException{"Parent component is not assigned."};
-    if (component.assigned())
+    if (!component.assigned())
         throw NotAssignedException{"Component slated for removal is not assigned."};
 
-    if(parentFolder.hasItem(component.getLocalId()))
+    if (parentFolder.hasItem(component.getLocalId()))
         parentFolder.removeItem(component);
     else
         LOG_W("Component with id {} not found in parent folder", component.getLocalId());
@@ -147,9 +147,11 @@ SignalPtr ComponentTemplateBase<Type>::createAndAddSignal(const SignalParams& pa
     if (attributes.relatedSignals.value.assigned())
         signal.setDomainSignal(attributes.relatedSignals.value);
 
+    if (!attributes.description.value.empty())
+        signal.setDescription(attributes.description.value);
+    if (!attributes.name.value.empty())
+        signal.setName(attributes.name.value);
 
-    signal.setDescription(attributes.description.value);
-    signal.setName(attributes.name.value);
     signal.setActive(attributes.active.value);
     signal.setVisible(attributes.visible.value);
     signal.setPublic(attributes.isPublic.value);

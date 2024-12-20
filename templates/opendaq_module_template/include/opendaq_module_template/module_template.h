@@ -32,7 +32,7 @@ protected:
     ContextPtr context;
     LoggerComponentPtr loggerComponent;
     ModuleTemplateHooks* moduleImpl;
-    std::unordered_set<std::string> devices;
+    std::unordered_map<std::string, WeakRefPtr<IDevice>> devices;
 };
 
 class ModuleTemplateHooks : public ModuleParamsValidation, public Module
@@ -64,6 +64,8 @@ private:
     
     static void populateDefaultConfig(const PropertyObjectPtr& userConfig, const PropertyObjectPtr& defaultConfig);
     PropertyObjectPtr mergeConfig(const PropertyObjectPtr& userConfig, const PropertyObjectPtr& defaultConfig) const;
+
+    void clearRemovedDevices() const;
 
     friend class ModuleTemplate;
     std::shared_ptr<ModuleTemplate> module_;

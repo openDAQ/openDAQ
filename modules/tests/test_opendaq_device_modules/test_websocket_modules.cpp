@@ -17,15 +17,18 @@ public:
 
         for (size_t i = rangeBegin; i < rangeEnd; i += 2)
         {
-            ASSERT_TRUE(clientSignals[i].getDomainSignal().assigned());
-            ASSERT_EQ(clientSignals[i].getDomainSignal(), clientSignals[i+1]);
-            ASSERT_FALSE(clientSignals[i+1].getDomainSignal().assigned());
+            const auto domainIndex = i;
+            const auto valueIndex = i + 1;
 
-            DataDescriptorPtr dataDescriptor = clientSignals[i].getDescriptor();
-            DataDescriptorPtr serverDataDescriptor = serverSignals[i].getDescriptor();
+            ASSERT_TRUE(clientSignals[valueIndex].getDomainSignal().assigned());
+            ASSERT_EQ(clientSignals[valueIndex].getDomainSignal(), clientSignals[domainIndex]);
+            ASSERT_FALSE(clientSignals[domainIndex].getDomainSignal().assigned());
 
-            DataDescriptorPtr domainDataDescriptor = clientSignals[i].getDomainSignal().getDescriptor();
-            DataDescriptorPtr serverDomainDataDescriptor = serverSignals[i].getDomainSignal().getDescriptor();
+            DataDescriptorPtr dataDescriptor = clientSignals[valueIndex].getDescriptor();
+            DataDescriptorPtr serverDataDescriptor = serverSignals[valueIndex].getDescriptor();
+
+            DataDescriptorPtr domainDataDescriptor = clientSignals[valueIndex].getDomainSignal().getDescriptor();
+            DataDescriptorPtr serverDomainDataDescriptor = serverSignals[valueIndex].getDomainSignal().getDescriptor();
 
             ASSERT_EQ(dataDescriptor, serverDataDescriptor);
 
@@ -286,7 +289,7 @@ TEST_F(WebsocketModulesTest, SignalConfig_Server)
     auto client = CreateClientInstance();
 
     auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Visible()));
-    auto clientSignal = clientSignals[0].asPtr<ISignalConfig>();
+    auto clientSignal = clientSignals[1].asPtr<ISignalConfig>();
 
     auto clientSignalDataDescriptor = DataDescriptorBuilderCopy(clientSignal.getDescriptor()).build();
 
@@ -311,7 +314,7 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    auto signal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+    auto signal = client.getSignalsRecursive()[1].template asPtr<IMirroredSignalConfig>();
 
     StringPtr streamingSource = signal.getActiveStreamingSource();
 
@@ -507,7 +510,7 @@ TEST_F(WebsocketModulesTest, UpdateAddSignals)
         }
     };
 
-    // update device to backup removed channels
+    // update device to restore removed channels
     const auto deserializer = JsonDeserializer();
     deserializer.update(serverRefDevice, str);
 

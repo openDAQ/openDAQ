@@ -285,8 +285,21 @@ void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& 
 {
     ComponentStatusContainerPtr statusContainer;
     checkErrorInfo(Impl::getStatusContainer(&statusContainer));
-    DictPtr<IString, IEnumeration> changedStatuses = args.getParameters();
-    for (const auto& st : changedStatuses)
-        statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus(st.first, st.second);
+
+    auto msg = String("");
+    const DictPtr<IString, IBaseObject> params = args.getParameters();
+    if (params.hasKey("Message"))
+        msg = params.get("Message");
+
+    for (const auto& st : params)
+    {
+        if (st.second.getCoreType() == CoreType::ctEnumeration)
+        {
+            statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage(
+                st.first, st.second.asPtr<IEnumeration>(true), msg);
+            msg = String("");
+        }
+    }
 }
+
 }

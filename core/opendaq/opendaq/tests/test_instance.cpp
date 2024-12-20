@@ -945,4 +945,47 @@ TEST_F(InstanceTest, DISABLED_SaveLoadServers)
     ASSERT_EQ(servers[0].getId(), serverId);
 }
 
+TEST_F(InstanceTest, TestRemoved1)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.addFunctionBlock("mock_fb_uid");
+    instance.addDevice("daqmock://client_device");
+    instance.addDevice("daqmock://phys_device");
+
+    const ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));
+
+    const auto root = instance.getRootDevice();
+    root.remove();
+
+    Bool removed = false;
+    root.asPtr<IRemovable>()->isRemoved(&removed);
+    ASSERT_TRUE(removed);
+
+    for (const auto& component : components)
+    {
+        component.asPtr<IRemovable>()->isRemoved(&removed);
+        ASSERT_TRUE(removed);
+    }
+}
+
+TEST_F(InstanceTest, TestRemoved2)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.addFunctionBlock("mock_fb_uid");
+    instance.addDevice("daqmock://client_device");
+    instance.addDevice("daqmock://phys_device");
+
+    ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));
+    components.pushBack(instance.getRootDevice());
+
+    instance.release();
+
+    Bool removed = false;
+    for (const auto& component : components)
+    {
+        component.asPtr<IRemovable>()->isRemoved(&removed);
+        ASSERT_TRUE(removed);
+    }
+}
+
 END_NAMESPACE_OPENDAQ

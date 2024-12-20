@@ -1,4 +1,4 @@
-# 14.11.2023
+# 2023-11-14
 
 ## Description
 Added Multi-reader support for reading raw signal values (no scaling or conversion)
@@ -6,14 +6,14 @@ Added Multi-reader support for reading raw signal values (no scaling or conversi
 -m enum class ReadMode { Raw, Scaled }
 +m enum class ReadMode { Unscaled, Scaled, RawValue }
 ```
-# 12.10.2023
+# 2023-10-12
 
 ## Description
 Added method to IPropertyInternal
 ```
 +m  [function] IPropertyInternal::getValueTypeUnresolved(CoreType* coreType)
 ```
-# 06.10.2023
+# 2023-10-06
 
 ## Description
 Removed ConfigurationMode from SDK as it was not used anyway.
@@ -23,7 +23,7 @@ Removed ConfigurationMode from SDK as it was not used anyway.
 -m  [function] IUpdatable::update(ConfigurationMode mode, ISerializedObject* update)
 +m  [function] IUpdatable::update(ISerializedObject* update)
 ```
-# 28.9.2023
+# 2023-09-28
 openDAQ Package version: 2.0.0
 
 ## Description
@@ -226,7 +226,7 @@ Main takeaways of the changes:
 + [factory] ScalingPtr Scaling(SampleType inputDataType, ScaledSampleType outputDataType, ScalingType scalingType, const DictPtr<IString, IBaseObject>& params)
 + [factory] StructTypePtr ScalingStructType()
 ```
-# 01.09.2023
+# 2023-09-01
 
 ## Description
 Added unscaled / raw mode option to readers
@@ -251,7 +251,7 @@ Added unscaled / raw mode option to readers
 +m [factory] MultiReaderPtr MultiReader(const ListPtr<ISignal>& signals, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 +  [factory] MultiReaderPtr MultiReader(ListPtr<ISignal> signals, ReadMode mode, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 ```
-# 18.08.2023
+# 2023-08-18
 
 ## Description
 Module Manager is now accessible from within the Context. `createAndAddNestedFunctionBlock` method was added to `SignalContainerImpl`
@@ -286,14 +286,14 @@ allowing for easy creation of nested Function Blocks using other loaded modules.
 -m [factory] DevicePtr Client(const ContextPtr& context, const ModuleManagerPtr& moduleManager, const StringPtr& localId)
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
 ```
-# 10.08.2023
+# 2023-08-10
 
 ## Description
 Context is removed from instance interface
 ```
 - [function] IInstance::getContext(IContext** context)
 ```
-# 05.08.2023
+# 2023-08-05
 
 ## Description
 Fixes and improvements for Delphi bindings. 
@@ -308,7 +308,7 @@ Changed `IAllocator::allocate` and `IAllocator::free`
 -  [factory] PropertyWithName(name)
 -  [function] ILoggerComponent.logMessage(ConstCharPtr msg, LogLevel level)
 ```
-# 28.7.2023
+# 2023-07-28
 
 ## Description
 Update to the latest version of the OPC UA model. Signal and Input Port properties are not visible over OPC UA. IComponent methods
@@ -319,7 +319,7 @@ are accessible via OPC UA for all openDAQ components. UserName and location was 
 - [function] IDeviceInfoConfig::setLocation(IString* location)
 - [function] IDeviceInfo::setUserName(IString* userName)
 ```
-# 17.7.2023
+# 2023-07-17
 ff6768d39a76b3b784994f6a17f1d730cb8be639
 
 ## Description
@@ -332,7 +332,7 @@ new event packet type "PropertyChanged" which is sent to connected listeners whe
 
 + [factory] inline EventPacketPtr PropertyChangedEventPacket(const StringPtr& name, const BaseObjectPtr& value)
 ```
-# 11.7.2023
+# 2023-07-11
 70742e4554bbf6f13da11bc782ef7533d8d71795
 
 ## Description
@@ -366,7 +366,7 @@ Name and Description are no longer part of signal/data descriptor
 -m [factory] inline DataPacketPtr DataPacketWithDomain(const DataPacketPtr& domainPacket, const SignalDescriptorPtr& descriptor, uint64_t sampleCount, NumberPtr offset = nullptr, AllocatorPtr allocator = nullptr)
 +m [factory] inline DataPacketPtr DataPacketWithDomain(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, NumberPtr offset = nullptr, AllocatorPtr allocator = nullptr)
 ```
-# 9.6.2023 - 18.7.2023
+# 2023-06-09 - 2023-07-18
 7713cdbb0614b5c073a8d7eb3d834b62e9b1efb4 - 29ee6eb5ebdef33c23b1a7eed4b1e8a064cdb7eb
 ```
 + [interface] IComponentType : public IBaseObject

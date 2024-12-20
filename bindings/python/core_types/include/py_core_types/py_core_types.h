@@ -38,6 +38,8 @@ PyDaqIntf<daq::IList> declareIList(pybind11::module_ m);
 PyDaqIntf<daq::IDict> declareIDict(pybind11::module_ m);
 PyDaqIntf<daq::IProcedure> declareIProcedure(pybind11::module_ m);
 PyDaqIntf<daq::IFunction> declareIFunction(pybind11::module_ m);
+PyDaqIntf<daq::IEvent, daq::IBaseObject> declareIEvent(pybind11::module_ m);
+PyDaqIntf<daq::IEventHandler, daq::IBaseObject> declareIEventHandler(pybind11::module_ m);
 
 // generated
 PyDaqIntf<daq::IEventArgs, daq::IBaseObject> declareIEventArgs(pybind11::module_ m);
@@ -65,6 +67,8 @@ void defineIList(pybind11::module_ m, PyDaqIntf<daq::IList> cls);
 void defineIDict(pybind11::module_ m, PyDaqIntf<daq::IDict> cls);
 void defineIProcedure(pybind11::module_ m, PyDaqIntf<daq::IProcedure> cls);
 void defineIFunction(pybind11::module_ m, PyDaqIntf<daq::IFunction> cls);
+void defineIEvent(pybind11::module_ m, PyDaqIntf<daq::IEvent, daq::IBaseObject> cls);
+void defineIEventHandler(pybind11::module_ m, PyDaqIntf<daq::IEventHandler, daq::IBaseObject> cls);
 
 // generated
 void defineIEventArgs(pybind11::module_ m, PyDaqIntf<daq::IEventArgs, daq::IBaseObject> cls);

@@ -60,4 +60,13 @@ void defineIComponentStatusContainer(pybind11::module_ m, PyDaqIntf<daq::ICompon
         },
         py::return_value_policy::take_ownership,
         "Gets the current values of all Component statuses.");
+    cls.def("get_status_message",
+        [](daq::IComponentStatusContainer *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentStatusContainerPtr::Borrow(object);
+            return objectPtr.getStatusMessage(getVariantValue<daq::IString*>(name)).toStdString();
+        },
+        py::arg("name"),
+        "Gets the status message of Component status with a given name.");
 }

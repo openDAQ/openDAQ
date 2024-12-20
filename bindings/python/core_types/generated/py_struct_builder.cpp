@@ -25,8 +25,11 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IStructBuilder, daq::IBaseObject> declareIStructBuilder(pybind11::module_ m)
 {
@@ -37,12 +40,16 @@ void defineIStructBuilder(pybind11::module_ m, PyDaqIntf<daq::IStructBuilder, da
 {
     cls.doc() = "Builder component of Struct objects. Contains setter methods to configure the Struct parameters, and a `build` method that builds the Struct object.";
 
-    m.def("StructBuilder", &daq::StructBuilder_Create);
+    m.def("StructBuilder", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::ITypeManager* typeManager){
+        return daq::StructBuilder_Create(getVariantValue<daq::IString*>(name), typeManager);
+    }, py::arg("name"), py::arg("type_manager"));
+
     m.def("StructBuilderFromStruct", &daq::StructBuilderFromStruct_Create);
 
     cls.def("build",
         [](daq::IStructBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
@@ -50,6 +57,7 @@ void defineIStructBuilder(pybind11::module_ m, PyDaqIntf<daq::IStructBuilder, da
     cls.def_property_readonly("struct_type",
         [](daq::IStructBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructBuilderPtr::Borrow(object);
             return objectPtr.getStructType().detach();
         },
@@ -58,6 +66,7 @@ void defineIStructBuilder(pybind11::module_ m, PyDaqIntf<daq::IStructBuilder, da
     cls.def_property_readonly("field_names",
         [](daq::IStructBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructBuilderPtr::Borrow(object);
             return objectPtr.getFieldNames().detach();
         },
@@ -66,43 +75,49 @@ void defineIStructBuilder(pybind11::module_ m, PyDaqIntf<daq::IStructBuilder, da
     cls.def_property("field_values",
         [](daq::IStructBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructBuilderPtr::Borrow(object);
             return objectPtr.getFieldValues().detach();
         },
-        [](daq::IStructBuilder *object, daq::IList* values)
+        [](daq::IStructBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& values)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructBuilderPtr::Borrow(object);
-            objectPtr.setFieldValues(values);
+            objectPtr.setFieldValues(getVariantValue<daq::IList*>(values));
         },
         py::return_value_policy::take_ownership,
         "Gets a list of all Struct field values. / Gets a list of all Struct field values.");
     cls.def("set",
-        [](daq::IStructBuilder *object, const std::string& name, const py::object& field)
+        [](daq::IStructBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, const py::object& field)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructBuilderPtr::Borrow(object);
-            objectPtr.set(name, pyObjectToBaseObject(field));
+            objectPtr.set(getVariantValue<daq::IString*>(name), pyObjectToBaseObject(field));
         },
         py::arg("name"), py::arg("field"),
         "Sets the value of a field with the given name.");
     cls.def("get",
-        [](daq::IStructBuilder *object, const std::string& name)
+        [](daq::IStructBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructBuilderPtr::Borrow(object);
-            return baseObjectToPyObject(objectPtr.get(name));
+            return baseObjectToPyObject(objectPtr.get(getVariantValue<daq::IString*>(name)));
         },
         py::arg("name"),
         "Gets the value of a field with the given name.");
     cls.def("has_field",
-        [](daq::IStructBuilder *object, const std::string& name)
+        [](daq::IStructBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructBuilderPtr::Borrow(object);
-            return objectPtr.hasField(name);
+            return objectPtr.hasField(getVariantValue<daq::IString*>(name));
         },
         py::arg("name"),
         "Checks whether a field with the given name exists in the Struct");
     cls.def_property_readonly("as_dictionary",
         [](daq::IStructBuilder *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructBuilderPtr::Borrow(object);
             return objectPtr.getAsDictionary().detach();
         },

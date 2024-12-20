@@ -12,7 +12,7 @@ namespace Trigger
 TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
-    initComponentErrorStateStatus();
+    initComponentStatus();
 
     state = false;
 
@@ -68,7 +68,7 @@ void TriggerFbImpl::configure()
 {
     if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
     {
-        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Incomplete signal descriptors");
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Incomplete signal descriptors");
         LOG_D("Incomplete signal descriptors")
         return;
     }
@@ -77,7 +77,7 @@ void TriggerFbImpl::configure()
     {
         if (inputDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Arrays not supported");
+            setComponentStatusWithMessage(ComponentStatus::Error, "Arrays not supported");
             throw std::runtime_error("Arrays not supported");
         }
 
@@ -87,7 +87,7 @@ void TriggerFbImpl::configure()
             inputSampleType != SampleType::UInt8 && inputSampleType != SampleType::UInt16 && inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Invalid sample type");
+            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
@@ -99,7 +99,7 @@ void TriggerFbImpl::configure()
     }
     catch (const std::exception& e)
     {
-        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Failed to set descriptor for trigger signal");
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Failed to set descriptor for trigger signal");
         LOG_W("Failed to set descriptor for trigger signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }

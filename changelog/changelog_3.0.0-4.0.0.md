@@ -1,3 +1,15 @@
+# 2024-12-20
+## Description
+- Rename:
+  - `ComponentErrorState` to `ComponentStatus`
+  - `initComponentErrorStateStatus` to `initComponentStatus`
+  - `setComponentErrorStateStatus` to `setComponentStatus`
+  - `setComponentErrorStateStatusWithMessage` to `setComponentStatusWithMessage`
+- Fix all reference Function Block implementations by using `setComponentStatusWithMessage` to set the Component Status back to `ComponentStatus::Ok` with appropriate messages where necessary (this prevents Function Blocks to be "stuck" on incorrect Component Status when the user resolves the issue that is causing the Warning or the Error)
+  
+## Required integration changes
+- Requires using the renamed methods and enums in Function Block (Component) implementations (see Description)
+
 # 2024-12-05
 ## Description
 - Add Component status types to the Type Manager in `context_impl.cpp` ("Ok", "Warning", and "Error")

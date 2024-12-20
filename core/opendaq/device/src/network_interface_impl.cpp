@@ -1,6 +1,8 @@
 #include <opendaq/network_interface_impl.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <coretypes/validation.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,6 +34,19 @@ ErrCode NetworkInterfaceImpl::submitConfiguration(IPropertyObject* config)
     OPENDAQ_PARAM_NOT_NULL(config);
 
     return moduleManager->changeIpConfig(interfaceName, ownerDeviceManufacturerName, ownerDeviceSerialNumber, config);
+}
+
+ErrCode NetworkInterfaceImpl::createDefaultConfiguration(IPropertyObject** defaultConfig)
+{
+    auto config = PropertyObject();
+
+    config.addProperty(BoolProperty("dhcp", False));
+    config.addProperty(ListProperty("addresses", List<IString>("192.168.1.100/24")));
+    config.addProperty(StringProperty("gateway", "192.168.1.1"));
+
+    *defaultConfig = config.detach();
+
+    return OPENDAQ_SUCCESS;
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

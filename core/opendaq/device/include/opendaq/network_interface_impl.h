@@ -30,6 +30,7 @@ public:
 
     ErrCode INTERFACE_FUNC requestCurrentConfiguration(IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC submitConfiguration(IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC createDefaultConfiguration(IPropertyObject** defaultConfig) override;
 
 private:
     StringPtr interfaceName;

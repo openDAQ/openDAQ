@@ -28,6 +28,7 @@ DECLARE_OPENDAQ_INTERFACE(INetworkInterface, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC requestCurrentConfiguration(IPropertyObject** config) = 0;
     virtual ErrCode INTERFACE_FUNC submitConfiguration(IPropertyObject* config) = 0;
+    virtual ErrCode INTERFACE_FUNC createDefaultConfiguration(IPropertyObject** defaultConfig) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(

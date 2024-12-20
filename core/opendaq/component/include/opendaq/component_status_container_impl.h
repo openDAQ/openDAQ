@@ -83,7 +83,16 @@ inline ErrCode ComponentStatusContainerImpl::getStatuses(IDict **statuses)
 
     std::scoped_lock lock(sync);
 
-    *statuses = this->statuses.addRefAndReturn();
+    auto dict = Dict<IString, IEnumeration>();
+
+    for (const auto& [name, value]: this->statuses)
+    {
+        dict.set(name, value);
+    }
+
+    dict.freeze();
+
+    *statuses = dict.detach();
     return OPENDAQ_SUCCESS;
 }
 

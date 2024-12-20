@@ -107,12 +107,12 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getModuleOptions(IString* moduleId, IDict** options) = 0;
 
     
-    // [templateType(services, IString, IBaseObject)]
+    // [templateType(servers, IString, IBaseObject)]
     /*!
-     * @brief Gets the dictionary of available discovery services.
-     * @param[out] services The dictionary of available discovery services.
+     * @brief Gets the dictionary of available discovery servers.
+     * @param[out] servers The dictionary of available discovery servers.
      */
-    virtual ErrCode INTERFACE_FUNC getDiscoveryServers(IDict** services) = 0;
+    virtual ErrCode INTERFACE_FUNC getDiscoveryServers(IDict** servers) = 0;
 };
 /*!@}*/
 

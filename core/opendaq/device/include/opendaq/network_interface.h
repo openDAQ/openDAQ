@@ -13,20 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <opendaq/discovery_server_ptr.h>
-#include <opendaq/logger_ptr.h>
+#include <coretypes/common.h>
+#include <coretypes/stringobject.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger,
-                                              const ListPtr<IString>& netInterfaceNames,
-                                              const ProcedurePtr& modifyIpConfigCallback,
-                                              const FunctionPtr& retrieveIpConfigCallback)
+/*#
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ */
+
+DECLARE_OPENDAQ_INTERFACE(INetworkInterface, IBaseObject)
 {
-    DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger, netInterfaceNames, modifyIpConfigCallback, retrieveIpConfigCallback));
-    return obj;
-}
+    virtual ErrCode INTERFACE_FUNC requestCurrentConfiguration(IPropertyObject** config) = 0;
+    virtual ErrCode INTERFACE_FUNC submitConfiguration(IPropertyObject* config) = 0;
+};
+
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, NetworkInterface,
+    IString*, name,
+    IString*, ownerDeviceManufacturerName,
+    IString*, ownerDeviceSerialNumber,
+    IBaseObject*, moduleManager
+)
 
 END_NAMESPACE_OPENDAQ

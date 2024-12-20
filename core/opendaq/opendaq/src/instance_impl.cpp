@@ -75,10 +75,14 @@ static StringPtr DefineLocalId(const StringPtr& localId)
     return "openDAQDevice";
 }
 
-static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
+static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName,
+                                                const LoggerPtr& logger,
+                                                const ListPtr<IString>& netInterfaceNames,
+                                                const ProcedurePtr& modifyIpConfigCallback,
+                                                const FunctionPtr& retrieveIpConfigCallback)
 {
     if (serviceName == "mdns")
-        return MdnsDiscoveryServer(logger);
+        return MdnsDiscoveryServer(logger, netInterfaceNames, modifyIpConfigCallback, retrieveIpConfigCallback);
     return nullptr;
 }
 
@@ -96,6 +100,10 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto typeManager = TypeManager();
     auto authenticationProvider = builderPtr.getAuthenticationProvider();
     auto options = builderPtr.getOptions();
+
+    const ListPtr<IString>& netInterfaceNames = builderPtr.getNetInterfaceNames();
+    const ProcedurePtr& modifyIpConfigCallback = builderPtr.getModifyIpConfigCallback();
+    const FunctionPtr& retrieveIpConfigCallback = builderPtr.getRetrieveIpConfigCallback();
 
     // Configure logger
     if (!logger.assigned())
@@ -123,11 +131,11 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
 
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
-    for (const auto& serviceName : builderPtr.getDiscoveryServers())
+    for (const auto& serverName : builderPtr.getDiscoveryServers())
     {
-        auto service = createDiscoveryServer(serviceName, logger);
-        if (service.assigned())
-            discoveryServers.set(serviceName, service);
+        auto server = createDiscoveryServer(serverName, logger, netInterfaceNames, modifyIpConfigCallback, retrieveIpConfigCallback);
+        if (server.assigned())
+            discoveryServers.set(serverName, server);
     }
 
     return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers);

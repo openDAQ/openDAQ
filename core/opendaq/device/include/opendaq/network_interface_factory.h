@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <opendaq/discovery_server_ptr.h>
-#include <opendaq/logger_ptr.h>
+#include <opendaq/network_interface_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger,
-                                              const ListPtr<IString>& netInterfaceNames,
-                                              const ProcedurePtr& modifyIpConfigCallback,
-                                              const FunctionPtr& retrieveIpConfigCallback)
+inline NetworkInterfacePtr NetworkInterface(const StringPtr& name,
+                                            const StringPtr& ownerDeviceManufacturerName,
+                                            const StringPtr& ownerDeviceSerialNumber,
+                                            const BaseObjectPtr& moduleManager)
 {
-    DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger, netInterfaceNames, modifyIpConfigCallback, retrieveIpConfigCallback));
+    NetworkInterfacePtr obj(NetworkInterface_Create(name, ownerDeviceManufacturerName, ownerDeviceSerialNumber, moduleManager));
     return obj;
 }
 

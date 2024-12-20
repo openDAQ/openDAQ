@@ -72,7 +72,7 @@ static InstancePtr CreateUpdatedServerInstance()
     typeManager.addType(statusType);
     const auto statusValue = Enumeration("StatusType", "Off", typeManager);
 
-    instance.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatusWithMessage("TestStatus", statusValue, "MsgOff");
+    instance.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusValue);
 
 
     return instance;
@@ -976,24 +976,23 @@ TEST_F(NativeDeviceModulesTest, ChangeStatusOnServer)
 
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "On");
 
-    std::promise<std::tuple<StringPtr, StringPtr>> testStatusPromise;
-    std::future<std::tuple<StringPtr, StringPtr>> testStatusFuture = testStatusPromise.get_future();
+    std::promise<StringPtr> testStatusPromise;
+    std::future<StringPtr> testStatusFuture = testStatusPromise.get_future();
     client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
         {
             if (args.getParameters().hasKey("TestStatus"))
-                testStatusPromise.set_value(std::tuple<StringPtr, StringPtr>(
-                    args.getParameters().get("TestStatus").asPtr<IEnumeration>().getValue(), args.getParameters().get("Message")));
+                testStatusPromise.set_value(args.getParameters().get("TestStatus").asPtr<IEnumeration>().getValue());
         }
     };
 
-    server.getStatusContainer().asPtr<IComponentStatusContainerPrivate>(true).setStatusWithMessage(
-        "TestStatus", Enumeration("StatusType", "Off", server.getContext().getTypeManager()), "MsgOff");
+    server.getStatusContainer().asPtr<IComponentStatusContainerPrivate>(true).setStatus(
+        "TestStatus", Enumeration("StatusType", "Off", server.getContext().getTypeManager()));
 
     ASSERT_TRUE(testStatusFuture.wait_for(std::chrono::seconds(50)) == std::future_status::ready);
-    ASSERT_EQ(testStatusFuture.get(), std::tuple(String("Off"), String("MsgOff")));
+    ASSERT_EQ(testStatusFuture.get(), String("Off"));
 }
 
 TEST_F(NativeDeviceModulesTest, RemoveDevice)
@@ -1756,7 +1755,6 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
 
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "Off");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("TestStatus"), "MsgOff");
 
     auto signals = client.getSignals(search::Recursive(search::Any()));
     for (const auto& signal : signals)
@@ -1845,7 +1843,6 @@ TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
 
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "Off");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("TestStatus"), "MsgOff");
 }
 
 TEST_F(NativeDeviceModulesTest, Update)

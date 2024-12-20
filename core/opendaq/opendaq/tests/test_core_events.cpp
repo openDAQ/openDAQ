@@ -1346,6 +1346,37 @@ TEST_F(CoreEventTest, StatusChanged)
     ASSERT_EQ(changeCount, 3);
 }
 
+TEST_F(CoreEventTest, StatusAndMsgChanged)
+{
+    const auto typeManager = instance.getContext().getTypeManager();
+    const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
+    typeManager.addType(statusType);
+
+    const auto statusInitValue = Enumeration("StatusType", "Status0", typeManager);
+    const auto statusValue = Enumeration("StatusType", "Status1", typeManager);
+
+    const auto device = instance.getRootDevice();
+    const auto statusContainer = device.getStatusContainer().asPtr<IComponentStatusContainerPrivate>();
+    statusContainer.addStatus("TestStatus", statusInitValue);
+
+    bool eventCalled = false;
+    getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(comp, instance.getRootDevice());
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::StatusChanged));
+        ASSERT_EQ(args.getEventName(), "StatusChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("TestStatus"));
+        ASSERT_TRUE(args.getParameters().hasKey("Message"));
+        ASSERT_EQ(args.getParameters().get("TestStatus"), statusValue);
+        ASSERT_EQ(args.getParameters().get("Message"), "Msg");
+        eventCalled = true;
+    };
+
+    statusContainer.setStatusWithMessage("TestStatus", statusValue, "Msg");
+
+    ASSERT_TRUE(eventCalled);
+}
+
 TEST_F(CoreEventTest, StatusChangedMuted)
 {
     const auto typeManager = instance.getContext().getTypeManager();

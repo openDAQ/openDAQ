@@ -43,12 +43,12 @@ def get_nearest_device(component, default=None):
     return default
 
 
-def get_nearest_fb(component):
+def get_nearest_fb(component, default=None):
     while component:
         if daq.IFunctionBlock.can_cast_from(component):
             return daq.IFunctionBlock.cast_from(component)
         component = component.parent
-    return None
+    return default
 
 
 def get_nearest_named_parent_folder(component, name):

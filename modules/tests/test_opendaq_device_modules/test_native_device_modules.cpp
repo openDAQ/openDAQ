@@ -68,6 +68,13 @@ static InstancePtr CreateUpdatedServerInstance()
     const auto testType = EnumerationType("TestEnumType", List<IString>("TestValue1", "TestValue2"));
     instance.getContext().getTypeManager().addType(testType);
 
+    const auto statusType = EnumerationType("StatusType", List<IString>("Off", "On"));
+    typeManager.addType(statusType);
+    const auto statusValue = Enumeration("StatusType", "Off", typeManager);
+
+    instance.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatusWithMessage("TestStatus", statusValue, "MsgOff");
+
+
     return instance;
 }
 
@@ -1772,6 +1779,8 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
         }
     };
 
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "On");
+
     // destroy server to emulate disconnection
     server.release();
     ASSERT_TRUE(connectionOldStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
@@ -1816,6 +1825,9 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
 
     ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
 
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "Off");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("TestStatus"), "MsgOff");
+
     auto signals = client.getSignals(search::Recursive(search::Any()));
     for (const auto& signal : signals)
     {
@@ -1857,6 +1869,8 @@ TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
             }
         }
     };
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "On");
 
     // destroy server to emulate disconnection
     server.release();
@@ -1907,6 +1921,9 @@ TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
     ASSERT_TRUE(info.assigned());
     ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "Off");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("TestStatus"), "MsgOff");
 }
 
 TEST_F(NativeDeviceModulesTest, Update)

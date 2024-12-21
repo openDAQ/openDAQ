@@ -551,7 +551,6 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
                         sockets.push_back(sock);
                 }
             }
-            break;
         }
         else if (ifa->ifa_addr->sa_family == AF_INET6)
         {

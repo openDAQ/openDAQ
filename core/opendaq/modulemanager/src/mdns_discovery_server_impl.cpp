@@ -211,28 +211,39 @@ bool MdnsDiscoveryServerImpl::verifyIpModificationServiceParameters(const ListPt
     }
 }
 
+ListPtr<IString> MdnsDiscoveryServerImpl::populateAddresses(const std::string& addressesString)
+{
+    auto addresses = List<IString>();
+
+    if (addressesString != "")
+    {
+        std::string address;
+        std::stringstream ss(addressesString);
+        while (std::getline(ss, address, ';'))
+            if (!address.empty())
+                addresses.pushBack(address);
+    }
+
+    return addresses;
+}
+
 PropertyObjectPtr MdnsDiscoveryServerImpl::populateIpConfigProps(const discovery_server::TxtProperties& txtProps)
 {
-    std::vector<std::string> txtKeys{"dhcp", "addresses", "gateway"};
+    std::vector<std::string> txtKeys{"dhcp4", "addresses4", "gateway4", "dhcp6", "addresses6", "gateway6"};
     for (const auto& key : txtKeys)
     {
-        if (const auto it = txtProps.find(key); it == txtProps.end() || it->second == "")
+        if (const auto it = txtProps.find(key); it == txtProps.end())
             throw InvalidParameterException("Incomplete IP configuration");
     }
 
     auto config = PropertyObject();
 
-    config.addProperty(BoolProperty("dhcp", txtProps.at("dhcp") == "1"));
-
-    auto addresses = List<IString>();
-    std::string address;
-    std::stringstream ss(txtProps.at("addresses"));
-    while (std::getline(ss, address, ';'))
-        if (!address.empty())
-            addresses.pushBack(address);
-    config.addProperty(ListProperty("addresses", addresses));
-
-    config.addProperty(StringProperty("gateway", txtProps.at("gateway")));
+    config.addProperty(BoolProperty("dhcp4", txtProps.at("dhcp4") == "1"));
+    config.addProperty(ListProperty("addresses4", populateAddresses(txtProps.at("addresses4"))));
+    config.addProperty(StringProperty("gateway4", txtProps.at("gateway4")));
+    config.addProperty(BoolProperty("dhcp6", txtProps.at("dhcp6") == "1"));
+    config.addProperty(ListProperty("addresses6", populateAddresses(txtProps.at("addresses6"))));
+    config.addProperty(StringProperty("gateway6", txtProps.at("gateway6")));
 
     return config;
 }

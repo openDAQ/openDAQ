@@ -451,25 +451,34 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 
 TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
 {
-    auto dhcp = True;
-    auto addresses = List<IString>("192.168.2.100/24");
-    auto gateway = String("192.168.2.1");
+    auto dhcp4 = False;
+    auto addresses4 = List<IString>("192.168.2.100/24");
+    auto gateway4 = String("192.168.2.1");
+    auto dhcp6 = True;
+    auto addresses6 = List<IString>();
+    auto gateway6 = String("");
 
     SizeT modifyCallCount = 0;
     ProcedurePtr modifyIpConfigCallback = [&](const StringPtr& ifaceName, const PropertyObjectPtr& config)
     {
         ++modifyCallCount;
         EXPECT_EQ(ifaceName, "eth0");
-        EXPECT_EQ(config.getPropertyValue("dhcp"), dhcp);
-        EXPECT_EQ(config.getPropertyValue("addresses"), addresses);
-        EXPECT_EQ(config.getPropertyValue("gateway"), gateway);
+        EXPECT_EQ(config.getPropertyValue("dhcp4"), dhcp4);
+        EXPECT_EQ(config.getPropertyValue("addresses4"), addresses4);
+        EXPECT_EQ(config.getPropertyValue("gateway4"), gateway4);
+        EXPECT_EQ(config.getPropertyValue("dhcp6"), dhcp6);
+        EXPECT_EQ(config.getPropertyValue("addresses6"), addresses6);
+        EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
     };
     FunctionPtr retrieveIpConfigCallback = [&](const StringPtr& ifaceName) -> PropertyObjectPtr
     {
         auto config = PropertyObject();
-        config.addProperty(BoolProperty("dhcp", False));
-        config.addProperty(ListProperty("addresses", List<IString>("192.168.3.100/24")));
-        config.addProperty(StringProperty("gateway", "192.168.3.1"));
+        config.addProperty(BoolProperty("dhcp4", False));
+        config.addProperty(ListProperty("addresses4", List<IString>("192.168.3.100/24")));
+        config.addProperty(StringProperty("gateway4", "192.168.3.1"));
+        config.addProperty(BoolProperty("dhcp6", False));
+        config.addProperty(ListProperty("addresses6", List<IString>("2001:db8:1:0::100/64")));
+        config.addProperty(StringProperty("gateway6", "2001:db8:1:0::1"));
 
         return config;
     };
@@ -500,9 +509,12 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
         {
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
             auto ipConfig = devInfo.getNetworkInterface("eth0").createDefaultConfiguration();
-            ipConfig.setPropertyValue("dhcp", dhcp);
-            ipConfig.setPropertyValue("addresses", addresses);
-            ipConfig.setPropertyValue("gateway", gateway);
+            ipConfig.setPropertyValue("dhcp4", dhcp4);
+            ipConfig.setPropertyValue("addresses4", addresses4);
+            ipConfig.setPropertyValue("gateway4", gateway4);
+            ipConfig.setPropertyValue("dhcp6", dhcp6);
+            ipConfig.setPropertyValue("addresses6", addresses6);
+            ipConfig.setPropertyValue("gateway6", gateway6);
             EXPECT_NO_THROW(devInfo.getNetworkInterface("eth0").submitConfiguration(ipConfig));
         }
     }

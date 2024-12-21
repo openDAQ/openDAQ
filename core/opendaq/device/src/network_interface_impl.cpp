@@ -40,9 +40,12 @@ ErrCode NetworkInterfaceImpl::createDefaultConfiguration(IPropertyObject** defau
 {
     auto config = PropertyObject();
 
-    config.addProperty(BoolProperty("dhcp", False));
-    config.addProperty(ListProperty("addresses", List<IString>("192.168.1.100/24")));
-    config.addProperty(StringProperty("gateway", "192.168.1.1"));
+    config.addProperty(BoolProperty("dhcp4", True));
+    config.addProperty(ListProperty("addresses4", List<IString>()));
+    config.addProperty(StringProperty("gateway4", ""));
+    config.addProperty(BoolProperty("dhcp6", True));
+    config.addProperty(ListProperty("addresses6", List<IString>()));
+    config.addProperty(StringProperty("gateway6", ""));
 
     *defaultConfig = config.detach();
 

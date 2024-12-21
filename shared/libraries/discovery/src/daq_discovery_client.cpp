@@ -95,15 +95,25 @@ ErrCode DiscoveryClient::applyIpConfiguration(const StringPtr& manufacturer,
     requestProperties["serialNumber"] = serialNumber.toStdString();
     requestProperties["ifaceName"] = ifaceName.toStdString();
 
-    const bool dhcpMode = config.getPropertyValue("dhcp");
-    requestProperties["dhcp"] = dhcpMode ? "1" : "0";
-    ListPtr<IString> addressesList = config.getPropertyValue("addresses");
-    std::string addressesString;
-    for (const auto& addr : addressesList)
-        addressesString += addr.toStdString() + ";";
-    requestProperties["addresses"] = addressesString;
-    StringPtr gateway = config.getPropertyValue("gateway");
-    requestProperties["gateway"] = gateway.toStdString();
+    const bool dhcp4Mode = config.getPropertyValue("dhcp4");
+    requestProperties["dhcp4"] = dhcp4Mode ? "1" : "0";
+    ListPtr<IString> addresses4List = config.getPropertyValue("addresses4");
+    std::string addresses4String = "";
+    for (const auto& addr : addresses4List)
+        addresses4String += addr.toStdString() + ";";
+    requestProperties["addresses4"] = addresses4String;
+    StringPtr gateway4 = config.getPropertyValue("gateway4");
+    requestProperties["gateway4"] = gateway4.toStdString();
+
+    const bool dhcp6Mode = config.getPropertyValue("dhcp6");
+    requestProperties["dhcp6"] = dhcp6Mode ? "1" : "0";
+    ListPtr<IString> addresses6List = config.getPropertyValue("addresses6");
+    std::string addresses6String = "";
+    for (const auto& addr : addresses6List)
+        addresses6String += addr.toStdString() + ";";
+    requestProperties["addresses6"] = addresses6String;
+    StringPtr gateway6 = config.getPropertyValue("gateway6");
+    requestProperties["gateway6"] = gateway6.toStdString();
 
     return mdnsClient->requestIpConfigModification(MDNSDiscoveryClient::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties);
 }

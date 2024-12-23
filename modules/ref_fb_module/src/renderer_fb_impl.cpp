@@ -178,6 +178,10 @@ void RendererFbImpl::readProperties()
                                                 "Property custom2dMaxRange has to be more than custom2dMinRange");
         LOG_E("Property custom2dMaxRange has to be more than custom2dMinRange");
     }
+    else
+    {
+        setComponentStatus(ComponentStatus::Ok);
+    }
         
 }
 
@@ -727,6 +731,8 @@ void RendererFbImpl::renderLoop()
     auto waitTime = defaultWaitTime;
     while (!stopRender && window.isOpen())
     {
+        setComponentStatus(ComponentStatus::Ok);
+
         cv.wait_for(lock, waitTime);
         auto t1 = std::chrono::steady_clock::now();
         if (!stopRender && window.isOpen())

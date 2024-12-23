@@ -190,6 +190,7 @@ void FFTFbImpl::configure()
         LOG_W("FFT: Failed to set descriptor for signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }
+    setComponentStatusWithMessage(ComponentStatus::Ok, "Configuration successful");
 }
 
 void FFTFbImpl::processEventPacket(const EventPacketPtr& packet)

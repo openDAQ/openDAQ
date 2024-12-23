@@ -175,8 +175,8 @@ void RendererFbImpl::readProperties()
     if (custom2dMinRange > custom2dMaxRange)
     {
         setComponentStatusWithMessage(ComponentStatus::Error,
-                                                "Property custom2dMaxRange have to be more then custom2dMinRange");
-        LOG_E("Property custom2dMaxRange have to be more then custom2dMinRange");
+                                                "Property custom2dMaxRange has to be more than custom2dMinRange");
+        LOG_E("Property custom2dMaxRange has to be more than custom2dMinRange");
     }
         
 }

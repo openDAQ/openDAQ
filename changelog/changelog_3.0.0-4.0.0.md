@@ -5,7 +5,7 @@
   - `initComponentErrorStateStatus` to `initComponentStatus`
   - `setComponentErrorStateStatus` to `setComponentStatus`
   - `setComponentErrorStateStatusWithMessage` to `setComponentStatusWithMessage`
-- Fix all reference Function Block implementations by using `setComponentStatusWithMessage` to set the Component Status back to `ComponentStatus::Ok` with appropriate messages where necessary (this prevents Function Blocks to be "stuck" on incorrect Component Status when the user resolves the issue that is causing the Warning or the Error)
+- Fix all reference Function Block implementations by using `setComponent` to set the Component Status back to `ComponentStatus::Ok` where necessary (this prevents Function Blocks to be "stuck" on incorrect Component Status when the user resolves the issue that is causing the Warning or the Error)
   
 ## Required integration changes
 - Requires using the renamed methods and enums in Function Block (Component) implementations (see Description)

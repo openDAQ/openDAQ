@@ -16,6 +16,7 @@
  */
 
 #include <discovery_server/mdnsdiscovery_server.h>
+#include <discovery_common/daq_discovery_common.h>
 #ifdef _WIN32
     #define _CRT_SECURE_NO_WARNINGS 1
 #endif
@@ -131,7 +132,7 @@ mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredService&
 }
 
 void MDNSDiscoveryServer::populateTxtRecords(const std::string& recordName,
-                                             const TxtProperties& props,
+                                             const discovery_common::TxtProperties& props,
                                              std::vector<mdns_record_t>& records) const
 {
     for (const auto & [key, value] : props)
@@ -221,7 +222,7 @@ bool MDNSDiscoveryServer::registerIpModificationService(MdnsDiscoveredService& s
     this->modifyIpConfigCallback = modifyIpConfigCb;
     this->retrieveIpConfigCallback = retrieveIpConfigCb;
 
-    return registerService(DAQ_IP_MODIFICATION_SERVICE_ID, service);
+    return registerService(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID, service);
 }
 
 bool MDNSDiscoveryServer::isServiceRegistered(const std::string& id)
@@ -571,34 +572,11 @@ int MDNSDiscoveryServer::serviceCallback(
                                  rdata_length, user_data);
 }
 
-TxtProperties MDNSDiscoveryServer::readTxtRecord(size_t size, const void* buffer, size_t rdata_offset, size_t rdata_length)
-{
-    mdns_record_txt_t txtbuffer[128];
-    TxtProperties txtProperties;
-    size_t parsed =
-        mdns_record_parse_txt(buffer, size, rdata_offset, rdata_length, txtbuffer, sizeof(txtbuffer) / sizeof(mdns_record_txt_t));
-    for (size_t itxt = 0; itxt < parsed; ++itxt)
-    {
-        std::string key(txtbuffer[itxt].key.str, txtbuffer[itxt].key.length);
-        if (txtbuffer[itxt].value.length)
-        {
-            std::string value(txtbuffer[itxt].value.str, txtbuffer[itxt].value.length);
-            txtProperties[key] = value;
-        }
-        else
-        {
-            txtProperties[key] = "";
-        }
-    }
-
-    return txtProperties;
-}
-
 void MDNSDiscoveryServer::sendIpConfigResponse(int sock,
                                                const sockaddr* to,
                                                size_t addrlen,
                                                uint16_t query_id,
-                                               TxtProperties& resProps,
+                                               discovery_common::TxtProperties& resProps,
                                                uint8_t opcode,
                                                bool unicast,
                                                const std::string& uuid)
@@ -606,7 +584,7 @@ void MDNSDiscoveryServer::sendIpConfigResponse(int sock,
     resProps["uuid"] = uuid;
 
     std::vector<mdns_record_t> txtRecords;
-    populateTxtRecords(DAQ_IP_MODIFICATION_SERVICE_NAME, resProps, txtRecords);
+    populateTxtRecords(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, resProps, txtRecords);
 
     std::vector<char>sendBuffer(2048);
     non_mdns_query_send(sock, sendBuffer.data(), sendBuffer.size(), query_id, opcode, 0x1, 0, 0, txtRecords.data(), txtRecords.size(), 0, 0, 0, 0, unicast ? 0x1 : 0x0, to, addrlen);
@@ -618,6 +596,8 @@ int MDNSDiscoveryServer::nonDiscoveryCallback(
     size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
     size_t rdata_length, void* user_data, uint8_t opcode)
 {
+    using namespace discovery_common;
+
     if (entry != MDNS_ENTRYTYPE_QUESTION)
         return 0;
 
@@ -625,13 +605,13 @@ int MDNSDiscoveryServer::nonDiscoveryCallback(
     mdns_string_extract(buffer, size, &name_offset, recordName.data(), recordName.capacity());
     recordName.erase(recordName.find_last_not_of('\0') + 1);
 
-    if (isServiceRegistered(DAQ_IP_MODIFICATION_SERVICE_ID) &&
-        recordName == DAQ_IP_MODIFICATION_SERVICE_NAME &&
+    if (isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID) &&
+        recordName == IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME &&
         rtype == MDNS_RECORDTYPE_TXT &&
-        (opcode == IP_MODIFICATION_OPCODE || opcode == IP_GET_CONFIG_OPCODE))
+        (opcode == IpModificationUtils::IP_MODIFICATION_OPCODE || opcode == IpModificationUtils::IP_GET_CONFIG_OPCODE))
     {
         uint16_t responseUnicast = (rclass & MDNS_UNICAST_RESPONSE);
-        TxtProperties reqProps = readTxtRecord(size, buffer, rdata_offset, rdata_length);
+        TxtProperties reqProps = DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
 
         // manufacturer & serialNumber pair is not specified or does not match those values of the device - ignore request
         if (const auto it = reqProps.find("manufacturer"); it == reqProps.end() || it->second != manufacturer)
@@ -663,12 +643,12 @@ int MDNSDiscoveryServer::nonDiscoveryCallback(
         else
         {
             std::string interfaceName = it->second;
-            if (opcode == IP_MODIFICATION_OPCODE && modifyIpConfigCallback)
+            if (opcode == IpModificationUtils::IP_MODIFICATION_OPCODE && modifyIpConfigCallback)
             {
                 TxtProperties resProps = modifyIpConfigCallback(interfaceName, reqProps);
                 sendIpConfigResponse(sock, from, addrlen, query_id, resProps, opcode, responseUnicast, clientUuid);
             }
-            else if (opcode == IP_GET_CONFIG_OPCODE && retrieveIpConfigCallback)
+            else if (opcode == IpModificationUtils::IP_GET_CONFIG_OPCODE && retrieveIpConfigCallback)
             {
                 TxtProperties resProps = retrieveIpConfigCallback(interfaceName);
                 resProps["manufacturer"] = manufacturer;

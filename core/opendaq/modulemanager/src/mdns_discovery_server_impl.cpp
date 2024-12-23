@@ -37,6 +37,7 @@ MdnsDiscoveryServerImpl::MdnsDiscoveryServerImpl(const LoggerPtr& logger,
 
 ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo)
 {
+    using namespace discovery_common;
     using namespace discovery_server;
 
     auto serviceId = StringPtr::Borrow(id);
@@ -68,7 +69,7 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     auto servicePort = configPtr.getPropertyValue("Port");
     auto serviceCap = configPtr.getPropertyValue("ServiceCap");
 
-    std::unordered_map<std::string, std::string> properties;
+    TxtProperties properties;
     properties["caps"] = serviceCap.asPtr<IString>(true).toStdString();
 
     properties["name"] = "";
@@ -85,7 +86,7 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
         properties["model"] = deviceInfoPtr.getModel().toStdString();
         properties["serialNumber"] = deviceInfoPtr.getSerialNumber().toStdString();
 
-        if (ipModificationEnabled && !discoveryServer.isServiceRegistered(MDNSDiscoveryServer::DAQ_IP_MODIFICATION_SERVICE_ID))
+        if (ipModificationEnabled && !discoveryServer.isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID))
             registerIpModificationService(deviceInfoPtr);
     }
 
@@ -119,12 +120,13 @@ ErrCode MdnsDiscoveryServerImpl::unregisterService(IString* id)
 
 void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr& deviceInfo)
 {
+    using namespace discovery_common;
     using namespace discovery_server;
 
-    std::unordered_map<std::string, std::string> properties;
+    TxtProperties properties;
     properties["caps"] = "OPENDAQ_IPC";
     properties["path"] = "/";
-    properties["protocolVersion"] = MDNSDiscoveryServer::DAQ_IP_MODIFICATION_SERVICE_VERSION;
+    properties["protocolVersion"] = IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_VERSION;
 
     std::string interfaces;
     for(const auto& ifaceName : netInterfaceNames)
@@ -149,7 +151,7 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr&
         TxtProperties resProps;
         try
         {
-            auto config = populateIpConfigProps(reqProps);
+            auto config = IpModificationUtils::populateIpConfigProperties(reqProps);
             modifyIpConfigCallback(ifaceName, config);
             resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
             resProps["ErrorMessage"] = "";
@@ -172,26 +174,7 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr&
         try
         {
             PropertyObjectPtr config = retrieveIpConfigCallback(ifaceName);
-
-            const bool dhcp4Mode = config.getPropertyValue("dhcp4");
-            resProps["dhcp4"] = dhcp4Mode ? "1" : "0";
-            ListPtr<IString> addresses4List = config.getPropertyValue("addresses4");
-            std::string addresses4String = "";
-            for (const auto& addr : addresses4List)
-                addresses4String += addr.toStdString() + ";";
-            resProps["addresses4"] = addresses4String;
-            StringPtr gateway4 = config.getPropertyValue("gateway4");
-            resProps["gateway4"] = gateway4.toStdString();
-
-            const bool dhcp6Mode = config.getPropertyValue("dhcp6");
-            resProps["dhcp6"] = dhcp6Mode ? "1" : "0";
-            ListPtr<IString> addresses6List = config.getPropertyValue("addresses6");
-            std::string addresses6String = "";
-            for (const auto& addr : addresses6List)
-                addresses6String += addr.toStdString() + ";";
-            resProps["addresses6"] = addresses6String;
-            StringPtr gateway6 = config.getPropertyValue("gateway6");
-            resProps["gateway6"] = gateway6.toStdString();
+            IpModificationUtils::encodeIpConfiguration(config, resProps);
 
             resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
             resProps["ErrorMessage"] = "";
@@ -209,7 +192,7 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr&
         return resProps;
     };
 
-    MdnsDiscoveredService service(MDNSDiscoveryServer::DAQ_IP_MODIFICATION_SERVICE_NAME, MDNS_PORT, properties);
+    MdnsDiscoveredService service(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, MDNS_PORT, properties);
     if (discoveryServer.registerIpModificationService(service, modifyIpConfigCb, retrieveIpConfigCb))
     {
         LOG_I("IP modification service registered with the discovery server");
@@ -244,43 +227,6 @@ bool MdnsDiscoveryServerImpl::verifyIpModificationServiceParameters(const ListPt
     {
         return false;
     }
-}
-
-ListPtr<IString> MdnsDiscoveryServerImpl::populateAddresses(const std::string& addressesString)
-{
-    auto addresses = List<IString>();
-
-    if (addressesString != "")
-    {
-        std::string address;
-        std::stringstream ss(addressesString);
-        while (std::getline(ss, address, ';'))
-            if (!address.empty())
-                addresses.pushBack(address);
-    }
-
-    return addresses;
-}
-
-PropertyObjectPtr MdnsDiscoveryServerImpl::populateIpConfigProps(const discovery_server::TxtProperties& txtProps)
-{
-    std::vector<std::string> txtKeys{"dhcp4", "addresses4", "gateway4", "dhcp6", "addresses6", "gateway6"};
-    for (const auto& key : txtKeys)
-    {
-        if (const auto it = txtProps.find(key); it == txtProps.end())
-            throw InvalidParameterException("Incomplete IP configuration");
-    }
-
-    auto config = PropertyObject();
-
-    config.addProperty(BoolProperty("dhcp4", txtProps.at("dhcp4") == "1"));
-    config.addProperty(ListProperty("addresses4", populateAddresses(txtProps.at("addresses4"))));
-    config.addProperty(StringProperty("gateway4", txtProps.at("gateway4")));
-    config.addProperty(BoolProperty("dhcp6", txtProps.at("dhcp6") == "1"));
-    config.addProperty(ListProperty("addresses6", populateAddresses(txtProps.at("addresses6"))));
-    config.addProperty(StringProperty("gateway6", txtProps.at("gateway6")));
-
-    return config;
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

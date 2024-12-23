@@ -28,4 +28,5 @@ target_link_libraries(${MODULE_NAME} PUBLIC mdns::mdns
                                             daq::coreobjects
                                             ${BCRYPT_LIB}
                                             $<BUILD_INTERFACE:Boost::uuid>
+                                            daq::discovery_common
 )

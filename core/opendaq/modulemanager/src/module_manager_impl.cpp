@@ -68,7 +68,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     if (paths.empty())
         throw InvalidParameterException{"No valid paths provided!"};
 
-    discoveryClient.initMdnsClient(List<IString>(discovery::MDNSDiscoveryClient::DAQ_IP_MODIFICATION_SERVICE_NAME));
+    discoveryClient.initMdnsClient(List<IString>(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME));
 }
 
 ModuleManagerImpl::~ModuleManagerImpl()

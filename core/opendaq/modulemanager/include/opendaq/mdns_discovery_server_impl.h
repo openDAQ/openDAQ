@@ -39,8 +39,6 @@ private:
     static bool verifyIpModificationServiceParameters(const ListPtr<IString>& netInterfaceNames,
                                                       const ProcedurePtr& modifyIpConfigCallback,
                                                       const FunctionPtr& retrieveIpConfigCallback);
-    static PropertyObjectPtr populateIpConfigProps(const discovery_server::TxtProperties& txtProps);
-    static ListPtr<IString> populateAddresses(const std::string& addressesString);
 
     discovery_server::MDNSDiscoveryServer discoveryServer;
     LoggerComponentPtr loggerComponent;

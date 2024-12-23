@@ -39,9 +39,9 @@
     #include <sys/time.h>
 #endif
 
-BEGIN_NAMESPACE_DISCOVERY_SERVICE
+#include <discovery_common/daq_discovery_common.h>
 
-using TxtProperties = std::unordered_map<std::string, std::string>;
+BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
 struct MdnsDiscoveredService
 {
@@ -52,14 +52,14 @@ private:
 
     std::string serviceName;
     uint16_t servicePort;
-    TxtProperties properties;
+    discovery_common::TxtProperties properties;
 
     std::string serviceInstance;
     std::string serviceQualified;
 };
 
-using ModifyIpConfigCallback = std::function<TxtProperties(const std::string& ifaceName, const TxtProperties& properties)>;
-using RetrieveIpConfigCallback = std::function<TxtProperties(const std::string& ifaceName)>;
+using ModifyIpConfigCallback = std::function<discovery_common::TxtProperties(const std::string& ifaceName, const discovery_common::TxtProperties& properties)>;
+using RetrieveIpConfigCallback = std::function<discovery_common::TxtProperties(const std::string& ifaceName)>;
 
 class MDNSDiscoveryServer
 {
@@ -74,15 +74,8 @@ public:
                                        const ModifyIpConfigCallback& modifyIpConfigCb,
                                        const RetrieveIpConfigCallback& retrieveIpConfigCb);
     bool isServiceRegistered(const std::string& id);
-
-    static constexpr const char* DAQ_IP_MODIFICATION_SERVICE_NAME = "_opendaq-ip-modification._udp.local.";
-    static constexpr const char* DAQ_IP_MODIFICATION_SERVICE_ID = "OpenDAQIPC";
-    static constexpr const char* DAQ_IP_MODIFICATION_SERVICE_VERSION = "0";
     
 private:
-    static constexpr const uint8_t IP_MODIFICATION_OPCODE = 0xF;
-    static constexpr const uint8_t IP_GET_CONFIG_OPCODE = 0x8;
-
     void start();
     void stop();
     void serviceLoop();
@@ -113,15 +106,13 @@ private:
     mdns_record_t createSrvRecord(const MdnsDiscoveredService& service) const;
     mdns_record_t createARecord(const MdnsDiscoveredService& service) const;
     mdns_record_t createAaaaRecord(const MdnsDiscoveredService& service) const;
-    void populateTxtRecords(const std::string& recordName, const TxtProperties& props, std::vector<mdns_record_t>& records) const;
-
-    TxtProperties readTxtRecord(size_t size, const void* buffer, size_t rdata_offset, size_t rdata_length);
+    void populateTxtRecords(const std::string& recordName, const discovery_common::TxtProperties& props, std::vector<mdns_record_t>& records) const;
 
     void sendIpConfigResponse(int sock,
                               const sockaddr* to,
                               size_t addrlen,
                               uint16_t query_id,
-                              TxtProperties& resProps,
+                              discovery_common::TxtProperties& resProps,
                               uint8_t opcode,
                               bool unicast,
                               const std::string& uuid);

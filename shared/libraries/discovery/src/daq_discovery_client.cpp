@@ -90,33 +90,15 @@ ErrCode DiscoveryClient::applyIpConfiguration(const StringPtr& manufacturer,
                                               const StringPtr& ifaceName,
                                               const PropertyObjectPtr& config)
 {
-    TxtProperties requestProperties;
+    using namespace discovery_common;
 
+    TxtProperties requestProperties;
     requestProperties["manufacturer"] = manufacturer.toStdString();
     requestProperties["serialNumber"] = serialNumber.toStdString();
     requestProperties["ifaceName"] = ifaceName.toStdString();
+    IpModificationUtils::encodeIpConfiguration(config, requestProperties);
 
-    const bool dhcp4Mode = config.getPropertyValue("dhcp4");
-    requestProperties["dhcp4"] = dhcp4Mode ? "1" : "0";
-    ListPtr<IString> addresses4List = config.getPropertyValue("addresses4");
-    std::string addresses4String = "";
-    for (const auto& addr : addresses4List)
-        addresses4String += addr.toStdString() + ";";
-    requestProperties["addresses4"] = addresses4String;
-    StringPtr gateway4 = config.getPropertyValue("gateway4");
-    requestProperties["gateway4"] = gateway4.toStdString();
-
-    const bool dhcp6Mode = config.getPropertyValue("dhcp6");
-    requestProperties["dhcp6"] = dhcp6Mode ? "1" : "0";
-    ListPtr<IString> addresses6List = config.getPropertyValue("addresses6");
-    std::string addresses6String = "";
-    for (const auto& addr : addresses6List)
-        addresses6String += addr.toStdString() + ";";
-    requestProperties["addresses6"] = addresses6String;
-    StringPtr gateway6 = config.getPropertyValue("gateway6");
-    requestProperties["gateway6"] = gateway6.toStdString();
-
-    return mdnsClient->requestIpConfigModification(MDNSDiscoveryClient::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties);
+    return mdnsClient->requestIpConfigModification(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties);
 }
 
 ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
@@ -124,6 +106,8 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
                                                 const StringPtr& ifaceName,
                                                 PropertyObjectPtr& config)
 {
+    using namespace discovery_common;
+
     TxtProperties requestProperties;
     requestProperties["manufacturer"] = manufacturer.toStdString();
     requestProperties["serialNumber"] = serialNumber.toStdString();
@@ -131,7 +115,7 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
 
     TxtProperties responseProperties;
     auto errCode =
-        mdnsClient->requestCurrentIpConfiguration(MDNSDiscoveryClient::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties, responseProperties);
+        mdnsClient->requestCurrentIpConfiguration(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties, responseProperties);
 
     if (OPENDAQ_SUCCEEDED(errCode))
     {
@@ -144,50 +128,13 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
                 {
                     return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response", nullptr);
                 }
-                config = populateIpConfigProps(responseProperties);
+                config = IpModificationUtils::populateIpConfigProperties(responseProperties);
                 return OPENDAQ_SUCCESS;
             }
         );
     }
 
     return errCode;
-}
-
-ListPtr<IString> DiscoveryClient::populateAddresses(const std::string& addressesString)
-{
-    auto addresses = List<IString>();
-
-    if (addressesString != "")
-    {
-        std::string address;
-        std::stringstream ss(addressesString);
-        while (std::getline(ss, address, ';'))
-            if (!address.empty())
-                addresses.pushBack(address);
-    }
-
-    return addresses;
-}
-
-PropertyObjectPtr DiscoveryClient::populateIpConfigProps(const TxtProperties& txtProps)
-{
-    std::vector<std::string> txtKeys{"dhcp4", "addresses4", "gateway4", "dhcp6", "addresses6", "gateway6"};
-    for (const auto& key : txtKeys)
-    {
-        if (const auto it = txtProps.find(key); it == txtProps.end())
-            throw InvalidParameterException("Incomplete IP configuration");
-    }
-
-    auto config = PropertyObject();
-
-    config.addProperty(BoolProperty("dhcp4", txtProps.at("dhcp4") == "1"));
-    config.addProperty(ListProperty("addresses4", populateAddresses(txtProps.at("addresses4"))));
-    config.addProperty(StringProperty("gateway4", txtProps.at("gateway4")));
-    config.addProperty(BoolProperty("dhcp6", txtProps.at("dhcp6") == "1"));
-    config.addProperty(ListProperty("addresses6", populateAddresses(txtProps.at("addresses6"))));
-    config.addProperty(StringProperty("gateway6", txtProps.at("gateway6")));
-
-    return config;
 }
 
 bool DiscoveryClient::verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const

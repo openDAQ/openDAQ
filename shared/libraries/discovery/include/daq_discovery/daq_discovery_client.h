@@ -42,8 +42,6 @@ public:
 
 protected:
     bool verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const;
-    static PropertyObjectPtr populateIpConfigProps(const TxtProperties& txtProps);
-    static ListPtr<IString> populateAddresses(const std::string& addressesString);
 
     std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
     std::unordered_set<std::string> requiredCaps;

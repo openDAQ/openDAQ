@@ -124,6 +124,7 @@ void ClassifierFbImpl::readProperties()
             lastValue = el;
         }
     }
+    setComponentStatusWithMessage(ComponentStatus::Ok, "Reading properties successful");
 }
 
 FunctionBlockTypePtr ClassifierFbImpl::CreateType()
@@ -270,6 +271,7 @@ void ClassifierFbImpl::configure()
         LOG_W("ClassifierFb: Failed to set descriptor for classification signal: {}", e.what())
         outputSignal.setDescriptor(nullptr);
     }
+    setComponentStatusWithMessage(ComponentStatus::Ok, "Configuration successful");
 }
 
 void ClassifierFbImpl::processData()
@@ -369,6 +371,8 @@ void ClassifierFbImpl::processLinearData(const std::vector<Float>& inputData, co
 
     outputSignal.sendPacket(outputPacket);
     outputDomainSignal.sendPacket(outputDomainPacket);
+
+    setComponentStatusWithMessage(ComponentStatus::Ok, "Processed linear data");
 }
 
 inline UInt ClassifierFbImpl::blockSizeToTimeDuration() 
@@ -439,6 +443,7 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
     outputDomainSignal.sendPacket(outputDomainPacket);
 
     cachedSamples = List<Float>(inputData);
+    setComponentStatusWithMessage(ComponentStatus::Ok, "Processed explicit data");
 }
 
 void ClassifierFbImpl::createInputPorts()

@@ -451,12 +451,12 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 
 TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
 {
-    auto dhcp4 = False;
-    auto addresses4 = List<IString>("192.168.2.100/24");
-    auto gateway4 = String("192.168.2.1");
-    auto dhcp6 = True;
-    auto addresses6 = List<IString>();
-    auto gateway6 = String("");
+    const auto dhcp4 = False;
+    const auto addresses4 = List<IString>("192.168.2.100/24");
+    const auto gateway4 = String("192.168.2.1");
+    const auto dhcp6 = True;
+    const auto addresses6 = List<IString>();
+    const auto gateway6 = String("");
 
     SizeT modifyCallCount = 0;
     ProcedurePtr modifyIpConfigCallback = [&](const StringPtr& ifaceName, const PropertyObjectPtr& config)
@@ -470,18 +470,6 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
         EXPECT_EQ(config.getPropertyValue("addresses6"), addresses6);
         EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
     };
-    FunctionPtr retrieveIpConfigCallback = [&](const StringPtr& ifaceName) -> PropertyObjectPtr
-    {
-        auto config = PropertyObject();
-        config.addProperty(BoolProperty("dhcp4", False));
-        config.addProperty(ListProperty("addresses4", List<IString>("192.168.3.100/24")));
-        config.addProperty(StringProperty("gateway4", "192.168.3.1"));
-        config.addProperty(BoolProperty("dhcp6", False));
-        config.addProperty(ListProperty("addresses6", List<IString>("2001:db8:1:0::100/64")));
-        config.addProperty(StringProperty("gateway6", "2001:db8:1:0::1"));
-
-        return config;
-    };
 
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
@@ -492,7 +480,7 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
                                     .setRootDevice("daqref://device1", refDevConfig)
                                     .setNetInterfaceNames(List<IString>("eth0"))
                                     .setModifyIpConfigCallback(modifyIpConfigCallback)
-                                    .setRetrieveIpConfigCallback(retrieveIpConfigCallback)
+                                    .setRetrieveIpConfigCallback(nullptr)
                                     .build();
 
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
@@ -520,4 +508,69 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
     }
 
     EXPECT_EQ(modifyCallCount, 1u);
+}
+
+TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
+{
+    const auto dhcp4 = False;
+    const auto addresses4 = List<IString>("192.168.2.100/24");
+    const auto gateway4 = String("192.168.2.1");
+    const auto dhcp6 = False;
+    const auto addresses6 = List<IString>("2001:db8:1:0::100/64");
+    const auto gateway6 = String("2001:db8:1:0::1");
+
+    SizeT retrieveCallCount = 0;
+    FunctionPtr retrieveIpConfigCallback = [&](const StringPtr& ifaceName) -> PropertyObjectPtr
+    {
+        ++retrieveCallCount;
+        EXPECT_EQ(ifaceName, "eth0");
+
+        auto config = PropertyObject();
+        config.addProperty(BoolProperty("dhcp4", dhcp4));
+        config.addProperty(ListProperty("addresses4", addresses4));
+        config.addProperty(StringProperty("gateway4", gateway4));
+        config.addProperty(BoolProperty("dhcp6", dhcp6));
+        config.addProperty(ListProperty("addresses6", addresses6));
+        config.addProperty(StringProperty("gateway6", gateway6));
+
+        return config;
+    };
+
+    PropertyObjectPtr refDevConfig = PropertyObject();
+    refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
+    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+    const auto serverInstance = InstanceBuilder()
+                                    .addDiscoveryServer("mdns")
+                                    .setRootDevice("daqref://device1", refDevConfig)
+                                    .setNetInterfaceNames(List<IString>("eth0"))
+                                    .setModifyIpConfigCallback([](const StringPtr&, const PropertyObjectPtr&) {})
+                                    .setRetrieveIpConfigCallback(retrieveIpConfigCallback)
+                                    .build();
+
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    for (const auto& server : serverInstance.getServers())
+        server.enableDiscovery();
+
+    const auto instance = Instance();
+    auto availableDevices = instance.getAvailableDevices();
+
+    for (const auto& devInfo : availableDevices)
+    {
+        if (devInfo.getConnectionString() == "daq://openDAQ_sim01")
+        {
+            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
+            PropertyObjectPtr config;
+            ASSERT_NO_THROW(config = devInfo.getNetworkInterface("eth0").requestCurrentConfiguration());
+            EXPECT_EQ(config.getPropertyValue("dhcp4"), dhcp4);
+            EXPECT_EQ(config.getPropertyValue("addresses4"), addresses4);
+            EXPECT_EQ(config.getPropertyValue("gateway4"), gateway4);
+            EXPECT_EQ(config.getPropertyValue("dhcp6"), dhcp6);
+            EXPECT_EQ(config.getPropertyValue("addresses6"), addresses6);
+            EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
+        }
+    }
+
+    EXPECT_EQ(retrieveCallCount, 1u);
 }

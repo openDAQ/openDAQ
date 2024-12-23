@@ -35,8 +35,15 @@ public:
                                  const StringPtr& ifaceName,
                                  const PropertyObjectPtr& config);
 
+    ErrCode requestIpConfiguration(const StringPtr& manufacturer,
+                                   const StringPtr& serialNumber,
+                                   const StringPtr& ifaceName,
+                                   PropertyObjectPtr& config);
+
 protected:
     bool verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const;
+    static PropertyObjectPtr populateIpConfigProps(const TxtProperties& txtProps);
+    static ListPtr<IString> populateAddresses(const std::string& addressesString);
 
     std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
     std::unordered_set<std::string> requiredCaps;

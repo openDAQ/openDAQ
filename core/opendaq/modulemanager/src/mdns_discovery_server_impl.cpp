@@ -166,12 +166,47 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr&
         }
         return resProps;
     };
-    RetrieveIpConfigCallback retrieveIpConfigCb = [](const std::string& ifaceName)
+    RetrieveIpConfigCallback retrieveIpConfigCb = [this](const std::string& ifaceName)
     {
-        TxtProperties resProperties;
-        resProperties["ErrorCode"] = std::to_string(OPENDAQ_ERR_NOTIMPLEMENTED);
-        resProperties["ErrorMessage"] = "Feature is not implemented";
-        return resProperties;
+        TxtProperties resProps;
+        try
+        {
+            PropertyObjectPtr config = retrieveIpConfigCallback(ifaceName);
+
+            const bool dhcp4Mode = config.getPropertyValue("dhcp4");
+            resProps["dhcp4"] = dhcp4Mode ? "1" : "0";
+            ListPtr<IString> addresses4List = config.getPropertyValue("addresses4");
+            std::string addresses4String = "";
+            for (const auto& addr : addresses4List)
+                addresses4String += addr.toStdString() + ";";
+            resProps["addresses4"] = addresses4String;
+            StringPtr gateway4 = config.getPropertyValue("gateway4");
+            resProps["gateway4"] = gateway4.toStdString();
+
+            const bool dhcp6Mode = config.getPropertyValue("dhcp6");
+            resProps["dhcp6"] = dhcp6Mode ? "1" : "0";
+            ListPtr<IString> addresses6List = config.getPropertyValue("addresses6");
+            std::string addresses6String = "";
+            for (const auto& addr : addresses6List)
+                addresses6String += addr.toStdString() + ";";
+            resProps["addresses6"] = addresses6String;
+            StringPtr gateway6 = config.getPropertyValue("gateway6");
+            resProps["gateway6"] = gateway6.toStdString();
+
+            resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
+            resProps["ErrorMessage"] = "";
+        }
+        catch (const DaqException& e)
+        {
+            resProps["ErrorCode"] = std::to_string(e.getErrCode());
+            resProps["ErrorMessage"] = e.what();
+        }
+        catch (const std::exception& e)
+        {
+            resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
+            resProps["ErrorMessage"] = e.what();
+        }
+        return resProps;
     };
 
     MdnsDiscoveredService service(MDNSDiscoveryServer::DAQ_IP_MODIFICATION_SERVICE_NAME, MDNS_PORT, properties);

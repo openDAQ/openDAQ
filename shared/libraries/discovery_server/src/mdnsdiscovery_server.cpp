@@ -671,6 +671,9 @@ int MDNSDiscoveryServer::nonDiscoveryCallback(
             else if (opcode == IP_GET_CONFIG_OPCODE && retrieveIpConfigCallback)
             {
                 TxtProperties resProps = retrieveIpConfigCallback(interfaceName);
+                resProps["manufacturer"] = manufacturer;
+                resProps["serialNumber"] = serialNumber;
+                resProps["ifaceName"] = interfaceName;
                 sendIpConfigResponse(sock, from, addrlen, query_id, resProps, opcode, responseUnicast, clientUuid);
             }
         }

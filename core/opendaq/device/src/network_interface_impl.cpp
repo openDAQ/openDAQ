@@ -26,7 +26,7 @@ ErrCode NetworkInterfaceImpl::requestCurrentConfiguration(IPropertyObject** conf
 {
     OPENDAQ_PARAM_NOT_NULL(config);
 
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return moduleManager->requestIpConfig(interfaceName, ownerDeviceManufacturerName, ownerDeviceSerialNumber, config);
 }
 
 ErrCode NetworkInterfaceImpl::submitConfiguration(IPropertyObject* config)

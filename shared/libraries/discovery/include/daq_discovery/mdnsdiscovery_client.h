@@ -199,7 +199,7 @@ private:
                                      uint16_t requestQueryId,
                                      ErrCode& rpcErrorCode,
                                      std::string& rpcErrorMessage,
-                                     TxtProperties& currentIpConfig);
+                                     TxtProperties& resProps);
 
     std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort = true);
     std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort = true);
@@ -796,7 +796,9 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
             resProps[key] = value;
         }
         else
+        {
             resProps[key] = "";
+        }
     }
 
     // ignore if client uuid doesn't match
@@ -847,7 +849,7 @@ inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
                                                              uint16_t requestQueryId,
                                                              ErrCode& rpcErrorCode,
                                                              std::string& rpcErrorMessage,
-                                                             TxtProperties& currentIpConfig)
+                                                             TxtProperties& resProps)
 {
     if (opcode != IP_GET_CONFIG_OPCODE ||
         rtype != MDNS_RECORDTYPE_TXT ||
@@ -855,15 +857,56 @@ inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
         responseQueryId != requestQueryId)
         return 0;
 
+    // ignore duplicates of already handled answer
+    if (const auto it = answeredNonMdnsQueryIds.find(responseQueryId); it != answeredNonMdnsQueryIds.end())
+        return 0;
+
     std::string recordName(256, '\0');
     mdns_string_extract(buffer, size, &rname_offset, recordName.data(), recordName.capacity());
     recordName.erase(recordName.find_last_not_of('\0') + 1);
-    if (recordName != DAQ_IP_MODIFICATION_SERVICE_NAME)
+
+    mdns_record_txt_t txtbuffer[128];
+    size_t parsed =
+        mdns_record_parse_txt(buffer, size, rdata_offset, rdata_length, txtbuffer, sizeof(txtbuffer) / sizeof(mdns_record_txt_t));
+    for (size_t itxt = 0; itxt < parsed; ++itxt)
+    {
+        std::string key(txtbuffer[itxt].key.str, txtbuffer[itxt].key.length);
+        if (txtbuffer[itxt].value.length)
+        {
+            std::string value(txtbuffer[itxt].value.str, txtbuffer[itxt].value.length);
+            resProps[key] = value;
+        }
+        else
+        {
+            resProps[key] = "";
+        }
+    }
+
+    // ignore if client uuid doesn't match
+    if (const auto it = resProps.find("uuid"); it == resProps.end() || it->second != uuid)
         return 0;
 
-    // TODO
-    rpcErrorCode = OPENDAQ_ERR_NOTIMPLEMENTED;
-    rpcErrorMessage = "Response not parsed - feature is not implemented";
+    answeredNonMdnsQueryIds.insert(responseQueryId);
+
+    if (const auto errCodeIt = resProps.find("ErrorCode"); errCodeIt != resProps.end())
+    {
+        if (const auto errMsgIt = resProps.find("ErrorMessage"); errMsgIt != resProps.end())
+        {
+            ErrCode rpcErrorCodeTmp;
+            try
+            {
+                rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
+            }
+            catch (...)
+            {
+                return 0;
+            }
+
+            // set output parameters only if required txt records are correct
+            rpcErrorCode = rpcErrorCodeTmp;
+            rpcErrorMessage = errMsgIt->second;
+        }
+    }
 
     return 0;
 }

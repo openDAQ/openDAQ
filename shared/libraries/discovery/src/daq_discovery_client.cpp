@@ -1,6 +1,7 @@
 #include <daq_discovery/daq_discovery_client.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
@@ -116,6 +117,77 @@ ErrCode DiscoveryClient::applyIpConfiguration(const StringPtr& manufacturer,
     requestProperties["gateway6"] = gateway6.toStdString();
 
     return mdnsClient->requestIpConfigModification(MDNSDiscoveryClient::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties);
+}
+
+ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
+                                                const StringPtr& serialNumber,
+                                                const StringPtr& ifaceName,
+                                                PropertyObjectPtr& config)
+{
+    TxtProperties requestProperties;
+    requestProperties["manufacturer"] = manufacturer.toStdString();
+    requestProperties["serialNumber"] = serialNumber.toStdString();
+    requestProperties["ifaceName"] = ifaceName.toStdString();
+
+    TxtProperties responseProperties;
+    auto errCode =
+        mdnsClient->requestCurrentIpConfiguration(MDNSDiscoveryClient::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties, responseProperties);
+
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        errCode = daqTry(
+            [&]()
+            {
+                if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
+                    responseProperties["serialNumber"] != serialNumber.toStdString() ||
+                    responseProperties["ifaceName"] != ifaceName.toStdString())
+                {
+                    return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response", nullptr);
+                }
+                config = populateIpConfigProps(responseProperties);
+                return OPENDAQ_SUCCESS;
+            }
+        );
+    }
+
+    return errCode;
+}
+
+ListPtr<IString> DiscoveryClient::populateAddresses(const std::string& addressesString)
+{
+    auto addresses = List<IString>();
+
+    if (addressesString != "")
+    {
+        std::string address;
+        std::stringstream ss(addressesString);
+        while (std::getline(ss, address, ';'))
+            if (!address.empty())
+                addresses.pushBack(address);
+    }
+
+    return addresses;
+}
+
+PropertyObjectPtr DiscoveryClient::populateIpConfigProps(const TxtProperties& txtProps)
+{
+    std::vector<std::string> txtKeys{"dhcp4", "addresses4", "gateway4", "dhcp6", "addresses6", "gateway6"};
+    for (const auto& key : txtKeys)
+    {
+        if (const auto it = txtProps.find(key); it == txtProps.end())
+            throw InvalidParameterException("Incomplete IP configuration");
+    }
+
+    auto config = PropertyObject();
+
+    config.addProperty(BoolProperty("dhcp4", txtProps.at("dhcp4") == "1"));
+    config.addProperty(ListProperty("addresses4", populateAddresses(txtProps.at("addresses4"))));
+    config.addProperty(StringProperty("gateway4", txtProps.at("gateway4")));
+    config.addProperty(BoolProperty("dhcp6", txtProps.at("dhcp6") == "1"));
+    config.addProperty(ListProperty("addresses6", populateAddresses(txtProps.at("addresses6"))));
+    config.addProperty(StringProperty("gateway6", txtProps.at("gateway6")));
+
+    return config;
 }
 
 bool DiscoveryClient::verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const

@@ -839,6 +839,17 @@ ErrCode ModuleManagerImpl::changeIpConfig(IString* iface, IString* manufacturer,
     return discoveryClient.applyIpConfiguration(manufacturer, serialNumber, iface, config);
 }
 
+ErrCode ModuleManagerImpl::requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    PropertyObjectPtr ipConfig;
+    auto errCode = discoveryClient.requestIpConfiguration(manufacturer, serialNumber, iface, ipConfig);
+    *config = ipConfig.detach();
+
+    return errCode;
+}
+
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
 {
     const std::string nativeId = "OpenDAQNativeConfiguration";

@@ -331,6 +331,7 @@ void PowerFbImpl::processPacketTemplated()
         currentPos = 0;
         currentQueue.pop_back();
    }
+   setComponentStatusWithMessage(ComponentStatus::Ok, "Processed packet");
 }
 
 RangePtr PowerFbImpl::getValueRange(DataDescriptorPtr voltageDataDescriptor, DataDescriptorPtr currentDataDescriptor)
@@ -489,6 +490,7 @@ void PowerFbImpl::configure(bool resync)
         LOG_W("Failed to set descriptor for power signal: {}", e.what())
         powerSignal.setDescriptor(nullptr);
     }
+    setComponentStatusWithMessage(ComponentStatus::Ok, "Configuration successful");
 }
 
 void PowerFbImpl::createInputPorts()

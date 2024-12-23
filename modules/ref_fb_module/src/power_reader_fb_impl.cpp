@@ -244,6 +244,7 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         LOG_W("Failed to set descriptor for power signal: {}", e.what())
         reader.setActive(False);
     }
+    setComponentStatusWithMessage(ComponentStatus::Ok, "Configuration successful");
 }
 
 void PowerReaderFbImpl::createInputPorts()

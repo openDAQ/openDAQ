@@ -1,6 +1,6 @@
 # 2024-12-20
 ## Description
-- Rename:
+- Rename variables containing (for consistency):
   - `ComponentErrorState` to `ComponentStatus`
   - `initComponentErrorStateStatus` to `initComponentStatus`
   - `setComponentErrorStateStatus` to `setComponentStatus`

@@ -45,6 +45,7 @@ class DiscoveryUtils
 {
 public:
     static TxtProperties readTxtRecord(size_t size, const void* buffer, size_t rdata_offset, size_t rdata_length);
+    static std::string extractRecordName(const void* buffer, size_t nameOffset, size_t bufferSize);
 };
 
 END_NAMESPACE_DISCOVERY_COMMON

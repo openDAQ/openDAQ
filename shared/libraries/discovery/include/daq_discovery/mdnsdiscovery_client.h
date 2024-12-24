@@ -140,7 +140,7 @@ private:
     void pruneDevices();
     void sendDiscoveryQuery();
 
-    void sendNonDiscoveryQuery(const std::vector<mdns_record_t>& txtRecords,
+    void sendNonDiscoveryQuery(const std::vector<mdns_record_t>& requestRecords,
                                uint8_t opCode,
                                uint16_t queryId,
                                QueryCallback callback);
@@ -757,7 +757,9 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
                                                                   ErrCode& rpcErrorCode,
                                                                   std::string& rpcErrorMessage)
 {
-    if (opcode != discovery_common::IpModificationUtils::IP_MODIFICATION_OPCODE ||
+    using namespace discovery_common;
+
+    if (opcode != IpModificationUtils::IP_MODIFICATION_OPCODE ||
         rtype != MDNS_RECORDTYPE_TXT ||
         entry != MDNS_ENTRYTYPE_ANSWER ||
         responseQueryId != requestQueryId)
@@ -767,11 +769,10 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
     if (const auto it = answeredNonMdnsQueryIds.find(responseQueryId); it != answeredNonMdnsQueryIds.end())
         return 0;
 
-    std::string recordName(256, '\0');
-    mdns_string_extract(buffer, size, &rname_offset, recordName.data(), recordName.capacity());
-    recordName.erase(recordName.find_last_not_of('\0') + 1);
+    if (DiscoveryUtils::extractRecordName(buffer, rname_offset, size) != IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME)
+        return 0;
 
-    auto resProps = discovery_common::DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
+    auto resProps = DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
 
     // ignore if client uuid doesn't match
     if (const auto it = resProps.find("uuid"); it == resProps.end() || it->second != uuid)
@@ -823,7 +824,9 @@ inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
                                                              std::string& rpcErrorMessage,
                                                              discovery_common::TxtProperties& resProps)
 {
-    if (opcode != discovery_common::IpModificationUtils::IP_GET_CONFIG_OPCODE ||
+    using namespace discovery_common;
+
+    if (opcode != IpModificationUtils::IP_GET_CONFIG_OPCODE ||
         rtype != MDNS_RECORDTYPE_TXT ||
         entry != MDNS_ENTRYTYPE_ANSWER ||
         responseQueryId != requestQueryId)
@@ -833,11 +836,10 @@ inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
     if (const auto it = answeredNonMdnsQueryIds.find(responseQueryId); it != answeredNonMdnsQueryIds.end())
         return 0;
 
-    std::string recordName(256, '\0');
-    mdns_string_extract(buffer, size, &rname_offset, recordName.data(), recordName.capacity());
-    recordName.erase(recordName.find_last_not_of('\0') + 1);
+    if (DiscoveryUtils::extractRecordName(buffer, rname_offset, size) != IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME)
+        return 0;
 
-    resProps = discovery_common::DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
+    resProps = DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
 
     // ignore if client uuid doesn't match
     if (const auto it = resProps.find("uuid"); it == resProps.end() || it->second != uuid)

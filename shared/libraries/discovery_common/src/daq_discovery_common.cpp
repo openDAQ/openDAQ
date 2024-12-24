@@ -85,4 +85,11 @@ TxtProperties DiscoveryUtils::readTxtRecord(size_t size, const void* buffer, siz
     return txtProperties;
 }
 
+std::string DiscoveryUtils::extractRecordName(const void* buffer, size_t nameOffset, size_t bufferSize)
+{
+    std::vector<char> nameBuffer(256);
+    mdns_string_t nameTmp = mdns_string_extract(buffer, bufferSize, &nameOffset, nameBuffer.data(), nameBuffer.size());
+    return std::string(MDNS_STRING_ARGS(nameTmp));
+}
+
 END_NAMESPACE_DISCOVERY_COMMON

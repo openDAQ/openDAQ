@@ -584,7 +584,8 @@ void MDNSDiscoveryServer::sendIpConfigResponse(int sock,
     resProps["uuid"] = uuid;
 
     std::vector<mdns_record_t> txtRecords;
-    populateTxtRecords(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, resProps, txtRecords);
+    std::string recordName(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME);
+    populateTxtRecords(recordName, resProps, txtRecords);
 
     std::vector<char>sendBuffer(2048);
     non_mdns_query_send(sock, sendBuffer.data(), sendBuffer.size(), query_id, opcode, 0x1, 0, 0, txtRecords.data(), txtRecords.size(), 0, 0, 0, 0, unicast ? 0x1 : 0x0, to, addrlen);
@@ -601,12 +602,8 @@ int MDNSDiscoveryServer::nonDiscoveryCallback(
     if (entry != MDNS_ENTRYTYPE_QUESTION)
         return 0;
 
-    std::string recordName(256, '\0');
-    mdns_string_extract(buffer, size, &name_offset, recordName.data(), recordName.capacity());
-    recordName.erase(recordName.find_last_not_of('\0') + 1);
-
     if (isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID) &&
-        recordName == IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME &&
+        DiscoveryUtils::extractRecordName(buffer, name_offset, size) == IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME &&
         rtype == MDNS_RECORDTYPE_TXT &&
         (opcode == IpModificationUtils::IP_MODIFICATION_OPCODE || opcode == IpModificationUtils::IP_GET_CONFIG_OPCODE))
     {
@@ -672,14 +669,7 @@ int MDNSDiscoveryServer::discoveryCallback(
         return 0;
 
     std::string dns_sd = "_services._dns-sd._udp.local.";
-    size_t offset = name_offset;
-
-    std::string name;
-    {
-        std::vector<char> nameBuffer(256);
-        mdns_string_t nameTmp = mdns_string_extract(buffer, size, &offset, nameBuffer.data(), nameBuffer.size());
-        name = std::string(MDNS_STRING_ARGS(nameTmp));
-    }
+    std::string name = discovery_common::DiscoveryUtils::extractRecordName(buffer, name_offset, size);
 
     auto recordTypeName = rtypeToString(mdns_record_type(rtype));
     if (recordTypeName == "UNKNOWN")

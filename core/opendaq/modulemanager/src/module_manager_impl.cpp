@@ -23,6 +23,7 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <optional>
 #include <map>
+#include "opendaq/logger_factory.h"
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
@@ -30,6 +31,7 @@
 #include <coreobjects/property_object_internal.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/client_type.h>
+#include <opendaq/network_interface_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 static OrphanedModules orphanedModules;
@@ -65,6 +67,8 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
 
     if (paths.empty())
         throw InvalidParameterException{"No valid paths provided!"};
+
+    discoveryClient.initMdnsClient(List<IString>(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME));
 }
 
 ModuleManagerImpl::~ModuleManagerImpl()
@@ -280,6 +284,9 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
     std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
 
+    // TODO run it in parallel with getting avaiable devices from modules
+    auto devicesWithIpModSupport = discoverDevicesWithIpModification();
+
     for (const auto& library : libraries)
     {
         const auto module = library.module;
@@ -348,8 +355,21 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
                 }
                 else if (deviceInfo.getServerCapabilities().getCount())
                 {
-                    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
-                    groupedDevices.set(id, deviceInfo);
+                    if (devicesWithIpModSupport.hasKey(id))
+                    {
+                        DeviceInfoConfigPtr value = devicesWithIpModSupport.get(id);
+                        DeviceInfoInternalPtr valueInternal = value;
+                        for (const auto & capability : deviceInfo.getServerCapabilities())
+                            if (!value.hasServerCapability(capability.getProtocolId()))
+                                valueInternal.addServerCapability(capability);
+                        value.asPtr<IDeviceInfoConfig>().setConnectionString(id);
+                        groupedDevices.set(id, value);
+                    }
+                    else
+                    {
+                        deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
+                        groupedDevices.set(id, deviceInfo);
+                    }
                 }
                 else
                 {
@@ -812,6 +832,22 @@ ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId,
     }
 
     return OPENDAQ_ERR_NOTFOUND;
+}
+
+ErrCode ModuleManagerImpl::changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config)
+{
+    return discoveryClient.applyIpConfiguration(manufacturer, serialNumber, iface, config);
+}
+
+ErrCode ModuleManagerImpl::requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    PropertyObjectPtr ipConfig;
+    auto errCode = discoveryClient.requestIpConfiguration(manufacturer, serialNumber, iface, ipConfig);
+    *config = ipConfig.detach();
+
+    return errCode;
 }
 
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
@@ -1318,6 +1354,55 @@ PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
     );
 
     return obj.detach();
+}
+
+DictPtr<IString, IDeviceInfo> ModuleManagerImpl::discoverDevicesWithIpModification()
+{
+    auto result = Dict<IString, IDeviceInfo>();
+    for (const auto& device : discoveryClient.discoverMdnsDevices())
+    {
+        auto [smartConnString, deviceInfo] = populateDiscoveredDevice(device);
+        if (smartConnString.assigned() && deviceInfo.assigned())
+            result[smartConnString] = deviceInfo;
+    }
+
+    return result;
+}
+
+std::pair<StringPtr, DeviceInfoPtr> ModuleManagerImpl::populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice)
+{
+    auto deviceInfo = DeviceInfo("");
+    PropertyObjectPtr info = deviceInfo;
+    discovery::DiscoveryClient::populateDiscoveredInfoProperties(info, discoveredDevice);
+
+    StringPtr manufacturer = deviceInfo.getManufacturer();
+    StringPtr serialNumber = deviceInfo.getSerialNumber();
+
+    // Filter-out devices that don't have manufacturer, serial number and at least one advertised network interface
+    if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0 && deviceInfo.hasProperty("interfaces"))
+    {
+        StringPtr interfacesString = deviceInfo.getPropertyValue("interfaces");
+        const auto thisPtr = this->borrowPtr<BaseObjectPtr>();
+
+        std::string interfaceName;
+        std::stringstream ss(interfacesString.toStdString());
+        while (std::getline(ss, interfaceName, ';'))
+        {
+            if (!interfaceName.empty())
+            {
+                const auto networkInterface = NetworkInterface(interfaceName, manufacturer, serialNumber, thisPtr);
+                deviceInfo.asPtr<IDeviceInfoInternal>(true).addNetworkInteface(interfaceName, networkInterface);
+            }
+        }
+
+        if (deviceInfo.getNetworkInterfaces().getCount() > 0)
+        {
+            StringPtr id = "daq://" + manufacturer + "_" + serialNumber;
+            return {id, deviceInfo};
+        }
+    }
+
+    return {nullptr, nullptr};
 }
 
 std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connectionString) const

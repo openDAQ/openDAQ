@@ -13,38 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
+#include <coretypes/common.h>
 #include <coretypes/stringobject.h>
-#include <opendaq/device_info.h>
-#include <opendaq/logger.h>
-#include <coretypes/listobject.h>
-#include <coretypes/function.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-/*!
- * @ingroup opendaq_utility
- * @addtogroup opendaq_discovery_service Discovery service
- * @{
- */
 
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
 
-DECLARE_OPENDAQ_INTERFACE(IDiscoveryServer, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(INetworkInterface, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) = 0;
-    virtual ErrCode INTERFACE_FUNC unregisterService(IString* id) = 0;
+    virtual ErrCode INTERFACE_FUNC requestCurrentConfiguration(IPropertyObject** config) = 0;
+    virtual ErrCode INTERFACE_FUNC submitConfiguration(IPropertyObject* config) = 0;
+    virtual ErrCode INTERFACE_FUNC createDefaultConfiguration(IPropertyObject** defaultConfig) = 0;
 };
-/*!@}*/
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
-    MdnsDiscoveryServer, IDiscoveryServer, 
-    ILogger*, logger,
-    IList*, netInterfaceNames,
-    IProcedure*, modifyIpConfigCallback,
-    IFunction*, retrieveIpConfigCallback)
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, NetworkInterface,
+    IString*, name,
+    IString*, ownerDeviceManufacturerName,
+    IString*, ownerDeviceSerialNumber,
+    IBaseObject*, moduleManager
+)
 
 END_NAMESPACE_OPENDAQ

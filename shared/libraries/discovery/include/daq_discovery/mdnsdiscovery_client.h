@@ -32,7 +32,8 @@
 #include <vector>
 #include <unordered_set>
 
-#include "coretypes/string_ptr.h"
+#include <coretypes/string_ptr.h>
+#include <coretypes/listobject_factory.h>
 #include "daq_discovery/common.h"
 
 #ifdef _WIN32
@@ -43,6 +44,12 @@
 #include <net/if.h>
 #include <netdb.h>
 #endif
+
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
+#include <discovery_common/daq_discovery_common.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
@@ -57,7 +64,7 @@ struct MdnsDiscoveredDevice
     uint32_t servicePort;
     std::string ipv4Address;
     std::string ipv6Address;
-    std::unordered_map<std::string, std::string> properties;
+    discovery_common::TxtProperties properties;
 
     std::string getPropertyOrDefault(const std::string& name, const std::string& def = "") const
     {
@@ -78,6 +85,11 @@ public:
 
     std::vector<MdnsDiscoveredDevice> getAvailableDevices();
     void setDiscoveryDuration(std::chrono::milliseconds discoveryDuration);
+
+    ErrCode requestIpConfigModification(const std::string& serviceName, const discovery_common::TxtProperties& reqProps);
+    ErrCode requestCurrentIpConfiguration(const std::string& serviceName,
+                                          const discovery_common::TxtProperties& reqProps,
+                                          discovery_common::TxtProperties& resProps);
 
 protected:
     typedef struct
@@ -103,25 +115,93 @@ protected:
     std::atomic_bool started;
 
 private:
-    void setupQuery();
+    using QueryCallback = std::function<int(int sock,
+                                            const sockaddr* from,
+                                            size_t addrlen,
+                                            mdns_entry_type_t entry,
+                                            uint16_t query_id,
+                                            uint16_t rtype,
+                                            uint16_t rclass,
+                                            uint32_t ttl,
+                                            const void* buffer,
+                                            size_t size,
+                                            size_t name_offset,
+                                            size_t name_length,
+                                            size_t rdata_offset,
+                                            size_t rdata_length,
+                                            void* user_data,
+                                            uint8_t opcode)>;
+
+    void encodeNonDiscoveryRequest(const std::string& recordName,
+                                   const discovery_common::TxtProperties& props,
+                                   std::vector<mdns_record_t>& records);
+    void setupDiscoveryQuery();
     void openClientSockets(std::vector<int>& sockets, int maxSockets);
     void pruneDevices();
-    void sendMdnsQuery();
-    int queryCallback(int sock,
-                      const sockaddr* from,
-                      size_t addrlen,
-                      mdns_entry_type_t entry,
-                      uint16_t query_id,
-                      uint16_t rtype,
-                      uint16_t rclass,
-                      uint32_t ttl,
-                      const void* data,
-                      size_t size,
-                      size_t name_offset,
-                      size_t name_length,
-                      size_t record_offset,
-                      size_t record_length,
-                      void* user_data);
+    void sendDiscoveryQuery();
+
+    void sendNonDiscoveryQuery(const std::vector<mdns_record_t>& requestRecords,
+                               uint8_t opCode,
+                               uint16_t queryId,
+                               QueryCallback callback);
+
+    int discoveryQueryCallback(int sock,
+                               const sockaddr* from,
+                               size_t addrlen,
+                               mdns_entry_type_t entry,
+                               uint16_t query_id,
+                               uint16_t rtype,
+                               uint16_t rclass,
+                               uint32_t ttl,
+                               const void* buffer,
+                               size_t size,
+                               size_t rname_offset,
+                               size_t rname_length,
+                               size_t rdata_offset,
+                               size_t rdata_length,
+                               void* user_data,
+                               uint8_t opcode);
+
+    int ipConfigModificationQueryCallback(int sock,
+                                          const sockaddr* from,
+                                          size_t addrlen,
+                                          mdns_entry_type_t entry,
+                                          uint16_t responseQueryId,
+                                          uint16_t rtype,
+                                          uint16_t rclass,
+                                          uint32_t ttl,
+                                          const void* buffer,
+                                          size_t size,
+                                          size_t rname_offset,
+                                          size_t rname_length,
+                                          size_t rdata_offset,
+                                          size_t rdata_length,
+                                          void* user_data,
+                                          uint8_t opcode,
+                                          uint16_t requestQueryId,
+                                          ErrCode& rpcErrorCode,
+                                          std::string& rpcErrorMessage);
+
+    int currentIpConfigQueryCallback(int sock,
+                                     const sockaddr* from,
+                                     size_t addrlen,
+                                     mdns_entry_type_t entry,
+                                     uint16_t responseQueryId,
+                                     uint16_t rtype,
+                                     uint16_t rclass,
+                                     uint32_t ttl,
+                                     const void* buffer,
+                                     size_t size,
+                                     size_t rname_offset,
+                                     size_t rname_length,
+                                     size_t rdata_offset,
+                                     size_t rdata_length,
+                                     void* user_data,
+                                     uint8_t opcode,
+                                     uint16_t requestQueryId,
+                                     ErrCode& rpcErrorCode,
+                                     std::string& rpcErrorMessage,
+                                     discovery_common::TxtProperties& resProps);
 
     std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort = true);
     std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort = true);
@@ -129,10 +209,19 @@ private:
     MdnsDiscoveredDevice createMdnsDiscoveredDevice(const DeviceData& device);
     bool isValidMdnsDevice(const MdnsDiscoveredDevice& device);
 
-    std::vector<mdns_query_t> query;
+    std::vector<mdns_query_t> discoveryQueries;
     std::vector<std::string> serviceNames;
     std::thread discoveryThread;
     std::chrono::milliseconds discoveryDuration = 0ms;
+
+    // prevents multiple requests to be processed simultaneously
+    std::mutex requestSync;
+    // guarantee the unique id for non-discovery requests as pair of client uuid and numeric query id
+    std::string uuid;
+    std::atomic_uint16_t nonDiscoveryQueryId;
+    // prevents handling answer for same request multiple times
+    std::unordered_set<uint16_t> answeredNonMdnsQueryIds;
+    std::chrono::milliseconds nonDiscoveryReqDuration = 500ms;
 };
 
 inline MDNSDiscoveryClient::MDNSDiscoveryClient(const ListPtr<IString>& serviceNames)
@@ -141,7 +230,11 @@ inline MDNSDiscoveryClient::MDNSDiscoveryClient(const ListPtr<IString>& serviceN
     this->serviceNames.reserve(serviceNames.getCount());
     for (const auto & service : serviceNames)
         this->serviceNames.push_back(service.toStdString());
-    setupQuery();
+    setupDiscoveryQuery();
+
+    boost::uuids::random_generator gen;
+    const auto uuidBoost = gen();
+    uuid = boost::uuids::to_string(uuidBoost);
 
 #ifdef _WIN32
 
@@ -170,7 +263,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevice
     {
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
         while (std::chrono::steady_clock::now() - start < discoveryDuration)
-            this->sendMdnsQuery();
+            this->sendDiscoveryQuery();
     }
     catch (...)
     {
@@ -189,19 +282,165 @@ inline void MDNSDiscoveryClient::setDiscoveryDuration(std::chrono::milliseconds 
     this->discoveryDuration = discoveryDuration;
 }
 
-inline void MDNSDiscoveryClient::setupQuery()
+inline ErrCode MDNSDiscoveryClient::requestIpConfigModification(const std::string& serviceName, const discovery_common::TxtProperties& reqProps)
+{
+    std::scoped_lock lock(requestSync);
+
+    std::vector<mdns_record_t> records;
+    encodeNonDiscoveryRequest(serviceName, reqProps, records);
+
+    ErrCode rpcErrorCode = OPENDAQ_ERR_GENERALERROR;
+    std::string rpcErrorMessage = "No response from device";
+    const auto requestQueryId = ++nonDiscoveryQueryId;
+
+    auto callback = [&](int sock,
+                        const sockaddr* from,
+                        size_t addrlen,
+                        mdns_entry_type_t entry,
+                        uint16_t query_id,
+                        uint16_t rtype,
+                        uint16_t rclass,
+                        uint32_t ttl,
+                        const void* buffer,
+                        size_t size,
+                        size_t name_offset,
+                        size_t name_length,
+                        size_t rdata_offset,
+                        size_t rdata_length,
+                        void* user_data,
+                        uint8_t opcode) -> int
+    {
+        return ipConfigModificationQueryCallback(sock,
+                                                 from,
+                                                 addrlen,
+                                                 entry,
+                                                 query_id,
+                                                 rtype,
+                                                 rclass,
+                                                 ttl,
+                                                 buffer,
+                                                 size,
+                                                 name_offset,
+                                                 name_length,
+                                                 rdata_offset,
+                                                 rdata_length,
+                                                 user_data,
+                                                 opcode,
+                                                 requestQueryId,
+                                                 rpcErrorCode,
+                                                 rpcErrorMessage);
+    };
+
+    sendNonDiscoveryQuery(records, discovery_common::IpModificationUtils::IP_MODIFICATION_OPCODE, requestQueryId, callback);
+
+    if (OPENDAQ_FAILED(rpcErrorCode))
+        return makeErrorInfo(rpcErrorCode, rpcErrorMessage, nullptr);
+
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode MDNSDiscoveryClient::requestCurrentIpConfiguration(const std::string& serviceName,
+                                                                  const discovery_common::TxtProperties& reqProps,
+                                                                  discovery_common::TxtProperties& resProps)
+{
+    std::scoped_lock lock(requestSync);
+
+    std::vector<mdns_record_t> records;
+    encodeNonDiscoveryRequest(serviceName, reqProps, records);
+
+    ErrCode rpcErrorCode = OPENDAQ_ERR_GENERALERROR;
+    std::string rpcErrorMessage = "No response from device";
+    const auto requestQueryId = ++nonDiscoveryQueryId;
+
+    auto callback = [&](int sock,
+                        const sockaddr* from,
+                        size_t addrlen,
+                        mdns_entry_type_t entry,
+                        uint16_t query_id,
+                        uint16_t rtype,
+                        uint16_t rclass,
+                        uint32_t ttl,
+                        const void* buffer,
+                        size_t size,
+                        size_t name_offset,
+                        size_t name_length,
+                        size_t rdata_offset,
+                        size_t rdata_length,
+                        void* user_data,
+                        uint8_t opcode) -> int
+    {
+        return currentIpConfigQueryCallback(sock,
+                                            from,
+                                            addrlen,
+                                            entry,
+                                            query_id,
+                                            rtype,
+                                            rclass,
+                                            ttl,
+                                            buffer,
+                                            size,
+                                            name_offset,
+                                            name_length,
+                                            rdata_offset,
+                                            rdata_length,
+                                            user_data,
+                                            opcode,
+                                            requestQueryId,
+                                            rpcErrorCode,
+                                            rpcErrorMessage,
+                                            resProps);
+    };
+
+    sendNonDiscoveryQuery(records, discovery_common::IpModificationUtils::IP_GET_CONFIG_OPCODE, requestQueryId, callback);
+
+    if (OPENDAQ_FAILED(rpcErrorCode))
+        return makeErrorInfo(rpcErrorCode, rpcErrorMessage, nullptr);
+
+    return OPENDAQ_SUCCESS;
+}
+
+inline void MDNSDiscoveryClient::encodeNonDiscoveryRequest(const std::string& recordName,
+                                                           const discovery_common::TxtProperties& props,
+                                                           std::vector<mdns_record_t>& records)
+{
+    for (const auto & [key, value] : props)
+    {
+        mdns_record_t record;
+        record.name = {recordName.c_str(), recordName.size()},
+        record.type = MDNS_RECORDTYPE_TXT,
+        record.data.txt.key = {key.c_str(), key.size()},
+        record.data.txt.value = {value.c_str(), value.size()},
+        record.rclass = MDNS_CLASS_IN | MDNS_UNICAST_RESPONSE,
+        record.ttl = 0;
+        records.push_back(record);
+    }
+
+    // attach uuid
+    {
+        mdns_record_t record;
+        record.name = {recordName.c_str(), recordName.size()},
+        record.type = MDNS_RECORDTYPE_TXT,
+        record.data.txt.key = {"uuid", 4},
+        record.data.txt.value = {uuid.c_str(), uuid.size()},
+        record.rclass = MDNS_CLASS_IN | MDNS_UNICAST_RESPONSE,
+        record.ttl = 0;
+        records.push_back(record);
+    }
+}
+
+inline void MDNSDiscoveryClient::setupDiscoveryQuery()
 {
     std::vector<mdns_record_type> types {MDNS_RECORDTYPE_PTR};
-    query.resize(serviceNames.size() * types.size());
+    discoveryQueries.resize(serviceNames.size() * types.size());
     for (size_t nameIdx = 0; nameIdx < serviceNames.size(); nameIdx++)
     {
         const auto& name = serviceNames[nameIdx];
         size_t offset = nameIdx * types.size();
         for (size_t i = 0; i < types.size(); i++)
         {
-            query[offset + i].name = name.c_str();
-            query[offset + i].length = name.size();
-            query[offset + i].type = types[i];
+            discoveryQueries[offset + i].name = name.c_str();
+            discoveryQueries[offset + i].name_length = name.size();
+            discoveryQueries[offset + i].type = types[i];
         }
     }
 }
@@ -428,24 +667,28 @@ inline bool MDNSDiscoveryClient::isValidMdnsDevice(const MdnsDiscoveredDevice& d
     return device.ipv4Address.size() > 0 || device.ipv6Address.size() > 0;
 }
 
-inline int MDNSDiscoveryClient::queryCallback(int sock,
-                                              const sockaddr* from,
-                                              size_t addrlen,
-                                              mdns_entry_type_t entry,
-                                              uint16_t query_id,
-                                              uint16_t rtype,
-                                              uint16_t rclass,
-                                              uint32_t ttl,
-                                              const void* data,
-                                              size_t size,
-                                              size_t name_offset,
-                                              size_t name_length,
-                                              size_t record_offset,
-                                              size_t record_length,
-                                              void* user_data)
+inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
+                                                       const sockaddr* from,
+                                                       size_t addrlen,
+                                                       mdns_entry_type_t entry,
+                                                       uint16_t query_id,
+                                                       uint16_t rtype,
+                                                       uint16_t rclass,
+                                                       uint32_t ttl,
+                                                       const void* buffer,
+                                                       size_t size,
+                                                       size_t rname_offset,
+                                                       size_t rname_length,
+                                                       size_t rdata_offset,
+                                                       size_t rdata_length,
+                                                       void* user_data,
+                                                       uint8_t opcode)
 {
+    // ignore non-discovery responses
+    if (opcode)
+        return 0;
+
     char nameBuffer[256];
-    mdns_record_txt_t txtbuffer[128];
 
     std::lock_guard lg(devicesMapLock);
     
@@ -463,49 +706,281 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
 
     if (rtype == MDNS_RECORDTYPE_PTR)
     {
-        mdns_string_t namestr = mdns_record_parse_ptr(data, size, record_offset, record_length, nameBuffer, sizeof(nameBuffer));
+        mdns_string_t namestr = mdns_record_parse_ptr(buffer, size, rdata_offset, rdata_length, nameBuffer, sizeof(nameBuffer));
         deviceData.PTR = std::string(namestr.str, namestr.length);
     }
     else if (rtype == MDNS_RECORDTYPE_SRV)
     {
-        mdns_record_srv_t srv = mdns_record_parse_srv(data, size, record_offset, record_length, nameBuffer, sizeof(nameBuffer));
+        mdns_record_srv_t srv = mdns_record_parse_srv(buffer, size, rdata_offset, rdata_length, nameBuffer, sizeof(nameBuffer));
         deviceData.SRV = SRVRecord{std::string(srv.name.str, srv.name.length), srv.priority, srv.weight, srv.port};
     }
     else if (rtype == MDNS_RECORDTYPE_A)
     {
         sockaddr_in addr;
-        mdns_record_parse_a(data, size, record_offset, record_length, &addr);
+        mdns_record_parse_a(buffer, size, rdata_offset, rdata_length, &addr);
         deviceData.A = ipv4AddressToString(&addr, sizeof(addr));
     }
     else if (rtype == MDNS_RECORDTYPE_AAAA)
     {
         sockaddr_in6 addr;
-        mdns_record_parse_aaaa(data, size, record_offset, record_length, &addr);
+        mdns_record_parse_aaaa(buffer, size, rdata_offset, rdata_length, &addr);
         deviceData.AAAA = ipv6AddressToString(&addr, sizeof(addr));
     }
     else if (rtype == MDNS_RECORDTYPE_TXT)
     {
         deviceData.TXT.clear();
-        size_t parsed =
-            mdns_record_parse_txt(data, size, record_offset, record_length, txtbuffer, sizeof(txtbuffer) / sizeof(mdns_record_txt_t));
-        for (size_t itxt = 0; itxt < parsed; ++itxt)
+        auto reqProps = discovery_common::DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
+        for (const auto& [key, value] : reqProps)
+            deviceData.TXT.emplace_back(key, value);
+    }
+
+    return 0;
+}
+
+inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
+                                                                  const sockaddr* from,
+                                                                  size_t addrlen,
+                                                                  mdns_entry_type_t entry,
+                                                                  uint16_t responseQueryId,
+                                                                  uint16_t rtype,
+                                                                  uint16_t rclass,
+                                                                  uint32_t ttl,
+                                                                  const void* buffer,
+                                                                  size_t size,
+                                                                  size_t rname_offset,
+                                                                  size_t rname_length,
+                                                                  size_t rdata_offset,
+                                                                  size_t rdata_length,
+                                                                  void* user_data,
+                                                                  uint8_t opcode,
+                                                                  uint16_t requestQueryId,
+                                                                  ErrCode& rpcErrorCode,
+                                                                  std::string& rpcErrorMessage)
+{
+    using namespace discovery_common;
+
+    if (opcode != IpModificationUtils::IP_MODIFICATION_OPCODE ||
+        rtype != MDNS_RECORDTYPE_TXT ||
+        entry != MDNS_ENTRYTYPE_ANSWER ||
+        responseQueryId != requestQueryId)
+        return 0;
+
+    // ignore duplicates of already handled answer
+    if (const auto it = answeredNonMdnsQueryIds.find(responseQueryId); it != answeredNonMdnsQueryIds.end())
+        return 0;
+
+    if (DiscoveryUtils::extractRecordName(buffer, rname_offset, size) != IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME)
+        return 0;
+
+    auto resProps = DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
+
+    // ignore if client uuid doesn't match
+    if (const auto it = resProps.find("uuid"); it == resProps.end() || it->second != uuid)
+        return 0;
+
+    answeredNonMdnsQueryIds.insert(responseQueryId);
+
+    if (const auto errCodeIt = resProps.find("ErrorCode"); errCodeIt != resProps.end())
+    {
+        if (const auto errMsgIt = resProps.find("ErrorMessage"); errMsgIt != resProps.end())
         {
-            std::string key(txtbuffer[itxt].key.str, txtbuffer[itxt].key.length);
-            if (txtbuffer[itxt].value.length)
+            ErrCode rpcErrorCodeTmp;
+            try
             {
-                std::string value(txtbuffer[itxt].value.str, txtbuffer[itxt].value.length);
-                deviceData.TXT.emplace_back(key, value);
+                rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
             }
-            else
-                deviceData.TXT.emplace_back(key, "");
+            catch (...)
+            {
+                return 0;
+            }
+
+            // set output parameters only if required txt records are correct
+            rpcErrorCode = rpcErrorCodeTmp;
+            rpcErrorMessage = errMsgIt->second;
         }
     }
 
     return 0;
 }
 
-inline void MDNSDiscoveryClient::sendMdnsQuery()
+inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
+                                                             const sockaddr* from,
+                                                             size_t addrlen,
+                                                             mdns_entry_type_t entry,
+                                                             uint16_t responseQueryId,
+                                                             uint16_t rtype,
+                                                             uint16_t rclass,
+                                                             uint32_t ttl,
+                                                             const void* buffer,
+                                                             size_t size,
+                                                             size_t rname_offset,
+                                                             size_t rname_length,
+                                                             size_t rdata_offset,
+                                                             size_t rdata_length,
+                                                             void* user_data,
+                                                             uint8_t opcode,
+                                                             uint16_t requestQueryId,
+                                                             ErrCode& rpcErrorCode,
+                                                             std::string& rpcErrorMessage,
+                                                             discovery_common::TxtProperties& resProps)
 {
+    using namespace discovery_common;
+
+    if (opcode != IpModificationUtils::IP_GET_CONFIG_OPCODE ||
+        rtype != MDNS_RECORDTYPE_TXT ||
+        entry != MDNS_ENTRYTYPE_ANSWER ||
+        responseQueryId != requestQueryId)
+        return 0;
+
+    // ignore duplicates of already handled answer
+    if (const auto it = answeredNonMdnsQueryIds.find(responseQueryId); it != answeredNonMdnsQueryIds.end())
+        return 0;
+
+    if (DiscoveryUtils::extractRecordName(buffer, rname_offset, size) != IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME)
+        return 0;
+
+    resProps = DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
+
+    // ignore if client uuid doesn't match
+    if (const auto it = resProps.find("uuid"); it == resProps.end() || it->second != uuid)
+        return 0;
+
+    answeredNonMdnsQueryIds.insert(responseQueryId);
+
+    if (const auto errCodeIt = resProps.find("ErrorCode"); errCodeIt != resProps.end())
+    {
+        if (const auto errMsgIt = resProps.find("ErrorMessage"); errMsgIt != resProps.end())
+        {
+            ErrCode rpcErrorCodeTmp;
+            try
+            {
+                rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
+            }
+            catch (...)
+            {
+                return 0;
+            }
+
+            // set output parameters only if required txt records are correct
+            rpcErrorCode = rpcErrorCodeTmp;
+            rpcErrorMessage = errMsgIt->second;
+        }
+    }
+
+    return 0;
+}
+
+inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_record_t>& requestRecords,
+                                                       uint8_t opCode,
+                                                       uint16_t queryId,
+                                                       QueryCallback callback)
+{
+    std::chrono::steady_clock::time_point queryingStarted = std::chrono::steady_clock::now();
+
+    constexpr int maxSockets = 32;
+    std::vector<int> sockets;
+    openClientSockets(sockets, maxSockets);
+    if (sockets.empty())
+        return;
+
+    const int numSockets = static_cast<int>(sockets.size());
+    int queryIds[maxSockets];
+    constexpr size_t capacity = 2048;
+    void* buffer = malloc(capacity);
+
+    for (int isock = 0; isock < numSockets; ++isock)
+        queryIds[isock] = non_mdns_query_send(sockets[isock], buffer, capacity, queryId, opCode, 0x0,
+                                              requestRecords.data(), requestRecords.size(), 0, 0, 0, 0, 0, 0,
+                                              0, 0, 0);
+
+    auto callbackWrapper = [](int sock,
+                              const sockaddr* from,
+                              size_t addrlen,
+                              mdns_entry_type_t entry,
+                              uint16_t query_id,
+                              uint16_t rtype,
+                              uint16_t rclass,
+                              uint32_t ttl,
+                              const void* buffer,
+                              size_t size,
+                              size_t name_offset,
+                              size_t name_length,
+                              size_t rdata_offset,
+                              size_t rdata_length,
+                              void* user_data,
+                              uint8_t opcode) -> int
+    {
+        return (*static_cast<decltype(callback)*>(user_data))(sock,
+                                                              from,
+                                                              addrlen,
+                                                              entry,
+                                                              query_id,
+                                                              rtype,
+                                                              rclass,
+                                                              ttl,
+                                                              buffer,
+                                                              size,
+                                                              name_offset,
+                                                              name_length,
+                                                              rdata_offset,
+                                                              rdata_length,
+                                                              nullptr,
+                                                              opcode);
+    };
+
+    int res;
+    do
+    {
+        std::chrono::microseconds elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - queryingStarted
+        );
+        std::chrono::microseconds timeoutDuration;
+        if (nonDiscoveryReqDuration > elapsedTime)
+        {
+            timeoutDuration =
+                std::chrono::duration_cast<std::chrono::microseconds>(nonDiscoveryReqDuration) - elapsedTime;
+        }
+        else
+        {
+            break;
+        }
+
+        timeval timeout;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = timeoutDuration.count();
+
+        int nfds = 0;
+        fd_set readfs;
+        FD_ZERO(&readfs);
+        for (int isock = 0; isock < numSockets; ++isock)
+        {
+            if (sockets[isock] >= nfds)
+                nfds = sockets[isock] + 1;
+            FD_SET((u_int) sockets[isock], &readfs);
+        }
+
+        res = select(nfds, &readfs, 0, 0, &timeout);
+        if (res > 0)
+        {
+            for (int isock = 0; isock < numSockets; ++isock)
+            {
+                if (FD_ISSET(sockets[isock], &readfs))
+                    mdns_query_recv(sockets[isock], buffer, capacity, callbackWrapper, &callback, queryIds[isock]);
+                FD_SET((u_int) sockets[isock], &readfs);
+            }
+        }
+    }
+    while (res > 0);
+
+    free(buffer);
+    for (int isock = 0; isock < numSockets; ++isock)
+        mdns_socket_close(sockets[isock]);
+}
+
+inline void MDNSDiscoveryClient::sendDiscoveryQuery()
+{
+    std::scoped_lock lock(requestSync);
+
     std::chrono::steady_clock::time_point queryingStarted = std::chrono::steady_clock::now();
 
     constexpr int maxSockets = 32;
@@ -520,7 +995,7 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
     void* buffer = malloc(capacity);
 
     for (int isock = 0; isock < numSockets; ++isock)
-        queryId[isock] = mdns_multiquery_send(sockets[isock], query.data(), query.size(), buffer, capacity, 0);
+        queryId[isock] = mdns_multiquery_send(sockets[isock], discoveryQueries.data(), discoveryQueries.size(), buffer, capacity, 0);
 
     auto callback = [&](int sock,
                         const sockaddr* from,
@@ -530,29 +1005,31 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
                         uint16_t rtype,
                         uint16_t rclass,
                         uint32_t ttl,
-                        const void* data,
+                        const void* buffer,
                         size_t size,
                         size_t name_offset,
                         size_t name_length,
-                        size_t record_offset,
-                        size_t record_length,
-                        void* user_data) -> int
+                        size_t rdata_offset,
+                        size_t rdata_length,
+                        void* user_data,
+                        uint8_t opcode) -> int
     {
-        return queryCallback(sock,
-                             from,
-                             addrlen,
-                             entry,
-                             query_id,
-                             rtype,
-                             rclass,
-                             ttl,
-                             data,
-                             size,
-                             name_offset,
-                             name_length,
-                             record_offset,
-                             record_length,
-                             user_data);
+        return discoveryQueryCallback(sock,
+                                      from,
+                                      addrlen,
+                                      entry,
+                                      query_id,
+                                      rtype,
+                                      rclass,
+                                      ttl,
+                                      buffer,
+                                      size,
+                                      name_offset,
+                                      name_length,
+                                      rdata_offset,
+                                      rdata_length,
+                                      user_data,
+                                      opcode);
     };
 
     auto callbackWrapper = [](int sock,
@@ -563,13 +1040,14 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
                               uint16_t rtype,
                               uint16_t rclass,
                               uint32_t ttl,
-                              const void* data,
+                              const void* buffer,
                               size_t size,
                               size_t name_offset,
                               size_t name_length,
-                              size_t record_offset,
-                              size_t record_length,
-                              void* user_data) -> int
+                              size_t rdata_offset,
+                              size_t rdata_length,
+                              void* user_data,
+                              uint8_t opcode) -> int
     {
         return (*static_cast<decltype(callback)*>(user_data)) (sock,
                                                                from,
@@ -579,13 +1057,14 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
                                                                rtype,
                                                                rclass,
                                                                ttl,
-                                                               data,
+                                                               buffer,
                                                                size,
                                                                name_offset,
                                                                name_length,
-                                                               record_offset,
-                                                               record_length,
-                                                               nullptr);
+                                                               rdata_offset,
+                                                               rdata_length,
+                                                               nullptr,
+                                                               opcode);
     };
 
     int res;

@@ -26,7 +26,7 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
     , typeManager(std::move(typeManager))
     , authenticationProvider(std::move(authenticationProvider))
     , options(std::move(options))
-    , discoveryServices(std::move(discoveryServices))
+    , discoveryServers(std::move(discoveryServices))
 {
     if (!this->logger.assigned())
         throw ArgumentNullException("Logger must not be null");
@@ -213,15 +213,15 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
 
 }
 
-ErrCode ContextImpl::getDiscoveryServers(IDict** services)
+ErrCode ContextImpl::getDiscoveryServers(IDict** servers)
 {
-    OPENDAQ_PARAM_NOT_NULL(services);
-    if (!this->discoveryServices.assigned())
+    OPENDAQ_PARAM_NOT_NULL(servers);
+    if (!this->discoveryServers.assigned())
     {
-        *services = Dict<IString, IDiscoveryServer>().detach();
+        *servers = Dict<IString, IDiscoveryServer>().detach();
         return OPENDAQ_SUCCESS;
     }
-    *services = this->discoveryServices.addRefAndReturn();
+    *servers = this->discoveryServers.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

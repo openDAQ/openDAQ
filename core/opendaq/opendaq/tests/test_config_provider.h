@@ -98,7 +98,8 @@ protected:
                                            {"Scheduler", Dict<IString, IBaseObject>({{"WorkersNum", 0}})},
                                            {"Logging", Dict<IString, IBaseObject>({{"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}})},
                                            {"RootDevice", Dict<IString, IBaseObject>({{"DefaultLocalId", ""}, {"ConnectionString", ""}})},
-                                           {"Modules", Dict<IString, IBaseObject>()}});
+                                           {"Modules", Dict<IString, IBaseObject>()},
+                                           {"NetInterfaces", List<IString>()}});
     }
 
     static DictPtr<IString, IBaseObject> GetOptionsWithReferenceDevice()

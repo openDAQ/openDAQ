@@ -119,6 +119,23 @@ TEST_F(ConfigProviderTest, jsonConfigReadModules)
     ASSERT_EQ(options, expectedOptions);
 }
 
+TEST_F(ConfigProviderTest, jsonConfigReadNetInterfaces)
+{
+    std::string filename = "jsonConfigReadNetInterfaces.json";
+    std::string json = "{ \"NetInterfaces\": [\"eth0\", \"eth1\", \"eth2\"] }";
+    createConfigFile(filename, json);
+
+    auto options = GetDefaultOptions();
+
+    auto expectedOptions = GetDefaultOptions();
+    expectedOptions.set("NetInterfaces", List<IString>("eth0", "eth1", "eth2"));
+
+    auto provider = JsonConfigProvider(StringPtr(filename));
+    provider.populateOptions(options);
+
+    ASSERT_EQ(options, expectedOptions);
+}
+
 TEST_F(ConfigProviderTest, jsonConfigReadLists)
 {
     std::string filename = "jsonConfigReadModules.json";
@@ -221,7 +238,8 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
             },
             "Logging": {
                 "GlobalLogLevel": 6
-            }
+            },
+            "NetInterfaces": ["eth0", "eth1"]
         }
     )";
 
@@ -233,6 +251,7 @@ TEST_F(ConfigProviderTest, InstanceBuilderFromJson)
 
     ASSERT_EQ(instanceBuilder.getSchedulerWorkerNum(), 8u);
     ASSERT_EQ(int(instanceBuilder.getGlobalLogLevel()), 6);
+    ASSERT_EQ(instanceBuilder.getNetInterfaceNames(), List<IString>("eth0", "eth1"));
 }
 
 TEST_F(ConfigProviderTest, envConfigReadModuleManagerPath)

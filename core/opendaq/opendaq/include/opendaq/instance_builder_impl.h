@@ -98,6 +98,7 @@ private:
     DictPtr<IString, IBaseObject> getLoggingOptions();
     DictPtr<IString, IBaseObject> getRootDevice();
     DictPtr<IString, IBaseObject> getModules();
+    ListPtr<IString> getInterfaceNames();
 
     DeviceInfoPtr defaultRootDeviceInfo;
 
@@ -116,7 +117,6 @@ private:
     PropertyObjectPtr rootDeviceConfig{nullptr};
     ListPtr<IString> discoveryServers;
 
-    ListPtr<IString> netInterfaceNames;
     ProcedurePtr modifyIpConfigCallback;
     FunctionPtr retrieveIpConfigCallback;
 };

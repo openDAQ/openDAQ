@@ -24,8 +24,9 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
         {"RootDevice", Dict<IString, IBaseObject>({
                 {"DefaultLocalId", ""},
                 {"ConnectionString", ""}
-            })},   
-        {"Modules", Dict<IString, IBaseObject>()}
+            })},
+        {"Modules", Dict<IString, IBaseObject>()},
+        {"NetInterfaces", List<IString>()}
     });
 }
 
@@ -443,8 +444,7 @@ ErrCode InstanceBuilderImpl::addDiscoveryServer(IString* serverName)
 
 ErrCode InstanceBuilderImpl::setNetInterfaceNames(IList* netInterfaceNames)
 {
-    this->netInterfaceNames = netInterfaceNames;
-    return OPENDAQ_SUCCESS;
+    return options->set(String("NetInterfaces"), netInterfaceNames);
 }
 
 ErrCode InstanceBuilderImpl::getNetInterfaceNames(IList** netInterfaceNames)
@@ -452,7 +452,7 @@ ErrCode InstanceBuilderImpl::getNetInterfaceNames(IList** netInterfaceNames)
     if (netInterfaceNames == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *netInterfaceNames = this->netInterfaceNames.addRefAndReturn();
+    *netInterfaceNames = options.get("NetInterfaces").asPtr<IList>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -3,8 +3,57 @@
 #include <opendaq/opendaq.h>
 #include <coreobjects/authentication_provider_factory.h>
 #include <coreobjects/user_factory.h>
+#include <future>
 
 using namespace daq;
+
+void modifyIpConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
+{
+    bool dhcp4 = config.getPropertyValue("dhcp4");
+    bool dhcp6 = config.getPropertyValue("dhcp6");
+
+    SerializerPtr serializer = JsonSerializer();
+    ListPtr<IString> addr4List = config.getPropertyValue("addresses4");
+    addr4List.serialize(serializer);
+    StringPtr addresses4 = serializer.getOutput();
+    serializer.reset();
+    ListPtr<IString> addr6List = config.getPropertyValue("addresses6");
+    addr6List.serialize(serializer);
+    StringPtr addresses6 = serializer.getOutput();
+
+    StringPtr gateway4 = config.getPropertyValue("gateway4");
+    StringPtr gateway6 = config.getPropertyValue("gateway6");
+
+    const std::string scriptWithParams = "/home/opendaq/netplan_manager.py verify " +
+                                         ifaceName.toStdString() + " " +
+                                         std::to_string(dhcp4) + " " +
+                                         std::to_string(dhcp6) + " " +
+                                         "'" + addresses4.toStdString() + "' " +
+                                         "'" + addresses6.toStdString() + "' " +
+                                         gateway4.toStdString() + " " +
+                                         gateway6.toStdString();
+
+    const std::string command = "sudo python3 " + scriptWithParams + " 2>&1"; // Redirect stderr to stdout
+    std::array<char, 256> buffer;
+    std::string result;
+
+    // Open the command for reading
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe)
+        throw GeneralErrorException("Failed to run the IP modification command");
+
+    // Read the output of the command
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+        result += buffer.data();
+
+    // Get the exit status
+    int exitCode = pclose(pipe);
+    if (exitCode)
+        throw InvalidParameterException("IP modification failed: {}", result);
+
+    // Schedule applying changes
+    (void)std::async(std::launch::async, []() { std::system("sudo python3 /home/opendaq/netplan_manager.py apply"); });
+}
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
@@ -22,6 +71,12 @@ int main(int /*argc*/, const char* /*argv*/[])
     instanceBuilder.setAuthenticationProvider(authenticationProvider);
     instanceBuilder.addDiscoveryServer("mdns");
     instanceBuilder.setRootDevice("daqref://device0");
+    instanceBuilder.setModifyIpConfigCallback(
+        [](const StringPtr& ifaceName, const PropertyObjectPtr& config)
+        {
+            modifyIpConfiguration(ifaceName, config);
+        }
+    );
 
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 

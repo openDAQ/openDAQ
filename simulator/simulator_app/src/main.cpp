@@ -52,7 +52,7 @@ void modifyIpConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& 
         throw InvalidParameterException("IP modification failed: {}", result);
 
     // Schedule applying changes
-    (void)std::async(std::launch::async, []() { std::system("sudo python3 /home/opendaq/netplan_manager.py apply"); });
+    (void)std::async(std::launch::async, []() { (void)std::system("sudo python3 /home/opendaq/netplan_manager.py apply"); });
 }
 
 int main(int /*argc*/, const char* /*argv*/[])

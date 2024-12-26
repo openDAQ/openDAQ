@@ -43,7 +43,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     if (options.assigned() && options.hasKey("SerialNumber"))
     {
-        const StringPtr serialTemp = config.getPropertyValue("SerialNumber");
+        const StringPtr serialTemp = options.get("SerialNumber");
         serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
     }
 

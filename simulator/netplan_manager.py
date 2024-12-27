@@ -113,7 +113,7 @@ def verify_netplan_config(interface, dhcp4, dhcp6, addresses4, addresses6, gatew
     content = generate_netplan_yaml_content(interface, dhcp4, dhcp6, addresses4, addresses6, gateway4, gateway6)
 
     # Write the new YAML file (overwriting the old one)
-    write_netplan_yaml_file(interface, content)
+    write_netplan_yaml_file(content)
 
     # Test new configuration
     succeeded = netplan_generate()
@@ -182,7 +182,10 @@ def main():
             print("Error: Invalid JSON format for addresses4 or addresses6.")
             sys.exit(1)
 
-        if verify_netplan_config(sys.argv[2], sys.argv[3], sys.argv[4], addresses4, addresses6, sys.argv[7], sys.argv[8]) == False:
+        dhcp4 = sys.argv[2].lower() == "true"
+        dhcp6 = sys.argv[3].lower() == "true"
+
+        if verify_netplan_config(dhcp4, dhcp6, sys.argv[4], addresses4, addresses6, sys.argv[7], sys.argv[8]) == False:
             sys.exit(1)
 
     elif action == "apply":

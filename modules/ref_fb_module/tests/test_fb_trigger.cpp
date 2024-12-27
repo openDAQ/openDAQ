@@ -356,5 +356,5 @@ TEST_F(TriggerTest, TriggerTestErrorStateStatus)
     ASSERT_EQ(comp.getStatusContainer().getStatus("ComponentStatus"),
               Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
     // Assert that message is "Failed to set descriptor for trigger signal!"
-    ASSERT_EQ(comp.getStatusContainer().getStatusMessage("ComponentStatus"), "Failed to set descriptor for trigger signal");
+    ASSERT_EQ(comp.getStatusContainer().getStatusMessage("ComponentStatus"), "Failed to set descriptor for trigger signal: Invalid sample type");
 }

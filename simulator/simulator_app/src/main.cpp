@@ -7,40 +7,38 @@
 
 using namespace daq;
 
-void modifyIpConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
+std::string addrListToJson(const ListPtr<IString>& addresses)
+{
+    SerializerPtr serializer = JsonSerializer();
+    addresses.serialize(serializer);
+    return serializer.getOutput().toStdString();
+}
+
+void verifyIpConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
 {
     bool dhcp4 = config.getPropertyValue("dhcp4");
     bool dhcp6 = config.getPropertyValue("dhcp6");
-
-    SerializerPtr serializer = JsonSerializer();
-    ListPtr<IString> addr4List = config.getPropertyValue("addresses4");
-    addr4List.serialize(serializer);
-    StringPtr addresses4 = serializer.getOutput();
-    serializer.reset();
-    ListPtr<IString> addr6List = config.getPropertyValue("addresses6");
-    addr6List.serialize(serializer);
-    StringPtr addresses6 = serializer.getOutput();
-
     StringPtr gateway4 = config.getPropertyValue("gateway4");
     StringPtr gateway6 = config.getPropertyValue("gateway6");
 
     const std::string scriptWithParams = "/home/opendaq/netplan_manager.py verify " +
                                          ifaceName.toStdString() + " " +
-                                         std::to_string(dhcp4) + " " +
-                                         std::to_string(dhcp6) + " " +
-                                         "'" + addresses4.toStdString() + "' " +
-                                         "'" + addresses6.toStdString() + "' " +
-                                         gateway4.toStdString() + " " +
-                                         gateway6.toStdString();
+                                         (dhcp4 ? "true" : "false") + " " +
+                                         (dhcp6 ? "true" : "false") + " " +
+                                         "'" + addrListToJson(config.getPropertyValue("addresses4")) + "' " +
+                                         "'" + addrListToJson(config.getPropertyValue("addresses6")) + "' " +
+                                         "\"" + gateway4.toStdString() + "\" " +
+                                         "\"" + gateway6.toStdString() + "\"";
 
-    const std::string command = "sudo python3 " + scriptWithParams + " 2>&1"; // Redirect stderr to stdout
+    // py script runs with root privileges without requiring a password, as specified in sudoers
+    const std::string command = "sudo python3 " + scriptWithParams + " 2>&1";
     std::array<char, 256> buffer;
     std::string result;
 
     // Open the command for reading
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
-        throw GeneralErrorException("Failed to run the IP modification command");
+        throw GeneralErrorException("Failed to start IP modification");
 
     // Read the output of the command
     while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
@@ -49,16 +47,22 @@ void modifyIpConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& 
     // Get the exit status
     int exitCode = pclose(pipe);
     if (exitCode)
-        throw InvalidParameterException("IP modification failed: {}", result);
-
-    // Schedule applying changes
-    (void)std::async(std::launch::async, []() { (void)std::system("sudo python3 /home/opendaq/netplan_manager.py apply"); });
+        throw InvalidParameterException("Invalid IP configuration: {}", result);
 }
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
 
+    {
+        // Applies the latest IP configuration before initializing the openDAQ instance.
+        // If unsuccessful, attempts to restore the previous configuration from the backup.
+        // py script runs with root privileges without requiring a password, as specified in sudoers
+        int result = std::system("sudo python3 /home/opendaq/netplan_manager.py apply");
+        (void)result;
+    }
+
+    bool stopped = false;
     const ConfigProviderPtr configProvider = JsonConfigProvider();
 
     auto users = List<IUser>();
@@ -72,9 +76,19 @@ int main(int /*argc*/, const char* /*argv*/[])
     instanceBuilder.addDiscoveryServer("mdns");
     instanceBuilder.setRootDevice("daqref://device0");
     instanceBuilder.setModifyIpConfigCallback(
-        [](const StringPtr& ifaceName, const PropertyObjectPtr& config)
+        [&stopped](const StringPtr& ifaceName, const PropertyObjectPtr& config)
         {
-            modifyIpConfiguration(ifaceName, config);
+            try
+            {
+                verifyIpConfiguration(ifaceName, config);
+            }
+            catch (...)
+            {
+                throw;
+            }
+            // The new IP configuration has been successfully verified. Gracefully stop the application now
+            // to allow it to adopt the updated configuration and reopen network sockets upon relaunch.
+            stopped = true;
         }
     );
 
@@ -91,10 +105,11 @@ int main(int /*argc*/, const char* /*argv*/[])
             server.enableDiscovery();
     }
 
-    while (true)
+    while (!stopped)
     {
         std::this_thread::sleep_for(100ms);
     }
 
+    // Anticipated to be automatically restarted by the systemd service.
     return 0;
 }

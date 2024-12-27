@@ -1,12 +1,13 @@
 import os
 import sys
 import subprocess
-import re
 import json
 import stat
 
 NETPLAN_DIR = "/etc/netplan"
 NETPLAN_BIN = "/usr/sbin/netplan"
+NETPLAN_YAML_FILENAME = "50-cloud-init.yaml"
+
 CONFIG_FILE_TEMPLATE = """
 network:
   version: 2
@@ -14,79 +15,32 @@ network:
     {interface}:
       dhcp4: {dhcp4}
       dhcp6: {dhcp6}
-      addresses:
 {addresses}
-      routes:
 {routes}
 """
 
-def extract_file_number(filename):
-    if filename is None:
-        return None
-
-    pattern = r"^(\d+)-.*\.yaml$"
-
-    # Try to match the pattern
-    match = re.match(pattern, filename)
-
-    if match:
-        # If matched, return the extracted number as an integer
-        return int(match.group(1))
-    else:
-        # If no match, return None
-        return None
-
-def find_latest_yaml_file(directory):
-    try:
-        # List all '.yaml' files in the directory
-        files = [f for f in os.listdir(directory)
-                 if os.path.isfile(os.path.join(directory, f)) and f.endswith('.yaml')]
-
-        # If the directory is empty or contains no files, return None
-        if not files:
-            return None
-
-        # Sort the files lexicographically in reverse (descending) order
-        files.sort(reverse=True)
-
-        # Return the lexicographically latest file
-        return files[0]
-
-    except Exception as e:
-        print(f"Failed to find latest yaml file: {e}")
-        return None
-
-def remove_netplan_file(filename):
-    if filename:
-        file_path = os.path.join(NETPLAN_DIR, filename)
-        try:
-            os.remove(file_path)
-            print(f"Removed invalid file: {file_path}")
-        except Exception as e:
-            print(f"Failed to remove file {file_path}: {e}")
-
-def format_routes_yaml(gateway4, gateway6):
+def format_routes_yaml(dhcp4, dhcp6, gateway4, gateway6):
     formatted_routes = []
-    if gateway4:
+    if not dhcp4 and gateway4:
         formatted_routes.append(f"        - to: 0.0.0.0/0\n          via: {gateway4}")
-    if gateway6:
+    if not dhcp6 and gateway6:
         formatted_routes.append(f"        - to: ::/0\n          via: {gateway6}")
-    return "\n".join(formatted_routes)
+    return "      routes:\n" + "\n".join(formatted_routes) if formatted_routes else ""
 
-def format_addresses_yaml(addresses4_list, addresses6_list):
+def format_addresses_yaml(dhcp4, dhcp6, addresses4_list, addresses6_list):
     formatted_addresses = []
-    for address in addresses4_list:
-        formatted_addresses.append(f"        - {address}")
-    for address in addresses6_list:
-        formatted_addresses.append(f"        - {address}")
-    return "\n".join(formatted_addresses)
+    if not dhcp4:
+        for address in addresses4_list:
+            formatted_addresses.append(f"        - {address}")
+    if not dhcp6:
+        for address in addresses6_list:
+            formatted_addresses.append(f"        - {address}")
+    return "      addresses:\n" + "\n".join(formatted_addresses) if formatted_addresses else ""
 
 def generate_netplan_yaml_content(interface, dhcp4, dhcp6, addresses4, addresses6, gateway4, gateway6):
-    # Format the lists of addresses into YAML
-    addresses = format_addresses_yaml(addresses4, addresses6)
-
-    # Format the routes for YAML
-    routes = format_routes_yaml(gateway4, gateway6)
+    # Conditionally format addresses and routes based on DHCP settings
+    addresses = format_addresses_yaml(dhcp4, dhcp6, addresses4, addresses6)
+    routes = format_routes_yaml(dhcp4, dhcp6, gateway4, gateway6)
 
     # Substitute the template placeholders
     content = CONFIG_FILE_TEMPLATE.format(
@@ -99,12 +53,40 @@ def generate_netplan_yaml_content(interface, dhcp4, dhcp6, addresses4, addresses
 
     return content
 
-def write_netplan_yaml_file(interface, content):
-    # Create the latest number for yaml file
-    number = (extract_file_number(find_latest_yaml_file(NETPLAN_DIR)) or 50) + 1
+def remove_netplan_file(filename):
+    if filename:
+        file_path = os.path.join(NETPLAN_DIR, filename)
+        try:
+            os.remove(file_path)
+            print(f"Removed invalid file: {file_path}")
+        except Exception as e:
+            print(f"Failed to remove file {file_path}: {e}")
 
-    # Generate the filename and write content to the YAML file
-    filename = f"{NETPLAN_DIR}/{number}-{interface}-config.yaml"
+def backup_netplan_file(filename):
+    backup_filename = f"{filename}.bak"
+    try:
+        os.rename(os.path.join(NETPLAN_DIR, filename), os.path.join(NETPLAN_DIR, backup_filename))
+        print(f"Backup created: {backup_filename}")
+        return backup_filename
+    except Exception as e:
+        print(f"Failed to create backup for {filename}: {e}")
+        return None
+
+def restore_backup_file(backup_filename):
+    if backup_filename:
+        original_filename = backup_filename.rsplit(".bak", 1)[0]
+        try:
+            os.rename(os.path.join(NETPLAN_DIR, backup_filename), os.path.join(NETPLAN_DIR, original_filename))
+            print(f"Restored backup: {original_filename}")
+            return original_filename
+        except Exception as e:
+            print(f"Failed to restore backup {backup_filename}: {e}")
+            return None
+    return None
+
+def write_netplan_yaml_file(content):
+    # Creates new or truncate an existed YAML file and write content into it.
+    filename = f"{NETPLAN_DIR}/{NETPLAN_YAML_FILENAME}"
     with open(filename, "w") as yaml_file:
         yaml_file.write(content)
 
@@ -115,7 +97,7 @@ def write_netplan_yaml_file(interface, content):
 
 def netplan_generate():
     try:
-        # Run the 'netplan generate' command with debug mode and capture both stdout and stderr
+        # Run the 'netplan generate' command and capture both stdout and stderr
         subprocess.run(["netplan", "generate"], capture_output=True, text=True, check=True)
         return True
     except subprocess.CalledProcessError as e:
@@ -124,32 +106,54 @@ def netplan_generate():
         return False
 
 def verify_netplan_config(interface, dhcp4, dhcp6, addresses4, addresses6, gateway4, gateway6):
+    # Backup the existing YAML file if present
+    backup_filename = backup_netplan_file(NETPLAN_YAML_FILENAME)
+
+    # Generate new YAML content
     content = generate_netplan_yaml_content(interface, dhcp4, dhcp6, addresses4, addresses6, gateway4, gateway6)
-    filename = write_netplan_yaml_file(interface, content)
 
-    succedeed = netplan_generate()
-    if not succedeed:
-        # Remove created file
-        remove_netplan_file(filename)
+    # Write the new YAML file (overwriting the old one)
+    write_netplan_yaml_file(interface, content)
 
-    return succedeed
+    # Test new configuration
+    succeeded = netplan_generate()
+    if not succeeded:
+        # If failed, remove the new file and restore the backup
+        remove_netplan_file(NETPLAN_YAML_FILENAME)
+        if backup_filename:
+            restore_backup_file(backup_filename)
 
-def apply_netplan_config():
-    subprocess.run(["netplan", "apply", "--debug"])
+    return succeeded
 
-def restore_netplan_config():
-    # try run "netplan generate"
-    while not netplan_generate():
-        # Repeat until generate fails or only one YAML file left in the directory
-        yaml_files_left = [f for f in os.listdir(NETPLAN_DIR) if os.path.isfile(os.path.join(NETPLAN_DIR, f)) and f.endswith('.yaml')]
-        if len(yaml_files_left) <= 1:
-            return
+def netplan_apply():
+    try:
+        # Run the 'netplan apply' command and capture both stdout and stderr
+        subprocess.run(["netplan", "apply"], capture_output=True, text=True, check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        # If there was an error, print to stderr
+        sys.stderr.write(e.stderr)
+        return False
 
-        # Get and remove the latest YAML file which might cause the problem
-        filename = find_latest_yaml_file(NETPLAN_DIR)
-        if filename is None:
-            return
-        remove_netplan_file(filename)
+def apply_or_restore_netplan_config():
+    # Try to apply the current configuration
+    if not netplan_apply():
+        print("New netplan config failed to apply.")
+
+        # If apply fails, attempt to restore previous from the backup
+        backup_filename = f"{NETPLAN_YAML_FILENAME}.bak"
+
+        if os.path.exists(os.path.join(NETPLAN_DIR, backup_filename)):
+            remove_netplan_file(NETPLAN_YAML_FILENAME)
+            restored_filename = restore_backup_file(backup_filename)
+
+            # Revalidate the restored configuration
+            if restored_filename and netplan_apply():
+                print("Netplan config restored from backup successfully.")
+                return
+        print("No valid configuration restored.")
+    else:
+        print("New netplan config applied successfully.")
 
 def main():
     if os.geteuid() != 0:
@@ -157,7 +161,7 @@ def main():
         sys.exit(1)
 
     if len(sys.argv) < 2:
-        print("Error: Action type required (e.g., 'verify', 'apply', 'backup').")
+        print("Error: Action type required (e.g., 'verify', 'apply').")
         sys.exit(1)
 
     action = sys.argv[1]
@@ -168,11 +172,9 @@ def main():
             sys.exit(1)
 
         try:
-            # Parse addresses4 and addresses6 as lists
+            # Parse addresses as lists
             addresses4 = json.loads(sys.argv[5])
             addresses6 = json.loads(sys.argv[6])
-
-            # Ensure they are lists
             if not isinstance(addresses4, list) or not isinstance(addresses6, list):
                 print("Error: Addresses must be JSON arrays.")
                 sys.exit(1)
@@ -184,13 +186,10 @@ def main():
             sys.exit(1)
 
     elif action == "apply":
-        apply_netplan_config()
-
-    elif action == "backup":
-        restore_netplan_config()
+        apply_or_restore_netplan_config()
 
     else:
-        print(f"Error: Unknown action '{action}'. Supported actions are 'verify', 'apply', and 'backup'.")
+        print(f"Error: Unknown action '{action}'. Supported actions are 'verify' and 'apply'.")
         sys.exit(1)
 
 if __name__ == "__main__":

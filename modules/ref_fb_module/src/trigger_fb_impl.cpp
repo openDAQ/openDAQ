@@ -66,10 +66,11 @@ void TriggerFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inpu
 
 void TriggerFbImpl::configure()
 {
+    setComponentStatus(ComponentStatus::Ok);
+
     if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "Incomplete signal descriptors");
-        LOG_D("Incomplete signal descriptors")
         return;
     }
 
@@ -77,7 +78,6 @@ void TriggerFbImpl::configure()
     {
         if (inputDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Arrays not supported");
             throw std::runtime_error("Arrays not supported");
         }
 
@@ -87,7 +87,6 @@ void TriggerFbImpl::configure()
             inputSampleType != SampleType::UInt8 && inputSampleType != SampleType::UInt16 && inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
@@ -99,8 +98,7 @@ void TriggerFbImpl::configure()
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Failed to set descriptor for trigger signal");
-        LOG_W("Failed to set descriptor for trigger signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for trigger signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
 }

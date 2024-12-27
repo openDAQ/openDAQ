@@ -48,6 +48,8 @@ void StructDecoderFbImpl::processSignalDescriptorsChangedEventPacket(const Event
 
 void StructDecoderFbImpl::configure()
 {
+    setComponentStatus(ComponentStatus::Ok);
+
     if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
     {
         configured = false;
@@ -59,14 +61,12 @@ void StructDecoderFbImpl::configure()
     {
         if (inputDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Arrays not supported");
             throw std::runtime_error("Arrays not supported");
         }
 
         const auto inputSampleType = inputDataDescriptor.getSampleType();
         if (inputSampleType != SampleType::Struct)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
@@ -94,7 +94,6 @@ void StructDecoderFbImpl::configure()
             const auto fieldSampleType = field.getSampleType();
             if (std::find(validFieldTypes.begin(), validFieldTypes.end(), fieldSampleType) == validFieldTypes.end())
             {
-                setComponentStatusWithMessage(ComponentStatus::Error, "Field has invalid sample type");
                 throw std::runtime_error(fmt::format("Field \"{}\" has invalid sample type", field.getName()));
             }
 
@@ -111,8 +110,7 @@ void StructDecoderFbImpl::configure()
     {
         configured = false;
         setInputStatus(InputInvalid);
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Failed to configure output signals");
-        LOG_W("Failed to configure output signals: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure output signals: {}", e.what()));
         signals.clear();
     }
 }
@@ -261,15 +259,13 @@ void StructDecoderFbImpl::initStatuses() const
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Couldn't add type to type manager");
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
-        LOG_W("Couldn't add type {} to type manager: {}", inputStatusType.getName(), e.what());
+        setComponentStatusWithMessage(ComponentStatus::Warning,
+                                      fmt::format("Couldn't add type {} to type manager: {}", inputStatusType.getName(), e.what()));
     }
     catch (...)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Couldn't add type to type manager");
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
-        LOG_W("Couldn't add type {} to type manager!", inputStatusType.getName());
+        setComponentStatusWithMessage(ComponentStatus::Warning,
+                                      fmt::format("Couldn't add type {} to type manager!", inputStatusType.getName()));
     }
 
     const auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();

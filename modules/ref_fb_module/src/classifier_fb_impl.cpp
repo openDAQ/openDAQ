@@ -108,7 +108,6 @@ void ClassifierFbImpl::readProperties()
     else if (customClassList.empty())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "Classifier property CustomClassList is empty");
-        LOG_W("Classifier property CustomClassList is empty")
     }
     else
     {
@@ -118,7 +117,6 @@ void ClassifierFbImpl::readProperties()
             if (static_cast<Float>(el) < lastValue)
             {
                 setComponentStatusWithMessage(ComponentStatus::Warning, "Classifier property CustomClassList is not incremental");
-                LOG_W("Classifier property CustomClassList is not incremental")
                 break;
             }
             lastValue = el;
@@ -151,14 +149,12 @@ void ClassifierFbImpl::configure()
     if (!inputDataDescriptor.assigned())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "ClassifierFb: Incomplete input data signal descriptor");
-        LOG_D("ClassifierFb: Incomplete input data signal descriptor")
         return;
     }
 
     if (!inputDomainDataDescriptor.assigned())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "ClassifierFb: Incomplete input domain signal descriptor");
-        LOG_D("ClassifierFb: Incomplete input domain signal descriptor")
         return;
     }
 
@@ -267,8 +263,8 @@ void ClassifierFbImpl::configure()
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Failed to set descriptor for classification signal");
-        LOG_W("ClassifierFb: Failed to set descriptor for classification signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Warning,
+                                      fmt::format("ClassifierFb: Failed to set descriptor for classification signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
     setComponentStatus(ComponentStatus::Ok);
@@ -347,7 +343,6 @@ void ClassifierFbImpl::processLinearData(const std::vector<Float>& inputData, co
     if (labels.getCount() == 0) 
     {
         setComponentStatusWithMessage(ComponentStatus::Error, "Classifier labels are not set correctly");
-        LOG_E("Classifier labels are not set correctly")
         return;
     }
 
@@ -399,7 +394,6 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
     if (labels.getCount() == 0) 
     {
         setComponentStatusWithMessage(ComponentStatus::Error, "Classifier labels are not set correctly");
-        LOG_E("Classifier labels are not set correctly")
         packetGap = true;
         return;
     }

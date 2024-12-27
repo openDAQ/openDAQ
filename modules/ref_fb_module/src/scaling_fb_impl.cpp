@@ -110,23 +110,21 @@ void ScalingFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inpu
 
 void ScalingFbImpl::configure()
 {
+    setComponentStatus(ComponentStatus::Ok);
     try
     {
         if (inputDomainDataDescriptor == NullDataDescriptor())
         {
-            setComponentStatusWithMessage(ComponentStatus::Warning, "No domain input");
             throw std::runtime_error("No domain input");
         }
 
         if (inputDataDescriptor == NullDataDescriptor())
         {
-            setComponentStatusWithMessage(ComponentStatus::Warning, "No value input");
             throw std::runtime_error("No value input");
         }
 
         if (inputDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentStatusWithMessage(ComponentStatus::Warning, "Arrays not supported");
             throw std::runtime_error("Arrays not supported");
         }
 
@@ -142,7 +140,6 @@ void ScalingFbImpl::configure()
             inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
         {
-            setComponentStatusWithMessage(ComponentStatus::Warning, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
@@ -177,7 +174,7 @@ void ScalingFbImpl::configure()
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to set descriptor for output signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for output signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
 }

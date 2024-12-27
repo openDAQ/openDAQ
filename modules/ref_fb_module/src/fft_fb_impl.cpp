@@ -186,8 +186,7 @@ void FFTFbImpl::configure()
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Failed to set descriptor for signal");
-        LOG_W("FFT: Failed to set descriptor for signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("FFT: Failed to set descriptor for signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
     setComponentStatus(ComponentStatus::Ok);

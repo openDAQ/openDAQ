@@ -194,14 +194,12 @@ void PowerFbImpl::checkPacketQueues()
     {
         voltageQueue.pop_back();
         setComponentStatusWithMessage(ComponentStatus::Warning, "Data lost, voltage packets skipped");
-        LOG_W("Data lost, voltage packets skipped")
         synced = false;
     }
     while (currentQueue.size() > 100)
     {
         currentQueue.pop_back();
         setComponentStatusWithMessage(ComponentStatus::Warning, "Data lost, current packets skipped");
-        LOG_W("Data lost, voltage packets skipped")
         synced = false;
     }
 }
@@ -365,7 +363,6 @@ void PowerFbImpl::configure(bool resync)
         !currentDomainDataDescriptor.assigned())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "Incomplete signal descriptors");
-        LOG_D("Incomplete signal descriptors")
         return;
     }
 
@@ -373,27 +370,23 @@ void PowerFbImpl::configure(bool resync)
     {
         if (voltageDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Arrays not supported");
             throw std::runtime_error("Arrays not supported");
         }
 
         if (currentDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid sample typ");
             throw std::runtime_error("Invalid sample typ");
         }
 
         voltageSampleType = voltageDataDescriptor.getSampleType();
         if (voltageSampleType != SampleType::Float64 && voltageSampleType != SampleType::Float32)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
         currentSampleType = currentDataDescriptor.getSampleType();
         if (currentSampleType != SampleType::Float64 && currentSampleType != SampleType::Float32)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
@@ -411,61 +404,51 @@ void PowerFbImpl::configure(bool resync)
 
         if (voltageDomainDataDescriptor.getOrigin() != currentDomainDataDescriptor.getOrigin())
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Domain mismatch");
             throw std::runtime_error("Domain mismatch");
         }
 
         if (voltageDomainDataDescriptor.getTickResolution() != currentDomainDataDescriptor.getTickResolution())
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Domain tick resolution mismatch");
             throw std::runtime_error("Domain tick resolution mismatch");
         }
 
         if (voltageDomainDataDescriptor.getSampleType() != SampleType::Int64 &&
             voltageDomainDataDescriptor.getSampleType() != SampleType::UInt64)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid domain sample type");
             throw std::runtime_error("Invalid domain sample type");
         }
 
         if (currentDomainDataDescriptor.getSampleType() != SampleType::Int64 &&
             currentDomainDataDescriptor.getSampleType() != SampleType::UInt64)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid domain sample type");
             throw std::runtime_error("Invalid domain sample type");
         }
 
         if (voltageDomainDataDescriptor.getSampleType() != currentDomainDataDescriptor.getSampleType())
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Domain sample type mismatch");
             throw std::runtime_error("Domain sample type mismatch");
         }
-            
 
         if (currentDomainDataDescriptor.getSampleType() != SampleType::Int64 &&
             currentDomainDataDescriptor.getSampleType() != SampleType::UInt64)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid domain sample type");
             throw std::runtime_error("Invalid domain sample type");
         }
 
         if (voltageDomainDataDescriptor.getUnit() != currentDomainDataDescriptor.getUnit())
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Domain unit mismatch");
             throw std::runtime_error("Domain unit mismatch");
         }
 
         const auto voltageDomainRule = voltageDomainDataDescriptor.getRule();
         if (!voltageDomainRule.assigned() || voltageDomainRule.getType() != DataRuleType::Linear)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Linear rule not used");
             throw std::runtime_error("Linear rule not used");
         }
 
         const auto currentDomainRule = currentDomainDataDescriptor.getRule();
         if (!currentDomainRule.assigned() || currentDomainRule.getType() != DataRuleType::Linear)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Linear rule not used");
             throw std::runtime_error("Linear rule not used");
         }
 
@@ -473,7 +456,6 @@ void PowerFbImpl::configure(bool resync)
         const auto currentDomainRuleParams = currentDomainRule.getParameters();
         if (voltageDomainRuleParams != currentDomainRuleParams)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Domain rule mismatch");
             throw std::runtime_error("Domain rule mismatch");
         }
 
@@ -486,8 +468,7 @@ void PowerFbImpl::configure(bool resync)
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Failed to set descriptor for power signal");
-        LOG_W("Failed to set descriptor for power signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
         powerSignal.setDescriptor(nullptr);
     }
     setComponentStatus(ComponentStatus::Ok);

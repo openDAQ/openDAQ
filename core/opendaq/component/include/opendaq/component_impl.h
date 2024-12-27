@@ -178,8 +178,11 @@ protected:
 
     static bool validateComponentId(const std::string& id);
 
+    // Initialize component status with "Ok" status
     void initComponentStatus() const;
+    // Set component status with default message (empty string) and log status and message
     void setComponentStatus(const ComponentStatus& status) const;
+    // Set component status with message and log status and message
     void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
 
 private:
@@ -1156,12 +1159,32 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
         throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called "
                                 "before setComponentStatus.");
     }
-
     // Set status if initialized
     const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
     const auto componentStatusValue =
         EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(status), this->context.getTypeManager());
     statusContainerPrivate.setStatusWithMessage("ComponentStatus", componentStatusValue, message);
+
+    // Log status and message
+    auto logger = this->context.getLogger();
+    if (logger.assigned())
+    {
+        const auto loggerComponent = logger.getOrAddComponent("ComponentStatus");
+        auto statusString = this->statusContainer.getStatus("ComponentStatus").getValue();
+        auto logString = fmt::format("Component {} status changed to {} with message: {}", this->name, statusString, message);
+        if (statusString == "Warning")
+        {
+            LOG_W("{}", logString)
+        }
+        else if (statusString == "Error")
+        {
+            LOG_E("{}", logString)
+        }
+        else
+        {
+            LOG_I("{}", logString)
+        }
+    }
 }
 
 using StandardComponent = ComponentImpl<>;

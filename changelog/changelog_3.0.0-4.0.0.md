@@ -1,4 +1,4 @@
-# 2024-12-20
+# 2024-12-27
 ## Description
 - Rename variables containing (for consistency):
   - `ComponentErrorState` to `ComponentStatus`

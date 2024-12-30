@@ -108,6 +108,7 @@ void ClassifierFbImpl::readProperties()
     else if (customClassList.empty())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "Classifier property CustomClassList is empty");
+        return;
     }
     else
     {
@@ -162,10 +163,8 @@ void ClassifierFbImpl::configure()
     {
         if (inputDataDescriptor.getSampleType() == SampleType::Struct || inputDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Incompatible input value data descriptor");
             throw std::runtime_error("Incompatible input value data descriptor");
         }
-            
 
         auto inputSampleType = inputDataDescriptor.getSampleType();
         if (inputSampleType != SampleType::Float64 && inputSampleType != SampleType::Float32 && inputSampleType != SampleType::Int8 &&
@@ -173,20 +172,17 @@ void ClassifierFbImpl::configure()
             inputSampleType != SampleType::UInt8 && inputSampleType != SampleType::UInt16 && inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
         if (inputDomainDataDescriptor.getSampleType() != SampleType::Int64 && inputDomainDataDescriptor.getSampleType() != SampleType::UInt64)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Incompatible domain data sample type");
             throw std::runtime_error("Incompatible domain data sample type");
         }
 
         auto domainUnit = inputDomainDataDescriptor.getUnit();
         if (domainUnit.getSymbol() != "s" && domainUnit.getSymbol() != "seconds")
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Domain unit expected in seconds");
             throw std::runtime_error("Domain unit expected in seconds");
         }
 
@@ -210,7 +206,6 @@ void ClassifierFbImpl::configure()
 
             if (linearBlockCount == 0)
             {
-                setComponentStatusWithMessage(ComponentStatus::Error, "Calculation of linearBlockCount failed");
                 throw std::runtime_error("Calculation of linearBlockCount failed");
             }
         }
@@ -260,14 +255,15 @@ void ClassifierFbImpl::configure()
         
         outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).build();
         outputDomainSignal.setDescriptor(outputDomainDataDescriptor);
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning,
+        setComponentStatusWithMessage(ComponentStatus::Error,
                                       fmt::format("ClassifierFb: Failed to set descriptor for classification signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
-    setComponentStatus(ComponentStatus::Ok);
 }
 
 void ClassifierFbImpl::processData()

@@ -10,12 +10,11 @@ from .dialog import Dialog
 
 
 class AddFunctionBlockDialog(Dialog):
-    def __init__(self, parent, context, node, **kwargs):
+    def __init__(self, parent, context, selected_component = None, **kwargs):
         Dialog.__init__(self, parent, 'Add function block', context, **kwargs)
-        self.node = node
         # send events to parent window
         self.event_port = EventPort(self.parent)
-        self.parent_device = None
+        self.parent_component = selected_component
 
         self.geometry('{}x{}'.format(
             900 * self.context.ui_scaling_factor, 400 * self.context.ui_scaling_factor))
@@ -81,9 +80,13 @@ class AddFunctionBlockDialog(Dialog):
         self.initial_update_func = lambda: self.initial_update()
 
     def initial_update(self):
+        self.update_dialog()
+
+    def update_dialog(self):
         self.update_parent_devices(
             self.device_tree, '', self.context.instance)
-        self.select_parent_device(self.context.instance.global_id)
+        parent_to_select = self.parent_component.global_id if self.parent_component is not None else self.context.instance.global_id
+        self.select_parent_device(parent_to_select)
 
     def select_parent_device(self, device_id: str):
         if self.device_tree.exists(device_id):
@@ -102,6 +105,13 @@ class AddFunctionBlockDialog(Dialog):
                             iid=device.global_id, open=tk.TRUE)
                 parent_id = device.global_id
 
+            if daq.IFunctionBlock.can_cast_from(component):
+                function_block = daq.IFunctionBlock.cast_from(component)
+                if function_block.available_function_block_types:
+                    tree.insert(parent_id, tk.END, text=function_block.name,
+                                iid=function_block.global_id, open=tk.TRUE)
+                    parent_id = function_block.global_id
+
             if daq.IFolder.can_cast_from(component):
                 folder = daq.IFolder.cast_from(component)
                 for item in folder.items:
@@ -112,7 +122,7 @@ class AddFunctionBlockDialog(Dialog):
     def update_function_blocks(self):
         self.fb_tree.delete(*self.fb_tree.get_children())
 
-        available_function_block_types = self.parent_device.available_function_block_types
+        available_function_block_types = self.parent_component.available_function_block_types
         for function_block_id in available_function_block_types:
             self.fb_tree.insert('', tk.END, iid=function_block_id, values=(
                 function_block_id,
@@ -124,11 +134,13 @@ class AddFunctionBlockDialog(Dialog):
         if selected_item is None:
             return
 
-        parent_device = utils.find_component(selected_item, self.context.instance)
-        if parent_device is not None and daq.IDevice.can_cast_from(parent_device):
-            parent_device = daq.IDevice.cast_from(parent_device)
-            self.parent_device = parent_device
-            self.update_function_blocks()
+        parent_component = utils.find_component(
+            selected_item, self.context.instance)
+        if parent_component is not None:
+            if daq.IDevice.can_cast_from(parent_component) or daq.IFunctionBlock.can_cast_from(parent_component):
+                self.parent_component = daq.IDevice.cast_from(parent_component) if daq.IDevice.can_cast_from(
+                    parent_component) else daq.IFunctionBlock.cast_from(parent_component)
+                self.update_function_blocks()
 
     def handle_fb_tree_double_click(self, event):
         selected_item = utils.treeview_get_first_selection(self.fb_tree)
@@ -138,6 +150,7 @@ class AddFunctionBlockDialog(Dialog):
         item = self.fb_tree.item(selected_item)
 
         function_block_id = item['values'][0]
-        self.parent_device.add_function_block(function_block_id)
+        self.parent_component.add_function_block(function_block_id)
 
         self.event_port.emit()
+        self.update_dialog()

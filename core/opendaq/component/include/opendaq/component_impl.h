@@ -1149,16 +1149,25 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatus(const ComponentStatus& st
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const
 {
+    EnumerationPtr oldStatus;
+    StringPtr oldMessage;
+
     // Fail with explicit message of what happened if not initialized
     try
     {
-        auto dummy = this->statusContainer.getStatus("ComponentStatus");
+        oldStatus = this->statusContainer.getStatus("ComponentStatus");
+        oldMessage = this->statusContainer.getStatusMessage("ComponentStatus");
     }
     catch (const NotFoundException&)
     {
         throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called "
                                 "before setComponentStatus.");
     }
+
+    // Check if status and message are the same as before, if so, return
+    if (status == oldStatus && message == oldMessage)
+        return;
+
     // Set status if initialized
     const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
     const auto componentStatusValue =

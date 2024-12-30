@@ -465,13 +465,14 @@ void PowerFbImpl::configure(bool resync)
 
         start = voltageDomainRuleParams.get("start");
         delta = voltageDomainRuleParams.get("delta");
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
         powerSignal.setDescriptor(nullptr);
     }
-    setComponentStatus(ComponentStatus::Ok);
 }
 
 void PowerFbImpl::createInputPorts()

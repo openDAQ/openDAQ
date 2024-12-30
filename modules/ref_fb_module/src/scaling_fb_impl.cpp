@@ -2,13 +2,10 @@
 #include <ref_fb_module/dispatch.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
-
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
-
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
-
 #include "coreobjects/unit_factory.h"
 #include "opendaq/data_packet.h"
 #include "opendaq/data_packet_ptr.h"
@@ -18,7 +15,6 @@
 #include "opendaq/sample_type_traits.h"
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reusable_data_packet_ptr.h>
-#include <opendaq/component_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -110,7 +106,6 @@ void ScalingFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inpu
 
 void ScalingFbImpl::configure()
 {
-    setComponentStatus(ComponentStatus::Ok);
     try
     {
         if (inputDomainDataDescriptor == NullDataDescriptor())
@@ -171,10 +166,12 @@ void ScalingFbImpl::configure()
         outputDataDescriptor = outputDataDescriptorBuilder.build();
         outputSignal.setDescriptor(outputDataDescriptor);
         outputDomainSignal.setDescriptor(inputDomainDataDescriptor);
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for output signal: {}", e.what()));
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Failed to set descriptor for output signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
 }

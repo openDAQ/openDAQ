@@ -1,7 +1,6 @@
 #include <opendaq/function_block_ptr.h>
 #include <ref_fb_module/arial.ttf.h>
 #include <ref_fb_module/renderer_fb_impl.h>
-
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/event_packet_ptr.h>
@@ -10,9 +9,7 @@
 #include <opendaq/custom_log.h>
 #include <ref_fb_module/dispatch.h>
 #include <coreobjects/eval_value_factory.h>
-
 #include <date/date.h>
-
 #include <iomanip>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
@@ -174,9 +171,7 @@ void RendererFbImpl::readProperties()
     LOG_T("Properties: Custom2dMaxRange {}", custom2dMaxRange);
     if (custom2dMinRange > custom2dMaxRange)
     {
-        setComponentStatusWithMessage(ComponentStatus::Error,
-                                                "Property custom2dMaxRange has to be more than custom2dMinRange");
-        LOG_E("Property custom2dMaxRange has to be more than custom2dMinRange");
+        setComponentStatusWithMessage(ComponentStatus::Error, "Property custom2dMaxRange has to be more than custom2dMinRange");
     }
     else
     {
@@ -933,7 +928,7 @@ void RendererFbImpl::prepareSingleXAxis()
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Unable to configure single X axis: {}", e.what()));
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Unable to configure single X axis: {}", e.what()));
     }
 }
 
@@ -1311,7 +1306,6 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
             }
             catch (const std::exception& e)
             {
-                setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Invalid data rule parameters: {}", e.what()));
                 throw InvalidPropertyException("Invalid data rule parameters: {}", e.what());
             }
             signalContext.isExplicit = false;

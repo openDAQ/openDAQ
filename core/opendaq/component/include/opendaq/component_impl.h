@@ -180,9 +180,9 @@ protected:
 
     // Initialize component status with "Ok" status
     void initComponentStatus() const;
-    // Set component status with default message (empty string) and log status and message
+    // Set component status with default message (empty string) and log status and message (if different from previous)
     void setComponentStatus(const ComponentStatus& status) const;
-    // Set component status with message and log status and message
+    // Set component status with message and log status and message (if different from previous)
     void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
 
 private:

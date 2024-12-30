@@ -100,10 +100,8 @@ void FFTFbImpl::configure()
     {
         if (inputDataDescriptor.getSampleType() == SampleType::Struct || inputDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Incompatible input value data descriptor");
             throw std::runtime_error("Incompatible input value data descriptor");
         }
-            
 
         inputSampleType = inputDataDescriptor.getSampleType();
         if (inputSampleType != SampleType::Float64 &&
@@ -117,27 +115,23 @@ void FFTFbImpl::configure()
             inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
         if (inputDomainDataDescriptor.getSampleType() != SampleType::Int64 && inputDomainDataDescriptor.getSampleType() != SampleType::UInt64)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Incompatible domain data sample type");
             throw std::runtime_error("Incompatible domain data sample type");
         }
 
         const auto domainUnit = inputDomainDataDescriptor.getUnit();
         if (domainUnit.getSymbol() != "s" && domainUnit.getSymbol() != "seconds")
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Domain unit expected in seconds");
             throw std::runtime_error("Domain unit expected in seconds");
         }
 
         const auto domainRule = inputDomainDataDescriptor.getRule();
         if (inputDomainDataDescriptor.getRule().getType() != DataRuleType::Linear)
         {
-            setComponentStatusWithMessage(ComponentStatus::Error, "Domain rule must be linear");
             throw std::runtime_error("FFT: Domain rule must be linear");
         }
 
@@ -147,8 +141,6 @@ void FFTFbImpl::configure()
         const auto resolution = inputDomainDataDescriptor.getTickResolution();
         if (!resolution.assigned())
         {
-            setComponentStatusWithMessage(ComponentStatus::Error,
-                                                    "Domain signal descriptor has no Tick resolution configured");
             throw std::runtime_error("FFT: Domain signal descriptor has no Tick resolution configured");
         }
 
@@ -183,13 +175,13 @@ void FFTFbImpl::configure()
         fftOut.resize(blockSize);
 
         configValid = true;
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("FFT: Failed to set descriptor for signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
-    setComponentStatus(ComponentStatus::Ok);
 }
 
 void FFTFbImpl::processEventPacket(const EventPacketPtr& packet)

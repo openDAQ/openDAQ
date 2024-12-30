@@ -87,4 +87,13 @@ void defineIPropertyValueEventArgs(pybind11::module_ m, PyDaqIntf<daq::IProperty
             return objectPtr.getIsUpdating();
         },
         "");
+    cls.def_property_readonly("old_value",
+        [](daq::IPropertyValueEventArgs *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyValueEventArgsPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getOldValue());
+        },
+        py::return_value_policy::take_ownership,
+        "");
 }

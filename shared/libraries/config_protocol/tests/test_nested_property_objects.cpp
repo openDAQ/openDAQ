@@ -511,3 +511,127 @@ TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueInsideCallback)
     clientDevice.setPropertyValue("EditableProperty", 1);
     ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);   
 }
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackFailed)
+{
+    serverDevice.addProperty(IntProperty("EditableProperty", 0));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() > 0)
+            throw InvalidParameterException("Invalid value");
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
+    ASSERT_THROW(clientDevice.setPropertyValue("EditableProperty", 1), InvalidParameterException);
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackIgnoreValue)
+{
+    serverDevice.addProperty(IntProperty("EditableProperty", 0));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() > 0)
+            arg.setValue(0);
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("EditableProperty", 1));
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackNestead)
+{
+    serverDevice.addProperty(IntProperty("EditableProperty", 0));
+    serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() < 10)
+            obj.setPropertyValue("EditableProperty", arg.getValue() + 1);
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("EditableProperty", 1));
+    ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 10);   
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackDependencies)
+{
+    serverDevice.addProperty(IntProperty("Number", 0));
+    serverDevice.addProperty(IntProperty("Ones", 0));
+    serverDevice.addProperty(IntProperty("Tens", 0));
+
+    serverDevice.getOnPropertyValueWrite("Number") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        obj.setPropertyValue("Ones", arg.getValue());
+    };
+
+    serverDevice.getOnPropertyValueWrite("Ones") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() < 0)
+        {
+            throw OutOfRangeException("Ones");
+        }
+        if ((Int)arg.getValue() > 9)
+        {
+            auto tens = (Int)arg.getValue() / 10;
+            obj.setPropertyValue("Tens", tens);
+            arg.setValue((Int)arg.getValue() % 10);
+        }
+        else
+        {
+            obj.setPropertyValue("Tens", 0);
+        }
+    };
+
+    serverDevice.getOnPropertyValueWrite("Tens") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        if ((Int)arg.getValue() < 0)
+            throw OutOfRangeException("Tens");
+        if ((Int)arg.getValue() > 9)
+            throw OutOfRangeException("Tens");
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 0);
+
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("Number", 12));
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 12);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 2);
+
+    ASSERT_THROW(clientDevice.setPropertyValue("Number", -1), OutOfRangeException);
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 12);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 2);
+
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("Number", 9));
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 9);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 9);
+
+    ASSERT_THROW(clientDevice.setPropertyValue("Number", 100), OutOfRangeException);
+    ASSERT_EQ(clientDevice.getPropertyValue("Number"), 9);
+    ASSERT_EQ(clientDevice.getPropertyValue("Tens"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("Ones"), 9);
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, ThrowExeptionRestoringValuePartialy)
+{
+    serverDevice.addProperty(IntProperty("param1", 0));
+    serverDevice.addProperty(IntProperty("param2", 0));
+
+    serverDevice.getOnPropertyValueWrite("param1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+    {
+        obj.setPropertyValue("param2", arg.getValue());
+        if ((Int)arg.getValue() < 0)
+            throw OutOfRangeException("param 1 value is negative");
+    };
+
+    ASSERT_EQ(clientDevice.getPropertyValue("param1"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("param2"), 0);
+
+    ASSERT_THROW(clientDevice.setPropertyValue("param1", -1), OutOfRangeException);
+    ASSERT_EQ(clientDevice.getPropertyValue("param1"), 0);
+    ASSERT_EQ(clientDevice.getPropertyValue("param2"), -1);
+}

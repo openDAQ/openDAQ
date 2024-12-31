@@ -26,6 +26,8 @@ ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)
 
     auto mockPhysDeviceInfo = DeviceInfo("daqmock://phys_device");
     mockPhysDeviceInfo.setDeviceType(DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock"));
+    mockPhysDeviceInfo.setManufacturer("openDAQ");
+    mockPhysDeviceInfo.setSerialNumber("mock_phys_ser");
     availableDevicesPtr.pushBack(mockPhysDeviceInfo);
 
     *availableDevices = availableDevicesPtr.detach();

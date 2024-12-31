@@ -135,9 +135,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 
 void InstanceImpl::stopAndRemoveServers() const
 {
-    Bool removed = false;
-    rootDevice.asPtr<IRemovable>()->isRemoved(&removed);
-    if (removed)
+    if (rootDevice.isRemoved())
         return;
 
     for (const auto& server : rootDevice.getServers())

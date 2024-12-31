@@ -79,26 +79,22 @@ void defineIMirroredSignalConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredSi
             objectPtr.deactivateStreaming();
         },
         "Stops the streaming and clears the active streaming source of the signal.");
-    /*
     cls.def_property_readonly("on_subscribe_complete",
         [](daq::IMirroredSignalConfig *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
-            return objectPtr.getOnSubscribeComplete().detach();
+            return objectPtr.getOnSubscribeComplete().getEventPtr().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the Event that is triggered whenever the acknowledgment for signal subscription completion is received from the streaming server.");
-    */
-    /*
     cls.def_property_readonly("on_unsubscribe_complete",
         [](daq::IMirroredSignalConfig *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredSignalConfigPtr::Borrow(object);
-            return objectPtr.getOnUnsubscribeComplete().detach();
+            return objectPtr.getOnUnsubscribeComplete().getEventPtr().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the Event that is triggered whenever the acknowledgment for signal unsubscription completion is received from the streaming server.");
-    */
 }

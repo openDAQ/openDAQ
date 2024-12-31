@@ -119,7 +119,7 @@ class AttributesDialog(Dialog):
         if not node:
             return
 
-        sel = utils.treeview_get_first_selection(self.tree)
+        sel = utils.treeview_get_first_selection(self.tree)[1:]
         if sel not in self.attributes:
             return
 
@@ -233,7 +233,7 @@ class AttributesDialog(Dialog):
             locked = utils.yes_no[locked_flag]
             iid = f'{parent}.{key}'
             if type(value) is bool:
-                value = yes_no[value]
+                value = utils.yes_no[value]
             elif type(value) is dict:
                 self.tree.insert(
                     parent, tk.END, iid=iid, text=key, values=('', locked))

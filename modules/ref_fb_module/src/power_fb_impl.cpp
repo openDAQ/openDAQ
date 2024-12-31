@@ -193,13 +193,13 @@ void PowerFbImpl::checkPacketQueues()
     while (voltageQueue.size() > 100)
     {
         voltageQueue.pop_back();
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Data lost, voltage packets skipped");
+        LOG_W("Data lost, voltage packets skipped")
         synced = false;
     }
     while (currentQueue.size() > 100)
     {
         currentQueue.pop_back();
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Data lost, current packets skipped");
+        LOG_W("Data lost, current packets skipped")
         synced = false;
     }
 }
@@ -329,7 +329,6 @@ void PowerFbImpl::processPacketTemplated()
         currentPos = 0;
         currentQueue.pop_back();
    }
-   setComponentStatus(ComponentStatus::Ok);
 }
 
 RangePtr PowerFbImpl::getValueRange(DataDescriptorPtr voltageDataDescriptor, DataDescriptorPtr currentDataDescriptor)

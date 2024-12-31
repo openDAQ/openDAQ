@@ -119,6 +119,8 @@ private:
     void readDomainStart();
     void sync();
 
+    void setActiveInternal(Bool isActive);
+
     MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr);
 
     std::mutex mutex;
@@ -135,10 +137,12 @@ private:
 
     StringPtr readOrigin;
     RatioPtr readResolution;
+    RatioPtr tickOffsetTolerance;
     std::unique_ptr<Comparable> commonStart;
     std::int64_t requiredCommonSampleRate = -1;
     std::int64_t commonSampleRate = -1;
     std::int32_t sampleRateDividerLcm = 1;
+    bool sameSampleRates = false;
 
     std::vector<SignalReader> signals;
     PropertyObjectPtr portBinder;

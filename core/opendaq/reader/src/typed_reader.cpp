@@ -1,9 +1,10 @@
-#include <opendaq/typed_reader.h>
-#include <opendaq/sample_type.h>
+#include <coretypes/validation.h>
+#include <opendaq/multi_typed_reader.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
+#include <opendaq/sample_type.h>
 #include <opendaq/signal_errors.h>
-#include <opendaq/multi_typed_reader.h>
+#include <opendaq/typed_reader.h>
 
 #include <utility>
 
@@ -211,42 +212,40 @@ template <typename ReadType>
 SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
                                          const Comparable& start,
                                          void* inputBuffer,
-                                         SizeT size)
+                                         SizeT size,
+                                         std::chrono::system_clock::rep* firstSampleAbsoluteTime)
 {
     switch (dataSampleType)
     {
         case SampleType::Float32:
-            return getOffsetToData<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Float64:
-            return getOffsetToData<SampleTypeToType<SampleType::Float64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Float64>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::UInt8:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt8>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt8>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Int8:
-            return getOffsetToData<SampleTypeToType<SampleType::Int8>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int8>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Int16:
-            return getOffsetToData<SampleTypeToType<SampleType::Int16>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int16>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::UInt16:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt16>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt16>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Int32:
-            return getOffsetToData<SampleTypeToType<SampleType::Int32>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int32>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::UInt32:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt32>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt32>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Int64:
-            return getOffsetToData<SampleTypeToType<SampleType::Int64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::Int64>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::UInt64:
-            return getOffsetToData<SampleTypeToType<SampleType::UInt64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::UInt64>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::RangeInt64:
-            return getOffsetToData<SampleTypeToType<SampleType::RangeInt64>::Type>(domainInfo, start, inputBuffer, size);
+            return getOffsetToData<SampleTypeToType<SampleType::RangeInt64>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::ComplexFloat32:
         case SampleType::ComplexFloat64:
         case SampleType::Binary:
         case SampleType::String:
         case SampleType::Struct:
             return makeErrorInfo(
-                OPENDAQ_ERR_NOT_SUPPORTED,
-                fmt::format("Using the SampleType {} as a domain is not supported", dataSampleType),
-                nullptr
-            );
+                OPENDAQ_ERR_NOT_SUPPORTED, fmt::format("Using the SampleType {} as a domain is not supported", dataSampleType), nullptr);
         case SampleType::Invalid:
             return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
         case SampleType::Null:
@@ -263,11 +262,12 @@ template <typename TDataType>
 SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo,
                                               const Comparable& start,
                                               void* inputBuffer,
-                                              SizeT size) const
+                                              SizeT size,
+                                              [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp) const
 {
     if (!inputBuffer)
         throw ArgumentNullException{};
-        
+
     using namespace reader;
 
     if constexpr (std::is_convertible_v<TDataType, TReadType>)
@@ -301,8 +301,29 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
             // ss1 << toSysTime(adjusted, domainInfo.epoch, domainInfo.readResolution);
             // std::string s1 = ss1.str();
 
-            if (GreaterEqual<TReadType>::Check(domainInfo.multiplier, static_cast<TReadType>(dataStart[i]), startValue))
+            auto readValue = static_cast<TReadType>(dataStart[i]);
+            if (GreaterEqual<TReadType>::Check(domainInfo.multiplier, readValue, startValue))
             {
+                if (absoluteTimestamp)
+                {
+                    if constexpr (IsTemplateOf<TReadType, daq::RangeType>::value)
+                    {
+                        auto adjustedValue =
+                            GreaterEqual<TReadType>::Adjust(readValue.start, domainInfo.multiplier);  // in domainInfo.maxResolution
+                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.epoch, domainInfo.resolution);
+                        *absoluteTimestamp = adjustedValueSysTime.time_since_epoch().count();
+                    }
+                    else if constexpr (!IsTemplateOf<TReadType, daq::Complex_Number>::value)
+                    {
+                        auto adjustedValue = GreaterEqual<TReadType>::Adjust(readValue, domainInfo.multiplier);  // in domainInfo.maxResolution
+                        auto adjustedValueSysTime = toSysTime(adjustedValue, domainInfo.epoch, domainInfo.resolution);
+                        *absoluteTimestamp = adjustedValueSysTime.time_since_epoch().count();
+                    }
+                    else
+                    {
+                        throw NotSupportedException();
+                    }
+                }
                 return i / valuesPerSample;
             }
         }
@@ -316,10 +337,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
     else
     {
         return makeErrorInfo(
-            OPENDAQ_ERR_NOT_SUPPORTED,
-            "Implicit conversion from packet data-type to the read data-type is not supported.",
-            nullptr
-        );
+            OPENDAQ_ERR_NOT_SUPPORTED, "Implicit conversion from packet data-type to the read data-type is not supported.", nullptr);
     }
 }
 
@@ -376,10 +394,7 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
     else
     {
         return makeErrorInfo(
-            OPENDAQ_ERR_NOT_SUPPORTED,
-            "Implicit conversion from packet data-type to the read data-type is not supported.",
-            nullptr
-        );
+            OPENDAQ_ERR_NOT_SUPPORTED, "Implicit conversion from packet data-type to the read data-type is not supported.", nullptr);
     }
 }
 

@@ -1,11 +1,11 @@
-#include <opendaq/event_packet_ids.h>
-#include <opendaq/signal_reader.h>
-#include <opendaq/event_packet_utils.h>
-#include <opendaq/reader_errors.h>
 #include <opendaq/custom_log.h>
-#include <opendaq/packet_factory.h>
-#include <opendaq/reader_factory.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/event_packet_ids.h>
+#include <opendaq/event_packet_utils.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/reader_errors.h>
+#include <opendaq/reader_factory.h>
+#include <opendaq/signal_reader.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -103,6 +103,7 @@ static std::string printSync(SyncStatus synced)
 {
     switch (synced)
     {
+        case SyncStatus::SynchronizationFailed:
         case SyncStatus::Unsynchronized:
             return "Unsynchronized";
         case SyncStatus::Synchronizing:
@@ -384,7 +385,7 @@ void SignalReader::skipUntilLastEventPacket()
         connection.dequeueAll();
 }
 
-bool SignalReader::sync(const Comparable& commonStart)
+bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp)
 {
     if (synced == SyncStatus::Synchronized)
         return true;
@@ -403,7 +404,8 @@ bool SignalReader::sync(const Comparable& commonStart)
             domainInfo,
             commonStart,
             domainPacket.getData(),
-            domainPacket.getSampleCount()
+            domainPacket.getSampleCount(),
+            firstSampleAbsoluteTimestamp
         );
 
         if (info.prevSampleIndex == static_cast<SizeT>(-1))

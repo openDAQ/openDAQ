@@ -109,7 +109,7 @@ void StructDecoderFbImpl::configure()
     {
         configured = false;
         setInputStatus(InputInvalid);
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure output signals: {}", e.what()));
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Failed to configure output signals: {}", e.what()));
         signals.clear();
     }
 }

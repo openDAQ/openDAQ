@@ -2,6 +2,8 @@
 #include <gtest/gtest.h>
 #include <opendaq/function_block_type_ptr.h>
 #include <opendaq/update_parameters_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/module_impl.h>
 
 using InstanceTest = testing::Test;
 
@@ -985,6 +987,51 @@ TEST_F(InstanceTest, TestRemoved2)
     {
         component.asPtr<IRemovable>()->isRemoved(&removed);
         ASSERT_TRUE(removed);
+    }
+}
+
+class MockClientModule : public Module
+{
+public:
+
+    MockClientModule(daq::ContextPtr ctx)
+        : Module("Mock Client",
+                 daq::VersionInfo(1, 0, 0),
+                 std::move(ctx),
+                 "MockClient")
+    {
+    }
+
+    ListPtr<IDeviceInfo> onGetAvailableDevices() override
+    {
+        const auto info = DeviceInfo("false://mock_device");
+        info.setManufacturer("openDAQ");
+        info.setSerialNumber("mock_phys_ser");
+        const auto cap = ServerCapability("mock", "mock", ProtocolType::ConfigurationAndStreaming);
+        info.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+        return List<IDeviceInfo>(info);
+    }
+};
+
+TEST_F(InstanceTest, ModuleManagerGrouping)
+{
+    const auto instance = Instance("[[none]]");
+    const ModuleManagerPtr moduleManager = instance.getContext().getModuleManager();
+    moduleManager.addModule(createWithImplementation<IModule, MockClientModule>(instance.getContext()));
+    moduleManager.addModule(MockDeviceModule_Create(instance.getContext()));
+
+    const auto devs = instance.getAvailableDevices();
+    ASSERT_EQ(devs.getCount(), 3);
+
+    for (const auto& dev : devs)
+    {
+        if (dev.getSerialNumber() == "mock_phys_ser")
+        {
+            if (dev.getServerCapabilities().getCount())
+                ASSERT_EQ(dev.getConnectionString(), "daq://openDAQ_mock_phys_ser");
+            else
+                ASSERT_EQ(dev.getConnectionString(), "daqmock://phys_device");
+        }
     }
 }
 

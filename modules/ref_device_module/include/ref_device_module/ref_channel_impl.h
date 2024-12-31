@@ -80,6 +80,8 @@ private:
 
     DataDescriptorPtr valueDescriptor;
     DataDescriptorPtr timeDescriptor;
+    SignalConfigPtr valueSignal;
+    SignalConfigPtr timeSignal;
 
     WaveformType waveformType;
     double freq;
@@ -100,8 +102,6 @@ private:
     uint64_t samplesGenerated;
     std::default_random_engine re;
     std::normal_distribution<double> dist;
-    SignalConfigPtr valueSignal;
-    SignalConfigPtr timeSignal;
     bool fixedPacketSize;
     uint64_t packetSize;
     StringPtr referenceDomainId;

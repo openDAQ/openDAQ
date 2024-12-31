@@ -72,7 +72,7 @@ private:
 
     std::vector<std::shared_ptr<RefChannelImpl>> channels;
     //ChannelPtr protectedChannel;
-    //std::shared_ptr<RefCANChannelImpl> canChannel;
+    std::shared_ptr<RefCANChannelImpl> canChannel;
     
     UnitPtr domainUnit;
     FolderConfigPtr aiFolder;

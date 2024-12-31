@@ -169,23 +169,27 @@ void RefDeviceImpl::updateNumberOfChannels(size_t numberOfChannels)
     addMissingChannels(numberOfChannels);
 }
 
-void RefDeviceImpl::enableCANChannel(bool /*enableCANChannel*/)
+void RefDeviceImpl::enableCANChannel(bool enableCANChannel)
 {
-    //bool enableCANChannel = objPtr.getPropertyValue("EnableCANChannel");
+    if (!enableCANChannel)
+    {
+        if (canChannel)
+            removeComponent(canFolder, canChannel->getChannel());
+    
+        canChannel.reset();
+    }
+    else
+    {
+        ChannelParams params;
+        params.context = this->context;
+        params.localId = "CAN";
+        params.parent = canFolder;
+        params.type = FunctionBlockType("RefCANChannel", "Reference CAN Channel", "Simulates CAN data");
+        params.logName = "CANChannel";
 
-    //if (!enableCANChannel)
-    //{
-    //    if (canChannel.assigned() && hasChannel(canFolder, canChannel))
-    //        removeChannel(canFolder, canChannel);
-    //
-    //    canChannel.release();
-    //}
-    // else
-    //{
-    //    auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-    //    RefCANChannelInit init{microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
-    //    canChannel = createAndAddChannel<RefCANChannelImpl>(canFolder, "refcanch", init);
-    //}
+        RefCANChannelInit init{microSecondsFromEpochToDeviceStart};
+        canChannel = createAndAddChannel<RefCANChannelBase, RefCANChannelImpl>(params, init);
+    }
 }
 
 void RefDeviceImpl::enableProtectedChannel()
@@ -338,11 +342,8 @@ void RefDeviceImpl::onAcquisitionLoop()
     for (const auto& ch : channels)
         ch->collectSamples(curTime);
 
-    //if (canChannel.assigned())
-    //{
-    //    auto chPrivate = canChannel.asPtr<IRefChannel>();
-    //    chPrivate->collectSamples(curTime);
-    //}
+    if (canChannel)
+        canChannel->collectSamples(curTime);
 
     //if (protectedChannel.assigned())
     //{

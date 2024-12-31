@@ -10,9 +10,11 @@
 #include <opendaq/custom_log.h>
 #include <coreobjects/argument_info_factory.h>
 
-#define PI 3.141592653589793
+#include <algorithm>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
+
+#define PI 3.141592653589793
 
 RefChannelBase::RefChannelBase(const templates::ChannelParams& params, const RefChannelInit& init)
     : ChannelTemplateHooks(std::make_shared<RefChannelImpl>(init), params)
@@ -53,7 +55,6 @@ void RefChannelImpl::initProperties()
                           .setMinValue(0.1)
                           .setMaxValue(10000.0)
                           .build();
-
     const auto dcProp = FloatPropertyBuilder("DC", 0.0)
                         .setVisible(EvalValue("$Waveform < 3"))
                         .setUnit(Unit("V"))
@@ -129,7 +130,7 @@ void RefChannelImpl::initProperties()
 BaseObjectPtr RefChannelImpl::onPropertyWrite(const templates::PropertyEventArgs& args)
 {
     if (args.propertyName == "SampleRate" && args.value.assigned())
-        return this->coerceSampleRate(args.value);
+        return coerceSampleRate(args.value);
 
     if (args.isUpdating)
         return ChannelTemplate::onPropertyWrite(args);
@@ -167,9 +168,6 @@ void RefChannelImpl::onEndUpdate(const templates::UpdateEndArgs& args)
         else if (packetSizeProps.count(propName))
             changePacketSize = true;
     }
-
-    if (!(changeSignalType || changeWaveform || changePacketSize))
-        return;
     
     if (changeSignalType)
         signalTypeChanged();
@@ -206,33 +204,33 @@ void RefChannelImpl::updateSamplesGenerated()
 
 void RefChannelImpl::buildSignalDescriptors()
 {
-    const auto valueDescriptor = DataDescriptorBuilder()
-                                 .setSampleType(SampleType::Float64)
-                                 .setUnit(Unit("V", -1, "volts", "voltage"))
-                                 .setValueRange(customRange)
-                                 .setName("AI " + std::to_string(index + 1));
+    const auto valueDescriptorBuilder = DataDescriptorBuilder()
+                                        .setSampleType(SampleType::Float64)
+                                        .setUnit(Unit("V", -1, "volts", "voltage"))
+                                        .setValueRange(customRange)
+                                        .setName("AI " + std::to_string(index + 1));
 
     if (clientSideScaling)
     {
         const double scale = 20.0 / std::pow(2, 24);
         constexpr double offset = -10.0;
-        valueDescriptor.setPostScaling(LinearScaling(scale, offset, SampleType::Int32, ScaledSampleType::Float64));
+        valueDescriptorBuilder.setPostScaling(LinearScaling(scale, offset, SampleType::Int32, ScaledSampleType::Float64));
     }
 
     if (waveformType == WaveformType::ConstantValue)
-        valueDescriptor.setRule(ConstantDataRule());
+        valueDescriptorBuilder.setRule(ConstantDataRule());
 
     deltaT = getDeltaT(sampleRate);
-    const auto timeDescriptor = DataDescriptorBuilder()
-                                .setSampleType(SampleType::Int64)
-                                .setUnit(Unit("s", -1, "seconds", "time"))
-                                .setTickResolution(getResolution())
-                                .setRule(LinearDataRule(deltaT, 0))
-                                .setOrigin(getEpoch())
-                                .setName("Time AI " + std::to_string(index + 1));
-    
-    this->valueDescriptor = valueDescriptor.build();
-    this->timeDescriptor = timeDescriptor.build();
+    const auto timeDescriptorBuilder = DataDescriptorBuilder()
+                                       .setSampleType(SampleType::Int64)
+                                       .setUnit(Unit("s", -1, "seconds", "time"))
+                                       .setTickResolution(getResolution())
+                                       .setRule(LinearDataRule(deltaT, 0))
+                                       .setOrigin(getEpoch())
+                                       .setName("Time AI " + std::to_string(index + 1));
+
+    this->valueDescriptor = valueDescriptorBuilder.build();
+    this->timeDescriptor = timeDescriptorBuilder.build();
 }
 
 void RefChannelImpl::setSignalDescriptors() const
@@ -458,15 +456,13 @@ double RefChannelImpl::coerceSampleRate(const double wantedSampleRate)
 
     double roundedMultiplier = std::round(multiplier);
 
-    if (roundedMultiplier < 1.0)
-        roundedMultiplier = 1.0;
+    roundedMultiplier = std::max(roundedMultiplier, 1.0);
 
     const double roundedSamplePeriod = roundedMultiplier * tickPeriod;
 
     double roundedSampleRate = 1.0 / roundedSamplePeriod;
 
-    if (roundedSampleRate > 1000000)
-        roundedSampleRate = 1000000;
+    roundedSampleRate = std::min(roundedSampleRate, 1000000.0);
 
     return roundedSampleRate;
 }

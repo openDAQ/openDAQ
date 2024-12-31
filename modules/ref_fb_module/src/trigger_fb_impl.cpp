@@ -66,8 +66,6 @@ void TriggerFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inpu
 
 void TriggerFbImpl::configure()
 {
-    setComponentStatus(ComponentStatus::Ok);
-
     if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "Incomplete signal descriptors");
@@ -95,10 +93,12 @@ void TriggerFbImpl::configure()
 
         outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).build();
         outputDomainSignal.setDescriptor(outputDomainDataDescriptor);
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for trigger signal: {}", e.what()));
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Failed to set descriptor for trigger signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
 }

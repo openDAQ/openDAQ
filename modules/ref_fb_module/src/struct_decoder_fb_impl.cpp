@@ -48,8 +48,6 @@ void StructDecoderFbImpl::processSignalDescriptorsChangedEventPacket(const Event
 
 void StructDecoderFbImpl::configure()
 {
-    setComponentStatus(ComponentStatus::Ok);
-
     if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
     {
         configured = false;
@@ -105,6 +103,7 @@ void StructDecoderFbImpl::configure()
 
         configured = true;
         setInputStatus(InputConnected);
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {

@@ -1493,7 +1493,9 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
             auto manufacturer = deviceInfo.getManufacturer();
             auto serialNumber = deviceInfo.getSerialNumber();
-            if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
+            bool isRemote = deviceInfo.getServerCapabilities().getCount();
+
+            if (isRemote && manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
             {
                 serializer.key("manufacturer");
                 serializer.writeString(manufacturer);
@@ -1581,6 +1583,10 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
             for (const auto& availableDevice : onGetAvailableDevices())
             {
+                const auto capabilities = availableDevice.getServerCapabilities();
+                if (!capabilities.assigned() || !capabilities.getCount())
+                    continue;
+
                 Bool deviceFound = false;
                 availableDevice.getManufacturer()->equals(manufacturer, &deviceFound);
                 if (!deviceFound)

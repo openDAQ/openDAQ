@@ -1121,13 +1121,13 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
     // Incomplete descriptors - domain signal not assigned
     scalingFb.getInputPorts()[0].connect(signal);
     ASSERT_EQ(scalingFb.getStatusContainer().getStatus("ComponentStatus"),
-              Enumeration("ComponentStatusType", "Warning", instance.getContext().getTypeManager()));
+              Enumeration("ComponentStatusType", "Error", instance.getContext().getTypeManager()));
     ASSERT_EQ(scalingFb.getStatusContainer().getStatusMessage("ComponentStatus"),
               "Failed to set descriptor for output signal: No domain input");
 
     logger.flush();
     ASSERT_TRUE(privateSink.waitForMessage(100));
-    ASSERT_EQ(privateSink.getLastMessage(), "Component RefFBModuleScaling_1 status changed to Warning with message: Failed to set descriptor for output signal: No domain input");
+    ASSERT_EQ(privateSink.getLastMessage(), "Component RefFBModuleScaling_1 status changed to Error with message: Failed to set descriptor for output signal: No domain input");
 }
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceScalingPerformanceTest)

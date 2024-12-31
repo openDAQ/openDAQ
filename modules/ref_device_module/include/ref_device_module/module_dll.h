@@ -17,4 +17,4 @@
 #pragma once
 #include <opendaq/module_exports.h>
 
-DECLARE_MODULE_EXPORTS(RefDeviceModule)
+DECLARE_MODULE_EXPORTS(RefDeviceModuleBase)

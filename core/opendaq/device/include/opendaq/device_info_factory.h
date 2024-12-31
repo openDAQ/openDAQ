@@ -26,6 +26,14 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
+ * @brief Creates a DeviceInfoConfig with no configured parameters.
+ */
+inline DeviceInfoConfigPtr DeviceInfo()
+{
+    return DeviceInfoConfig_Create(String(""), String(""));
+}
+
+/*!
  * @brief Creates a DeviceInfoConfig with a connection string and optional name.
  * @param connectionString String used to connect to the device.
  * @param name The name of the device. Optional parameter.

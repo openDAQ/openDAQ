@@ -1164,10 +1164,6 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
                                 "before setComponentStatus.");
     }
 
-    // Check if status and message are the same as before, if so, return
-    if (status == oldStatus && message == oldMessage)
-        return;
-
     // Set status if initialized
     const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
     const auto componentStatusValue =

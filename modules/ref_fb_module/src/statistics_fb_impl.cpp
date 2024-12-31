@@ -58,7 +58,6 @@ DictPtr<IString, IFunctionBlockType> StatisticsFbImpl::onGetAvailableFunctionBlo
 
 FunctionBlockPtr StatisticsFbImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
 {
-    setComponentStatus(ComponentStatus::Ok);
     FunctionBlockPtr nestedFunctionBlock;
     {
         auto lock = this->getAcquisitionLock();
@@ -84,6 +83,9 @@ FunctionBlockPtr StatisticsFbImpl::onAddFunctionBlock(const StringPtr& typeId, c
     }
 
     triggerInput.connect(nestedFunctionBlock.getSignals()[0]);
+
+    setComponentStatus(ComponentStatus::Ok);
+
     return nestedFunctionBlock;
 }
 

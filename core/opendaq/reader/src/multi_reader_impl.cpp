@@ -664,6 +664,10 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
     for (const auto& signal : signals)
     {
         auto sigSamples = signal.getAvailable(acrossDescriptorChanges);
+
+        if (!signal.info.dataPacket.assigned())
+             sigSamples = 0;
+
         if (sigSamples < min)
         {
             min = sigSamples;

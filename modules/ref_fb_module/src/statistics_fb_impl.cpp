@@ -80,7 +80,7 @@ FunctionBlockPtr StatisticsFbImpl::onAddFunctionBlock(const StringPtr& typeId, c
             triggerConfig = PropertyObject();
             triggerConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", packetReadyNotification != PacketReadyNotification::SameThread));
         }
-        nestedFunctionBlock = createAndAddNestedFunctionBlock(typeId, "nfbt", triggerConfig);
+        nestedFunctionBlock = createAndAddNestedFunctionBlock(typeId, "NestedTriggerFunctionBlock", triggerConfig);
     }
 
     triggerInput.connect(nestedFunctionBlock.getSignals()[0]);

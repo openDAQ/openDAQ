@@ -696,7 +696,7 @@ void RendererFbImpl::updateSingleXAxis() {
             if (firstSignalDimension != curSignalDimension) 
             {
                 singleXAxis = false;
-                setComponentStatusWithMessage(ComponentStatus::Warning, "Renderer has multiple input signals with different dimension. Property singleXAxis has turned off");
+                setComponentStatusWithMessage(ComponentStatus::Warning, "Renderer has multiple input signals with different dimension. Property singleXAxis is turned off");
                 break;
             }
         }
@@ -887,7 +887,6 @@ void RendererFbImpl::prepareSingleXAxis()
             if (sigIt->hasTimeOrigin != hasTimeOrigin)
             {
                throw InvalidStateException("Time origin set on some signals, but not all of them");
-               return;
             }
 
             if (!hasTimeOrigin)
@@ -895,13 +894,11 @@ void RendererFbImpl::prepareSingleXAxis()
                if (domainUnit != sigIt->domainUnit)
                {
                    throw InvalidStateException("Domain unit not equal");
-                   return;
                }
 
                if (domainQuantity != sigIt->domainQuantity)
                {
                    throw InvalidStateException("Domain quantity not equal");
-                   return;
                }
             }
 

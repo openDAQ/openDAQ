@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("openDAQ d.o.o.")]
 [assembly: AssemblyProduct("RTGen")]
-[assembly: AssemblyCopyright("Copyright © 2024 openDAQ d.o.o.")]
+[assembly: AssemblyCopyright("Copyright © 2025 openDAQ d.o.o.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

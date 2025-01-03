@@ -2,13 +2,10 @@
 #include <ref_fb_module/dispatch.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
-
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
-
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
-
 #include "coreobjects/unit_factory.h"
 #include "opendaq/data_packet.h"
 #include "opendaq/data_packet_ptr.h"
@@ -18,7 +15,6 @@
 #include "opendaq/sample_type_traits.h"
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reusable_data_packet_ptr.h>
-#include <opendaq/component_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -28,7 +24,7 @@ namespace Scaling
 ScalingFbImpl::ScalingFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
-    initComponentErrorStateStatus();
+    initComponentStatus();
     createInputPorts();
     createSignals();
     initProperties();
@@ -114,19 +110,16 @@ void ScalingFbImpl::configure()
     {
         if (inputDomainDataDescriptor == NullDataDescriptor())
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "No domain input");
             throw std::runtime_error("No domain input");
         }
 
         if (inputDataDescriptor == NullDataDescriptor())
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "No value input");
             throw std::runtime_error("No value input");
         }
 
         if (inputDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Arrays not supported");
             throw std::runtime_error("Arrays not supported");
         }
 
@@ -142,7 +135,6 @@ void ScalingFbImpl::configure()
             inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
@@ -174,10 +166,12 @@ void ScalingFbImpl::configure()
         outputDataDescriptor = outputDataDescriptorBuilder.build();
         outputSignal.setDescriptor(outputDataDescriptor);
         outputDomainSignal.setDescriptor(inputDomainDataDescriptor);
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to set descriptor for output signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Failed to set descriptor for output signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
 }

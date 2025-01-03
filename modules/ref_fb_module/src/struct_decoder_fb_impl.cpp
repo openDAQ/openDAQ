@@ -24,7 +24,7 @@ StructDecoderFbImpl::StructDecoderFbImpl(const ContextPtr& ctx, const ComponentP
     : FunctionBlock(CreateType(), ctx, parent, localId)
     , configured(false)
 {
-    initComponentErrorStateStatus();
+    initComponentStatus();
     createInputPorts();
     initStatuses();
 }
@@ -59,14 +59,12 @@ void StructDecoderFbImpl::configure()
     {
         if (inputDataDescriptor.getDimensions().getCount() > 0)
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Arrays not supported");
             throw std::runtime_error("Arrays not supported");
         }
 
         const auto inputSampleType = inputDataDescriptor.getSampleType();
         if (inputSampleType != SampleType::Struct)
         {
-            setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Invalid sample type");
             throw std::runtime_error("Invalid sample type");
         }
 
@@ -94,7 +92,6 @@ void StructDecoderFbImpl::configure()
             const auto fieldSampleType = field.getSampleType();
             if (std::find(validFieldTypes.begin(), validFieldTypes.end(), fieldSampleType) == validFieldTypes.end())
             {
-                setComponentErrorStateStatusWithMessage(ComponentErrorState::Error, "Field has invalid sample type");
                 throw std::runtime_error(fmt::format("Field \"{}\" has invalid sample type", field.getName()));
             }
 
@@ -106,13 +103,13 @@ void StructDecoderFbImpl::configure()
 
         configured = true;
         setInputStatus(InputConnected);
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
         configured = false;
         setInputStatus(InputInvalid);
-        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Failed to configure output signals");
-        LOG_W("Failed to configure output signals: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Failed to configure output signals: {}", e.what()));
         signals.clear();
     }
 }
@@ -261,15 +258,13 @@ void StructDecoderFbImpl::initStatuses() const
     }
     catch (const std::exception& e)
     {
-        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Couldn't add type to type manager");
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
-        LOG_W("Couldn't add type {} to type manager: {}", inputStatusType.getName(), e.what());
+        setComponentStatusWithMessage(ComponentStatus::Warning,
+                                      fmt::format("Couldn't add type {} to type manager: {}", inputStatusType.getName(), e.what()));
     }
     catch (...)
     {
-        setComponentErrorStateStatusWithMessage(ComponentErrorState::Warning, "Couldn't add type to type manager");
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
-        LOG_W("Couldn't add type {} to type manager!", inputStatusType.getName());
+        setComponentStatusWithMessage(ComponentStatus::Warning,
+                                      fmt::format("Couldn't add type {} to type manager!", inputStatusType.getName()));
     }
 
     const auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();

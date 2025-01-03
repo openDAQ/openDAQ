@@ -1,4 +1,4 @@
-# 12.04.2024
+# 2024-04-12
 
 ## Description
 - Implement BlockReaderStatus
@@ -7,7 +7,7 @@
 + [function] IBlockReaderStatus::getReadSamples(SizeT* readSamples)
 + [factory] BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
 ```
-# 29.03.2024
+# 2024-03-29
 
 ## Description
 - Grouping discovered deivces with IServerCapability
@@ -61,7 +61,7 @@
 +m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IServerCapability* capability)
 ```
 
-# 26.03.2024
+# 2024-03-26
 
 ## Description
 - Implement multi reader builder
@@ -87,7 +87,7 @@
 
 + [factory] MultiReaderPtr MultiReaderFromBuilder(const MultiReaderBuilderPtr& builder)
 ```
-# 26.03.2024:
+# 2024-03-26
 
 ## Description
 - Fix outdated data descriptor before subscription
@@ -107,7 +107,7 @@
 + [function] ErrCode IMirroredSignalPrivate::getMirroredDomainSignal(IMirroredSignalConfig** domainSignals)
 + [function] ErrCode IMirroredSignalPrivate::setMirroredDomainSignal(IMirroredSignalConfig* domainSignal)
 ```
-# 25.04.2024
+# 2024-04-25
 
 ## Description
 - Constant rule rework in openDAQ core and support for native streaming
@@ -118,7 +118,19 @@
 -m [factory] DataPacketPtr DataPacketWithExternalMemory(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, void* data, const DeleterPtr& deleter, NumberPtr offset = nullptr)
 +m [factory] DataPacketPtr DataPacketWithExternalMemory(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, void* data, const DeleterPtr& deleter, NumberPtr offset = nullptr, SizeT bufferSize = std::numeric_limits<SizeT>::max())
 ```
-# 21.03.2024
+
+# 2024-03-22
+
+## Description
+- Add support for multiple module search paths in ModuleManager
+```
++ [factory] ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths)
+
++ [function] IInstanceBuilder::addModulePath(IString* path)
++ [function] IInstanceBuilder::getModulePathsList(IList** paths)
+```
+
+# 2024-03-21
 
 ## Description
 - Move create fb/device logic to module manager
@@ -133,7 +145,7 @@
 -m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr)
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr, const ComponentPtr& parent = nullptr)
 ```
-# 11.03.2024
+# 2024-03-11
 
 ## Description
 - Make DeviceDomain a standalone object in DeviceImpl
@@ -146,13 +158,13 @@
 + [function] IDevice::getTicksSinceOrigin(UInt* ticks)
 + [factory] CoreEventArgsPtr CoreEventArgsDeviceDomainChanged(const DeviceDomainPtr& deviceDomain)
 ```
-# 11.03.2024
+# 2024-03-11
 
 ## Description
 - Update native transport protocol - initiate streaming only upon client request;
 - New protocol message type added: PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST = 11
 
-# 08.03.2024
+# 2024-03-08
 
 ## Description
 - Propagate server IUpdatable::Update to native protocol clients
@@ -162,14 +174,14 @@
 + [function] ISerializedObject::isRoot(Bool* isRoot)
 + [function] IUpdatable::updateEnded()
 ```
-# 26.02.2024
+# 2024-02-26
 
 ## Description
 - Integrating config provider options in modules
 ```
 + [function] IModule::getId(IString** id)
 ```
-# 26.02.2024
+# 2024-02-26
 
 ## Description
 - Streaming framework refactoring
@@ -188,7 +200,7 @@
 
 + [function] IStreamingPrivate::detachRemovedSignal(const StringPtr& signalRemoteId);
 ```
-# 25.02.2024
+# 2024-02-25
 
 ## Description
 - Readers return IReaderStatus
@@ -237,7 +249,7 @@
 - [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SampleType valueReadType, SampleType domainReadType)
 + [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)
 ```
-# 25.02.2024
+# 2024-02-25
 
 ## Description
 - rename search filter search::SearchId to search::InterfaceId
@@ -247,14 +259,14 @@
 +m [factory] SearchFilterPtr InterfaceId(const IntfID& intfId)
 + [factory] SearchFilterPtr LocalId(const StringPtr& localId)
 ```
-# 12.02.2024
+# 2024-02-12
 
 ## Description
 - Add module implementations for device based on the native config protocol
 ```
 + [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);
 ```
-# 06.02.2024
+# 2024-02-06
 
 ## Description
 - Support configuring instance builder from config provider
@@ -272,7 +284,7 @@
 + [factory] ConfigProviderPtr EnvConfigProvider()
 + [factory] ConfigProviderPtr CmdLineArgsConfigProvider(const ListPtr<IString>& args)
 ```
-# 05.02.2024
+# 2024-02-05
 
 ## Description
 - Add core event support to config client
@@ -281,7 +293,7 @@
 +m [function] IComponent::findComponent(IString* id, IComponent** outComponent)
 + [function] ITags::set(IList* tags) = 0;
 ```
-# 5.2.2024
+# 2024-02-05
 
 ## Description
 - Add Component status implementations
@@ -301,7 +313,7 @@
 + [function] IComponentStatusContainer::getOnStatusChanged(IEvent** event)
 + [factory] ComponentStatusContainerPtr ComponentStatusContainer()
 ```
-# 23.01.2024
+# 2024-01-23
 
 ## Description
 - Add debug logger sink for testing purpose
@@ -311,11 +323,11 @@
 + [function] ILastMessageLoggerSinkPrivate::waitForMessage(SizeT timeoutMs, Bool* success)
 + [factory] LoggerSinkPtr LastMessageLoggerSink()
 ```
-# 1.2.2024
+# 2024-02-01
 ```
 +m [function] IMultiReader::skipSamples
 ```
-# 23.1.2024
+# 2024-01-23
 
 ## Description
 - Change ITagsConfig to ITagsPrivate and remove inheritance
@@ -330,7 +342,7 @@
 -m [function] IComponent::getTags(ITagsConfig** tags)
 -m [function] IComponent::getTags(ITags** tags)
 ```
-# 22.1.2024
+# 2024-01-22
 
 ## Description
 - Support for external deserialization factory
@@ -349,7 +361,7 @@
 +  [interface] IComponentDeserializeContext: public IBaseObject
 +  [interface] IDeserializeComponent: public IBaseObject
 ```
-# 16.01.2024
+# 2024-01-16
 
 ## Description
 - Nested object-type property enhancement
@@ -368,7 +380,7 @@
 -m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName)
 +m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName, const StringPtr& path)
 ```
-# 12.01.2024
+# 2024-01-12
 
 ## Description
 - Search filters, visible flag, component attributes
@@ -446,7 +458,7 @@
 -m [factory] CoreEventArgsPtr CoreEventArgsComponentModified(const DictPtr<IString, IBaseObject>& modifiedAttributes)
 +m [factory] CoreEventArgsPtr CoreEventArgsAttributeChanged(const StringPtr& attributeName, const BaseObjectPtr& attributeValue)
 ```
-# 11.01.2024
+# 2024-01-11
 
 ## Description
 - Add Enumeration Core type implementations
@@ -464,7 +476,7 @@
 + [function] IEnumeration::getValue(IString** value)
 + [factory] EnumerationPtr Enumeration(const StringPtr& typeName, const StringPtr& value, const TypeManagerPtr& typeManager)
 ```
-# 03.01.2024
+# 2024-01-03
 
 ## Description
 - Add method getLastValue in ISignal
@@ -472,7 +484,7 @@
 + [function] ISignal::getLastValue(IBaseObject** value)
 + [function] ISignalPrivate::enableKeepLastValue(Bool enabled)
 ```
-# 18.12.2023
+# 2023-12-18
 
 ## Description
 - Builder pattern implementation for IInstance
@@ -505,7 +517,7 @@
 -m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
 ```
-# 13.12.2023
+# 2023-12-13
 
 ## Description
 - Add Core event to Context object that triggers on core changes
@@ -522,7 +534,7 @@
 
 + [function] IContext::getOnCoreEvent(IEvent** event)
 ```
-# 7.12.2023
+# 2023-12-07
 
 ## Description
 - Add Struct Builder for generic struct creation
@@ -541,7 +553,7 @@
 + [factory] StructBuilderPtr StructBuilder(const StringPtr& name, const TypeManagerPtr& typeManager)
 + [factory] StructBuilderPtr StructBuilder(const StructPtr& struct_)
 ```
-# 7.12.2023
+# 2023-12-07
 
 ## Description
 - Add subscribe/unsubscribe completion acknowledgement Events
@@ -558,7 +570,7 @@
 
 + [factory] SubscriptionEventArgsPtr SubscriptionEventArgs(const StringPtr& streamingConnectionString, SubscriptionEventType eventType)
 ```
-# 5.12.2023
+# 2023-12-05
 
 ## Description
 - Expose Origin Epoch and StartOffset the MultiReader aligned all the read signals to
@@ -568,8 +580,7 @@
 + [function] IMultiReader::getOrigin(IString** origin)
 + [function] IMultiReader::getOffset(void* domainStart)
 ```
-# 28.11.2023
-
+# 2023-11-28
 
 ## Description
 - Builder pattern improvement
@@ -643,7 +654,7 @@
 + [function] IScalingBuilder::getParameters(IDict** parameters)
 + [factory] ScalingPtr ScalingFromBuilder(const ScalingBuilderPtr& builder)
 ```
-# 23.11.2023
+# 2023-11-23
 
 
 ## Description
@@ -667,7 +678,7 @@
 -m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 +m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
 ```
-# 17.11.2023
+# 2023-11-17
 
 
 ## Description
@@ -709,14 +720,4 @@
 + [function] ISignal::getStreamed(Bool* streamed)
 + [function] ISignal::setStreamed(Bool streamed)
 ```
-# 22.03.2024
 
-
-## Description
-- Add support for multiple module search paths in ModuleManager
-```
-+ [factory] ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths)
-
-+ [function] IInstanceBuilder::addModulePath(IString* path)
-+ [function] IInstanceBuilder::getModulePathsList(IList** paths)
-```

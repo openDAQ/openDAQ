@@ -186,6 +186,25 @@ void RendererFbImpl::readResolutionProperty()
     LOG_T("Properties: Resolution {}", resolution)
 }
 
+void RendererFbImpl::logAndSetFutureComponentStatus(ComponentStatus status, StringPtr message)
+{
+    if (status == ComponentStatus::Warning)
+    {
+        LOG_W("{}", message)
+    }
+    else if (status == ComponentStatus::Error)
+    {
+        LOG_E("{}", message)
+    }
+    else
+    {
+        LOG_I("{}", message)
+    }
+
+    futureComponentStatus = status;
+    futureComponentMessage = message;
+}
+
 void RendererFbImpl::updateInputPorts()
 {
     for (auto it = signalContexts.begin(); it != signalContexts.end();)
@@ -696,7 +715,7 @@ void RendererFbImpl::updateSingleXAxis() {
             if (firstSignalDimension != curSignalDimension) 
             {
                 singleXAxis = false;
-                setComponentStatusWithMessage(ComponentStatus::Warning, "Renderer has multiple input signals with different dimension. Property singleXAxis is turned off");
+                logAndSetFutureComponentStatus(ComponentStatus::Warning, "Renderer has multiple input signals with different dimension. Property singleXAxis is turned off");
                 break;
             }
         }
@@ -725,8 +744,6 @@ void RendererFbImpl::renderLoop()
     auto waitTime = defaultWaitTime;
     while (!stopRender && window.isOpen())
     {
-        setComponentStatus(ComponentStatus::Ok);
-
         cv.wait_for(lock, waitTime);
         auto t1 = std::chrono::steady_clock::now();
         if (!stopRender && window.isOpen())
@@ -756,6 +773,10 @@ void RendererFbImpl::renderLoop()
             renderSignals(window, font);
 
             window.display();
+
+            setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
+            futureComponentStatus = ComponentStatus::Ok;
+            futureComponentMessage = "";
         }
         auto t2 = std::chrono::steady_clock::now();
 
@@ -925,7 +946,7 @@ void RendererFbImpl::prepareSingleXAxis()
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Unable to configure single X axis: {}", e.what()));
+        logAndSetFutureComponentStatus(ComponentStatus::Error, fmt::format("Unable to configure single X axis: {}", e.what()));
     }
 }
 
@@ -1347,14 +1368,14 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
             }
             catch (...)
             {
-                setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Invalid origin, ignored: {}", origin));
+                logAndSetFutureComponentStatus(ComponentStatus::Warning, fmt::format("Invalid origin, ignored: {}", origin));
             }
         }
 
         const auto dataDescriptor = signalContext.inputDataSignalDescriptor;
         if (dataDescriptor.getDimensions().getCount() > 1)  // matrix not supported on the input
         {
-            setComponentStatusWithMessage(ComponentStatus::Warning, "Matrix signals not supported");
+            logAndSetFutureComponentStatus(ComponentStatus::Warning, "Matrix signals not supported");
             return;
         }
         signalContext.sampleType = dataDescriptor.getSampleType();
@@ -1377,7 +1398,7 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Signal descriptor changed error: {}", e.what()));
+        logAndSetFutureComponentStatus(ComponentStatus::Error, fmt::format("Signal descriptor changed error: {}", e.what()));
     }
 }
 

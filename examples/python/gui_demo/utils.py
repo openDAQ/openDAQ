@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+from datetime import datetime, timedelta
 
 import opendaq as daq
 
@@ -142,12 +143,30 @@ def load_and_resize_image(filename, x_subsample=10, y_subsample=10):
     image = tk.PhotoImage(file=filename)
     return image.subsample(x_subsample, y_subsample)
 
+def signal_time_domain_check(sig):
+    desc = sig.descriptor
+    if desc is not None and desc.tick_resolution is not None:
+        unit = desc.unit
+        if (unit is not None and unit.quantity.casefold() == "time".casefold()) and (unit.symbol.casefold() == "s".casefold()):
+            if len(desc.origin) != 0:
+                return desc.origin
+        
+    return None;
 
 def get_last_value_for_signal(output_signal):
     last_value = 'N/A'
     if output_signal is not None and daq.ISignal.can_cast_from(output_signal):
         try:
-            last_value = daq.ISignal.cast_from(output_signal).last_value
+            sig = daq.ISignal.cast_from(output_signal)
+            last_value = sig.last_value
+            origin_str = signal_time_domain_check(sig)
+            if origin_str is not None:
+                origin = datetime.fromisoformat(origin_str)
+                if last_value is not None:
+                    desc = sig.descriptor
+                    last_value_in_seconds = int(last_value) * desc.tick_resolution.numerator / desc.tick_resolution.denominator
+                    last_value = origin + timedelta(seconds=last_value_in_seconds)
+            
         except RuntimeError as e:
             print(f'Error reading last value: {e}')
     return last_value

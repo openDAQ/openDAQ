@@ -108,22 +108,29 @@ void ClassifierFbImpl::readProperties()
     else if (customClassList.empty())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "Classifier property CustomClassList is empty");
-        return;
     }
     else
     {
         Float lastValue = customClassList[0];
+        bool warning = false;
         for (const auto& el : customClassList)
         {
             if (static_cast<Float>(el) < lastValue)
             {
-                setComponentStatusWithMessage(ComponentStatus::Warning, "Classifier property CustomClassList is not incremental");
+                warning = true;
                 break;
             }
             lastValue = el;
         }
+        if (warning)
+        {
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Classifier property CustomClassList is not incremental");
+        }
+        else
+        {
+            setComponentStatus(ComponentStatus::Ok);
+        }
     }
-    setComponentStatus(ComponentStatus::Ok);
 }
 
 FunctionBlockTypePtr ClassifierFbImpl::CreateType()

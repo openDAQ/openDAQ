@@ -352,9 +352,9 @@ TEST_F(TriggerTest, TriggerTestErrorStateStatus)
     // Set new status via ...
     auto signal = Signal(context, nullptr, "ID");
     fb.getInputPorts()[0].connect(signal);
-    // Assert that now status is now "Warning"
+    // Assert that now status is now "Error"
     ASSERT_EQ(comp.getStatusContainer().getStatus("ComponentStatus"),
-              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
+              Enumeration("ComponentStatusType", "Error", context.getTypeManager()));
     // Assert that message is "Failed to set descriptor for trigger signal!"
     ASSERT_EQ(comp.getStatusContainer().getStatusMessage("ComponentStatus"), "Failed to set descriptor for trigger signal: Invalid sample type");
 }

@@ -180,9 +180,9 @@ protected:
 
     // Initialize component status with "Ok" status
     void initComponentStatus() const;
-    // Set component status with default message (empty string) and log status and message (if different from previous)
+    // Set component status with default message (empty string) and log status and message (if different from previous, and not OK)
     void setComponentStatus(const ComponentStatus& status) const;
-    // Set component status with message and log status and message (if different from previous)
+    // Set component status with message and log status and message (if different from previous, and not OK and empty string)
     void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
 
 private:
@@ -1163,6 +1163,10 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
         throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called "
                                 "before setComponentStatus.");
     }
+
+    // Check if status and message are the same as before, and also Ok and empty string, and if so, return
+    if (status == oldStatus && status == ComponentStatus::Ok && message == oldMessage && message == "")
+        return;
 
     // Set status if initialized
     const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);

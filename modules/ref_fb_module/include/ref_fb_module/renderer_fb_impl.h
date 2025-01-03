@@ -168,6 +168,11 @@ private:
 
     sf::Color axisColor;
 
+    ComponentStatus futureComponentStatus;
+    StringPtr futureComponentMessage;
+
+    void logAndSetFutureComponentStatus(ComponentStatus status, StringPtr message);
+
     void updateInputPorts();
     void renderSignals(sf::RenderTarget& renderTarget, const sf::Font& font);
     static sf::Color getColor(const SignalContext& signalContext);

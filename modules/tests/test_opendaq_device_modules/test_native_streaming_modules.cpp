@@ -241,7 +241,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 4u);
+    ASSERT_EQ(clientSignals.getCount(), 5u);
 
     ASSERT_EQ(clientSignals[0].getDomainSignal(), clientSignals[1]);
     ASSERT_TRUE(!clientSignals[1].getDomainSignal().assigned());
@@ -572,10 +572,15 @@ TEST_F(NativeStreamingModulesTest, AddSignals)
 
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 6u);
+    ASSERT_EQ(clientSignals.getCount(), 7u);
 
-    ASSERT_EQ(clientSignals[4].getDomainSignal(), clientSignals[5]);
-    ASSERT_TRUE(!clientSignals[5].getDomainSignal().assigned());
+    ASSERT_EQ(clientSignals[5].getDomainSignal(), clientSignals[6]);
+    ASSERT_TRUE(!clientSignals[6].getDomainSignal().assigned());
+
+    ASSERT_EQ(serverSignals[6].getDescriptor(), clientSignals[4].getDescriptor());
+
+    removeDeviceDomainSignal(serverSignals);
+    removeDeviceDomainSignal(clientSignals);
 
     for (size_t i = 0; i < clientSignals.getCount(); ++i)
     {
@@ -634,7 +639,7 @@ TEST_F(NativeStreamingModulesTest, RemoveSignals)
     ASSERT_TRUE(clientSignals[3].isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 2u);
+    ASSERT_EQ(clientSignals.getCount(), 3u);
 }
 
 TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
@@ -668,7 +673,7 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
 
     auto server = CreateServerInstance(authenticationProvider);
     auto serverSignals = server.getSignalsRecursive(search::Any());
-    ASSERT_EQ(serverSignals.getCount(), 4u);
+    ASSERT_EQ(serverSignals.getCount(), 5u);
 
     serverSignals[0].getPermissionManager().setPermissions(permissions);
     serverSignals[1].getPermissionManager().setPermissions(permissions);
@@ -676,13 +681,13 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
     {
         auto client = CreateClientInstance("admin", "admin");
         auto clientSignals = client.getSignalsRecursive(search::Any());
-        ASSERT_EQ(clientSignals.getCount(), 4u);
+        ASSERT_EQ(clientSignals.getCount(), 5u);
     }
 
     {
         auto client = CreateClientInstance("opendaq", "opendaq");
         auto clientSignals = client.getSignalsRecursive(search::Any());
-        ASSERT_EQ(clientSignals.getCount(), 2u);
+        ASSERT_EQ(clientSignals.getCount(), 3u);
         ASSERT_EQ(clientSignals[0].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1");
         ASSERT_EQ(clientSignals[1].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1Time");
     }

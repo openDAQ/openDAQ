@@ -206,8 +206,7 @@ void StatisticsFbImpl::configure()
 
     const auto outputRmsDataDescriptor = DataDescriptorBuilderCopy(inputValueDataDescriptor)
                                              .setName(static_cast<std::string>(inputValueDataDescriptor.getName() + "/Rms"))
-                                             .setPostScaling(nullptr)
-                                             .setValueRange(Range(0, inputValueDataDescriptor.getValueRange().getHighValue()));
+                                             .setPostScaling(nullptr);
     this->outputRmsDataDescriptor = outputRmsDataDescriptor.build();
 
     rmsSignal.setDescriptor(this->outputRmsDataDescriptor);

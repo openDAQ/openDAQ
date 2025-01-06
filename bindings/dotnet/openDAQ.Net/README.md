@@ -199,4 +199,4 @@ patterns allowed as displayed).
 - The pattern `x\**` means that all subdirectories and files behind `x` will be searched
   and excluded.  
 
-_<sub>Last changed on 2024-10-22 &copy; 2024 by openDAQ d.o.o.</sub>_
+_<sub>Last changed on 2024-10-22 &copy; 2025 by openDAQ d.o.o.</sub>_

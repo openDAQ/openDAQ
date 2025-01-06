@@ -23,7 +23,7 @@
     <Authors>openDAQ</Authors>
     <Description>.Net bindings Demo to the openDAQ SDK (open data acquisition software development kit)</Description>
     <Company>openDAQ d.o.o., Slovenia</Company>
-    <Copyright>2024 by openDAQ d.o.o.</Copyright>
+    <Copyright>2025 by openDAQ d.o.o.</Copyright>
     <!--<Version>2.0.0.12</Version>-->
     <VersionPrefix>$(OPENDAQ_PACKAGE_VERSION)</VersionPrefix>
     <!-- the <VersionSuffix> is normally set externally but we use a PowerShell environment variable $ENV:SHORT_SHA (when set) -->

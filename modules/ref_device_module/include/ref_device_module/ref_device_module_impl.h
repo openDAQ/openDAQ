@@ -16,26 +16,31 @@
 
 #pragma once
 #include <ref_device_module/common.h>
-#include <opendaq/module_impl.h>
+#include <opendaq_module_template/module_template.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-class RefDeviceModule final : public Module
+class RefDeviceModuleBase final : public templates::ModuleTemplateHooks
 {
 public:
-    explicit RefDeviceModule(ContextPtr context);
+    RefDeviceModuleBase(const ContextPtr& context);
+};
 
-    ListPtr<IDeviceInfo> onGetAvailableDevices() override;
-    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
-    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
+class RefDeviceModule final : public templates::ModuleTemplate
+{
+public:
+    explicit RefDeviceModule(const ContextPtr& context);
+
+protected:
+    templates::ModuleParams buildModuleParams() override;
+    std::vector<templates::DeviceTypeParams> getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options) override;
+    std::vector<templates::DeviceInfoParams> getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options) override;
+    DevicePtr createDevice(const templates::DeviceParams& params) override;
 
 private:
-    std::vector<WeakRefPtr<IDevice>> devices;
-    std::mutex sync;
+    static PropertyObjectPtr createDefaultConfig();
+    static DictPtr<IString, IBaseObject> createDefaultModuleOptions();
     size_t maxNumberOfDevices;
-
-    size_t getIdFromConnectionString(const std::string& connectionString) const;
-    void clearRemovedDevices();
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

@@ -1,0 +1,63 @@
+#pragma once
+#include <opendaq/function_block_impl.h>
+#include <opendaq_module_template/component_template_base.h>
+#include <opendaq_module_template/hooks_template_base.h>
+
+BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
+
+class FunctionBlockTemplateHooks;
+
+class FunctionBlockTemplate : public ComponentTemplateBase<FunctionBlockTemplateHooks>,
+                              public AddableComponentTemplateBase,
+                              public FunctionBlockTemplateBase
+{
+public:
+
+    FunctionBlockPtr getFunctionBlock() const;
+
+private:
+
+    friend class FunctionBlockTemplateHooks;
+};
+
+class FunctionBlockTemplateHooks
+    : public TemplateHooksBase<FunctionBlockTemplate>,
+      public FunctionBlockParamsValidation,
+      public FunctionBlock
+{
+public:
+
+    FunctionBlockTemplateHooks(const std::shared_ptr<FunctionBlockTemplate>& functionBlock, const FunctionBlockParams& params, const StringPtr& className = "")
+        : TemplateHooksBase(functionBlock)
+        , FunctionBlockParamsValidation(params)
+        , FunctionBlock(params.type, params.context, params.parent.getRef(), params.localId, className)
+    {
+        this->templateImpl->componentImpl = this;
+        this->templateImpl->objPtr = this->thisPtr<PropertyObjectPtr>();
+        this->templateImpl->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);
+        this->templateImpl->context = this->context;
+
+        auto lock = this->getAcquisitionLock();
+        registerCallbacks(objPtr);
+
+        this->templateImpl->initProperties();
+        this->templateImpl->applyConfig(params.config);
+        this->templateImpl->initSignals(signals);
+        this->templateImpl->initFunctionBlocks(functionBlocks);
+        this->templateImpl->initInputPorts(inputPorts);
+              
+        this->templateImpl->initTags(tags);
+        this->templateImpl->initStatuses(statusContainer);
+
+        this->templateImpl->start();
+    }   
+
+private:
+    
+    void removed() override;
+
+    friend class FunctionBlockTemplate;
+    friend class ComponentTemplateBase<FunctionBlockTemplateHooks>;
+};
+
+END_NAMESPACE_OPENDAQ_TEMPLATES

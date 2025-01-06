@@ -3,7 +3,8 @@
 #include <opendaq/module_ptr.h>
 #include <opendaq/opendaq.h>
 #include <ref_fb_module/module_dll.h>
-#include "testutils/memcheck_listener.h"
+#include <testutils/memcheck_listener.h>
+
 using namespace daq;
 
 template <typename T>
@@ -962,4 +963,91 @@ TEST_F(StatisticsTest, StatisticsTestOverlapWithTrigger)
                                        mockTriggerPackets,
                                        mockTriggerDomainPackets);
     helper.run();
+}
+
+TEST_F(StatisticsTest, StatisticsExceptions)
+{
+    // Create module
+    ModulePtr module;
+    const auto logger = Logger();
+    auto moduleManager = ModuleManager("[[none]]");
+    auto context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, nullptr);
+    createModule(&module, context);
+    moduleManager.addModule(module);
+    moduleManager = context.asPtr<IContextInternal>().moveModuleManager();
+
+    // Crate config
+    PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("RefFBModuleStatistics").createDefaultConfig();
+    config.setPropertyValue("UseMultiThreadedScheduler", false);
+
+    // Create function block
+    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "fb", config);
+
+    // EVERYTHING OK
+
+    // ComponentStatus is Ok
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+
+    // FIRST WARNING
+
+    // Trigger configure
+    fb.setPropertyValue("BlockSize", 20);
+
+    // Incomplete input signal descriptors
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Incomplete input signal descriptors");
+
+    // SECOND WARNING
+
+    // Create signal with descriptor
+    auto signalDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(ExplicitDataRule()).build();
+    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "signal");
+
+    // Trigger configure
+    fb.getInputPorts()[0].connect(signal);
+
+    // Incomplete input signal descriptors
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Incompatible domain data sample type Null");
+
+    // THIRD WARNING
+
+    // Create domain signal with descriptor
+    auto domainSignalNonLinearDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(ConstantDataRule()).build();
+    auto domainSignalNonLinear = SignalWithDescriptor(context, domainSignalNonLinearDescriptor, nullptr, "signal");
+
+    // Set domain signal
+    signal.setDomainSignal(domainSignalNonLinear);
+
+    // Trigger configure
+    fb.getInputPorts()[0].connect(signal);
+
+    // Incomplete input signal descriptors
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Domain rule type is not Linear");
+
+    // FINALLY, SUCCESSFUL CONFIGURATION
+
+    // Create domain signal with descriptor
+    auto domainSignalLinearDescriptor = DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(LinearDataRule(1, 3)).build();
+    auto domainSignal = SignalWithDescriptor(context, domainSignalLinearDescriptor, nullptr, "signal");
+
+    // Set domain signal
+    signal.setDomainSignal(domainSignal);
+
+    // Trigger configure
+    fb.getInputPorts()[0].connect(signal);
+
+    // Incomplete input signal descriptors
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
+
+
 }

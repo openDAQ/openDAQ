@@ -1556,6 +1556,14 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
     fs::recursive_directory_iterator dirIterator(searchFolder);
 
+    [[maybe_unused]]
+    Finally onExit([workingDir = fs::current_path()]
+    {
+        fs::current_path(workingDir);
+    });
+
+    fs::current_path(searchFolder);
+
     const auto endIter = fs::recursive_directory_iterator();
     while (dirIterator != endIter)
     {

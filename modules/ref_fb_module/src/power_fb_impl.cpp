@@ -2,20 +2,17 @@
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
-
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
-
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
-
-#include "coreobjects/unit_factory.h"
-#include "opendaq/data_packet.h"
-#include "opendaq/data_packet_ptr.h"
-#include "opendaq/event_packet_ids.h"
-#include "opendaq/packet_factory.h"
-#include "opendaq/range_factory.h"
-#include "opendaq/sample_type_traits.h"
+#include <coreobjects/unit_factory.h>
+#include <opendaq/data_packet.h>
+#include <opendaq/data_packet_ptr.h>
+#include <opendaq/event_packet_ids.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/range_factory.h>
+#include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE

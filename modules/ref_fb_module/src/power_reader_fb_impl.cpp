@@ -233,13 +233,14 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
 
         powerSignal.setDescriptor(powerDataDescriptor);
         powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
         reader.setActive(False);
     }
-    setComponentStatus(ComponentStatus::Ok);
 }
 
 void PowerReaderFbImpl::createInputPorts()

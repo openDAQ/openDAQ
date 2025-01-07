@@ -615,13 +615,13 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetIntProperty
 template <typename TInterface, typename... Interfaces>
 StringPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getStringProperty(const StringPtr& name)
 {
-    return objPtr.getPropertyValue(name).template asPtr<IString>();
+    return this->objPtr.getPropertyValue(name).template asPtr<IString>();
 }
 
 template <typename TInterface, typename ... Interfaces>
 Int DeviceInfoConfigImpl<TInterface, Interfaces...>::getIntProperty(const StringPtr& name)
 {
-    return objPtr.getPropertyValue(name).template asPtr<IInteger>();
+    return this->objPtr.getPropertyValue(name).template asPtr<IInteger>();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -831,7 +831,7 @@ void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMetod(cons
 {
     try
     {
-        const ComponentPtr parent = owner.assigned() ? owner.getRef() : nullptr;
+        const ComponentPtr parent = this->owner.assigned() ? this->owner.getRef() : nullptr;
         if (parent.assigned())
             this->coreEvent(parent, args);
     }

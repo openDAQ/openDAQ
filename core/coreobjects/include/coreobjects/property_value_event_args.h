@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,15 +38,16 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyValueEventArgs, IEventArgs)
     virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value) = 0;
     virtual ErrCode INTERFACE_FUNC getPropertyEventType(PropertyEventType* changeType) = 0;
     virtual ErrCode INTERFACE_FUNC getIsUpdating(Bool* isUpdating) = 0;
+    virtual ErrCode INTERFACE_FUNC getOldValue(IBaseObject** value) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, PropertyValueEventArgs,
     IProperty*, prop,
     IBaseObject*, value,
+    IBaseObject*, oldValue,
     PropertyEventType, type,
-    Bool,
-    isUpdating
+    Bool, isUpdating
 )
 
 END_NAMESPACE_OPENDAQ

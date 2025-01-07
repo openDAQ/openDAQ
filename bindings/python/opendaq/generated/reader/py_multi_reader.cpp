@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_opendaq/py_typed_reader.h"
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IMultiReader, daq::ISampleReader> declareIMultiReader(pybind11::module_ m)
 {
@@ -28,11 +29,11 @@ void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::I
 {
     cls.doc() = "Reads multiple Signals at once.";
 
-    m.def("MultiReader", [](daq::IList* signals, daq::SampleType valueReadType, daq::SampleType domainReadType, daq::ReadMode mode, daq::ReadTimeoutType timeoutType) {
+    m.def("MultiReader", [](std::variant<daq::IList*, py::list>& signals, daq::SampleType valueReadType, daq::SampleType domainReadType, daq::ReadMode mode, daq::ReadTimeoutType timeoutType) {
         PyTypedReader::checkTypes(valueReadType, domainReadType);
         if(domainReadType == daq::SampleType::Undefined)
             throw daq::InvalidParameterException("Domain type cannot be undefined.");
-        return daq::MultiReader_Create(signals, valueReadType, domainReadType, mode, timeoutType);
+        return daq::MultiReader_Create(getVariantValue<daq::IList*>(signals), valueReadType, domainReadType, mode, timeoutType);
     },
     py::arg("signals"), 
     py::arg("value_type") = daq::SampleType::Float64, 

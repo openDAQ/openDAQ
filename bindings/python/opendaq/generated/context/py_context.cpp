@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,17 +90,15 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
         },
         py::return_value_policy::take_ownership,
         "Gets the Authentication provider.");
-    /*
     cls.def_property_readonly("on_core_event",
         [](daq::IContext *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ContextPtr::Borrow(object);
-            return objectPtr.getOnCoreEvent().detach();
+            return objectPtr.getOnCoreEvent().getEventPtr().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the Core Event object that triggers whenever a change happens within the openDAQ core structure.");
-    */
     cls.def_property_readonly("options",
         [](daq::IContext *object)
         {

@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,17 +153,15 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
         },
         py::return_value_policy::take_ownership,
         "Gets a list of the component's locked attributes. The locked attributes cannot be modified via their respective setters.");
-    /*
     cls.def_property_readonly("on_component_core_event",
         [](daq::IComponent *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
-            return objectPtr.getOnComponentCoreEvent().detach();
+            return objectPtr.getOnComponentCoreEvent().getEventPtr().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the Core Event object that triggers whenever a change to this component happens within the openDAQ core structure.");
-    */
     cls.def_property_readonly("status_container",
         [](daq::IComponent *object)
         {

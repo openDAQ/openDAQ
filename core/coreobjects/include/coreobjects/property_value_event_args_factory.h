@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,11 @@ BEGIN_NAMESPACE_OPENDAQ
 
 inline PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
                                                         const BaseObjectPtr& newValue,
+                                                        const BaseObjectPtr& oldValue,
                                                         PropertyEventType changeType,
                                                         Bool isUpdating)
 {
-    return PropertyValueEventArgsPtr(PropertyValueEventArgs_Create(propChanged, newValue, changeType, isUpdating));
+    return PropertyValueEventArgsPtr(PropertyValueEventArgs_Create(propChanged, newValue, oldValue, changeType, isUpdating));
 }
 
 END_NAMESPACE_OPENDAQ

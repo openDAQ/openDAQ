@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,7 +81,16 @@ ErrCode StatusContainerBase<TInterface, Interfaces...>::getStatuses(IDict** stat
 
     std::scoped_lock lock(sync);
 
-    *statuses = this->statuses.addRefAndReturn();
+    auto dict = Dict<IString, IEnumeration>();
+
+    for (const auto& [name, value]: this->statuses)
+    {
+        dict.set(name, value);
+    }
+
+    dict.freeze();
+
+    *statuses = dict.detach();
     return OPENDAQ_SUCCESS;
 }
 

@@ -337,7 +337,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
             // Group devices that have manufacturer, serial number and at least 1 server capability,
             // the rest use their connection string as key.
-            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0)
+            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0 || !deviceInfo.getServerCapabilities().getCount())
             {
                 groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
             }
@@ -353,7 +353,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
                         if (!value.hasServerCapability(capability.getProtocolId()))
                             valueInternal.addServerCapability(capability);
                 }
-                else if (deviceInfo.getServerCapabilities().getCount())
+                else
                 {
                     if (devicesWithIpModSupport.hasKey(id))
                     {
@@ -370,10 +370,6 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
                         deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
                         groupedDevices.set(id, deviceInfo);
                     }
-                }
-                else
-                {
-                    groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
                 }
             }
         }

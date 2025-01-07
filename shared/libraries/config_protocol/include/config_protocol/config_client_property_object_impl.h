@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -220,25 +220,24 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    return daqTry(
-        [this, &propertyNamePtr, &value]()
+    return daqTry([this, &propertyNamePtr, &value]
+    {
+        // TODO: Refactor this
+        PropertyPtr prop;
+        checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
+        if (clientComm->getConnected() && (prop.getValueType() == ctFunc || prop.getValueType() == ctProc))
         {
-            // TODO: Refactor this
-            PropertyPtr prop;
-            checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
-            if (clientComm->getConnected() && (prop.getValueType() == ctFunc || prop.getValueType() == ctProc))
-            {
-                bool setValue;
-                auto v = getValueFromServer(propertyNamePtr, setValue);
+            bool setValue;
+            auto v = getValueFromServer(propertyNamePtr, setValue);
 
-                if (setValue)
-                    Impl::setPropertyValue(propertyNamePtr, v);
-                *value = v.detach();
-                return OPENDAQ_SUCCESS;
-            }
+            if (setValue)
+                Impl::setPropertyValue(propertyNamePtr, v);
+            *value = v.detach();
+            return OPENDAQ_SUCCESS;
+        }
 
-            return Impl::getPropertyValue(propertyNamePtr, value);
-        });
+        return Impl::getPropertyValue(propertyNamePtr, value);
+    });
 }
 
 template <class Impl>

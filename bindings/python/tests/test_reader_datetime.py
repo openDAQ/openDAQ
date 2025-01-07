@@ -449,11 +449,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        sigs = opendaq.List()
-        sigs.append(sig1.signal)
-        sigs.append(sig2.signal)
-
-        reader = opendaq.MultiReader(sigs, value_type=opendaq.SampleType.Int64)
+        reader = opendaq.MultiReader(
+            [sig1.signal, sig2.signal], value_type=opendaq.SampleType.Int64)
         reader.read(0)
 
         nparray = numpy.arange(10)
@@ -476,12 +473,9 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        sigs = opendaq.List()
-        sigs.append(sig1.signal)
-        sigs.append(sig2.signal)
-
         with self.assertRaises(RuntimeError):
-            opendaq.MultiReader(sigs, value_type=opendaq.SampleType.RangeInt64)
+            opendaq.MultiReader([sig1.signal, sig2.signal],
+                                value_type=opendaq.SampleType.RangeInt64)
 
     def test_multireader_unsupported_domain_type(self):
         epoch = opendaq.MockSignal.current_epoch()
@@ -489,12 +483,9 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        sigs = opendaq.List()
-        sigs.append(sig1.signal)
-        sigs.append(sig2.signal)
-
         with self.assertRaises(RuntimeError):
-            opendaq.MultiReader(sigs, domain_type=opendaq.SampleType.Undefined)
+            opendaq.MultiReader([sig1.signal, sig2.signal],
+                                domain_type=opendaq.SampleType.Undefined)
 
     def test_multireader_read_with_domain(self):
         epoch = opendaq.MockSignal.current_epoch()
@@ -502,11 +493,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        sigs = opendaq.List()
-        sigs.append(sig1.signal)
-        sigs.append(sig2.signal)
-
-        reader = opendaq.MultiReader(sigs)
+        reader = opendaq.MultiReader([sig1.signal, sig2.signal])
         reader.read(0)
 
         nparray = numpy.arange(10)
@@ -530,11 +517,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        sigs = opendaq.List()
-        sigs.append(sig1.signal)
-        sigs.append(sig2.signal)
-
-        reader = opendaq.MultiReader(sigs)
+        reader = opendaq.MultiReader([sig1.signal, sig2.signal])
         reader.read(0)
         timed = opendaq.TimeMultiReader(reader)
 
@@ -559,12 +542,8 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        sigs = opendaq.List()
-        sigs.append(sig1.signal)
-        sigs.append(sig2.signal)
-
         reader = opendaq.MultiReader(
-            sigs, value_type=opendaq.SampleType.Undefined)
+            [sig1.signal, sig2.signal], value_type=opendaq.SampleType.Undefined)
         values, domain, status = reader.read_with_domain(0, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Event)
         self.assertEqual(

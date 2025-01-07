@@ -250,17 +250,19 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 
     for (size_t i = 0; i < clientSignals.getCount(); ++i)
     {
-        auto serverDataDescriptor = serverSignals[i].getDescriptor();
-        auto clientDataDescriptor = clientSignals[i].getDescriptor();
+        auto serverSignal = serverSignals[i];
+        auto clientSignal = clientSignals[i];
+        auto serverDataDescriptor = serverSignal.getDescriptor();
+        auto clientDataDescriptor = clientSignal.getDescriptor();
 
         ASSERT_EQ(clientDataDescriptor, serverDataDescriptor);
 
-        //ASSERT_EQ(serverSignals[i].getName(), clientSignals[i].getName());
-        ASSERT_EQ(serverSignals[i].getDescription(), clientSignals[i].getDescription());
+        ASSERT_EQ(serverSignal.getName(), clientSignal.getName());
+        ASSERT_EQ(serverSignal.getDescription(), clientSignal.getDescription());
 
-        auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[i].getGlobalId();
-        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
+        auto mirroredSignalPtr = clientSignal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignal.getGlobalId();
     }
 
     ASSERT_EQ(serverSignals[0].getName(), clientSignals[0].getName());
@@ -683,8 +685,8 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
         auto client = CreateClientInstance("opendaq", "opendaq");
         auto clientSignals = client.getSignalsRecursive(search::Any());
         ASSERT_EQ(clientSignals.getCount(), 2u);
-        ASSERT_EQ(clientSignals[0].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1");
-        ASSERT_EQ(clientSignals[1].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1Time");
+        ASSERT_EQ(clientSignals[0].getName(), "AI1");
+        ASSERT_EQ(clientSignals[1].getName(), "AI1Time");
     }
 }
 

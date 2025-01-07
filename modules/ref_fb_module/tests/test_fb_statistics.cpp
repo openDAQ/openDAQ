@@ -14,6 +14,47 @@ class StatisticsTest : public testing::Test
 {
 };
 
+class StatisticsTestStatus: public StatisticsTest
+{
+public:
+    FunctionBlockPtr fb;
+    ContextPtr context;
+protected:
+    void SetUp() override
+    {
+        // Create module
+        ModulePtr module;
+        const auto logger = Logger();
+        auto moduleManager = ModuleManager("[[none]]");
+        context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, nullptr);
+        createModule(&module, context);
+        moduleManager.addModule(module);
+        moduleManager = context.asPtr<IContextInternal>().moveModuleManager();
+
+        // Crate config
+        PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("RefFBModuleStatistics").createDefaultConfig();
+        config.setPropertyValue("UseMultiThreadedScheduler", false);
+
+        // Create function block
+        fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "fb", config);
+    }
+};
+
+class StatisticsTestStatusSignal : public StatisticsTestStatus
+{
+public:
+    SignalConfigPtr signal;
+protected:
+    void SetUp() override
+    {
+        StatisticsTestStatus::SetUp();
+
+        // Create signal with descriptor
+        auto signalDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(ExplicitDataRule()).build();
+        signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "signal");
+    }
+};
+
 struct RangeData
 {
     Int low;
@@ -965,32 +1006,15 @@ TEST_F(StatisticsTest, StatisticsTestOverlapWithTrigger)
     helper.run();
 }
 
-TEST_F(StatisticsTest, StatisticsExceptions)
+TEST_F(StatisticsTestStatus, StatisticsOk1)
 {
-    // Create module
-    ModulePtr module;
-    const auto logger = Logger();
-    auto moduleManager = ModuleManager("[[none]]");
-    auto context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, nullptr);
-    createModule(&module, context);
-    moduleManager.addModule(module);
-    moduleManager = context.asPtr<IContextInternal>().moveModuleManager();
-
-    // Crate config
-    PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("RefFBModuleStatistics").createDefaultConfig();
-    config.setPropertyValue("UseMultiThreadedScheduler", false);
-
-    // Create function block
-    auto fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "fb", config);
-
-    // EVERYTHING OK
-
     // ComponentStatus is Ok
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
-              Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
+}
 
-    // FIRST WARNING
-
+TEST_F(StatisticsTestStatus, StatisticsException1)
+{
     // Trigger configure
     fb.setPropertyValue("BlockSize", 20);
 
@@ -998,14 +1022,10 @@ TEST_F(StatisticsTest, StatisticsExceptions)
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
               Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
     ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Incomplete input signal descriptors");
+}
 
-    // SECOND WARNING
-
-    // Create signal with descriptor
-    auto signalDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(ExplicitDataRule()).build();
-    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "signal");
-
+TEST_F(StatisticsTestStatusSignal, StatisticsException2)
+{
     // Trigger configure
     fb.getInputPorts()[0].connect(signal);
 
@@ -1013,12 +1033,12 @@ TEST_F(StatisticsTest, StatisticsExceptions)
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
               Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
     ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Incompatible domain data sample type Null");
+}
 
-    // THIRD WARNING
-
+TEST_F(StatisticsTestStatusSignal, StatisticsException3)
+{
     // Create domain signal with descriptor
-    auto domainSignalNonLinearDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(ConstantDataRule()).build();
+    auto domainSignalNonLinearDescriptor = DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(ConstantDataRule()).build();
     auto domainSignalNonLinear = SignalWithDescriptor(context, domainSignalNonLinearDescriptor, nullptr, "signal");
 
     // Set domain signal
@@ -1031,9 +1051,10 @@ TEST_F(StatisticsTest, StatisticsExceptions)
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
               Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
     ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Domain rule type is not Linear");
+}
 
-    // FINALLY, SUCCESSFUL CONFIGURATION
-
+TEST_F(StatisticsTestStatusSignal, StatisticsOk2)
+{
     // Create domain signal with descriptor
     auto domainSignalLinearDescriptor = DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(LinearDataRule(1, 3)).build();
     auto domainSignal = SignalWithDescriptor(context, domainSignalLinearDescriptor, nullptr, "signal");
@@ -1044,10 +1065,7 @@ TEST_F(StatisticsTest, StatisticsExceptions)
     // Trigger configure
     fb.getInputPorts()[0].connect(signal);
 
-    // Incomplete input signal descriptors
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
-              Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    // Successful configuration
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
     ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
-
-
 }

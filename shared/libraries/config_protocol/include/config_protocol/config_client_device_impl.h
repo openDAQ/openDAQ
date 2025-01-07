@@ -75,6 +75,7 @@ private:
     void deviceDomainChanged(const CoreEventArgsPtr& args);
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
     void connectionStatusChanged(const CoreEventArgsPtr& args);
+    bool handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -243,10 +244,10 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObjec
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::template DeserializeConfigComponent<IDevice, ConfigClientDeviceImpl>(serialized, context, factoryCallback).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = Super::template DeserializeConfigComponent<IDevice, ConfigClientDeviceImpl>(serialized, context, factoryCallback).detach();
+    });
 }
 
 template <class TDeviceBase>
@@ -270,6 +271,11 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
             connectionStatusChanged(args);
             break;
         case CoreEventId::PropertyValueChanged:
+        {
+            if (handleDeviceInfoPropertyValueChanged(args))
+                return;
+            break;
+        }
         case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::PropertyAdded:
         case CoreEventId::PropertyRemoved:
@@ -427,6 +433,26 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::connectionStatusChanged(const C
     // ignores status change if it was not added initially
     if (addedStatuses.hasKey(statusName))
         connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatus(connectionString, value, nullptr);
+}
+
+template <class TDeviceBase>
+bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    const std::string path = params.get("Path");
+
+    const std::string prefix = "DeviceInfo";
+    if (path.find(prefix) == std::string::npos)
+        return false;
+
+    std::string propName = params.get("Name");
+    if (path.size() != prefix.size())
+        propName = path.substr(prefix.size() + 1) + "." + propName;
+
+    const auto val = params.get("Value");
+
+    this->deviceInfo.setPropertyValue(propName, val);
+    return true;
 }
 
 }

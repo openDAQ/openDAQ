@@ -615,6 +615,25 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
 }
 
+TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChangeableField)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[1];
+    const auto clientSubDevice = clientDevice.getDevices()[1];
+
+    const auto serverDeviceInfo = serverSubDevice.getInfo();
+    const auto clientDeviceInfo = clientSubDevice.getInfo();
+
+    ASSERT_EQ(serverDeviceInfo.getPropertyValue("TestChangeableField"), clientDeviceInfo.getPropertyValue("TestChangeableField"));
+
+    serverDeviceInfo.setPropertyValue("TestChangeableField", "new_value");
+    ASSERT_EQ("new_value", serverDeviceInfo.getPropertyValue("TestChangeableField"));
+    ASSERT_EQ("new_value", clientDeviceInfo.getPropertyValue("TestChangeableField"));
+
+    clientDeviceInfo.setPropertyValue("TestChangeableField", "new_value_2");
+    ASSERT_EQ("new_value_2", serverDeviceInfo.getPropertyValue("TestChangeableField"));
+    ASSERT_EQ("new_value_2", clientDeviceInfo.getPropertyValue("TestChangeableField"));
+}
+
 TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)
 {
     ASSERT_THROW(clientDevice.getOnPropertyValueWrite("location"), NativeClientCallNotAvailableException);

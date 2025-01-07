@@ -24,6 +24,8 @@
 #include <opendaq/device_type_ptr.h>
 #include <opendaq/device_info_internal.h>
 #include <opendaq/server_capability_ptr.h>
+#include <coretypes/event_ptr.h>
+#include <opendaq/component_ptr.h>
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -118,6 +120,10 @@ public:
     ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
 
+    // IOwnable
+    virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
+
+
 private:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
     ErrCode createAndSetIntProperty(const StringPtr& name, const IntegerPtr& value);
@@ -126,8 +132,12 @@ private:
 
     bool isPropertyChangeable(const StringPtr& propertyName);
 
+    void triggerCoreEventMetod(const CoreEventArgsPtr& args);
+
     std::set<std::string> changeableDefaultPropertyNames;
     DeviceTypePtr deviceType;
+
+    EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

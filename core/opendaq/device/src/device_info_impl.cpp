@@ -50,6 +50,7 @@ template <typename TInterface, typename ... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     : Super()
 {
+    this->path = "DeviceInfo";
     createAndSetStringProperty("name", "");
 
     Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
@@ -808,6 +809,42 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPropertyValueNoLock(
             return owner->setPropertyValue(propertyName, value);
     }
     return Super::setPropertyValueNoLock(propertyName, value);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
+{
+    ErrCode err = Super::setOwner(newOwner);
+    if (!coreEvent.assigned() && newOwner != nullptr)
+    {
+        ComponentPtr parent = newOwner;
+        parent.getContext()->getOnCoreEvent(&this->coreEvent);
+        ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMetod(args); };
+        this->setCoreEventTrigger(procedure);
+        this->coreEventMuted = false;
+    }
+    return err;
+}
+
+template <typename TInterface, typename ... Interfaces>
+void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMetod(const CoreEventArgsPtr& args)
+{
+    try
+    {
+        const ComponentPtr parent = owner.assigned() ? owner.getRef() : nullptr;
+        if (parent.assigned())
+            this->coreEvent(parent, args);
+    }
+    // catch (const std::exception& e)
+    // {
+    //     const auto loggerComponent = parent.getContext().getLogger().getOrAddComponent("DeviceInfo");
+    //     LOG_W("Device info failed while triggering core event {} with: {}", args.getEventName(), e.what());
+    // }
+    catch (...)
+    {
+        // const auto loggerComponent = parent.getContext().getLogger().getOrAddComponent("DeviceInfo");
+        // LOG_W("Device info failed while triggering core event {}", args.getEventName());
+    }
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

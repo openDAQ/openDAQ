@@ -85,7 +85,10 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
     if (this->coreEventMuted)
         return Impl::setActive(active);
 
-    return daqTry([this, &active] { this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); });
+    return daqTry([this, &active]
+    {
+        this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); 
+    });
 }
 
 template <class Impl>
@@ -103,7 +106,10 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getName(IString** name)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setName(IString* name)
 {
-    return daqTry([this, &name] { this->clientComm->setAttributeValue(this->remoteGlobalId, "Name", name); });
+    return daqTry([this, &name]
+    {
+        this->clientComm->setAttributeValue(this->remoteGlobalId, "Name", name); 
+    });
 }
 
 template <class Impl>
@@ -115,7 +121,10 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getDescription(IString** descriptio
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description)
 {
-    return daqTry([this, &description] { this->clientComm->setAttributeValue(this->remoteGlobalId, "Description", description); });
+    return daqTry([this, &description]
+    {
+        this->clientComm->setAttributeValue(this->remoteGlobalId, "Description", description); 
+    });
 }
 
 template <class Impl>
@@ -126,11 +135,10 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::Deserialize(ISerializedObject* seri
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeConfigComponent<IComponent, ConfigClientComponentImpl>(serialized, context, factoryCallback).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = DeserializeConfigComponent<IComponent, ConfigClientComponentImpl>(serialized, context, factoryCallback).detach();
+    });
 }
 
 template <class Impl>
@@ -255,7 +263,6 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
 template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::componentUpdateEnd(const CoreEventArgsPtr& args)
 {
-
     const StringPtr str = args.getParameters().get("SerializedComponent");
 
     const bool muted = this->coreEventMuted;

@@ -25,6 +25,17 @@ ErrCode PropertyValueEventArgsImpl::getValue(IBaseObject** value)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode PropertyValueEventArgsImpl::getOldValue(IBaseObject** value)
+{
+    if (value == nullptr)
+    {
+        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the old value by a null pointer");
+    }
+
+    *value = oldValue.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode PropertyValueEventArgsImpl::setValue(IBaseObject* value)
 {
     newValue = value;
@@ -50,6 +61,11 @@ ErrCode PropertyValueEventArgsImpl::getIsUpdating(Bool* isUpdating)
     return OPENDAQ_SUCCESS;
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PropertyValueEventArgs, IProperty*, prop, IBaseObject*, value, PropertyEventType, type, Bool, isUpdating)
+OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PropertyValueEventArgs, 
+    IProperty*, prop, 
+    IBaseObject*, value,
+    IBaseObject*, oldValue, 
+    PropertyEventType, type, 
+    Bool, isUpdating)
 
 END_NAMESPACE_OPENDAQ

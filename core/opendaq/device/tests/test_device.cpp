@@ -39,6 +39,8 @@ public:
         auto deviceInfo = daq::DeviceInfoWithChanegableFields({"userName", "location"});
         deviceInfo.setConnectionString("conn");
         deviceInfo.setName("test");
+        deviceInfo.setManufacturer("test");
+        deviceInfo.setSerialNumber("test");
         deviceInfo.setLocation("test");
         deviceInfo.addProperty(daq::StringProperty("CustomChangeableField", "default value"));
 
@@ -471,4 +473,16 @@ TEST_F(DeviceTest, SerializeAndDeserializeWithConnectionStatuses)
               dev.getConnectionStatusContainer().getStatus("ConfigurationStatus"));
     ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_1"));
     ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_2"));
+}
+
+TEST_F(DeviceTest, SerializeAndDeserializeManufacturer)
+{
+    const auto context = daq::NullContext();
+    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(context, nullptr, "dev");
+    
+    const auto serializer = daq::JsonSerializer(daq::True);
+    dev.serialize(serializer);
+    const std::string str1 = serializer.getOutput();
+    ASSERT_EQ(str1.find("manufacturer"), std::string::npos);
+    ASSERT_EQ(str1.find("serialNumber"), std::string::npos);
 }

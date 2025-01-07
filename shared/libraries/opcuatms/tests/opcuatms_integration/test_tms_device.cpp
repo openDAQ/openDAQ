@@ -148,12 +148,12 @@ TEST_F(TmsDeviceTest, DISABLED_Property)
 
     auto serverVisibleProps = serverDevice.getVisibleProperties();
     auto visibleProperties = clientDevice.getVisibleProperties();
-    ASSERT_EQ(visibleProperties.getCount(), 3u);
-    ASSERT_EQ(visibleProperties[2].getName(), "SampleRate");
+    ASSERT_EQ(visibleProperties.getCount(), 5u);
+    ASSERT_EQ(visibleProperties[4].getName(), "SampleRate");
 
     auto properties = clientDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 3u);
-    ASSERT_EQ(properties[2].getName(), "SampleRate");
+    ASSERT_EQ(properties.getCount(), 5u);
+    ASSERT_EQ(properties[4].getName(), "SampleRate");
 
     ASSERT_TRUE(clientDevice.hasProperty("SampleRate"));
     ASSERT_EQ(clientDevice.getPropertyValue("SampleRate"), 100.0);

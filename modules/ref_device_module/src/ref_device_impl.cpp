@@ -276,7 +276,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::getLogFileInfos()
 }
 
 StringPtr RefDeviceImpl::getLog(const StringPtr& id, Int size, Int offset)
-{;
+{
     if(!objPtr.getPropertyValue("LoggingEnabled"))
         return "";
 

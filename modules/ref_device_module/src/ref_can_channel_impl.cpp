@@ -17,6 +17,8 @@ RefCANChannelBase::RefCANChannelBase(const templates::ChannelParams& params, con
 RefCANChannelImpl::RefCANChannelImpl(const RefCANChannelInit& init)
     : lowerLimit(-1000)
     , upperLimit(1000)
+    , counter1(0)
+    , counter2(0)
     , microSecondsFromEpochToStartTime(init.microSecondsFromEpochToStartTime)
     , lastCollectTime(0)
 {

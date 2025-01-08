@@ -1,10 +1,5 @@
 #include <opendaq/device_info_impl.h>
-#include <opendaq/component_ptr.h>
-#include <coretypes/validation.h>
-#include "coretypes/impl.h"
-#include <coreobjects/property_object_factory.h>
-#include <opendaq/device_info_factory.h>
-#include <boost/algorithm/string.hpp>
+#include <coretypes/impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

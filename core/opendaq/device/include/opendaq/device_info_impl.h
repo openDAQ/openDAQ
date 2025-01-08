@@ -26,6 +26,9 @@
 #include <opendaq/server_capability_ptr.h>
 #include <coretypes/event_ptr.h>
 #include <opendaq/component_ptr.h>
+#include <opendaq/device_info_factory.h>
+#include <coretypes/validation.h>
+#include <coreobjects/property_object_factory.h>
 #include <set>
 
 BEGIN_NAMESPACE_OPENDAQ

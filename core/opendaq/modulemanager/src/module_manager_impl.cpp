@@ -284,8 +284,12 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
     std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
 
-    // TODO run it in parallel with getting avaiable devices from modules
-    auto devicesWithIpModSupport = discoverDevicesWithIpModification();
+    // runs in parallel with getting avaiable devices from modules
+    std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult =
+        std::async([this]()
+                   {
+                       return this->discoverDevicesWithIpModification();
+                   });
 
     for (const auto& library : libraries)
     {
@@ -310,6 +314,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
         }
     }
 
+    auto devicesWithIpModSupport = devicesWithIpModSupportAsyncResult.get();
     auto groupedDevices = Dict<IString, IDeviceInfo>();
     for (auto& [futureResult, module] : enumerationResults)
     {

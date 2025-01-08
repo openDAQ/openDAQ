@@ -25,17 +25,24 @@ namespace daq::config_protocol
 template <class Impl>
 class ConfigClientBaseDeviceInfoImpl;
 
-using ConfigClientDeviceInfoImpl = ConfigClientBaseDeviceInfoImpl<DeviceInfoConfigImpl<IDeviceInfoConfig, IConfigClientObject>>;
+using ConfigClientDeviceInfoImpl = ConfigClientBaseDeviceInfoImpl<DeviceInfoConfigImpl<IDeviceInfoConfig, IConfigClientObject, IDeserializeComponent>>;
 
 template <class Impl>
 class ConfigClientBaseDeviceInfoImpl : public ConfigClientPropertyObjectBaseImpl<Impl>
 {
 public:
-    using Super = ConfigClientComponentBaseImpl<Impl>;
+    using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
     using Super::Super;
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
+
+    ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject,
+                                             IBaseObject* context,
+                                             IFunction* callbackFactory) override;
+    ErrCode INTERFACE_FUNC complete() override;
+    ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override;
+
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -64,6 +71,26 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setProtectedPropertyValue(IString*
 }
 
 template <class Impl>
+ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::deserializeValues(ISerializedObject* serializedObject,
+                                                                 IBaseObject* context,
+                                                                 IFunction* callbackFactory)
+{
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::complete()
+{
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::getDeserializedParameter(IString* parameter, IBaseObject** value)
+{
+    return OPENDAQ_NOTFOUND;
+}
+
+template <class Impl>
 ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::Deserialize(ISerializedObject* serialized,
                                                           IBaseObject* context,
                                                           IFunction* factoryCallback,
@@ -83,11 +110,11 @@ BaseObjectPtr ConfigClientBaseDeviceInfoImpl<Impl>::DeserializeDeviceInfo(const 
                                                                              const BaseObjectPtr& context,
                                                                              const FunctionPtr& factoryCallback)
 {
-    return Impl::DeserializeComponent(
+    return Super::DeserializePropertyObject(
         serialized,
         context,
         factoryCallback,
-        [](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+        [](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className) -> PropertyObjectPtr
         {
             const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
             return createWithImplementation<Interface, Implementation>(ctx->getClientComm(),

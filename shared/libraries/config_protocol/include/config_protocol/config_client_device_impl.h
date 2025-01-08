@@ -18,6 +18,7 @@
 #include <opendaq/mirrored_device_impl.h>
 #include <config_protocol/config_client_component_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
+#include <config_protocol/config_client_device_info_impl.h>
 #include <opendaq/component_holder_ptr.h>
 
 namespace daq::config_protocol
@@ -68,6 +69,9 @@ public:
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
 private:
     void componentAdded(const CoreEventArgsPtr& args);
@@ -378,6 +382,21 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
 }
 
 template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                               const BaseObjectPtr& context,
+                                                                               const FunctionPtr& factoryCallback)
+{
+    TDeviceBase::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+    if (serializedObject.hasKey("deviceInfo"))
+    {
+        auto serializedDeviceInfo = serializedObject.readSerializedObject("deviceInfo");
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientDeviceInfoImpl::Deserialize(serializedDeviceInfo, context, factoryCallback, &obj));
+        this->deviceInfo = obj;
+    }
+}
+
+template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::componentAdded(const CoreEventArgsPtr& args)
 {
     const ComponentPtr comp = args.getParameters().get("Component");
@@ -441,7 +460,7 @@ bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyValueCh
     const auto params = args.getParameters();
     const std::string path = params.get("Path");
 
-    const std::string prefix = "DeviceInfo";
+    const std::string prefix = "DaqDeviceInfo";
     if (path.find(prefix) == std::string::npos)
         return false;
 
@@ -451,6 +470,7 @@ bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyValueCh
 
     const auto val = params.get("Value");
 
+    ScopedRemoteUpdate update(this->deviceInfo);
     this->deviceInfo.setPropertyValue(propName, val);
     return true;
 }

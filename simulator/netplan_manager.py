@@ -182,10 +182,10 @@ def main():
             print("Error: Invalid JSON format for addresses4 or addresses6.")
             sys.exit(1)
 
-        dhcp4 = sys.argv[2].lower() == "true"
-        dhcp6 = sys.argv[3].lower() == "true"
+        dhcp4 = sys.argv[3].lower() == "true"
+        dhcp6 = sys.argv[4].lower() == "true"
 
-        if verify_netplan_config(dhcp4, dhcp6, sys.argv[4], addresses4, addresses6, sys.argv[7], sys.argv[8]) == False:
+        if verify_netplan_config(sys.argv[2], dhcp4, dhcp6, addresses4, addresses6, sys.argv[7], sys.argv[8]) == False:
             sys.exit(1)
 
     elif action == "apply":

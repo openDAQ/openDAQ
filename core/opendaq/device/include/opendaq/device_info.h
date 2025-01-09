@@ -283,8 +283,21 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getServerCapability(IString* protocolId, IServerCapability** serverCapability) = 0;
 
     // [templateType(interfaces, IString, INetworkInterface)]
+    /*!
+     * @brief Gets the dictionary of network interfaces stored in device info.
+     * @param[out] interfaces The dictionary of device network interfaces.
+     *
+     * Obtained dictionary contains INetworkInterface objects, representing the available network interfaces
+     * and allowing to manage their configurations. The dictionary key corresponds to interface identifier (e.g. "eth0").
+     */
     virtual ErrCode INTERFACE_FUNC getNetworkInterfaces(IDict** interfaces) = 0;
 
+    /*!
+     * @brief Gets the network interface with a given name.
+     * @param interfaceName The name of the device network interface.
+     * @param[out] interface The device network interface with the given name.
+     * @retval OPENDAQ_ERR_NOTFOUND if the network interface with the given name is not available.
+     */
     virtual ErrCode INTERFACE_FUNC getNetworkInterface(IString* interfaceName, INetworkInterface** interface) = 0;
 };
 /*!@}*/

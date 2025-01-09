@@ -18,6 +18,19 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*!
+ * @ingroup opendaq_device_info
+ * @addtogroup opendaq_device_info_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates a Network interface object with the specified name and additional parameters.
+ * @param name The name of the interface (e.g. "eth0").
+ * @param ownerDeviceManufacturerName The manufacturer name of the device which owns the interface.
+ * @param ownerDeviceSerialNumber The serial number of the device which owns the interface.
+ * @param moduleManager The module manager.
+ */
 inline NetworkInterfacePtr NetworkInterface(const StringPtr& name,
                                             const StringPtr& ownerDeviceManufacturerName,
                                             const StringPtr& ownerDeviceSerialNumber,
@@ -26,5 +39,7 @@ inline NetworkInterfacePtr NetworkInterface(const StringPtr& name,
     NetworkInterfacePtr obj(NetworkInterface_Create(name, ownerDeviceManufacturerName, ownerDeviceSerialNumber, moduleManager));
     return obj;
 }
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

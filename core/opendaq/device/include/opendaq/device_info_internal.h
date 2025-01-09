@@ -52,6 +52,13 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() = 0;
 
+    /*!
+     * @brief Adds a network interface to the dictionary of available interfaces.
+     * @param networkInterface The available interface to add.
+     * @param name The name of available interface to add.
+     *
+     * The provided name should be unique within the device info as used as the key in the dictionary of available interfaces.
+     */
     virtual ErrCode INTERFACE_FUNC addNetworkInteface(IString* name, INetworkInterface* networkInterface) = 0;
 };
 /*!@}*/

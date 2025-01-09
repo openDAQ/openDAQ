@@ -20,6 +20,19 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*!
+ * @ingroup opendaq_utility
+ * @addtogroup opendaq_discovery_service_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates an MDNS-based Discovery Server.
+ * @param logger The logger the Discovery Server has access to.
+ * @param netInterfaceNames A list of network interface names available for IP configuration modification.
+ * @param modifyIpConfigCallback A callback invoked when an IP configuration modification is triggered.
+ * @param retrieveIpConfigCallback A callback invoked to retrieve the currently active IP configuration parameters.
+ */
 inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger,
                                               const ListPtr<IString>& netInterfaceNames,
                                               const ProcedurePtr& modifyIpConfigCallback,
@@ -28,5 +41,6 @@ inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger,
     DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger, netInterfaceNames, modifyIpConfigCallback, retrieveIpConfigCallback));
     return obj;
 }
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

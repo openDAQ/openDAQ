@@ -57,7 +57,7 @@ protected:
 template <class Impl>
 ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    if (remoteUpdating)
+    if (this->remoteUpdating)
         return Impl::setPropertyValue(propertyName, value);
     return Super::setPropertyValue(propertyName, value);
 }
@@ -65,7 +65,7 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setPropertyValue(IString* property
 template <class Impl>
 ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    if (remoteUpdating)
+    if (this->remoteUpdating)
         return Impl::setProtectedPropertyValue(propertyName, value);
     return Super::setProtectedPropertyValue(propertyName, value);
 }

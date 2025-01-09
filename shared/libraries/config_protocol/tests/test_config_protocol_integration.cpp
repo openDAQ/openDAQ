@@ -634,6 +634,28 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChangeableField)
     ASSERT_EQ("new_value_2", clientDeviceInfo.getPropertyValue("TestChangeableField"));
 }
 
+TEST_F(ConfigProtocolIntegrationTest, DeviceInfoNotChangeableField)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[1];
+    const auto clientSubDevice = clientDevice.getDevices()[1];
+
+    const auto serverDeviceInfo = serverSubDevice.getInfo();
+    const auto clientDeviceInfo = clientSubDevice.getInfo();
+
+    ASSERT_EQ("manufacturer", serverDeviceInfo.getPropertyValue("manufacturer"));
+    ASSERT_EQ(serverDeviceInfo.getPropertyValue("manufacturer"), clientDeviceInfo.getPropertyValue("manufacturer"));
+
+    ASSERT_ANY_THROW(serverDeviceInfo.setPropertyValue("manufacturer", "new_manufacturer"));
+    serverDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "new_manufacturer");
+    ASSERT_EQ("new_manufacturer", serverDeviceInfo.getPropertyValue("manufacturer"));
+    ASSERT_EQ("manufacturer", clientDeviceInfo.getPropertyValue("manufacturer"));
+
+    ASSERT_ANY_THROW(clientDeviceInfo.setPropertyValue("manufacturer", "new_manufacturer_2"));
+    clientDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "new_manufacturer_2");
+    ASSERT_EQ("new_manufacturer", serverDeviceInfo.getPropertyValue("manufacturer"));
+    ASSERT_EQ("new_manufacturer_2", clientDeviceInfo.getPropertyValue("manufacturer"));
+}
+
 TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)
 {
     ASSERT_THROW(clientDevice.getOnPropertyValueWrite("location"), NativeClientCallNotAvailableException);

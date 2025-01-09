@@ -122,6 +122,7 @@ public:
     // IPropertyObject
     ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
+    ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
 
     // IOwnable
     virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
@@ -947,6 +948,20 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPropertyValueNoLock(
             return owner->setPropertyValue(propertyName, value);
     }
     return Super::setPropertyValueNoLock(propertyName, value);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
+{
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+    auto propertyNamePtr = StringPtr::Borrow(propertyName);
+    if (propertyNamePtr == "userName" || propertyNamePtr == "location")
+    {
+        auto owner = Super::getPropertyObjectParent();
+        if (owner.assigned())
+            return owner.as<IPropertyObjectProtected>(true)->setProtectedPropertyValue(propertyName, value);
+    }
+    return Super::setProtectedPropertyValue(propertyName, value);
 }
 
 template <typename TInterface, typename ... Interfaces>

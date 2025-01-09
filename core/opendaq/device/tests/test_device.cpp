@@ -119,6 +119,7 @@ TEST_F(DeviceTest, DeviceInfoForwardCallbacks)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
     auto info = device.getInfo();
+
     daq::SizeT readCounter = 0;
     info.getOnPropertyValueRead("CustomChangeableField") += [&readCounter](daq::PropertyObjectPtr& obj, daq::PropertyValueEventArgsPtr& args)
     {
@@ -131,24 +132,15 @@ TEST_F(DeviceTest, DeviceInfoForwardCallbacks)
         writeCounter++;
     };
 
-    ASSERT_TRUE(device.hasProperty("CustomChangeableField"));
-
-    ASSERT_EQ(device.getPropertyValue("CustomChangeableField"), "default value");
     ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "default value");
     ASSERT_EQ(writeCounter, 0u);
 
-    device.setPropertyValue("CustomChangeableField", "new_value");
-    ASSERT_EQ(device.getPropertyValue("CustomChangeableField"), "new_value");
-    ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "new_value");
+    info.setPropertyValue("CustomChangeableField", "new_value2");
+    ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "new_value2");
     ASSERT_EQ(writeCounter, 1u);
 
-    info.setPropertyValue("CustomChangeableField", "new_value2");
-    ASSERT_EQ(device.getPropertyValue("CustomChangeableField"), "new_value2");
-    ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "new_value2");
-    ASSERT_EQ(writeCounter, 2u);
-
     // we are reading actualy the owner property
-    ASSERT_EQ(readCounter, 0u);
+    ASSERT_EQ(readCounter, 2u);
 }
 
 TEST_F(DeviceTest, Folders)

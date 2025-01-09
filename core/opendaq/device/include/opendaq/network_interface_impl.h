@@ -33,6 +33,7 @@ public:
     ErrCode INTERFACE_FUNC createDefaultConfiguration(IPropertyObject** defaultConfig) override;
 
 private:
+    static PropertyObjectPtr createDefaultConfiguration();
     StringPtr interfaceName;
     StringPtr ownerDeviceManufacturerName;
     StringPtr ownerDeviceSerialNumber;

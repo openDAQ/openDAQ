@@ -38,6 +38,13 @@ ErrCode NetworkInterfaceImpl::submitConfiguration(IPropertyObject* config)
 
 ErrCode NetworkInterfaceImpl::createDefaultConfiguration(IPropertyObject** defaultConfig)
 {
+    *defaultConfig = createDefaultConfiguration().detach();
+
+    return OPENDAQ_SUCCESS;
+}
+
+PropertyObjectPtr NetworkInterfaceImpl::createDefaultConfiguration()
+{
     auto config = PropertyObject();
 
     config.addProperty(BoolProperty("dhcp4", True));
@@ -47,9 +54,7 @@ ErrCode NetworkInterfaceImpl::createDefaultConfiguration(IPropertyObject** defau
     config.addProperty(ListProperty("addresses6", List<IString>()));
     config.addProperty(StringProperty("gateway6", ""));
 
-    *defaultConfig = config.detach();
-
-    return OPENDAQ_SUCCESS;
+    return config;
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

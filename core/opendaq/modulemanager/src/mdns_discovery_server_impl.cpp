@@ -149,45 +149,61 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr&
     ModifyIpConfigCallback modifyIpConfigCb = [this](const std::string& ifaceName, const TxtProperties& reqProps)
     {
         TxtProperties resProps;
-        try
+        if (modifyIpConfigCallback.assigned())
         {
-            auto config = IpModificationUtils::populateIpConfigProperties(reqProps);
-            modifyIpConfigCallback(ifaceName, config);
-            resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
+            try
+            {
+                auto config = IpModificationUtils::populateIpConfigProperties(reqProps);
+                modifyIpConfigCallback(ifaceName, config);
+                resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
+                resProps["ErrorMessage"] = "";
+            }
+            catch (const DaqException& e)
+            {
+                resProps["ErrorCode"] = std::to_string(e.getErrCode());
+                resProps["ErrorMessage"] = e.what();
+            }
+            catch (const std::exception& e)
+            {
+                resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
+                resProps["ErrorMessage"] = e.what();
+            }
+        }
+        else
+        {
+            resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_NOTIMPLEMENTED);
             resProps["ErrorMessage"] = "";
-        }
-        catch (const DaqException& e)
-        {
-            resProps["ErrorCode"] = std::to_string(e.getErrCode());
-            resProps["ErrorMessage"] = e.what();
-        }
-        catch (const std::exception& e)
-        {
-            resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
-            resProps["ErrorMessage"] = e.what();
         }
         return resProps;
     };
     RetrieveIpConfigCallback retrieveIpConfigCb = [this](const std::string& ifaceName)
     {
         TxtProperties resProps;
-        try
+        if (retrieveIpConfigCallback.assigned())
         {
-            PropertyObjectPtr config = retrieveIpConfigCallback(ifaceName);
-            IpModificationUtils::encodeIpConfiguration(config, resProps);
+            try
+            {
+                PropertyObjectPtr config = retrieveIpConfigCallback(ifaceName);
+                IpModificationUtils::encodeIpConfiguration(config, resProps);
 
-            resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
+                resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
+                resProps["ErrorMessage"] = "";
+            }
+            catch (const DaqException& e)
+            {
+                resProps["ErrorCode"] = std::to_string(e.getErrCode());
+                resProps["ErrorMessage"] = e.what();
+            }
+            catch (const std::exception& e)
+            {
+                resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
+                resProps["ErrorMessage"] = e.what();
+            }
+        }
+        else
+        {
+            resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_NOTIMPLEMENTED);
             resProps["ErrorMessage"] = "";
-        }
-        catch (const DaqException& e)
-        {
-            resProps["ErrorCode"] = std::to_string(e.getErrCode());
-            resProps["ErrorMessage"] = e.what();
-        }
-        catch (const std::exception& e)
-        {
-            resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
-            resProps["ErrorMessage"] = e.what();
         }
         return resProps;
     };

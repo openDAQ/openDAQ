@@ -101,7 +101,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     for (const auto& server : servers)
     {
         // OPC UA server uses Avahi service for discovery for example purposes
-        if (server.getId() != "OpenDAQOPCUAServerModule")
+        if (server.getId() != "OpenDAQOPCUA")
             server.enableDiscovery();
     }
 

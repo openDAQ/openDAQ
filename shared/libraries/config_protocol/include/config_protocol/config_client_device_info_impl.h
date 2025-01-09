@@ -107,10 +107,10 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::Deserialize(ISerializedObject* ser
 template <class Impl>
 template <class Interface, class Implementation>
 BaseObjectPtr ConfigClientBaseDeviceInfoImpl<Impl>::DeserializeDeviceInfo(const SerializedObjectPtr& serialized,
-                                                                             const BaseObjectPtr& context,
-                                                                             const FunctionPtr& factoryCallback)
+                                                                          const BaseObjectPtr& context,
+                                                                          const FunctionPtr& factoryCallback)
 {
-    return Super::DeserializePropertyObject(
+    PropertyObjectPtr deviceInfo = Super::DeserializePropertyObject(
         serialized,
         context,
         factoryCallback,
@@ -120,6 +120,15 @@ BaseObjectPtr ConfigClientBaseDeviceInfoImpl<Impl>::DeserializeDeviceInfo(const 
             return createWithImplementation<Interface, Implementation>(ctx->getClientComm(),
                                                                        ctx->getRemoteGlobalId());
         });
+
+    PropertyObjectPtr caps = deviceInfo.getPropertyValue("serverCapabilities");
+
+    auto clonedCaps = PropertyObject();
+    for (const auto& cap : caps.getAllProperties())
+        clonedCaps.addProperty(cap.asPtr<IPropertyInternal>(true).clone());
+    deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("serverCapabilities", clonedCaps);
+
+    return deviceInfo;
 }
 
 }

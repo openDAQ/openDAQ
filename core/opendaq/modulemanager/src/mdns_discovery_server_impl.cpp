@@ -207,7 +207,7 @@ bool MdnsDiscoveryServerImpl::verifyIpModificationServiceParameters(const ListPt
                                                                     const ProcedurePtr& modifyIpConfigCallback,
                                                                     const FunctionPtr& retrieveIpConfigCallback)
 {
-    if (netInterfaceNames.assigned() || modifyIpConfigCallback.assigned() || retrieveIpConfigCallback.assigned())
+    if (modifyIpConfigCallback.assigned() || retrieveIpConfigCallback.assigned())
     {
         if (!modifyIpConfigCallback.assigned() || !netInterfaceNames.assigned() || netInterfaceNames.empty())
         {

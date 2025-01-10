@@ -5,7 +5,10 @@
 #include <opendaq/sample_type.h>
 #include <opendaq/signal_errors.h>
 #include <opendaq/typed_reader.h>
+#include <opendaq/logger_component.h>
+#include <opendaq/logger_component_factory.h>
 
+#include <iostream>
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -310,11 +313,17 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                     {
                         auto readValueSysTime = toSysTime(readValue.start, domainInfo.epoch, domainInfo.resolution);
                         *absoluteTimestamp =  readValueSysTime.time_since_epoch().count(); //adjustedValueSysTime.time_since_epoch().count();
+
+                        LOG_I("readValue: {}, epoch: {}, resolution: {}, absoluteTimestamp: {}, offset: {}",
+                              readValue.start, domainInfo.epoch, domainInfo.resolution, *absoluteTimestamp, domainInfo.offset);
                     }
                     else if constexpr (!IsTemplateOf<TReadType, daq::Complex_Number>::value)
                     {
                         auto readValueSysTime = toSysTime(readValue, domainInfo.epoch, domainInfo.resolution);
                         *absoluteTimestamp = readValueSysTime.time_since_epoch().count();
+
+                        LOG_I("readValue: {}, epoch: {}, resolution: {}, absoluteTimestamp: {}, offset: {}",
+                              readValue, domainInfo.epoch, domainInfo.resolution, *absoluteTimestamp, domainInfo.offset);
                     }
                     else
                     {
@@ -477,6 +486,7 @@ SampleType TypedReader<ReadType>::getReadType() const noexcept
 Reader::Reader(FunctionPtr transform)
     : ignoreTransform(false)
     , transformFunction(std::move(transform))
+    , loggerComponent(LoggerComponent("TypedReader"))
 {
 }
 

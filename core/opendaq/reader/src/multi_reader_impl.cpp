@@ -1236,7 +1236,10 @@ void MultiReaderImpl::sync()
     for (auto& signal : signals)
     {
         system_clock::rep firstSampleAbsoluteTime;
+
+        auto wasSynced = signal.isSynced();
         synced = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
+        LOG_I("{}, Is synced: {}, wasSynced: {}, first: {}", signal.port.getGlobalId(), signal.isSynced(), wasSynced, firstSampleAbsoluteTime);
 
         if (synced)
         {
@@ -1258,8 +1261,6 @@ void MultiReaderImpl::sync()
 
         auto diff = latestTime - earliestTime;
 
-        LOG_I("Tick offset tolerance: {}/{}, this: {}",
-              tickOffsetTolerance.getNumerator(), tickOffsetTolerance.getDenominator(), (void*)this);
         LOG_I("Earliest time: {}, Latest time: {}, Diff: {}, Tolerance length: {}",
               earliestTime, latestTime, diff, toleranceLength);
 

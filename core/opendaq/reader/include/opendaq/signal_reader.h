@@ -84,6 +84,8 @@ struct SignalReader
 
     void* getValuePacketData(const DataPacketPtr& packet) const;
 
+    bool isSynced() const;
+
     LoggerComponentPtr loggerComponent;
 
     std::unique_ptr<Reader> valueReader;
@@ -104,6 +106,7 @@ struct SignalReader
     SyncStatus synced{SyncStatus::Unsynchronized};
 
     NumberPtr packetDelta {0};
+    std::chrono::system_clock::rep cachedFirstTimestamp;
 };
 
 END_NAMESPACE_OPENDAQ

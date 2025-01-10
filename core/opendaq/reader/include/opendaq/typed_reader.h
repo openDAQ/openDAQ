@@ -53,6 +53,7 @@ protected:
     FunctionPtr transformFunction;
     DataDescriptorPtr dataDescriptor;
     SampleType dataSampleType{SampleType::Undefined};
+    LoggerComponentPtr loggerComponent;
 };
 
 class UndefinedReader final : public Reader

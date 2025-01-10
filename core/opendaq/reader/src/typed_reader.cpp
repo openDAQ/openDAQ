@@ -8,7 +8,6 @@
 #include <opendaq/logger_component.h>
 #include <opendaq/logger_component_factory.h>
 
-#include <iostream>
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -248,7 +247,10 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
         case SampleType::String:
         case SampleType::Struct:
             return makeErrorInfo(
-                OPENDAQ_ERR_NOT_SUPPORTED, fmt::format("Using the SampleType {} as a domain is not supported", dataSampleType), nullptr);
+                OPENDAQ_ERR_NOT_SUPPORTED,
+                fmt::format("Using the SampleType {} as a domain is not supported", dataSampleType),
+                nullptr
+            );
         case SampleType::Invalid:
             return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
         case SampleType::Null:
@@ -313,17 +315,11 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                     {
                         auto readValueSysTime = toSysTime(readValue.start, domainInfo.epoch, domainInfo.resolution);
                         *absoluteTimestamp =  readValueSysTime.time_since_epoch().count(); //adjustedValueSysTime.time_since_epoch().count();
-
-                        LOG_I("readValue: {}, epoch: {}, resolution: {}, absoluteTimestamp: {}, offset: {}",
-                              readValue.start, domainInfo.epoch, domainInfo.resolution, *absoluteTimestamp, domainInfo.offset);
                     }
                     else if constexpr (!IsTemplateOf<TReadType, daq::Complex_Number>::value)
                     {
                         auto readValueSysTime = toSysTime(readValue, domainInfo.epoch, domainInfo.resolution);
                         *absoluteTimestamp = readValueSysTime.time_since_epoch().count();
-
-                        LOG_I("readValue: {}, epoch: {}, resolution: {}, absoluteTimestamp: {}, offset: {}",
-                              readValue, domainInfo.epoch, domainInfo.resolution, *absoluteTimestamp, domainInfo.offset);
                     }
                     else
                     {
@@ -343,7 +339,10 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
     else
     {
         return makeErrorInfo(
-            OPENDAQ_ERR_NOT_SUPPORTED, "Implicit conversion from packet data-type to the read data-type is not supported.", nullptr);
+            OPENDAQ_ERR_NOT_SUPPORTED,
+            "Implicit conversion from packet data-type to the read data-type is not supported.",
+            nullptr
+        );
     }
 }
 
@@ -400,7 +399,10 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
     else
     {
         return makeErrorInfo(
-            OPENDAQ_ERR_NOT_SUPPORTED, "Implicit conversion from packet data-type to the read data-type is not supported.", nullptr);
+            OPENDAQ_ERR_NOT_SUPPORTED,
+            "Implicit conversion from packet data-type to the read data-type is not supported.",
+            nullptr
+        );
     }
 }
 
@@ -486,7 +488,6 @@ SampleType TypedReader<ReadType>::getReadType() const noexcept
 Reader::Reader(FunctionPtr transform)
     : ignoreTransform(false)
     , transformFunction(std::move(transform))
-    , loggerComponent(LoggerComponent("TypedReader"))
 {
 }
 

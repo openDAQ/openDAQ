@@ -252,7 +252,7 @@ void RefChannelImpl::signalTypeChangedInternal()
     customRange = objPtr.getPropertyValue("CustomRange");
 
     waveformType = objPtr.getPropertyValue("Waveform");
-    \
+
     offset = objPtr.getPropertyValue("Offset");
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
@@ -277,7 +277,6 @@ void RefChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
 
 uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
 {
-    // TODO: do I need to take initial offset into account when calculate samples amount by subtracting offset from (time - startTime)?
     const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1'000'000.0 * sampleRate));
     return samplesSinceStart;
 }
@@ -445,8 +444,6 @@ void RefChannelImpl::buildSignalDescriptors()
             .setName("Time AI " + std::to_string(index + 1))
             .setReferenceDomainInfo(
                 ReferenceDomainInfoBuilder().setReferenceDomainId(referenceDomainId).setReferenceDomainOffset(0).build());
-
-    LOG_I("Channel: {}, Epoch: {}, Offset: {}", index + 1, getEpoch(), offset);
 
     timeSignal.setDescriptor(timeDescriptor.build());
 }

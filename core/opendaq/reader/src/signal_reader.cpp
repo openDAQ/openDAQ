@@ -391,20 +391,17 @@ bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock
     {
         if (firstSampleAbsoluteTimestamp)
             *firstSampleAbsoluteTimestamp = cachedFirstTimestamp;
-        LOG_I("{}, Already syncronized, timestamp: {}", port.getGlobalId(), *firstSampleAbsoluteTimestamp);
+
         return true;
     }
 
     if (isFirstPacketEvent())
     {
-        LOG_I("{}, First packet event", port.getGlobalId());
         return false;
     }
 
     SizeT startPackets = info.prevSampleIndex;
     Int droppedPackets = 0;
-
-    int cycleCount = 0;
 
     while (info.dataPacket.assigned())
     {
@@ -435,11 +432,7 @@ bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock
                 *firstSampleAbsoluteTimestamp = cachedFirstTimestamp;
             break;
         }
-
-        cycleCount++;
     }
-
-    LOG_I("{}, Cycle count: {}, timestamp: {}", port.getGlobalId(), cycleCount, *firstSampleAbsoluteTimestamp);
 
     synced = info.prevSampleIndex != static_cast<SizeT>(-1)
         ? SyncStatus::Synchronized

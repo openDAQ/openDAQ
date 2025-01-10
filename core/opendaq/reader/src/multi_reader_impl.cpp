@@ -57,7 +57,6 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
         this->releaseWeakRefOnException();
         throw;
     }
-    LOG_I("Ctor1");
 }
 
 MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType, SampleType domainReadType)
@@ -97,7 +96,6 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
         this->releaseWeakRefOnException();
         throw;
     }
-    LOG_I("Ctor2");
 }
 
 MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
@@ -139,7 +137,6 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
         this->releaseWeakRefOnException();
         throw;
     }
-    LOG_I("Ctor3");
 }
 
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
@@ -157,9 +154,6 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
         bool fromInputPorts;
         auto ports = checkPreconditions(sourceComponents, false, fromInputPorts);
 
-        LOG_I("From builder tick offset tolerance: {}/{}, this: {}",
-              tickOffsetTolerance.getNumerator(), tickOffsetTolerance.getDenominator(), (void*)this);
-
         if (fromInputPorts)
             portBinder = PropertyObject();
         connectPorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode(), fromInputPorts);
@@ -169,13 +163,10 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
         this->releaseWeakRefOnException();
         throw;
     }
-    LOG_I("Ctor4");
 }
 
 MultiReaderImpl::~MultiReaderImpl()
 {
-    LOG_I("~MultiReader {}", (void*)this);
-
     if (!portBinder.assigned())
         for (const auto& signal : signals)
             signal.port.remove();
@@ -1236,10 +1227,7 @@ void MultiReaderImpl::sync()
     for (auto& signal : signals)
     {
         system_clock::rep firstSampleAbsoluteTime;
-
-        auto wasSynced = signal.isSynced();
         synced = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
-        LOG_I("{}, Is synced: {}, wasSynced: {}, first: {}", signal.port.getGlobalId(), signal.isSynced(), wasSynced, firstSampleAbsoluteTime);
 
         if (synced)
         {
@@ -1252,25 +1240,18 @@ void MultiReaderImpl::sync()
 
     if (synced && tickOffsetTolerance.assigned())
     {
-        auto systemClockTicksInUnit = system_clock::period::den / system_clock::period::num;
-        auto systemClockTicksTolerance = (systemClockTicksInUnit * tickOffsetTolerance.getNumerator()) / tickOffsetTolerance.getDenominator();
-
-        auto toleranceLength =
+        auto tickOffsetToleranceSysTicks =
             (system_clock::period::den * tickOffsetTolerance.getNumerator()) /
             (system_clock::period::num * tickOffsetTolerance.getDenominator());
 
         auto diff = latestTime - earliestTime;
 
-        LOG_I("Earliest time: {}, Latest time: {}, Diff: {}, Tolerance length: {}",
-              earliestTime, latestTime, diff, toleranceLength);
-
-        if (diff > toleranceLength)
+        if (diff > tickOffsetToleranceSysTicks)
         {
             for (auto& signal: signals)
                 signal.synced = SyncStatus::SynchronizationFailed;
 
             synced = false;
-            LOG_W("Syncronization failed because tick offset tolerance exceeded");
         }
     }
 

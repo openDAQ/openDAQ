@@ -15,8 +15,6 @@
  */
 #pragma once
 #include <coretypes/formatter.h>
-#include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/range_type.h>
 
 #include <date/date.h>
 #include <chrono>
@@ -104,10 +102,8 @@ namespace reader
                 using namespace std::chrono;
                 using Seconds = duration<double>;
 
-                auto tmp = (resolution.getNumerator() * value) / static_cast<double>(resolution.getDenominator());
-                auto offset = Seconds(tmp);
-                auto offsetRounded = round<RoundTo>(epoch + offset);
-                return offsetRounded;
+                auto offset = Seconds((resolution.getNumerator() * value) / static_cast<double>(resolution.getDenominator()));
+                return round<RoundTo>(epoch + offset);
             }
         };
 

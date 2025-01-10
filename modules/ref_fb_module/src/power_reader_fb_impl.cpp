@@ -249,9 +249,6 @@ void PowerReaderFbImpl::createReader()
     auto tolerance = SimplifiedRatio(tickOffsetToleranceUs.count(), 1'000'000);
     tolerance = tolerance.simplify();
 
-    LOG_I("Tick offset tolerance count us: {}", tickOffsetToleranceUs.count());
-    LOG_I("Reader offset tolerance: {}/{}", tolerance.getNumerator(), tolerance.getDenominator());
-
     reader.release();
 
     reader = MultiReaderBuilder()

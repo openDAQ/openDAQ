@@ -167,6 +167,6 @@ class AppContext(object):
     def on_core_event(self, sender: Optional[daq.IComponent], args: daq.IEventArgs):
         if sender is not None and daq.IDevice.can_cast_from(sender) and args.event_name == "StatusChanged" and self.on_needs_refresh is not None:
             core_event_args: daq.ICoreEventArgs = daq.ICoreEventArgs.cast_from(args)
-            has_connection_status = any(k == "ConnectionStatus" for k in core_event_args.parameters.keys())
+            has_connection_status = "ConnectionStatus" in core_event_args.parameters.keys()
             if has_connection_status:
                 self.on_needs_refresh()

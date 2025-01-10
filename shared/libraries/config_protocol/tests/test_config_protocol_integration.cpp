@@ -642,18 +642,36 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoNotChangeableField)
     const auto serverDeviceInfo = serverSubDevice.getInfo();
     const auto clientDeviceInfo = clientSubDevice.getInfo();
 
-    ASSERT_EQ("manufacturer", serverDeviceInfo.getPropertyValue("manufacturer"));
-    ASSERT_EQ(serverDeviceInfo.getPropertyValue("manufacturer"), clientDeviceInfo.getPropertyValue("manufacturer"));
+    ASSERT_EQ("manufacturer", serverDeviceInfo.getManufacturer());
+    ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+    
+    {
+        ASSERT_ANY_THROW(serverDeviceInfo.setPropertyValue("manufacturer", "server_manufacturer"));
+        ASSERT_EQ("manufacturer", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
 
-    ASSERT_ANY_THROW(serverDeviceInfo.setPropertyValue("manufacturer", "new_manufacturer"));
-    serverDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "new_manufacturer");
-    ASSERT_EQ("new_manufacturer", serverDeviceInfo.getPropertyValue("manufacturer"));
-    ASSERT_EQ("manufacturer", clientDeviceInfo.getPropertyValue("manufacturer"));
+        serverDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "server_manufacturer_2");
+        ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
 
-    ASSERT_ANY_THROW(clientDeviceInfo.setPropertyValue("manufacturer", "new_manufacturer_2"));
-    clientDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "new_manufacturer_2");
-    ASSERT_EQ("new_manufacturer", serverDeviceInfo.getPropertyValue("manufacturer"));
-    ASSERT_EQ("new_manufacturer_2", clientDeviceInfo.getPropertyValue("manufacturer"));
+        serverDeviceInfo.asPtr<IDeviceInfoConfig>(true).setManufacturer("server_manufacturer_3");
+        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+    }
+
+    {
+        ASSERT_ANY_THROW(clientDeviceInfo.setPropertyValue("manufacturer", "client_manufacturer"));
+        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+
+        clientDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "client_manufacturer_2");
+        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("client_manufacturer_2", clientDeviceInfo.getManufacturer());
+
+        ASSERT_ANY_THROW(clientDeviceInfo.asPtr<IDeviceInfoConfig>(true).setManufacturer("client_manufacturer_3"));
+        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("client_manufacturer_2", clientDeviceInfo.getManufacturer());
+    }
 }
 
 TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)

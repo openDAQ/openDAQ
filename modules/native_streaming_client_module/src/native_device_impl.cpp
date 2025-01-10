@@ -531,7 +531,7 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
-    deviceInfo.asPtr<IDeviceInfoConfig>(true).setConnectionString(connectionString);
+    deviceInfo.asPtr<IPropertyObjectProtected>(true)->setProtectedPropertyValue(String("connectionString"), connectionString);
 
     if (!deviceInfo.hasProperty("NativeConfigProtocolVersion"))
     {

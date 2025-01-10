@@ -3,6 +3,7 @@ import os
 import opendaq as daq
 
 from . import utils
+from typing import Callable, Optional
 
 
 class DeviceInfoLocal:
@@ -30,9 +31,11 @@ class AppContext(object):
         self.icons = {}
         # daq
         self.instance = daq.Instance()
+        self.instance.context.on_core_event + daq.EventHandler(self.on_core_event)
         self.enabled_devices = {}
         self.connection_string = ''
         self.signals = {}
+        self.on_needs_refresh: Optional[Callable[[], None]] = None
 
     def register_device(self, device_info):
         conn = device_info.connection_string
@@ -160,3 +163,10 @@ class AppContext(object):
             return daq.IList()
 
         return component.all_properties if self.view_hidden_components else component.visible_properties
+
+    def on_core_event(self, sender: Optional[daq.IComponent], args: daq.IEventArgs):
+        if sender is not None and daq.IDevice.can_cast_from(sender) and args.event_name == "StatusChanged" and self.on_needs_refresh is not None:
+            core_event_args: daq.ICoreEventArgs = daq.ICoreEventArgs.cast_from(args)
+            has_connection_status = any(k == "ConnectionStatus" for k in core_event_args.parameters.keys())
+            if has_connection_status:
+                self.on_needs_refresh()

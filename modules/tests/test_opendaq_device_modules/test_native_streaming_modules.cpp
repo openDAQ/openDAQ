@@ -139,7 +139,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
     // set initial username and location
     server.setPropertyValue("userName", "testUser1");
     server.setPropertyValue("location", "testLocation1");
-    server.setPropertyValue("CustomChangeableField", "newValue");
+    server.getInfo().setPropertyValue("CustomChangeableField", "newValue");
 
     ASSERT_EQ(server.getInfo().getPropertyValue("userName"), "testUser1");
     ASSERT_EQ(server.getInfo().getPropertyValue("location"), "testLocation1");
@@ -153,7 +153,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
     // update the username and location after server creation
     server.setPropertyValue("userName", "testUser2");
     server.setPropertyValue("location", "testLocation2");
-    server.setPropertyValue("CustomChangeableField", "newValue2");
+    server.getInfo().setPropertyValue("CustomChangeableField", "newValue2");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

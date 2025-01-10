@@ -136,7 +136,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 7);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 8);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -1127,7 +1127,7 @@ TEST_F(NativeDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
 
     auto properties = refDevice.getAllProperties();
-    ASSERT_EQ(properties.getCount(), 11u);
+    ASSERT_EQ(properties.getCount(), 10u);
 }
 
 TEST_F(NativeDeviceModulesTest, DeviceInfo)

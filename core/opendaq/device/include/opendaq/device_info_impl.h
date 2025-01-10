@@ -708,17 +708,17 @@ ConstCharPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::SerializeId()
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
                                                                      IBaseObject* context,
-                                                                     IFunction* factoryCallback,
+                                                                     IFunction* /*factoryCallback*/,
                                                                      IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    return daqTry([&obj, &serialized, &context]
     {
         *obj = Super::DeserializePropertyObject(
             serialized,
             context,
-            factoryCallback,
+            nullptr,
             [](const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr& className)
             {
                 const auto info = createWithImplementation<IDeviceInfo, DeviceInfoConfigBase>();

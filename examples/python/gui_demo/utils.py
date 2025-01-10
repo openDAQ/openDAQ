@@ -279,7 +279,6 @@ metadata_converters = {
 def is_device_connected(device: daq.IDevice):
     status_container = device.status_container
     try:
-        status_container.statuses
         connection_status = status_container.get_status("ConnectionStatus")
         return connection_status.name == "Connected"
     except:

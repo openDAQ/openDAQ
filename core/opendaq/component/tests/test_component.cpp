@@ -171,6 +171,15 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
     ASSERT_EQ(str1, str2);
 }
 
+TEST_F(ComponentTest, SerializeName)
+{
+    const auto component = Component(NullContext(), nullptr, "Temp");
+    const auto serializer = JsonSerializer(True);
+    component.serialize(serializer);
+    const std::string str = serializer.getOutput();
+    ASSERT_TRUE(str.find("name") != std::string::npos);
+}
+
 TEST_F(ComponentTest, LockedProperties)
 {
     const auto component = Component(NullContext(), nullptr, "Temp");

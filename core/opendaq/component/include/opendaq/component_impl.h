@@ -1001,7 +1001,7 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         serializer.writeString(description);
     }
 
-    if (name != localId)
+    if (name != "")
     {
         serializer.key("name");
         serializer.writeString(name);

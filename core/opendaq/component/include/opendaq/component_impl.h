@@ -58,7 +58,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
 
-enum class ComponentErrorState : EnumType
+enum class ComponentStatus : EnumType
 {
     Ok = 0,
     Warning,
@@ -178,9 +178,12 @@ protected:
 
     static bool validateComponentId(const std::string& id);
 
-    void initComponentErrorStateStatus() const;
-    void setComponentErrorStateStatus(const ComponentErrorState& status) const;
-    void setComponentErrorStateStatusWithMessage(const ComponentErrorState& status, const StringPtr& message) const;
+    // Initialize component status with "Ok" status
+    void initComponentStatus() const;
+    // Set component status with default message (empty string) and log status and message (if different from previous, and not OK)
+    void setComponentStatus(const ComponentStatus& status) const;
+    // Set component status with message and log status and message (if different from previous, and not OK and empty string)
+    void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
@@ -1128,40 +1131,69 @@ bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::initComponentErrorStateStatus() const
+void ComponentImpl<Intf, Intfs...>::initComponentStatus() const
 {
     // Component error state status is added ("Ok" when a component is created)
     const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
     const auto componentStatusValue =
-        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentErrorState::Ok), this->context.getTypeManager());
+        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentStatus::Ok), this->context.getTypeManager());
     statusContainerPrivate.addStatus("ComponentStatus", componentStatusValue);
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::setComponentErrorStateStatus(const ComponentErrorState& status) const
+void ComponentImpl<Intf, Intfs...>::setComponentStatus(const ComponentStatus& status) const
 {
-    setComponentErrorStateStatusWithMessage(status, "");
+    setComponentStatusWithMessage(status, "");
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::setComponentErrorStateStatusWithMessage(const ComponentErrorState& status, const StringPtr& message) const
+void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const
 {
+    EnumerationPtr oldStatus;
+    StringPtr oldMessage;
+
     // Fail with explicit message of what happened if not initialized
     try
     {
-        auto dummy = this->statusContainer.getStatus("ComponentStatus");
+        oldStatus = this->statusContainer.getStatus("ComponentStatus");
+        oldMessage = this->statusContainer.getStatusMessage("ComponentStatus");
     }
     catch (const NotFoundException&)
     {
-        throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentErrorStateStatus needs to be called "
-                                "before setComponentErrorStateStatus.");
+        throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called "
+                                "before setComponentStatus.");
     }
+
+    // Check if status and message are the same as before, and also Ok and empty string, and if so, return
+    if (status == oldStatus && status == ComponentStatus::Ok && message == oldMessage && message == "")
+        return;
 
     // Set status if initialized
     const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
     const auto componentStatusValue =
         EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(status), this->context.getTypeManager());
     statusContainerPrivate.setStatusWithMessage("ComponentStatus", componentStatusValue, message);
+
+    // Log status and message
+    auto logger = this->context.getLogger();
+    if (logger.assigned())
+    {
+        const auto loggerComponent = logger.getOrAddComponent("ComponentStatus");
+        auto statusString = this->statusContainer.getStatus("ComponentStatus").getValue();
+        auto logString = fmt::format("Component {} status changed to {} with message: {}", this->name, statusString, message);
+        if (statusString == "Warning")
+        {
+            LOG_W("{}", logString)
+        }
+        else if (statusString == "Error")
+        {
+            LOG_E("{}", logString)
+        }
+        else
+        {
+            LOG_I("{}", logString)
+        }
+    }
 }
 
 using StandardComponent = ComponentImpl<>;

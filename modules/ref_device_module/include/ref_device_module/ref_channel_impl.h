@@ -53,6 +53,7 @@ public:
     void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
     static RatioPtr getResolution();
+    static Int getDeltaT(double sr);
 protected:
     void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating) override;
 
@@ -96,7 +97,6 @@ private:
     uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
     void createSignals();
     std::tuple<PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
-    [[nodiscard]] Int getDeltaT(const double sr) const;
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;
     void signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args);

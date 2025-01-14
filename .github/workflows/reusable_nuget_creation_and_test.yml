@@ -3,8 +3,13 @@ name: .NET Bindings NuGet creation and test
 on:
   workflow_call:
     inputs:
-      test_path:
-        description: the path for the test reports (optional, omit to disable tests)
+      windows_test_path:
+        description: the windows path for the test reports (optional, omit to disable tests)
+        required: false
+        default: ''
+        type: string
+      linux_test_path:
+        description: the linux path for the test reports (optional, omit to disable tests)
         required: false
         default: ''
         type: string
@@ -41,29 +46,36 @@ jobs:
     timeout-minutes: 120
 
     env:
-      nuget_work_path: ${{ github.workspace }}/build/nuget_work
-      nuget_work_path_win_x64: ${{ github.workspace }}/build/nuget_work/win-x64
-      nuget_work_path_linux_x64: ${{ github.workspace }}/build/nuget_work/linux-x64
-      dotnet_source_path: ${{ github.workspace }}/bindings/dotnet/openDAQ.Net
+      # use relative paths where possible (to github.workspace)
+      nuget_work_path: ./build/nuget_work
+      nuget_work_path_win_x64: ./build/nuget_work/win-x64
+      nuget_work_path_linux_x64: ./build/nuget_work/linux-x64
+      dotnet_source_path: ./bindings/dotnet/openDAQ.Net
+      dotnet_packages_path: ./packages/opendaq.net # relative to test-project
       nuget_artifact: Package (openDAQ.Net NuGet)
-      # map inputs to env
-      test_path: ${{ inputs.test_path }}
+      # map inputs to env (absolute paths)
+      windows_test_path: ${{ inputs.windows_test_path }}
       windows_x64_artifact: ${{ inputs.windows_x64_artifact_name }}
+      linux_test_path: ${{ inputs.linux_test_path }}
       linux_x64_artifact: ${{ inputs.linux_x64_artifact_name }}
 
-    # for the test job (dotnet-bindings-nuget-test-win)
+    # for the test jobs (dotnet-bindings-nuget-test-win / -linux)
     outputs:
+      # relative paths (to github.workspace)
       nuget_work_path: ${{ env.nuget_work_path }}
       nuget_work_path_win_x64: ${{ env.nuget_work_path_win_x64 }}
       nuget_work_path_linux_x64: ${{ env.nuget_work_path_linux_x64 }}
       dotnet_source_path: ${{ env.dotnet_source_path }}
+      dotnet_packages_path: ${{ env.dotnet_packages_path }}
       nuget_artifact_name: ${{ env.nuget_artifact }}
-      test_path: ${{ env.test_path }}
+      # absolute paths
+      windows_test_path: ${{ env.windows_test_path }}
+      linux_test_path: ${{ env.linux_test_path }}
 
     defaults:
       run:
         shell: pwsh
-        working-directory: ${{ env.nuget_work_path }}
+        # working-directory: ${{ env.nuget_work_path }}
 
     steps:
       - name: Checkout
@@ -94,24 +106,23 @@ jobs:
       - name: Read openDAQ version
         id: daq_version
         shell: bash
-        working-directory: ${{ github.workspace }}
         run: |
           DAQ_VER=$(cat opendaq_version)
           echo Head openDAQ version: $DAQ_VER
           echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
 
       - name: Build NuGet package
-        working-directory: ${{ env.dotnet_source_path }}/openDAQ.NET
         run: |
           # for .NET Bindings build
           $ENV:REPOSITORY_URL = '${{ github.repositoryUrl }}'.Replace('git:','https:')
           $ENV:BRANCH_NAME = '${{ github.base_ref || github.ref_name }}'.Replace('refs/heads/','')
           $ENV:COMMIT_SHA = '${{ github.sha }}'
           $ENV:SHORT_SHA = '${{ inputs.short_sha }}'
-          $SDK_WIN64_PATH = '-p:SDK_WIN64_PATH="${{ env.nuget_work_path_win_x64 }}"'
-          $SDK_LINUX64_PATH = '-p:SDK_LINUX64_PATH="${{ env.nuget_work_path_linux_x64 }}"'
+          $SDK_WIN64_PATH = "-p:SDK_WIN64_PATH=""$(Join-Path '${{ github.workspace }}' '${{ env.nuget_work_path_win_x64 }}' -Resolve)"""
+          $SDK_LINUX64_PATH = "-p:SDK_LINUX64_PATH=""$(Join-Path '${{ github.workspace }}' '${{ env.nuget_work_path_linux_x64 }}' -Resolve)"""
           $DAQ_VERSION = '-p:OPENDAQ_PACKAGE_VERSION=${{ steps.daq_version.outputs.DAQ_VERSION }}'
           if (Test-Path '${{ env.nuget_work_path_win_x64 }}/*.nupkg') { del '${{ env.nuget_work_path_win_x64 }}/*.nupkg' -Force }
+          cd '${{ env.dotnet_source_path }}/openDAQ.NET'
           & dotnet restore . --ignore-failed-sources
           & dotnet pack . --no-build --configuration Release $SDK_WIN64_PATH $SDK_LINUX64_PATH $DAQ_VERSION
         # restoring before packing to create obj\project.assets.json needed for packing
@@ -137,7 +148,7 @@ jobs:
 
     needs: [dotnet-bindings-nuget-creation]
 
-    if: inputs.test_path != ''
+    if: inputs.windows_test_path != ''
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-nuget
@@ -145,17 +156,19 @@ jobs:
     timeout-minutes: 120
 
     env:
+      # relative paths (to github.workspace)
       nuget_work_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_work_path }}
       nuget_work_path_win_x64: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_work_path_win_x64 }}
       nuget_work_path_linux_x64: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_work_path_linux_x64 }}
       dotnet_source_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.dotnet_source_path }}
+      dotnet_packages_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.dotnet_packages_path }}
       nuget_artifact: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_artifact_name }}
-      test_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.test_path }}
+     # absolute path
+      test_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.windows_test_path }}
 
     defaults:
       run:
         shell: pwsh
-        working-directory:  ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
 
     steps:
       - name: Checkout
@@ -173,19 +186,22 @@ jobs:
           ls -R
 
       - name: Cleanup private NuGet package store
+        working-directory:  ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
         run: |
-          if (Test-Path ./packages/opendaq.net)
+          if (Test-Path "${{ env.dotnet_packages_path }}")
           {
-            del ./packages/opendaq.net -Recurse -Force
+            del "${{ env.dotnet_packages_path }}" -Recurse -Force
           }
 
       - name: Restore NuGet packages
         # restoring using private config and packages dir to have the NuGet package store local and temporary
+        working-directory:  ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
         run: |
-          & dotnet restore . --configfile .nuget/NuGet.Config --ignore-failed-sources --packages ./packages
+          & dotnet restore . --configfile ./.nuget/NuGet.Config --ignore-failed-sources --packages ./packages
 
       - name: Test openDAQ NuGet package
         # testing with building but not restoring (done before)
+        working-directory:  ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
         run: |
           & dotnet test . --no-restore --configuration Release --logger "junit;LogFilePath=${{ env.test_path }}/test_DotNetBindings_nuget_win.xml" -p:TestTfmsInParallel=false
 
@@ -202,7 +218,7 @@ jobs:
 
     needs: [dotnet-bindings-nuget-creation]
 
-    if: inputs.test_path != ''
+    if: inputs.linux_test_path != ''
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-nuget
@@ -210,17 +226,19 @@ jobs:
     timeout-minutes: 120
 
     env:
+      # relative paths (to github.workspace)
       nuget_work_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_work_path }}
       nuget_work_path_win_x64: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_work_path_win_x64 }}
       nuget_work_path_linux_x64: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_work_path_linux_x64 }}
       dotnet_source_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.dotnet_source_path }}
+      dotnet_packages_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.dotnet_packages_path }}
       nuget_artifact: ${{ needs.dotnet-bindings-nuget-creation.outputs.nuget_artifact_name }}
-      test_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.test_path }}
+      # absolute path
+      test_path: ${{ needs.dotnet-bindings-nuget-creation.outputs.linux_test_path }}
 
     defaults:
       run:
         shell: pwsh
-        working-directory:  ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
 
     steps:
       - name: Checkout
@@ -243,19 +261,22 @@ jobs:
           ls -R
 
       - name: Cleanup private NuGet package store
+        working-directory:  ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
         run: |
-          if (Test-Path ./packages/opendaq.net)
+          if (Test-Path "${{ env.dotnet_packages_path }}")
           {
-            del ./packages/opendaq.net -Recurse -Force
+            del "${{ env.dotnet_packages_path }}" -Recurse -Force
           }
 
       - name: Restore NuGet packages
         # restoring using private config and packages dir to have the NuGet package store local and temporary
+        working-directory:  ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
         run: |
           & dotnet restore . --configfile .nuget/NuGet.Config --ignore-failed-sources --packages ./packages
 
       - name: Test openDAQ NuGet package
         # testing with building but not restoring (done before)
+        working-directory:  ${{ env.dotnet_source_path }}/openDAQ.Net.NuGet.Test
         run: |
           & dotnet test . --no-restore --configuration Release --logger "junit;LogFilePath=${{ env.test_path }}/test_DotNetBindings_nuget_linux.xml" -p:TestTfmsInParallel=false
 

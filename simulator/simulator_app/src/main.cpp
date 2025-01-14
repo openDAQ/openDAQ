@@ -1,4 +1,5 @@
 #include <chrono>
+#include <csignal>
 #include <thread>
 #include <opendaq/opendaq.h>
 #include <coreobjects/authentication_provider_factory.h>
@@ -62,7 +63,6 @@ int main(int /*argc*/, const char* /*argv*/[])
         (void)result;
     }
 
-    bool stopped = false;
     const ConfigProviderPtr configProvider = JsonConfigProvider();
 
     auto users = List<IUser>();
@@ -76,7 +76,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     instanceBuilder.addDiscoveryServer("mdns");
     instanceBuilder.setRootDevice("daqref://device0");
     instanceBuilder.setModifyIpConfigCallback(
-        [&stopped](const StringPtr& ifaceName, const PropertyObjectPtr& config)
+        [](const StringPtr& ifaceName, const PropertyObjectPtr& config)
         {
             try
             {
@@ -86,9 +86,9 @@ int main(int /*argc*/, const char* /*argv*/[])
             {
                 throw;
             }
-            // The new IP configuration has been successfully verified. Gracefully stop the application now
+            // The new IP configuration has been successfully verified. Stop the application now
             // to allow it to adopt the updated configuration and reopen network sockets upon relaunch.
-            stopped = true;
+            std::raise(SIGINT);
         }
     );
 
@@ -105,7 +105,7 @@ int main(int /*argc*/, const char* /*argv*/[])
             server.enableDiscovery();
     }
 
-    while (!stopped)
+    while (true)
     {
         std::this_thread::sleep_for(100ms);
     }

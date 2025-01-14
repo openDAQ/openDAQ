@@ -41,7 +41,7 @@ jobs:
     name: NuGet creation
 
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-nuget
+      group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-nuget-create
       cancel-in-progress: true
     timeout-minutes: 120
 
@@ -151,7 +151,7 @@ jobs:
     if: inputs.windows_test_path != ''
 
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-nuget
+      group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-nuget-test-windows
       cancel-in-progress: true
     timeout-minutes: 120
 
@@ -221,7 +221,7 @@ jobs:
     if: inputs.linux_test_path != ''
 
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-nuget
+      group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-nuget-test-linux
       cancel-in-progress: true
     timeout-minutes: 120
 

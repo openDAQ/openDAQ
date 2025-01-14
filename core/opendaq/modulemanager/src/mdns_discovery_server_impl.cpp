@@ -19,20 +19,13 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_info_ptr.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/device_network_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-MdnsDiscoveryServerImpl::MdnsDiscoveryServerImpl(const LoggerPtr& logger,
-                                                 const ListPtr<IString>& netInterfaceNames,
-                                                 const ProcedurePtr& modifyIpConfigCallback,
-                                                 const FunctionPtr& retrieveIpConfigCallback)
+MdnsDiscoveryServerImpl::MdnsDiscoveryServerImpl(const LoggerPtr& logger)
     : loggerComponent(logger.getOrAddComponent("MdnsDiscoveryServerImpl"))
-    , netInterfaceNames(netInterfaceNames)
-    , modifyIpConfigCallback(modifyIpConfigCallback)
-    , retrieveIpConfigCallback(retrieveIpConfigCallback)
 {
-    this->ipModificationEnabled =
-        verifyIpModificationServiceParameters(this->netInterfaceNames, this->modifyIpConfigCallback, this->retrieveIpConfigCallback);
 }
 
 ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo)
@@ -85,9 +78,6 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
         properties["manufacturer"] = deviceInfoPtr.getManufacturer().toStdString();
         properties["model"] = deviceInfoPtr.getModel().toStdString();
         properties["serialNumber"] = deviceInfoPtr.getSerialNumber().toStdString();
-
-        if (ipModificationEnabled && !discoveryServer.isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID))
-            registerIpModificationService(deviceInfoPtr);
     }
 
     if (configPtr.hasProperty("Path"))
@@ -118,7 +108,23 @@ ErrCode MdnsDiscoveryServerImpl::unregisterService(IString* id)
     return OPENDAQ_IGNORED;
 }
 
-void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr& deviceInfo)
+ErrCode MdnsDiscoveryServerImpl::setRootDevice(IDevice* device)
+{
+    DevicePtr devicePtr = DevicePtr::Borrow(device);
+
+    return daqTry([&]()
+        {
+            using namespace discovery_common;
+            if (discoveryServer.isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID))
+                discoveryServer.unregisterIpModificationService();
+
+            if (devicePtr.assigned() && devicePtr.asPtr<IDeviceNetworkConfig>().getNetworkConfigurationEnabled())
+                registerIpModificationService(devicePtr);
+            return OPENDAQ_SUCCESS;
+        });
+}
+
+void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& rootDevice)
 {
     using namespace discovery_common;
     using namespace discovery_server;
@@ -129,11 +135,11 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr&
     properties["protocolVersion"] = IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_VERSION;
 
     std::string interfaces;
-    for(const auto& ifaceName : netInterfaceNames)
+    for(const auto& ifaceName : rootDevice.asPtr<IDeviceNetworkConfig>().getNetworkInterfaceNames())
         interfaces += ifaceName.toStdString();
     properties["interfaces"] = interfaces;
 
-    if (deviceInfo.assigned())
+    if (const auto deviceInfo = rootDevice.getInfo(); deviceInfo.assigned())
     {
         properties["name"] = deviceInfo.getName().toStdString();
         properties["manufacturer"] = deviceInfo.getManufacturer().toStdString();
@@ -146,15 +152,19 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr&
         return;
     }
 
+    rootDeviceRef = rootDevice;
     ModifyIpConfigCallback modifyIpConfigCb = [this](const std::string& ifaceName, const TxtProperties& reqProps)
     {
+        DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr;
+
         TxtProperties resProps;
-        if (modifyIpConfigCallback.assigned())
+        if (rootDevice.assigned() && rootDevice.asPtr<IDeviceNetworkConfig>().getNetworkConfigurationEnabled())
         {
+            DeviceNetworkConfigPtr deviceNetworkConfig = rootDevice.asPtr<IDeviceNetworkConfig>();
             try
             {
                 auto config = IpModificationUtils::populateIpConfigProperties(reqProps);
-                modifyIpConfigCallback(ifaceName, config);
+                deviceNetworkConfig.submitNetworkConfiguration(ifaceName, config);
                 resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
                 resProps["ErrorMessage"] = "";
             }
@@ -178,12 +188,15 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr&
     };
     RetrieveIpConfigCallback retrieveIpConfigCb = [this](const std::string& ifaceName)
     {
+        DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr;
+
         TxtProperties resProps;
-        if (retrieveIpConfigCallback.assigned())
+        if (rootDevice.assigned() && rootDevice.asPtr<IDeviceNetworkConfig>().getNetworkConfigurationEnabled())
         {
+            DeviceNetworkConfigPtr deviceNetworkConfig = rootDevice.asPtr<IDeviceNetworkConfig>();
             try
             {
-                PropertyObjectPtr config = retrieveIpConfigCallback(ifaceName);
+                PropertyObjectPtr config = deviceNetworkConfig.retrieveNetworkConfiguration(ifaceName);
                 IpModificationUtils::encodeIpConfiguration(config, resProps);
 
                 resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
@@ -219,45 +232,11 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DeviceInfoPtr&
     }
 }
 
-bool MdnsDiscoveryServerImpl::verifyIpModificationServiceParameters(const ListPtr<IString>& netInterfaceNames,
-                                                                    const ProcedurePtr& modifyIpConfigCallback,
-                                                                    const FunctionPtr& retrieveIpConfigCallback)
-{
-    if (modifyIpConfigCallback.assigned() || retrieveIpConfigCallback.assigned())
-    {
-        if (!modifyIpConfigCallback.assigned() || !netInterfaceNames.assigned() || netInterfaceNames.empty())
-        {
-            throw InvalidParameterException("Incomplete parameters for IP modification service");
-        }
-        else
-        {
-            for (const auto& ifaceName : netInterfaceNames)
-            {
-                if (!ifaceName.assigned() || ifaceName == "")
-                    throw InvalidParameterException("Incomplete parameters for IP modification service");
-            }
-            return true;
-        }
-    }
-    else
-    {
-        return false;
-    }
-}
-
 #if !defined(BUILDING_STATIC_LIBRARY)
 
-extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryServer(IDiscoveryServer** objTmp,
-                                                           ILogger* logger,
-                                                           IList* netInterfaceNames,
-                                                           IProcedure* modifyIpConfigCallback,
-                                                           IFunction* retrieveIpConfigCallback)
+extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryServer(IDiscoveryServer** objTmp, ILogger* logger)
 {
-    return daq::createObject<IDiscoveryServer, MdnsDiscoveryServerImpl>(objTmp,
-                                                                        logger,
-                                                                        netInterfaceNames,
-                                                                        modifyIpConfigCallback,
-                                                                        retrieveIpConfigCallback);
+    return daq::createObject<IDiscoveryServer, MdnsDiscoveryServerImpl>(objTmp, logger);
 }
 
 #endif

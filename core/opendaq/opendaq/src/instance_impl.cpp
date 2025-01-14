@@ -58,6 +58,10 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
         auto instanceId = DefineLocalId(localId);
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
     }
+
+    for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
+        discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);
+
     rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 }
 
@@ -75,14 +79,10 @@ static StringPtr DefineLocalId(const StringPtr& localId)
     return "openDAQDevice";
 }
 
-static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName,
-                                                const LoggerPtr& logger,
-                                                const ListPtr<IString>& netInterfaceNames,
-                                                const ProcedurePtr& modifyIpConfigCallback,
-                                                const FunctionPtr& retrieveIpConfigCallback)
+static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
 {
     if (serviceName == "mdns")
-        return MdnsDiscoveryServer(logger, netInterfaceNames, modifyIpConfigCallback, retrieveIpConfigCallback);
+        return MdnsDiscoveryServer(logger);
     return nullptr;
 }
 
@@ -100,10 +100,6 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto typeManager = TypeManager();
     auto authenticationProvider = builderPtr.getAuthenticationProvider();
     auto options = builderPtr.getOptions();
-
-    const ListPtr<IString>& netInterfaceNames = builderPtr.getNetInterfaceNames();
-    const ProcedurePtr& modifyIpConfigCallback = builderPtr.getModifyIpConfigCallback();
-    const FunctionPtr& retrieveIpConfigCallback = builderPtr.getRetrieveIpConfigCallback();
 
     // Configure logger
     if (!logger.assigned())
@@ -133,7 +129,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
     for (const auto& serverName : builderPtr.getDiscoveryServers())
     {
-        auto server = createDiscoveryServer(serverName, logger, netInterfaceNames, modifyIpConfigCallback, retrieveIpConfigCallback);
+        auto server = createDiscoveryServer(serverName, logger);
         if (server.assigned())
             discoveryServers.set(serverName, server);
     }
@@ -347,6 +343,9 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
     if (devicePrivate.assigned())
         devicePrivate->setAsRoot();
+
+    for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
+        discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);
 
     LOG_I("Root device explicitly set to {}", connectionStringPtr);
 

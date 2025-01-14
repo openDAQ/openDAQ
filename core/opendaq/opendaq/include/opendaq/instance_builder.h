@@ -341,20 +341,6 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * openDAQ supports the "mdns" server by default, but must be added to the instance builder to be enabled.
      */
     virtual ErrCode INTERFACE_FUNC addDiscoveryServer(IString* serverName) = 0;
-
-    // [elementType(netInterfaceNames, IString), returnSelf]
-    virtual ErrCode INTERFACE_FUNC setNetInterfaceNames(IList* netInterfaceNames) = 0;
-
-    // [elementType(netInterfaceNames, IString)]
-    virtual ErrCode INTERFACE_FUNC getNetInterfaceNames(IList** netInterfaceNames) = 0;
-
-    // [returnSelf]
-    virtual ErrCode INTERFACE_FUNC setModifyIpConfigCallback(IProcedure* modifyIpConfigCallback) = 0;
-    virtual ErrCode INTERFACE_FUNC getModifyIpConfigCallback(IProcedure** modifyIpConfigCallback) = 0;
-
-    // [returnSelf]
-    virtual ErrCode INTERFACE_FUNC setRetrieveIpConfigCallback(IFunction* retrieveIpConfigCallback) = 0;
-    virtual ErrCode INTERFACE_FUNC getRetrieveIpConfigCallback(IFunction** retrieveIpConfigCallback) = 0;
 };
 /*!@}*/
 

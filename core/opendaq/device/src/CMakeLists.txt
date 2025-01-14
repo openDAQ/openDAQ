@@ -19,10 +19,12 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_UserLock user_lock.h)
     rtgen(SRC_ConnectionStatusContainerPrivate connection_status_container_private.h)
     rtgen(SRC_NetworkInterface network_interface.h)
+    rtgen(SRC_DeviceNetworkConfig device_network_config.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Device_PublicHeaders}
         ${SRC_DevicePrivate_PublicHeaders}
+        ${SRC_DeviceNetworkConfig_PublicHeaders}
         ${SRC_DeviceDomain_PublicHeaders}
         ${SRC_DeviceInfo_PublicHeaders}
         ${SRC_DeviceInfoConfig_PublicHeaders}
@@ -45,6 +47,7 @@ function(rtgen_component_${BASE_NAME})
     set(SRC_PrivateHeaders_Component_Generated
         ${SRC_Device_PrivateHeaders}
         ${SRC_DevicePrivate_PrivateHeaders}
+        ${SRC_DeviceNetworkConfig_PrivateHeaders}
         ${SRC_DeviceDomain_PrivateHeaders}
         ${SRC_DeviceInfo_PrivateHeaders}
         ${SRC_DeviceInfoConfig_PrivateHeaders}
@@ -66,6 +69,7 @@ function(rtgen_component_${BASE_NAME})
     set(SRC_Cpp_Component_Generated
         ${SRC_Device_Cpp}
         ${SRC_DevicePrivate_Cpp}
+        ${SRC_DeviceNetworkConfig_Cpp}
         ${SRC_DeviceDomain_Cpp}
         ${SRC_DeviceInfo_Cpp}
         ${SRC_DeviceInfoConfig_Cpp}
@@ -106,6 +110,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/network_interface_impl.h
         ${SDK_HEADERS_DIR}/network_interface_factory.h
         ${SDK_SRC_DIR}/network_interface_impl.cpp
+        ${SDK_HEADERS_DIR}/device_network_config.h
     )
     
     source_group("device//device_domain" FILES 
@@ -197,6 +202,7 @@ set(SRC_PublicHeaders_Component
     connection_status_container_private.h
     network_interface.h
     network_interface_factory.h
+    device_network_config.h
     PARENT_SCOPE
 )
 

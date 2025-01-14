@@ -73,6 +73,7 @@ public:
     bool registerIpModificationService(MdnsDiscoveredService& service,
                                        const ModifyIpConfigCallback& modifyIpConfigCb,
                                        const RetrieveIpConfigCallback& retrieveIpConfigCb);
+    bool unregisterIpModificationService();
     bool isServiceRegistered(const std::string& id);
     
 private:

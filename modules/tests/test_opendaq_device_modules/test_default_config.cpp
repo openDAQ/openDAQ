@@ -1,3 +1,4 @@
+#include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
 #include <opendaq/module_manager_utils_ptr.h>
 
@@ -459,7 +460,7 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
     const auto gateway6 = String("");
 
     SizeT modifyCallCount = 0;
-    ProcedurePtr modifyIpConfigCallback = [&](const StringPtr& ifaceName, const PropertyObjectPtr& config)
+    ProcedurePtr modifyIpConfigCallback = Procedure([&](StringPtr ifaceName, PropertyObjectPtr config)
     {
         ++modifyCallCount;
         EXPECT_EQ(ifaceName, "eth0");
@@ -469,19 +470,16 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
         EXPECT_EQ(config.getPropertyValue("dhcp6"), dhcp6);
         EXPECT_EQ(config.getPropertyValue("addresses6"), addresses6);
         EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
-    };
+    });
 
-    PropertyObjectPtr refDevConfig = PropertyObject();
-    refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
-    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
-    const auto serverInstance = InstanceBuilder()
-                                    .addDiscoveryServer("mdns")
-                                    .setRootDevice("daqref://device1", refDevConfig)
-                                    .setNetInterfaceNames(List<IString>("eth0"))
-                                    .setModifyIpConfigCallback(modifyIpConfigCallback)
-                                    .setRetrieveIpConfigCallback(nullptr)
-                                    .build();
+    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
+    serverInstance.getModuleManager().addModule(deviceModule);
+    auto deviceTypes = serverInstance.getAvailableDeviceTypes();
+    auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
+    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0"));
+    mockDeviceConfig.setPropertyValue("onSubmitConfig", modifyIpConfigCallback);
+    serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
 
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
@@ -493,7 +491,7 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
 
     for (const auto& devInfo : availableDevices)
     {
-        if (devInfo.getConnectionString() == "daq://openDAQ_sim01")
+        if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
         {
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
             auto ipConfig = devInfo.getNetworkInterface("eth0").createDefaultConfiguration();
@@ -520,7 +518,7 @@ TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
     const auto gateway6 = String("2001:db8:1:0::1");
 
     SizeT retrieveCallCount = 0;
-    FunctionPtr retrieveIpConfigCallback = [&](const StringPtr& ifaceName) -> PropertyObjectPtr
+    FunctionPtr retrieveIpConfigCallback = Function([&](StringPtr ifaceName) -> PropertyObjectPtr
     {
         ++retrieveCallCount;
         EXPECT_EQ(ifaceName, "eth0");
@@ -534,19 +532,17 @@ TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
         config.addProperty(StringProperty("gateway6", gateway6));
 
         return config;
-    };
+    });
 
-    PropertyObjectPtr refDevConfig = PropertyObject();
-    refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
-    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
-    const auto serverInstance = InstanceBuilder()
-                                    .addDiscoveryServer("mdns")
-                                    .setRootDevice("daqref://device1", refDevConfig)
-                                    .setNetInterfaceNames(List<IString>("eth0"))
-                                    .setModifyIpConfigCallback([](const StringPtr&, const PropertyObjectPtr&) {})
-                                    .setRetrieveIpConfigCallback(retrieveIpConfigCallback)
-                                    .build();
+    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
+    serverInstance.getModuleManager().addModule(deviceModule);
+    auto deviceTypes = serverInstance.getAvailableDeviceTypes();
+    auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
+    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0"));
+    mockDeviceConfig.setPropertyValue("onSubmitConfig", Procedure([](StringPtr, PropertyObjectPtr) {}));
+    mockDeviceConfig.setPropertyValue("onRetrieveConfig", retrieveIpConfigCallback);
+    serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
 
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
@@ -558,7 +554,7 @@ TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
 
     for (const auto& devInfo : availableDevices)
     {
-        if (devInfo.getConnectionString() == "daq://openDAQ_sim01")
+        if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
         {
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
             PropertyObjectPtr config;

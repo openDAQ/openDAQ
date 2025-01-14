@@ -19,34 +19,26 @@
 #include <discovery_server/mdnsdiscovery_server.h>
 #include <opendaq/logger_ptr.h>
 #include <coreobjects/property_object_ptr.h>
-#include <opendaq/device_info_ptr.h>
+#include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 class MdnsDiscoveryServerImpl : public ImplementationOf<IDiscoveryServer>
 {
 public:
-    MdnsDiscoveryServerImpl(const LoggerPtr& logger,
-                            const ListPtr<IString>& netInterfaceNames,
-                            const ProcedurePtr& modifyIpConfigCallback,
-                            const FunctionPtr& retrieveIpConfigCallback);
+    MdnsDiscoveryServerImpl(const LoggerPtr& logger);
 
     ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) override;
     ErrCode INTERFACE_FUNC unregisterService(IString* id) override;
+    ErrCode INTERFACE_FUNC setRootDevice(IDevice* device) override;
 
 private:
-    void registerIpModificationService(const DeviceInfoPtr& deviceInfo);
-    static bool verifyIpModificationServiceParameters(const ListPtr<IString>& netInterfaceNames,
-                                                      const ProcedurePtr& modifyIpConfigCallback,
-                                                      const FunctionPtr& retrieveIpConfigCallback);
+    void registerIpModificationService(const DevicePtr& rootDevice);
 
     discovery_server::MDNSDiscoveryServer discoveryServer;
     LoggerComponentPtr loggerComponent;
 
-    bool ipModificationEnabled{false};
-    ListPtr<IString> netInterfaceNames;
-    ProcedurePtr modifyIpConfigCallback;
-    FunctionPtr retrieveIpConfigCallback;
+    WeakRefPtr<IDevice> rootDeviceRef;
 };
 
 END_NAMESPACE_OPENDAQ

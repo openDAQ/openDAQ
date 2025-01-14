@@ -441,51 +441,6 @@ ErrCode InstanceBuilderImpl::addDiscoveryServer(IString* serverName)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::setNetInterfaceNames(IList* netInterfaceNames)
-{
-    this->netInterfaceNames = netInterfaceNames;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode InstanceBuilderImpl::getNetInterfaceNames(IList** netInterfaceNames)
-{
-    if (netInterfaceNames == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *netInterfaceNames = this->netInterfaceNames.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode InstanceBuilderImpl::setModifyIpConfigCallback(IProcedure* modifyIpConfigCallback)
-{
-    this->modifyIpConfigCallback = modifyIpConfigCallback;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode InstanceBuilderImpl::getModifyIpConfigCallback(IProcedure** modifyIpConfigCallback)
-{
-    if (modifyIpConfigCallback == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *modifyIpConfigCallback = this->modifyIpConfigCallback.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode InstanceBuilderImpl::setRetrieveIpConfigCallback(IFunction* retrieveIpConfigCallback)
-{
-    this->retrieveIpConfigCallback = retrieveIpConfigCallback;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode InstanceBuilderImpl::getRetrieveIpConfigCallback(IFunction** retrieveIpConfigCallback)
-{
-    if (retrieveIpConfigCallback == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
-    *retrieveIpConfigCallback = this->retrieveIpConfigCallback.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
 /////////////////////
 ////
 //// FACTORIES

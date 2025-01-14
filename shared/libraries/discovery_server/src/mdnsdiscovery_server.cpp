@@ -225,6 +225,16 @@ bool MDNSDiscoveryServer::registerIpModificationService(MdnsDiscoveredService& s
     return registerService(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID, service);
 }
 
+bool MDNSDiscoveryServer::unregisterIpModificationService()
+{
+    this->manufacturer = "";
+    this->serialNumber = "";
+    this->modifyIpConfigCallback = nullptr;
+    this->retrieveIpConfigCallback = nullptr;
+
+    return unregisterService(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID);
+}
+
 bool MDNSDiscoveryServer::isServiceRegistered(const std::string& id)
 {
     std::lock_guard<std::mutex> lock(mx);

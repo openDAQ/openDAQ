@@ -555,3 +555,48 @@ TEST_F(TmsDeviceTest, DeviceInfoChangeableField)
     ASSERT_EQ("new_value_2", serverDeviceInfo.getPropertyValue("TestChangeableField"));
     ASSERT_EQ("new_value_2", clientDeviceInfo.getPropertyValue("TestChangeableField"));
 }
+
+TEST_F(TmsDeviceTest, DeviceInfoNotChangeableField)
+{
+    const auto ctx = NullContext();
+    const DevicePtr serverDevice = createDevice();
+     
+    auto serverTmsDevice = TmsServerDevice(serverDevice, this->getServer(), ctx, serverContext);
+    const auto nodeId = serverTmsDevice.registerOpcUaNode();
+    const auto serverDeviceInfo = serverDevice.getDevices()[1].getInfo();
+     
+    const auto clientDevice = TmsClientRootDevice(ctx, nullptr, "dev", clientContext, nodeId);
+    const auto clientSubDevice = clientDevice.getDevices()[1];
+    const auto clientDeviceInfo = clientSubDevice.getInfo();
+
+    ASSERT_EQ("manufacturer", serverDeviceInfo.getManufacturer());
+    ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+    
+    {
+        ASSERT_ANY_THROW(serverDeviceInfo.setPropertyValue("manufacturer", "server_manufacturer"));
+        ASSERT_EQ("manufacturer", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+
+        serverDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "server_manufacturer_2");
+        ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+
+        serverDeviceInfo.asPtr<IDeviceInfoConfig>(true).setManufacturer("server_manufacturer_3");
+        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+    }
+
+    {
+        ASSERT_ANY_THROW(clientDeviceInfo.setPropertyValue("manufacturer", "client_manufacturer"));
+        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+
+        clientDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "client_manufacturer_2");
+        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("client_manufacturer_2", clientDeviceInfo.getManufacturer());
+
+        clientDeviceInfo.asPtr<IDeviceInfoConfig>(true).setManufacturer("client_manufacturer_3");
+        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("client_manufacturer_3", clientDeviceInfo.getManufacturer());
+    }
+}

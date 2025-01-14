@@ -48,7 +48,6 @@ protected:
     void findAndCreateInputsOutputs();
     void findAndCreateCustomComponents();
     void findAndCreateSyncComponent();
-    void findAndCreateProporties();
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;

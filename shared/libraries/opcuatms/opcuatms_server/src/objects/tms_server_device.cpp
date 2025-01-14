@@ -56,8 +56,6 @@ namespace detail
         {"SystemType", "systemType"},
         {"SystemUUID", "systemUuid"},
         {"OpenDaqPackageVersion", "sdkVersion"},
-        {"Location", "location"},
-        {"UserName", "userName"},
     };
     
     static std::unordered_map<std::string, std::function<OpcUaVariant(const DeviceInfoPtr&)>> componentFieldToVariant = {
@@ -189,11 +187,6 @@ void TmsServerDevice::populateDeviceInfo()
     {
         const auto& reference = result->references[i];
         std::string browseName = opcua::utils::ToStdString(reference.browseName.name);
-
-        if (browseName == "UserName")
-            continue;
-        if (browseName == "Location")
-            continue;
 
         std::string propName;
         if (const auto it = detail::componentFieldToDeviceInfo.find(browseName); it != detail::componentFieldToDeviceInfo.end())

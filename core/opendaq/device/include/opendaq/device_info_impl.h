@@ -145,6 +145,7 @@ private:
     DeviceTypePtr deviceType;
 
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
+    PropertyObjectPtr getOwnerOfProperty(const StringPtr& propertyName);
     bool isLocal;
 };
 
@@ -222,9 +223,6 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     {
         for (const auto& propName : changeableDefaultPropertyNames)
             this->changeableDefaultPropertyNames.insert(ToLowerCase(propName));
-
-        this->changeableDefaultPropertyNames.insert("username");
-        this->changeableDefaultPropertyNames.insert("location");
     }
 
     createAndSetStringProperty("manufacturer", "");
@@ -928,17 +926,22 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setValueInternal(IStrin
 }
 
 template <typename TInterface, typename ... Interfaces>
+PropertyObjectPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getOwnerOfProperty(const StringPtr& propertyName)
+{
+    if (propertyName == "userName" || propertyName == "location")
+        if (!this->objPtr.getProperty(propertyName).getReadOnly())
+            return Super::getPropertyObjectParent();
+    return nullptr;
+}
+
+
+template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValueNoLock(IString* propertyName, IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
-    auto propertyNamePtr = StringPtr::Borrow(propertyName);
-   
-    if (propertyNamePtr == "userName" || propertyNamePtr == "location")
-    {
-        auto owner = Super::getPropertyObjectParent();
-        if (owner.assigned())
-            return owner->getPropertyValue(propertyName, value);
-    }
+    auto owner = getOwnerOfProperty(propertyName);
+    if (owner.assigned())
+        return owner->getPropertyValue(propertyName, value);
 
     return Super::getPropertyValueNoLock(propertyName, value); 
 }
@@ -947,13 +950,10 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPropertyValueNoLock(IString* propertyName, IBaseObject* value)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
-    auto propertyNamePtr = StringPtr::Borrow(propertyName);
-    if (propertyNamePtr == "userName" || propertyNamePtr == "location")
-    {
-        auto owner = Super::getPropertyObjectParent();
-        if (owner.assigned())
-            return owner->setPropertyValue(propertyName, value);
-    }
+    auto owner = getOwnerOfProperty(propertyName);
+    if (owner.assigned())
+        return owner->setPropertyValue(propertyName, value);
+
     return Super::setPropertyValueNoLock(propertyName, value);
 }
 
@@ -961,13 +961,10 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
-    auto propertyNamePtr = StringPtr::Borrow(propertyName);
-    if (propertyNamePtr == "userName" || propertyNamePtr == "location")
-    {
-        auto owner = Super::getPropertyObjectParent();
-        if (owner.assigned())
-            return owner.template as<IPropertyObjectProtected>(true)->setProtectedPropertyValue(propertyName, value);
-    }
+    auto owner = getOwnerOfProperty(propertyName);
+    if (owner.assigned())
+        return owner.template as<IPropertyObjectProtected>(true)->setProtectedPropertyValue(propertyName, value);
+
     return Super::setProtectedPropertyValue(propertyName, value);
 }
 
@@ -975,14 +972,26 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
 {
     ErrCode err = Super::setOwner(newOwner);
-    if (!coreEvent.assigned() && newOwner != nullptr)
+
+    if (newOwner != nullptr)
     {
         ComponentPtr parent = newOwner;
-        parent.getContext()->getOnCoreEvent(&this->coreEvent);
-        ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMetod(args); };
-        this->setCoreEventTrigger(procedure);
-        this->coreEventMuted = false;
+
+        if (!this->objPtr.getProperty("userName").getReadOnly())
+            parent->addProperty(StringProperty("userName", ""));
+
+        if (!this->objPtr.getProperty("location").getReadOnly())
+            parent->addProperty(StringProperty("location", ""));
+
+        if (!coreEvent.assigned())
+        {
+            parent.getContext()->getOnCoreEvent(&this->coreEvent);
+            ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMetod(args); };
+            this->setCoreEventTrigger(procedure);
+            this->coreEventMuted = false;
+        }
     }
+    
     return err;
 }
 

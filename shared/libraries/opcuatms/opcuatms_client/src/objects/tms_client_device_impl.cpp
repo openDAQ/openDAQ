@@ -97,7 +97,12 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                                          const TmsClientContextPtr& clientContext,
                                          const opcua::OpcUaNodeId& nodeId,
                                          bool isRootDevice)
-    : TmsClientComponentBaseImpl(ctx, parent, localId, clientContext, nodeId)
+    : TmsClientComponentBaseImpl(ctx, 
+                                 parent,
+                                 localId, 
+                                 clientContext, 
+                                 nodeId,
+                                 {{"UserName", "userName"}, {"Location", "location"}})
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent("TmsClientDevice")
@@ -114,7 +119,6 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
     findAndCreateSyncComponent();
-    findAndCreateProporties();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
@@ -142,7 +146,7 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
                         
             auto numberInList = this->tryReadChildNumberInList(subdeviceNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedDevices.count(numberInList))
-                orderedDevices.insert(std::pair<uint32_t, ComponentPtr>(numberInList, clientSubdevice));
+                orderedDevices.emplace(numberInList, clientSubdevice);
             else
                 unorderedDevices.emplace_back(clientSubdevice);
         }
@@ -228,6 +232,11 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         for (const auto& [name, _] : deviceInfoChangeableFields)
             changeableProperties.pushBack(String(name));
     }
+
+    if (this->objPtr.hasProperty("userName"))
+        changeableProperties.pushBack("userName");
+    if (this->objPtr.hasProperty("location"))
+        changeableProperties.pushBack("location");
 
     auto deviceInfo = DeviceInfoWithChanegableFields(changeableProperties);
     deviceInfo.setName(this->client->readDisplayName(this->nodeId));
@@ -358,21 +367,6 @@ void TmsClientDeviceImpl::findAndCreateSyncComponent()
                                        syncComponentNodeId));
 }
 
-void TmsClientDeviceImpl::findAndCreateProporties()
-{
-    if (auto it = this->introspectionVariableIdMap.find("UserName"); it != this->introspectionVariableIdMap.end())
-    {
-        introspectionVariableIdMap.emplace("userName", it->second);
-        // this->introspectionVariableIdMap.erase("UserName");
-    }
-
-    if (auto it = this->introspectionVariableIdMap.find("Location"); it != this->introspectionVariableIdMap.end())
-    {
-        introspectionVariableIdMap.emplace("location", it->second);
-        // this->introspectionVariableIdMap.erase("Location");
-    }
-}
-
 void TmsClientDeviceImpl::fetchTicksSinceOrigin()
 {
     auto timeDomainNodeId = getNodeId("Domain");
@@ -416,7 +410,7 @@ void TmsClientDeviceImpl::findAndCreateFunctionBlocks()
             auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, browseName, clientContext, functionBlockNodeId);
             const auto numberInList = this->tryReadChildNumberInList(functionBlockNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedFunctionBlocks.count(numberInList))
-                orderedFunctionBlocks.insert(std::pair<uint32_t, FunctionBlockPtr>(numberInList, clientFunctionBlock));
+                orderedFunctionBlocks.emplace(numberInList, clientFunctionBlock);
             else
                 unorderedFunctionBlocks.emplace_back(clientFunctionBlock);
         }
@@ -447,7 +441,7 @@ void TmsClientDeviceImpl::findAndCreateSignals()
             auto clientSignal = FindOrCreateTmsClientSignal(context, signals, clientContext, signalNodeId);
             const auto numberInList = this->tryReadChildNumberInList(signalNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedSignals.count(numberInList))
-                orderedSignals.insert(std::pair<uint32_t, SignalPtr>(numberInList, clientSignal));
+                orderedSignals.emplace(numberInList, clientSignal);
             else
                 unorderedSignals.emplace_back(clientSignal);
         }

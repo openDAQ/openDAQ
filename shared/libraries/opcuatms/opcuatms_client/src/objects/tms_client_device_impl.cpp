@@ -297,8 +297,11 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
     }
 
-    for (const auto & [propName, nodeId] : deviceInfoChangeableFields)
+    for (const auto & entry : deviceInfoChangeableFields)
     {
+        const auto& propName = entry.first;
+        const auto& nodeId = entry.second;
+
         try
         {
             deviceInfo.getOnPropertyValueWrite(propName) += [this, &nodeId](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)

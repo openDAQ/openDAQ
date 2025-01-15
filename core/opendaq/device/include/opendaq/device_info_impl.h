@@ -31,6 +31,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/custom_log.h>
 #include <set>
+#include <cctype>
 
 BEGIN_NAMESPACE_OPENDAQ
 

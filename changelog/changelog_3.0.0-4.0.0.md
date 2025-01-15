@@ -148,7 +148,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-11-28
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 
@@ -180,7 +180,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-11-25
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 
@@ -250,7 +250,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-11-08
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 
@@ -350,7 +350,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-10-24
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 
@@ -370,7 +370,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-10-24
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 
@@ -432,7 +432,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-10-11
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 
@@ -458,7 +458,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-10-10
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 
@@ -523,7 +523,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-10-03
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 
@@ -568,7 +568,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-09-11
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 
@@ -751,7 +751,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 # 2024-07-26
 
 > [!NOTE]
->Breaks binary compatibility
+> Breaks binary compatibility
 
 ## Description
 

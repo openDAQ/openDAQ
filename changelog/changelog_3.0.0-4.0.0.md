@@ -242,7 +242,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 ## Description
 
-- Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool\* isLockedOut)
+- Raise minimum required config protocol version to 6 for the following device locking methods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool\* isLockedOut)
 
 # 2024-11-12
 

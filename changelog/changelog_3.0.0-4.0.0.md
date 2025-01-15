@@ -1,4 +1,4 @@
-# Component statuses
+# Component statuses [#625](https://github.com/openDAQ/openDAQ/pull/625) [#650](https://github.com/openDAQ/openDAQ/pull/650)
 
 ## Description
 

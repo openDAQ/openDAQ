@@ -1,4 +1,4 @@
-# Type of change:
+# Type of change
 
 Please delete options that are not relevant.
 
@@ -7,7 +7,7 @@ Please delete options that are not relevant.
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] This change requires a documentation update
 
-# Checklist:
+# Checklist
 
 - [ ] Pull request title reflects its content
 - [ ] My code follows the style guidelines of this project
@@ -19,5 +19,8 @@ Please delete options that are not relevant.
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published in downstream modules
 
-# Description:
+# Description
+
+
+# Required integration changes
 

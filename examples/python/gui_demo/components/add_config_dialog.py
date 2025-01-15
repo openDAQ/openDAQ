@@ -3,7 +3,7 @@ from tkinter import ttk
 
 from ..app_context import AppContext
 from .dialog import Dialog
-from .properties_treeview import PropertiesTreeview
+from .generic_properties_treeview import PropertiesTreeview
 
 class AddConfigDialog(Dialog):
     def __init__(self, parent, context: AppContext, connection_string=None):

@@ -3,7 +3,7 @@ from tkinter import ttk
 
 from ..app_context import AppContext
 from .metadata_fields_selector_dialog import MetadataFieldsSelectorDialog
-from .properties_treeview import PropertiesTreeview
+from .generic_properties_treeview import PropertiesTreeview
 
 class PropertiesView(ttk.Frame):
     def __init__(self, parent: ttk.Frame, node=None, context: AppContext = None, **kwargs):

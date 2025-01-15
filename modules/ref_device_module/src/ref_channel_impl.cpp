@@ -389,7 +389,7 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
     return {dataPacket, domainPacket};
 }
 
-Int RefChannelImpl::getDeltaT(const double sr) const
+Int RefChannelImpl::getDeltaT(double sr)
 {
     const double tickPeriod = getResolution();
     const double samplePeriod = 1.0 / sr;

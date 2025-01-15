@@ -280,4 +280,16 @@ namespace test_helpers
 
 }
 
+inline void removeDeviceDomainSignal(ListPtr<ISignal>& list)
+{
+    for (size_t i = 0; i < list.getCount(); ++i)
+    {
+        if (list[i].getDescriptor().getName() == "Time")
+        {
+            list.deleteAt(i);
+            break;
+        }
+    }
+}
+
 END_NAMESPACE_OPENDAQ

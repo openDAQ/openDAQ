@@ -213,6 +213,29 @@ TEST_F(RefDeviceModuleTest, DeviceDomainUsesOffset)
     ASSERT_EQ(res, UsesOffset::Unknown);
 }
 
+TEST_F(RefDeviceModuleTest, DeviceDomainSignal)
+{
+    const auto module = CreateModule();
+
+    const auto device = module.createDevice("daqref://device1", nullptr);
+    const auto deviceDomainSignal = device.getSignals()[0];
+
+    ASSERT_TRUE(deviceDomainSignal.getTags().contains("DeviceDomain"));
+
+    BaseObjectPtr lastValue;
+    size_t retryCount = 0;
+    do
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        lastValue = deviceDomainSignal.getLastValue();
+        retryCount++;
+    } while (!lastValue.assigned() && retryCount < 2000);
+
+    const auto lastIntValue = static_cast<Int>(lastValue);
+
+    ASSERT_GT(lastIntValue, 0);
+}
+
 TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();

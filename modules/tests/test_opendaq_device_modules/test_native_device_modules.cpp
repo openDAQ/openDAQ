@@ -964,9 +964,9 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
 
     auto signals = client.getSignals(search::Recursive(search::Any()));
     auto signalsServer = server.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(signals.getCount(), 7u);
+    ASSERT_EQ(signals.getCount(), 8u);
     auto signalsVisible = client.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(signalsVisible.getCount(), 4u);
+    ASSERT_EQ(signalsVisible.getCount(), 5u);
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
     auto fbs = devices[0].getFunctionBlocks();
@@ -1895,9 +1895,9 @@ TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
     for(const auto& testDevice : testedDevices)
     {
         auto signals = testDevice.getSignals(search::Recursive(search::Any()));
-        ASSERT_EQ(signals.getCount(), 7u);
+        ASSERT_EQ(signals.getCount(), 8u);
         auto signalsVisible = testDevice.getSignals(search::Recursive(search::Visible()));
-        ASSERT_EQ(signalsVisible.getCount(), 4u);
+        ASSERT_EQ(signalsVisible.getCount(), 5u);
         auto devices = testDevice.getDevices();
         ASSERT_EQ(devices.getCount(), 1u);
         auto fbs = testDevice.getFunctionBlocks();

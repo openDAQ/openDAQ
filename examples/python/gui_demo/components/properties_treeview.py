@@ -158,7 +158,7 @@ class PropertiesTreeview(ttk.Treeview):
         while prop is None and len(path) > 0:
             path = path[:-1]
             prop = utils.get_property_for_path(self.context, path, self.node)
-        return (prop, path)
+        return prop, path
 
     def handle_paste(self):
         selected_item_id = utils.treeview_get_first_selection(self)

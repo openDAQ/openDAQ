@@ -1,6 +1,5 @@
 = Multi Reader specification
 :stem:
-:toc: auto
 
 == Overview
 
@@ -50,6 +49,7 @@ int main()
             // Buffers have 100ms worth of memory for each signal
             auto sampleRate = reader::getSampleRate(
                 status.getMainDescriptor().getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+            
             kBufferSize = sampleRate / 10;
 
             for (size_t i = 0; i < signalsCount; ++i)
@@ -188,6 +188,7 @@ Cpp::
 ----
 
 if (status.getReadStatus() == ReadStatus::Event)
+{
     // ...
 
     for (size_t i = 0; i < signalsCount; ++i)
@@ -298,25 +299,29 @@ outputDomainSignal.sendPacket(outputDomainPacket);
 ----
 ====
 
-=== Advanced usage
+== Advanced usage
 
-_Comment: Section should explain all multi reader builder parameters that are not explained above_
+This section highlights the remaining Multi Reader options, and details when and how the Multi Reader can be used to read signals with different sampling rates.
 
-required common sample rate 
-start on full unit of domain
-min read count
+=== Advanced builder options
+
+* **Min read count**: Specifies the minimal amount of samples that can be read. If there are less samples than specified available, `getAvailableCount()` will return 0, while /read()/readWithDomain()` will not read any data. If there are less samples available than the minimum read count before the next event packet would be read, the samples before the event are discarded.
+* **Required common sample rate**: Common sample rate of of the Multi Reader calculated as the Least Common Multiple (LCM) of all signals sample rates. If common sample rate setup manually, all signal dividers will be calculated according to those sample rate.
+* **Start on full unit of domain**: Align common starting point of all singals to even numbers of domain units from common origin, eg. on a full second.
 
 === Different sample rates
 
-The case of different sample rates differs from the basic case in several ways:
-- The main descriptor and offset from the Multi Reader status are no longer usable, because signals could have different sample rates.
-- The output sample count will be different for each signal and should be calculated using dividers.
+In this section two terms will be used:
+- **Common sample rate (SR)**: The least common sampling rate multiple of all signals read by the multi reader. Obtained via `reader.getCommonSampleRate()` that returns the sampling rate in Hz. The function should be used only after the first `read/readWithDomain()` call, as the reader does not have information on signal rates before that.
+- **SR divider**: The value obtained via by dividing the common sample rate with the sampling rate of an individual read signal: `commonSampleRate / signalSampleRate`.
 
-The divider for a particular signal is calculated as `commonSampleRate / signalSampleRate`. To obtain the common sample rate from the Multi Reader, the user can call the `getCommonSampleRate()` method. However, note that this method will return a value only after the user reads the descriptors for the first time, if the required sample rate was not set before during creation. However, if the required rate is set, the common sample rate will be available right from the Multi Reader creation.
+When reading signals with different sample rates the following changes:
+- The output sample count will be different for each signal and can be calculated using SR dividers.
+- The main descriptor and offset from the Multi Reader status still correspond only to the first signal in the reader, but do not apply generally to all signal rates. These fields should be used with caution.
 
-To obtain the signal's sample rate, the user can call `daq::reader::getSampleRate(domainDescriptor)` on the domain descriptor if the signal was returned in the status from the first `read()/readWithDomain()` call.
+To obtain the sample rate of any individual signal, the function `reader::getSampleRate(domainDescriptor)` is available. It can be used on any domain descriptor obtained via events when reading data.
 
-The user can allocate memory according to the requested number of samples, with the element count equal to `count / divider`, where `count` is the requested number of samples. The user cannot read fewer samples than the least common multiple (LCM) of the dividers of all signals connected to the Multi Reader.
+When reading signals with different rates, no fewer samples than the least common multiple (LCM) of the dividers of all signals connected to the Multi Reader can be read. Additionally, when allocating buffers, the SR dividers should be used to determine the sizes of said buffers for any given signal. For example, if we would wish to read at the minimum amount of data (equal to the LCM), the buffer for each individual signal would be allocated as `LCM / signal.SRDiv`. To hold more data, the buffers can be expanded, by multiplying the minimum size (`LCM / signal.SRDiv`) by an integer coefficient.
 
 [tabs]
 ====
@@ -324,51 +329,73 @@ Cpp::
 +
 [source,cpp]
 ----
-auto size = count / divider;
-domainBuffers[i] = std::calloc(size, getSampleSize(kDomainSampleType));
-dataBuffers[i] = std::calloc(size, getSampleSize(kValueSampleType));
+std::vector<size_t> dividers;
+
+auto dataAvailable = multiReader.getAvailableCount();
+auto count = std::min(kBufferSize, dataAvailable);
+auto status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
+
+if (status.getReadStatus() == ReadStatus::Event)
+{
+    auto packets = status.getEventPackets();
+    if (!(packets.getValueList()[0].getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED))
+        continue;
+
+    // SRDiv calculation
+    size_t commonSampleRate = multiReader.getCommonSampleRate();
+    dividers.clear();
+    std::cout << "Dividers: ";
+    for (const auto& [_, eventPacket] : status.getEventPackets())
+    {
+        auto descriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+        auto sampleRate = reader::getSampleRate(descriptor);
+        dividers.push_back(commonSampleRate / sampleRate);
+        std::cout << dividers.back() << ", ";
+    }
+    std::cout << "\n";
+
+    // Allocate buffers for 100ms according to commonSampleRate
+    size_t lcm = 1;
+    for (const auto& div : dividers)
+        lcm = std::lcm<std::size_t>(lcm, div);
+
+    // Calculate k as the minimum number of LCM-size blocks to read ~100ms of data
+    size_t k = std::max(commonSampleRate / lcm / 10, static_cast<size_t>(1));
+    kBufferSize = k * lcm;
+    
+    std::cout << "Buffer sizes: ";
+    for (size_t i = 0; i < signalsCount; ++i)
+    {
+        dataBuffers[i] = std::calloc(kBufferSize / dividers[i], getSampleSize(SampleType::Float64));
+        domainBuffers[i] = std::calloc(kBufferSize / dividers[i], getSampleSize(SampleType::Int64));
+        std::cout << kBufferSize / dividers[i] << ", ";
+    }
+    std::cout << "\n";
+}
 ----
 ====
-
-In the example above `count` is the maximum amount of samples, that could be read from packet. Buffer sizes will be scaled from this amount in according with the dividers. 
-
-== Limitations
-
-* **No Asynchronous Signals**: The Multi Reader does not support asynchronous signals. Only a linear rule is accepted for domain signals.
-* **Gap Packets**: Gap packets can only be detected when the reader is created from ports, not directly from signals.
-* **Fixed Sample Rates**: Changing input sample rates invalidates the reader, so it is impossible to use Multi Reader if one of the signals sample rate was changed.
-* **Additions Post-Creation**: Adding new signals or ports to the reader after creation is not supported.
-* **Tick Alignment**: Tick alignment and offsets must adhere to strict rules for synchronization.
-
-== All builder options
-
-* **Min read count**: Specifies the minimal amount of samples that can be read. `getAvailableCount()/read()/readWithDomain()` will return 0, if there are available less samples. Also two last calls will drop samples from the signal queue in case of somebody will try to call them with 0 count, if amount of samples in queue less than min read count.
-* **Required common sample rate**: Common sample rate of of the Multi Reader calcualted as the Least Common Multiple (LCM) of all signals sample rates. If common sample rate setup manually, all signal dividers will be calculated according to those sample rate.
-* **Start on full unit of domain**: Align commont starting point of all singals to even numbers of domain units from common origin. 
-* **Ports vs. Signals**: The Multi Reader can be constructed using input ports or signals, but not a mixture of both.
-** *Ports*: Allow detection of gaps between packets.
-** *Signals*: Do not support gap detection.
 
 == Signal synchronization
 
 Synchronization of multiple readers refers to identifying a common point in the domain space and beginning to read all signal samples simultaneously from that point or immediately afterward.
 
-Synchronization happens during three Multi Reader calls - `getAvailableCount()` and `read()/readWithDomain()`. But synchronization inside `getAvailableCount()` is not a complete procedure, because during `getAvailableCount()` multireader does not obtain domain samples and only checks sample counts in connection queues, thus makes it impossible to find common starting point. 
+Synchronization happens during three Multi Reader calls - `getAvailableCount()` and `read()/readWithDomain()`. Synchronization within `getAvailableCount()` is not a complete procedure. during `getAvailableCount()`, the Multi Reader does not obtain domain samples and only checks sample counts in connection queues, making it impossible to find common starting point. 
 
-To synchronize two signals, the Multi Reader initially needs to read their domain descriptors from the connection queue. This can be achieved by `read()/readWithDomain()` calls. Before this call, `getAvailableCount()` will return 0, and the result of `getCommonSampleRate()` will also be unavailable.
+To synchronize two signals, the Multi Reader initially reads their domain descriptors from the connection packet queue. This is triggerd by calling `read()`` or `readWithDomain()`. Before those calls, `getAvailableCount()` will return 0, and the `getCommonSampleRate()` will not yet be available.
 
-On the first `read()/readWithDomain()` call, the Multi Reader will save the resolution for each signal, set the unsynchronized state, save the origin, and calculate sample rate of the signal and its divider. If the previous sample rate was not undefined and does not equal the new one, the Multi Reader transitions to an invalid state. The common sample rate amoing all signals will be calculated as the least common multiplier (LCM) of the sample rate of each individual signal. If a the required sample rate was configured during reader creation, said rate will be the common one. From the common sample rate, the divider for each individual signal will be calculated. The common sample rate must be divisible by the divider without remainder. If this is not the case, the Multi Reader becomes invalid. Additionally, the LCM of all dividers is calculated for use in aligning the count of available and read samples in `getAvailableCount()` and `read()/readWithDomain()` calls and is used to align the sample count in the `skipSamples()` call.
+On the first `read` call, the Multi Reader saves the resolution for each signal, saves their origin, and calculates the sampling rates and SR dividers. At this point, if a change in sampling rate is detected, the reader switches to an invalid state. The common sample rate among all signals is calculated as the least common multiplier (LCM) of the sampling rates of all signals. If the required sample rate paramater is configured, said rate will be enforced as the common one. 
 
-After event packets are removed from the beginning of the input port queues, synchronization can happen. The earliest origin and highest resolution among all signals are calculated (the system resolution, which runs openDAQ, is also considered as one of the resolutions and often becomes the highest one). Then, for each signal, the offset in maximum resolution ticks from the earliest epoch value is calculated, along with a multiplier, which represents the ratio of the signal resolution to the maximum resolution (stem:["multiplier" = "signal_resolution" / "maximum_resolution"]) and is used to convert signal ticks from the signal resolution to the common maximum resolution: stem:["ticks"_"maximum_resultion" = "ticks"_"signal_resolution" * "multiplier"].
+The divider for each individual signal is calculated using the common rate - it must be divisible by an integer divider without remainder, or the Multi Reader switches to the invalid state. Here, the LCM of all dividers is calculated. It is later used to calculate the count of available, read, and skipped samples, as the LCM of dividers represents the minimum read count.
 
-Next, the Multi Reader reads the start domain value of each signal. This includes scaling and applying the reference domain offset (if it was used). The latest domain value among all signals becomes the common starting point from which reading should start. This starting point offset is also rounded up to either an interval, which is defined as the ratio of the LCM of the sample rate dividers to the common sample rate, or to full units of the domain if such an option was used during creation.
+When event packets are removed from the beginning of input port queues, synchronization occurs. The earliest orign and highest resolution of all signals are calculated (the system resolution is also considered as one of the resolutions and often becomes the highest one). Then, for each signal, the offset in maximum resolution ticks from the earliest epoch value is calculated. Those, along with a multiplier that represents the ratio of the signal resolution to the maximum resolution (stem:["multiplier" = "signal_resolution" / "maximum_resolution"]), are used to convert signal ticks from the signal resolution to the common maximum resolution: stem:["ticks"_"maximum_resultion" = "ticks"_"signal_resolution" * "multiplier"].
 
-When the starting point is found, each signal skips samples up to this point. When the domain value of a signal becomes greater than or equal to this starting point, it is considered synchronized. When all signals are synchronized, the entire Multi Reader state also becomes synchronized.
+Finally, the Multi Reader reads the start domain value of each signal. The latest domain value among all signals becomes the common starting point from which reading should start. This starting point is also rounded up to an interval defined as either the ratio of the LCM of the sample rate dividers to the common sample rate, or to full units of the domain if such an option was used during creation.
+
+When the starting point is determined, each signal skips samples until said point is reached. When the domain value of a signal becomes greater than or equal to this starting point, it is considered synchronized. When all signals are synchronized, the entire Multi Reader state also becomes synchronized.
 
 === Resynchronization
 
-Resynchronization is triggered by domain descriptor updates or changes in the active state via the `setActive()` call. 
-Changes in resolution or origin transfer the signal to an unsynchronized state, while changes in sample rate transfer it to an invalid state.
+Resynchronization is triggered by domain descriptor updates or changes in the active state via the `setActive()` call. Changes in resolution or origin set the reader to an unsynchronized state, while changes in sample rate set it to "invalid".
 
 Resynchronization includes all the steps described in the synchronization process.
 
@@ -376,16 +403,14 @@ Resynchronization includes all the steps described in the synchronization proces
 
 Synchronization is dropped if inputs violate domain or sample rate rules.
 
-== Limitations Summary
+== Multi reader limitations
 
-* **No Asynchronous Signals**: The Multi Reader does not support asynchronous signals. Only a linear rule is accepted for domain signals.
+* **No Asynchronous Signals**: The Multi Reader does not support asynchronous signals. Only signals with domain signals that have a linear data rule are accepted.
 * **Gap Packets**: Gap packets can only be detected when the reader is created from ports, not directly from signals.
-* **Fixed Sample Rates**: Changing input sample rates invalidates the reader, so it is impossible to use Multi Reader if one of the signals sample rate was changed.
+* **Fixed Sample Rates**: Changing input sample rates invalidates the reader, making it impossible to re-use the Multi Reader if one of the signals sample rate was changed. Instead, a new Multi Reader must be created, using the previous one.
 * **Additions Post-Creation**: Adding new signals or ports to the reader after creation is not supported.
-* **Tick Alignment**: Tick alignment and offsets must adhere to strict rules for synchronization.
-* **Domain Offsets**: Add reference domain offsets should have the same time source.
-
-By adhering to these structured guidelines, the Multi Reader ensures robust and synchronized handling of signal data with varying characteristics.
+* **Domain Offsets**: Reference domain offsets must have the same time source, as the Multi Reader does not yet account for the time differences between them (eg. UTC vs TAI).
+//* **Tick Alignment**: TODO
 
 == Full example source
 
@@ -398,283 +423,148 @@ Cpp::
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/opendaq.h>
-
 #include <iostream>
 
-using namespace std::chrono_literals;
 using namespace daq;
+using namespace std::chrono_literals;
 
-constexpr auto kSampleCount = SizeT{10};
-constexpr auto kDomainSampleType = SampleType::Int64;
-constexpr auto kValueSampleType = SampleType::Float64;
-
-struct SignalInfo
+void readDataDifferentRates(const ListPtr<ISignal>& signals)
 {
-    IntegerPtr divider;
-    RatioPtr resolution;
-    StringPtr origin;
-};
+    // Create reader that converts values to `double` and time data to `int64`
+    auto multiReaderBuilder = MultiReaderBuilder().setValueReadType(SampleType::Float64).setDomainReadType(SampleType::Int64);
+    for (const auto& signal : signals)
+        multiReaderBuilder.addSignal(signal);
+    auto multiReader = multiReaderBuilder.build();
 
-static inline DataDescriptorPtr getDomainDescriptor(const EventPacketPtr& eventPacket)
-{
-    auto domainDesc = DataDescriptorPtr();
-    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-        domainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-    return domainDesc;
-}
+    // Allocate buffers for each signal
+    auto signalsCount = signals.getCount();
+    auto kBufferSize = SizeT{0};
+    auto domainBuffers = std::vector<void*>(signalsCount, nullptr);
+    auto dataBuffers = std::vector<void*>(signalsCount, nullptr);
+    std::vector<size_t> dividers;
 
-static SignalConfigPtr createOutputSignal(const ContextPtr& context, const ComponentPtr& parent, const MultiReaderStatusPtr& status)
-{
-    auto outputSignal = SignalConfigPtr();
-    auto eventPacket = status.getMainDescriptor();
-    auto mainDescriptor = getDomainDescriptor(eventPacket);
-    if (!mainDescriptor.assigned())
-        return outputSignal;
-
-    auto outputDomainDescriptorBuilder = DataDescriptorBuilderCopy(mainDescriptor);
-    auto outputDomainDescriptor = outputDomainDescriptorBuilder.setName("OutputDomain").build();
-
-    auto outputDataDescriptorBuilder = DataDescriptorBuilder().setName("OutputData").setSampleType(kValueSampleType);
-    auto outputDataDescriptor = outputDataDescriptorBuilder.build();
-
-    auto outputDomainSignal = SignalWithDescriptor(context, outputDomainDescriptor, parent, "outputDomainSignal");
-    auto outputDataSignal = SignalWithDescriptor(context, outputDataDescriptor, parent, "outputDataSignal");
-
-    outputDataSignal.setDomainSignal(outputDomainSignal);
-    outputSignal = outputDataSignal;
-
-    return outputSignal;
-}
-
-static StreamReaderPtr createOutputReader(const SignalConfigPtr& outputSignal)
-{
-    auto epoch = std::chrono::system_clock::time_point{};
-    auto resolution = RatioPtr();
-    auto reader = StreamReader(outputSignal, kValueSampleType, kDomainSampleType);
-    reader.setOnDataAvailable(
-        [reader, epoch, resolution]() mutable
-        {
-            auto available = reader.getAvailableCount();
-            if (available > 0)
-            {
-                auto domainSamples = std::vector<SampleTypeToType<kDomainSampleType>::Type>(available);
-                auto dataSamples = std::vector<SampleTypeToType<kValueSampleType>::Type>(available);
-                auto count = available;
-                reader.readWithDomain(dataSamples.data(), domainSamples.data(), &count);
-                for (auto i = 0; i < count; ++i)
-                    fmt::println("[{}] {:<#.5}", reader::toSysTime(domainSamples[i], epoch, resolution), dataSamples[i]);
-            }
-            else
-            {
-                auto event = EventPacketPtr();
-                auto count = SizeT{0};
-                auto status = reader.read(nullptr, &count);
-                switch (status.getReadStatus())
-                {
-                    case ReadStatus::Event:
-                        event = status.getEventPacket();
-                        if (event.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-                        {
-                            auto parameters = event.getParameters();
-                            if (parameters.hasKey(event_packet_param::DOMAIN_DATA_DESCRIPTOR))
-                            {
-                                auto domainDataDescriptor =
-                                    parameters.get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).asPtr<IDataDescriptor>();
-                                auto origin = domainDataDescriptor.getOrigin();
-                                epoch = reader::parseEpoch(origin);
-                                resolution = domainDataDescriptor.getTickResolution();
-                            }
-                        }
-                        break;
-                    case ReadStatus::Ok:
-                    case ReadStatus::Fail:
-                    case ReadStatus::Unknown:
-                        break;
-                }
-            }
-        });
-
-    return reader;
-}
-
-static void allocBuffers(const std::vector<SignalInfo>& signalsInfo,
-                         std::vector<void*>& dataBuffers,
-                         std::vector<void*>& domainBuffers,
-                         const SizeT count)
-{
-    for (SizeT i = 0; i < signalsInfo.size(); ++i)
+    // read data every 50ms, up to a maximum of kBufferSize samples
+    for (size_t readCount = 0; readCount < 20; readCount++)
     {
-        auto divider = signalsInfo[i].divider.getValue(1);
-        auto size = count / divider;
-        domainBuffers[i] = std::calloc(size, getSampleSize(kDomainSampleType));
-        dataBuffers[i] = std::calloc(size, getSampleSize(kValueSampleType));
-    }
-}
+        auto dataAvailable = multiReader.getAvailableCount();
+        auto count = std::min(kBufferSize, dataAvailable);
+        auto status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
 
-template <typename T = SampleTypeToType<kDomainSampleType>::Type, typename V = SampleTypeToType<kValueSampleType>::Type>
-static void handleData(const std::vector<SignalInfo>& signalsInfo,
-                       const std::vector<void*>& dataBuffers,
-                       const std::vector<void*>& domainBuffers,
-                       const SizeT count,
-                       const SignalConfigPtr& outputDataSignal,
-                       const MultiReaderStatusPtr& status,
-                       const bool sameSampleRate)
-{
-    assert(signalsInfo.size() == domainBuffers.size());
-    assert(signalsInfo.size() == dataBuffers.size());
-
-    auto avg = std::vector<V>();
-    auto lines = std::vector<std::string>(count);
-
-    for (SizeT i = 0; i < signalsInfo.size(); ++i)
-    {
-        auto divider = signalsInfo[i].divider.getValue(1);
-
-        if (avg.size() != (count / divider))
-            avg.resize(count / divider);
-
-        for (SizeT k = 0; k < count / divider; ++k)
+        if (status.getReadStatus() == ReadStatus::Event)
         {
-            auto* domainBuffer = static_cast<T*>(domainBuffers[i]);
-            auto* sampleBuffer = static_cast<V*>(dataBuffers[i]);
+            auto packets = status.getEventPackets();
+            if (!(packets.getValueList()[0].getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED))
+                continue;
 
-            auto& domainValue = domainBuffer[k];
-            auto& dataValue = sampleBuffer[k];
+            // SRDiv calculation
+            size_t commonSampleRate = multiReader.getCommonSampleRate();
+            dividers.clear();
+            std::cout << "Dividers: ";
+            for (const auto& [_, eventPacket] : status.getEventPackets())
+            {
+                auto descriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                auto sampleRate = reader::getSampleRate(descriptor);
+                dividers.push_back(commonSampleRate / sampleRate);
+                std::cout << dividers.back() << ", ";
+            }
+            std::cout << "\n";
 
-            auto epoch = reader::parseEpoch(signalsInfo[i].origin);
-            auto resolution = signalsInfo[i].resolution;
-            auto timestamp = reader::toSysTime(domainValue, epoch, resolution);
+            // Allocate buffers for 100ms according to commonSampleRate
+            size_t lcm = 1;
+            for (const auto& div : dividers)
+                lcm = std::lcm<std::size_t>(lcm, div);
 
-            lines[k] += fmt::format("[{}] {:<#15.5} ", timestamp, dataValue);
-
-            if (sameSampleRate)
-                avg[k] = (avg[k] + dataValue) / 2;
+            // Calculate k as the minimum number of LCM-size blocks to read ~100ms of data
+            size_t k = std::max(commonSampleRate / lcm / 10, static_cast<size_t>(1));
+            kBufferSize = k * lcm;
+            
+            std::cout << "Buffer sizes: ";
+            for (size_t i = 0; i < signalsCount; ++i)
+            {
+                dataBuffers[i] = std::calloc(kBufferSize / dividers[i], getSampleSize(SampleType::Float64));
+                domainBuffers[i] = std::calloc(kBufferSize / dividers[i], getSampleSize(SampleType::Int64));
+                std::cout << kBufferSize / dividers[i] << ", ";
+            }
+            std::cout << "\n";
         }
-    }
+        else if (status.getReadStatus() == ReadStatus::Ok && count > 0)
+        {
+            std::cout << "Data: ";
+            for (const auto& buf : dataBuffers)
+                std::cout << std::to_string(static_cast<double*>(buf)[0]) << "; ";
+            std::cout << "\n";
+        }
 
-    for (const auto& line: lines)
-        std::cout << line << std::endl;
-
-    if (outputDataSignal.assigned() && sameSampleRate)
-    {
-        auto outputDomainSignal = outputDataSignal.getDomainSignal().asPtr<ISignalConfig>();
-        auto outputDomainDescriptor = outputDomainSignal.getDescriptor();
-        auto outputDataDescriptor = outputDataSignal.getDescriptor();
-
-        auto offset = status.getOffset();
-        auto outputDomainPacket = DataPacket(outputDomainDescriptor, avg.size(), offset);
-        auto outputDataPacket = DataPacketWithDomain(outputDomainPacket, outputDataDescriptor, avg.size(), offset);
-        auto* data = outputDataPacket.getData();
-        std::memcpy(data, avg.data(), sizeof(V) * avg.size());
-
-        outputDomainSignal.sendPacket(outputDomainPacket);
-        outputDataSignal.sendPacket(outputDataPacket);
+        std::this_thread::sleep_for(50ms);
     }
 }
 
-static std::vector<SignalInfo> handleEvents(const MultiReaderPtr& multiReader,
-                                            const DictPtr<IString, IEventPacket>& events,
-                                            bool sameSampleRate)
+void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
 {
-    auto signalsInfo = std::vector<SignalInfo>();
-    auto commonDivider = IntegerPtr();
-    for (const auto& [signalName, event] : events)
+    // Create reader that converts values to `double` and time data to `int64`
+    auto multiReaderBuilder = MultiReaderBuilder().setValueReadType(SampleType::Float64).setDomainReadType(SampleType::Int64);
+    for (const auto& signal : signals)
+        multiReaderBuilder.addSignal(signal);
+    auto multiReader = multiReaderBuilder.build();
+
+    // Allocate buffers for each signal
+    auto signalsCount = signals.getCount();
+    auto kBufferSize = SizeT{0};
+    auto domainBuffers = std::vector<void*>(signalsCount, nullptr);
+    auto dataBuffers = std::vector<void*>(signalsCount, nullptr);
+
+    // read data every 50ms, up to a maximum of kBufferSize samples
+    for (size_t readCount = 0; readCount < 20; readCount++)
     {
-        // do something with signal descriptors
-        if (event.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+        auto dataAvailable = multiReader.getAvailableCount();
+        auto count = std::min(kBufferSize, dataAvailable);
+        auto status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
+
+        if (status.getReadStatus() == ReadStatus::Event)
         {
-            auto parameters = event.getParameters();
-            if (parameters.hasKey(event_packet_param::DOMAIN_DATA_DESCRIPTOR))
+            // Set buffer size based on sample rate, allocate buffers
+            // Buffers have 100ms worth of memory for each signal
+            auto sampleRate = reader::getSampleRate(
+                status.getMainDescriptor().getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+            kBufferSize = sampleRate / 10;
+
+            for (size_t i = 0; i < signalsCount; ++i)
             {
-                auto domainDescriptor = parameters.get(event_packet_param::DOMAIN_DATA_DESCRIPTOR).asPtr<IDataDescriptor>();
-                auto sampleRate = reader::getSampleRate(domainDescriptor);
-                auto origin = domainDescriptor.getOrigin();
-                auto resolution = domainDescriptor.getTickResolution();
-                auto divider = Integer(multiReader.getCommonSampleRate() / sampleRate);
-                if (!commonDivider.assigned())
-                {
-                    commonDivider = divider;
-                }
-                else
-                {
-                    if (commonDivider != divider)
-                        sameSampleRate = false;
-                }
-                signalsInfo.push_back({divider, resolution, origin});
-            }
-            if (parameters.hasKey(event_packet_param::DATA_DESCRIPTOR))
-            {
-                auto dataDescriptor = parameters.get(event_packet_param::DATA_DESCRIPTOR);
-                // do something with data desctiptor
-                // ...
+                dataBuffers[i] = std::calloc(kBufferSize, getSampleSize(SampleType::Float64));
+                domainBuffers[i] = std::calloc(kBufferSize, getSampleSize(SampleType::Int64));
             }
         }
+        else if (status.getReadStatus() == ReadStatus::Ok && count > 0)
+        {
+            std::cout << "Data: ";
+            for (const auto& buf : dataBuffers)
+                std::cout << std::to_string(static_cast<double*>(buf)[0]) << "; ";
+            std::cout << "\n";
+        }
+
+        std::this_thread::sleep_for(50ms);
     }
-    return signalsInfo;
 }
 
 int main()
 {
-    auto instance = InstanceBuilder().addModulePath(MODULE_PATH).addModulePath(EXTRA_MODULE_PATH).build();
-    auto context = instance.getContext();
-    auto devices = instance.getAvailableDevices();
-    auto refDevice = DevicePtr();
-
-    for (const auto& device : devices)
-    {
-        auto connectionString = device.getConnectionString();
-        if (connectionString.toStdString().find("daqref://") != std::string::npos)
-        {
-            refDevice = instance.addDevice(device.getConnectionString());
-            std::cout << "Add device " << device.getName() << " - " << device.getConnectionString() << std::endl;
-            break;
-        }
-    }
-
-    if (!refDevice.assigned())
-    {
-        std::cout << "Reference device not found" << std::endl;
-        return EXIT_FAILURE;
-    }
-
+    auto instance = Instance();
+    auto refDevice = instance.addDevice("daqref://device0");
+    refDevice.setPropertyValue("NumberOfChannels", 4);
     auto signals = refDevice.getSignalsRecursive();
-    auto multiReader = MultiReader(signals, kValueSampleType, kDomainSampleType);
-    auto domainBuffers = std::vector<void*>(signals.getCount(), nullptr);
-    auto dataBuffers = std::vector<void*>(signals.getCount(), nullptr);
-    auto signalsInfo = std::vector<SignalInfo>();
-    auto running = true;
-    auto isSameSampleRate = true;
 
-    auto outputSignal = SignalConfigPtr();
-    auto outputReader = StreamReaderPtr();
+    std::cout << "Same rate data:\n";
+    readDataSameRatesSignals(signals);
 
-    auto readData = [&]()
-    {
-        auto count = kSampleCount;
-        auto status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
-        switch (status.getReadStatus())
-        {
-            case ReadStatus::Ok:
-                handleData(signalsInfo, dataBuffers, domainBuffers, count, outputSignal, status, isSameSampleRate);
-                break;
-            case ReadStatus::Event:
-                signalsInfo = handleEvents(multiReader, status.getEventPackets(), isSameSampleRate);
-                allocBuffers(signalsInfo, dataBuffers, domainBuffers, kSampleCount);
-                outputSignal = createOutputSignal(context, nullptr, status);
-                outputReader = createOutputReader(outputSignal);
-                break;
-            case ReadStatus::Fail:
-            case ReadStatus::Unknown:
-                running = false;
-                break;
-        }
-    };
-    multiReader.setOnDataAvailable(readData);
-
-    while (running)
-        std::this_thread::sleep_for(10ms);
-
-    return 0;
+    const auto channels = refDevice.getChannelsRecursive();
+    channels[0].setPropertyValue("UseGlobalSampleRate", false);
+    channels[0].setPropertyValue("SampleRate", 100);
+    channels[1].setPropertyValue("UseGlobalSampleRate", false);
+    channels[1].setPropertyValue("SampleRate", 200);
+    channels[2].setPropertyValue("UseGlobalSampleRate", false);
+    channels[2].setPropertyValue("SampleRate", 500);
+    std::cout << "Different rate data:\n";
+    readDataDifferentRates(signals);
 }
 ----
 ====

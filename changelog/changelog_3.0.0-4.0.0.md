@@ -155,15 +155,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 ```diff
 + [function] IPropertyValueEventArgs::getOldValue(IBaseObject** value)
--m[factory] PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
-                                                        const BaseObjectPtr& newValue,
-                                                        PropertyEventType changeType,
-                                                        Bool isUpdating)
-+m[factory] PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
-                                                        const BaseObjectPtr& newValue,
-                                                        const BaseObjectPtr& oldValue,
-                                                        PropertyEventType changeType,
-                                                        Bool isUpdating)
+-m[factory] PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged, const BaseObjectPtr& newValue, PropertyEventType changeType, Bool isUpdating)
++m[factory] PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged, const BaseObjectPtr& newValue, const BaseObjectPtr& oldValue, PropertyEventType changeType, Bool isUpdating)
 ```
 
 # 2024-11-28
@@ -1066,19 +1059,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IInstanceBuilder::addDiscoveryService(IString* serviceName)
 
 + [function] Context::getDiscoveryServers(IDict** services);
--m [factory] ContextPtr Context(const SchedulerPtr& scheduler,
-                           const LoggerPtr& logger,
-                           const TypeManagerPtr& typeManager,
-                           const ModuleManagerPtr& moduleManager,
-                           const AuthenticationProviderPtr& authenticationProvider,
-                           const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>())
-+m [factory] ContextPtr Context(const SchedulerPtr& scheduler,
-                           const LoggerPtr& logger,
-                           const TypeManagerPtr& typeManager,
-                           const ModuleManagerPtr& moduleManager,
-                           const AuthenticationProviderPtr& authenticationProvider,
-                           const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>(),
-                           const DictPtr<IString, IDiscoveryServer> discoveryServices = Dict<IString, IDiscoveryServer>())
+-m [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager, const AuthenticationProviderPtr& authenticationProvider, const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>())
++m [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager, const AuthenticationProviderPtr& authenticationProvider, const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>(), const DictPtr<IString, IDiscoveryServer> discoveryServices = Dict<IString, IDiscoveryServer>())
 ```
 
 # 2024-05-17

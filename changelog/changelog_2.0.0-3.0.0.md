@@ -1,4 +1,4 @@
-# 2024-04-12
+# Implement BlockReaderStatus
 
 ## Description
 
@@ -12,11 +12,13 @@
 + [factory] BlockReaderStatusPtr BlockReaderStatus(const EventPacketPtr& packet = nullptr, Bool valid = true, SizeT readSamples = 0)
 ```
 
-# 2024-03-29
+---
+
+# Group discovered devices with IServerCapability (Replaced IStreamingInfo)
 
 ## Description
 
-- Grouping discovered deivces with IServerCapability
+- Grouping discovered devices with IServerCapability
 - Replacing IStreamingInfo with IServerCapability
 
 ## API changes
@@ -69,7 +71,9 @@
 +m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IServerCapability* capability)
 ```
 
-# 2024-03-26
+---
+
+# Implement multi reader builder
 
 ## Description
 
@@ -100,7 +104,9 @@
 + [factory] MultiReaderPtr MultiReaderFromBuilder(const MultiReaderBuilderPtr& builder)
 ```
 
-# 2024-03-26
+---
+
+# Fix outdated data descriptor before subscription
 
 ## Description
 
@@ -125,7 +131,9 @@
 + [function] ErrCode IMirroredSignalPrivate::setMirroredDomainSignal(IMirroredSignalConfig* domainSignal)
 ```
 
-# 2024-04-25
+---
+
+# Constant rule rework in openDAQ core and support for native streaming
 
 ## Description
 
@@ -141,7 +149,9 @@
 +m [factory] DataPacketPtr DataPacketWithExternalMemory(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, void* data, const DeleterPtr& deleter, NumberPtr offset = nullptr, SizeT bufferSize = std::numeric_limits<SizeT>::max())
 ```
 
-# 2024-03-22
+---
+
+# Add support for multiple module search paths in ModuleManager
 
 ## Description
 
@@ -156,12 +166,14 @@
 + [function] IInstanceBuilder::getModulePathsList(IList** paths)
 ```
 
-# 2024-03-21
+---
+
+# Move create fb/device logic to module manager (Add logic for client device)
 
 ## Description
 
 - Move create fb/device logic to module manager
-- Move client device logic for adding fbs/devices to device_impl
+- Move client device logic for adding function blocks/devices to device_impl
 
 ## API changes
 
@@ -176,7 +188,9 @@
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo = nullptr, const ComponentPtr& parent = nullptr)
 ```
 
-# 2024-03-11
+---
+
+# Make DeviceDomain a standalone object in DeviceImpl (and move getTicksSinceOrigin to IDevice)
 
 ## Description
 
@@ -194,18 +208,22 @@
 + [factory] CoreEventArgsPtr CoreEventArgsDeviceDomainChanged(const DeviceDomainPtr& deviceDomain)
 ```
 
-# 2024-03-11
+---
+
+# Update native transport protocol (initiate streaming only upon client request)
 
 ## Description
 
-- Update native transport protocol - initiate streaming only upon client request;
-- New protocol message type added: PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST = 11
+- Update native transport protocol: initiate streaming only upon client request
+- New protocol message type added: `PAYLOAD_TYPE_STREAMING_PROTOCOL_INIT_REQUEST = 11`
 
-# 2024-03-08
+---
+
+# Propagate server IUpdatable::Update to native protocol clients (handle nested property objects)
 
 ## Description
 
-- Propagate server IUpdatable::Update to native protocol clients
+- Propagate server IUpdatable::update to native protocol clients
 - Properly handle nested property objects in native protocol
 
 ## API changes
@@ -216,7 +234,9 @@
 + [function] IUpdatable::updateEnded()
 ```
 
-# 2024-02-26
+---
+
+# Integrating config provider options in modules
 
 ## Description
 
@@ -228,7 +248,9 @@
 + [function] IModule::getId(IString** id)
 ```
 
-# 2024-02-26
+---
+
+# Streaming framework refactoring
 
 ## Description
 
@@ -252,7 +274,9 @@
 + [function] IStreamingPrivate::detachRemovedSignal(const StringPtr& signalRemoteId);
 ```
 
-# 2024-02-25
+---
+
+# Readers return IReaderStatus, support creating readers with IInputPort, add callback on available packet
 
 ## Description
 
@@ -306,12 +330,14 @@
 + [factory] inline BlockReaderPtr BlockReaderFromExisting(const BlockReaderPtr& invalidatedReader, SizeT blockSize, SampleType valueReadType, SampleType domainReadType)
 ```
 
-# 2024-02-25
+---
+
+# Rename search filter SearchId to InterfaceId (and add local ID search filter)
 
 ## Description
 
-- rename search filter search::SearchId to search::InterfaceId
-- add local ID search filter
+- Rename search filter `search::SearchId` to `search::InterfaceId`
+- Add local ID search filter
 
 ## API changes
 
@@ -321,7 +347,9 @@
 + [factory] SearchFilterPtr LocalId(const StringPtr& localId)
 ```
 
-# 2024-02-12
+---
+
+# Add module implementations for device based on the native config protocol
 
 ## Description
 
@@ -333,7 +361,9 @@
 + [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);
 ```
 
-# 2024-02-06
+---
+
+# Support configuring instance builder from config provider
 
 ## Description
 
@@ -356,7 +386,9 @@
 + [factory] ConfigProviderPtr CmdLineArgsConfigProvider(const ListPtr<IString>& args)
 ```
 
-# 2024-02-05
+---
+
+# Add core event support to config client
 
 ## Description
 
@@ -370,12 +402,14 @@
 + [function] ITags::set(IList* tags) = 0;
 ```
 
-# 2024-02-05
+---
+
+# Add Component status implementations (Add method getIntValue for Enumeration)
 
 ## Description
 
 - Add Component status implementations
-- Add method getIntValue for Enumeration object
+- Add method `getIntValue` for Enumeration object
 
 ## API changes
 
@@ -395,7 +429,9 @@
 + [factory] ComponentStatusContainerPtr ComponentStatusContainer()
 ```
 
-# 2024-01-23
+---
+
+# Add debug logger sink for testing purpose
 
 ## Description
 
@@ -410,7 +446,13 @@
 + [factory] LoggerSinkPtr LastMessageLoggerSink()
 ```
 
-# 2024-02-01
+---
+
+# Add skipSamples to IMultiReader
+
+## Description
+
+- Added `skipSamples` method to `IMultiReader`
 
 ## API changes
 
@@ -418,12 +460,14 @@
 +m [function] IMultiReader::skipSamples
 ```
 
-# 2024-01-23
+---
+
+# Change ITagsConfig to ITagsPrivate, add TagsChanged core event
 
 ## Description
 
-- Change ITagsConfig to ITagsPrivate and remove inheritance
-- Add TagsChanged core event
+- Change `ITagsConfig` to `ITagsPrivate` and remove inheritance
+- Add `TagsChanged` core event
 - Make Tags changeable after creation (Tags are no longer freezable)
 
 ## API changes
@@ -438,7 +482,9 @@
 -m [function] IComponent::getTags(ITags** tags)
 ```
 
-# 2024-01-22
+---
+
+# Support for external deserialization factory
 
 ## Description
 
@@ -462,14 +508,16 @@
 +  [interface] IDeserializeComponent: public IBaseObject
 ```
 
-# 2024-01-16
+---
+
+# Nested object-type property enhancement
 
 ## Description
 
 - Nested object-type property enhancement
   - Object-type property default values are now frozen when added to Property objects
-  - Said default values are cloned as local values that can be modified by users
-  - Property object core events now contain the path to the property if the property is contained within a nested property object
+  - Default values are cloned as local values that can be modified by users
+  - Property object core events now contain the path to the property if the property is in a nested property object
 
 ## API changes
 
@@ -486,19 +534,19 @@
 +m [factory] CoreEventArgsPtr CoreEventArgsPropertyRemoved(const PropertyObjectPtr& propOwner, const StringPtr& propName, const StringPtr& path)
 ```
 
-# 2024-01-12
+---
+
+# Search filters, visible flag, component attributes
 
 ## Description
 
-- Search filters, visible flag, component attributes
-  - Add SearchFilter that allows for more granular component search on tree traversal methods (getItems, getSignals...)
-    - Add visible flag to Component
-    - Default component getters were modified to return only components with visible==true
-    - PropertyChanged event packets were removed
-    - ComponentModified core event was changed to AttributeModified
-    - Attribute lock was added to components preventing changes to locked attributes
-    - Name and Description are no longer properties, but component attributes
-    - Add per-component core event triggers
+- Add `ISearchFilter` for more granular component search
+- Add visible flag to `IComponent` (default getters now return only visible components)
+- Removed `PropertyChanged` event packets
+- `ComponentModified` core event changed to `AttributeModified`
+- Added attribute lock to components to prevent changes to locked attributes
+- Name and Description are now component attributes rather than properties
+- Per-component core event triggers
 
 ## API changes
 
@@ -569,11 +617,13 @@
 +m [factory] CoreEventArgsPtr CoreEventArgsAttributeChanged(const StringPtr& attributeName, const BaseObjectPtr& attributeValue)
 ```
 
-# 2024-01-11
+---
+
+# Add Enumeration Core type implementations
 
 ## Description
 
-- Add Enumeration Core type implementations
+- Add Enumeration core type implementations
 
 ## API changes
 
@@ -592,11 +642,13 @@
 + [factory] EnumerationPtr Enumeration(const StringPtr& typeName, const StringPtr& value, const TypeManagerPtr& typeManager)
 ```
 
-# 2024-01-03
+---
+
+# Add method getLastValue in ISignal
 
 ## Description
 
-- Add method getLastValue in ISignal
+- Add `getLastValue` in `ISignal`
 
 ## API changes
 
@@ -605,11 +657,13 @@
 + [function] ISignalPrivate::enableKeepLastValue(Bool enabled)
 ```
 
-# 2023-12-18
+---
+
+# Builder pattern implementation for IInstance
 
 ## Description
 
-- Builder pattern implementation for IInstance
+- Builder pattern implementation for `IInstance`
 
 ## API changes
 
@@ -643,13 +697,14 @@
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId, const DeviceInfoPtr& defaultDeviceInfo)
 ```
 
-# 2023-12-13
+---
+
+# Add Core event to Context object (triggers on core changes), add automatic triggers for Property Object changes
 
 ## Description
 
-- Add Core event to Context object that triggers on core changes
-- Add automatic triggers for Property Object changes
-  - Add/Remove property, Value changed, Update ended
+- Add Core event to `Context` object that triggers on core changes
+- Add automatic triggers for property object changes (Add/Remove property, Value changed, Update ended)
 
 ## API changes
 
@@ -665,11 +720,13 @@
 + [function] IContext::getOnCoreEvent(IEvent** event)
 ```
 
-# 2023-12-07
+---
+
+# Add Struct Builder for generic struct creation
 
 ## Description
 
-- Add Struct Builder for generic struct creation
+- Add `IStructBuilder` for generic struct creation
 
 ## API changes
 
@@ -689,11 +746,13 @@
 + [factory] StructBuilderPtr StructBuilder(const StructPtr& struct_)
 ```
 
-# 2023-12-07
+---
+
+# Add subscribe/unsubscribe completion acknowledgement events
 
 ## Description
 
-- Add subscribe/unsubscribe completion acknowledgement Events
+- Add subscribe/unsubscribe completion acknowledgement events
 
 ## API changes
 
@@ -711,12 +770,14 @@
 + [factory] SubscriptionEventArgsPtr SubscriptionEventArgs(const StringPtr& streamingConnectionString, SubscriptionEventType eventType)
 ```
 
-# 2023-12-05
+---
+
+# Expose Origin Epoch and StartOffset in MultiReader (Rework interface inheritance)
 
 ## Description
 
-- Expose Origin Epoch and StartOffset the MultiReader aligned all the read signals to
-- Rework how interface inheritance and queryInterface work to hopefully prevent ICEs and out-of-heap-space errors
+- Expose Origin Epoch and StartOffset that the MultiReader aligns all read signals to
+- Rework how interface inheritance and queryInterface work to prevent issues
 
 ## API changes
 
@@ -726,13 +787,15 @@
 + [function] IMultiReader::getOffset(void* domainStart)
 ```
 
-# 2023-11-28
+---
+
+# Builder pattern improvement (expand builder classes, support creating objects)
 
 ## Description
 
 - Builder pattern improvement
-  - Expand builder classes with getters
-  - Support creating objects from builder
+- Expand builder classes with getters
+- Support creating objects from builder
 
 ## API changes
 
@@ -805,12 +868,14 @@
 + [factory] ScalingPtr ScalingFromBuilder(const ScalingBuilderPtr& builder)
 ```
 
-# 2023-11-23
+---
+
+# setDescription, getDescription, and setName moved to IComponent (OPC UA uses DisplayName)
 
 ## Description
 
-- setDescription, getDescription, and setName were moved to IComponent.
-- OPC UA now uses DisplayName to set/get component names, and node Description to get/set component descriptions
+- `setDescription`, `getDescription`, and `setName` moved to `IComponent`
+- OPC UA uses DisplayName to set/get component names, and node Description to set/get component descriptions
 
 ## API changes
 
@@ -828,19 +893,21 @@
 -m [factory] ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 +m [factory] ComponentPtr Component(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, ComponentStandardProps propertyMode = ComponentStandardProps::Add)
 -m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
-+m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
++m [factory] FolderConfigPtr Folder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, ComponentStandardProps propertyMode = ComponentStandardProps::Add)
 -m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 +m [factory] inline IoFolderConfigPtr IoFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const ComponentStandardProps propertyMode = ComponentStandardProps::Add)
 ```
 
-# 2023-11-17
+---
+
+# Streaming framework changes (ISignalRemote renamed to IMirroredSignalConfig)
 
 ## Description
 
 - Streaming framework changes:
-  - ISignalRemote renamed to IMirroredSignalConfig
-  - IMirroredSignalConfig inherits ISignalConfig
-  - Streaming source management methods moved from ISignalConfig to IMirroredSignalConfig
+  - `ISignalRemote` renamed to `IMirroredSignalConfig`
+  - `IMirroredSignalConfig` now inherits `ISignalConfig`
+  - Streaming source management methods moved from `ISignalConfig` to `IMirroredSignalConfig`
 
 ## API changes
 

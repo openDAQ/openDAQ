@@ -1,3 +1,32 @@
+# 2025-01-15
+## Description
+- Implementing changeable fields of device info, which are synchronized between server and client.
+- Device info is no longer frozen.
+- Device properties `userName` and `location` are optional and do not exist by default. See integration changes to enable them.
+- mDNS server broadcasts all device info fields.
+- mDNS broadcasts synchronized changeable device info properties.
+- Device info fields are reflected as property types instead of introspection variables via OPC UA (except for `userName` and `location`).
+
+## Required integration changes
+To set default device info properties as changeable, use the factory to create Device Info with the list of property names that need to be changeable.
+To enable device properties userName or location, please use the Device Info factory:
+```cpp
+DeviceInfoConfigPtr deviceInfo = DeviceInfoWithChangeableFields({"userName", "location"});
+```
+If the properties `userName` or `location` are changeable, `deviceInfo` will create these properties on the device.
+
+Custom device info properties are changeable if they are not read-only:
+```cpp
+DeviceInfoConfigPtr deviceInfo = DeviceInfoWithChangeableFields({"userName", "location", "manufacturer"});
+deviceInfo.addProperty(StringPropertyBuilder("CustomChangeableField", "default value").setReadOnly(false).build());
+deviceInfo.addProperty(StringPropertyBuilder("CustomNotChangeableField", "default value").setReadOnly(true).build());
+```
+In the example above, the default properties `userName`, `location`, `manufacturer`, and custom `CustomChangeableField` are changeable. Other default device info properties and the custom property `CustomNotChangeableField` are not changeable.
+
+```
++ [factory] DeviceInfoConfigPtr DeviceInfoWithChanegableFields(const ListPtr<IString>& changeableDefaultPropertyNames)
+```
+
 # 2024-12-27
 ## Description
 - Rename variables containing (for consistency):

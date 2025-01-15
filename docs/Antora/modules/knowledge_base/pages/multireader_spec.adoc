@@ -310,12 +310,14 @@ This section highlights the remaining Multi Reader options, and details when and
 === Different sample rates
 
 In this section two terms will be used:
-- **Common sample rate (SR)**: The least common sampling rate multiple of all signals read by the multi reader. Obtained via `reader.getCommonSampleRate()` that returns the sampling rate in Hz. The function should be used only after the first `read/readWithDomain()` call, as the reader does not have information on signal rates before that.
-- **SR divider**: The value obtained via by dividing the common sample rate with the sampling rate of an individual read signal: `commonSampleRate / signalSampleRate`.
+
+* **Common sample rate (SR)**: The least common sampling rate multiple of all signals read by the multi reader. Obtained via `reader.getCommonSampleRate()` that returns the sampling rate in Hz. The function should be used only after the first `read/readWithDomain()` call, as the reader does not have information on signal rates before that.
+* **SR divider**: The value obtained via by dividing the common sample rate with the sampling rate of an individual read signal: `commonSampleRate / signalSampleRate`.
 
 When reading signals with different sample rates the following changes:
-- The output sample count will be different for each signal and can be calculated using SR dividers.
-- The main descriptor and offset from the Multi Reader status still correspond only to the first signal in the reader, but do not apply generally to all signal rates. These fields should be used with caution.
+
+* The output sample count will be different for each signal and can be calculated using SR dividers.
+* The main descriptor and offset from the Multi Reader status still correspond only to the first signal in the reader, but do not apply generally to all signal rates. These fields should be used with caution.
 
 To obtain the sample rate of any individual signal, the function `reader::getSampleRate(domainDescriptor)` is available. It can be used on any domain descriptor obtained via events when reading data.
 

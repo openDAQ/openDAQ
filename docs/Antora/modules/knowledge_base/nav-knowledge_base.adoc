@@ -9,9 +9,9 @@
 *** xref:data_path.adoc[Data path]
 *** xref:readers.adoc[Reader]
 *** xref:streaming.adoc[Streaming]
-*** xref:multireader_spec.adoc[MultiReader]
 // *** xref:packets.adoc[(TODO) Packet]
 ** *Internals*
 *** xref:interfaces_objects_wrappers.adoc[Interfaces, Objects and Wrappers]
 *** xref:property_system.adoc[Property System]
 *** xref:modules.adoc[Modules]
+*** xref:multireader_spec.adoc[Multi Reader]

@@ -7,7 +7,7 @@ The Multi Reader is used to read several signals simultaneously, synchronizing t
 
 == Multi reader example
 
-Simple example on how to use the Multi Reader to read data of signals of equal sampling rates:
+Simple example on how to use the Multi Reader to read data of signals of equal sampling rates. The following sections will break down this example and explain each individual section of code.
 
 [tabs]
 ====
@@ -73,8 +73,6 @@ int main()
 ----
 ====
 
-The Multi Reader is created from signals. The first reading returns a list of descriptors, while all subsequent readings use the information extracted from this descriptor list.
-
 == Using the Multi Reader
 
 The Multi Reader has a large suite of configuration options, and its usage patterns vary based on how it is configured. We will start by highlighting a basic example where the reader is use to read data of equal sampling rates and continue with more advanced options.
@@ -127,7 +125,7 @@ The domain signals of all signals read by the multi reader must fulfil the the f
 
 * **Domain**: The domain signals must represent time in seconds. The domain unit must have the symbol "s" and the quantity "time".
 * **Rule**: The data rule must be linear. 
-* **Sampling Rates (SRs)**: All sampling rates must be compatible and measured as an integer number of samples per second. Sample rate (or sampling rate) is the number of samples of a continuous signal taken per domain unit during its conversion into a digital signal. It can be calculated from domain signal decsriptor as stem:[sr = 1 / (r * d)], where `r` - signal `tickResolution`, `d` - signal `linearRule.delta`.
+* **Sampling Rates (SRs)**: All sampling rates must be compatible and measured as an integer number of samples per second. Sample rate (or sampling rate) is the number of samples of a continuous signal taken per domain unit during its conversion into a digital signal. It can be calculated from domain signal decsriptor as `sr = 1 / (r * d)`, where `r` - signal `tickResolution`, `d` - signal `linearRule.delta`.
 * **Reference Domain Info**: All domain signals can be grouped by pair of reference domain ID and time source. The Multi Reader requires the following:
 ** At least one of the read signals in a given reference domain ID group must have a known time source, the others can have an unknown source.
 ** Signals that do not belong to the same reference domain group can still be read together as long as they have a matching time source.
@@ -387,7 +385,7 @@ On the first `read` call, the Multi Reader saves the resolution for each signal,
 
 The divider for each individual signal is calculated using the common rate - it must be divisible by an integer divider without remainder, or the Multi Reader switches to the invalid state. Here, the LCM of all dividers is calculated. It is later used to calculate the count of available, read, and skipped samples, as the LCM of dividers represents the minimum read count.
 
-When event packets are removed from the beginning of input port queues, synchronization occurs. The earliest orign and highest resolution of all signals are calculated (the system resolution is also considered as one of the resolutions and often becomes the highest one). Then, for each signal, the offset in maximum resolution ticks from the earliest epoch value is calculated. Those, along with a multiplier that represents the ratio of the signal resolution to the maximum resolution (stem:["multiplier" = "signal_resolution" / "maximum_resolution"]), are used to convert signal ticks from the signal resolution to the common maximum resolution: stem:["ticks"_"maximum_resultion" = "ticks"_"signal_resolution" * "multiplier"].
+When event packets are removed from the beginning of input port queues, synchronization occurs. The earliest orign and highest resolution of all signals are calculated (the system resolution is also considered as one of the resolutions and often becomes the highest one). Then, for each signal, the offset in maximum resolution ticks from the earliest epoch value is calculated. Those, along with a multiplier that represents the ratio of the signal resolution to the maximum resolution (`multiplier = signal_resolution / maximum_resolution`), are used to convert signal ticks from the signal resolution to the common maximum resolution: `max_resolution_ticks = signal_resolution_ticks * multiplier`
 
 Finally, the Multi Reader reads the start domain value of each signal. The latest domain value among all signals becomes the common starting point from which reading should start. This starting point is also rounded up to an interval defined as either the ratio of the LCM of the sample rate dividers to the common sample rate, or to full units of the domain if such an option was used during creation.
 

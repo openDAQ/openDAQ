@@ -79,7 +79,7 @@ propObj.getOnPropertyValueWrite(propName) += (PropertyObjectPtr& obj, PropertyVa
 - If the property is being updated, the method `getPropertyValue` returns the intermediate value, which can still be overridden in further updates or aborted.
 - If the property is being updated, The method `IPropertyValueEventArgs::getOldValue` inside the callback returns the old property
 
-# Example
+## Example
 
 ```cpp
 // propObj has a property prop1 with default value 100

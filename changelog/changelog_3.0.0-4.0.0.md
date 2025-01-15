@@ -27,6 +27,8 @@
 
 - None, however, developers of Function Blocks are encouraged to use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage`
 
+## API changes
+
 ```diff
 + [function] IComponentStatusContainer::getStatusMessage(IString* name, IString** message)
 + [function] IComponentStatusContainerPrivate::addStatusWithMessage(IString* name, IEnumeration* initialValue, IString* message)
@@ -39,6 +41,8 @@
 
 - Module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`
 
+## API changes
+
 ```diff
 -m [function] ListPtr<ILogFileInfo> Device::ongetLogFileInfos()
 +m [function] ListPtr<ILogFileInfo> Device::onGetLogFileInfos()
@@ -50,6 +54,8 @@
 
 - Add "Any read/write" events to property object.
 - These events are triggered whenever any property value is read/written.
+
+## API changes
 
 ```diff
 + [function] IPropertyObject::getOnAnyPropertyValueWrite(IEvent** event)
@@ -145,6 +151,8 @@ assert(propObj.getPropertyValue("prop1") == 0); // prop1 retains its original va
 assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ```
 
+## API changes
+
 ```diff
 + [function] IPropertyValueEventArgs::getOldValue(IBaseObject** value)
 -m[factory] PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
@@ -174,6 +182,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - Breaks binary compatibility
 - Introduces new mechanism for retrieving connection status of the device
 
+## API changes
+
 ```diff
 + [interface] IConnectionStatusContainerPrivate : public IBaseObject
 + [function] IConnectionStatusContainerPrivate::addConfigurationConnectionStatus(IString* connectionString, IEnumeration* initialValue)
@@ -198,6 +208,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ## Required integration changes
 
 - Breaks binary compatibility
+
+## API changes
 
 ```diff
 + [interface] IModuleInfo : public IBaseObject
@@ -245,6 +257,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - An instance with the client device as the root device no longer generates a unique ID but uses `openDAQDevice` as the ID.
 - If a developer encountered issues restoring signal connections from the client to the server during configuration loading, they need to create a new configuration and save it. Otherwise, everything should work fine.
 
+## API changes
+
 ```diff
 + [function] ISignalPrivate::getSignalSerializeId(IString** serializeId)
 ```
@@ -260,6 +274,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ## Required integration changes
 
 - Breaks binary compatibility
+
+## API changes
 
 ```diff
 + [function] IDevicePrivate::forceUnlock()
@@ -286,6 +302,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 - The `sync` mutex available in the `GenericPropertyObjectImpl` should no longer be locked in `onWrite`/`onRead` events. If needed due to used programming patterns, the `getRecursiveConfigLock` method should be used instead. See the reference device implementations for guidance.
 - Current device/function block implementations that lock the `sync` mutex during events will deadlock.
+
+## API changes
 
 ```diff
 + [function] ICoercer::coerceNoLock(IBaseObject* propObj, IBaseObject* value, IBaseObject** result)
@@ -339,6 +357,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 - None
 
+## API changes
+
 ```diff
 + [interface] IConnectionInternal : public IBaseObject
 + [function] IConnectionInternal::enqueueLastDescriptor()
@@ -357,6 +377,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 - Breaks binary compatibility
 
+## API changes
+
 ```diff
 + [function] IServerCapability::getProtocolVersion(IString** version)
 + [function] IServerCapabilityConfig::setProtocolVersion(IString* version)
@@ -371,6 +393,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ## Required integration changes:
 
 - Breaks binary compatibility
+
+## API changes
 
 ```diff
 + [interface] ILogFileInfoBuilder : public IBaseObject
@@ -417,6 +441,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - In the "DATA_DESCRIPTOR_CHANGED" event packet, the parameters "DataDescriptor" and "DomainDataDescriptor" are set to nullptr only if the corresponding descriptors have not changed.
   If the signal descriptor is not assigned, they are set to a DataDescriptor object with the "Null" sample type.
 
+## API changes
+
 ```diff
 + [factory] DataDescriptorPtr NullDataDescriptor()
 ```
@@ -437,6 +463,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
   Examples of this can be found in the mock function block (`core/opendaq/opendaq/mocks/include/opendaq/mock/mock_fb.h`)
   or the statistics function block (`modules/ref_fb_module/include/ref_fb_module/statistics_fb_impl.h`).
 
+## API changes
+
 ```diff
 + [function] IFunctionBlock::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 + [function] IFunctionBlock::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr)
@@ -453,6 +481,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ## Required integration changes
 
 - Breaks binary compatibility
+
+## API changes
 
 ```diff
 -m[function] IUpdatable::update(ISerializedObject* update)
@@ -482,6 +512,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ## Required integration changes
 
 - None
+
+## API changes
 
 ```diff
 + [function] IMultiReaderBuilder::setMinReadCount(SizeT minReadCount)
@@ -516,6 +548,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 - Breaks binary compatibility
 
+## API changes
+
 ```diff
 + [function] IDevice::lock()
 + [function] IDevice::unlock()
@@ -534,6 +568,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ## Required integration changes
 
 - Unit symbol should be set to "V" within the unit object assigned for voltage input signal descriptor of "RefFBModulePowerReader" function block
+
+## API changes
 
 ```diff
 + [function] IMultiReader::setActive(Bool isActive)
@@ -557,6 +593,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ## Required integration changes
 
 - Breaks binary compatibility
+
+## API changes
 
 ```diff
 -m[interface] IServer : public IBaseObject
@@ -591,6 +629,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ## Description
 
 - Improving save/load mechanism for restoring input ports connection
+
+## API changes
 
 ```diff
 + [interface] IComponentUpdateContext : public IBaseObject
@@ -640,6 +680,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 - None, however, users are encouraged to use Reference Domain Info
 
+## API changes
+
 ```diff
 + [interface] IReferenceDomainInfo : public IBaseObject
 + [function] IReferenceDomainInfo::getReferenceDomainId(IString** referenceDomainId)
@@ -679,6 +721,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - Now returns the owner's event when called, if the owner is assigned.
 - A new function is available to get the class's event. That function is used internally to trigger class value change events.
 
+## API changes
+
 ```diff
 + [function] IEvent::getSubscribers(IList** subscribers)
 + [function] IPropertyInternal::getClassOnPropertyValueWriteEvent(IEvent** event)
@@ -697,6 +741,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - Each device now has a sync component, which is visible in default components as `Synchronization`.
 - To set Mode selection values or Status.State, developer can set custom values for property ModeOptions or Status.StateOptions.
 - Sync component is replacing dummy property object in the ref device.
+
+## API changes
 
 ```diff
 + [interface] ISyncComponent : public IComponent
@@ -720,6 +766,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - Add get/setValue method to IProperty
 - Helpers allowing easier access to the property's value when iterating through an object's properties
 
+## API changes
+
 ```diff
 + [function] IProperty::getValue(IBaseObject** value)
 + [function] IProperty::setValue(IBaseObject* value)
@@ -735,6 +783,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 - Breaks binary compatibility
 
+## API changes
+
 ```diff
 + [function] IPropertyObject::getUpdating(Bool* updating)
 ```
@@ -744,6 +794,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ## Description
 
 - Add user context to json serializer
+
+## API changes
 
 ```diff
 + [function] ISerializer::getUser(IBaseObject** user)
@@ -765,6 +817,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - to read data without interruption on event packet, developer can create reader with builder, with setSkipEvents(true)
 - reader::getAvailableSamples returns available samples until event packet if skipEvents == false, or until gap packet if skipEvents == true.
   To check if reader has data to handle, was implemented method IReader::getEmptys(Bool\* empty), which returns true if there is data packet to read or there is an event packet
+
+## API changes
 
 ```diff
 + [function] IReader::getEmpty(Bool* empty)
@@ -904,6 +958,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 - If a client application has been relying on "canPing" and "ipv4Address" properties on device info, it should instead check the ServerCapability fields for "AddressType" in conjunction with "Addresses" to get the ipv4 address.
 - "canPing" has been replaced with AddressReachabilityInfo on server capability and should be used instead. Non ipv4 addresses will for now be labelled as "Unknown" in terms of reachability
 
+## API changes
+
 ```diff
 + [function] IServerCapability::getAddressTypes(IList** addressTypes)
 + [function] IServerCapability::getAddressReachabilityStatus(IList** addressReachability)
@@ -925,6 +981,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 - onAcceptsConnectionParameters and onAcceptsStreamingConnectionParameters overrides should be removed from modules
 - Connection strings must now always start with a prefix, followed by "://"
 
+## API changes
+
 ```diff
 -m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
 +m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const StringPtr& prefix, const PropertyObjectPtr& defaultConfig = PropertyObject())
@@ -934,6 +992,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 
 # 2024-06-21
 
+## API changes
+
 ```diff
 - [function] IDeviceInfoInternal::hasServerCapability(IString* protocolId, Bool* hasCapability)
 + [function] IDeviceInfo::hasServerCapability(IString* protocolId, Bool* hasCapability)
@@ -941,6 +1001,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 ```
 
 # 2024-06-21
+
+## API changes
 
 ```diff
 -m [function] IInstanceBuilder::addDiscoveryService
@@ -956,6 +1018,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 - Add StreamingType object
 - Change ComponentType objects to use builder pattern
 - Provide default add-device config object containing config of all modules
+
+## API changes
 
 ```diff
 + [function] IDevice::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
@@ -978,6 +1042,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 
 - Supporting reading client's connection info in the deviceInfo
 
+## API changes
+
 ```diff
 + [function] IDeviceInfo::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
 ```
@@ -987,6 +1053,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 ## Description
 
 - Supporting servers to be discovered by mDNS
+
+## API changes
 
 ```diff
 + [interface] IServer::getId(IString** serverId)
@@ -1023,6 +1091,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 - Add ability to manually connect to streaming for device after device added
 - Create connection string from ServerCapability via modules
 
+## API changes
+
 ```diff
 + [function] IDevice::addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
 + [function] IModuleManagerUtils::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
@@ -1039,6 +1109,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 
 - Add functions for sending and dequeueing multiple packets
 - Add functions with steal reference behaviour for sending packets
+
+## API changes
 
 ```diff
 + [function] ErrCode ISignalConfig::sendPackets(IList* packets)
@@ -1057,6 +1129,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 
 - Produce gap packets on request
 
+## API changes
+
 ```diff
 -m [factory] InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 +m [factory] InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, bool gapChecking = false)
@@ -1070,6 +1144,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 ## Description
 
 - Clone property object to create default config from type
+
+## API changes
 
 ```diff
 -m [factory] DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const FunctionPtr& createDefaultConfigCallback = nullptr)
@@ -1086,6 +1162,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 
 - Add mirrored device base implementation as a general approach to manage streaming sources for configuration enabled devices
 
+## API changes
+
 ```diff
 + [interface] IMirroredDevice
 + [function] IMirroredDevice::getStreamingSources(IList** streamingSources)
@@ -1101,6 +1179,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 
 - Adding addresses in ServerCapability
 
+## API changes
+
 ```diff
 + [function] IServerCapabilityConfig::addAddress(IString* address)
 + [function] IServerCapability::getAddresses(IList** addresses)
@@ -1111,6 +1191,8 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 ## Description
 
 - Fix reserved keyword clashes with Delphi bindings
+
+## API changes
 
 ```diff
 - [function] IPermissionsBuilder::set(StringPtr groupId, PermissionMaskBuilderPtr permissions)

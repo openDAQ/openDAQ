@@ -4,6 +4,8 @@
 
 - Implement BlockReaderStatus
 
+## API changes
+
 ```diff
 + [interface] IBlockReaderStatus
 + [function] IBlockReaderStatus::getReadSamples(SizeT* readSamples)
@@ -16,6 +18,8 @@
 
 - Grouping discovered deivces with IServerCapability
 - Replacing IStreamingInfo with IServerCapability
+
+## API changes
 
 ```diff
 - [interface] IStreamingInfo
@@ -71,6 +75,8 @@
 
 - Implement multi reader builder
 
+## API changes
+
 ```diff
 + [interface] IMultiReaderBuilder
 + [interface] IMultiReaderBuilder::build(IMultiReader** multiReader)
@@ -100,6 +106,8 @@
 
 - Fix outdated data descriptor before subscription
 
+## API changes
+
 ```diff
 -m [function] Bool IMirroredSignalPrivate::triggerEvent(const EventPacketPtr& eventPacket)
 +m [function] ErrCode IMirroredSignalPrivate::triggerEvent(IEventPacket* eventPacket, Bool* forward)
@@ -123,6 +131,8 @@
 
 - Constant rule rework in openDAQ core and support for native streaming
 
+## API changes
+
 ```diff
 -m [factory] DataRulePtr ConstantDataRule(const NumberPtr& value)
 +m [factory] DataRulePtr ConstantDataRule()
@@ -137,6 +147,8 @@
 
 - Add support for multiple module search paths in ModuleManager
 
+## API changes
+
 ```diff
 + [factory] ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths)
 
@@ -150,6 +162,8 @@
 
 - Move create fb/device logic to module manager
 - Move client device logic for adding fbs/devices to device_impl
+
+## API changes
 
 ```diff
 + [interface] IModuleManagerUtils
@@ -170,6 +184,8 @@
   - Devices no longer override the DeviceDomain getters, but instead set it via the protected `setDeviceDomain` method
   - Changing the DeviceDomain triggers a core event
 - Move getTicksSinceOrigin to IDevice
+
+## API changes
 
 ```diff
 + [factory] DeviceDomainPtr DeviceDomain(const RatioPtr& tickResolution, const StringPtr& origin, const UnitPtr& unit)
@@ -192,6 +208,8 @@
 - Propagate server IUpdatable::Update to native protocol clients
 - Properly handle nested property objects in native protocol
 
+## API changes
+
 ```diff
 + [function] IDeserializer::callCustomProc(IProcedure* customDeserialize, IString* serialized)
 + [function] ISerializedObject::isRoot(Bool* isRoot)
@@ -204,6 +222,8 @@
 
 - Integrating config provider options in modules
 
+## API changes
+
 ```diff
 + [function] IModule::getId(IString** id)
 ```
@@ -213,6 +233,8 @@
 ## Description
 
 - Streaming framework refactoring
+
+## API changes
 
 ```diff
 - [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);
@@ -237,6 +259,8 @@
 - Readers return IReaderStatus
 - Support creating readers with IInputPort
 - Add callback on available packet for reader
+
+## API changes
 
 ```diff
 + [interface] IReaderStatus : public IBaseObject
@@ -289,6 +313,8 @@
 - rename search filter search::SearchId to search::InterfaceId
 - add local ID search filter
 
+## API changes
+
 ```diff
 -m [factory] SearchFilterPtr SearchId(IntfID intfId)
 +m [factory] SearchFilterPtr InterfaceId(const IntfID& intfId)
@@ -301,6 +327,8 @@
 
 - Add module implementations for device based on the native config protocol
 
+## API changes
+
 ```diff
 + [function] IMirroredSignalPrivate::assignDomainSignal(const SignalPtr& domainSignal);
 ```
@@ -310,6 +338,8 @@
 ## Description
 
 - Support configuring instance builder from config provider
+
+## API changes
 
 ```diff
 -m [factory] ContextPtr Context(const SchedulerPtr& scheduler, const LoggerPtr& logger, const TypeManagerPtr& typeManager, const ModuleManagerPtr& moduleManager)
@@ -332,6 +362,8 @@
 
 - Add core event support to config client
 
+## API changes
+
 ```diff
 -m [function] IInstance::findComponent(IComponent* component, IString* id, IComponent** outComponent)
 +m [function] IComponent::findComponent(IString* id, IComponent** outComponent)
@@ -344,6 +376,8 @@
 
 - Add Component status implementations
 - Add method getIntValue for Enumeration object
+
+## API changes
 
 ```diff
 + [function] IEnumeration::getIntValue(Int* value)
@@ -367,6 +401,8 @@
 
 - Add debug logger sink for testing purpose
 
+## API changes
+
 ```diff
 + [interface] ILastMessageLoggerSinkPrivate : public IBaseObject
 + [function] ILastMessageLoggerSinkPrivate::getLastMessage(IString** lastMessage)
@@ -375,6 +411,8 @@
 ```
 
 # 2024-02-01
+
+## API changes
 
 ```diff
 +m [function] IMultiReader::skipSamples
@@ -387,6 +425,8 @@
 - Change ITagsConfig to ITagsPrivate and remove inheritance
 - Add TagsChanged core event
 - Make Tags changeable after creation (Tags are no longer freezable)
+
+## API changes
 
 ```diff
 -m [interface] ITagsConfig : public ITags
@@ -403,6 +443,8 @@
 ## Description
 
 - Support for external deserialization factory
+
+## API changes
 
 ```diff
 -m [function] IDeserializer::deserialize(IString* serialized, IBaseObject* context, IBaseObject** object)
@@ -428,6 +470,8 @@
   - Object-type property default values are now frozen when added to Property objects
   - Said default values are cloned as local values that can be modified by users
   - Property object core events now contain the path to the property if the property is contained within a nested property object
+
+## API changes
 
 ```diff
 + [function] IPropertyObjectInternal::clone(IPropertyObject** cloned)
@@ -455,6 +499,8 @@
     - Attribute lock was added to components preventing changes to locked attributes
     - Name and Description are no longer properties, but component attributes
     - Add per-component core event triggers
+
+## API changes
 
 ```diff
 + [interface] ISearchFilter : public IBaseObject
@@ -529,6 +575,8 @@
 
 - Add Enumeration Core type implementations
 
+## API changes
+
 ```diff
 + [interface] IEnumerationType : public IType
 + [function] IEnumerationType::getEnumeratorNames(IList** names)
@@ -550,6 +598,8 @@
 
 - Add method getLastValue in ISignal
 
+## API changes
+
 ```diff
 + [function] ISignal::getLastValue(IBaseObject** value)
 + [function] ISignalPrivate::enableKeepLastValue(Bool enabled)
@@ -560,6 +610,8 @@
 ## Description
 
 - Builder pattern implementation for IInstance
+
+## API changes
 
 ```diff
 + [interface] IInstanceBuilder : public IBaseObject
@@ -599,6 +651,8 @@
 - Add automatic triggers for Property Object changes
   - Add/Remove property, Value changed, Update ended
 
+## API changes
+
 ```diff
 + [interface] ICoreEventArgs : public IEventArgs
 + [function] ICoreEventArgs::getParameters(IDict** parameters)
@@ -616,6 +670,8 @@
 ## Description
 
 - Add Struct Builder for generic struct creation
+
+## API changes
 
 ```diff
 + [interface] IStructBuilder
@@ -639,6 +695,8 @@
 
 - Add subscribe/unsubscribe completion acknowledgement Events
 
+## API changes
+
 ```diff
 + [function] IMirroredSignalConfig::getOnSubscribeComplete(IEvent** event)
 + [function] IMirroredSignalConfig::getOnUnsubscribeComplete(IEvent** event)
@@ -660,6 +718,8 @@
 - Expose Origin Epoch and StartOffset the MultiReader aligned all the read signals to
 - Rework how interface inheritance and queryInterface work to hopefully prevent ICEs and out-of-heap-space errors
 
+## API changes
+
 ```diff
 + [function] IMultiReader::getTickResolution(IRatio** resolution)
 + [function] IMultiReader::getOrigin(IString** origin)
@@ -673,6 +733,8 @@
 - Builder pattern improvement
   - Expand builder classes with getters
   - Support creating objects from builder
+
+## API changes
 
 ```diff
 + [function] IPropertyBuilder::getValueType(CoreType* type)
@@ -750,6 +812,8 @@
 - setDescription, getDescription, and setName were moved to IComponent.
 - OPC UA now uses DisplayName to set/get component names, and node Description to get/set component descriptions
 
+## API changes
+
 ```diff
 + [function] IComponent::setName(IString* name)
 + [function] IComponent::getDescription(IString** description)
@@ -777,6 +841,8 @@
   - ISignalRemote renamed to IMirroredSignalConfig
   - IMirroredSignalConfig inherits ISignalConfig
   - Streaming source management methods moved from ISignalConfig to IMirroredSignalConfig
+
+## API changes
 
 ```diff
 - [function] ISignalConfig::getStreamingSources(IList** streamingConnectionStrings)

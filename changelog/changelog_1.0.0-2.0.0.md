@@ -4,6 +4,8 @@
 
 Added Multi-reader support for reading raw signal values (no scaling or conversion)
 
+## API changes
+
 ```diff
 -m enum class ReadMode { Raw, Scaled }
 +m enum class ReadMode { Unscaled, Scaled, RawValue }
@@ -15,6 +17,8 @@ Added Multi-reader support for reading raw signal values (no scaling or conversi
 
 Added method to IPropertyInternal
 
+## API changes
+
 ```diff
 +m  [function] IPropertyInternal::getValueTypeUnresolved(CoreType* coreType)
 ```
@@ -24,6 +28,8 @@ Added method to IPropertyInternal
 ## Description
 
 Removed ConfigurationMode from SDK as it was not used anyway.
+
+## API changes
 
 ```diff
 -m  [function] IDeserializer::update(IUpdatable* updatable, ConfigurationMode mode, IString* serialized)
@@ -49,6 +55,8 @@ Main takeaways of the changes:
 - Most of those objects, as well as Property and PropertyObjectClass moved away from the freezabel Config objects for creation. Instead they adopt a builder pattern where a Builder object with setters and a build method is available.
 - Builder objects have a RTGen flag returnSelf that currently only works for c++ bindings.
 - OPC UA implementation for generic struct transfer was added, but it currently only supports known Struct types (the ones in the imported OPC UA nodesets that have fields of known OPC UA types).
+
+## API changes
 
 ```diff
 + [factory] StructTypePtr ComplexNumberStructType()
@@ -246,6 +254,8 @@ Main takeaways of the changes:
 
 Added unscaled / raw mode option to readers
 
+## API changes
+
 ```diff
 +  [function] ISampleReader::getReadMode(ReadMode* mode);
 +  [factory] StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode, ReadTimeoutType timeoutType = ReadTimeoutType::All)
@@ -274,6 +284,8 @@ Added unscaled / raw mode option to readers
 
 Module Manager is now accessible from within the Context. `createAndAddNestedFunctionBlock` method was added to `SignalContainerImpl`
 allowing for easy creation of nested Function Blocks using other loaded modules. Some API fixups were added.
+
+## API changes
 
 ```diff
 + [function] FunctionBlockPtr GenericSignalContainerImpl::createAndAddNestedFunctionBlock(const StringPtr& typeId, const StringPtr& localId, const PropertyObjectPtr& config = nullptr)
@@ -312,6 +324,8 @@ allowing for easy creation of nested Function Blocks using other loaded modules.
 
 Context is removed from instance interface
 
+## API changes
+
 ```diff
 - [function] IInstance::getContext(IContext** context)
 ```
@@ -327,6 +341,8 @@ Removed `ILoggerComponent::logMessage` overload as it is not used anywhere and i
 Changed `SourceLocation::line` variable from `int` to fixed with type of `daq::Int`
 Changed `IAllocator::allocate` and `IAllocator::free`
 
+## API changes
+
 ```diff
 -m [factory] Property()
 +m [factory] Property(name)
@@ -340,6 +356,8 @@ Changed `IAllocator::allocate` and `IAllocator::free`
 
 Update to the latest version of the OPC UA model. Signal and Input Port properties are not visible over OPC UA. IComponent methods
 are accessible via OPC UA for all openDAQ components. UserName and location was moved from DeviceInfo to be Device properties.
+
+## API changes
 
 ```diff
 - [function] IDeviceInfo::getUserName(IString** userName)
@@ -357,6 +375,8 @@ ff6768d39a76b3b784994f6a17f1d730cb8be639
 Introduces Name and Description as static and dynamic properties on ISignal. Previously part of signal descriptor. Adds
 new event packet type "PropertyChanged" which is sent to connected listeners when any property such as name is changed on a signal.
 
+## API changes
+
 ```diff
 + [function] ISignal::setName(IString* name)
 + [function] ISignal::setDescription(IString* name)
@@ -373,6 +393,8 @@ new event packet type "PropertyChanged" which is sent to connected listeners whe
 
 Removes ISignalDescriptor and uses IDataDescriptor everywhere. Metdata field from ISignalDescriptor moved to IDataDescription.
 Name and Description are no longer part of signal/data descriptor
+
+## API changes
 
 ```diff
 -m [function] IDataPacket::getSignalDescriptor(ISignalDescriptor** descriptor)
@@ -406,6 +428,8 @@ Name and Description are no longer part of signal/data descriptor
 # 2023-06-09 - 2023-07-18
 
 7713cdbb0614b5c073a8d7eb3d834b62e9b1efb4 - 29ee6eb5ebdef33c23b1a7eed4b1e8a064cdb7eb
+
+## API changes
 
 ```diff
 + [interface] IComponentType : public IBaseObject

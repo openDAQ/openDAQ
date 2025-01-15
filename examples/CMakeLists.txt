@@ -181,4 +181,16 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     if (OPENDAQ_ENABLE_NATIVE_STREAMING)
         add_dependencies(streaming_configuration_example daq::native_stream_cl_module)
     endif()
+	
+	add_executable(reconnection_example cpp/reconnection_example/reconnection.cpp)
+    target_link_libraries(reconnection_example PRIVATE daq::opendaq)
+    add_dependencies(reconnection_example daq::native_stream_cl_module
+                                          daq::native_stream_srv_module
+	)
+	
+	add_executable(reconnection_example_v3_10 cpp/reconnection_example/reconnection_v3_10.cpp)
+    target_link_libraries(reconnection_example_v3_10 PRIVATE daq::opendaq)
+    add_dependencies(reconnection_example_v3_10 daq::native_stream_cl_module
+                                                daq::native_stream_srv_module
+	)
 endif()

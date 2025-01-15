@@ -736,7 +736,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addNetworkInteface(IStr
         return OPENDAQ_ERR_INVALIDPARAMETER;
 
     if (networkInterfaces.hasKey(name))
-        return OPENDAQ_ERR_ALREADYEXISTS;
+        return OPENDAQ_ERR_DUPLICATEITEM;
 
     return networkInterfaces->set(name, networkInterface);
 }

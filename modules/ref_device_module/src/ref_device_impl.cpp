@@ -19,6 +19,10 @@
 #include <iomanip>
 #include <opendaq/packet_factory.h>
 
+#ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
+#include <csignal>
+#endif
+
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
@@ -548,5 +552,69 @@ void RefDeviceImpl::createSignals()
     timeSignal = createAndAddSignal("Time", nullptr, true);
     timeSignal.getTags().asPtr<ITagsPrivate>(true).add("DeviceDomain");
 }
+
+#ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
+void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
+{
+    const auto addrListToJson = [](const ListPtr<IString>& addresses) -> std::string
+    {
+        SerializerPtr serializer = JsonSerializer();
+        addresses.serialize(serializer);
+        return serializer.getOutput().toStdString();
+    };
+
+    bool dhcp4 = config.getPropertyValue("dhcp4");
+    bool dhcp6 = config.getPropertyValue("dhcp6");
+    StringPtr gateway4 = config.getPropertyValue("gateway4");
+    StringPtr gateway6 = config.getPropertyValue("gateway6");
+
+    const std::string scriptWithParams = "/home/opendaq/netplan_manager.py verify " +
+                                         ifaceName.toStdString() + " " +
+                                         (dhcp4 ? "true" : "false") + " " +
+                                         (dhcp6 ? "true" : "false") + " " +
+                                         "'" + addrListToJson(config.getPropertyValue("addresses4")) + "' " +
+                                         "'" + addrListToJson(config.getPropertyValue("addresses6")) + "' " +
+                                         "\"" + gateway4.toStdString() + "\" " +
+                                         "\"" + gateway6.toStdString() + "\"";
+
+    // py script runs with root privileges without requiring a password, as specified in sudoers
+    const std::string command = "sudo python3 " + scriptWithParams + " 2>&1";
+    std::array<char, 256> buffer;
+    std::string result;
+
+    // Open the command for reading
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe)
+        throw GeneralErrorException("Failed to start IP modification");
+
+    // Read the output of the command
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+        result += buffer.data();
+
+    // Get the exit status
+    int exitCode = pclose(pipe);
+    if (exitCode)
+        throw InvalidParameterException("Invalid IP configuration: {}", result);
+
+    // The new IP configuration has been successfully verified. Stop the application now
+    // to allow it to adopt the updated configuration and reopen network sockets upon relaunch.
+    std::raise(SIGINT);
+}
+
+PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr& ifaceName)
+{
+    throw NotImplementedException();
+}
+
+Bool RefDeviceImpl::onGetNetworkConfigurationEnabled()
+{
+    return True;
+}
+
+ListPtr<IString> RefDeviceImpl::onGetNetworkInterfaceNames()
+{
+    return List<IString>("enp0S3");
+}
+#endif
 
 END_NAMESPACE_REF_DEVICE_MODULE

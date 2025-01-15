@@ -8,49 +8,6 @@
 
 using namespace daq;
 
-std::string addrListToJson(const ListPtr<IString>& addresses)
-{
-    SerializerPtr serializer = JsonSerializer();
-    addresses.serialize(serializer);
-    return serializer.getOutput().toStdString();
-}
-
-void verifyIpConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
-{
-    bool dhcp4 = config.getPropertyValue("dhcp4");
-    bool dhcp6 = config.getPropertyValue("dhcp6");
-    StringPtr gateway4 = config.getPropertyValue("gateway4");
-    StringPtr gateway6 = config.getPropertyValue("gateway6");
-
-    const std::string scriptWithParams = "/home/opendaq/netplan_manager.py verify " +
-                                         ifaceName.toStdString() + " " +
-                                         (dhcp4 ? "true" : "false") + " " +
-                                         (dhcp6 ? "true" : "false") + " " +
-                                         "'" + addrListToJson(config.getPropertyValue("addresses4")) + "' " +
-                                         "'" + addrListToJson(config.getPropertyValue("addresses6")) + "' " +
-                                         "\"" + gateway4.toStdString() + "\" " +
-                                         "\"" + gateway6.toStdString() + "\"";
-
-    // py script runs with root privileges without requiring a password, as specified in sudoers
-    const std::string command = "sudo python3 " + scriptWithParams + " 2>&1";
-    std::array<char, 256> buffer;
-    std::string result;
-
-    // Open the command for reading
-    FILE* pipe = popen(command.c_str(), "r");
-    if (!pipe)
-        throw GeneralErrorException("Failed to start IP modification");
-
-    // Read the output of the command
-    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
-        result += buffer.data();
-
-    // Get the exit status
-    int exitCode = pclose(pipe);
-    if (exitCode)
-        throw InvalidParameterException("Invalid IP configuration: {}", result);
-}
-
 int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
@@ -75,22 +32,6 @@ int main(int /*argc*/, const char* /*argv*/[])
     instanceBuilder.setAuthenticationProvider(authenticationProvider);
     instanceBuilder.addDiscoveryServer("mdns");
     instanceBuilder.setRootDevice("daqref://device0");
-    instanceBuilder.setModifyIpConfigCallback(
-        [](const StringPtr& ifaceName, const PropertyObjectPtr& config)
-        {
-            try
-            {
-                verifyIpConfiguration(ifaceName, config);
-            }
-            catch (...)
-            {
-                throw;
-            }
-            // The new IP configuration has been successfully verified. Stop the application now
-            // to allow it to adopt the updated configuration and reopen network sockets upon relaunch.
-            std::raise(SIGINT);
-        }
-    );
 
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 

@@ -46,6 +46,13 @@ protected:
     ListPtr<ILogFileInfo> onGetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
+#ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
+    void onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config) override;
+    PropertyObjectPtr onRetrieveNetworkConfiguration(const StringPtr& ifaceName) override;
+    Bool onGetNetworkConfigurationEnabled() override;
+    ListPtr<IString> onGetNetworkInterfaceNames() override;
+#endif
+
 private:
     void createSignals();
     void initClock();

@@ -12,7 +12,7 @@ from .metadata_dialog import MetadataDialog
 
 
 class PropertiesTreeview(ttk.Treeview):
-    def __init__(self, parent: ttk.Frame, node=None, context: AppContext = None, **kwargs):
+    def __init__(self, parent, node=None, context: AppContext = None, **kwargs):
         ttk.Treeview.__init__(self, parent, columns=('value', *context.metadata_fields), show='tree headings', **kwargs)
 
         self.event_port = EventPort(self)
@@ -54,8 +54,7 @@ class PropertiesTreeview(ttk.Treeview):
         self.delete(*self.get_children())
         if self.node is not None:
             if daq.IPropertyObject.can_cast_from(self.node):
-                self.fill_properties(
-                    '', daq.IPropertyObject.cast_from(self.node))
+                self.fill_properties('', daq.IPropertyObject.cast_from(self.node))
 
     def fill_list(self, parent_iid, l, read_only):
         for i, value in enumerate(l):
@@ -114,11 +113,9 @@ class PropertiesTreeview(ttk.Treeview):
                 print(e)
 
             unit_symbol = property_info.unit.symbol if property_info.unit is not None else ''
-            iid = self.insert('' if not parent_iid else parent_iid, tk.END, text=property_info.name, values=(
-                f'{property_value} {unit_symbol}', *meta_fields))
+            iid = self.insert('' if not parent_iid else parent_iid, tk.END, open=True, text=property_info.name, values=(f'{property_value} {unit_symbol}', *meta_fields))
             if property_info.read_only:
                 self.item(iid, tags=('readonly',))
-
 
             if property_info.value_type == daq.CoreType.ctObject:
                 self.fill_properties(
@@ -221,8 +218,8 @@ class PropertiesTreeview(ttk.Treeview):
                     return
                 prop = component.get_property_value(property.name)
                 if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):
-                    casted_property = daq.IPropertyObject.cast_from(prop)
-                    self.update_property(casted_property, path, new_value, depth + 1)
+                    cast_property = daq.IPropertyObject.cast_from(prop)
+                    self.update_property(cast_property, path, new_value, depth + 1)
 
     def save_simple_value(self, entry, path):
         new_value = entry.get()
@@ -272,8 +269,8 @@ class PropertiesTreeview(ttk.Treeview):
             prop.value = utils.show_selection('Enter the new value for {}:'.format(property_name),
                                               prop.value, prop.selection_values)
             self.refresh() # is needed
-        elif prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt):
-            self.edit_simple_property(selected_item_id, prop.value, path)
         elif prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
             EditContainerPropertyDialog(self, prop, self.context).show()
-            self.refresh() # TODO needed check
+            self.refresh() # TODO needed? check
+        elif prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt):
+            self.edit_simple_property(selected_item_id, prop.value, path)

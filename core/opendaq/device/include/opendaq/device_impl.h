@@ -1002,13 +1002,13 @@ StringPtr GenericDevice<TInterface, Interfaces...>::onGetLog(const StringPtr& /*
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
+void GenericDevice<TInterface, Interfaces...>::onSubmitNetworkConfiguration(const StringPtr& /*ifaceName*/, const PropertyObjectPtr& /*config*/)
 {
     throw NotImplementedException();
 }
 
 template <typename TInterface, typename... Interfaces>
-PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onRetrieveNetworkConfiguration(const StringPtr& ifaceName)
+PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onRetrieveNetworkConfiguration(const StringPtr& /*ifaceName*/)
 {
     throw NotImplementedException();
 }

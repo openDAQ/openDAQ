@@ -168,7 +168,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-11-28
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 
@@ -199,7 +200,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-11-25
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 
@@ -265,7 +267,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-11-08
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 
@@ -364,7 +367,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-24
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 
@@ -382,7 +386,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-24
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 
@@ -443,7 +448,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-11
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 
@@ -468,7 +474,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-10
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 
@@ -533,7 +540,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-03
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 
@@ -577,7 +585,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-09-11
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 
@@ -764,7 +773,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-07-26
 
-**Breaks binary compatibility**
+> [!NOTE]
+>Breaks binary compatibility
 
 ## Description
 

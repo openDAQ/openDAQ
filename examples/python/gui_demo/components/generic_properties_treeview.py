@@ -4,7 +4,6 @@ from tkinter import ttk
 import opendaq as daq
 
 from .. import utils
-from ..event_port import EventPort
 from ..app_context import AppContext
 from .function_dialog import FunctionDialog
 from .edit_container_property import EditContainerPropertyDialog
@@ -14,8 +13,6 @@ from .metadata_dialog import MetadataDialog
 class PropertiesTreeview(ttk.Treeview):
     def __init__(self, parent, node=None, context: AppContext = None, **kwargs):
         ttk.Treeview.__init__(self, parent, columns=('value', *context.metadata_fields), show='tree headings', **kwargs)
-
-        self.event_port = EventPort(self)
 
         self.context = context
         self.node = node
@@ -136,7 +133,7 @@ class PropertiesTreeview(ttk.Treeview):
 
         self.clipboard_clear()
         value = '' if len(item['values']) == 0 else item['values'][0]
-        self.clipboard_append(value.strip())
+        self.clipboard_append(str(value).strip())
 
     def handle_show_metadata(self):
         selected_item = utils.treeview_get_first_selection(self)
@@ -194,7 +191,7 @@ class PropertiesTreeview(ttk.Treeview):
                 prop.value = utils.value_to_coretype(
                     self.clipboard_get(), prop.value_type)
 
-            self.event_port.emit()
+            self.refresh()
 
         except Exception as e:
             utils.show_error('Paste error', f'Can\'t paste: {e}', parent=self)

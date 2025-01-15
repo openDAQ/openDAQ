@@ -43,7 +43,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-nuget-create
       cancel-in-progress: true
-    timeout-minutes: 120
+    timeout-minutes: 15 # normally finishing within 2 minutes
 
     env:
       # use relative paths where possible (to github.workspace)
@@ -153,7 +153,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-nuget-test-windows
       cancel-in-progress: true
-    timeout-minutes: 120
+    timeout-minutes: 15 # has to be adapted when there are more tests
 
     env:
       # relative paths (to github.workspace)
@@ -223,7 +223,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-nuget-test-linux
       cancel-in-progress: true
-    timeout-minutes: 120
+    timeout-minutes: 15 # has to be adapted when there are more tests
 
     env:
       # relative paths (to github.workspace)

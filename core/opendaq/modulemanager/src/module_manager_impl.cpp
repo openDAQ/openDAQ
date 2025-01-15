@@ -37,17 +37,17 @@ static OrphanedModules orphanedModules;
 static constexpr char createModuleFactory[] = "createModule";
 static constexpr char checkDependenciesFunc[] = "checkDependencies";
 
-static std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context);
+static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
     , work(ioContext.get_executor())
 {
-    if (const StringPtr pathStr = path.asPtrOrNull<IString>(); pathStr.assigned())
+    if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
         paths.push_back(pathStr.toStdString());
     }
-    else if (const ListPtr<IString> pathList = path.asPtrOrNull<IList>(); pathList.assigned())
+    else if (const ListPtr<IString> pathList = path.asPtrOrNull<IList>(true); pathList.assigned())
     {
         paths.insert(paths.end(), pathList.begin(), pathList.end());
     }
@@ -139,12 +139,24 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
+    std::vector<std::string> paths;
+    auto envPath = std::getenv("OPENDAQ_MODULES_PATH");
+    if (envPath != nullptr)
+    {
+        LOG_D("Environment variable OPENDAQ_MODULES_PATH found, moduler search folder overriden to {}", envPath)
+        paths = {envPath};
+    }
+    else
+    {
+        paths = this->paths;
+    }
+
+    std::vector<fs::path> modulesPath;
     for (const auto& path: paths)
     {
         try
         {
-            auto localLibraries = enumerateModules(loggerComponent, path, context);
-            libraries.insert(libraries.end(), localLibraries.begin(), localLibraries.end());                
+            GetModulesPath(modulesPath, loggerComponent, path);
         }
         catch (const daq::DaqException& e)
         {
@@ -159,6 +171,31 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
             LOG_W(R"(Unknown error occured scanning directory "{}")", path)
         }
     }
+
+    libraries.reserve(modulesPath.size());
+
+    orphanedModules.tryUnload();
+
+    for (const auto& modulePath: modulesPath)
+    {
+        try
+        {
+            libraries.push_back(loadModule(loggerComponent, modulePath, context));
+        }
+        catch (const daq::DaqException& e)
+        {
+            LOG_W(R"(Error loading module "{}": {} [{:#x}])", modulePath.string(), e.what(), e.getErrCode())
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W(R"(Error loading module "{}": {})", modulePath.string(), e.what())
+        }
+        catch (...)
+        {
+            LOG_W(R"(Unknown error occured loading module "{}")", modulePath.string())
+        }
+    }
+
     modulesLoaded = true;
     return OPENDAQ_SUCCESS;
 }
@@ -1496,21 +1533,12 @@ bool ModuleManagerImpl::isDefaultAddDeviceConfig(const PropertyObjectPtr& config
     return config.hasProperty("General") && config.hasProperty("Streaming") && config.hasProperty("Device");
 }
 
-std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComponent, std::string searchFolder, IContext* context)
+void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder)
 {
-    orphanedModules.tryUnload();
-
     if (searchFolder == "[[none]]")
     {
         LOGP_D("Search folder ignored");
-        return {};
-    }
-
-    auto envPath = std::getenv("OPENDAQ_MODULES_PATH");
-    if (envPath != nullptr)
-    {
-        searchFolder = envPath;
-        LOG_D("Environment variable OPENDAQ_MODULES_PATH found, moduler search folder overriden to {}", searchFolder)
+        return;
     }
 
     if (searchFolder.empty())
@@ -1521,29 +1549,20 @@ std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComp
 
     std::error_code errCode;
     if (!fs::exists(searchFolder, errCode))
-    {
-        throw InvalidParameterException("The specified path does not exist.");
-    }
+        throw InvalidParameterException("The specified path \"%s\" does not exist.", searchFolder.c_str());
 
     if (!fs::is_directory(searchFolder, errCode))
-    {
-        throw InvalidParameterException("The specified path is not a folder.");
-    }
+        throw InvalidParameterException("The specified path \"%s\" is not a folder.", searchFolder.c_str());
 
-    auto loadPath = fs::absolute(searchFolder).string();
-    LOG_I("Loading modules from '{}'", fs::absolute(searchFolder).string())
-
-    std::vector<ModuleLibrary> moduleDrivers;
     fs::recursive_directory_iterator dirIterator(searchFolder);
 
     [[maybe_unused]]
-    Finally onExit([workingDir = fs::current_path()]()
+    Finally onExit([workingDir = fs::current_path()]
     {
         fs::current_path(workingDir);
     });
 
     fs::current_path(searchFolder);
-    auto currPath = fs::current_path().string();
 
     const auto endIter = fs::recursive_directory_iterator();
     while (dirIterator != endIter)
@@ -1551,32 +1570,16 @@ std::vector<ModuleLibrary> enumerateModules(const LoggerComponentPtr& loggerComp
         fs::directory_entry entry = *dirIterator++;
 
         if (!is_regular_file(entry, errCode))
-        {
             continue;
-        }
 
         const fs::path& entryPath = entry.path();
         const auto filename = entryPath.filename().u8string();
 
         if (boost::algorithm::ends_with(filename, OPENDAQ_MODULE_SUFFIX))
-        {
-            try
-            {
-                moduleDrivers.push_back(loadModule(loggerComponent, entryPath, context));
-            }
-            catch (const std::exception& e)
-            {
-                LOGP_W(e.what())
-            }
-            catch (...)
-            {
-                LOG_E("Unknown error occurred wile loading a module", ".")
-            }
-        }
+            modulesPath.push_back(entryPath);
     }
-
-    return moduleDrivers;
 }
+
 
 template <typename Functor>
 static void printComponentTypes(Functor func, const std::string& kind, const LoggerComponentPtr& loggerComponent)
@@ -1609,9 +1612,9 @@ static void printComponentTypes(Functor func, const std::string& kind, const Log
 
 static void printAvailableTypes(const ModulePtr& module, const LoggerComponentPtr& loggerComponent)
 {
-    printComponentTypes([&module](){return module.getAvailableDeviceTypes(); }, "DEV", loggerComponent);
-    printComponentTypes([&module](){return module.getAvailableFunctionBlockTypes(); }, "FB", loggerComponent);
-    printComponentTypes([&module](){return module.getAvailableServerTypes(); }, "SRV", loggerComponent);
+    printComponentTypes([&module]{ return module.getAvailableDeviceTypes(); }, "DEV", loggerComponent);
+    printComponentTypes([&module]{ return module.getAvailableFunctionBlockTypes(); }, "FB", loggerComponent);
+    printComponentTypes([&module]{ return module.getAvailableServerTypes(); }, "SRV", loggerComponent);
 }
 
 ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)

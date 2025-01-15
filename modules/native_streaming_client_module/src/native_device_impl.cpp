@@ -531,6 +531,36 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
+    if (clientComm->getProtocolVersion() < 8)
+    {
+        auto changeableFields = List<IString>();
+        PropertyPtr userNameProp;
+        deviceInfo->getProperty(String("userName"), &userNameProp);
+        if (userNameProp.assigned())
+            changeableFields.pushBack("userName");
+        
+        PropertyPtr locationProp;
+        deviceInfo->getProperty(String("location"), &locationProp);
+        if (locationProp.assigned())
+            changeableFields.pushBack("location");
+        
+        auto newDeviceInfo = DeviceInfoWithChanegableFields(changeableFields);
+        auto deviceInfoInternal = newDeviceInfo.asPtr<IPropertyObjectProtected>(true);
+    
+        for (const auto& prop : deviceInfo.getAllProperties())
+        {
+            const auto propName = prop.getName();
+            if (!newDeviceInfo.hasProperty(propName))
+                if (const auto internalProp = prop.asPtrOrNull<IPropertyInternal>(true); internalProp.assigned())
+                    newDeviceInfo.addProperty(internalProp.clone());                
+
+            if (const auto propValue = deviceInfo.getPropertyValue(propName); propValue.assigned())
+                deviceInfoInternal->setProtectedPropertyValue(propName, propValue);
+        }
+    
+        deviceInfo = newDeviceInfo;
+    }
+
     deviceInfo.asPtr<IPropertyObjectProtected>(true)->setProtectedPropertyValue(String("connectionString"), connectionString);
 
     if (!deviceInfo.hasProperty("NativeConfigProtocolVersion"))

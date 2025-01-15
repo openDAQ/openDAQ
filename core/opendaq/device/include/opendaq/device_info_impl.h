@@ -978,11 +978,15 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     {
         ComponentPtr parent = newOwner;
 
-        if (!this->objPtr.getProperty("userName").getReadOnly())
+        PropertyPtr userNameProp;
+        this->getProperty(String("userName"), &userNameProp);
+        if (userNameProp.assigned() && !userNameProp.getReadOnly())
             parent->addProperty(StringProperty("userName", ""));
-
-        if (!this->objPtr.getProperty("location").getReadOnly())
-            parent->addProperty(StringProperty("location", ""));
+        
+        PropertyPtr locationProp;
+        this->getProperty(String("location"), &locationProp);
+        if (locationProp.assigned() && !locationProp.getReadOnly())
+            parent->addProperty(StringProperty("location", ""));\
 
         if (!coreEvent.assigned())
         {

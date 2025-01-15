@@ -95,9 +95,11 @@ run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component   
 run_rtgen opendaq opendaq/context         opendaq opendaq/generated/context          context
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_private
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_network_config
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_domain
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_info_config
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           network_interface
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           server_capability
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_type
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info

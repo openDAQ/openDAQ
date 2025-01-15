@@ -168,6 +168,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-11-28
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Introduces separate container accessible per device for connection statuses
@@ -179,7 +181,6 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 ## Required integration changes
 
-- Breaks binary compatibility
 - Introduces new mechanism for retrieving connection status of the device
 
 ## API changes
@@ -198,6 +199,8 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-11-25
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Delete the fields `id`, `name`, and `versionInfo` from the `IModule` interface and add them to the new `IModuleInfo` interface, which is a new field in the `IModule` interface
@@ -205,9 +208,6 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - Works over Native
 - Component Type is moved from `coreobjects` to `opendaq`
 
-## Required integration changes
-
-- Breaks binary compatibility
 
 ## API changes
 
@@ -265,15 +265,13 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-11-08
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Add support for forcefully unlocking a device over native config protocol
 - Native config protocol bumped to version 6
 - Add user lock object to serialized device
-
-## Required integration changes
-
-- Breaks binary compatibility
 
 ## API changes
 
@@ -366,16 +364,14 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-24
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Add a way to view the server protocol version in server capabilities.
 - Fix the path issue in ConfigurationConnectionInfo of device info: If the connection to the device included a path, ensure the path is correctly reflected in the ConfigurationConnectionInfo.
 - For native configuration, update the ConfigurationConnectionInfo of device info to display the actual protocol version used in communication between the server and client.
 - Native client default config property `ProtocolVersion` is set to the latest support protocol version
-
-## Required integration changes
-
-- Breaks binary compatibility
 
 ## API changes
 
@@ -386,13 +382,11 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-24
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Implement log file info interface
-
-## Required integration changes:
-
-- Breaks binary compatibility
 
 ## API changes
 
@@ -449,13 +443,14 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-11
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Add methods in function block to add/remove nested fb
 
 ## Required integration changes
 
-- Breaks binary compatibility
 - For function blocks that contain nested function blocks, developers should override the method
   `FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)` as this method is used during the loadConfiguration process.
   Additionally, developers may optionally override the methods `DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes()`
@@ -473,14 +468,12 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-10
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Restoring the device while loading the configuration.
 - Add update parameters to set a flag indicating whether to use the existing device or recreate a new one
-
-## Required integration changes
-
-- Breaks binary compatibility
 
 ## API changes
 
@@ -540,13 +533,11 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-10-03
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Add support for device locking over native config protocol
-
-## Required integration changes
-
-- Breaks binary compatibility
 
 ## API changes
 
@@ -586,13 +577,11 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-09-11
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Enable openDAQ servers to be added to the component tree under the device
-
-## Required integration changes
-
-- Breaks binary compatibility
 
 ## API changes
 
@@ -775,13 +764,11 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 # 2024-07-26
 
+**Breaks binary compatibility**
+
 ## Description
 
 - Add method to IPropertyObject to detect begin/end update status
-
-## Required integration changes
-
-- Breaks binary compatibility
 
 ## API changes
 

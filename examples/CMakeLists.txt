@@ -74,6 +74,9 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     add_executable(client_authentication cpp/client_authentication/client_authentication.cpp)
     target_link_libraries(client_authentication PRIVATE daq::opendaq)
 
+    add_executable(ip_modification cpp/ip_modification/ip_modification.cpp)
+    target_link_libraries(ip_modification PRIVATE daq::opendaq)
+
     set(SRC_HeadersConsoleApp cpp/console_application/console_application.h
                               cpp/console_application/app_channel.h
                               cpp/console_application/app_device.h

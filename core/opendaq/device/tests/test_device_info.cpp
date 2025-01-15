@@ -263,7 +263,7 @@ TEST_F(DeviceInfoTest, ServerCapabilities)
 
 TEST_F(DeviceInfoTest, NetworkInterfaces)
 {
-    auto moduleManager = ModuleManager("");
+    auto moduleManager = ModuleManager("[[none]]");
     DeviceInfoPtr info = DeviceInfo("", "");
     DeviceInfoInternalPtr internalInfo = info;
 

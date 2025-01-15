@@ -242,7 +242,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 ## Description
 
-- Raise minimum required config protocol version to 6 for the following device locking methods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool\* isLockedOut)
+- Raise minimum required config protocol version to 6 for the following device locking methods: `IDevice::lock()`, `IDevice::unlock()`, `IDevice::isLocked(Bool* isLockedOut)`
 
 # 2024-11-12
 
@@ -252,7 +252,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - Removed generation of local ID for client device in instance.
 - Fixed connecting signals to input ports on the server to which the client is connecting during configuration loading.
 
-## Required integration changes:
+## Required integration changes
 
 - An instance with the client device as the root device no longer generates a unique ID but uses `openDAQDevice` as the ID.
 - If a developer encountered issues restoring signal connections from the client to the server during configuration loading, they need to create a new configuration and save it. Otherwise, everything should work fine.
@@ -296,7 +296,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - A standard lock guard can be acquired via `GenericPropertyObjectImpl::getAcquisitionLock()`
 - The `sync` mutex previously available in `ComponentImpl` was moved up to `GenericPropertyObjectImpl`
 
-## Required integration changes:
+## Required integration changes
 
 - The `sync` mutex available in the `GenericPropertyObjectImpl` should no longer be locked in `onWrite`/`onRead` events. If needed due to used programming patterns, the `getRecursiveConfigLock` method should be used instead. See the reference device implementations for guidance.
 - Current device/function block implementations that lock the `sync` mutex during events will deadlock.
@@ -430,7 +430,7 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 - Replace nullptr with a Data Descriptor having SampleType::Null in the "DATA_DESCRIPTOR_CHANGED" event packet when a signal's descriptor is not assigned
 - Enable resetting the signal's Data Descriptor to nullptr
 
-## Required integration changes:
+## Required integration changes
 
 - In the "DATA_DESCRIPTOR_CHANGED" event packet, the parameters "DataDescriptor" and "DomainDataDescriptor" are set to nullptr only if the corresponding descriptors have not changed.
   If the signal descriptor is not assigned, they are set to a DataDescriptor object with the "Null" sample type.

@@ -371,9 +371,9 @@ TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
 
     auto signals = client.getSignals(search::Recursive(search::Any()));
     auto signalsServer = server.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(signals.getCount(), 7u);
+    ASSERT_EQ(signals.getCount(), 8u);
     auto signalsVisible = client.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(signalsVisible.getCount(), 4u);
+    ASSERT_EQ(signalsVisible.getCount(), 5u);
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
     auto fbs = devices[0].getFunctionBlocks();
@@ -396,7 +396,7 @@ TEST_F(OpcuaDeviceModulesTest, ChangePropAfterRemove)
 {
     auto loggerSink = LastMessageLoggerSink();
     loggerSink.setLevel(LogLevel::Warn);
-    auto debugSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+    auto privateSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
 
     auto sinks = DefaultSinks(nullptr);
     sinks.pushBack(loggerSink);
@@ -413,12 +413,13 @@ TEST_F(OpcuaDeviceModulesTest, ChangePropAfterRemove)
     ASSERT_TRUE(mirroredRefDevice.isRemoved());
 
     // reset messages
-    debugSink.waitForMessage(0);
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    privateSink.waitForMessage(0);
 
     ASSERT_NO_THROW(mirroredRefDevice.setPropertyValue("NumberOfChannels", 1));
     logger.flush();
-    ASSERT_TRUE(debugSink.waitForMessage(2000));
-    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"NumberOfChannels\" on OpcUA client property object: Writing property value");
+    ASSERT_TRUE(privateSink.waitForMessage(2000));
+    ASSERT_EQ(privateSink.getLastMessage(), "Failed to set value for property \"NumberOfChannels\" on OpcUA client property object: Writing property value");
 }
 
 TEST_F(OpcuaDeviceModulesTest, RemoteGlobalIds)
@@ -443,7 +444,7 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
     SKIP_TEST_MAC_CI;
     auto loggerSink = LastMessageLoggerSink();
     loggerSink.setLevel(LogLevel::Warn);
-    auto debugSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+    auto sinkPrivate = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
 
     auto sinks = DefaultSinks(nullptr);
     sinks.pushBack(loggerSink);
@@ -471,11 +472,12 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
     auto oldProperties = refDevice.getAllProperties();
 
     // reset messages
-    debugSink.waitForMessage(0);
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    sinkPrivate.waitForMessage(0);
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
     logger.flush();
-    ASSERT_TRUE(debugSink.waitForMessage(2000));
-    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"InvalidProp\" on OpcUA client property object: Property not found");
+    ASSERT_TRUE(sinkPrivate.waitForMessage(2000));
+    ASSERT_EQ(sinkPrivate.getLastMessage(), "Failed to set value for property \"InvalidProp\" on OpcUA client property object: Property not found");
 
     auto properties = refDevice.getAllProperties();
     ASSERT_EQ(properties.getCount(), oldProperties.getCount());
@@ -689,7 +691,7 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlockProperties)
 {
     auto loggerSink = LastMessageLoggerSink();
     loggerSink.setLevel(LogLevel::Warn);
-    auto debugSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+    auto privateSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
 
     auto sinks = DefaultSinks(nullptr);
     sinks.pushBack(loggerSink);
@@ -710,11 +712,12 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlockProperties)
     ASSERT_EQ(fb.getPropertyValue("DomainSignalType"), serverFb.getPropertyValue("DomainSignalType"));
 
     // reset messages
-    debugSink.waitForMessage(0);
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    privateSink.waitForMessage(0);
     ASSERT_NO_THROW(fb.setPropertyValue("DomainSignalType" , 1000));
     logger.flush();
-    ASSERT_TRUE(debugSink.waitForMessage(2000));
-    ASSERT_EQ(debugSink.getLastMessage(), "Failed to set value for property \"DomainSignalType\" on OpcUA client property object: Writing property value");
+    ASSERT_TRUE(privateSink.waitForMessage(2000));
+    ASSERT_EQ(privateSink.getLastMessage(), "Failed to set value for property \"DomainSignalType\" on OpcUA client property object: Writing property value");
 }
 
 TEST_F(OpcuaDeviceModulesTest, DISABLED_InputPort)

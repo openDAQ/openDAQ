@@ -3,7 +3,6 @@
 #include <coreobjects/unit_factory.h>
 #include <ref_device_module/ref_channel_impl.h>
 #include <ref_device_module/ref_can_channel_impl.h>
-#include <opendaq/module_manager_ptr.h>
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_type_factory.h>
@@ -18,6 +17,7 @@
 #include <sstream>
 #include <chrono>
 #include <iomanip>
+#include <opendaq/packet_factory.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -32,6 +32,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent(REF_MODULE_NAME)
                           : throw ArgumentNullException("Logger must not be null"))
+    , samplesGenerated(0)
 {
     if (config.assigned() && config.hasProperty("SerialNumber"))
     {
@@ -50,6 +51,8 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     initSyncComponent();
     initClock();
     initProperties(config);
+    createSignals();
+    configureTimeSignal();
     updateNumberOfChannels();
     enableCANChannel();
     enableProtectedChannel();
@@ -162,7 +165,9 @@ PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
 void RefDeviceImpl::initClock()
 {
     startTime = std::chrono::steady_clock::now();
+    startTimeInMs = std::chrono::duration_cast<std::chrono::microseconds>(startTime.time_since_epoch());
     auto startAbsTime = std::chrono::system_clock::now();
+    refDomainId = "openDAQ_" + serialNumber;
 
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
 
@@ -170,7 +175,7 @@ void RefDeviceImpl::initClock()
         DeviceDomain(RefChannelImpl::getResolution(),
                      RefChannelImpl::getEpoch(),
                      UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
-                     ReferenceDomainInfoBuilder().setReferenceDomainId("openDAQ_" + serialNumber).setReferenceDomainOffset(0).build()));
+                     ReferenceDomainInfoBuilder().setReferenceDomainId(refDomainId).setReferenceDomainOffset(0).build()));
 }
 
 void RefDeviceImpl::initIoFolder()
@@ -210,8 +215,11 @@ void RefDeviceImpl::acqLoop()
 
         cv.wait_for(lock, waitTime);
         if (!stopAcq)
+        if (!stopAcq)
         {
-            auto curTime = getMicroSecondsSinceDeviceStart();
+            const auto curTime = getMicroSecondsSinceDeviceStart();
+
+            collectTimeSignalSamples(curTime);
 
             for (auto& ch : channels)
             {
@@ -230,6 +238,8 @@ void RefDeviceImpl::acqLoop()
                 auto chPrivate = protectedChannel.asPtr<IRefChannel>();
                 chPrivate->collectSamples(curTime);
             }
+
+            lastCollectTime = curTime;
         }
     }
 }
@@ -274,7 +284,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     objPtr.addProperty(IntProperty("NumberOfChannels", numberOfChannels));
     objPtr.getOnPropertyValueWrite("NumberOfChannels") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateNumberOfChannels(); };
-		
+
     const auto globalSampleRatePropInfo =
         FloatPropertyBuilder("GlobalSampleRate", 1000.0).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
 
@@ -306,11 +316,36 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableLogging(); };
 }
 
+void RefDeviceImpl::collectTimeSignalSamples(std::chrono::microseconds curTime)
+{
+    const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
+    auto newSamples = samplesSinceStart - samplesGenerated;
+
+    const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToDeviceStart.count());
+
+    auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, packetTime);
+    timeSignal.sendPacket(std::move(domainPacket));
+
+    samplesGenerated += newSamples;
+}
+
+uint64_t RefDeviceImpl::getSamplesSinceStart(std::chrono::microseconds time) const
+{
+    const uint64_t samplesSinceStart =
+        static_cast<uint64_t>(std::trunc(static_cast<double>(time.count()) / 1000000.0 * globalSampleRate));
+    return samplesSinceStart;
+}
+
+void RefDeviceImpl::updateSamplesGenerated()
+{
+    if (lastCollectTime.count() > 0)
+        samplesGenerated = getSamplesSinceStart(lastCollectTime);
+}
+
 void RefDeviceImpl::updateNumberOfChannels()
 {
     std::size_t num = objPtr.getPropertyValue("NumberOfChannels");
     LOG_I("Properties: NumberOfChannels {}", num);
-    auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
 
     if (num < channels.size())
     {
@@ -381,8 +416,11 @@ void RefDeviceImpl::enableProtectedChannel()
 
 void RefDeviceImpl::updateGlobalSampleRate()
 {
-    auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
-    LOG_I("Properties: GlobalSampleRate {}", globalSampleRate);
+    auto lock = getRecursiveConfigLock();
+
+    configureTimeSignal();
+    updateSamplesGenerated();
+    LOG_I("Properties: GlobalSampleRate {}", globalSampleRate)
 
     for (auto& ch : channels)
     {
@@ -397,6 +435,25 @@ void RefDeviceImpl::updateAcqLoopTime()
     LOG_I("Properties: AcquisitionLoopTime {}", loopTime);
 
     this->acqLoopTime = static_cast<size_t>(loopTime);
+}
+
+void RefDeviceImpl::configureTimeSignal()
+{
+    globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
+    deltaT = RefChannelImpl::getDeltaT(globalSampleRate);
+
+    const auto timeDescriptor =
+        DataDescriptorBuilder()
+            .setSampleType(SampleType::Int64)
+            .setUnit(Unit("s", -1, "seconds", "time"))
+            .setTickResolution(RefChannelImpl::getResolution())
+            .setRule(LinearDataRule(deltaT, 0))
+            .setOrigin(RefChannelImpl::getEpoch())
+            .setName("Time")
+            .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainId(refDomainId).setReferenceDomainOffset(0).build())
+            .build();
+
+    timeSignal.setDescriptor(timeDescriptor);
 }
 
 void RefDeviceImpl::enableLogging()
@@ -484,6 +541,12 @@ StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
     file.close();
 
     return String(buffer.data(), size);
+}
+
+void RefDeviceImpl::createSignals()
+{
+    timeSignal = createAndAddSignal("Time", nullptr, true);
+    timeSignal.getTags().asPtr<ITagsPrivate>(true).add("DeviceDomain");
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

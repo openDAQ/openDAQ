@@ -1,31 +1,16 @@
-# 2024-12-27
-
-## Description
-
-- Rename variables containing (for consistency):
-  - `ComponentErrorState` to `ComponentStatus`
-  - `initComponentErrorStateStatus` to `initComponentStatus`
-  - `setComponentErrorStateStatus` to `setComponentStatus`
-  - `setComponentErrorStateStatusWithMessage` to `setComponentStatusWithMessage`
-- Fix all reference Function Block implementations by using `setComponent` to set the Component Status back to `ComponentStatus::Ok` where necessary (this prevents Function Blocks to be "stuck" on incorrect Component Status when the user resolves the issue that is causing the Warning or the Error)
-
-## Required integration changes
-
-- Requires using the renamed methods and enums in Function Block (Component) implementations (see Description)
-
-# 2024-12-05
+# Component statuses
 
 ## Description
 
 - Add Component status types to the Type Manager in `context_impl.cpp` ("Ok", "Warning", and "Error")
-- Define `ComponentErrorState`
-- Declare and define `initComponentErrorStateStatus`, `setComponentErrorStateStatus`, and `setComponentErrorStateStatusWithMessage` in `component_impl.h`
+- Define `ComponentStatus` enum, with possible values `OK`, `Warning`, and `Error`
+- Declare and define `initComponentStatus`, `setComponentStatus`, and `setComponentStatusWithMessage` in `component_impl.h`
 - Add `getStatusMessage` in `component_status_container.h`, and `addStatusWithMessage`, `setStatusWithMessage` in `component_status_container_private.h`, implement all three in `component_status_container_impl.h`
-- Use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage` in all reference Function Blocks
+- Use `initComponentStatus`, `setComponentStatus`, and `setComponentStatusWithMessage` in all reference Function Blocks
 
 ## Required integration changes
 
-- None, however, developers of Function Blocks are encouraged to use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage`
+- None, however, developers of Components, such as Function Blocks are encouraged to use `initComponentStatus` and `setComponentStatus`, and `setComponentStatusWithMessage`
 
 ## API changes
 
@@ -35,7 +20,7 @@
 + [function] IComponentStatusContainerPrivate::setStatusWithMessage(IString* name, IEnumeration* value, IString* message)
 ```
 
-# 2024-12-04
+# Fix method name to camelCase
 
 ## Description
 
@@ -48,11 +33,10 @@
 +m [function] ListPtr<ILogFileInfo> Device::onGetLogFileInfos()
 ```
 
-# 2024-12-04
+# Add "Any read/write" events to property object
 
 ## Description
 
-- Add "Any read/write" events to property object.
 - These events are triggered whenever any property value is read/written.
 
 ## API changes
@@ -62,7 +46,7 @@
 + [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
 ```
 
-# 2024-12-03
+# Fix property values written before validation
 
 ## Description
 

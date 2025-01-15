@@ -1,42 +1,55 @@
 # 2023-11-14
 
 ## Description
+
 Added Multi-reader support for reading raw signal values (no scaling or conversion)
+
 ```diff
 -m enum class ReadMode { Raw, Scaled }
 +m enum class ReadMode { Unscaled, Scaled, RawValue }
 ```
+
 # 2023-10-12
 
 ## Description
+
 Added method to IPropertyInternal
+
 ```diff
 +m  [function] IPropertyInternal::getValueTypeUnresolved(CoreType* coreType)
 ```
+
 # 2023-10-06
 
 ## Description
+
 Removed ConfigurationMode from SDK as it was not used anyway.
+
 ```diff
 -m  [function] IDeserializer::update(IUpdatable* updatable, ConfigurationMode mode, IString* serialized)
 +m  [function] IDeserializer::update(IUpdatable* updatable, IString* serialized)
 -m  [function] IUpdatable::update(ConfigurationMode mode, ISerializedObject* update)
 +m  [function] IUpdatable::update(ISerializedObject* update)
 ```
+
 # 2023-09-28
+
 openDAQ Package version: 2.0.0
 
 ## Description
+
 Large change that implements the Struct core type, and object creation through the builder pattern.
 
 Main takeaways of the changes:
+
 - Struct Core type was implemented. StructType objects were added to facilitate Struct creation.
-- Type manager was implemented, Property object class manager was removed. 
+- Type manager was implemented, Property object class manager was removed.
 - Property object classes now inherit IType and are to be added to the Type manager instead.
 - Several objects now implement the IStruct interface (Unit, ArgumentInfo, DataDescriptor...)
 - Most of those objects, as well as Property and PropertyObjectClass moved away from the freezabel Config objects for creation. Instead they adopt a builder pattern where a Builder object with setters and a build method is available.
-- Builder objects have a RTGen flag returnSelf that currently only works for c++ bindings. 
+- Builder objects have a RTGen flag returnSelf that currently only works for c++ bindings.
 - OPC UA implementation for generic struct transfer was added, but it currently only supports known Struct types (the ones in the imported OPC UA nodesets that have fields of known OPC UA types).
+
 ```diff
 + [factory] StructTypePtr ComplexNumberStructType()
 
@@ -226,17 +239,20 @@ Main takeaways of the changes:
 + [factory] ScalingPtr Scaling(SampleType inputDataType, ScaledSampleType outputDataType, ScalingType scalingType, const DictPtr<IString, IBaseObject>& params)
 + [factory] StructTypePtr ScalingStructType()
 ```
+
 # 2023-09-01
 
 ## Description
+
 Added unscaled / raw mode option to readers
+
 ```diff
 +  [function] ISampleReader::getReadMode(ReadMode* mode);
 +  [factory] StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 -m [factory] StreamReaderPtr StreamReader(SignalPtr signal, SampleType valueReadType, SampleType domainReadType, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 +m [factory] StreamReaderPtr StreamReader(SignalPtr signal, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All
 -m [factory] StreamReaderPtr StreamReader(SignalPtr signal, ReadTimeoutType timeoutType = ReadTimeoutType::All)
-+m [factory] StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All) 
++m [factory] StreamReaderPtr StreamReader(SignalPtr signal, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 -m [factory] TailReaderPtr TailReader(SignalPtr signal, SizeT historySize, SampleType valueReadType, SampleType domainReadType)
 +m [factory] TailReaderPtr TailReader(SignalPtr signal, SizeT historySize, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled)
 -m [factory] TailReaderPtr TailReader(SignalPtr signal, SizeT historySize)
@@ -251,11 +267,14 @@ Added unscaled / raw mode option to readers
 +m [factory] MultiReaderPtr MultiReader(const ListPtr<ISignal>& signals, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 +  [factory] MultiReaderPtr MultiReader(ListPtr<ISignal> signals, ReadMode mode, ReadTimeoutType timeoutType = ReadTimeoutType::All)
 ```
+
 # 2023-08-18
 
 ## Description
+
 Module Manager is now accessible from within the Context. `createAndAddNestedFunctionBlock` method was added to `SignalContainerImpl`
 allowing for easy creation of nested Function Blocks using other loaded modules. Some API fixups were added.
+
 ```diff
 + [function] FunctionBlockPtr GenericSignalContainerImpl::createAndAddNestedFunctionBlock(const StringPtr& typeId, const StringPtr& localId, const PropertyObjectPtr& config = nullptr)
 + [function] GenericSignalContainerImpl::createAndAddNestedFunctionBlock(const StringPtr& typeId, const StringPtr& localId, const PropertyObjectPtr& config = nullptr)
@@ -286,45 +305,58 @@ allowing for easy creation of nested Function Blocks using other loaded modules.
 -m [factory] DevicePtr Client(const ContextPtr& context, const ModuleManagerPtr& moduleManager, const StringPtr& localId)
 +m [factory] DevicePtr Client(const ContextPtr& context, const StringPtr& localId)
 ```
+
 # 2023-08-10
 
 ## Description
+
 Context is removed from instance interface
+
 ```diff
 - [function] IInstance::getContext(IContext** context)
 ```
+
 # 2023-08-05
 
 ## Description
-Fixes and improvements for Delphi bindings. 
+
+Fixes and improvements for Delphi bindings.
 Removed empty `Property()` factory that now requires at least a name.
 Fixed the return type of `XyzProperty()` factories to return `IPropertyConfig` instead of base `IProperty`.
 Removed `ILoggerComponent::logMessage` overload as it is not used anywhere and interfaces by code conventions shouldn't have overloads.
 Changed `SourceLocation::line` variable from `int` to fixed with type of `daq::Int`
 Changed `IAllocator::allocate` and `IAllocator::free`
+
 ```diff
 -m [factory] Property()
 +m [factory] Property(name)
 -  [factory] PropertyWithName(name)
 -  [function] ILoggerComponent.logMessage(ConstCharPtr msg, LogLevel level)
 ```
+
 # 2023-07-28
 
 ## Description
+
 Update to the latest version of the OPC UA model. Signal and Input Port properties are not visible over OPC UA. IComponent methods
 are accessible via OPC UA for all openDAQ components. UserName and location was moved from DeviceInfo to be Device properties.
+
 ```diff
 - [function] IDeviceInfo::getUserName(IString** userName)
 - [function] IDeviceInfo::getLocation(IString** location)
 - [function] IDeviceInfoConfig::setLocation(IString* location)
 - [function] IDeviceInfo::setUserName(IString* userName)
 ```
+
 # 2023-07-17
+
 ff6768d39a76b3b784994f6a17f1d730cb8be639
 
 ## Description
+
 Introduces Name and Description as static and dynamic properties on ISignal. Previously part of signal descriptor. Adds
 new event packet type "PropertyChanged" which is sent to connected listeners when any property such as name is changed on a signal.
+
 ```diff
 + [function] ISignal::setName(IString* name)
 + [function] ISignal::setDescription(IString* name)
@@ -332,12 +364,16 @@ new event packet type "PropertyChanged" which is sent to connected listeners whe
 
 + [factory] inline EventPacketPtr PropertyChangedEventPacket(const StringPtr& name, const BaseObjectPtr& value)
 ```
+
 # 2023-07-11
+
 70742e4554bbf6f13da11bc782ef7533d8d71795
 
 ## Description
+
 Removes ISignalDescriptor and uses IDataDescriptor everywhere. Metdata field from ISignalDescriptor moved to IDataDescription.
 Name and Description are no longer part of signal/data descriptor
+
 ```diff
 -m [function] IDataPacket::getSignalDescriptor(ISignalDescriptor** descriptor)
 +m [function] IDataPacket::getDescriptor(IDataDescriptor** descriptor)
@@ -366,8 +402,11 @@ Name and Description are no longer part of signal/data descriptor
 -m [factory] inline DataPacketPtr DataPacketWithDomain(const DataPacketPtr& domainPacket, const SignalDescriptorPtr& descriptor, uint64_t sampleCount, NumberPtr offset = nullptr, AllocatorPtr allocator = nullptr)
 +m [factory] inline DataPacketPtr DataPacketWithDomain(const DataPacketPtr& domainPacket, const DataDescriptorPtr& descriptor, uint64_t sampleCount, NumberPtr offset = nullptr, AllocatorPtr allocator = nullptr)
 ```
+
 # 2023-06-09 - 2023-07-18
+
 7713cdbb0614b5c073a8d7eb3d834b62e9b1efb4 - 29ee6eb5ebdef33c23b1a7eed4b1e8a064cdb7eb
+
 ```diff
 + [interface] IComponentType : public IBaseObject
 + [function] IComponentType::getId(IString** id)
@@ -449,13 +488,13 @@ Name and Description are no longer part of signal/data descriptor
 + [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IStreamingInfo* config = nullptr)
 + [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IStreamingInfo* config)
 
--m [function] IInstance::setRootDevice(IDevice* rootDevice) 
+-m [function] IInstance::setRootDevice(IDevice* rootDevice)
 +m [function] IInstance::setRootDevice(IString* connectionString, IPropertyObject* config = nullptr)
 -m [function] IInstance::getAvailableServers(IDict** serverTypes)
 +m [function] IInstance::getAvailableServerTypes(IDict** serverTypes)
 
 - [function] IServer::updateRootDevice(IDevice* rootDevice)
- 
+
 + [function] ISignalConfig::getStreamingSources(IList** streamingConnectionStrings)
 + [function] ISignalConfig::setActiveStreamingSource(IString* streamingConnectionString)
 + [function] ISignalConfig::getActiveStreamingSource(IString** streamingConnectionString)

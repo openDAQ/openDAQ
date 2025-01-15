@@ -1,17 +1,22 @@
 # 2024-12-27
+
 ## Description
+
 - Rename variables containing (for consistency):
   - `ComponentErrorState` to `ComponentStatus`
   - `initComponentErrorStateStatus` to `initComponentStatus`
   - `setComponentErrorStateStatus` to `setComponentStatus`
   - `setComponentErrorStateStatusWithMessage` to `setComponentStatusWithMessage`
 - Fix all reference Function Block implementations by using `setComponent` to set the Component Status back to `ComponentStatus::Ok` where necessary (this prevents Function Blocks to be "stuck" on incorrect Component Status when the user resolves the issue that is causing the Warning or the Error)
-  
+
 ## Required integration changes
+
 - Requires using the renamed methods and enums in Function Block (Component) implementations (see Description)
 
 # 2024-12-05
+
 ## Description
+
 - Add Component status types to the Type Manager in `context_impl.cpp` ("Ok", "Warning", and "Error")
 - Define `ComponentErrorState`
 - Declare and define `initComponentErrorStateStatus`, `setComponentErrorStateStatus`, and `setComponentErrorStateStatusWithMessage` in `component_impl.h`
@@ -19,6 +24,7 @@
 - Use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage` in all reference Function Blocks
 
 ## Required integration changes
+
 - None, however, developers of Function Blocks are encouraged to use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage`
 
 ```diff
@@ -28,7 +34,9 @@
 ```
 
 # 2024-12-04
+
 ## Description
+
 - Module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`
 
 ```diff
@@ -37,7 +45,9 @@
 ```
 
 # 2024-12-04
+
 ## Description
+
 - Add "Any read/write" events to property object.
 - These events are triggered whenever any property value is read/written.
 
@@ -47,26 +57,34 @@
 ```
 
 # 2024-12-03
+
 ## Description
+
 - Fixed the issue where property values were written before validation.
+
 ## Required integration changes
 
 **Callback Attachment for Property Write**  
 To attach a callback to the property object for handling property writes, use the following pattern:
+
 ```cpp
-propObj.getOnPropertyValueWrite(propName) += (PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
-{ 
-    // Your logic here 
+propObj.getOnPropertyValueWrite(propName) += (PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg)
+{
+    // Your logic here
 };
 ```
+
 **Additional Notes**:
+
 - If the property is being updated, the method `getPropertyValue` returns the intermediate value, which can still be overridden in further updates or aborted.
-- If the property is being updated, The method `IPropertyValueEventArgs::getOldValue` inside the callback returns the old property 
+- If the property is being updated, The method `IPropertyValueEventArgs::getOldValue` inside the callback returns the old property
+
 # Example
+
 ```cpp
 // propObj has a property prop1 with default value 100
 // Setting a new property value to 345
-propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg)
 {
     assert(obj.getPropertyValue("prop1") == 345); // Value to set
     assert(arg.getValue() == 345); // Value to set
@@ -76,43 +94,48 @@ propObj.setPropertyValue("prop1", 345);
 ```
 
 **Ignoring the New Value for a Property**:
+
 - If you want to ignore setting the new value for a property:
-**Throw an exception in the callback**: This will cancel the property update and propagate the exception to the setPropertyValue call.
+  **Throw an exception in the callback**: This will cancel the property update and propagate the exception to the setPropertyValue call.
 - **Alternatively, skip the update**: Use the following pattern to revert to the old value without throwing an exception:
+
 ```cpp
-propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg)
 {
     // Restore by throwing an exeption
     if ((Int)arg.getValue() < 0)
         throw OutOfRangeException("prop1 value is negative");
 };
 ```
+
 ```cpp
-propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg) 
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg)
 {
     // Restore value without an throwing exeption
     if ((Int)arg.getValue() < 0)
         arg.setValue(arg.getOldValue());
 };
 ```
+
 **Handling Flaky Property Updates**:
 
 When defining a callback for a property (e.g., `prop1`), if you update another property (`prop2`) within the callback and then throw an exception, the changes to `prop1` will be rolled back automatically, meanwhile `prop2` will have a new value
+
 ```cpp
 // prop1 has a default value of 0
 // prop2 has a default value of 0
-propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
-{ 
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg)
+{
     obj.setPropertyValue("prop2", arg.getValue()); // Update prop2
     if ((int)arg.getValue() < 0) // Validate prop1's value
         throw OutOfRangeException("prop1 value is negative"); // Abort prop1 update
 };
 
-try 
+try
 {
     propObj.setPropertyValue("prop1", -1); // This will throw an exception
-} 
-catch (...) 
+}
+catch (...)
 {
     // Exception is handled here
 }
@@ -136,15 +159,18 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ```
 
 # 2024-11-28
+
 ## Description
+
 - Introduces separate container accessible per device for connection statuses
 - Introduces new core event type "ConnectionStatusChanged" to notify when configuration or streaming connection status of the device changed
-    limitations: streaming connections statuses are neither serialized nor propagated through the native configuration protocol
+  limitations: streaming connections statuses are neither serialized nor propagated through the native configuration protocol
 - daq Context always has TypeManager assigned
 - "ConnectionStatusType" added to TypeManager by default
 - Makes connection status accessible directly from Streaming object
 
 ## Required integration changes
+
 - Breaks binary compatibility
 - Introduces new mechanism for retrieving connection status of the device
 
@@ -161,13 +187,16 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ```
 
 # 2024-11-25
+
 ## Description
+
 - Delete the fields `id`, `name`, and `versionInfo` from the `IModule` interface and add them to the new `IModuleInfo` interface, which is a new field in the `IModule` interface
 - `IModuleInfo` field is also added to `IComponentType` interface
 - Works over Native
 - Component Type is moved from `coreobjects` to `opendaq`
 
 ## Required integration changes
+
 - Breaks binary compatibility
 
 ```diff
@@ -185,25 +214,34 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ```
 
 # 2024-11-20
+
 ## Description
+
 - Support for different client types over the native configuration protocol has been introduced.
 - A ClientType selection property has been added to the general configuration object of the IDevice::addDevice method. Supported values are Control(0), Exclusive Control(1), and View Only(2).
 - An ExclusiveControlDropOthers boolean property has been added to the general configuration object of the IDevice::addDevice method.
 - The native configuration protocol has been updated to version 7.
 
 ## Required integration changes
+
 - None. The default client type is Control(0), which is backward-compatible with previous protocol versions.
 
 # 2024-11-19
+
 ## Description
-- Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool* isLockedOut)
+
+- Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool\* isLockedOut)
 
 # 2024-11-12
+
 ## Description
+
 - Improved component updates.
 - Removed generation of local ID for client device in instance.
 - Fixed connecting signals to input ports on the server to which the client is connecting during configuration loading.
+
 ## Required integration changes:
+
 - An instance with the client device as the root device no longer generates a unique ID but uses `openDAQDevice` as the ID.
 - If a developer encountered issues restoring signal connections from the client to the server during configuration loading, they need to create a new configuration and save it. Otherwise, everything should work fine.
 
@@ -212,12 +250,15 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ```
 
 # 2024-11-08
+
 ## Description
+
 - Add support for forcefully unlocking a device over native config protocol
 - Native config protocol bumped to version 6
 - Add user lock object to serialized device
 
 ## Required integration changes
+
 - Breaks binary compatibility
 
 ```diff
@@ -233,13 +274,16 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ```
 
 # 2024-10-29
+
 ## Description
+
 - Implement thread synchronization mechanism in property objects
 - Provides new internal method to allow for recursive locking in onWrite/onRead events via `GenericPropertyObjectImpl::getRecursiveConfigLock()`
 - A standard lock guard can be acquired via `GenericPropertyObjectImpl::getAcquisitionLock()`
 - The `sync` mutex previously available in `ComponentImpl` was moved up to `GenericPropertyObjectImpl`
 
 ## Required integration changes:
+
 - The `sync` mutex available in the `GenericPropertyObjectImpl` should no longer be locked in `onWrite`/`onRead` events. If needed due to used programming patterns, the `getRecursiveConfigLock` method should be used instead. See the reference device implementations for guidance.
 - Current device/function block implementations that lock the `sync` mutex during events will deadlock.
 
@@ -250,24 +294,24 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 
 + [function] IEvalValue::getResultNoLock(IBaseObject** obj)
 
-+ [function] IPropertyInternal::getValueTypeNoLock(CoreType* type)    
-+ [function] IPropertyInternal::getKeyTypeNoLock(CoreType* type)    
-+ [function] IPropertyInternal::getItemTypeNoLock(CoreType* type)    
-+ [function] IPropertyInternal::getDescriptionNoLock(IString** description)    
-+ [function] IPropertyInternal::getUnitNoLock(IUnit** unit)    
-+ [function] IPropertyInternal::getMinValueNoLock(INumber** min)    
-+ [function] IPropertyInternal::getMaxValueNoLock(INumber** max)    
-+ [function] IPropertyInternal::getDefaultValueNoLock(IBaseObject** value)    
-+ [function] IPropertyInternal::getSuggestedValuesNoLock(IList** values)    
-+ [function] IPropertyInternal::getVisibleNoLock(Bool* visible)    
-+ [function] IPropertyInternal::getReadOnlyNoLock(Bool* readOnly)    
-+ [function] IPropertyInternal::getSelectionValuesNoLock(IBaseObject** values)    
-+ [function] IPropertyInternal::getReferencedPropertyNoLock(IProperty** propertyEval)    
-+ [function] IPropertyInternal::getIsReferencedNoLock(Bool* isReferenced)    
-+ [function] IPropertyInternal::getValidatorNoLock(IValidator** validator)    
-+ [function] IPropertyInternal::getCoercerNoLock(ICoercer** coercer)    
-+ [function] IPropertyInternal::getCallableInfoNoLock(ICallableInfo** callable)    
-+ [function] IPropertyInternal::getStructTypeNoLock(IStructType** structType)    
++ [function] IPropertyInternal::getValueTypeNoLock(CoreType* type)
++ [function] IPropertyInternal::getKeyTypeNoLock(CoreType* type)
++ [function] IPropertyInternal::getItemTypeNoLock(CoreType* type)
++ [function] IPropertyInternal::getDescriptionNoLock(IString** description)
++ [function] IPropertyInternal::getUnitNoLock(IUnit** unit)
++ [function] IPropertyInternal::getMinValueNoLock(INumber** min)
++ [function] IPropertyInternal::getMaxValueNoLock(INumber** max)
++ [function] IPropertyInternal::getDefaultValueNoLock(IBaseObject** value)
++ [function] IPropertyInternal::getSuggestedValuesNoLock(IList** values)
++ [function] IPropertyInternal::getVisibleNoLock(Bool* visible)
++ [function] IPropertyInternal::getReadOnlyNoLock(Bool* readOnly)
++ [function] IPropertyInternal::getSelectionValuesNoLock(IBaseObject** values)
++ [function] IPropertyInternal::getReferencedPropertyNoLock(IProperty** propertyEval)
++ [function] IPropertyInternal::getIsReferencedNoLock(Bool* isReferenced)
++ [function] IPropertyInternal::getValidatorNoLock(IValidator** validator)
++ [function] IPropertyInternal::getCoercerNoLock(ICoercer** coercer)
++ [function] IPropertyInternal::getCallableInfoNoLock(ICallableInfo** callable)
++ [function] IPropertyInternal::getStructTypeNoLock(IStructType** structType)
 
 + [function] IPropertyObjectInternal::checkForReferencesNoLock(IProperty* property, Bool* isReferenced)
 + [function] IPropertyObjectInternal::getPropertyValueNoLock(IString* name, IBaseObject** value)
@@ -276,18 +320,23 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 ```
 
 # 2024-11-08
+
 ## Description
+
 - Block Reader, Tail Reader and Stream Reader now skip events by default in Python
 
 ## Required integration changes
+
 - In Python, you need to explicitly set `skip_events=False` if you don't want to skip the events in Block, Tail and Stream Reader
 
 # 2024-10-29
 
 ## Description
+
 - Support creating readers with connected input port
 
 ## Required integration changes
+
 - None
 
 ```diff
@@ -298,12 +347,14 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 # 2024-10-24
 
 ## Description
+
 - Add a way to view the server protocol version in server capabilities.
 - Fix the path issue in ConfigurationConnectionInfo of device info: If the connection to the device included a path, ensure the path is correctly reflected in the ConfigurationConnectionInfo.
 - For native configuration, update the ConfigurationConnectionInfo of device info to display the actual protocol version used in communication between the server and client.
 - Native client default config property `ProtocolVersion` is set to the latest support protocol version
 
-##  Required integration changes
+## Required integration changes
+
 - Breaks binary compatibility
 
 ```diff
@@ -314,9 +365,11 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 # 2024-10-24
 
 ## Description
+
 - Implement log file info interface
 
 ## Required integration changes:
+
 - Breaks binary compatibility
 
 ```diff
@@ -354,11 +407,13 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 # 2024-10-21
 
 ## Description
+
 - Introduce a new Sample Type "Null"
 - Replace nullptr with a Data Descriptor having SampleType::Null in the "DATA_DESCRIPTOR_CHANGED" event packet when a signal's descriptor is not assigned
 - Enable resetting the signal's Data Descriptor to nullptr
 
 ## Required integration changes:
+
 - In the "DATA_DESCRIPTOR_CHANGED" event packet, the parameters "DataDescriptor" and "DomainDataDescriptor" are set to nullptr only if the corresponding descriptors have not changed.
   If the signal descriptor is not assigned, they are set to a DataDescriptor object with the "Null" sample type.
 
@@ -369,17 +424,18 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 # 2024-10-11
 
 ## Description
+
 - Add methods in function block to add/remove nested fb
 
-##  Required integration changes
+## Required integration changes
+
 - Breaks binary compatibility
-- For function blocks that contain nested function blocks, developers should override the method 
-    `FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)` as this method is used during the loadConfiguration process. 
-    Additionally, developers may optionally override the methods `DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes()` 
-    and `void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)`.
-    
-    Examples of this can be found in the mock function block (`core/opendaq/opendaq/mocks/include/opendaq/mock/mock_fb.h`) 
-    or the statistics function block (`modules/ref_fb_module/include/ref_fb_module/statistics_fb_impl.h`).
+- For function blocks that contain nested function blocks, developers should override the method
+  `FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)` as this method is used during the loadConfiguration process.
+  Additionally, developers may optionally override the methods `DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes()`
+  and `void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)`.
+  Examples of this can be found in the mock function block (`core/opendaq/opendaq/mocks/include/opendaq/mock/mock_fb.h`)
+  or the statistics function block (`modules/ref_fb_module/include/ref_fb_module/statistics_fb_impl.h`).
 
 ```diff
 + [function] IFunctionBlock::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
@@ -390,10 +446,12 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 # 2024-10-10
 
 ## Description
+
 - Restoring the device while loading the configuration.
 - Add update parameters to set a flag indicating whether to use the existing device or recreate a new one
 
 ## Required integration changes
+
 - Breaks binary compatibility
 
 ```diff
@@ -417,10 +475,12 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
 # 2024-10-04
 
 ## Description
-- Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less
-than "min read count" samples in the queue and there's an event after those samples, it will discard the samples and return event.
 
-## Required integration changes 
+- Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less
+  than "min read count" samples in the queue and there's an event after those samples, it will discard the samples and return event.
+
+## Required integration changes
+
 - None
 
 ```diff
@@ -433,6 +493,7 @@ than "min read count" samples in the queue and there's an event after those samp
 # 2024-10-03
 
 ## Description
+
 - Enable concurrent config connections limit for native server using "MaxAllowedConfigConnections" server config property
 - Introduce a new PacketBuffer type ConnectionRejected in the native configuration protocol
 - Native config protocol bumped to version 3
@@ -440,6 +501,7 @@ than "min read count" samples in the queue and there's an event after those samp
 # 2024-10-03
 
 ## Description
+
 - Bugfix where onPropertyValueWrite/Read events were available on the native protocol client, but were not fully supported.
 - Said property object events were disabled to reduce probability of misuse.
 - CoreEvents should be used instead of onWrite/Read events where needed.
@@ -447,10 +509,13 @@ than "min read count" samples in the queue and there's an event after those samp
 # 2024-10-03
 
 ## Description
+
 - Add support for device locking over native config protocol
 
 ## Required integration changes
+
 - Breaks binary compatibility
+
 ```diff
 + [function] IDevice::lock()
 + [function] IDevice::unlock()
@@ -458,20 +523,27 @@ than "min read count" samples in the queue and there's an event after those samp
 
 + [function] IAuthenticationProvider::authenticateAnonymous(IUser** userOut)
 ```
+
 # 2024-09-23
 
 ## Description
+
 - Enable multireader to be manually set inactive to drop data packets
 - Add validation of unit parameters for power-reader function block input voltage signal
-## Required integration changes 
+
+## Required integration changes
+
 - Unit symbol should be set to "V" within the unit object assigned for voltage input signal descriptor of "RefFBModulePowerReader" function block
+
 ```diff
 + [function] IMultiReader::setActive(Bool isActive)
 + [function] IMultiReader::getActive(Bool* isActive)
 ```
+
 # 2024-09-11
 
 ## Description
+
 - Enable client-to-device streaming feature within the Native protocol
 - Introduce a new PacketBuffer type NoReplyRpc in the native configuration protocol
 - Native config protocol bumped to version 2
@@ -479,10 +551,13 @@ than "min read count" samples in the queue and there's an event after those samp
 # 2024-09-11
 
 ## Description
+
 - Enable openDAQ servers to be added to the component tree under the device
 
 ## Required integration changes
+
 - Breaks binary compatibility
+
 ```diff
 -m[interface] IServer : public IBaseObject
 +m[interface] IServer : public IFolder
@@ -498,24 +573,30 @@ than "min read count" samples in the queue and there's an event after those samp
 
 + [function] IModuleManagerUtils::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr)
 ```
+
 # 2024-08-28
 
 ## Description
+
 - Multi reader returns events on first read
 - Set default skip event for block reader to false
+
 ## Required integration changes
+
 - By default creating block reader with signal had skip events true. Now skip events set to false
 - Multi reader is not losing the first connection event packet. With first read, multi reader now returns event packets which were recieved by signal connection
 
 # 2024-08-28
 
 ## Description
+
 - Improving save/load mechanism for restoring input ports connection
+
 ```diff
 + [interface] IComponentUpdateContext : public IBaseObject
 + [function] IComponentUpdateContext::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
 + [function] IComponentUpdateContext::getInputPortConnections(IString* parentId, IDict** connections)
-+ [function] IComponentUpdateContext::removeInputPortConnection(IString* parentId) 
++ [function] IComponentUpdateContext::removeInputPortConnection(IString* parentId)
 + [function] IComponentUpdateContext::getRootComponent(IComponent** rootComponent)
 + [function] IComponentUpdateContext::getSignal(IString* parentId, IString* portId, ISignal** signal)
 + [function] IComponentUpdateContext::setSignalDependency(IString* signalId, IString* parentId)
@@ -524,35 +605,41 @@ than "min read count" samples in the queue and there's an event after those samp
 +m[function] IUpdatable::updateEnded(IBaseObject* context)
 + [function] IUpdatable::updateInternal(ISerializedObject* update, IBaseObject* context)
 ```
+
 # 2024-08-26
 
 ## Description
+
 - Add OPENDAQ_ERR_CONNECTION_LOST error code and ConnectionLostException exception type.
 
 ## Required integration changes
+
 - None, however, disconnection errors can now be identified by a specific error type.
 
 # 2024-08-21
 
 ## Description
+
 - Reference Domain Info was added as an interface that gives additional information about the reference domain
 - Reference Domain Info has getters for:
-    - Reference Domain ID (Signals with the same Reference Domain ID share a common synchronization source and can be read together)
-    - Reference Domain Offset (which must be added to the domain values of the Signal for them to be equal to that of the sync source)
-    - Reference Time Source (which is used to determine if two signals with different Domain IDs can be read together); possible values are: 
-        - [Tai](https://en.wikipedia.org/wiki/International_Atomic_Time)
-        - [Gps](https://en.wikipedia.org/wiki/Global_Positioning_System#Timekeeping)
-        - [Utc](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)
-        - Unknown
-    - Uses Offset
+  - Reference Domain ID (Signals with the same Reference Domain ID share a common synchronization source and can be read together)
+  - Reference Domain Offset (which must be added to the domain values of the Signal for them to be equal to that of the sync source)
+  - Reference Time Source (which is used to determine if two signals with different Domain IDs can be read together); possible values are:
+    - [Tai](https://en.wikipedia.org/wiki/International_Atomic_Time)
+    - [Gps](https://en.wikipedia.org/wiki/Global_Positioning_System#Timekeeping)
+    - [Utc](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)
+    - Unknown
+  - Uses Offset
 - There is also a builder available for creating Reference Domain Info
 - Reference Domain Info is a part of two interfaces:
-    - Device Domain
-    - Data Descriptor
+  - Device Domain
+  - Data Descriptor
 - Reference Domain Info is currently only supported over Native, not over OPC UA or LT Streaming protocols (this will cause two data descriptor changed events to be sent when combining supported and unsupported protocols for configuration/streaming - for example OPC UA and Native streaming)
 
 ## Required integration changes
+
 - None, however, users are encouraged to use Reference Domain Info
+
 ```diff
 + [interface] IReferenceDomainInfo : public IBaseObject
 + [function] IReferenceDomainInfo::getReferenceDomainId(IString** referenceDomainId)
@@ -583,26 +670,34 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IDataDescriptorBuilder::setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo)
 + [function] IDataDescriptorBuilder::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
 ```
+
 # 2024-08-12
 
 ## Description
+
 - Changed logic of IProperty::getOnPropertyValue events.
 - Now returns the owner's event when called, if the owner is assigned.
 - A new function is available to get the class's event. That function is used internally to trigger class value change events.
+
 ```diff
 + [function] IEvent::getSubscribers(IList** subscribers)
 + [function] IPropertyInternal::getClassOnPropertyValueWriteEvent(IEvent** event)
 + [function] IPropertyInternal::getClassOnPropertyValueReadEvent(IEvent** event)
 ```
+
 # 2024-08-12
 
 ## Description
+
 - Integration the Sync Component
 - Populating eval expression with %ChildProperty:PropertyNames to get the list of child properties names where the ChildProperty is an Object-type property
+
 ## Required integration changes
+
 - Each device now has a sync component, which is visible in default components as `Synchronization`.
 - To set Mode selection values or Status.State, developer can set custom values for property ModeOptions or Status.StateOptions.
 - Sync component is replacing dummy property object in the ref device.
+
 ```diff
 + [interface] ISyncComponent : public IComponent
 + [function] ISyncComponent::getSyncLocked(Bool* synchronizationLocked)
@@ -617,44 +712,60 @@ than "min read count" samples in the queue and there's an event after those samp
 
 + [factory] SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 ```
+
 # 2024-08-08
 
 ## Description
+
 - Add get/setValue method to IProperty
 - Helpers allowing easier access to the property's value when iterating through an object's properties
+
 ```diff
 + [function] IProperty::getValue(IBaseObject** value)
 + [function] IProperty::setValue(IBaseObject* value)
 ```
+
 # 2024-07-26
 
 ## Description
+
 - Add method to IPropertyObject to detect begin/end update status
+
 ## Required integration changes
+
 - Breaks binary compatibility
+
 ```diff
 + [function] IPropertyObject::getUpdating(Bool* updating)
 ```
+
 # 2024-07-25
 
 ## Description
+
 - Add user context to json serializer
+
 ```diff
 + [function] ISerializer::getUser(IBaseObject** user)
 + [function] ISerializer::setUser(IBaseObject* user)
 ```
+
 # 2024-07-23
 
 ## Description
+
 - Reader improvement
 - Implementing reader builder for all Readers
-- Populate connection methods 
+- Populate connection methods
+
 ## Required integration changes
+
 - Its refused to create reader with input port which connected to signal, so developer must change the order of creating reader: create port, create reader, connect signal to port. (Otherwise will be thrown an exception)
 - In first read, reader returns first event packet
 - to read data without interruption on event packet, developer can create reader with builder, with setSkipEvents(true)
-- reader::getAvailableSamples returns available samples until event packet if skipEvents == false, or until gap packet if skipEvents == true. 
-To check if reader has data to handle, was implemented method IReader::getEmptys(Bool* empty), which returns true if there is data packet to read or there is an event packet
+- reader::getAvailableSamples returns available samples until event packet if skipEvents == false, or until gap packet if skipEvents == true.
+  To check if reader has data to handle, was implemented method IReader::getEmptys(Bool\* empty), which returns true if there is data packet to read or there is an event packet
+
 ```diff
 + [function] IReader::getEmpty(Bool* empty)
 
@@ -739,39 +850,42 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IConnection::hasEventPacket(Bool* hasEventPacket)
 + [function] IConnection::hasGapPacket(Bool* hasGapPacket)
 ```
+
 # 2024-07-22
 
 ## Description
+
 - Standardize cases to PascalCase
-    - Component IDs
-        - Reference Device
-        - Reference Function Blocks (backwards compatible)
-            - Classifier
-            - FFT
-            - Power
-            - Renderer
-            - Scaling
-            - Statistics
-            - Trigger
-        - AudioDeviceModuleWavWriter
-        - Reference device IO components (AI, CAN, RefCh)
-    - Component names
-        - Default client device
-    - Type IDs
-        - Reference modules
-        - Streaming/config clients (backwards compatible)
-        - Server modules
-        - MiniAudio
-    - Type names
-        - Reference modules
-        - Streaming/config clients
-        - Server modules
-    - Server capability protocol ID (backwards compatible)
-    - Server capability protocol name
-    - Struct Type field names
-    - Other
+  - Component IDs
+    - Reference Device
+    - Reference Function Blocks (backwards compatible)
+      - Classifier
+      - FFT
+      - Power
+      - Renderer
+      - Scaling
+      - Statistics
+      - Trigger
+    - AudioDeviceModuleWavWriter
+    - Reference device IO components (AI, CAN, RefCh)
+  - Component names
+    - Default client device
+  - Type IDs
+    - Reference modules
+    - Streaming/config clients (backwards compatible)
+    - Server modules
+    - MiniAudio
+  - Type names
+    - Reference modules
+    - Streaming/config clients
+    - Server modules
+  - Server capability protocol ID (backwards compatible)
+  - Server capability protocol name
+  - Struct Type field names
+  - Other
 
 ## Required integration changes
+
 - Generally none, except for where integration depends upon changed strings listed above (in the description) in some way
 - If relying on string comparison to hardcoded old IDs of things like FB, device, server types, or protocol IDs, those comparisons will need to be updated to match the new IDs, eg. a check like `if (fbType.getId() == "ref_fb_module_renderer")` will never be true
 - Old IDs can still be used when adding new objects to a device via `addDevice`/`addFunctionBlock` or similar calls
@@ -779,32 +893,39 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 # 2024-07-10
 
 ## Description
+
 - Add address type and address reachability status to server capability
 - Allows easier identification of what address is used, and checks if device is available
 - Reachability is currently only available for ipv4
 - "canPing" and "ipv4Address" properties have been removed from discovered device info
 
 ## Required integration changes
+
 - If a client application has been relying on "canPing" and "ipv4Address" properties on device info, it should instead check the ServerCapability fields for "AddressType" in conjunction with "Addresses" to get the ipv4 address.
 - "canPing" has been replaced with AddressReachabilityInfo on server capability and should be used instead. Non ipv4 addresses will for now be labelled as "Unknown" in terms of reachability
+
 ```diff
 + [function] IServerCapability::getAddressTypes(IList** addressTypes)
 + [function] IServerCapability::getAddressReachabilityStatus(IList** addressReachability)
 + [function] IServerCapabilityConfig::addAddressType(IString* addressType)
 + [function] IServerCapabilityConfig::addAddressReachabilityStatus(AddressReachabilityStatus addressReachability)
 + [function] IServerCapabilityConfig::setAddressReachabilityStatus(IList* addressReachability)
-``` 
+```
+
 # 2024-07-04
 
 ## Description
+
 - Make device connection string prefix mandatory
 - Remove "accepts connection string" methods from module
 
 ## Required integration changes
+
 - onGetAvailableDeviceTypes() override in modules now has to add a "prefix" to its device type
 - onAcceptsConnectionParameters and onAcceptsStreamingConnectionParameters overrides should be removed from modules
 - Connection strings must now always start with a prefix, followed by "://"
-```diff 
+
+```diff
 -m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
 +m [factory] inline DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const StringPtr& prefix, const PropertyObjectPtr& defaultConfig = PropertyObject())
 - [function] IModule::acceptsConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
@@ -812,25 +933,31 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 ```
 
 # 2024-06-21
-```diff 
+
+```diff
 - [function] IDeviceInfoInternal::hasServerCapability(IString* protocolId, Bool* hasCapability)
 + [function] IDeviceInfo::hasServerCapability(IString* protocolId, Bool* hasCapability)
 + [function] IDeviceInfo::getServerCapability(IString* protocolId, IServerCapability** capability)
-``` 
+```
+
 # 2024-06-21
-```diff 
+
+```diff
 -m [function] IInstanceBuilder::addDiscoveryService
 +m [function] IInstanceBuilder::addDiscoveryServer
 -m [function] IInstanceBuilder::getDiscoveryServices
 +m [function] IInstanceBuilder::getDiscoveryServers
-``` 
+```
+
 # 2024-06-17
 
 ## Description
+
 - Add StreamingType object
 - Change ComponentType objects to use builder pattern
 - Provide default add-device config object containing config of all modules
-```diff 
+
+```diff
 + [function] IDevice::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
 + [function] IDeviceType::getConnectionStringPrefix(IString** prefix) = 0;
 + [interface] IComponentTypeBuilder : public IBaseObject
@@ -843,19 +970,25 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IModule::getAvailableStreamingTypes(IDict** streamingTypes)
 + [function] IModuleManagerUtils::getAvailableStreamingTypes(IDict** streamingTypes)
 + [function] IModuleManagerUtils::createDefaultAddDeviceConfig(IDict** streamingTypes)
-``` 
+```
+
 # 2024-05-30
 
 ## Description
+
 - Supporting reading client's connection info in the deviceInfo
+
 ```diff
 + [function] IDeviceInfo::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
 ```
+
 # 2024-05-27
 
 ## Description
+
 - Supporting servers to be discovered by mDNS
-```diff 
+
+```diff
 + [interface] IServer::getId(IString** serverId)
 + [interface] IServer::enableDiscovery();
 
@@ -881,13 +1014,16 @@ m [function] IReaderStatus::getOffset(INumber** offset)
                            const AuthenticationProviderPtr& authenticationProvider,
                            const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>(),
                            const DictPtr<IString, IDiscoveryServer> discoveryServices = Dict<IString, IDiscoveryServer>())
-``` 
+```
+
 # 2024-05-17
 
 ## Description
+
 - Add ability to manually connect to streaming for device after device added
 - Create connection string from ServerCapability via modules
-```diff 
+
+```diff
 + [function] IDevice::addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
 + [function] IModuleManagerUtils::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
 
@@ -895,13 +1031,16 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 +m [function] IModule::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr)
 
 + [function] IModule::createConnectionString(IString** connectionString, IServerCapability* serverCapability)
-``` 
+```
+
 # 2024-05-16
 
 ## Description
+
 - Add functions for sending and dequeueing multiple packets
 - Add functions with steal reference behaviour for sending packets
-```diff 
+
+```diff
 + [function] ErrCode ISignalConfig::sendPackets(IList* packets)
 + [function] ErrCode ISignalConfig::sendPacketAndStealRef(IPacket* packet)
 + [function] ErrCode ISignalConfig::sendPacketsAndStealRef(IList* packets)
@@ -910,55 +1049,70 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] ErrCode IConnection::enqueueMultiple(IList* packets)
 + [function] ErrCode IConnection::enqueueMultipleAndStealRef(IList* packets)
 + [function] ErrCode IConnection::dequeueAll(IList** packets)()
-``` 
+```
+
 # 2024-04-26
 
 ## Description
+
 - Produce gap packets on request
-```diff 
+
+```diff
 -m [factory] InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 +m [factory] InputPortConfigPtr InputPort(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, bool gapChecking = false)
 + [function] InputPortConfig::getGapCheckingEnabled(Bool* gapCheckingEnabled);
 + [factory] EventPacketPtr ImplicitDomainGapDetectedEventPacket(const NumberPtr& diff)
 + [packet] IMPLICIT_DOMAIN_GAP_DETECTED
-``` 
+```
+
 # 2024-04-26
 
 ## Description
+
 - Clone property object to create default config from type
-```diff 
+
+```diff
 -m [factory] DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const FunctionPtr& createDefaultConfigCallback = nullptr)
 +m [factory] DeviceTypePtr DeviceType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
 -m [factory] FunctionBlockTypePtr FunctionBlockType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const FunctionPtr& createDefaultConfigCallback = nullptr)
 +m [factory] FunctionBlockTypePtr FunctionBlockType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
 -m [factory] ServerTypePtr ServerType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const FunctionPtr& createDefaultConfigCallback = nullptr)
 +m [factory] ServerTypePtr ServerType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
-``` 
+```
+
 # 2024-04-25
 
 ## Description
+
 - Add mirrored device base implementation as a general approach to manage streaming sources for configuration enabled devices
-```diff 
+
+```diff
 + [interface] IMirroredDevice
 + [function] IMirroredDevice::getStreamingSources(IList** streamingSources)
 
 + [interface] IMirroredDeviceConfig
 + [function] IMirroredDeviceConfig::addStreamingSource(IStreaming* streamingSource)
 + [function] IMirroredDeviceConfig::removeStreamingSource(IString* streamingConnectionString)
-``` 
+```
+
 # 2024-04-23
 
 ## Description
+
 - Adding addresses in ServerCapability
-```diff 
+
+```diff
 + [function] IServerCapabilityConfig::addAddress(IString* address)
 + [function] IServerCapability::getAddresses(IList** addresses)
-``` 
+```
+
 # 2024-04-22
 
 ## Description
+
 - Fix reserved keyword clashes with Delphi bindings
-```diff 
+
+```diff
 - [function] IPermissionsBuilder::set(StringPtr groupId, PermissionMaskBuilderPtr permissions)
 + [function] IPermissionsBuilder::assign(StringPtr groupId, PermissionMaskBuilderPtr permissions)
-``` 
+```

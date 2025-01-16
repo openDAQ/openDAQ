@@ -138,7 +138,7 @@ private:
 
     bool isPropertyChangeable(const StringPtr& propertyName);
 
-    void triggerCoreEventMetod(const CoreEventArgsPtr& args);
+    void triggerCoreEventMethod(const CoreEventArgsPtr& args);
 
     ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
 
@@ -991,7 +991,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         if (!coreEvent.assigned())
         {
             parent.getContext()->getOnCoreEvent(&this->coreEvent);
-            ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMetod(args); };
+            ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMethod(args); };
             this->setCoreEventTrigger(procedure);
             this->coreEventMuted = false;
         }
@@ -1001,7 +1001,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
 }
 
 template <typename TInterface, typename ... Interfaces>
-void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMetod(const CoreEventArgsPtr& args)
+void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMethod(const CoreEventArgsPtr& args)
 {
     const ComponentPtr parent = this->owner.assigned() ? this->owner.getRef() : nullptr;
     try

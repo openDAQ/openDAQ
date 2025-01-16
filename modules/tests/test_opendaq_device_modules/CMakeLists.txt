@@ -6,19 +6,11 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_device_locking.cpp
                  test_app.cpp
                  test_helpers/test_helpers.h
+                 test_websocket_modules.cpp
+                 test_native_streaming_modules.cpp
+                 test_subdevices.cpp
+                 test_streaming.cpp
 )
-
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    list(APPEND TEST_SOURCES test_websocket_modules.cpp)
-endif()
-
-if (OPENDAQ_ENABLE_NATIVE_STREAMING)
-    list(APPEND TEST_SOURCES test_native_streaming_modules.cpp)
-endif()
-
-if (OPENDAQ_ENABLE_NATIVE_STREAMING OR OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    list(APPEND TEST_SOURCES test_subdevices.cpp test_streaming.cpp)
-endif()
 
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
@@ -38,17 +30,11 @@ add_dependencies(${TEST_APP} daq::opcua_client_module
                              daq::opcua_server_module
                              daq::ref_fb_module
                              daq::ref_device_module
+                             daq::ws_stream_cl_module
+                             daq::ws_stream_srv_module
+                             daq::native_stream_cl_module
+                             daq::native_stream_srv_module
 )
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    add_dependencies(${TEST_APP} daq::ws_stream_cl_module
-                                 daq::ws_stream_srv_module
-    )
-endif()
-if (OPENDAQ_ENABLE_NATIVE_STREAMING)
-    add_dependencies(${TEST_APP} daq::native_stream_cl_module
-                                 daq::native_stream_srv_module
-    )
-endif()
 
 if (MSVC)
     target_compile_options(${TEST_APP} PRIVATE /bigobj)

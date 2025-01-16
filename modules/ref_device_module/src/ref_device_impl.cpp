@@ -613,7 +613,7 @@ Bool RefDeviceImpl::onGetNetworkConfigurationEnabled()
 
 ListPtr<IString> RefDeviceImpl::onGetNetworkInterfaceNames()
 {
-    return List<IString>("enp0S3");
+    return List<IString>("enp0s3");
 }
 #endif
 

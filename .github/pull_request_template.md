@@ -16,14 +16,17 @@
 
 # Required integration changes
 
-* Breaking application changes
-  * 
+## Breaking application changes
 
-* Breaking module changes
-  * 
+
+
+## Breaking module changes
+
+
 
 # API changes
 
 ```diff
-
++ 
+- 
 ```

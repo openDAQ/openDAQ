@@ -225,6 +225,7 @@ class AddDeviceDialog(Dialog):
             return
 
         for device_info in available_devices:
+            device_info = daq.IDeviceInfo.cast_from(device_info)
             name = device_info.name
             conn = device_info.connection_string
             used = conn in self.context.enabled_devices

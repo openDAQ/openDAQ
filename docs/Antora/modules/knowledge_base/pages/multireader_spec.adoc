@@ -241,8 +241,16 @@ Cpp::
 +
 [source,cpp]
 ----
+std::mutex mutex;
+bool running = true;
+
 auto readData = [&]()
 {
+    // Read data under lock, stop reading once application terminates
+    std::scoped_lock lock(mutex);
+    if (!running)
+        return;
+
     auto dataAvailable = multiReader.getAvailableCount();
     auto count = std::min(kBufferSize, dataAvailable);
     auto status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
@@ -261,6 +269,14 @@ auto readData = [&]()
 };
 
 multiReader.setOnDataAvailable(readData);
+
+// ...
+
+{
+    // Stop reading on application termination to prevent access to destroyed objects
+    std::scoped_lock lock(mutex);
+    running = false;
+}
 ----
 ====
 

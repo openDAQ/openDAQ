@@ -33,6 +33,5 @@
                     "SerialNumber": "falseserial",
                     "Name": "Reference device simulator"
                 }
-        },
-    "NetInterfaces": ["enp0s3"]
+        }
 }

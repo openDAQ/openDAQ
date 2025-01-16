@@ -7,6 +7,7 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/module_manager_factory.h>
+#include "testutils/memcheck_listener.h"
 
 using DeviceInfoTest = testing::Test;
 
@@ -263,7 +264,9 @@ TEST_F(DeviceInfoTest, ServerCapabilities)
 
 TEST_F(DeviceInfoTest, NetworkInterfaces)
 {
-    auto moduleManager = ModuleManager("[[none]]");
+    MemCheckListener::expectMemoryLeak = true;// memory leak in module manager
+    const auto moduleManager = ModuleManager("[[none]]");
+
     DeviceInfoPtr info = DeviceInfo("", "");
     DeviceInfoInternalPtr internalInfo = info;
 

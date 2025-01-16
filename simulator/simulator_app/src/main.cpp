@@ -8,6 +8,9 @@
 
 using namespace daq;
 
+// Atomic flag to signal termination
+std::atomic<bool> stopped{false};
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
@@ -46,7 +49,14 @@ int main(int /*argc*/, const char* /*argv*/[])
             server.enableDiscovery();
     }
 
-    while (true)
+    auto signalHandler = [](int signal)
+    {
+        if (signal == SIGINT)
+            stopped = true; // Set the flag to exit the loop
+    };
+    // Register the signal handler for SIGINT
+    std::signal(SIGINT, signalHandler);
+    while (!stopped)
     {
         std::this_thread::sleep_for(100ms);
     }

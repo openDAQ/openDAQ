@@ -1,17 +1,18 @@
 * xref:knowledge_base.adoc[*Knowledge base*]
-** *Server/Client protocols*
-*** xref:protocol_features_characteristics.adoc[Protocol features and characteristics]
-** xref:opendaq_architecture.adoc[*Architecture*]
+** xref:opendaq_architecture.adoc[*Component Tree*]
 *** xref:components.adoc[Component]
 *** xref:device.adoc[Device]
 *** xref:function_blocks.adoc[Function Block]
 *** xref:signals.adoc[Signal]
 *** xref:data_path.adoc[Data path]
-*** xref:readers.adoc[Reader]
-*** xref:streaming.adoc[Streaming]
 // *** xref:packets.adoc[(TODO) Packet]
+** *Features*
+*** xref:property_system.adoc[Property System]
+*** xref:readers.adoc[Readers]
+*** xref:multireader_spec.adoc[Multi Reader]
+*** xref:streaming.adoc[Streaming]
+*** xref:modules.adoc[Modules]
+** *Server/Client protocols*
+*** xref:protocol_features_characteristics.adoc[Protocol features and characteristics]
 ** *Internals*
 *** xref:interfaces_objects_wrappers.adoc[Interfaces, Objects and Wrappers]
-*** xref:property_system.adoc[Property System]
-*** xref:modules.adoc[Modules]
-*** xref:multireader_spec.adoc[Multi Reader]

@@ -427,7 +427,39 @@ Cpp::
 using namespace daq;
 using namespace std::chrono_literals;
 
-void readDataDifferentRates(const ListPtr<ISignal>& signals)
+void readDataSameRatesSignals(const ListPtr<ISignal>& signals);
+void readDataSameRatesPortsAndOutput(const ListPtr<ISignal>& signals);
+void readDataDifferentRates(const ListPtr<ISignal>& signals);
+
+int main()
+{
+    auto instance = InstanceBuilder().setGlobalLogLevel(LogLevel::Error).build();
+    auto refDevice = instance.addDevice("daqref://device0");
+    refDevice.setPropertyValue("NumberOfChannels", 4);
+    auto signals = refDevice.getSignalsRecursive();
+
+    std::cout << "Same rate data, signals, read in a loop:\n";
+    readDataSameRatesSignals(signals);
+
+    std::cout << "\nSame rate data, using input ports, read in callbacks, data is output:\n";
+    readDataSameRatesPortsAndOutput(signals);
+
+    const auto channels = refDevice.getChannelsRecursive();
+    channels[0].setPropertyValue("UseGlobalSampleRate", false);
+    channels[0].setPropertyValue("SampleRate", 100);
+    channels[1].setPropertyValue("UseGlobalSampleRate", false);
+    channels[1].setPropertyValue("SampleRate", 200);
+    channels[2].setPropertyValue("UseGlobalSampleRate", false);
+    channels[2].setPropertyValue("SampleRate", 500);
+    std::cout << "\nDifferent rate data:\n";
+    readDataDifferentRates(signals);
+    
+    std::cout << "\nPress \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
+}
+
+void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
 {
     // Create reader that converts values to `double` and time data to `int64`
     auto multiReaderBuilder = MultiReaderBuilder().setValueReadType(SampleType::Float64).setDomainReadType(SampleType::Int64);
@@ -440,7 +472,6 @@ void readDataDifferentRates(const ListPtr<ISignal>& signals)
     auto kBufferSize = SizeT{0};
     auto domainBuffers = std::vector<void*>(signalsCount, nullptr);
     auto dataBuffers = std::vector<void*>(signalsCount, nullptr);
-    std::vector<size_t> dividers;
 
     // read data every 50ms, up to a maximum of kBufferSize samples
     for (size_t readCount = 0; readCount < 20; readCount++)
@@ -451,40 +482,17 @@ void readDataDifferentRates(const ListPtr<ISignal>& signals)
 
         if (status.getReadStatus() == ReadStatus::Event)
         {
-            auto packets = status.getEventPackets();
-            if (!(packets.getValueList()[0].getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED))
-                continue;
+            // Set buffer size based on sample rate, allocate buffers
+            // Buffers have 100ms worth of memory for each signal
+            auto sampleRate = reader::getSampleRate(
+                status.getMainDescriptor().getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+            kBufferSize = sampleRate / 10;
 
-            // SRDiv calculation
-            size_t commonSampleRate = multiReader.getCommonSampleRate();
-            dividers.clear();
-            std::cout << "Dividers: ";
-            for (const auto& [_, eventPacket] : status.getEventPackets())
-            {
-                auto descriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-                auto sampleRate = reader::getSampleRate(descriptor);
-                dividers.push_back(commonSampleRate / sampleRate);
-                std::cout << dividers.back() << ", ";
-            }
-            std::cout << "\n";
-
-            // Allocate buffers for 100ms according to commonSampleRate
-            size_t lcm = 1;
-            for (const auto& div : dividers)
-                lcm = std::lcm<std::size_t>(lcm, div);
-
-            // Calculate k as the minimum number of LCM-size blocks to read ~100ms of data
-            size_t k = std::max(commonSampleRate / lcm / 10, static_cast<size_t>(1));
-            kBufferSize = k * lcm;
-            
-            std::cout << "Buffer sizes: ";
             for (size_t i = 0; i < signalsCount; ++i)
             {
-                dataBuffers[i] = std::calloc(kBufferSize / dividers[i], getSampleSize(SampleType::Float64));
-                domainBuffers[i] = std::calloc(kBufferSize / dividers[i], getSampleSize(SampleType::Int64));
-                std::cout << kBufferSize / dividers[i] << ", ";
+                dataBuffers[i] = std::calloc(kBufferSize, getSampleSize(SampleType::Float64));
+                domainBuffers[i] = std::calloc(kBufferSize, getSampleSize(SampleType::Int64));
             }
-            std::cout << "\n";
         }
         else if (status.getReadStatus() == ReadStatus::Ok && count > 0)
         {
@@ -607,7 +615,7 @@ void readDataSameRatesPortsAndOutput(const ListPtr<ISignal>& signals)
     }
 }
 
-void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
+void readDataDifferentRates(const ListPtr<ISignal>& signals)
 {
     // Create reader that converts values to `double` and time data to `int64`
     auto multiReaderBuilder = MultiReaderBuilder().setValueReadType(SampleType::Float64).setDomainReadType(SampleType::Int64);
@@ -620,6 +628,7 @@ void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
     auto kBufferSize = SizeT{0};
     auto domainBuffers = std::vector<void*>(signalsCount, nullptr);
     auto dataBuffers = std::vector<void*>(signalsCount, nullptr);
+    std::vector<size_t> dividers;
 
     // read data every 50ms, up to a maximum of kBufferSize samples
     for (size_t readCount = 0; readCount < 20; readCount++)
@@ -630,17 +639,40 @@ void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
 
         if (status.getReadStatus() == ReadStatus::Event)
         {
-            // Set buffer size based on sample rate, allocate buffers
-            // Buffers have 100ms worth of memory for each signal
-            auto sampleRate = reader::getSampleRate(
-                status.getMainDescriptor().getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
-            kBufferSize = sampleRate / 10;
+            auto packets = status.getEventPackets();
+            if (!(packets.getValueList()[0].getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED))
+                continue;
 
+            // SRDiv calculation
+            size_t commonSampleRate = multiReader.getCommonSampleRate();
+            dividers.clear();
+            std::cout << "Dividers: ";
+            for (const auto& [_, eventPacket] : status.getEventPackets())
+            {
+                auto descriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                auto sampleRate = reader::getSampleRate(descriptor);
+                dividers.push_back(commonSampleRate / sampleRate);
+                std::cout << dividers.back() << ", ";
+            }
+            std::cout << "\n";
+
+            // Allocate buffers for 100ms according to commonSampleRate
+            size_t lcm = 1;
+            for (const auto& div : dividers)
+                lcm = std::lcm<std::size_t>(lcm, div);
+
+            // Calculate k as the minimum number of LCM-size blocks to read ~100ms of data
+            size_t k = std::max(commonSampleRate / lcm / 10, static_cast<size_t>(1));
+            kBufferSize = k * lcm;
+            
+            std::cout << "Buffer sizes: ";
             for (size_t i = 0; i < signalsCount; ++i)
             {
-                dataBuffers[i] = std::calloc(kBufferSize, getSampleSize(SampleType::Float64));
-                domainBuffers[i] = std::calloc(kBufferSize, getSampleSize(SampleType::Int64));
+                dataBuffers[i] = std::calloc(kBufferSize / dividers[i], getSampleSize(SampleType::Float64));
+                domainBuffers[i] = std::calloc(kBufferSize / dividers[i], getSampleSize(SampleType::Int64));
+                std::cout << kBufferSize / dividers[i] << ", ";
             }
+            std::cout << "\n";
         }
         else if (status.getReadStatus() == ReadStatus::Ok && count > 0)
         {
@@ -652,30 +684,6 @@ void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
 
         std::this_thread::sleep_for(50ms);
     }
-}
-
-int main()
-{
-    auto instance = Instance();
-    auto refDevice = instance.addDevice("daqref://device0");
-    refDevice.setPropertyValue("NumberOfChannels", 4);
-    auto signals = refDevice.getSignalsRecursive();
-
-    std::cout << "Same rate data, signals, read in a loop:\n";
-    readDataSameRatesSignals(signals);
-
-    std::cout << "Same rate data, using input ports, read in callbacks, data is output:\n";
-    readDataSameRatesPortsAndOutput(signals);
-
-    const auto channels = refDevice.getChannelsRecursive();
-    channels[0].setPropertyValue("UseGlobalSampleRate", false);
-    channels[0].setPropertyValue("SampleRate", 100);
-    channels[1].setPropertyValue("UseGlobalSampleRate", false);
-    channels[1].setPropertyValue("SampleRate", 200);
-    channels[2].setPropertyValue("UseGlobalSampleRate", false);
-    channels[2].setPropertyValue("SampleRate", 500);
-    std::cout << "Different rate data:\n";
-    readDataDifferentRates(signals);
 }
 ----
 ====

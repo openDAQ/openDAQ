@@ -20,8 +20,10 @@
 #include <opendaq/packet_factory.h>
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
+#ifdef __linux__
 #include <csignal>
 #include <cstdio>
+#endif
 #endif
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
@@ -555,6 +557,7 @@ void RefDeviceImpl::createSignals()
 }
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
+#ifdef __linux__
 void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
 {
     const auto addrListToJson = [](const ListPtr<IString>& addresses) -> std::string
@@ -616,6 +619,7 @@ ListPtr<IString> RefDeviceImpl::onGetNetworkInterfaceNames()
 {
     return List<IString>("enp0s3");
 }
+#endif
 #endif
 
 END_NAMESPACE_REF_DEVICE_MODULE

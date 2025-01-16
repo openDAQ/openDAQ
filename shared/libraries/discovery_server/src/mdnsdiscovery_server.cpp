@@ -73,6 +73,7 @@ MDNSDiscoveryServer::MDNSDiscoveryServer(void)
     if (WSAStartup(versionWanted, &wsaData))
     {
         printf("Failed to initialize WinSock\n");
+        return;
     }
 #endif
     hostName = getHostname();
@@ -147,6 +148,13 @@ mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredDevice& 
 
 bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice& device)
 {
+    std::string hostName = this->hostName;
+
+    auto manufacturer = device.properties["manufacturer"];
+    auto serialNumber = device.properties["serialNumber"];
+    if (!manufacturer.empty() && !serialNumber.empty())
+        hostName = manufacturer + "_" + serialNumber;
+
     device.serviceInstance = hostName + "." + device.serviceName;
     device.serviceQualified = hostName + ".local.";
 
@@ -335,7 +343,8 @@ void MDNSDiscoveryServer::serviceLoop()
     }
 }
 
-void MDNSDiscoveryServer::openServerSockets(std::vector<int>& sockets) {
+void MDNSDiscoveryServer::openServerSockets(std::vector<int>& sockets) 
+{
     sockets.reserve(2);
     openClientSockets();
     
@@ -415,9 +424,11 @@ inline void MDNSDiscoveryServer::openClientSockets()
             if (!hasIpv4 && unicast->Address.lpSockaddr->sa_family == AF_INET)
             {
                 auto saddr = reinterpret_cast<sockaddr_in*>(unicast->Address.lpSockaddr);
-                
-                if ((saddr->sin_addr.S_un.S_un_b.s_b1 != 127) || (saddr->sin_addr.S_un.S_un_b.s_b2 != 0) ||
-                    (saddr->sin_addr.S_un.S_un_b.s_b3 != 0) || (saddr->sin_addr.S_un.S_un_b.s_b4 != 1))
+
+                if ((saddr->sin_addr.S_un.S_un_b.s_b1 != 127) ||
+                    (saddr->sin_addr.S_un.S_un_b.s_b2 != 0) || 
+                    (saddr->sin_addr.S_un.S_un_b.s_b3 != 0) ||
+                    (saddr->sin_addr.S_un.S_un_b.s_b4 != 1))
                 {
                     serviceAddressIpv4 = *saddr;
                     hasIpv4 = true;
@@ -584,7 +595,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 records.push_back(createSrvRecord(device));
                 if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
                     records.push_back(createARecord(device));
-                if (serviceAddressIpv6.sin6_family == AF_INET6)
+                if (serviceAddressIpv6.sin6_family == AF_INET6 && from->sa_family == AF_INET6)
                     records.push_back(createAaaaRecord(device));
                 device.populateRecords(records);
 
@@ -602,8 +613,9 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
 
                 if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
                     records.push_back(createARecord(device));
-                if (serviceAddressIpv6.sin6_family == AF_INET6)
+                if (serviceAddressIpv6.sin6_family == AF_INET6 && from->sa_family == AF_INET6)
                     records.push_back(createAaaaRecord(device));
+                device.populateRecords(records);
 
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
@@ -618,9 +630,11 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 records.reserve(device.properties.size() + 1);
 
                 records.push_back(answer);
+                device.populateRecords(records);
+
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             } 
-            else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6)) 
+            else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6) && from->sa_family == AF_INET6) 
             {
                 mdns_record_t answer = createAaaaRecord(device);
 
@@ -628,6 +642,8 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 records.reserve(device.properties.size() + 1);
 
                 records.push_back(answer);
+                device.populateRecords(records);
+
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         }

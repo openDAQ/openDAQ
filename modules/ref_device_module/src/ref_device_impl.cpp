@@ -21,6 +21,7 @@
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
 #include <csignal>
+#include <cstdio>
 #endif
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE

@@ -4,7 +4,6 @@
 #include <opendaq/opendaq.h>
 #include <coreobjects/authentication_provider_factory.h>
 #include <coreobjects/user_factory.h>
-#include <future>
 
 using namespace daq;
 

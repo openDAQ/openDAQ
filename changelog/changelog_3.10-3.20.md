@@ -84,5 +84,3 @@ setComponentStatus(ComponentStatus::Ok);
 + [function] IPropertyObject::getOnAnyPropertyValueWrite(IEvent** event)
 + [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
 ```
-
----

@@ -1,92 +1,3 @@
-# Component Statuses [#625](https://github.com/openDAQ/openDAQ/pull/625) [#650](https://github.com/openDAQ/openDAQ/pull/650)
-
-## Description
-
-- Adds Component status types to the Type Manager in `context_impl.cpp` (`"Ok"`, `"Warning"`, and `"Error"`).
-- Defines `ComponentStatus` enum, with possible values `OK`, `Warning`, and `Error`.
-- Declares and defines `initComponentStatus`, `setComponentStatus`, and `setComponentStatusWithMessage` in `component_impl.h`.
-- Adds `getStatusMessage` in `component_status_container.h`, and `addStatusWithMessage`, `setStatusWithMessage` in `component_status_container_private.h`. Implements all three in `component_status_container_impl.h`.
-- Uses `initComponentStatus`, `setComponentStatus`, and `setComponentStatusWithMessage` in all reference Function Blocks.
-
-## Usage example
-
-In Function Block implementation, at the beginning of the constructor, call:
-
-```cpp
-initComponentStatus();
-```
-
-This will initialize the Component status to `Ok` and status message to an empty string.
-
-When the Component status should change to `Warning` with a message, call:
-
-```cpp
-setComponentStatusWithMessage(ComponentStatus::Warning, "You warning message here");
-```
-
-> [!IMPORTANT]  
-> Whenever the Component status changes, the change is also automatically logged.
-
-Similarly, for `Error`, call:
-```cpp
-setComponentStatusWithMessage(ComponentStatus::Error, "You error message here");
-```
-
-To reset the Component status back to `Ok`, call:
-```cpp
-setComponentStatus(ComponentStatus::Ok);
-```
-
-> [!TIP]
-> The above method call will also reset the Component status message to an empty string.
-
-## Required integration changes
-
-- None. However, developers of Components (such as Function Blocks) are encouraged to use:
-  - `initComponentStatus`
-  - `setComponentStatus`
-  - `setComponentStatusWithMessage`
-
-## API changes
-
-```diff
-+ [function] IComponentStatusContainer::getStatusMessage(IString* name, IString** message)
-+ [function] IComponentStatusContainerPrivate::addStatusWithMessage(IString* name, IEnumeration* initialValue, IString* message)
-+ [function] IComponentStatusContainerPrivate::setStatusWithMessage(IString* name, IEnumeration* value, IString* message)
-```
-
----
-
-# Fix Method Name to camelCase
-
-## Description
-
-- The module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`.
-
-## API changes
-
-```diff
--m [function] ListPtr<ILogFileInfo> Device::ongetLogFileInfos()
-+m [function] ListPtr<ILogFileInfo> Device::onGetLogFileInfos()
-```
-
----
-
-# Add "Any Read/Write" Events to Property Object
-
-## Description
-
-- These events are triggered whenever any property value is read or written.
-
-## API changes
-
-```diff
-+ [function] IPropertyObject::getOnAnyPropertyValueWrite(IEvent** event)
-+ [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
-```
-
----
-
 # Fix Property Values Written Before Validation
 
 ## Description
@@ -186,6 +97,9 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 
 # Separate Container for Connection Status
 
+> [!CAUTION]
+> Breaks binary compatibility
+
 ## Description
 
 - Introduces a separate container (accessible per device) for connection statuses.
@@ -216,6 +130,9 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 ---
 
 # Separate IModuleInfo Interface for Module Name, ID, and Version
+
+> [!CAUTION]
+> Breaks binary compatibility
 
 ## Description
 
@@ -291,6 +208,9 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 ---
 
 # Forceful Device Unlocking Over Native Config Protocol
+
+> [!CAUTION]
+> Breaks binary compatibility
 
 ## Description
 
@@ -397,6 +317,9 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 
 # View Server Protocol Version in Server Capabilities
 
+> [!CAUTION]
+> Breaks binary compatibility
+
 ## Description
 
 - Adds a way to view the server protocol version in server capabilities.
@@ -415,6 +338,9 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 ---
 
 # Implements Log File Info Interface
+
+> [!CAUTION]
+> Breaks binary compatibility
 
 ## Description
 
@@ -478,6 +404,9 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 ---
 
 # Adding Nested Function Block Methods
+
+> [!CAUTION]
+> Breaks binary compatibility
 
 ## Description
 
@@ -574,6 +503,9 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 
 # Support for Device Locking Over Native Protocol
 
+> [!CAUTION]
+> Breaks binary compatibility
+
 ## Description
 
 - Adds support for device locking over the native config protocol.
@@ -621,6 +553,9 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 ---
 
 # Adding openDAQ Servers Under Device
+
+> [!CAUTION]
+> Breaks binary compatibility
 
 ## Description
 
@@ -801,6 +736,9 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 ---
 
 # IProperty getValue/setValue Methods
+
+> [!CAUTION]
+> Breaks binary compatibility
 
 ## Description
 

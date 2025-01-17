@@ -66,6 +66,7 @@ class App(tk.Tk):
         super().__init__()
 
         self.context = AppContext()
+        self.context.on_needs_refresh = lambda: self.on_refresh_event(None)
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
 
         self.context.ui_scaling_factor = int(args.scale)
@@ -310,7 +311,8 @@ class App(tk.Tk):
             icon = self.context.icons['input_port']
         elif daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
-            # component_name = device.info.name
+            if not utils.is_device_connected(device):
+                component_name = f'{component_name} [disconnected]'
             icon = self.context.icons['device']
         elif daq.IFolder.can_cast_from(component):
             icon = self.context.icons['folder']

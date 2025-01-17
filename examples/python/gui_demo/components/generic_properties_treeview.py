@@ -223,6 +223,8 @@ class PropertiesTreeview(ttk.Treeview):
         try:
             self.update_property(self.node, path, new_value)
             self.refresh()
+        except Exception:
+            pass
         finally:
             entry.destroy()
 

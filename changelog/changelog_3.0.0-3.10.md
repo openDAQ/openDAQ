@@ -1201,3 +1201,5 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 - [function] IPermissionsBuilder::set(StringPtr groupId, PermissionMaskBuilderPtr permissions)
 + [function] IPermissionsBuilder::assign(StringPtr groupId, PermissionMaskBuilderPtr permissions)
 ```
+
+---

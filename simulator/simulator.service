@@ -9,6 +9,7 @@ Type=simple
 Restart=always
 RestartSec=1
 User=opendaq
+ExecStartPre=systemctl mask avahi-daemon.service
 ExecStartPre=python3 /home/opendaq/configurator.py
 ExecStartPre=cp /home/opendaq/opendaq-config.json /home/opendaq/opendaq/
 ExecStartPre=cp /home/opendaq/opcuatms.service /etc/avahi/services/

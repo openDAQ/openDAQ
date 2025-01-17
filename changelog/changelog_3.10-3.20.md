@@ -1,86 +1,20 @@
-# Component Statuses [#625](https://github.com/openDAQ/openDAQ/pull/625) [#650](https://github.com/openDAQ/openDAQ/pull/650)
+# Changes since 3.10
 
 ## Description
-
-- Adds Component status types to the Type Manager in `context_impl.cpp` (`"Ok"`, `"Warning"`, and `"Error"`).
-- Defines `ComponentStatus` enum, with possible values `OK`, `Warning`, and `Error`.
-- Declares and defines `initComponentStatus`, `setComponentStatus`, and `setComponentStatusWithMessage` in `component_impl.h`.
-- Adds `getStatusMessage` in `component_status_container.h`, and `addStatusWithMessage`, `setStatusWithMessage` in `component_status_container_private.h`. Implements all three in `component_status_container_impl.h`.
-- Uses `initComponentStatus`, `setComponentStatus`, and `setComponentStatusWithMessage` in all reference Function Blocks.
-
-## Usage example
-
-In Function Block implementation, at the beginning of the constructor, call:
-
-```cpp
-initComponentStatus();
-```
-
-This will initialize the Component status to `Ok` and status message to an empty string.
-
-When the Component status should change to `Warning` with a message, call:
-
-```cpp
-setComponentStatusWithMessage(ComponentStatus::Warning, "You warning message here");
-```
-
-> [!IMPORTANT]  
-> Whenever the Component status changes, the change is also automatically logged.
-
-Similarly, for `Error`, call:
-```cpp
-setComponentStatusWithMessage(ComponentStatus::Error, "You error message here");
-```
-
-To reset the Component status back to `Ok`, call:
-```cpp
-setComponentStatus(ComponentStatus::Ok);
-```
-
-> [!TIP]
-> The above method call will also reset the Component status message to an empty string.
+- Serialize component name when equal to localID [#660](https://github.com/openDAQ/openDAQ/pull/660)
+- Fix for openDAQ module loading failing on Android [#569](https://github.com/openDAQ/openDAQ/pull/659)
+- Show time domain signal last value as time [#657] https://github.com/openDAQ/openDAQ/pull/657
+- Fix local device discovery and serialization on id clashes [#653](https://github.com/openDAQ/openDAQ/pull/653)
+- Support for Python lists in MultiReader  [#651](https://github.com/openDAQ/openDAQ/pull/651)
+- Make attributes editable in Python GUI Demo Application [#637](https://github.com/openDAQ/openDAQ/pull/637) 
+- Remove root device on instance destruction [#635](https://github.com/openDAQ/openDAQ/pull/635)
+- Support adding and removing nested function blocks in Python GUI [#634](https://github.com/openDAQ/openDAQ/pull/634)
+- Python bindings: IEvent implementation [#633](https://github.com/openDAQ/openDAQ/pull/633)
+- Add "onAny" property value read and write events [#631](https://github.com/openDAQ/openDAQ/pull/631)
+- Fix onGetLogFileInfos case [#630](https://github.com/openDAQ/openDAQ/pull/630)
+- Introduce Component statuses ( `OK`, `Warning`, and `Error`) with messages [#625](https://github.com/openDAQ/openDAQ/pull/625) [#650](https://github.com/openDAQ/openDAQ/pull/650)
+- Streaming connection statuses [#606](https://github.com/openDAQ/openDAQ/pull/606)
+- Add support for view only client to the config protocol [#605](https://github.com/openDAQ/openDAQ/pull/605)
 
 ## Required integration changes
-
-- None. However, developers of Components (such as Function Blocks) are encouraged to use:
-  - `initComponentStatus`
-  - `setComponentStatus`
-  - `setComponentStatusWithMessage`
-
-## API changes
-
-```diff
-+ [function] IComponentStatusContainer::getStatusMessage(IString* name, IString** message)
-+ [function] IComponentStatusContainerPrivate::addStatusWithMessage(IString* name, IEnumeration* initialValue, IString* message)
-+ [function] IComponentStatusContainerPrivate::setStatusWithMessage(IString* name, IEnumeration* value, IString* message)
-```
-
----
-
-# Fix Method Name to camelCase
-
-## Description
-
-- The module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`.
-
-## API changes
-
-```diff
--m [function] ListPtr<ILogFileInfo> Device::ongetLogFileInfos()
-+m [function] ListPtr<ILogFileInfo> Device::onGetLogFileInfos()
-```
-
----
-
-# Add "Any Read/Write" Events to Property Object
-
-## Description
-
-- These events are triggered whenever any property value is read or written.
-
-## API changes
-
-```diff
-+ [function] IPropertyObject::getOnAnyPropertyValueWrite(IEvent** event)
-+ [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
-```
+-  

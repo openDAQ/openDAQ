@@ -139,7 +139,7 @@ class BlockView(ttk.Frame):
             self.expanded_frame.grid_columnconfigure(
                 self.cols, weight=1, minsize=300, uniform='column')
             self.expanded_frame.grid_rowconfigure(
-                self.rows, weight=1, minsize=200)
+                self.rows, weight=1, minsize=300)
 
             if self.properties is not None:
                 self.properties.grid(

@@ -37,6 +37,12 @@ inline DeviceInfoConfigPtr DeviceInfo(const StringPtr& connectionString, const S
     return obj;
 }
 
+inline DeviceInfoConfigPtr DeviceInfoWithChanegableFields(const ListPtr<IString>& changeableDefaultPropertyNames)
+{
+    DeviceInfoConfigPtr obj(DeviceInfoConfigWithChanegableFields_Create(changeableDefaultPropertyNames));
+    return obj;
+}
+
 inline ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType)
 {
     ServerCapabilityConfigPtr obj(ServerCapability_Create(protocolId, protocolName, protocolType));

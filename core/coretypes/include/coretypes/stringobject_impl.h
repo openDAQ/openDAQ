@@ -60,6 +60,7 @@ private:
     char* str;
     SizeT hashCode;
     bool hashCalculated;
+    SizeT length;
 };
 
 END_NAMESPACE_OPENDAQ

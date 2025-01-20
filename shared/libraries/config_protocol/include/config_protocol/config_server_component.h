@@ -62,6 +62,17 @@ inline BaseObjectPtr ConfigServerComponent::setPropertyValue(const RpcContext& c
 
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     const auto propertyValue = params["PropertyValue"];
+
+    const std::string prefix = "DaqDeviceInfo";
+    if (propertyName.find(prefix) != std::string::npos)
+    {
+        auto deviceInfoPropertyName = propertyName.substr(prefix.size() + 1);
+        auto deviceInfo = component.asPtr<IDevice>(true).getInfo();
+        ConfigServerAccessControl::protectObject(deviceInfo, context.user, {Permission::Read, Permission::Write});
+        deviceInfo.setPropertyValue(deviceInfoPropertyName, propertyValue);
+        return nullptr;
+    }
+    
     const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
 
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
@@ -80,6 +91,17 @@ inline BaseObjectPtr ConfigServerComponent::setProtectedPropertyValue(const RpcC
 
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     const auto propertyValue = static_cast<std::string>(params["PropertyValue"]);
+
+    const std::string prefix = "DaqDeviceInfo";
+    if (propertyName.find(prefix) != std::string::npos)
+    {
+        auto deviceInfoPropertyName = propertyName.substr(prefix.size() + 1);
+        auto deviceInfo = component.asPtr<IDevice>(true).getInfo();
+        ConfigServerAccessControl::protectObject(deviceInfo, context.user, {Permission::Read, Permission::Write});
+        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(deviceInfoPropertyName, propertyValue);
+        return nullptr;
+    }
+
     const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
 
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});

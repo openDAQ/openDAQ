@@ -155,6 +155,8 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("GetAvailableDeviceTypes", &ConfigServerDevice::getAvailableDeviceTypes);
     addHandler<DevicePtr>("GetLog", &ConfigServerDevice::getLog);
     addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
+    addHandler<DevicePtr>("SetPropertyValue", &ConfigServerDevice::setPropertyValue);
+    addHandler<DevicePtr>("SetProtectedPropertyValue", &ConfigServerDevice::setProtectedPropertyValue);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 

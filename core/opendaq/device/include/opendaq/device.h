@@ -321,7 +321,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
     virtual ErrCode INTERFACE_FUNC unlock() = 0;
 
     /*!
-     * @brief Returns truee if device is locked. Once locked, no properties of the device can be changed via the protocol layer.
+     * @brief Returns true if device is locked. Once locked, no properties of the device can be changed via the protocol layer.
      * @param[out] locked True if device is locked.
      */
     virtual ErrCode INTERFACE_FUNC isLocked(Bool* locked) = 0;

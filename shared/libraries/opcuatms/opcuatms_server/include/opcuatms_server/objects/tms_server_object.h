@@ -72,6 +72,11 @@ public:
     virtual void createNonhierarchicalReferences();
     virtual void onCoreEvent(const CoreEventArgsPtr& eventArgs);
 
+    void addReadCallback(const std::string& nodeName, ReadVariantCallback readFunc);
+    void addWriteCallback(const std::string& nodeName, WriteVariantCallback writeFunc);
+    void addReadCallback(const opcua::OpcUaNodeId& nodeId, ReadVariantCallback readFunc);
+    void addWriteCallback(const opcua::OpcUaNodeId& nodeId, WriteVariantCallback writeFunc);
+
 protected:
     virtual void validate();
     virtual opcua::OpcUaNodeId getRequestedNodeId();
@@ -86,10 +91,6 @@ protected:
     std::string readTypeBrowseName();
     virtual bool createOptionalNode(const opcua::OpcUaNodeId& nodeId);
     virtual void configureNodeAttributes(opcua::OpcUaObject<UA_ObjectAttributes>& attr);
-    void addReadCallback(const std::string& nodeName, ReadVariantCallback readFunc);
-    void addWriteCallback(const std::string& nodeName, WriteVariantCallback writeFunc);
-    void addReadCallback(const opcua::OpcUaNodeId& nodeId, ReadVariantCallback readFunc);
-    void addWriteCallback(const opcua::OpcUaNodeId& nodeId, WriteVariantCallback writeFunc);
     void addReference(const opcua::OpcUaNodeId& targetNodeId, const opcua::OpcUaNodeId& referenceTypeId);
     void deleteReferencesOfType(const opcua::OpcUaNodeId& referenceTypeId);
     void bindReadWriteCallbacks();

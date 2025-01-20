@@ -3,12 +3,33 @@
 #include <thread>
 #include <opendaq/opendaq.h>
 
+void retrieveIpConfiguration(const daq::NetworkInterfacePtr& iface)
+{
+    try
+    {
+        auto config = iface.requestCurrentConfiguration();
+        std::cout << "Parameters:"
+                  << "\n- dhcp4: " << config.getPropertyValue("dhcp4")
+                  << "\n- addresses4: " << config.getPropertyValue("addresses4")
+                  << "\n- gateway4: " << config.getPropertyValue("gateway4")
+                  << "\n- dhcp6: " << config.getPropertyValue("dhcp6")
+                  << "\n- addresses6: " << config.getPropertyValue("addresses6")
+                  << "\n- gateway6: " << config.getPropertyValue("gateway6")
+                  << std::endl;
+    }
+    catch (const std::exception& e)
+    {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+}
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
-    // Create an Instance, loading modules at MODULE_PATH
-    const daq::InstancePtr instance = daq::Instance(MODULE_PATH);
-
     using namespace daq;
+
+    // Create an Instance, loading modules at MODULE_PATH
+    const InstancePtr instance = Instance(MODULE_PATH);
+
     auto availableDevices = instance.getAvailableDevices();
 
     for (const auto& deviceInfo : availableDevices)
@@ -16,32 +37,31 @@ int main(int /*argc*/, const char* /*argv*/[])
         if (deviceInfo.getName() == "Reference device simulator")
         {
             std::cout << "Found simulator device: " << deviceInfo.getConnectionString() << std::endl;
+            std::cout << "Retrieving old IP config..." << std::endl;
+            retrieveIpConfiguration(deviceInfo.getNetworkInterface("enp0s3"));
 
-            const auto dhcp4 = False;
-            const auto addresses4 = List<IString>("192.168.56.155/24");
-            const auto gateway4 = String("192.168.56.1");
-            const auto dhcp6 = True;
-            const auto addresses6 = List<IString>();
-            const auto gateway6 = String("");
-
-            auto ipConfig = deviceInfo.getNetworkInterface("enp0s3").createDefaultConfiguration();
-            ipConfig.setPropertyValue("dhcp4", dhcp4);
-            ipConfig.setPropertyValue("addresses4", addresses4);
-            ipConfig.setPropertyValue("gateway4", gateway4);
-            ipConfig.setPropertyValue("dhcp6", dhcp6);
-            ipConfig.setPropertyValue("addresses6", addresses6);
-            ipConfig.setPropertyValue("gateway6", gateway6);
+            auto config = deviceInfo.getNetworkInterface("enp0s3").createDefaultConfiguration();
+            config.setPropertyValue("dhcp4", False);
+            config.setPropertyValue("addresses4", List<IString>("192.168.56.155/24"));
+            config.setPropertyValue("gateway4", String("192.168.56.1"));
 
             try
             {
                 std::cout << "Device " << deviceInfo.getConnectionString() << " submitting new IP config..." << std::endl;
-                deviceInfo.getNetworkInterface("enp0s3").submitConfiguration(ipConfig);
-                std::cout << "Done!" << std::endl;
+                deviceInfo.getNetworkInterface("enp0s3").submitConfiguration(config);
             }
             catch (const std::exception& e)
             {
                 std::cout << "Error: " << e.what() << std::endl;
+                return 0;
             }
+
+            std::cout << "Wait 5 seconds for new configuration applied ..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+
+            std::cout << "Retrieving updated IP config..." << std::endl;
+            retrieveIpConfiguration(deviceInfo.getNetworkInterface("enp0s3"));
+
             return 0;
         }
     }

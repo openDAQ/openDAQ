@@ -580,7 +580,7 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
                 throw InvalidParameterException("None static addresses specified");
             for (const auto& address : addresses)
             {
-                if (address.getLength() != 0)
+                if (address.getLength() == 0)
                     throw InvalidParameterException("Empty static address specified");
             }
         }
@@ -631,7 +631,47 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
 
 PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr& ifaceName)
 {
-    throw NotImplementedException();
+    // py script runs with root privileges without requiring a password, as specified in sudoers
+    const std::string command = "sudo python3 /home/opendaq/netplan_manager.py parse " + ifaceName.toStdString() + " 2>&1";
+    std::array<char, 256> buffer;
+    std::string result;
+
+    // Open the command for reading
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe)
+        throw GeneralErrorException("Failed to run retrieve IP configuration script");
+
+    // Read the output of the command
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+        result += buffer.data();
+
+    // Get the exit status
+    int exitCode = pclose(pipe);
+    if (exitCode)
+        throw GeneralErrorException("Retrieve IP configuration script failed: {}", result);
+
+    auto factoryCallback = [](const StringPtr& typeId,
+                              const SerializedObjectPtr& serializedObj,
+                              const BaseObjectPtr& context,
+                              const FunctionPtr& factoryCallback)
+    {
+        if (typeId != "Result")
+            throw DeserializeException("Wrong script result type ID: {}", typeId);
+
+        auto config = PropertyObject();
+
+        config.addProperty(BoolProperty("dhcp4", serializedObj.readBool("dhcp4")));
+        config.addProperty(ListProperty("addresses4", serializedObj.readList<IString>("addresses4")));
+        config.addProperty(StringProperty("gateway4", serializedObj.readString("gateway4")));
+        config.addProperty(BoolProperty("dhcp6", serializedObj.readBool("dhcp6")));
+        config.addProperty(ListProperty("addresses6", serializedObj.readList<IString>("addresses6")));
+        config.addProperty(StringProperty("gateway6", serializedObj.readString("gateway6")));
+
+        return config;
+    };
+
+    auto deserializer = JsonDeserializer();
+    return deserializer.deserialize(result, nullptr, factoryCallback);
 }
 
 Bool RefDeviceImpl::onGetNetworkConfigurationEnabled()

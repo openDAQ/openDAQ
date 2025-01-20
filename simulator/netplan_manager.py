@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import json
+import yaml
 import stat
 
 NETPLAN_DIR = "/etc/netplan"
@@ -155,6 +156,48 @@ def apply_or_restore_netplan_config():
     else:
         print("New netplan config applied successfully.")
 
+def parse_netplan_yaml_file(interface):
+    filename = os.path.join(NETPLAN_DIR, NETPLAN_YAML_FILENAME)
+    if not os.path.exists(filename):
+        print("Error: Netplan configuration file not found.")
+        return None
+
+    try:
+        with open(filename, "r") as yaml_file:
+            config = yaml.safe_load(yaml_file)
+
+        ethernet_config = config.get("network", {}).get("ethernets", {}).get(interface, None)
+        if not ethernet_config:
+            print(f"Error: Interface '{interface}' not found in the configuration.")
+            return None
+
+        dhcp4 = ethernet_config.get("dhcp4", False)
+        dhcp6 = ethernet_config.get("dhcp6", False)
+        addresses4 = [addr for addr in ethernet_config.get("addresses", []) if ":" not in addr]
+        addresses6 = [addr for addr in ethernet_config.get("addresses", []) if ":" in addr]
+
+        routes = ethernet_config.get("routes", [])
+        gateway4 = ""
+        gateway6 = ""
+        for route in routes:
+            if route.get("to") == "0.0.0.0/0":
+                gateway4 = route.get("via")
+            elif route.get("to") == "::/0":
+                gateway6 = route.get("via")
+
+        return {
+            "__type": "Result",
+            "dhcp4": dhcp4,
+            "dhcp6": dhcp6,
+            "addresses4": addresses4,
+            "addresses6": addresses6,
+            "gateway4": gateway4,
+            "gateway6": gateway6
+        }
+    except Exception as e:
+        print(f"Error parsing Netplan YAML file: {e}")
+        return None
+
 def main():
     if os.geteuid() != 0:
         print("Error: sudo permissions required.")
@@ -190,6 +233,16 @@ def main():
 
     elif action == "apply":
         apply_or_restore_netplan_config()
+
+    elif action == "parse":
+        if len(sys.argv) < 3:
+            print("Error: Interface name required for 'parse' action.")
+            sys.exit(1)
+
+        interface = sys.argv[2]
+        result = parse_netplan_yaml_file(interface)
+        if result:
+            print(json.dumps(result, indent=2))
 
     else:
         print(f"Error: Unknown action '{action}'. Supported actions are 'verify' and 'apply'.")

@@ -126,6 +126,13 @@ Vagrant.configure("2") do |config|
     # Set permissions
     config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /home/opendaq/"
 
+    # Modify systemd-networkd-wait-online.service reducing timeout
+    # The timeout takes place when network is offline - "cable no connected" or DHCP mode disabled
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online.*|ExecStart=/lib/systemd/systemd-networkd-wait-online --interface=enp0s3 --ipv4 --ipv6 --timeout=10|' \
+    /etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service
+    SCRIPT
+
     # Reduce memory usage
     config.vm.provision :shell, :inline => <<-SCRIPT
     sudo du -csh /var/cache/apt

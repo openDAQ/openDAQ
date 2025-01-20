@@ -41,6 +41,12 @@ protected:
     void generatePackets(size_t packetCount);
     void registerProperties();
     void registerTestConfigProperties();
+    void registerNetworkConfigProperties();
+
+    void onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config) override;
+    PropertyObjectPtr onRetrieveNetworkConfiguration(const StringPtr& ifaceName) override;
+    Bool onGetNetworkConfigurationEnabled() override;
+    ListPtr<IString> onGetNetworkInterfaceNames() override;
 
     PropertyObjectPtr config;
     FolderConfigPtr mockFolderA; // InputsOutputs/mockFolderA
@@ -56,6 +62,10 @@ protected:
     ComponentPtr componentA1;
     ComponentPtr componentB;
     uint64_t time;
+
+    ListPtr<IString> ifaceNames;
+    ProcedurePtr onSubmitConfig;
+    FunctionPtr onRetrieveConfig;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

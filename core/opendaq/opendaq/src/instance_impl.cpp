@@ -58,6 +58,10 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
         auto instanceId = DefineLocalId(localId);
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
     }
+
+    for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
+        discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);
+
     rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 }
 
@@ -123,11 +127,11 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
 
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
-    for (const auto& serviceName : builderPtr.getDiscoveryServers())
+    for (const auto& serverName : builderPtr.getDiscoveryServers())
     {
-        auto service = createDiscoveryServer(serviceName, logger);
-        if (service.assigned())
-            discoveryServers.set(serviceName, service);
+        auto server = createDiscoveryServer(serverName, logger);
+        if (server.assigned())
+            discoveryServers.set(serverName, server);
     }
 
     return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers);
@@ -339,6 +343,9 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
     if (devicePrivate.assigned())
         devicePrivate->setAsRoot();
+
+    for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
+        discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);
 
     LOG_I("Root device explicitly set to {}", connectionStringPtr);
 

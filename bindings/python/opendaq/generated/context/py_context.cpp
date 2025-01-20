@@ -125,5 +125,5 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
             return objectPtr.getDiscoveryServers().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the dictionary of available discovery services.");
+        "Gets the dictionary of available discovery servers.");
 }

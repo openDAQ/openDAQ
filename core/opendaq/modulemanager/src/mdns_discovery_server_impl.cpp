@@ -16,8 +16,10 @@
 
 #include <opendaq/mdns_discovery_server_impl.h>
 #include <opendaq/custom_log.h>
-#include <coreobjects/property_object_ptr.h>
+#include <coreobjects/property_object_factory.h>
 #include <opendaq/device_info_ptr.h>
+#include <coreobjects/property_factory.h>
+#include <opendaq/device_network_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,6 +30,9 @@ MdnsDiscoveryServerImpl::MdnsDiscoveryServerImpl(const LoggerPtr& logger)
 
 ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo)
 {
+    using namespace discovery_common;
+    using namespace discovery_server;
+
     auto serviceId = StringPtr::Borrow(id);
     auto configPtr = PropertyObjectPtr::Borrow(config);
     auto deviceInfoPtr = DeviceInfoPtr::Borrow(deviceInfo);
@@ -57,7 +62,7 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     auto servicePort = configPtr.getPropertyValue("Port");
     auto serviceCap = configPtr.getPropertyValue("ServiceCap");
 
-    std::unordered_map<std::string, std::string> properties;
+    TxtProperties properties;
     properties["caps"] = serviceCap.asPtr<IString>(true).toStdString();
 
     properties["name"] = "";
@@ -81,10 +86,10 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     if (configPtr.hasProperty("ProtocolVersion"))
         properties["protocolVersion"] = configPtr.getPropertyValue("ProtocolVersion").asPtr<IString>().toStdString();
 
-    discovery_server::MdnsDiscoveredDevice device(serviceName, servicePort, properties);
-    if (discoveryServer.addDevice(serviceId, device))
+    MdnsDiscoveredService service(serviceName, servicePort, properties);
+    if (discoveryServer.registerService(serviceId, service))
     {
-        LOG_I("Server \"{}\" registered with the discovery service", serviceId);
+        LOG_I("Service \"{}\" registered with the discovery server", serviceId);
         return OPENDAQ_SUCCESS;
     }
     return OPENDAQ_ERR_INVALIDSTATE;
@@ -95,12 +100,136 @@ ErrCode MdnsDiscoveryServerImpl::unregisterService(IString* id)
     if (id == nullptr)
         return OPENDAQ_IGNORED;
 
-    if (discoveryServer.removeDevice(StringPtr::Borrow(id)))
+    if (discoveryServer.unregisterService(StringPtr::Borrow(id)))
     {
-        LOG_I("Server \"{}\" removed from the discovery service", StringPtr::Borrow(id));
+        LOG_I("Service \"{}\" removed from the discovery server", StringPtr::Borrow(id));
         return OPENDAQ_SUCCESS;
     }
     return OPENDAQ_IGNORED;
+}
+
+ErrCode MdnsDiscoveryServerImpl::setRootDevice(IDevice* device)
+{
+    DevicePtr devicePtr = DevicePtr::Borrow(device);
+
+    return daqTry([&]()
+        {
+            using namespace discovery_common;
+            if (discoveryServer.isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID))
+                discoveryServer.unregisterIpModificationService();
+
+            if (devicePtr.assigned() && devicePtr.asPtr<IDeviceNetworkConfig>().getNetworkConfigurationEnabled())
+                registerIpModificationService(devicePtr);
+            return OPENDAQ_SUCCESS;
+        });
+}
+
+void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& rootDevice)
+{
+    using namespace discovery_common;
+    using namespace discovery_server;
+
+    TxtProperties properties;
+    properties["caps"] = "OPENDAQ_IPC";
+    properties["path"] = "/";
+    properties["protocolVersion"] = IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_VERSION;
+
+    std::string interfaces;
+    for(const auto& ifaceName : rootDevice.asPtr<IDeviceNetworkConfig>().getNetworkInterfaceNames())
+        interfaces += ifaceName.toStdString();
+    properties["interfaces"] = interfaces;
+
+    if (const auto deviceInfo = rootDevice.getInfo(); deviceInfo.assigned())
+    {
+        properties["name"] = deviceInfo.getName().toStdString();
+        properties["manufacturer"] = deviceInfo.getManufacturer().toStdString();
+        properties["model"] = deviceInfo.getModel().toStdString();
+        properties["serialNumber"] = deviceInfo.getSerialNumber().toStdString();
+    }
+    else
+    {
+        LOG_W("Cannot register IP modification service without device info specified");
+        return;
+    }
+
+    rootDeviceRef = rootDevice;
+    ModifyIpConfigCallback modifyIpConfigCb = [this](const std::string& ifaceName, const TxtProperties& reqProps)
+    {
+        DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr;
+
+        TxtProperties resProps;
+        if (rootDevice.assigned() && rootDevice.asPtr<IDeviceNetworkConfig>().getNetworkConfigurationEnabled())
+        {
+            DeviceNetworkConfigPtr deviceNetworkConfig = rootDevice.asPtr<IDeviceNetworkConfig>();
+            try
+            {
+                auto config = IpModificationUtils::populateIpConfigProperties(reqProps);
+                deviceNetworkConfig.submitNetworkConfiguration(ifaceName, config);
+                resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
+                resProps["ErrorMessage"] = "";
+            }
+            catch (const DaqException& e)
+            {
+                resProps["ErrorCode"] = std::to_string(e.getErrCode());
+                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
+            }
+            catch (const std::exception& e)
+            {
+                resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
+                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
+            }
+        }
+        else
+        {
+            resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_NOTIMPLEMENTED);
+            resProps["ErrorMessage"] = "";
+        }
+        return resProps;
+    };
+    RetrieveIpConfigCallback retrieveIpConfigCb = [this](const std::string& ifaceName)
+    {
+        DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr;
+
+        TxtProperties resProps;
+        if (rootDevice.assigned() && rootDevice.asPtr<IDeviceNetworkConfig>().getNetworkConfigurationEnabled())
+        {
+            DeviceNetworkConfigPtr deviceNetworkConfig = rootDevice.asPtr<IDeviceNetworkConfig>();
+            try
+            {
+                PropertyObjectPtr config = deviceNetworkConfig.retrieveNetworkConfiguration(ifaceName);
+                IpModificationUtils::encodeIpConfiguration(config, resProps);
+
+                resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
+                resProps["ErrorMessage"] = "";
+            }
+            catch (const DaqException& e)
+            {
+                resProps["ErrorCode"] = std::to_string(e.getErrCode());
+                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
+            }
+            catch (const std::exception& e)
+            {
+                resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
+                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
+            }
+        }
+        else
+        {
+            resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_NOTIMPLEMENTED);
+            resProps["ErrorMessage"] = "";
+        }
+        return resProps;
+    };
+
+    MdnsDiscoveredService service(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, MDNS_PORT, properties);
+    if (discoveryServer.registerIpModificationService(service, modifyIpConfigCb, retrieveIpConfigCb))
+    {
+        LOG_I("IP modification service registered with the discovery server");
+    }
+    else
+    {
+        LOG_E("Failed to register IP modification service with the discovery server");
+    }
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

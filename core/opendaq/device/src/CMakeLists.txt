@@ -18,10 +18,13 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_LogFileInfoBuilder log_file_info_builder.h)
     rtgen(SRC_UserLock user_lock.h)
     rtgen(SRC_ConnectionStatusContainerPrivate connection_status_container_private.h)
+    rtgen(SRC_NetworkInterface network_interface.h)
+    rtgen(SRC_DeviceNetworkConfig device_network_config.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Device_PublicHeaders}
         ${SRC_DevicePrivate_PublicHeaders}
+        ${SRC_DeviceNetworkConfig_PublicHeaders}
         ${SRC_DeviceDomain_PublicHeaders}
         ${SRC_DeviceInfo_PublicHeaders}
         ${SRC_DeviceInfoConfig_PublicHeaders}
@@ -37,12 +40,14 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_LogFileInfoBuilder_PublicHeaders}
         ${SRC_UserLock_PublicHeaders}
         ${SRC_ConnectionStatusContainerPrivate_PublicHeaders}
+        ${SRC_NetworkInterface_PublicHeaders}
         PARENT_SCOPE
     )
     
     set(SRC_PrivateHeaders_Component_Generated
         ${SRC_Device_PrivateHeaders}
         ${SRC_DevicePrivate_PrivateHeaders}
+        ${SRC_DeviceNetworkConfig_PrivateHeaders}
         ${SRC_DeviceDomain_PrivateHeaders}
         ${SRC_DeviceInfo_PrivateHeaders}
         ${SRC_DeviceInfoConfig_PrivateHeaders}
@@ -57,12 +62,14 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_LogFileInfoBuilder_PrivateHeaders}
         ${SRC_UserLock_PrivateHeaders}
         ${SRC_ConnectionStatusContainerPrivate_PrivateHeaders}
+        ${SRC_NetworkInterface_PrivateHeaders}
         PARENT_SCOPE
     )
     
     set(SRC_Cpp_Component_Generated
         ${SRC_Device_Cpp}
         ${SRC_DevicePrivate_Cpp}
+        ${SRC_DeviceNetworkConfig_Cpp}
         ${SRC_DeviceDomain_Cpp}
         ${SRC_DeviceInfo_Cpp}
         ${SRC_DeviceInfoConfig_Cpp}
@@ -77,6 +84,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_LogFileInfoBuilder_Cpp}
         ${SRC_UserLock_Cpp}
         ${SRC_ConnectionStatusContainerPrivate_Cpp}
+        ${SRC_NetworkInterface_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -98,6 +106,11 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/device_info_impl.cpp
         ${SDK_HEADERS_DIR}/connection_status_container_private.h
         ${SDK_HEADERS_DIR}/connection_status_container_impl.h
+        ${SDK_HEADERS_DIR}/network_interface.h
+        ${SDK_HEADERS_DIR}/network_interface_impl.h
+        ${SDK_HEADERS_DIR}/network_interface_factory.h
+        ${SDK_SRC_DIR}/network_interface_impl.cpp
+        ${SDK_HEADERS_DIR}/device_network_config.h
     )
     
     source_group("device//device_domain" FILES 
@@ -187,6 +200,9 @@ set(SRC_PublicHeaders_Component
     user_lock.h
     user_lock_factory.h
     connection_status_container_private.h
+    network_interface.h
+    network_interface_factory.h
+    device_network_config.h
     PARENT_SCOPE
 )
 
@@ -200,6 +216,7 @@ set(SRC_PrivateHeaders_Component
     log_file_info_builder_impl.h
     user_lock_impl.h
     connection_status_container_impl.h
+    network_interface_impl.h
     PARENT_SCOPE
 )
 
@@ -215,6 +232,7 @@ set(SRC_Cpp_Component
     log_file_info_impl.cpp
     log_file_info_builder_impl.cpp
     user_lock_impl.cpp
+    network_interface_impl.cpp
     device.natvis
     PARENT_SCOPE
 )

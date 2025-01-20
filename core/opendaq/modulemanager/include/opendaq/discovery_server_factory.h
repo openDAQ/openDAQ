@@ -16,15 +16,25 @@
 
 #pragma once
 #include <opendaq/discovery_server_ptr.h>
+#include <opendaq/logger_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*!
+ * @ingroup opendaq_utility
+ * @addtogroup opendaq_discovery_service_factories Factories
+ * @{
+ */
 
-
+/*!
+ * @brief Creates an MDNS-based Discovery Server.
+ * @param logger The logger the Discovery Server has access to.
+ */
 inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger)
 {
     DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger));
     return obj;
 }
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

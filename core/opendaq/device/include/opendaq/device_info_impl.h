@@ -107,6 +107,10 @@ public:
 
     ErrCode INTERFACE_FUNC getConfigurationConnectionInfo(IServerCapability** connectionInfo) override;
 
+    ErrCode INTERFACE_FUNC addNetworkInteface(IString* name, INetworkInterface* networkInterface) override;
+    ErrCode INTERFACE_FUNC getNetworkInterfaces(IDict** interfaces) override;
+    ErrCode INTERFACE_FUNC getNetworkInterface(IString* interfaceName, INetworkInterface** interface) override;
+
 private:
     ErrCode createAndSetDefaultStringProperty(const StringPtr& name, const BaseObjectPtr& value);
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -117,6 +121,7 @@ private:
 
     std::unordered_set<std::string> defaultPropertyNames;
     DeviceTypePtr deviceType;
+    DictPtr<IString, INetworkInterface> networkInterfaces;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

@@ -35,6 +35,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIFolderConfig = declareIFolderConfig(m);
     auto classIDevice = declareIDevice(m);
     auto classIDevicePrivate = declareIDevicePrivate(m);
+    auto classIDeviceNetworkConfig = declareIDeviceNetworkConfig(m);
     auto classIInstanceBuilder = declareIInstanceBuilder(m);
     auto classIConfigProvider = declareIConfigProvider(m);
     auto classIInstance = declareIInstance(m);
@@ -42,6 +43,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIDeviceDomain = declareIDeviceDomain(m);
     auto classIDeviceInfo = declareIDeviceInfo(m);
     auto classIDeviceInfoConfig = declareIDeviceInfoConfig(m);
+    auto classINetworkInterface = declareINetworkInterface(m);
     auto classIServerCapability = declareIServerCapability(m);
     auto classIDeviceType = declareIDeviceType(m);
     auto classIFunctionBlock = declareIFunctionBlock(m);
@@ -135,6 +137,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIFolderConfig(m, classIFolderConfig);
     defineIDevice(m, classIDevice);
     defineIDevicePrivate(m, classIDevicePrivate);
+    defineIDeviceNetworkConfig(m, classIDeviceNetworkConfig);
     defineIInstanceBuilder(m, classIInstanceBuilder);
     defineIInstance(m, classIInstance);
     defineIConfigProvider(m, classIConfigProvider);
@@ -142,6 +145,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIDeviceDomain(m, classIDeviceDomain);
     defineIDeviceInfo(m, classIDeviceInfo);
     defineIDeviceInfoConfig(m, classIDeviceInfoConfig);
+    defineINetworkInterface(m, classINetworkInterface);
     defineIServerCapability(m, classIServerCapability);
     defineIDeviceType(m, classIDeviceType);
     defineIFunctionBlock(m, classIFunctionBlock);

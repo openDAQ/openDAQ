@@ -36,8 +36,10 @@
 
 #include <opendaq/device_ptr.h>
 #include <opendaq/device_private_ptr.h>
+#include <opendaq/device_network_config_ptr.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
+#include <opendaq/network_interface_factory.h>
 
 #include <opendaq/server_ptr.h>
 #include <opendaq/server_type_ptr.h>

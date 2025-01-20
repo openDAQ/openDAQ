@@ -13,6 +13,7 @@
 #include <fmt/ostream.h>
 #include <set>
 #include <thread>
+#include <optional>
 
 using namespace std::chrono;
 
@@ -33,7 +34,8 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain,
                                  SizeT minReadCount)
-    : requiredCommonSampleRate(requiredCommonSampleRate)
+    : tickOffsetTolerance(nullptr)
+    , requiredCommonSampleRate(requiredCommonSampleRate)
     , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
     , minReadCount(minReadCount)
 {
@@ -66,6 +68,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     startOnFullUnitOfDomain = old->startOnFullUnitOfDomain;
     isActive = old->isActive;
     minReadCount = old->minReadCount;
+    tickOffsetTolerance = old->tickOffsetTolerance;
 
     bool fromInputPorts;
 
@@ -96,7 +99,8 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
 }
 
 MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
-    : minReadCount(1)
+    : tickOffsetTolerance(nullptr)
+    , minReadCount(1)
 {
     if (!readerConfig.assigned())
         throw ArgumentNullException("Existing reader must not be null");
@@ -136,7 +140,8 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
 }
 
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
-    : requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
+    : tickOffsetTolerance(builder.getTickOffsetTolerance())
+    , requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
     , minReadCount(builder.getMinReadCount())
 {
@@ -331,6 +336,10 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()
 {
+    std::optional<std::int64_t> lastSampleRate = std::nullopt;
+
+    sameSampleRates = true;
+
     if (requiredCommonSampleRate > 0)
     {
         commonSampleRate = requiredCommonSampleRate;
@@ -341,6 +350,15 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
         for (const auto& signal : signals)
         {
             commonSampleRate = std::lcm<std::int64_t>(signal.sampleRate, commonSampleRate);
+
+            if (!lastSampleRate.has_value())
+                lastSampleRate = signal.sampleRate;
+
+            if (tickOffsetTolerance.assigned() && lastSampleRate.value() != signal.sampleRate)
+            {
+                sameSampleRates = false;
+                LOG_W("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
+            }
         }
     }
 
@@ -695,6 +713,7 @@ SyncStatus MultiReaderImpl::getSyncStatus() const
     {
         switch (signal.synced)
         {
+            case SyncStatus::SynchronizationFailed:
             case SyncStatus::Unsynchronized:
                 return signal.synced;
             case SyncStatus::Synchronizing:
@@ -757,13 +776,17 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
                 setStartInfo();
                 readDomainStart();
             }
+
             sync();
 
-            // Re-check samples available after dropping them to sync
             syncStatus = getSyncStatus();
             if (syncStatus == SyncStatus::Synchronized)
             {
                 min = getMinSamplesAvailable();
+            }
+            if (syncStatus == SyncStatus::SynchronizationFailed)
+            {
+                setActiveInternal(false);
             }
         }
         catch (const DaqException& e)
@@ -838,6 +861,12 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
                 return true;
             }
 
+            if (syncStatus == SyncStatus::SynchronizationFailed)
+            {
+                status = createReaderStatus();
+                return true;
+            }
+
             if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
             {
                 if (availableSamples >= remainingSamplesToRead)
@@ -888,6 +917,11 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
         {
             return createReaderStatus(eventPackets);
+        }
+
+        if (syncStatus == SyncStatus::SynchronizationFailed)
+        {
+            return createReaderStatus();
         }
 
         if (remainingSamplesToRead == 0)
@@ -1191,9 +1225,38 @@ void MultiReaderImpl::readDomainStart()
 void MultiReaderImpl::sync()
 {
     bool synced = true;
+    system_clock::rep earliestTime = std::numeric_limits<system_clock::rep>::max();
+    system_clock::rep latestTime = 0;
+
     for (auto& signal : signals)
     {
-        synced = signal.sync(*commonStart) && synced;
+        system_clock::rep firstSampleAbsoluteTime;
+        synced = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
+
+        if (synced)
+        {
+            if (earliestTime > firstSampleAbsoluteTime)
+                earliestTime = firstSampleAbsoluteTime;
+            if (latestTime < firstSampleAbsoluteTime)
+                latestTime = firstSampleAbsoluteTime;
+        }
+    }
+
+    if (synced && tickOffsetTolerance.assigned())
+    {
+        auto tickOffsetToleranceSysTicks =
+            (system_clock::period::den * tickOffsetTolerance.getNumerator()) /
+            (system_clock::period::num * tickOffsetTolerance.getDenominator());
+
+        auto diff = latestTime - earliestTime;
+
+        if (diff > tickOffsetToleranceSysTicks)
+        {
+            for (auto& signal: signals)
+                signal.synced = SyncStatus::SynchronizationFailed;
+
+            synced = false;
+        }
     }
 
     LOG_T("Synced: {}", synced);
@@ -1264,20 +1327,7 @@ ErrCode MultiReaderImpl::setActive(Bool isActive)
 {
     std::scoped_lock lock{mutex, notify.mutex};
 
-    bool modified = this->isActive != static_cast<bool>(isActive);
-    this->isActive = isActive;
-
-    for (auto& signalReader : signals)
-    {
-        if (modified)
-            signalReader.synced = SyncStatus::Unsynchronized;
-
-        if (signalReader.port.assigned())
-            signalReader.port.setActive(this->isActive);
-
-        if (modified && !this->isActive)
-            signalReader.skipUntilLastEventPacket();
-    }
+    setActiveInternal(isActive);
 
     return OPENDAQ_SUCCESS;
 }
@@ -1342,20 +1392,34 @@ ErrCode MultiReaderImpl::markAsInvalid()
     return OPENDAQ_SUCCESS;
 }
 
+void MultiReaderImpl::setActiveInternal(Bool isActive)
+{
+    bool modified = this->isActive != static_cast<bool>(isActive);
+    this->isActive = isActive;
+
+    for (auto& signalReader : signals)
+    {
+        if (modified)
+            signalReader.synced = SyncStatus::Unsynchronized;
+
+        if (signalReader.port.assigned())
+            signalReader.port.setActive(this->isActive);
+
+        if (modified && !this->isActive)
+            signalReader.skipUntilLastEventPacket();
+    }
+}
+
 #pragma endregion ReaderConfig
 
-OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY,
-                             MultiReader,
-                             IList*,
-                             signals,
-                             SampleType,
-                             valueReadType,
-                             SampleType,
-                             domainReadType,
-                             ReadMode,
-                             mode,
-                             ReadTimeoutType,
-                             timeoutType)
+OPENDAQ_DEFINE_CLASS_FACTORY(
+    LIBRARY_FACTORY, MultiReader,
+    IList*, signals,
+    SampleType, valueReadType,
+    SampleType, domainReadType,
+    ReadMode, mode,
+    ReadTimeoutType, timeoutType
+)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     LIBRARY_FACTORY, MultiReaderImpl, IMultiReader, createMultiReaderEx,
@@ -1392,15 +1456,12 @@ struct ObjectCreator<IMultiReader>
     }
 };
 
-OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
-                                                                      IMultiReader,
-                                                                      createMultiReaderFromExisting,
-                                                                      IMultiReader*,
-                                                                      invalidatedReader,
-                                                                      SampleType,
-                                                                      valueReadType,
-                                                                      SampleType,
-                                                                      domainReadType)
+OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
+    LIBRARY_FACTORY, IMultiReader, createMultiReaderFromExisting,
+    IMultiReader*, invalidatedReader,
+    SampleType, valueReadType,
+    SampleType, domainReadType
+)
 
 extern "C" daq::ErrCode PUBLIC_EXPORT createMultiReaderFromBuilder(IMultiReader** objTmp, IMultiReaderBuilder* builder)
 {

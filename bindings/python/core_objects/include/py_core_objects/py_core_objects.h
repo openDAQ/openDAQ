@@ -34,6 +34,7 @@ PyDaqIntf<daq::IPropertyObjectClass, daq::IType> declareIPropertyObjectClass(pyb
 PyDaqIntf<daq::IPropertyObjectClassBuilder, daq::IBaseObject> declareIPropertyObjectClassBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IPropertyObjectProtected, daq::IBaseObject> declareIPropertyObjectProtected(pybind11::module_ m);
 PyDaqIntf<daq::IPropertyValueEventArgs, daq::IEventArgs> declareIPropertyValueEventArgs(pybind11::module_ m);
+PyDaqIntf<daq::ICoreEventArgs, daq::IEventArgs> declareICoreEventArgs(pybind11::module_ m);
 PyDaqIntf<daq::IValidator, daq::IBaseObject> declareIValidator(pybind11::module_ m);
 PyDaqIntf<daq::IUnit, daq::IBaseObject> declareIUnit(pybind11::module_ m);
 PyDaqIntf<daq::IUnitBuilder, daq::IBaseObject> declareIUnitBuilder(pybind11::module_ m);
@@ -56,6 +57,7 @@ void defineIPropertyObjectClass(pybind11::module_ m, PyDaqIntf<daq::IPropertyObj
 void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyObjectClassBuilder, daq::IBaseObject> cls);
 void defineIPropertyObjectProtected(pybind11::module_ m, PyDaqIntf<daq::IPropertyObjectProtected, daq::IBaseObject> cls);
 void defineIPropertyValueEventArgs(pybind11::module_ m, PyDaqIntf<daq::IPropertyValueEventArgs, daq::IEventArgs> cls);
+void defineICoreEventArgs(pybind11::module_ m, PyDaqIntf<daq::ICoreEventArgs, daq::IEventArgs> cls);
 void defineIValidator(pybind11::module_ m, PyDaqIntf<daq::IValidator, daq::IBaseObject> cls);
 void defineIUnit(pybind11::module_ m, PyDaqIntf<daq::IUnit, daq::IBaseObject> cls);
 void defineIUnitBuilder(pybind11::module_ m, PyDaqIntf<daq::IUnitBuilder, daq::IBaseObject> cls);

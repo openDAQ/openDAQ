@@ -1,19 +1,19 @@
-#include <ref_device_module/ref_channel_impl.h>
-#include <coreobjects/eval_value_factory.h>
-#include <coretypes/procedure_factory.h>
-#include <opendaq/signal_factory.h>
-#include <coreobjects/coercer_factory.h>
-#include <opendaq/range_factory.h>
-#include <opendaq/packet_factory.h>
-#include <fmt/format.h>
-#include <coreobjects/callable_info_factory.h>
-#include <opendaq/data_rule_factory.h>
-#include <coreobjects/unit_factory.h>
-#include <opendaq/scaling_factory.h>
-#include <opendaq/custom_log.h>
-#include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/argument_info_factory.h>
-
+#include <coreobjects/callable_info_factory.h>
+#include <coreobjects/coercer_factory.h>
+#include <coreobjects/eval_value_factory.h>
+#include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/unit_factory.h>
+#include <coretypes/procedure_factory.h>
+#include <fmt/format.h>
+#include <opendaq/custom_log.h>
+#include <opendaq/data_rule_factory.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/range_factory.h>
+#include <opendaq/scaling_factory.h>
+#include <opendaq/signal_factory.h>
+#include <ref_device_module/ref_channel_impl.h>
+#include <date/date.h>
 
 #define PI 3.141592653589793
 
@@ -187,6 +187,16 @@ void RefChannelImpl::initProperties()
     objPtr.addProperty(constantValueProp);
     objPtr.getOnPropertyValueWrite("ConstantValue") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
+
+    const auto offsetProp =
+        IntPropertyBuilder("Offset", 0)
+            .setVisible(true)
+            .setMinValue(0)
+            .build();
+
+    objPtr.addProperty(offsetProp);
+    objPtr.getOnPropertyValueWrite("Offset") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
 }
 
 void RefChannelImpl::packetSizeChangedInternal()
@@ -243,6 +253,8 @@ void RefChannelImpl::signalTypeChangedInternal()
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
+    offset = objPtr.getPropertyValue("Offset");
+
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
 
@@ -265,7 +277,7 @@ void RefChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
 
 uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
 {
-    const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1000000.0 * sampleRate));
+    const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1'000'000.0 * sampleRate));
     return samplesSinceStart;
 }
 
@@ -427,7 +439,7 @@ void RefChannelImpl::buildSignalDescriptors()
             .setSampleType(SampleType::Int64)
             .setUnit(Unit("s", -1, "seconds", "time"))
             .setTickResolution(getResolution())
-            .setRule(LinearDataRule(deltaT, 0))
+            .setRule(LinearDataRule(deltaT, offset))
             .setOrigin(getEpoch())
             .setName("Time AI " + std::to_string(index + 1))
             .setReferenceDomainInfo(
@@ -484,7 +496,7 @@ std::string RefChannelImpl::getEpoch()
 
 RatioPtr RefChannelImpl::getResolution()
 {
-    return Ratio(1, 1000000);
+    return Ratio(1, 1'000'000);
 }
 
 void RefChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)

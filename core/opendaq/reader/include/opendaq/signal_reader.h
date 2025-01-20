@@ -29,7 +29,8 @@ enum class SyncStatus
 {
     Unsynchronized,
     Synchronizing,
-    Synchronized
+    Synchronized,
+    SynchronizationFailed
 };
 
 struct SignalInfo
@@ -75,13 +76,15 @@ struct SignalReader
     bool isFirstPacketEvent();
     EventPacketPtr readUntilNextDataPacket();
     void skipUntilLastEventPacket();
-    bool sync(const Comparable& commonStart);
+    bool sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp = nullptr);
 
     ErrCode readPackets();
     ErrCode readPacketData();
     ErrCode handlePacket(const PacketPtr& packet, bool& firstData);
 
     void* getValuePacketData(const DataPacketPtr& packet) const;
+
+    bool isSynced() const;
 
     LoggerComponentPtr loggerComponent;
 
@@ -98,11 +101,12 @@ struct SignalReader
     std::int64_t sampleRate;
     std::int64_t commonSampleRate;
     std::int32_t sampleRateDivider;
-    
+
     bool invalid{false};
     SyncStatus synced{SyncStatus::Unsynchronized};
 
     NumberPtr packetDelta {0};
+    std::chrono::system_clock::rep cachedFirstTimestamp;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -539,9 +539,9 @@ StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
     file.seekg(offset, std::ios::beg);
 
     if (size == -1)
-        size = fileSize - offset;
+        size = static_cast<Int>(static_cast<std::streamoff>(fileSize) - offset);
     else
-        size = std::min(size, static_cast<Int>(fileSize - offset));
+        size = std::min(size, static_cast<Int>(static_cast<std::streamoff>(fileSize) - offset));
 
     std::vector<char> buffer(size);
     file.read(buffer.data(), size);

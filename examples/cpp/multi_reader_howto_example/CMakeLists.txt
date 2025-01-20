@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(multi_reader_read_same_rates VERSION ${OPENDAQ_EXAMPLES_VERSION})
+find_package(openDAQ)
+add_compile_definitions(MODULE_PATH="${OPENDAQ_MODULES_DIR}")
+
+add_executable(multi_reader_read_same_rates read_same_rates.cpp)
+target_link_libraries(multi_reader_read_same_rates PRIVATE daq::opendaq)
+
+project(multi_reader_read_different_rates VERSION ${OPENDAQ_EXAMPLES_VERSION})
+add_executable(multi_reader_read_different_rates read_different_rates.cpp)
+target_link_libraries(multi_reader_read_different_rates PRIVATE daq::opendaq)
+
+project(multi_reader_read_same_rates_and_output VERSION ${OPENDAQ_EXAMPLES_VERSION})
+add_executable(multi_reader_read_same_rates_and_output read_same_rates_and_output.cpp)
+target_link_libraries(multi_reader_read_same_rates_and_output PRIVATE daq::opendaq)

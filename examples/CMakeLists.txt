@@ -55,6 +55,18 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 
     add_executable(multi_reader_example cpp/multi_reader_example/multi_reader_example.cpp)
     target_link_libraries(multi_reader_example PRIVATE daq::opendaq)
+	
+    add_executable(multi_reader_read_same_rates cpp/multi_reader_howto_example/read_same_rates.cpp)
+    target_link_libraries(multi_reader_read_same_rates PRIVATE daq::opendaq)
+    add_dependencies(multi_reader_read_same_rates daq::ref_device_module)
+	
+    add_executable(multi_reader_read_different_rates cpp/multi_reader_howto_example/read_different_rates.cpp)
+    target_link_libraries(multi_reader_read_different_rates PRIVATE daq::opendaq)
+    add_dependencies(multi_reader_read_different_rates daq::ref_device_module)
+	
+    add_executable(multi_reader_read_same_rates_and_output cpp/multi_reader_howto_example/read_same_rates_and_output.cpp)
+    target_link_libraries(multi_reader_read_same_rates_and_output PRIVATE daq::opendaq)
+    add_dependencies(multi_reader_read_same_rates_and_output daq::ref_device_module)
 
     add_executable(reader_basics_example cpp/reader_basics_example/reader_basics_example.cpp)
     target_link_libraries(reader_basics_example PRIVATE daq::opendaq)

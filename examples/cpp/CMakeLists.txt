@@ -53,6 +53,7 @@ endif()
 
 if (OPENDAQ_MULTI_READER)
   add_subdirectory(multi_reader_example)
+  add_subdirectory(multi_reader_howto_example)
 endif()
 
 if (OPENDAQ_TAIL_READER)

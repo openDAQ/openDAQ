@@ -300,7 +300,7 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
         transportClientHandler->sendStreamingPacket(signalNumericId, packet);
     };
     configProtocolClient =
-        std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(
+        std::make_shared<ConfigProtocolClient<NativeDeviceImpl>>(
             context,
             sendRequestCallback,
             sendNoReplyRequestCallback,
@@ -415,6 +415,9 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
         // allow server notifications only if connected / reconnection started
         if (acceptNotificationPackets)
         {
+            auto configProtocolClient = this->configProtocolClient;
+            if (!configProtocolClient)
+                return;
             configProtocolClient->triggerNotificationPacket(packet);
         }
         else

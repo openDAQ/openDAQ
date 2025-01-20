@@ -79,7 +79,7 @@ private:
     std::thread::id reconnectionProcessingThreadId;
 
     LoggerComponentPtr loggerComponent;
-    std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
+    std::shared_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;

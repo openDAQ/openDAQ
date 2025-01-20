@@ -140,7 +140,7 @@ jobs:
 
       - name: Build
         shell: pwsh
-        working-directory: build
+        working-directory: ./build
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
@@ -170,7 +170,7 @@ jobs:
 
       - name: Package
         if: matrix.cpack != ''
-        working-directory: build
+        working-directory: ./build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
       - name: Upload package
@@ -270,7 +270,8 @@ jobs:
 
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
-      linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
+        test_path: ${{ env.test_path }}
+        linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
       - name: Install basic dependencies
@@ -303,7 +304,7 @@ jobs:
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
       - name: Build
-        working-directory: build
+        working-directory: ./build
         run: cmake --build .
 
       - name: Test
@@ -320,7 +321,7 @@ jobs:
 
       - name: Package
         if: matrix.cpack != ''
-        working-directory: build
+        working-directory: ./build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
       - name: Upload package
@@ -489,7 +490,7 @@ jobs:
         run: mkdir build
 
       - name: Configure and build python packages
-        working-directory: build
+        working-directory: ./build
         run: |
           mkdir wheels
           last_version="3.7"
@@ -526,7 +527,7 @@ jobs:
 
       - name: Package
         if: matrix.cpack != ''
-        working-directory: build
+        working-directory: ./build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
       - name: Upload package
@@ -590,7 +591,7 @@ jobs:
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ${{ github.workspace }}
 
       - name: Build
-        working-directory: build
+        working-directory: ./build
         run: cmake --build .
 
       - name: Test
@@ -649,7 +650,7 @@ jobs:
         run: New-Item build -ItemType Directory
 
       - name: Configure, build and test Python packages
-        working-directory: build
+        working-directory: ./build
         run: |
           New-Item wheels -ItemType Directory
           foreach ($version in "${{ env.python_versions }}".split(" ")) {
@@ -749,7 +750,7 @@ jobs:
   #           -DCI_GIT_BRANCH=${{ github.head_ref }} \
   #           ..
   #     - name: Build
-  #       working-directory: build
+  #       working-directory: ./build
   #       run: cmake --build .
 
   # using reusable workflow
@@ -765,7 +766,8 @@ jobs:
       uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
       with:
         # cannot use env context here, so use needs.<job>.outputs.<variable> trick
-        test_path: ${{ needs.build_windows.outputs.test_path }}
+        windows_test_path: ${{ needs.build_windows.outputs.test_path }}
+        linux_test_path: ${{ needs.build_linux.outputs.test_path }}
         windows_x64_artifact_name:  ${{ needs.build_windows.outputs.windows_x64_artifact_name }}
         linux_x64_artifact_name:  ${{ needs.build_linux.outputs.linux_x64_artifact_name }}
         short_sha: ${{ needs.build_windows.outputs.short_sha }}

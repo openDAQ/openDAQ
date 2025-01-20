@@ -129,7 +129,7 @@ jobs:
           cmake --build . --config ${{ matrix.cmake_build_type }}
 
       - name: Package
-        working-directory: build
+        working-directory: ./build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
       - uses: aws-actions/configure-aws-credentials@v4
@@ -296,11 +296,11 @@ jobs:
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
       - name: Build
-        working-directory: build
+        working-directory: ./build
         run: cmake --build .
 
       - name: Package
-        working-directory: build
+        working-directory: ./build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
       - name: Get short SHA
@@ -334,7 +334,7 @@ jobs:
 
       - name: Compress documentation
         if: matrix.build_documentation
-        working-directory: build/doc_doxygen/html
+        working-directory: ./build/doc_doxygen/html
         run: zip -r "../../cpp_api_reference.zip" .
 
       - uses: aws-actions/configure-aws-credentials@v4
@@ -358,7 +358,7 @@ jobs:
 
       - name: Upload documentation to S3
         if: matrix.build_documentation
-        working-directory: build
+        working-directory: ./build
         run: |
           aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'cpp_api_reference.zip'
           aws s3 cp "cpp_api_reference.zip" "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
@@ -373,7 +373,7 @@ jobs:
 
       - name: Upload examples to S3
         if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
-        working-directory: examples
+        working-directory: ./examples
         run: |
           zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip cpp python
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*examples.zip'
@@ -456,7 +456,7 @@ jobs:
         run: mkdir build
 
       - name: Configure and build Python Wheels
-        working-directory: build
+        working-directory: ./build
         run: |
           mkdir wheels
           for version in ${{ env.python_versions }}; do
@@ -684,7 +684,8 @@ jobs:
       uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
       with:
         # cannot use env context here, so use needs.<job>.outputs trick
-        # test_path: ''
+        # windows_test_path: ''
+        # linux_test_path: ''
         windows_x64_artifact_name:  ${{ needs.deploy_windows.outputs.windows_x64_artifact_name }}
         linux_x64_artifact_name:  ${{ needs.deploy_linux.outputs.linux_x64_artifact_name }}
         short_sha: ${{ needs.deploy_windows.outputs.short_sha }}

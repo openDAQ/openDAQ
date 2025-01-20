@@ -5,7 +5,7 @@
     <OutputType>Library</OutputType>
     <!-- using function pointers (C# 9) and file scoped namespaces (C# 10) so netstandard2.0 not possible (C# 7.3) -->
     <!--<TargetFramework>netstandard2.0</TargetFramework>-->
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;osx-x64</RuntimeIdentifiers>
     <Platforms>x64;x86</Platforms>
     <ImplicitUsings>enable</ImplicitUsings>

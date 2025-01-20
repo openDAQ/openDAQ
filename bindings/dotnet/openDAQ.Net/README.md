@@ -16,8 +16,8 @@ This project contains the .NET-Bindings to the _openDAQ_ SDK.
 
 
 ## Development environment
-- Visual Studio 2022 (V17.11.x)  
-- TargetFramework: net6.0  
+- Visual Studio 2022 (V17.12.x)  
+- TargetFramework: net8.0  
 - Platform: x64  
 - Language: C#  
 - Test-framework: NUnit  

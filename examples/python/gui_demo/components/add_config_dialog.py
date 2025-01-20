@@ -100,7 +100,11 @@ class AddConfigDialog(Dialog):
                         update_property(casted_property, path,
                                         new_value, depth + 1)
 
-        update_property(self.device_config, path, new_value)
+        try:
+            update_property(self.device_config, path, new_value)
+        except RuntimeError as e:
+            utils.show_error('Add with config error',
+                             f'Update property value failed: {e}', self)
 
     def edit_value(self, event):
         item_id = self.tree.selection()[0]

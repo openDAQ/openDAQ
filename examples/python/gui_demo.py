@@ -665,7 +665,10 @@ class App(tk.Tk):
     def end_update_on_node(self, node):
         node_obj = utils.find_component(node, self.context.instance)
         node_obj = daq.IPropertyObject.cast_from(node_obj)
-        node_obj.end_update()
+        try:
+            node_obj.end_update()
+        except RuntimeError:
+            pass
 
     def handle_lock(self):
         node = utils.treeview_get_first_selection(self.tree)

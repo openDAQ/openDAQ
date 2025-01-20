@@ -171,12 +171,12 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& roo
             catch (const DaqException& e)
             {
                 resProps["ErrorCode"] = std::to_string(e.getErrCode());
-                resProps["ErrorMessage"] = e.what();
+                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
             }
             catch (const std::exception& e)
             {
                 resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
-                resProps["ErrorMessage"] = e.what();
+                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
             }
         }
         else
@@ -205,12 +205,12 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& roo
             catch (const DaqException& e)
             {
                 resProps["ErrorCode"] = std::to_string(e.getErrCode());
-                resProps["ErrorMessage"] = e.what();
+                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
             }
             catch (const std::exception& e)
             {
                 resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
-                resProps["ErrorMessage"] = e.what();
+                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
             }
         }
         else

@@ -235,19 +235,23 @@ void MockPhysicalDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& iface
     if (onSubmitConfig.assigned())
         onSubmitConfig(ifaceName, config);
     else
-        throw NotImplementedException();
+        throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+                                      "and Other Non-Alnum Chars !@#$%^&*()_+=<>?/|~`!@#$%^&*()_+=<>?/|~`!@#$%^&*()_+=<>?/|~`"
+                                      "!@#$%^&*()_+=<>?/|~`!@#$%^&*()_+=<>?/|~`!@#$%^&*()Truncated after thisThis is truncated");
 }
 
 PropertyObjectPtr MockPhysicalDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr& ifaceName)
 {
     if (onRetrieveConfig.assigned())
         return onRetrieveConfig(ifaceName);
-    throw NotImplementedException();
+    throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+                                  "and Other Non-Alnum Chars !@#$%^&*()_+=<>?/|~`!@#$%^&*()_+=<>?/|~`!@#$%^&*()_+=<>?/|~`"
+                                  "!@#$%^&*()_+=<>?/|~`!@#$%^&*()_+=<>?/|~`!@#$%^&*()Truncated after thisThis is truncated");
 }
 
 Bool MockPhysicalDeviceImpl::onGetNetworkConfigurationEnabled()
 {
-    return onSubmitConfig.assigned();
+    return True;
 }
 
 ListPtr<IString> MockPhysicalDeviceImpl::onGetNetworkInterfaceNames()

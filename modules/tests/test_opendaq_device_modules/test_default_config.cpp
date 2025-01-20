@@ -508,6 +508,42 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
     EXPECT_EQ(modifyCallCount, 1u);
 }
 
+TEST_F(ModulesDefaultConfigTest, ChangeIpConfigError)
+{
+    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
+    serverInstance.getModuleManager().addModule(deviceModule);
+    auto deviceTypes = serverInstance.getAvailableDeviceTypes();
+    auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
+    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0"));
+    serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
+
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+    // Truncated error message with disallowed symbols replaced.
+    auto retrievedErrorMessage = "This Is An Extremely Long Test String With Invalid Characters Like  Tabs  NewLines   and Other Non-Alnum Chars"
+                                 "                                                                                                               "
+                                 "Truncated after this";
+
+    for (const auto& server : serverInstance.getServers())
+        server.enableDiscovery();
+
+    const auto instance = Instance();
+    auto availableDevices = instance.getAvailableDevices();
+
+    for (const auto& devInfo : availableDevices)
+    {
+        if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
+        {
+            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
+            auto networInterface = devInfo.getNetworkInterface("eth0");
+            auto ipConfig = devInfo.getNetworkInterface("eth0").createDefaultConfiguration();
+            ASSERT_THROW_MSG(networInterface.submitConfiguration(ipConfig), NotImplementedException, retrievedErrorMessage);
+            ASSERT_THROW_MSG(networInterface.requestCurrentConfiguration(), NotImplementedException, retrievedErrorMessage);
+        }
+    }
+}
+
 TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
 {
     const auto dhcp4 = False;

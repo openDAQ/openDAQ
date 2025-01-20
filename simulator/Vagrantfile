@@ -67,6 +67,11 @@ Vagrant.configure("2") do |config|
     chmod +x /home/opendaq/opendaq/application_simulator
     SCRIPT
 
+    # Add the sudoers configuration to allow netplan modifications without password
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    echo "opendaq ALL=(ALL) NOPASSWD: /usr/bin/python3 /home/opendaq/netplan_manager.py *" | sudo tee -a /etc/sudoers > /dev/null
+    SCRIPT
+
     # Remove unused packages
     list_packages = <<-SCRIPT
     dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 30
@@ -108,9 +113,10 @@ Vagrant.configure("2") do |config|
     config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/opendaq-config.json"
     config.vm.provision "file", source: "simulator.service", destination: "/tmp/simulator.service"
     config.vm.provision "file", source: "configurator.py", destination: "/tmp/configurator.py"
+    config.vm.provision "file", source: "netplan_manager.py", destination: "/tmp/netplan_manager.py"
 
     # Copy files to /home/opendaq/
-    config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,opendaq-config.json,simulator.service,configurator.py} /home/opendaq/"
+    config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,opendaq-config.json,simulator.service,configurator.py,netplan_manager.py} /home/opendaq/"
 
     # Move systemd service file
     config.vm.provision "shell", inline: "mv /home/opendaq/simulator.service /etc/systemd/system/"
@@ -118,7 +124,7 @@ Vagrant.configure("2") do |config|
     # Make systemd service run on boot (before login)
     config.vm.provision "shell", inline: "sudo systemctl enable simulator"
 	
-	# Set permissions
+    # Set permissions
     config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /home/opendaq/"
     config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /etc/avahi/services/"
 

@@ -23,7 +23,7 @@ class BlockView(ttk.Frame):
         active = False
         name = 'None'
 
-        if node is not None and daq.IComponent.can_cast_from(self.node):
+        if node and daq.IComponent.can_cast_from(self.node):
             node = daq.IComponent.cast_from(self.node)
             active = node.active
             name = node.name
@@ -81,7 +81,7 @@ class BlockView(ttk.Frame):
 
         self.expanded_frame = ttk.Frame(self, padding=5)
 
-        if node is not None:
+        if node:
             self.properties = None
             self.input_ports = None
             self.output_signals = None
@@ -138,27 +138,28 @@ class BlockView(ttk.Frame):
             self.expanded_frame.pack(fill=tk.BOTH)
             self.expanded_frame.grid_columnconfigure(
                 self.cols, weight=1, minsize=300, uniform='column')
-            self.expanded_frame.grid_rowconfigure(
-                self.rows, weight=1, minsize=300)
-
-            if self.properties is not None:
+            self.expanded_frame.grid_rowconfigure(self.rows, weight=1,
+                                                  minsize=300 if self.input_ports and self.output_signals
+                                                                 or daq.IFolder.can_cast_from(self.node) and
+                                                                 not daq.IDevice.can_cast_from(self.node) else 600)
+            if self.properties:
                 self.properties.grid(
                     row=0, column=0, rowspan=2 if self.input_ports and self.output_signals else 1, sticky=tk.NSEW)
 
-            if self.input_ports is not None:
+            if self.input_ports:
                 self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
 
-            if self.output_signals is not None:
+            if self.output_signals:
                 self.output_signals.grid(
                     row=1 if self.input_ports else 0, column=1, sticky=tk.NSEW)
 
             self.toggle_button.config(text='-', image=self.expanded_img)
         else:  # collapsed
-            if self.properties is not None:
+            if self.properties:
                 self.properties.grid_forget()
-            if self.input_ports is not None:
+            if self.input_ports:
                 self.input_ports.grid_forget()
-            if self.output_signals is not None:
+            if self.output_signals:
                 self.output_signals.grid_forget()
             self.expanded_frame.pack_forget()
             self.toggle_button.config(text='+', image=self.collapsed_img)

@@ -631,15 +631,19 @@ assert(propObj.getPropertyValue("prop2") == -1); // prop2 has a new value
 
 ---
 
-# ReferenceDomainInfo for Syncing Signals
+# Reference Domain Info for Syncing Signals
 
 ## Description
 
 - `ReferenceDomainInfo` was added as an interface that provides additional information about the reference domain:
-  - **Reference Domain ID** (signals with the same Reference Domain ID share a common synchronization source and can be read together).
-  - **Reference Domain Offset** (which must be added to the domain values of the Signal to match the sync source).
-  - **Reference Time Source** (used to determine if two signals with different Domain IDs can be read together). Possible values are `Tai`, `Gps`, `Utc`, or `Unknown`.
-  - `UsesOffset` (boolean).
+  - **Reference Domain ID** (Signals with the same Reference Domain ID share a common synchronization source and can be read together)
+  - **Reference Domain Offset** (which must be added to the domain values of the Signal for them to be equal to that of the sync source)
+  - **Reference Time Source** (which is used to determine if two signals with different Domain IDs can be read together); possible values are: 
+      - [Tai](https://en.wikipedia.org/wiki/International_Atomic_Time)
+      - [Gps](https://en.wikipedia.org/wiki/Global_Positioning_System#Timekeeping)
+      - [Utc](https://en.wikipedia.org/wiki/Coordinated_Universal_Time)
+      - Unknown
+  - **Uses Offset**
 - A builder is available for creating `ReferenceDomainInfo`.
 - `ReferenceDomainInfo` is part of two interfaces:
   - `DeviceDomain`

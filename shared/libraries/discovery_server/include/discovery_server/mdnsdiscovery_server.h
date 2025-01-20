@@ -51,6 +51,7 @@ private:
     std::string serviceName;
     uint16_t servicePort;
     std::unordered_map<std::string, std::string> properties;
+    mutable size_t recordSize;
 
     std::string serviceInstance;
     std::string serviceQualified;

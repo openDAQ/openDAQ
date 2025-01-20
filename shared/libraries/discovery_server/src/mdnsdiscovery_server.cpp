@@ -33,6 +33,7 @@ MdnsDiscoveredDevice::MdnsDiscoveredDevice(const std::string& serviceName, uint3
 
 void MdnsDiscoveredDevice::populateRecords(std::vector<mdns_record_t>& records) const 
 {
+    this->recordSize = 1024;
     for (const auto & [key, value] : properties)
     {
         mdns_record_t record;
@@ -43,6 +44,8 @@ void MdnsDiscoveredDevice::populateRecords(std::vector<mdns_record_t>& records) 
         record.rclass = 0,
         record.ttl = 0;
         records.push_back(record);
+
+        this->recordSize += key.size() + value.size() + 2;
     }
 }
 
@@ -53,11 +56,13 @@ std::string MDNSDiscoveryServer::getHostname()
 
 #ifdef _WIN32
     DWORD hostname_size = sizeof(hostname_buffer);
-    if (GetComputerNameA(hostname_buffer, &hostname_size)) {
+    if (GetComputerNameA(hostname_buffer, &hostname_size))
+    {
         hostname = hostname_buffer;
     }
 #else
-    if (gethostname(hostname_buffer, sizeof(hostname_buffer)) == 0) {
+    if (gethostname(hostname_buffer, sizeof(hostname_buffer)) == 0)
+    {
         hostname = hostname_buffer;
     }
 #endif
@@ -167,7 +172,7 @@ bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
         records.push_back(createAaaaRecord(device));
     device.populateRecords(records);
 
-    std::vector<char> buffer(2048);
+    std::vector<char> buffer(device.recordSize);
     for (const auto & socket : sockets)
     {
         mdns_announce_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
@@ -185,20 +190,20 @@ bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
 
 void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredDevice& device)
 {
-        std::vector<mdns_record_t> records;
-        records.reserve(device.properties.size() + 3);
-        records.push_back(createSrvRecord(device));
-        if (serviceAddressIpv4.sin_family == AF_INET)
-            records.push_back(createARecord(device));
-        if (serviceAddressIpv6.sin6_family == AF_INET6)
-            records.push_back(createAaaaRecord(device));
-        device.populateRecords(records);
+    std::vector<mdns_record_t> records;
+    records.reserve(device.properties.size() + 3);
+    records.push_back(createSrvRecord(device));
+    if (serviceAddressIpv4.sin_family == AF_INET)
+        records.push_back(createARecord(device));
+    if (serviceAddressIpv6.sin6_family == AF_INET6)
+        records.push_back(createAaaaRecord(device));
+    device.populateRecords(records);
 
-        std::vector<char> buffer(2048);
-        for (const auto & socket : sockets)
-        {
-            mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
-        }
+    std::vector<char> buffer(device.recordSize);
+    for (const auto & socket : sockets)
+    {
+        mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
+    }
 }
 
 bool MDNSDiscoveryServer::removeDevice(const std::string& id)
@@ -556,8 +561,6 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
     auto recordName = rtypeToString(mdns_record_type(rtype));
     if (recordName == "UNKNOWN")
         return 0;
-        
-    std::vector<char>sendBuffer(1024);
 
     std::lock_guard lock(mx);
     if (devices.empty())
@@ -580,6 +583,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 answer.type = MDNS_RECORDTYPE_PTR, 
                 answer.data.ptr.name = {serviceName.c_str(), serviceName.size()};
 
+                std::vector<char>sendBuffer(1024);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, {});
             }
         } 
@@ -599,6 +603,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                     records.push_back(createAaaaRecord(device));
                 device.populateRecords(records);
 
+                std::vector<char>sendBuffer(device.recordSize);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         } 
@@ -617,6 +622,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                     records.push_back(createAaaaRecord(device));
                 device.populateRecords(records);
 
+                std::vector<char>sendBuffer(device.recordSize);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         } 
@@ -632,6 +638,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 records.push_back(answer);
                 device.populateRecords(records);
 
+                std::vector<char>sendBuffer(device.recordSize);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             } 
             else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6) && from->sa_family == AF_INET6) 
@@ -644,6 +651,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 records.push_back(answer);
                 device.populateRecords(records);
 
+                std::vector<char>sendBuffer(device.recordSize);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         }

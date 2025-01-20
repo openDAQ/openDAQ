@@ -567,17 +567,41 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
         return serializer.getOutput().toStdString();
     };
 
+
+    const auto verifyNetworkConfigProps = [](const Bool dhcp,
+                                             const ListPtr<IString>& addresses,
+                                             const StringPtr& gateway)
+    {
+        if (!dhcp)
+        {
+            if (gateway.getLength() == 0)
+                throw InvalidParameterException("No gateway address specified");
+            if (addresses.getCount() == 0)
+                throw InvalidParameterException("None static addresses specified");
+            for (const auto& address : addresses)
+            {
+                if (address.getLength() != 0)
+                    throw InvalidParameterException("Empty static address specified");
+            }
+        }
+    };
+
     bool dhcp4 = config.getPropertyValue("dhcp4");
     bool dhcp6 = config.getPropertyValue("dhcp6");
     StringPtr gateway4 = config.getPropertyValue("gateway4");
     StringPtr gateway6 = config.getPropertyValue("gateway6");
+    ListPtr<IString> addresses4 = config.getPropertyValue("addresses4");
+    ListPtr<IString> addresses6 = config.getPropertyValue("addresses6");
+
+    verifyNetworkConfigProps(dhcp4, addresses4, gateway4);
+    verifyNetworkConfigProps(dhcp6, addresses6, gateway6);
 
     const std::string scriptWithParams = "/home/opendaq/netplan_manager.py verify " +
                                          ifaceName.toStdString() + " " +
                                          (dhcp4 ? "true" : "false") + " " +
                                          (dhcp6 ? "true" : "false") + " " +
-                                         "'" + addrListToJson(config.getPropertyValue("addresses4")) + "' " +
-                                         "'" + addrListToJson(config.getPropertyValue("addresses6")) + "' " +
+                                         "'" + addrListToJson(addresses4) + "' " +
+                                         "'" + addrListToJson(addresses6) + "' " +
                                          "\"" + gateway4.toStdString() + "\" " +
                                          "\"" + gateway6.toStdString() + "\"";
 

@@ -109,6 +109,8 @@ def show_selection(title, current_value, values):
     pd = int(top.winfo_screenheight() / 2 - wh / 2)
     top.geometry('+{}+{}'.format(pr, pd))
 
+    top.attributes("-topmost", True)
+
     show_modal(top)
     return result
 

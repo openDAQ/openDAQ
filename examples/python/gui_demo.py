@@ -145,6 +145,9 @@ class App(tk.Tk):
             os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.init_opendaq()
+        
+        if args.config != '':
+            self._load_config(args.config)
 
     def init_opendaq(self):
 
@@ -744,6 +747,17 @@ class App(tk.Tk):
         children = self.tree.get_children(node)
         for child in children:
             self._set_node_lock_status_recursive(child, locked)
+            
+    def _load_config(self, config):
+        file = open(config, "r")
+        if file is None:
+            return
+        config_string = file.read()
+        file.close()
+
+        updata_params = daq.UpdateParameters()
+        self.context.instance.load_configuration(
+            config_string, updata_params)
 
 
 # MARK: - Entry point
@@ -756,6 +770,8 @@ if __name__ == '__main__':
                         help='Connection string', type=str, default='')
     parser.add_argument(
         '--demo', help='Include internal demo/reference devices', action='store_true')
+    parser.add_argument(
+        '--config', help='Saved config', type=str, default='')
 
     app = App(parser.parse_args())
     app.mainloop()

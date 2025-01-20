@@ -71,6 +71,7 @@ private:
     double globalSampleRate;
     uint64_t counter;
     uint64_t deltaT;
+    SizeT offset;
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
     std::chrono::microseconds lastCollectTime;

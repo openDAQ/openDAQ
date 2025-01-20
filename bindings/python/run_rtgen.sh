@@ -67,6 +67,7 @@ run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_ob
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_object_class_builder
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_object_protected
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_value_event_args
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated core_event_args
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated validator
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit_builder

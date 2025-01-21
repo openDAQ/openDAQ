@@ -44,7 +44,7 @@ void defineIType(pybind11::module_ m, PyDaqIntf<daq::IType, daq::IBaseObject> cl
         [](daq::IType *object)
         {
             py::gil_scoped_release release;
-            const auto objectPtr = daq::::Borrow(object);
+            const auto objectPtr = daq::TypePtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
         "Gets the name of the Type");

@@ -129,6 +129,9 @@ private:
     MdnsDiscoveredDevice createMdnsDiscoveredDevice(const DeviceData& device);
     bool isValidMdnsDevice(const MdnsDiscoveredDevice& device);
 
+    size_t getTxtRecordsCount(const void* buffer, size_t size, size_t offset, size_t length) const;
+
+
     std::vector<mdns_query_t> query;
     std::vector<std::string> serviceNames;
     std::thread discoveryThread;
@@ -428,6 +431,31 @@ inline bool MDNSDiscoveryClient::isValidMdnsDevice(const MdnsDiscoveredDevice& d
     return device.ipv4Address.size() > 0 || device.ipv6Address.size() > 0;
 }
 
+inline size_t MDNSDiscoveryClient::getTxtRecordsCount(const void* buffer, size_t size, size_t offset, size_t length) const
+{
+    // the calculation logic is from mdns_record_parse_txt
+    size_t count = 0;
+    const char* strdata;
+    size_t end = offset + length;
+
+    if (size < end)
+        end = size;
+
+    while (offset < end) 
+    {
+        strdata = (const char*)MDNS_POINTER_OFFSET(buffer, offset);
+        size_t sublength = *(const unsigned char*)strdata;
+
+        if (sublength >= (end - offset))
+            break;
+
+        offset += sublength + 1;
+        count++;
+    }
+
+    return count;
+}
+
 inline int MDNSDiscoveryClient::queryCallback(int sock,
                                               const sockaddr* from,
                                               size_t addrlen,
@@ -445,7 +473,6 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
                                               void* user_data)
 {
     char nameBuffer[256];
-    mdns_record_txt_t txtbuffer[128];
 
     std::lock_guard lg(devicesMapLock);
     
@@ -486,9 +513,11 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
     else if (rtype == MDNS_RECORDTYPE_TXT)
     {
         deviceData.TXT.clear();
-        size_t parsed =
-            mdns_record_parse_txt(data, size, record_offset, record_length, txtbuffer, sizeof(txtbuffer) / sizeof(mdns_record_txt_t));
-        for (size_t itxt = 0; itxt < parsed; ++itxt)
+        size_t records = getTxtRecordsCount(data, size, record_offset, record_length);
+
+        std::vector<mdns_record_txt_t> txtbuffer(records);
+        records = mdns_record_parse_txt(data, size, record_offset, record_length, txtbuffer.data(), records);
+        for (size_t itxt = 0; itxt < records; ++itxt)
         {
             std::string key(txtbuffer[itxt].key.str, txtbuffer[itxt].key.length);
             if (txtbuffer[itxt].value.length)
@@ -504,6 +533,21 @@ inline int MDNSDiscoveryClient::queryCallback(int sock,
     return 0;
 }
 
+inline unsigned long getAvailableData(int sock)
+{
+    unsigned long availableData = 0;
+
+#ifdef _WIN32
+    if (ioctlsocket(sock, FIONREAD, &availableData) == SOCKET_ERROR) 
+        return 0;
+#else
+    if (ioctl(sock, FIONREAD, &available_data) == -1)
+        return 0;
+#endif
+
+    return availableData;
+}
+
 inline void MDNSDiscoveryClient::sendMdnsQuery()
 {
     std::chrono::steady_clock::time_point queryingStarted = std::chrono::steady_clock::now();
@@ -516,11 +560,13 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
 
     const int numSockets = static_cast<int>(sockets.size());
     int queryId[maxSockets];
-    constexpr size_t capacity = 2048;
-    void* buffer = malloc(capacity);
-
-    for (int isock = 0; isock < numSockets; ++isock)
-        queryId[isock] = mdns_multiquery_send(sockets[isock], query.data(), query.size(), buffer, capacity, 0);
+    
+    {
+        constexpr size_t capacity = 2048;
+        std::vector<char> buffer(capacity);
+        for (int isock = 0; isock < numSockets; ++isock)
+            queryId[isock] = mdns_multiquery_send(sockets[isock], query.data(), query.size(), buffer.data(), buffer.size(), 0);
+    }
 
     auto callback = [&](int sock,
                         const sockaddr* from,
@@ -625,13 +671,16 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
             for (int isock = 0; isock < numSockets; ++isock)
             {
                 if (FD_ISSET(sockets[isock], &readfs))
-                    mdns_query_recv(sockets[isock], buffer, capacity, callbackWrapper, &callback, queryId[isock]);
+                {
+                    auto availableData = getAvailableData(sockets[isock]);
+                    std::vector<char> buffer(availableData);
+                    mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryId[isock]);
+                }
                 FD_SET((u_int) sockets[isock], &readfs);
             }
         }
     } while (res > 0);
 
-    free(buffer);
     for (int isock = 0; isock < numSockets; ++isock)
         mdns_socket_close(sockets[isock]);
 }

@@ -1,5 +1,8 @@
 # Changes since 3.10
 
+> [!CAUTION]
+> Breaks binary compatibility
+
 ## Description
 
 - Serialize component name when equal to localID [#660](https://github.com/openDAQ/openDAQ/pull/660)

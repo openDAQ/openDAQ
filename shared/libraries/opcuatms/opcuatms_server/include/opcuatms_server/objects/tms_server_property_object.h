@@ -54,7 +54,7 @@ public:
     void setMethodParentNodeId(const opcua::OpcUaNodeId& methodParentNodeId);
     void addProperty(const TmsServerPropertyPtr& childProperty);
     std::unordered_set<std::string> ignoredProps;
-    std::unordered_map<std::string, std::string> propBrowseName; // property name -> browse name (if not set use browse name as property name)
+    std::unordered_map<std::string, std::string> propBrowseName; // property name -> browse name (if not use browse name as property name)
 
 protected:
     void configureNodeAttributes(opcua::OpcUaObject<UA_ObjectAttributes>& attr) override;

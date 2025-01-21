@@ -219,20 +219,43 @@ void TmsServerDevice::populateDeviceInfo()
         server->setAccessLevel(nodeId, UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE);
 
         if (const auto it = detail::componentFieldToVariant.find(browseName); it != detail::componentFieldToVariant.end())
-            tmsPropertyObject->addReadCallback(nodeId, std::bind(it->second, deviceInfo));
+            this->addReadCallback(nodeId, std::bind(it->second, deviceInfo));
         else
-            tmsPropertyObject->addReadCallback(nodeId, [this, name = propName]
+            this->addReadCallback(nodeId, [this, name = propName]
             {
                 const auto value = object.getInfo().getPropertyValue(name);
                 return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
             });
 
-        tmsPropertyObject->addWriteCallback(nodeId, [this, name = propName](const OpcUaVariant& variant)
+        this->addWriteCallback(nodeId, [this, name = propName](const OpcUaVariant& variant)
         {
             const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
             this->object.getInfo().setPropertyValue(name, value);
             return UA_STATUSCODE_GOOD;
         });
+    }
+
+    std::map<std::string, std::string> theBestProportiesEver = 
+    {
+        {"userName", "UserName"},
+        {"location", "Location"}
+    };
+
+    for (const auto& [propName, browseName] : theBestProportiesEver)
+    {
+        if (const auto& prop = deviceInfo.getProperty(propName); prop.getReadOnly())
+        {
+            const auto nodeId = getChildNodeId(browseName);
+            auto tmsProperty = std::make_shared<TmsServerProperty>(prop, server, daqContext, tmsContext, browseName);
+            tmsProperty->registerToExistingOpcUaNode(nodeId);
+            deviceInfoProperties.push_back(tmsProperty);
+
+            this->addReadCallback(nodeId, [this, name = propName]
+            {
+                const auto value = object.getInfo().getPropertyValue(name);
+                return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
+            });
+        }
     }
 }
 

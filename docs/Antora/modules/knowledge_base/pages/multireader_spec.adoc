@@ -7,7 +7,7 @@ The Multi Reader is used to read several signals simultaneously, synchronizing t
 
 == Multi reader example
 
-Simple example on how to use the Multi Reader to read data of signals of equal sampling rates. The following sections will break down this example and explain each individual section of code.
+Simple example on how to use the Multi Reader to read data of signals of equal sampling rates. The following sections will break down this example and explain each individual section of code, as well as provide additional examples highlighting different ways of reading data with the Multi Reader.
 
 [tabs]
 ====
@@ -75,9 +75,9 @@ int main()
 
 == Using the Multi Reader
 
-The Multi Reader has a large suite of configuration options, and its usage patterns vary based on how it is configured. We will start by highlighting a basic example where the reader is use to read data of equal sampling rates and continue with more advanced options.
+The Multi Reader has a large suite of configuration options, and its usage patterns vary based on how it is configured. We will start by highlighting a basic example where the reader is used to read data of equal sampling rates and continue with more advanced options.
 
-=== Creating the reader
+=== Creating the Multi Reader
 
 A set of different factories exist that allow users to create a Multi Reader. In this guide we will mainly be using the `MultiReaderBuilder` factory, as it is the only one that allows for full configuration of parameters, whereas other factories only provide access to a limited set of settings.
 
@@ -89,12 +89,12 @@ The basic Multi Reader options are as follows:
 * *Domain read type* - The data type to which domain signal data should be converted. If set to `SampleType::Undefined`, data in signal packets will not be converted, but left as-is.
 * *Read mode* - Specifies whether Scaling should be applied. Can also affect the Value read type. Can be one of:
 ** *Scaled* - Applies Post Scaling, Reference Domain Offset, and calculates Implicit Data Rule on packet data. Output type is equal to Value read type.
-** *Unscaled* - Do not apply Post Scaling and Reference Domain Offset do packet data. Data samples output type is equal to Value read type. Unscaled mode works only with Explicit signals
+** *Unscaled* - Does not apply Post Scaling and Reference Domain Offset do packet data. Data samples output type is equal to Value read type. Unscaled mode works only with Explicit signals
 ** *Raw* - Same as *Unscaled*, with the exception Value read type being forced to `SampleType::Undefined`. 
 
 ==== Signals vs. Ports
 
-Depending on usage, a Multi Reader can be created with signals or input ports as constructor parameters. While similar, there are some differences:
+Depending on usage, a Multi Reader can be created with signals or input ports as builder input parameters. While similar, there are some differences:
 
 * **Signals**: The Multi Reader creates an internal input port and connects the signal to said port automatically. Users do not have access to the port. Mainly used when an application has a pre-defined list of signals it wants to read.
 * **Input Ports**: The port is already created and can be accessed by users. In this case, the Multi Reader takes ownership of the port and waits for signals to be connected. Mainly used in function blocks where users connect signals into a set of pre-created input ports after the function block has been created. 
@@ -121,7 +121,7 @@ auto multiReaderPorts = multiReaderBuilderPorts.build();
 
 ==== Domain signal requirements
 
-The domain signals of all signals read by the multi reader must fulfil the the following requirements:
+The domain signals of all signals read by the multi reader must fulfil the following requirements:
 
 * **Domain**: The domain signals must represent time in seconds. The domain unit must have the symbol "s" and the quantity "time".
 * **Rule**: The data rule must be linear. 
@@ -172,7 +172,7 @@ if (status.getReadStatus() == ReadStatus::Event)
 ----
 ====
 
-If data descriptors do not meet user requirements, the Multi Reader can be deactivated by calling `multiReader.setActive(false)`. While deactivated, the Multi Reader will drop data packets, ensuring it does not run out of memory. Event packets, however, will still be received, allowing users to re-enable the reader if a new, accepted descriptor is set for the input signal.
+If data descriptors are not consistent with what a function block or application expects, the Multi Reader can be deactivated by calling `multiReader.setActive(false)`. While deactivated, the Multi Reader will drop data packets, ensuring it does not run out of memory. Event packets, however, will still be received, allowing users to re-enable the reader if a new, accepted descriptor is set for the input signal.
 
 === Reading data
 
@@ -244,7 +244,8 @@ Cpp::
 std::mutex mutex;
 bool running = true;
 
-auto readData = [&]()
+// Create lambda that is invoked when data is available
+auto readData = [&]
 {
     // Read data under lock, stop reading once application terminates
     std::scoped_lock lock(mutex);
@@ -282,7 +283,7 @@ multiReader.setOnDataAvailable(readData);
 
 ==== Reusing domain data
 
-To simplify the creation of an output domain signals in a function blocks that uses the Multi Reader, the read status provides a "main descriptor" that can be obtained through the `getMainDescriptor()` reader function. In function blocks that aggregate signals (ie. multiplication or summation of signals), the output signal likely has the same sampling rate and timestamps as its inputs. As such, the domain descriptor of the "main signal" can be used as the descriptor for the output domain signal.
+To simplify the creation of output domain signals in function blocks that uses the Multi Reader, the read status provides a "main descriptor" that can be obtained through the `getMainDescriptor()` reader function. In function blocks that aggregate signals (ie. multiplication or summation of signals), the output signal likely has the same sampling rate and timestamps as its inputs. As such, the domain descriptor of the "main signal" can be used as the descriptor for the output domain signal.
 
 NOTE: The main descriptor simply corresponds to the first signal in the list of signals read by the Multi Reader.
 

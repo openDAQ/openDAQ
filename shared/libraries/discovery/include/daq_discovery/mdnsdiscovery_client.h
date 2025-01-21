@@ -541,7 +541,7 @@ inline unsigned long getAvailableData(int sock)
     if (ioctlsocket(sock, FIONREAD, &availableData) == SOCKET_ERROR) 
         return 0;
 #else
-    if (ioctl(sock, FIONREAD, &available_data) == -1)
+    if (ioctl(sock, FIONREAD, &availableData) == -1)
         return 0;
 #endif
 

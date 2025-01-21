@@ -136,11 +136,22 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& roo
 
     std::string interfaces;
     for(const auto& ifaceName : rootDevice.asPtr<IDeviceNetworkConfig>().getNetworkInterfaceNames())
-        interfaces += ifaceName.toStdString();
+        interfaces += ifaceName.getLength() == 0 ? "" : (ifaceName.toStdString() + ";");
+    if (interfaces.empty())
+    {
+        LOG_W("Cannot register IP modification service without at least one non-empty interface name specified");
+        return;
+    }
     properties["interfaces"] = interfaces;
 
     if (const auto deviceInfo = rootDevice.getInfo(); deviceInfo.assigned())
     {
+        if (deviceInfo.getManufacturer().getLength() == 0 || deviceInfo.getSerialNumber().getLength() == 0)
+        {
+            LOG_W("Cannot register IP modification service without \"manufacturer\" and \"serialNumber\" "
+                  "specified within device info");
+            return;
+        }
         properties["name"] = deviceInfo.getName().toStdString();
         properties["manufacturer"] = deviceInfo.getManufacturer().toStdString();
         properties["model"] = deviceInfo.getModel().toStdString();

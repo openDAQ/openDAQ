@@ -57,6 +57,7 @@ DECLARE_OPENDAQ_INTERFACE(INetworkInterface, IBaseObject)
     /*!
      * @brief Submits a new configuration for the network interface.
      * @param config The new configuration to apply.
+     * @retval OPENDAQ_SUCCESS if the new configuration is applied successfully; otherwise, returns an informative error code.
      *
      * The provided configuration must adhere to the required properties, including "dhcp4", "address4", "gateway4", and their IPv6 equivalents,
      * as described in the class-level documentation.

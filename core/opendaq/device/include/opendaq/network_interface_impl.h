@@ -34,6 +34,8 @@ public:
 
 private:
     static PropertyObjectPtr createDefaultConfiguration();
+    void validate();
+
     StringPtr interfaceName;
     StringPtr ownerDeviceManufacturerName;
     StringPtr ownerDeviceSerialNumber;

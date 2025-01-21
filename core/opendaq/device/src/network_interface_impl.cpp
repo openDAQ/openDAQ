@@ -15,11 +15,7 @@ NetworkInterfaceImpl::NetworkInterfaceImpl(const StringPtr& name,
     , ownerDeviceSerialNumber(ownerDeviceSerialNumber)
     , moduleManager(moduleManager.asPtrOrNull<IModuleManagerUtils>(true))
 {
-    if (!this->interfaceName.assigned() || this->interfaceName == "" ||
-        !this->ownerDeviceManufacturerName.assigned() || this->ownerDeviceManufacturerName == "" ||
-        !this->ownerDeviceSerialNumber.assigned() || this->ownerDeviceSerialNumber == "" ||
-        !this->moduleManager.assigned())
-        throw InvalidParameterException("Cannot create NetworkInterface object - invalid parameters");
+    validate();
 }
 
 ErrCode NetworkInterfaceImpl::requestCurrentConfiguration(IPropertyObject** config)
@@ -55,6 +51,15 @@ PropertyObjectPtr NetworkInterfaceImpl::createDefaultConfiguration()
     config.addProperty(StringProperty("gateway6", ""));
 
     return config;
+}
+
+void NetworkInterfaceImpl::validate()
+{
+    if (!this->interfaceName.assigned() || this->interfaceName == "" ||
+        !this->ownerDeviceManufacturerName.assigned() || this->ownerDeviceManufacturerName == "" ||
+        !this->ownerDeviceSerialNumber.assigned() || this->ownerDeviceSerialNumber == "" ||
+        !this->moduleManager.assigned())
+        throw InvalidParameterException("Cannot create NetworkInterface object - invalid parameters");
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

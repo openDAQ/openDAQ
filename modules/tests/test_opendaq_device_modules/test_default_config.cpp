@@ -477,7 +477,7 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
     serverInstance.getModuleManager().addModule(deviceModule);
     auto deviceTypes = serverInstance.getAvailableDeviceTypes();
     auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
-    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0"));
+    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
     mockDeviceConfig.setPropertyValue("onSubmitConfig", modifyIpConfigCallback);
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
 
@@ -494,6 +494,7 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
         if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
         {
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
+            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth1"));
             auto ipConfig = devInfo.getNetworkInterface("eth0").createDefaultConfiguration();
             ipConfig.setPropertyValue("dhcp4", dhcp4);
             ipConfig.setPropertyValue("address4", address4);
@@ -536,6 +537,7 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfigError)
         if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
         {
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
+            EXPECT_FALSE(devInfo.getNetworkInterfaces().hasKey("eth1"));
             auto networInterface = devInfo.getNetworkInterface("eth0");
             auto ipConfig = devInfo.getNetworkInterface("eth0").createDefaultConfiguration();
             ASSERT_THROW_MSG(networInterface.submitConfiguration(ipConfig), NotImplementedException, retrievedErrorMessage);
@@ -575,7 +577,7 @@ TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
     serverInstance.getModuleManager().addModule(deviceModule);
     auto deviceTypes = serverInstance.getAvailableDeviceTypes();
     auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
-    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0"));
+    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
     mockDeviceConfig.setPropertyValue("onSubmitConfig", Procedure([](StringPtr, PropertyObjectPtr) {}));
     mockDeviceConfig.setPropertyValue("onRetrieveConfig", retrieveIpConfigCallback);
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
@@ -593,6 +595,7 @@ TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
         if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
         {
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
+            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth1"));
             PropertyObjectPtr config;
             ASSERT_NO_THROW(config = devInfo.getNetworkInterface("eth0").requestCurrentConfiguration());
             EXPECT_EQ(config.getPropertyValue("dhcp4"), dhcp4);

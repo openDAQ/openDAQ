@@ -42,6 +42,8 @@
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netdb.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #endif
 
 BEGIN_NAMESPACE_DISCOVERY

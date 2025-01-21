@@ -180,7 +180,7 @@ class AddDeviceDialog(Dialog):
     def handle_add_device(self):
         config = None
         connection_string = self.conn_string_entry.get()
-        if self.is_add_with_config():
+        if self.is_add_with_config() and connection_string:
             add_config_dialog = AddConfigDialog(
                 self, self.context, connection_string)
             add_config_dialog.show()

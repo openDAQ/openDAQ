@@ -5,6 +5,7 @@
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/mirrored_device_impl.h>
+#include <opendaq/gmock/streaming.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,6 +26,7 @@ public:
 TEST_F(MirroredDeviceTest, GetStreamingSources)
 {
     ASSERT_EQ(device.getStreamingSources().getCount(), 0u);
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatuses().getCount(), 0u);
 }
 
 TEST_F(MirroredDeviceTest, AddStreamingSource)
@@ -38,6 +40,7 @@ TEST_F(MirroredDeviceTest, AddStreamingSource)
 
     ASSERT_EQ(streamingSources[0].getConnectionString(), "StreamingConnectionString");
     ASSERT_EQ(streamingSources[0], streaming);
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatuses().getCount(), 1u);
 }
 
 TEST_F(MirroredDeviceTest, DuplicateStreamingSource)
@@ -52,6 +55,7 @@ TEST_F(MirroredDeviceTest, DuplicateStreamingSource)
 
     const auto streamingSources = device.getStreamingSources();
     ASSERT_EQ(streamingSources.getCount(), 1u);
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatuses().getCount(), 1u);
 }
 
 TEST_F(MirroredDeviceTest, RemoveStreamingSourceNotFound)
@@ -66,6 +70,31 @@ TEST_F(MirroredDeviceTest, RemoveAddedStreamingSource)
 
     ASSERT_NO_THROW(device.removeStreamingSource("StreamingConnectionString"));
     ASSERT_EQ(device.getStreamingSources().getCount(), 0u);
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatuses().getCount(), 0u);
+}
+
+TEST_F(MirroredDeviceTest, StreamingConnectionStatus)
+{
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatuses().getCount(), 0u);
+
+    auto streaming1 = MockStreaming::Strict("MockStreaming1", context);
+    device.addStreamingSource(streaming1);
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatuses().getCount(), 1u);
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatus("StreamingStatus_1"), "Connected");
+
+    streaming1.mock().triggerReconnectionStart();
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatus("StreamingStatus_1"), "Reconnecting");
+
+    streaming1.mock().triggerReconnectionCompletion();
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatus("StreamingStatus_1"), "Connected");
+
+    auto streaming2 = MockStreaming::Strict("MockStreaming2", context);
+    streaming2.mock().triggerReconnectionStart();
+    device.addStreamingSource(streaming2);
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatus("StreamingStatus_2"), "Reconnecting");
+
+    device.removeStreamingSource("MockStreaming1");
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatuses().getCount(), 1u);
 }
 
 END_NAMESPACE_OPENDAQ

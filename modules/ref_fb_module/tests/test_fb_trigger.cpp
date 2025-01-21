@@ -27,7 +27,7 @@ public:
     {
         // Create logger, context and module
         auto logger = Logger();
-        context = Context(Scheduler(logger), logger, nullptr, nullptr, nullptr);
+        context = Context(Scheduler(logger), logger, TypeManager(), nullptr, nullptr);
         createModule(&module, context);
 
         this->rule = rule;
@@ -333,4 +333,28 @@ TEST_F(TriggerTest, TriggerTestIntLinearThresholdChanged)
                                     {},
                                     newThresholds);
     helper.run();
+}
+
+TEST_F(TriggerTest, TriggerTestErrorStateStatus)
+{
+    // Create context and module
+    auto context = NullContext();
+    ModulePtr module;
+    createModule(&module, context);
+    // Create function block
+    auto fb = module.createFunctionBlock("RefFBModuleTrigger", nullptr, "fb");
+    // Cast to component
+    auto comp = fb.asPtr<IComponent>();
+    // Assert that initial status is "Ok"
+    ASSERT_EQ(comp.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    // Assert that initial message is an empty string
+    ASSERT_EQ(comp.getStatusContainer().getStatusMessage("ComponentStatus"), "");
+    // Set new status via ...
+    auto signal = Signal(context, nullptr, "ID");
+    fb.getInputPorts()[0].connect(signal);
+    // Assert that now status is now "Error"
+    ASSERT_EQ(comp.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Error", context.getTypeManager()));
+    // Assert that message is "Failed to set descriptor for trigger signal!"
+    ASSERT_EQ(comp.getStatusContainer().getStatusMessage("ComponentStatus"), "Failed to set descriptor for trigger signal: Invalid sample type");
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,10 +46,10 @@
 #include <opendaq/component_errors.h>
 #include <opendaq/component_update_context_impl.h>
 #include <opendaq/component_update_context_ptr.h>
+#include <opendaq/component_status_container_ptr.h>
+#include <opendaq/component_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
 
 // https://developercommunity.visualstudio.com/t/inline-static-destructors-are-called-multiple-time/1157794
 #if defined(_MSC_VER) && _MSC_VER <= 1927
@@ -57,6 +57,13 @@ static constexpr int ComponentSerializeFlag_SerializeActiveProp = 1;
 #endif
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
+
+enum class ComponentStatus : EnumType
+{
+    Ok = 0,
+    Warning,
+    Error
+};
 
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>
@@ -146,7 +153,6 @@ protected:
     ComponentStatusContainerPtr statusContainer;
 
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
-    virtual int getSerializeFlags();
 
     std::vector<std::pair<std::string, SerializedObjectPtr>> getSerializedItems(const SerializedObjectPtr& object);
 
@@ -171,6 +177,13 @@ protected:
     PropertyObjectPtr getPropertyObjectParent() override;
 
     static bool validateComponentId(const std::string& id);
+
+    // Initialize component status with "Ok" status
+    void initComponentStatus() const;
+    // Set component status with default message (empty string) and log status and message (if different from previous, and not OK)
+    void setComponentStatus(const ComponentStatus& status) const;
+    // Set component status with message and log status and message (if different from previous, and not OK and empty string)
+    void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
@@ -934,12 +947,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serial
         return OPENDAQ_SUCCESS;
     });
 }
- 
-template <class Intf, class... Intfs>
-int ComponentImpl<Intf, Intfs...>::getSerializeFlags()
-{
-    return 0;
-}
 
 template <class Intf, class... Intfs>
 std::vector<std::pair<std::string, SerializedObjectPtr>> ComponentImpl<Intf, Intfs...>::getSerializedItems(const SerializedObjectPtr& object)
@@ -963,8 +970,7 @@ std::vector<std::pair<std::string, SerializedObjectPtr>> ComponentImpl<Intf, Int
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& /* context */)
 {
-    const auto flags = getSerializeFlags();
-    if (flags & ComponentSerializeFlag_SerializeActiveProp && obj.hasKey("active"))
+    if (obj.hasKey("active"))
         active = obj.readBool("active");
 
     if (obj.hasKey("visible"))
@@ -980,9 +986,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /* forUpdate */)
 {
-    const auto flags = getSerializeFlags();
-
-    if (flags & ComponentSerializeFlag_SerializeActiveProp && !active)
+    if (!active)
     {
         serializer.key("active");
         serializer.writeBool(active);
@@ -1000,7 +1004,7 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         serializer.writeString(description);
     }
 
-    if (name != localId)
+    if (name != "")
     {
         serializer.key("name");
         serializer.writeString(name);
@@ -1099,61 +1103,23 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
     if (serializedObject.hasKey("name"))
         name = serializedObject.readString("name");
 
+    const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+    auto intfID = deserializeContext.getIntfID();
+    const auto triggerCoreEvent = [this](const CoreEventArgsPtr& args)
+    {
+        if (!this->coreEventMuted)
+            this->triggerCoreEvent(args);
+    };
+    const auto clonedDeserializeContext = deserializeContext.clone(deserializeContext.getParent(),
+                                                                   deserializeContext.getLocalId(),
+                                                                   &intfID,
+                                                                   triggerCoreEvent);
+
     if (serializedObject.hasKey("tags"))
-        tags = serializedObject.readObject(
-            "tags",
-            context,
-            [this](const StringPtr& typeId,
-                   const SerializedObjectPtr& object,
-                   const BaseObjectPtr& context,
-                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
-            {
-                if (typeId == TagsImpl::SerializeId())
-                {
-                    ObjectPtr<ITagsPrivate> tags;
-                    auto errCode = createObject<ITagsPrivate, TagsImpl>(&tags,
-                        [this](const CoreEventArgsPtr& args)
-                        {
-                            if (!this->coreEventMuted)
-                                triggerCoreEvent(args);
-                        });
-                    if (OPENDAQ_FAILED(errCode))
-                        return errCode;
-
-                    const auto list = object.readList<IString>("list", context, factoryCallback);
-                    for (const auto& tag : list)
-                        tags->add(tag);
-
-                    return tags;
-                }
-                return nullptr;
-            });
+        tags = serializedObject.readObject("tags", clonedDeserializeContext);
 
     if (serializedObject.hasKey("statuses"))
-        statusContainer = serializedObject.readObject(
-            "statuses",
-            context,
-            [this](const StringPtr& typeId,
-                   const SerializedObjectPtr& object,
-                   const BaseObjectPtr& context,
-                   const FunctionPtr& factoryCallback) -> BaseObjectPtr
-            {
-                if (typeId == ComponentStatusContainerImpl::SerializeId())
-                {
-                    auto container = createWithImplementation<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(
-                        [this](const CoreEventArgsPtr& args)
-                        {
-                            if (!this->coreEventMuted)
-                                triggerCoreEvent(args);
-                        });
-
-                    DictPtr<IString, IEnumeration> statuses = object.readObject("statuses", context, factoryCallback);
-                    for (const auto& [name, value] : statuses)
-                        container->addStatus(name, value);
-                    return container;
-                }
-                return nullptr;
-            });
+        statusContainer = serializedObject.readObject("statuses", clonedDeserializeContext);
 }
 
 template <class Intf, class... Intfs>
@@ -1162,6 +1128,72 @@ bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
     if (id.find('/') != std::string::npos)
         throw InvalidParameterException("Component id " + id + " contains '/'");
     return id.find(' ') == std::string::npos;
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::initComponentStatus() const
+{
+    // Component error state status is added ("Ok" when a component is created)
+    const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
+    const auto componentStatusValue =
+        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentStatus::Ok), this->context.getTypeManager());
+    statusContainerPrivate.addStatus("ComponentStatus", componentStatusValue);
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::setComponentStatus(const ComponentStatus& status) const
+{
+    setComponentStatusWithMessage(status, "");
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const
+{
+    EnumerationPtr oldStatus;
+    StringPtr oldMessage;
+
+    // Fail with explicit message of what happened if not initialized
+    try
+    {
+        oldStatus = this->statusContainer.getStatus("ComponentStatus");
+        oldMessage = this->statusContainer.getStatusMessage("ComponentStatus");
+    }
+    catch (const NotFoundException&)
+    {
+        throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called "
+                                "before setComponentStatus.");
+    }
+
+    // Check if status and message are the same as before, and also Ok and empty string, and if so, return
+    if (status == oldStatus && status == ComponentStatus::Ok && message == oldMessage && message == "")
+        return;
+
+    // Set status if initialized
+    const auto statusContainerPrivate = this->statusContainer.template asPtr<IComponentStatusContainerPrivate>(true);
+    const auto componentStatusValue =
+        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(status), this->context.getTypeManager());
+    statusContainerPrivate.setStatusWithMessage("ComponentStatus", componentStatusValue, message);
+
+    // Log status and message
+    auto logger = this->context.getLogger();
+    if (logger.assigned())
+    {
+        const auto loggerComponent = logger.getOrAddComponent("ComponentStatus");
+        auto statusString = this->statusContainer.getStatus("ComponentStatus").getValue();
+        auto logString = fmt::format("Component {} status changed to {} with message: {}", this->name, statusString, message);
+        if (statusString == "Warning")
+        {
+            LOG_W("{}", logString)
+        }
+        else if (statusString == "Error")
+        {
+            LOG_E("{}", logString)
+        }
+        else
+        {
+            LOG_I("{}", logString)
+        }
+    }
 }
 
 using StandardComponent = ComponentImpl<>;

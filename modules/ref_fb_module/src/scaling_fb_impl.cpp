@@ -2,13 +2,10 @@
 #include <ref_fb_module/dispatch.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
-
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
-
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
-
 #include "coreobjects/unit_factory.h"
 #include "opendaq/data_packet.h"
 #include "opendaq/data_packet_ptr.h"
@@ -18,24 +15,19 @@
 #include "opendaq/sample_type_traits.h"
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reusable_data_packet_ptr.h>
-#include <opendaq/component_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Scaling
 {
 
-static const char* InputDisconnected = "Disconnected";
-static const char* InputConnected = "Connected";
-static const char* InputInvalid = "Invalid";
-
 ScalingFbImpl::ScalingFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    initComponentStatus();
     createInputPorts();
     createSignals();
     initProperties();
-    initStatuses();
 }
 
 void ScalingFbImpl::initProperties()
@@ -114,22 +106,22 @@ void ScalingFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inpu
 
 void ScalingFbImpl::configure()
 {
-    if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
-    {
-        setInputStatus(InputInvalid);
-        return;
-    }
-
     try
     {
         if (inputDomainDataDescriptor == NullDataDescriptor())
+        {
             throw std::runtime_error("No domain input");
+        }
 
         if (inputDataDescriptor == NullDataDescriptor())
+        {
             throw std::runtime_error("No value input");
+        }
 
         if (inputDataDescriptor.getDimensions().getCount() > 0)
+        {
             throw std::runtime_error("Arrays not supported");
+        }
 
         inputSampleType = inputDataDescriptor.getSampleType();
         if (inputSampleType != SampleType::Float64 &&
@@ -142,7 +134,9 @@ void ScalingFbImpl::configure()
             inputSampleType != SampleType::UInt16 &&
             inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
+        {
             throw std::runtime_error("Invalid sample type");
+        }
 
         auto outputDataDescriptorBuilder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
 
@@ -173,12 +167,11 @@ void ScalingFbImpl::configure()
         outputSignal.setDescriptor(outputDataDescriptor);
         outputDomainSignal.setDescriptor(inputDomainDataDescriptor);
 
-        setInputStatus(InputConnected);
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        setInputStatus(InputInvalid);
-        LOG_W("Failed to set descriptor for output signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Failed to set descriptor for output signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
 }
@@ -282,47 +275,6 @@ void ScalingFbImpl::createSignals()
     outputSignal = createAndAddSignal("output");
     outputDomainSignal = createAndAddSignal("output_domain", nullptr, false);
     outputSignal.setDomainSignal(outputDomainSignal);
-}
-
-void ScalingFbImpl::initStatuses()
-{
-    auto inputStatusType = EnumerationType("InputStatusType", List<IString>(InputDisconnected, InputConnected, InputInvalid));
-
-    try
-    {
-        this->context.getTypeManager().addType(inputStatusType);
-    }
-    catch (const std::exception& e)
-    {
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
-        LOG_W("Couldn't add type {} to type manager: {}", inputStatusType.getName(), e.what());
-    }
-    catch (...)
-    {
-        const auto loggerComponent = this->context.getLogger().getOrAddComponent("ScalingFunctionBlock");
-        LOG_W("Couldn't add type {} to type manager!", inputStatusType.getName());
-    }
-
-    auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();
-
-    auto inputStatusValue = Enumeration("InputStatusType", InputDisconnected, context.getTypeManager());
-    thisStatusContainer.addStatus("InputStatus", inputStatusValue);
-}
-
-void ScalingFbImpl::setInputStatus(const StringPtr& value)
-{
-    auto thisStatusContainer = this->statusContainer.asPtr<IComponentStatusContainerPrivate>();
-
-    auto inputStatusValue = Enumeration("InputStatusType", value, context.getTypeManager());
-    thisStatusContainer.setStatus("InputStatus", inputStatusValue);
-}
-
-void ScalingFbImpl::onDisconnected(const InputPortPtr& inputPort)
-{
-    if (this->inputPort == inputPort)
-    {
-        setInputStatus(InputDisconnected);
-    }
 }
 
 }

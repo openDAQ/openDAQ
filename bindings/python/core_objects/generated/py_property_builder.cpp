@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -331,38 +331,24 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
         },
         py::return_value_policy::take_ownership,
         "Gets the Callable information objects of the Property that specifies the argument and return types of the callable object stored as the Property value. / Sets the Callable information objects of the Property that specifies the argument and return types of the callable object stored as the Property value.");
-    /*
     cls.def_property("on_property_value_write",
         [](daq::IPropertyBuilder *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            return objectPtr.getOnPropertyValueWrite().detach();
+            return objectPtr.getOnPropertyValueWrite().getEventPtr().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::IEvent* event)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setOnPropertyValueWrite(event);
-        },
+        nullptr,
         py::return_value_policy::take_ownership,
         "Gets a custom on-write event. Used mostly when cloning properties. / Sets a custom on-write event. Used mostly when cloning properties.");
-    */
-    /*
     cls.def_property("on_property_value_read",
         [](daq::IPropertyBuilder *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            return objectPtr.getOnPropertyValueRead().detach();
+            return objectPtr.getOnPropertyValueRead().getEventPtr().detach();
         },
-        [](daq::IPropertyBuilder *object, daq::IEvent* event)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
-            objectPtr.setOnPropertyValueRead(event);
-        },
+        nullptr,
         py::return_value_policy::take_ownership,
         "Gets a custom on-read event. Used mostly when cloning properties. / Sets a custom on-read event. Used mostly when cloning properties.");
-    */
 }

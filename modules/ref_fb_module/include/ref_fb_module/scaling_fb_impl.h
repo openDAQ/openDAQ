@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,6 @@ private:
 
     void processEventPacket(const EventPacketPtr& packet);
     void onPacketReceived(const InputPortPtr& port) override;
-    void onDisconnected(const InputPortPtr& port) override;
 
     void processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,
                                         const DataDescriptorPtr& inputDomainDataDescriptor);
@@ -77,9 +76,6 @@ private:
     void initProperties();
     void propertyChanged(bool configure);
     void readProperties();
-
-    void initStatuses();
-    void setInputStatus(const StringPtr& value);
 };
 
 }

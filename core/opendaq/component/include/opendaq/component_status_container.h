@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IComponentStatusContainer, IBaseObject)
 {
     /*!
-     * @brief Gets the the current value of Component status with a given name.
+     * @brief Gets the current value of Component status with a given name.
      * @param name The name of Component status.
      * @param[out] value The current value of Component status.
      */
@@ -56,6 +56,13 @@ DECLARE_OPENDAQ_INTERFACE(IComponentStatusContainer, IBaseObject)
      * All objects in the statuses dictionary are key value pairs of <IString, IEnumeration>.
      */
     virtual ErrCode INTERFACE_FUNC getStatuses(IDict** statuses) = 0;
+
+    /*!
+     * @brief Gets the status message of Component status with a given name.
+     * @param name The name of Component status.
+     * @param[out] message The current message of Component status.
+     */
+    virtual ErrCode INTERFACE_FUNC getStatusMessage(IString* name, IString** message) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, ComponentStatusContainer)

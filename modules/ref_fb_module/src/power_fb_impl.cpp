@@ -2,20 +2,17 @@
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
-
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
-
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
-
-#include "coreobjects/unit_factory.h"
-#include "opendaq/data_packet.h"
-#include "opendaq/data_packet_ptr.h"
-#include "opendaq/event_packet_ids.h"
-#include "opendaq/packet_factory.h"
-#include "opendaq/range_factory.h"
-#include "opendaq/sample_type_traits.h"
+#include <coreobjects/unit_factory.h>
+#include <opendaq/data_packet.h>
+#include <opendaq/data_packet_ptr.h>
+#include <opendaq/event_packet_ids.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/range_factory.h>
+#include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
@@ -25,6 +22,7 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 PowerFbImpl::PowerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    initComponentStatus();
     createInputPorts();
     createSignals();
     initProperties();
@@ -198,7 +196,7 @@ void PowerFbImpl::checkPacketQueues()
     while (currentQueue.size() > 100)
     {
         currentQueue.pop_back();
-        LOG_W("Data lost, voltage packets skipped")
+        LOG_W("Data lost, current packets skipped")
         synced = false;
     }
 }
@@ -360,24 +358,33 @@ void PowerFbImpl::configure(bool resync)
     if (!voltageDataDescriptor.assigned() || !voltageDomainDataDescriptor.assigned() || !currentDataDescriptor.assigned() ||
         !currentDomainDataDescriptor.assigned())
     {
-        LOG_D("Incomplete signal descriptors")
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Incomplete signal descriptors");
         return;
     }
 
     try
     {
         if (voltageDataDescriptor.getDimensions().getCount() > 0)
+        {
             throw std::runtime_error("Arrays not supported");
+        }
+
         if (currentDataDescriptor.getDimensions().getCount() > 0)
-            throw std::runtime_error("Invalid sample type");
+        {
+            throw std::runtime_error("Invalid sample typ");
+        }
 
         voltageSampleType = voltageDataDescriptor.getSampleType();
         if (voltageSampleType != SampleType::Float64 && voltageSampleType != SampleType::Float32)
+        {
             throw std::runtime_error("Invalid sample type");
+        }
 
         currentSampleType = currentDataDescriptor.getSampleType();
         if (currentSampleType != SampleType::Float64 && currentSampleType != SampleType::Float32)
+        {
             throw std::runtime_error("Invalid sample type");
+        }
 
         auto powerDataDescriptorBuilder =
             DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("W", -1, "watt", "power"));
@@ -392,41 +399,61 @@ void PowerFbImpl::configure(bool resync)
         powerSignal.setDescriptor(powerDataDescriptor);
 
         if (voltageDomainDataDescriptor.getOrigin() != currentDomainDataDescriptor.getOrigin())
+        {
             throw std::runtime_error("Domain mismatch");
+        }
 
         if (voltageDomainDataDescriptor.getTickResolution() != currentDomainDataDescriptor.getTickResolution())
+        {
             throw std::runtime_error("Domain tick resolution mismatch");
+        }
 
         if (voltageDomainDataDescriptor.getSampleType() != SampleType::Int64 &&
             voltageDomainDataDescriptor.getSampleType() != SampleType::UInt64)
-            throw std::runtime_error("Invalid domain sampleType");
+        {
+            throw std::runtime_error("Invalid domain sample type");
+        }
 
         if (currentDomainDataDescriptor.getSampleType() != SampleType::Int64 &&
             currentDomainDataDescriptor.getSampleType() != SampleType::UInt64)
-            throw std::runtime_error("Invalid domain sampleType");
+        {
+            throw std::runtime_error("Invalid domain sample type");
+        }
 
         if (voltageDomainDataDescriptor.getSampleType() != currentDomainDataDescriptor.getSampleType())
+        {
             throw std::runtime_error("Domain sample type mismatch");
+        }
 
         if (currentDomainDataDescriptor.getSampleType() != SampleType::Int64 &&
             currentDomainDataDescriptor.getSampleType() != SampleType::UInt64)
-            throw std::runtime_error("Invalid domain sampleType");
+        {
+            throw std::runtime_error("Invalid domain sample type");
+        }
 
         if (voltageDomainDataDescriptor.getUnit() != currentDomainDataDescriptor.getUnit())
-            throw std::runtime_error("Unit mismatch");
+        {
+            throw std::runtime_error("Domain unit mismatch");
+        }
 
         const auto voltageDomainRule = voltageDomainDataDescriptor.getRule();
         if (!voltageDomainRule.assigned() || voltageDomainRule.getType() != DataRuleType::Linear)
+        {
             throw std::runtime_error("Linear rule not used");
+        }
 
         const auto currentDomainRule = currentDomainDataDescriptor.getRule();
         if (!currentDomainRule.assigned() || currentDomainRule.getType() != DataRuleType::Linear)
+        {
             throw std::runtime_error("Linear rule not used");
+        }
 
         const auto voltageDomainRuleParams = voltageDomainRule.getParameters();
         const auto currentDomainRuleParams = currentDomainRule.getParameters();
         if (voltageDomainRuleParams != currentDomainRuleParams)
+        {
             throw std::runtime_error("Domain rule mismatch");
+        }
 
         powerDomainDataDescriptor = DataDescriptorBuilderCopy(voltageDomainDataDescriptor).setName("Power domain").build();
 
@@ -434,10 +461,12 @@ void PowerFbImpl::configure(bool resync)
 
         start = voltageDomainRuleParams.get("start");
         delta = voltageDomainRuleParams.get("delta");
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to set descriptor for power signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
         powerSignal.setDescriptor(nullptr);
     }
 }

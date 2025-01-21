@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -126,28 +126,24 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         },
         py::arg("property_name"),
         "Removes the Property named `propertyName` from the Property object.");
-    /*
     cls.def("get_on_property_value_write",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            return objectPtr.getOnPropertyValueWrite(getVariantValue<daq::IString*>(propertyName)).detach();
+            return objectPtr.getOnPropertyValueWrite(getVariantValue<daq::IString*>(propertyName)).getEventPtr().detach();
         },
         py::arg("property_name"),
         "Gets the Event that is triggered whenever a Property value is written to the Property named `propertyName`.");
-    */
-    /*
     cls.def("get_on_property_value_read",
         [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            return objectPtr.getOnPropertyValueRead(getVariantValue<daq::IString*>(propertyName)).detach();
+            return objectPtr.getOnPropertyValueRead(getVariantValue<daq::IString*>(propertyName)).getEventPtr().detach();
         },
         py::arg("property_name"),
         "Gets the Event that is triggered whenever a Property value of a Property named `propertyName` is read.");
-    */
     cls.def_property_readonly("visible_properties",
         [](daq::IPropertyObject *object)
         {
@@ -199,17 +195,15 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
             return objectPtr.getUpdating();
         },
         "Returns the state of batch configuration.");
-    /*
     cls.def_property_readonly("on_end_update",
         [](daq::IPropertyObject *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
-            return objectPtr.getOnEndUpdate().detach();
+            return objectPtr.getOnEndUpdate().getEventPtr().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the Event that is triggered whenever the batch configuration is applied.");
-    */
     cls.def_property_readonly("permission_manager",
         [](daq::IPropertyObject *object)
         {

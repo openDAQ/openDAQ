@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ enum class CoreEventId : uint32_t
     TypeRemoved = 140,
     DeviceDomainChanged = 150,
     DeviceLockStateChanged = 160,
+    ConnectionStatusChanged = 170
 };
 
 /*!@}*/

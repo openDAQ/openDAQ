@@ -64,6 +64,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 InstanceImpl::~InstanceImpl()
 {
     stopAndRemoveServers();
+    rootDevice.remove();
     rootDevice.release();
 }
 
@@ -132,8 +133,11 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers);
 }
 
-void InstanceImpl::stopAndRemoveServers()
+void InstanceImpl::stopAndRemoveServers() const
 {
+    if (rootDevice.isRemoved())
+        return;
+
     for (const auto& server : rootDevice.getServers())
     {
         server.stop();
@@ -294,6 +298,11 @@ ErrCode INTERFACE_FUNC InstanceImpl::getLogFileInfos(IList** logFileInfos)
 ErrCode INTERFACE_FUNC InstanceImpl::getLog(IString** log, IString* id, Int size, Int offset)
 {
     return rootDevice->getLog(log, id, size, offset);
+}
+
+ErrCode InstanceImpl::getConnectionStatusContainer(IComponentStatusContainer** statusContainer)
+{
+    return rootDevice->getConnectionStatusContainer(statusContainer);
 }
 
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
@@ -649,6 +658,16 @@ ErrCode InstanceImpl::getOnPropertyValueWrite(IString* propertyName, IEvent** ev
 ErrCode InstanceImpl::getOnPropertyValueRead(IString* propertyName, IEvent** event)
 {
     return rootDevice->getOnPropertyValueRead(propertyName, event);
+}
+
+ErrCode InstanceImpl::getOnAnyPropertyValueWrite(IEvent** event)
+{
+    return rootDevice->getOnAnyPropertyValueWrite(event);
+}
+
+ErrCode InstanceImpl::getOnAnyPropertyValueRead(IEvent** event)
+{
+    return rootDevice->getOnAnyPropertyValueRead(event);
 }
 
 ErrCode InstanceImpl::beginUpdate()

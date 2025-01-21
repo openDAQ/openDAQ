@@ -326,6 +326,9 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     const auto statusInitValue = Enumeration("StatusType", "Status0", ctx.getTypeManager());
     statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusInitValue);
 
+    const auto connectionStatusInitValue = Enumeration("ConnectionStatusType", "Connected", ctx.getTypeManager());
+    connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnStr", connectionStatusInitValue);
+
     this->objPtr.addProperty(ObjectProperty("ObjectProperty", createMockNestedPropertyObject()));
 
     const auto srv = createWithImplementation<IServer, MockSrvImpl>(ctx, this->template borrowPtr<DevicePtr>(), "srv");

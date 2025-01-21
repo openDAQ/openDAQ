@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -162,6 +162,19 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * default value is 1.
      */
     virtual ErrCode INTERFACE_FUNC getMinReadCount(SizeT* minReadCount) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Set maximum distance between signals in fractions of domain unit
+     * @param offsetTolerance Ratio that define offset tolerance as a fraction of domain unit.
+     */
+    virtual ErrCode INTERFACE_FUNC setTickOffsetTolerance(IRatio* offsetTolerance) = 0;
+
+    /*!
+     * @brief Get maximum distance between signals in fractions of domain unit
+     * @param offsetTolerance[out] Ratio that define offset tolerance as a fraction of domain unit.
+     */
+    virtual ErrCode INTERFACE_FUNC getTickOffsetTolerance(IRatio** offsetTolerance) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, MultiReaderBuilder, IMultiReaderBuilder)

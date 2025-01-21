@@ -17,6 +17,7 @@
 #include <coreobjects/authentication_provider_factory.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
+#include <opendaq/mock/mock_streaming_factory.h>
 
 
 using DeviceTest = testing::Test;
@@ -37,6 +38,8 @@ public:
     {
         auto deviceInfo = daq::DeviceInfo("conn");
         deviceInfo.setName("test");
+        deviceInfo.setManufacturer("test");
+        deviceInfo.setSerialNumber("test");
         deviceInfo.setLocation("test");
         return deviceInfo;
     }
@@ -236,6 +239,8 @@ TEST_F(DeviceTest, SerializeAndDeserialize)
 {
     const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
 
+    dev.setActive(daq::False);
+
     const auto serializer = daq::JsonSerializer(daq::True);
     dev.serialize(serializer);
     const auto str1 = serializer.getOutput();
@@ -253,6 +258,8 @@ TEST_F(DeviceTest, SerializeAndDeserialize)
     ASSERT_EQ(str1, str2);
 
     ASSERT_EQ(newDev.getDevices().getElementInterfaceId(), daq::IDevice::Id);
+
+    ASSERT_FALSE(newDev.getActive());
 }
 
 TEST_F(DeviceTest, BeginUpdateEndUpdate)
@@ -384,4 +391,58 @@ TEST_F(DeviceTest, SerializeLocked)
     ASSERT_THROW(deviceNew.asPtr<daq::IDevicePrivate>().unlock(nullptr), daq::AccessDeniedException);
     deviceNew.asPtr<daq::IDevicePrivate>().unlock(tomaz);
     ASSERT_FALSE(deviceNew.isLocked());
+}
+
+TEST_F(DeviceTest, ConnectionStatusContainer)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    const auto connectionStatusContainer = device.getConnectionStatusContainer();
+
+    ASSERT_TRUE(connectionStatusContainer.assigned());
+}
+
+TEST_F(DeviceTest, SerializeAndDeserializeWithConnectionStatuses)
+{
+    const auto context = daq::NullContext();
+    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(context, nullptr, "dev");
+
+    const auto typeManager = dev.getContext().getTypeManager();
+    const auto statusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
+
+    auto connectionStatusContainer = dev.getConnectionStatusContainer().asPtr<daq::IConnectionStatusContainerPrivate>();
+    connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnStr", statusValue);
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr1", statusValue, daq::MockStreaming("MockStreaming1", context));
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr2", statusValue, daq::MockStreaming("MockStreaming2", context));
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    dev.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = daq::JsonDeserializer();
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "dev");
+
+    const daq::DevicePtr newDev = deserializer.deserialize(str1, deserializeContext, nullptr);
+
+    // TODO streaming statuses are not serialized/deserialized
+    // ASSERT_EQ(newDev.getConnectionStatusContainer().getStatuses(), newDev.getConnectionStatusContainer().getStatuses());
+    // test config status only
+    auto newConnectionStatusContainer = newDev.getConnectionStatusContainer();
+    ASSERT_EQ(newConnectionStatusContainer.getStatuses().getCount(), 1u);
+    ASSERT_EQ(newConnectionStatusContainer.getStatus("ConfigurationStatus"),
+              dev.getConnectionStatusContainer().getStatus("ConfigurationStatus"));
+    ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_1"));
+    ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_2"));
+}
+
+TEST_F(DeviceTest, SerializeAndDeserializeManufacturer)
+{
+    const auto context = daq::NullContext();
+    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(context, nullptr, "dev");
+    
+    const auto serializer = daq::JsonSerializer(daq::True);
+    dev.serialize(serializer);
+    const std::string str1 = serializer.getOutput();
+    ASSERT_EQ(str1.find("manufacturer"), std::string::npos);
+    ASSERT_EQ(str1.find("serialNumber"), std::string::npos);
 }

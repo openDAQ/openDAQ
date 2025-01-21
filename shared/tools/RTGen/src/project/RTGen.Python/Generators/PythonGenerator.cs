@@ -91,7 +91,7 @@ namespace RTGen.Python.Generators
                 includes += "#include \"py_opendaq/py_packet_buffer.h\"";
             }
 
-            if (!string.IsNullOrEmpty(includes))
+                if (!string.IsNullOrEmpty(includes))
                 return includes;
 
             return base.GetIncludes(rtFile);
@@ -286,7 +286,8 @@ namespace RTGen.Python.Generators
                 }
                 else
                 {
-                    var argName = GetAllowNullArgumentName(argument);
+                    var argName = GetPyBind11WrappedName(argument);
+                    argName = GetAllowNullArgumentName(argument, argName);
                     factoryLambda.Append(argName);
                 }
                 if (argumentIndex < factory.Arguments.Length - 1)
@@ -316,12 +317,13 @@ namespace RTGen.Python.Generators
             return factoryLambda.ToString();
         }
 
-        private string GetAllowNullArgumentName(IArgument argument)
+        private string GetAllowNullArgumentName(IArgument argument, string argumentName)
         {
+            var argName = argumentName ?? argument.Name;
             if (argument.AllowNull)
-                return String.Format("{0}.has_value() ? {0}.value() : nullptr", argument.Name);
+                return String.Format("{0}.has_value() ? {0}.value() : nullptr", argName);
             else
-                return argument.Name;
+                return argName;
         }
 
         private string MakeTypeNameOptional(string typeName)
@@ -438,7 +440,7 @@ namespace RTGen.Python.Generators
                     argumentsOut.Add(argument);
                 }
                 else
-                {
+                {                 
                     if (CheckArgumentTypeCouldBeMapped(argument))
                     {
                         argumentsListIn.Add(GenerateVariantForArgument(argument));
@@ -447,7 +449,7 @@ namespace RTGen.Python.Generators
                     else
                     {
                         argumentsListIn.Add(GetPyBind11TypeName(argument) + " " + argument.Name);
-                        argumentsListPass.Add(GetPyBind11WrappedName(argument));
+                            argumentsListPass.Add(GetPyBind11WrappedName(argument));
                     }
                     if (generateArgumentAnnotations)
                     {
@@ -491,6 +493,9 @@ namespace RTGen.Python.Generators
                 // we need to call .toStdString() to return a native string rather than openDAQ object
                 else if (argumentOut.Type.Name == "IString")
                     convertToPython = ".toStdString()";
+                // need to extract pointer from event wrapper
+                else if (argumentOut.Type.Name == "IEvent")
+                    convertToPython = ".getEventPtr().detach()";
                 // objects need to be detached, while integers, booleans, enums etc. shouldn't be
                 else if (!argumentOut.Type.Flags.IsValueType && argumentOut.Type.UnmappedName != "void")
                 {
@@ -513,17 +518,19 @@ namespace RTGen.Python.Generators
             return impl.ToString();
         }
 
-        // TODO: a temporary set of functions that are not properly supported yet
-        private bool isMethodTemporarilyDisabled(IMethod method)
+        private bool isMethodAcceptingIncomingEventArgument(IMethod method)
         {
             foreach (IArgument argument in method.Overloads[0].Arguments)
             {
-                // IEvent is not properly supported yet,
-                // any method involving events doesn't compile yet.
-                if (argument.Type.Name == "IEvent")
+                if (!argument.IsOutParam && argument.Type.Name == "IEvent")
                     return true;
             }
+            return false;
+        }
 
+        //TODO: a temporary set of functions that are not properly supported yet
+        private bool isMethodTemporarilyDisabled(IMethod method)
+        {
             return false;
         }
 
@@ -717,7 +724,13 @@ namespace RTGen.Python.Generators
                     if (isThisAGetterFromAGetSetPair)
                     {
                         methodImpl.Append(GenerateMethodLambda(rtClass, method.GetSetPair.Getter));
-                        methodImpl.Append(GenerateMethodLambda(rtClass, method.GetSetPair.Setter));
+
+                        //skipping IEvents setters
+                        if (isMethodAcceptingIncomingEventArgument(method.GetSetPair.Setter))
+                            methodImpl.AppendLine(leadingSpaces + "nullptr,");
+                        else
+                            methodImpl.Append(GenerateMethodLambda(rtClass, method.GetSetPair.Setter));
+
                         methodImpl.Append(returnValuePolicy);
 
                         // TODO: this should ideally be called as

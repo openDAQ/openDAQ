@@ -49,6 +49,14 @@ auto reader = MultiReader(signals);
 auto reader = MultiReader<double, Int>(signals);
 auto reader = MultiReader(signals, SampleType::Float64, SampleType::Int64);
 ----
+Python::
++
+[source,python]
+----
+# These calls all create the same Reader
+reader = daq.MultiReader(signals)
+reader = daq.MultiReader(signals, daq.SampleType.Float64, daq.SampleType.Int64)
+----
 ====
 
 Developer can set list of Input Ports instead of Signals.
@@ -64,6 +72,14 @@ Cpp::
 auto reader = MultiReaderFromPort(ports);
 auto reader = MultiReaderFromPort<double, Int>(ports);
 auto reader = MultiReaderFromPort(ports, SampleType::Float64, SampleType::Int64);
+----
+Python::
++
+[source,python]
+----
+# These calls all create the same Reader
+reader = daq.MultiReader(ports)
+reader = daq.MultiReader(ports, daq.SampleType.Float64, daq.SampleType.Int64)
 ----
 ====
 
@@ -116,6 +132,24 @@ sig1.sendPacket();
 sig2.sendPacket();
 
 auto available = reader.getAvailableCount(); // 0
+----
+Python::
++
+[source,python]
+----
+sig0 = demoSignal('sig0', '2022-09-27T00:02:03+00:00')
+sig1 = demoSignal('sig1', '2022-09-27T00:02:04+00:00')
+sig2 = demoSignal('sig2', '2022-09-27T00:02:04.123+00:00')
+
+signals = [sig0, sig1, sig2]
+reader = daq.MultiReader(signals)
+
+sendPacketToSignal(sig0, 523, 0)
+sendPacketToSignal(sig1, 732, 0)
+sendPacketToSignal(sig2, 843, 0)
+
+r = reader.read_with_domain(0) # status changed
+avail = reader.available_count # 0 
 ----
 ====
 
@@ -208,6 +242,37 @@ reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
 
 available = reader.getAvailableCount(); // 0
 ----
+Python::
++
+[source,python]
+----
+sig0 = demoSignal('sig0', '2022-09-27T00:02:03+00:00')
+sig1 = demoSignal('sig1', '2022-09-27T00:02:04+00:00')
+sig2 = demoSignal('sig2', '2022-09-27T00:02:04.123+00:00')
+
+signals = [sig0, sig1, sig2]
+reader = daq.MultiReader(signals)
+
+sendPacketToSignal(sig0, 523, 0)
+sendPacketToSignal(sig1, 732, 0)
+sendPacketToSignal(sig2, 843, 0)
+
+r = reader.read_with_domain(0) #status changed
+avail = reader.available_count # 0 
+
+sendPacketToSignal(sig0, 523, 523)
+sendPacketToSignal(sig1, 732, 732)
+sendPacketToSignal(sig2, 843, 843)
+
+sendPacketToSignal(sig0, 523, 1046)
+sendPacketToSignal(sig1, 732, 1446)
+sendPacketToSignal(sig2, 843, 1686)
+
+avail = reader.available_count # 446
+r = reader.read_with_domain(523)
+print(len(r[0][0])) # 446
+avail = reader.available_count # 0
+----
 ====
 
 == Using the Multi-Reader to read time-stamps
@@ -282,6 +347,38 @@ reader.readWithDomain(valuesPerSignal, domainPerSignal, &count);
 
 available = reader.getAvailableCount();  // 0
 ----
+Python::
++
+[source,python]
+----
+sig0 = demoSignal('sig0', '2022-09-27T00:02:03+00:00')
+sig1 = demoSignal('sig1', '2022-09-27T00:02:04+00:00')
+sig2 = demoSignal('sig2', '2022-09-27T00:02:04.123+00:00')
+
+signals = [sig0, sig1, sig2]
+reader = daq.MultiReader(signals)
+timed_reader = daq.TimeMultiReader(reader)
+
+sendPacketToSignal(sig0, 523, 0)
+sendPacketToSignal(sig1, 732, 0)
+sendPacketToSignal(sig2, 843, 0)
+
+r = reader.read_with_domain(0) #status changed
+avail = reader.available_count # 0 
+
+sendPacketToSignal(sig0, 523, 523)
+sendPacketToSignal(sig1, 732, 732)
+sendPacketToSignal(sig2, 843, 843)
+
+sendPacketToSignal(sig0, 523, 1046)
+sendPacketToSignal(sig1, 732, 1446)
+sendPacketToSignal(sig2, 843, 1686)
+
+avail = reader.available_count # 446
+r = timed_reader.read_with_timestamps(523)
+print(len(r[0][0])) # 446
+avail = reader.available_count # 0
+----
 ====
 
 == Creating Mutli-Reader with builder
@@ -309,9 +406,21 @@ builder.addSignal(signal1).addSignal(signal2).addInputPort(port1).addInputPort(p
 builder.setValueReadType(SampleType::Int64);
 builder.setDomainReadType(SampleType::Float64);
 
-// use can use build function for creating reader as well
+// user can use build function for creating reader as well
 // auto reader = builder.build();
 auto reader = MultiReaderFromBuilder(builder);
+----
+Python::
++
+[source,python]
+----
+reader_builder = daq.MultiReaderBuilder()
+reader_builder.add_signal(sig0)
+reader_builder.add_signal(sig1)
+reader_builder.add_signal(sig2)
+reader_builder.value_read_type = daq.SampleType.Float64
+reader_builder.domain_read_type = daq.SampleType.Int64
+built_reader = reader_builder.build()
 ----
 ====
 [NOTE]
@@ -648,6 +757,95 @@ void drawBoxMessage(const std::string& message)
                message,
                20);
 }
+
+----
+Python::
++
+[source,python]
+----
+import opendaq as daq
+import numpy as np
+
+ctx = daq.NullContext()
+
+
+def packetsForSignal(signal, packet_size, offset):
+    signal = daq.ISignal.cast_from(signal)  # ISignalConfig has no getters
+    time_packet = daq.DataPacket(
+        signal.domain_signal.descriptor, packet_size, offset)
+    data_packet = daq.DataPacketWithDomain(
+        time_packet, signal.descriptor, packet_size, 0)
+    raw = np.frombuffer(data_packet.raw_data, np.float64)
+    np.copyto(raw, np.arange(offset, offset + packet_size, dtype=np.float64))
+    return (data_packet, time_packet)
+
+
+def sendPacketToSignal(signal: daq.ISignalConfig, packet_size, offset):
+    signal = daq.ISignal.cast_from(signal)  # ISignalConfig has no getters
+    data, time = packetsForSignal(signal, packet_size, offset)
+    domain = daq.ISignalConfig.cast_from(signal.domain_signal)
+    domain.send_packet(time)
+    signal = daq.ISignalConfig.cast_from(signal)
+    signal.send_packet(data)
+
+
+def demoSignal(id, epoch):
+    signal = daq.Signal(ctx, None, id + '_values', None)
+    domain = daq.Signal(ctx, None, id + '_domain', None)
+
+    vals_desc_bldr = daq.DataDescriptorBuilder()
+    vals_desc_bldr.sample_type = daq.SampleType.Float64
+
+    domain_desc_bldr = daq.DataDescriptorBuilder()
+    domain_desc_bldr.sample_type = daq.SampleType.Int64
+    domain_desc_bldr.tick_resolution = daq.Ratio(1, 1000)
+    domain_desc_bldr.rule = daq.LinearDataRule(1, 0)
+    domain_desc_bldr.unit = daq.Unit(-1, "s", "second", "time")
+    domain_desc_bldr.origin = epoch
+
+    domain.descriptor = domain_desc_bldr.build()
+    signal.descriptor = vals_desc_bldr.build()
+    signal.domain_signal = domain
+    return signal
+
+
+sig0 = demoSignal('sig0', '2022-09-27T00:02:03+00:00')
+sig1 = demoSignal('sig1', '2022-09-27T00:02:04+00:00')
+sig2 = demoSignal('sig2', '2022-09-27T00:02:04.123+00:00')
+
+signals = [sig0, sig1, sig2]
+reader = daq.MultiReader(signals)
+timed_reader = daq.TimeMultiReader(reader)
+
+reader_builder = daq.MultiReaderBuilder()
+reader_builder.add_signal(sig0)
+reader_builder.add_signal(sig1)
+reader_builder.add_signal(sig2)
+reader_builder.value_read_type = daq.SampleType.Float64
+reader_builder.domain_read_type = daq.SampleType.Int64
+built_reader = reader_builder.build()
+
+sendPacketToSignal(sig0, 523, 0)
+sendPacketToSignal(sig1, 732, 0)
+sendPacketToSignal(sig2, 843, 0)
+
+r = reader.read_with_domain(0)  # status changed
+avail = reader.available_count  # 0
+
+
+sendPacketToSignal(sig0, 523, 523)
+sendPacketToSignal(sig1, 732, 732)
+sendPacketToSignal(sig2, 843, 843)
+
+sendPacketToSignal(sig0, 523, 1046)
+sendPacketToSignal(sig1, 732, 1446)
+sendPacketToSignal(sig2, 843, 1686)
+
+avail = reader.available_count
+print(avail)  # 446
+
+rr = timed_reader.read_with_timestamps(523)
+print(len(rr[0][0]))  # 446
 
 ----
 ====

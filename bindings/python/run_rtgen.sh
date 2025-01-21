@@ -32,17 +32,19 @@ function run_rtgen {
 #
 # core types
 #
-core_type_files="
-event_args
-simple_type
-#struct
-struct_type
-type
-#type_manager
-struct_builder
-#enumeration
-#enumeration_type
-"
+core_type_files=(
+# "event"
+# "event_args"
+# "event_handler"
+"simple_type"
+#"struct"
+"struct_type"
+"type"
+#"type_manager"
+"struct_builder"
+#"enumeration"
+#"enumeration_type"
+)
 for file in "${core_type_files[@]}" 
 do
     run_rtgen CoreTypes coretypes coretypes core_types/generated ${file}
@@ -65,6 +67,7 @@ run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_ob
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_object_class_builder
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_object_protected
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_value_event_args
+run_rtgen CoreObjects coreobjects coreobjects core_objects/generated core_event_args
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated validator
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated unit_builder
@@ -102,6 +105,7 @@ run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device      
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info_builder
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info_builder
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           connection_status_container_private
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    channel
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block_type

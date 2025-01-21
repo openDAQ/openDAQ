@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,11 +34,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Enumerations are immutable objects that encapsulate a value within a predefined set of named integral constants.
  * These constants are predefined in an Enumeration type with the same name as the Enumeration.
  *
- * The Enumeration types are stored within a Type manager. In any given instance of openDAQ, a single Type manager should
+ * The Enumeration types are stored within a Type Manager. In any given Instance of openDAQ, a single Type Manager should
  * exist that is part of its Context.
  *
- * When creating an Enumeration object, the Type manager is used to validate the given enumerator value name against the
- * Enumeration type stored within the manager. If no type with the given Enumeration name is currently stored,
+ * When creating an Enumeration object, the Type Manager is used to validate the given enumerator value name against the
+ * Enumeration type stored within the Manager. If no type with the given Enumeration name is currently stored,
  * construction of the Enumeration object will fail. Similarly, if the provided enumerator value name is not part of
  * the Enumeration type, the construction of the Enumeration object will also fail.
  *

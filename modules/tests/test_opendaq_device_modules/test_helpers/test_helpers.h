@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -278,6 +278,18 @@ namespace test_helpers
         return clientInstance;
     }
 
+}
+
+inline void removeDeviceDomainSignal(ListPtr<ISignal>& list)
+{
+    for (size_t i = 0; i < list.getCount(); ++i)
+    {
+        if (list[i].getDescriptor().getName() == "Time")
+        {
+            list.deleteAt(i);
+            break;
+        }
+    }
 }
 
 END_NAMESPACE_OPENDAQ

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,10 @@ inline ComponentDeserializeContextPtr ComponentDeserializeContext(const ContextP
                                                                   const ComponentPtr& root,
                                                                   const ComponentPtr& parent,
                                                                   const StringPtr& localId,
-                                                                  IntfID* id = nullptr)
+                                                                  IntfID* id = nullptr,
+                                                                  const ProcedurePtr& triggerCoreEvent = nullptr)
 {
-    ComponentDeserializeContextPtr obj(ComponentDeserializeContext_Create(context, root, parent, localId, id));
+    ComponentDeserializeContextPtr obj(ComponentDeserializeContext_Create(context, root, parent, localId, id, triggerCoreEvent));
     return obj;
 }
 

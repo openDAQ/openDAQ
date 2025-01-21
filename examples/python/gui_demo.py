@@ -66,6 +66,7 @@ class App(tk.Tk):
         super().__init__()
 
         self.context = AppContext()
+        self.context.on_needs_refresh = lambda: self.on_refresh_event(None)
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
 
         self.context.ui_scaling_factor = int(args.scale)
@@ -144,6 +145,9 @@ class App(tk.Tk):
             os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.init_opendaq()
+        
+        if args.config != '':
+            self._load_config(args.config)
 
     def init_opendaq(self):
 
@@ -207,12 +211,12 @@ class App(tk.Tk):
 
         popup = tk.Menu(tree, tearoff=0)
         popup.add_command(label='Remove')
-        popup.add_command(label='Close')
         popup.add_command(label='Begin update',
                           command=self.handle_begin_update)
         popup.add_command(label='End update', command=self.handle_end_update)
         popup.add_command(label='Lock', command=self.handle_lock)
         popup.add_command(label='Unlock', command=self.handle_unlock)
+        popup.add_command(label='Add Function block', command=self.handle_add_function_block_button_clicked)
         self.tree_popup = popup
 
     def tree_update(self, new_selected_node=None):
@@ -310,7 +314,8 @@ class App(tk.Tk):
             icon = self.context.icons['input_port']
         elif daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
-            # component_name = device.info.name
+            if not utils.is_device_connected(device):
+                component_name = f'{component_name} [disconnected]'
             icon = self.context.icons['device']
         elif daq.IFolder.can_cast_from(component):
             icon = self.context.icons['folder']
@@ -396,8 +401,8 @@ class App(tk.Tk):
         dialog.show()
 
     # MARK: - Add function block dialog
-    def add_function_block_dialog_show(self):
-        dialog = AddFunctionBlockDialog(self, self.context, None)
+    def add_function_block_dialog_show(self, component=None):
+        dialog = AddFunctionBlockDialog(self, self.context, component)
         dialog.show()
 
     # MARK: - Button handlers
@@ -445,17 +450,25 @@ class App(tk.Tk):
             'Remove', state=tk.DISABLED, command=None
         )
         self.tree_popup.entryconfig(
-            'Close', command=self.tree_popup.grab_release)
+            'Add Function block', state=tk.DISABLED)
 
         if iid:
             node = utils.find_component(iid, self.context.instance)
             if node:
-                if daq.IFunctionBlock.can_cast_from(
-                        node) and not daq.IChannel.can_cast_from(node):
-                    if utils.get_nearest_fb(node.parent) is None:
+                if daq.IFunctionBlock.can_cast_from(node):
+                    node = daq.IFunctionBlock.cast_from(node)
+                    if node.available_function_block_types:
+                        self.tree_popup.entryconfig(
+                            'Add Function block', state=tk.NORMAL, command=lambda: self.add_function_block_dialog_show(node))
+                    if not daq.IChannel.can_cast_from(node):
                         self.tree_popup.entryconfig(
                             'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_function_block(node))
                 elif daq.IDevice.can_cast_from(node):
+                    node = daq.IDevice.cast_from(node)
+                    if node.available_function_block_types:
+                        self.tree_popup.entryconfig(
+                            'Add Function block', state=tk.NORMAL, command=lambda: self.add_function_block_dialog_show(node))
+
                     self.tree_popup.entryconfig('Lock', state=tk.ACTIVE)
                     self.tree_popup.entryconfig('Unlock', state=tk.ACTIVE)
 
@@ -573,11 +586,11 @@ class App(tk.Tk):
 
     def handle_tree_select(self, event):
 
-        selected_item = utils.treeview_get_first_selection(self.tree)
-        if selected_item is None:
+        selected_iid = utils.treeview_get_first_selection(self.tree)
+        if selected_iid is None:
             self.context.selected_node = None
             return
-        item = self.tree.item(selected_item)
+        item = self.tree.item(selected_iid)
         # WA for IDs with spaces
         node_unique_id = ' '.join(str(val) for val in item['values'])
         if node_unique_id not in self.context.nodes:
@@ -596,12 +609,13 @@ class App(tk.Tk):
 
         node = daq.IFunctionBlock.cast_from(node)
 
-        device = utils.get_nearest_device(node.parent)
-        if device is None:
-            return
+        # searching nearest fb up the tree
+        # if no parent fb found, then trying to remove from nearest parent device
+        device = utils.get_nearest_device(node.parent, self.context.instance)
+        parent_fb = utils.get_nearest_fb(node.parent, device)
 
-        device.remove_function_block(node)
-        self.context.selected_node = device
+        parent_fb.remove_function_block(node)
+        self.context.selected_node = parent_fb
         self.tree_update(self.context.selected_node)
 
     def handle_tree_menu_remove_device(self, node):
@@ -733,6 +747,17 @@ class App(tk.Tk):
         children = self.tree.get_children(node)
         for child in children:
             self._set_node_lock_status_recursive(child, locked)
+            
+    def _load_config(self, config):
+        file = open(config, "r")
+        if file is None:
+            return
+        config_string = file.read()
+        file.close()
+
+        updata_params = daq.UpdateParameters()
+        self.context.instance.load_configuration(
+            config_string, updata_params)
 
 
 # MARK: - Entry point
@@ -745,6 +770,8 @@ if __name__ == '__main__':
                         help='Connection string', type=str, default='')
     parser.add_argument(
         '--demo', help='Include internal demo/reference devices', action='store_true')
+    parser.add_argument(
+        '--config', help='Saved config', type=str, default='')
 
     app = App(parser.parse_args())
     app.mainloop()

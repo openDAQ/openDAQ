@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,6 +55,7 @@
 #include <opendaq/removable_ptr.h>
 #include <opendaq/component_status_container_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
+#include <opendaq/connection_status_container_private_ptr.h>
 
 #include <opendaq/data_descriptor_factory.h>
 

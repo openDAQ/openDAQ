@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -367,4 +367,13 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::arg("id"), py::arg("size") = -1, py::arg("offset") = 0,
         "Retrieves a chunk of the log file with the provided ID.");
+    cls.def_property_readonly("connection_status_container",
+        [](daq::IDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getConnectionStatusContainer().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the container holding the statuses of device configuration and streaming connections.");
 }

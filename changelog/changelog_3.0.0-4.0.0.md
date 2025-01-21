@@ -1,16 +1,201 @@
-# 26.11.2024
+# 2025-01-21
 ## Description
-- Implement editable device info fields that can be modified by the owner (device).
-- Broadcast modified device info properties via mDNS.
-- Broadcast all device info properties via mDNS.
+- Implementing changeable fields of device info, which are synchronized between server and client.
+- Device info is no longer frozen.
+- Device properties `userName` and `location` are optional and do not exist by default. See integration changes to enable them.
+- mDNS server broadcasts all device info fields.
+- mDNS broadcasts synchronized changeable device info properties.
+- Device info fields are reflected as property types instead of introspection variables via OPC UA (except for `userName` and `location`).
+
+Changeable device info properties are properties that are synchronized between the server and the client. If a property is modified on either side, it will be updated on the other side as well. A changeable property is set to `ReadOnly: false`.
+
+Non-changeable properties of device info are read-only and can only be modified locally using the `setProtectedPropertyValue` method of the `IPropertyObjectProtected` interface. The modification does not update the other side, and these properties can be considered as a local. However, if a non-changeable property is updated on the server side, the client that connects after the modification will receive the latest value of this property.
+
+If the developer is using the mDNS discovery server, the server will broadcast the latest value of the changeable property but will broadcast the last value of the non-changeable property that was set when the mDNS server was registered.
+
+# Example
+To set default device info properties as changeable, use the factory to create Device Info with the list of property names that need to be changeable.
+To enable device properties userName or location, please use the Device Info factory:
+```cpp
+DeviceInfoConfigPtr deviceInfo = DeviceInfoWithChangeableFields({"userName", "location"});
+```
+If the properties `userName` or `location` are changeable, `deviceInfo` will create these properties on the device.
+Custom device info properties are changeable if they are not read-only:
+```cpp
+DeviceInfoConfigPtr deviceInfo = DeviceInfoWithChangeableFields({"userName", "location", "manufacturer"});
+deviceInfo.addProperty(StringPropertyBuilder("CustomChangeableField", "default value").setReadOnly(false).build());
+deviceInfo.addProperty(StringPropertyBuilder("CustomNotChangeableField", "default value").setReadOnly(true).build());
+```
+In the example above, the default properties `userName`, `location`, `manufacturer`, and custom `CustomChangeableField` are changeable. Other default device info properties and the custom property `CustomNotChangeableField` are not changeable.
+
+
+```
++ [factory] DeviceInfoConfigPtr DeviceInfoWithChanegableFields(const ListPtr<IString>& changeableDefaultPropertyNames)
+```
+
+# 2024-12-27
+## Description
+- Rename variables containing (for consistency):
+  - `ComponentErrorState` to `ComponentStatus`
+  - `initComponentErrorStateStatus` to `initComponentStatus`
+  - `setComponentErrorStateStatus` to `setComponentStatus`
+  - `setComponentErrorStateStatusWithMessage` to `setComponentStatusWithMessage`
+- Fix all reference Function Block implementations by using `setComponent` to set the Component Status back to `ComponentStatus::Ok` where necessary (this prevents Function Blocks to be "stuck" on incorrect Component Status when the user resolves the issue that is causing the Warning or the Error)
+  
+## Required integration changes
+- Requires using the renamed methods and enums in Function Block (Component) implementations (see Description)
+
+# 2024-12-05
+## Description
+- Add Component status types to the Type Manager in `context_impl.cpp` ("Ok", "Warning", and "Error")
+- Define `ComponentErrorState`
+- Declare and define `initComponentErrorStateStatus`, `setComponentErrorStateStatus`, and `setComponentErrorStateStatusWithMessage` in `component_impl.h`
+- Add `getStatusMessage` in `component_status_container.h`, and `addStatusWithMessage`, `setStatusWithMessage` in `component_status_container_private.h`, implement all three in `component_status_container_impl.h`
+- Use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage` in all reference Function Blocks
 
 ## Required integration changes
-- In the generic class `Device`, there is a variable `deviceInfo` and a method `getInfo`. The `getInfo` method triggers the virtual method `onGetInfo` if **deviceInfo is not already set**. This process involves registering editable fields and storing the value returned by `onGetInfo` into the deviceInfo variable.
-- For classes inheriting from `Device`, the method `onGetInfo` **should not freeze the device info** prematurely.
-  - Device info will be frozen after attaching editable properties in `Device`.
-  - Freezing the info earlier would prevent custom properties, which are not included in the device info, from being added.
+- None, however, developers of Function Blocks are encouraged to use `initComponentErrorStateStatus` and `setComponentErrorStateStatusWithMessage`
 
-# 25.11.2024
+```
++ [function] IComponentStatusContainer::getStatusMessage(IString* name, IString** message)
++ [function] IComponentStatusContainerPrivate::addStatusWithMessage(IString* name, IEnumeration* initialValue, IString* message)
++ [function] IComponentStatusContainerPrivate::setStatusWithMessage(IString* name, IEnumeration* value, IString* message)
+```
+
+# 2024-12-04
+## Description
+- Module-overridable virtual method `ongetLogFileInfos` has been renamed to `onGetLogFileInfos`
+
+```
+-m [function] ListPtr<ILogFileInfo> Device::ongetLogFileInfos()
++m [function] ListPtr<ILogFileInfo> Device::onGetLogFileInfos()
+```
+
+# 2024-12-04
+## Description
+- Add "Any read/write" events to property object.
+- These events are triggered whenever any property value is read/written.
+
+```
++ [function] IPropertyObject::getOnAnyPropertyValueWrite(IEvent** event)
++ [function] IPropertyObject::getOnAnyPropertyValueRead(IEvent** event)
+```
+
+# 2024-12-03
+## Description
+- Fixed the issue where property values were written before validation.
+## Required integration changes
+
+**Callback Attachment for Property Write**  
+To attach a callback to the property object for handling property writes, use the following pattern:
+```cpp
+propObj.getOnPropertyValueWrite(propName) += (PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+{ 
+    // Your logic here 
+};
+```
+**Additional Notes**:
+- If the property is being updated, the method `getPropertyValue` returns the intermediate value, which can still be overridden in further updates or aborted.
+- If the property is being updated, The method `IPropertyValueEventArgs::getOldValue` inside the callback returns the old property 
+# Example
+```cpp
+// propObj has a property prop1 with default value 100
+// Setting a new property value to 345
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+{
+    assert(obj.getPropertyValue("prop1") == 345); // Value to set
+    assert(arg.getValue() == 345); // Value to set
+    assert(arg.getOldValue() == 100); // Old value
+};
+propObj.setPropertyValue("prop1", 345);
+```
+
+**Ignoring the New Value for a Property**:
+- If you want to ignore setting the new value for a property:
+**Throw an exception in the callback**: This will cancel the property update and propagate the exception to the setPropertyValue call.
+- **Alternatively, skip the update**: Use the following pattern to revert to the old value without throwing an exception:
+```cpp
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+{
+    // Restore by throwing an exeption
+    if ((Int)arg.getValue() < 0)
+        throw OutOfRangeException("prop1 value is negative");
+};
+```
+```cpp
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg) 
+{
+    // Restore value without an throwing exeption
+    if ((Int)arg.getValue() < 0)
+        arg.setValue(arg.getOldValue());
+};
+```
+**Handling Flaky Property Updates**:
+
+When defining a callback for a property (e.g., `prop1`), if you update another property (`prop2`) within the callback and then throw an exception, the changes to `prop1` will be rolled back automatically, meanwhile `prop2` will have a new value
+```cpp
+// prop1 has a default value of 0
+// prop2 has a default value of 0
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+{ 
+    obj.setPropertyValue("prop2", arg.getValue()); // Update prop2
+    if ((int)arg.getValue() < 0) // Validate prop1's value
+        throw OutOfRangeException("prop1 value is negative"); // Abort prop1 update
+};
+
+try 
+{
+    propObj.setPropertyValue("prop1", -1); // This will throw an exception
+} 
+catch (...) 
+{
+    // Exception is handled here
+}
+
+// Ensure property values remain unchanged
+assert(propObj.getPropertyValue("prop1") == 0); // prop1 retains its original value
+assert(propObj.getPropertyValue("prop2") == -1); // prop2 have a new value
+```
+
+```
++ [function] IPropertyValueEventArgs::getOldValue(IBaseObject** value)
+-m[factory] PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
+                                                        const BaseObjectPtr& newValue,
+                                                        PropertyEventType changeType,
+                                                        Bool isUpdating)
++m[factory] PropertyValueEventArgsPtr PropertyValueEventArgs(const PropertyPtr& propChanged,
+                                                        const BaseObjectPtr& newValue,
+                                                        const BaseObjectPtr& oldValue,
+                                                        PropertyEventType changeType,
+                                                        Bool isUpdating)
+```
+
+# 2024-11-28
+## Description
+- Introduces separate container accessible per device for connection statuses
+- Introduces new core event type "ConnectionStatusChanged" to notify when configuration or streaming connection status of the device changed
+    limitations: streaming connections statuses are neither serialized nor propagated through the native configuration protocol
+- daq Context always has TypeManager assigned
+- "ConnectionStatusType" added to TypeManager by default
+- Makes connection status accessible directly from Streaming object
+
+## Required integration changes
+- Breaks binary compatibility
+- Introduces new mechanism for retrieving connection status of the device
+
+```
++ [interface] IConnectionStatusContainerPrivate : public IBaseObject
++ [function] IConnectionStatusContainerPrivate::addConfigurationConnectionStatus(IString* connectionString, IEnumeration* initialValue)
++ [function] IConnectionStatusContainerPrivate::addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IStreaming* streamingObject)
++ [function] IConnectionStatusContainerPrivate::removeStreamingConnectionStatus(IString* connectionString)
++ [function] IConnectionStatusContainerPrivate::updateConnectionStatus(IString* connectionString, IEnumeration* value, IStreaming* streamingObject)
+
++ [function] IDevice::getConnectionStatusContainer(IComponentStatusContainer** statusContainer)
+
++ [function] IStreaming::getConnectionStatus(IEnumeration** connectionStatus)
+```
+
+# 2024-11-25
 ## Description
 - Delete the fields `id`, `name`, and `versionInfo` from the `IModule` interface and add them to the new `IModuleInfo` interface, which is a new field in the `IModule` interface
 - `IModuleInfo` field is also added to `IComponentType` interface
@@ -34,7 +219,7 @@
 - [function] IModule::getId(IVersionInfo** version)
 ```
 
-# 20.11.2024
+# 2024-11-20
 ## Description
 - Support for different client types over the native configuration protocol has been introduced.
 - A ClientType selection property has been added to the general configuration object of the IDevice::addDevice method. Supported values are Control(0), Exclusive Control(1), and View Only(2).
@@ -44,11 +229,11 @@
 ## Required integration changes
 - None. The default client type is Control(0), which is backward-compatible with previous protocol versions.
 
-# 19.11.2024
+# 2024-11-19
 ## Description
 - Raise minimum required config protocol version to 6 for the following device lockign metods: IDevice::lock(), IDevice::unlock(), IDevice::isLocked(Bool* isLockedOut)
 
-# 12.11.2024:
+# 2024-11-12
 ## Description
 - Improved component updates.
 - Removed generation of local ID for client device in instance.
@@ -61,7 +246,7 @@
 + [function] ISignalPrivate::getSignalSerializeId(IString** serializeId)
 ```
 
-# 08.11.2024
+# 2024-11-08
 ## Description
 - Add support for forcefully unlocking a device over native config protocol
 - Native config protocol bumped to version 6
@@ -82,7 +267,7 @@
 + [function] IUserLock::isLocked(Bool* isLockedOut)
 ```
 
-# 29.10.2024:
+# 2024-10-29
 ## Description
 - Implement thread synchronization mechanism in property objects
 - Provides new internal method to allow for recursive locking in onWrite/onRead events via `GenericPropertyObjectImpl::getRecursiveConfigLock()`
@@ -125,14 +310,14 @@
 + [function] IPropertyObjectInternal::setPropertyValueNoLock(IString* name, IBaseObject* value)
 ```
 
-# 8.11.2024
+# 2024-11-08
 ## Description
 - Block Reader, Tail Reader and Stream Reader now skip events by default in Python
 
 ## Required integration changes
 - In Python, you need to explicitly set `skip_events=False` if you don't want to skip the events in Block, Tail and Stream Reader
 
-# 29.10.2024
+# 2024-10-29
 
 ## Description
 - Support creating readers with connected input port
@@ -145,7 +330,7 @@
 + [function] IConnectionInternal::enqueueLastDescriptor()
 ```
 
-# 24.10.2024
+# 2024-10-24
 
 ## Description
 - Add a way to view the server protocol version in server capabilities.
@@ -161,7 +346,7 @@
 + [function] IServerCapabilityConfig::setProtocolVersion(IString* version)
 ```
 
-# 24.10.2024
+# 2024-10-24
 
 ## Description
 - Implement log file info interface
@@ -201,7 +386,7 @@
 + [function] IDevice::getLog(IString** log, IString* id, Int size = -1, Int offset = 0)
 ```
 
-# 21.10.2024
+# 2024-10-21
 
 ## Description
 - Introduce a new Sample Type "Null"
@@ -216,7 +401,7 @@
 + [factory] DataDescriptorPtr NullDataDescriptor()
 ```
 
-# 11.10.2024
+# 2024-10-11
 
 ## Description
 - Add methods in function block to add/remove nested fb
@@ -237,7 +422,7 @@
 + [function] IFunctionBlock::removeFunctionBlock(IFunctionBlock* functionBlock)
 ```
 
-# 10.10.2024
+# 2024-10-10
 
 ## Description
 - Restoring the device while loading the configuration.
@@ -264,7 +449,7 @@
 +m[function] IDevice::loadConfiguration(IString* configuration, IUpdateParameters* config = nullptr)
 ```
 
-# 4.10.2024
+# 2024-10-04
 
 ## Description
 - Adds min read count option to multi reader. Default = 1. Reader will not read less that "min read count". If there are less
@@ -280,21 +465,21 @@ than "min read count" samples in the queue and there's an event after those samp
 +m [factory] MultiReaderPtr MultiReaderEx(const ListPtr<ISignal>& signals, SampleType valueReadType, SampleType domainReadType, ReadMode mode = ReadMode::Scaled, ReadTimeoutType timeoutType = ReadTimeoutType::All, Int requiredCommonSampleRate = -1, bool startOnFullUnitOfDomain = false,  SizeT minReadCount = 1)
 ```
 
-# 03.10.2024
+# 2024-10-03
 
 ## Description
 - Enable concurrent config connections limit for native server using "MaxAllowedConfigConnections" server config property
 - Introduce a new PacketBuffer type ConnectionRejected in the native configuration protocol
 - Native config protocol bumped to version 3
 
-# 03.10.2024
+# 2024-10-03
 
 ## Description
 - Bugfix where onPropertyValueWrite/Read events were available on the native protocol client, but were not fully supported.
 - Said property object events were disabled to reduce probability of misuse.
 - CoreEvents should be used instead of onWrite/Read events where needed.
 
-# 03.10.2024
+# 2024-10-03
 
 ## Description
 - Add support for device locking over native config protocol
@@ -308,7 +493,7 @@ than "min read count" samples in the queue and there's an event after those samp
 
 + [function] IAuthenticationProvider::authenticateAnonymous(IUser** userOut)
 ```
-# 23.09.2024
+# 2024-09-23
 
 ## Description
 - Enable multireader to be manually set inactive to drop data packets
@@ -319,14 +504,14 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IMultiReader::setActive(Bool isActive)
 + [function] IMultiReader::getActive(Bool* isActive)
 ```
-# 11.09.2024
+# 2024-09-11
 
 ## Description
 - Enable client-to-device streaming feature within the Native protocol
 - Introduce a new PacketBuffer type NoReplyRpc in the native configuration protocol
 - Native config protocol bumped to version 2
 
-# 11.09.2024
+# 2024-09-11
 
 ## Description
 - Enable openDAQ servers to be added to the component tree under the device
@@ -348,7 +533,7 @@ than "min read count" samples in the queue and there's an event after those samp
 
 + [function] IModuleManagerUtils::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr)
 ```
-# 28.08.2024
+# 2024-08-28
 
 ## Description
 - Multi reader returns events on first read
@@ -357,7 +542,7 @@ than "min read count" samples in the queue and there's an event after those samp
 - By default creating block reader with signal had skip events true. Now skip events set to false
 - Multi reader is not losing the first connection event packet. With first read, multi reader now returns event packets which were recieved by signal connection
 
-# 28.08.2024
+# 2024-08-28
 
 ## Description
 - Improving save/load mechanism for restoring input ports connection
@@ -374,7 +559,7 @@ than "min read count" samples in the queue and there's an event after those samp
 +m[function] IUpdatable::updateEnded(IBaseObject* context)
 + [function] IUpdatable::updateInternal(ISerializedObject* update, IBaseObject* context)
 ```
-# 26.08.2024
+# 2024-08-26
 
 ## Description
 - Add OPENDAQ_ERR_CONNECTION_LOST error code and ConnectionLostException exception type.
@@ -382,7 +567,7 @@ than "min read count" samples in the queue and there's an event after those samp
 ## Required integration changes
 - None, however, disconnection errors can now be identified by a specific error type.
 
-#  21.08.2024
+# 2024-08-21
 
 ## Description
 - Reference Domain Info was added as an interface that gives additional information about the reference domain
@@ -433,7 +618,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IDataDescriptorBuilder::setReferenceDomainInfo(IReferenceDomainInfo* referenceDomainInfo)
 + [function] IDataDescriptorBuilder::getReferenceDomainInfo(IReferenceDomainInfo** referenceDomainInfo)
 ```
-# 12.08.2024
+# 2024-08-12
 
 ## Description
 - Changed logic of IProperty::getOnPropertyValue events.
@@ -444,7 +629,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IPropertyInternal::getClassOnPropertyValueWriteEvent(IEvent** event)
 + [function] IPropertyInternal::getClassOnPropertyValueReadEvent(IEvent** event)
 ```
-# 12.08.2024
+# 2024-08-12
 
 ## Description
 - Integration the Sync Component
@@ -467,7 +652,7 @@ than "min read count" samples in the queue and there's an event after those samp
 
 + [factory] SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 ```
-# 08.08.2024
+# 2024-08-08
 
 ## Description
 - Add get/setValue method to IProperty
@@ -476,7 +661,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] IProperty::getValue(IBaseObject** value)
 + [function] IProperty::setValue(IBaseObject* value)
 ```
-# 26.07.2024
+# 2024-07-26
 
 ## Description
 - Add method to IPropertyObject to detect begin/end update status
@@ -485,7 +670,7 @@ than "min read count" samples in the queue and there's an event after those samp
 ```
 + [function] IPropertyObject::getUpdating(Bool* updating)
 ```
-# 25.07.2024
+# 2024-07-25
 
 ## Description
 - Add user context to json serializer
@@ -493,7 +678,7 @@ than "min read count" samples in the queue and there's an event after those samp
 + [function] ISerializer::getUser(IBaseObject** user)
 + [function] ISerializer::setUser(IBaseObject* user)
 ```
-# 23.07.2024
+# 2024-07-23
 
 ## Description
 - Reader improvement
@@ -589,7 +774,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IConnection::hasEventPacket(Bool* hasEventPacket)
 + [function] IConnection::hasGapPacket(Bool* hasGapPacket)
 ```
-# 22.07.2024
+# 2024-07-22
 
 ## Description
 - Standardize cases to PascalCase
@@ -626,7 +811,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 - If relying on string comparison to hardcoded old IDs of things like FB, device, server types, or protocol IDs, those comparisons will need to be updated to match the new IDs, eg. a check like `if (fbType.getId() == "ref_fb_module_renderer")` will never be true
 - Old IDs can still be used when adding new objects to a device via `addDevice`/`addFunctionBlock` or similar calls
 
-# 10.07.2024
+# 2024-07-10
 
 ## Description
 - Add address type and address reachability status to server capability
@@ -644,7 +829,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IServerCapabilityConfig::addAddressReachabilityStatus(AddressReachabilityStatus addressReachability)
 + [function] IServerCapabilityConfig::setAddressReachabilityStatus(IList* addressReachability)
 ``` 
-# 04.07.2024
+# 2024-07-04
 
 ## Description
 - Make device connection string prefix mandatory
@@ -661,20 +846,20 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 - [function] IModule::acceptsStreamingConnectionParameters(Bool* accepted, IString* connectionString, IPropertyObject* config = nullptr)
 ```
 
-# 21.06.2024
+# 2024-06-21
 ``` 
 - [function] IDeviceInfoInternal::hasServerCapability(IString* protocolId, Bool* hasCapability)
 + [function] IDeviceInfo::hasServerCapability(IString* protocolId, Bool* hasCapability)
 + [function] IDeviceInfo::getServerCapability(IString* protocolId, IServerCapability** capability)
 ``` 
-# 21.06.2024
+# 2024-06-21
 ``` 
 -m [function] IInstanceBuilder::addDiscoveryService
 +m [function] IInstanceBuilder::addDiscoveryServer
 -m [function] IInstanceBuilder::getDiscoveryServices
 +m [function] IInstanceBuilder::getDiscoveryServers
 ``` 
-# 17.06.2024
+# 2024-06-17
 
 ## Description
 - Add StreamingType object
@@ -694,14 +879,14 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IModuleManagerUtils::getAvailableStreamingTypes(IDict** streamingTypes)
 + [function] IModuleManagerUtils::createDefaultAddDeviceConfig(IDict** streamingTypes)
 ``` 
-# 30.05.2024
+# 2024-05-30
 
 ## Description
 - Supporting reading client's connection info in the deviceInfo
 ```
 + [function] IDeviceInfo::getConfigurationConnectionInfo(IServerCapability** connectionInfo)
 ```
-# 27.05.2024
+# 2024-05-27
 
 ## Description
 - Supporting servers to be discovered by mDNS
@@ -732,7 +917,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
                            const DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>(),
                            const DictPtr<IString, IDiscoveryServer> discoveryServices = Dict<IString, IDiscoveryServer>())
 ``` 
-# 17.05.2024
+# 2024-05-17
 
 ## Description
 - Add ability to manually connect to streaming for device after device added
@@ -746,7 +931,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 
 + [function] IModule::createConnectionString(IString** connectionString, IServerCapability* serverCapability)
 ``` 
-# 16.05.2024
+# 2024-05-16
 
 ## Description
 - Add functions for sending and dequeueing multiple packets
@@ -761,7 +946,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] ErrCode IConnection::enqueueMultipleAndStealRef(IList* packets)
 + [function] ErrCode IConnection::dequeueAll(IList** packets)()
 ``` 
-# 26.04.2024
+# 2024-04-26
 
 ## Description
 - Produce gap packets on request
@@ -772,7 +957,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [factory] EventPacketPtr ImplicitDomainGapDetectedEventPacket(const NumberPtr& diff)
 + [packet] IMPLICIT_DOMAIN_GAP_DETECTED
 ``` 
-# 26.04.2024
+# 2024-04-26
 
 ## Description
 - Clone property object to create default config from type
@@ -784,7 +969,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 -m [factory] ServerTypePtr ServerType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const FunctionPtr& createDefaultConfigCallback = nullptr)
 +m [factory] ServerTypePtr ServerType(const StringPtr& id, const StringPtr& name, const StringPtr& description, const PropertyObjectPtr& defaultConfig = PropertyObject())
 ``` 
-# 25.04.2024
+# 2024-04-25
 
 ## Description
 - Add mirrored device base implementation as a general approach to manage streaming sources for configuration enabled devices
@@ -796,7 +981,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IMirroredDeviceConfig::addStreamingSource(IStreaming* streamingSource)
 + [function] IMirroredDeviceConfig::removeStreamingSource(IString* streamingConnectionString)
 ``` 
-# 23.04.2024
+# 2024-04-23
 
 ## Description
 - Adding addresses in ServerCapability
@@ -804,7 +989,7 @@ m [function] IReaderStatus::getOffset(INumber** offset)
 + [function] IServerCapabilityConfig::addAddress(IString* address)
 + [function] IServerCapability::getAddresses(IList** addresses)
 ``` 
-# 22.04.2024
+# 2024-04-22
 
 ## Description
 - Fix reserved keyword clashes with Delphi bindings

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@
 #include <opendaq/ids_parser.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/mirrored_device_ptr.h>
+#include <opendaq/connection_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -55,18 +57,19 @@ public:
     ErrCode INTERFACE_FUNC removeSignals(IList* signals) override;
     ErrCode INTERFACE_FUNC removeAllSignals() override;
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) const override;
+    ErrCode INTERFACE_FUNC getConnectionStatus(IEnumeration** connectionStatus) override;
 
     // IStreamingPrivate
     ErrCode INTERFACE_FUNC subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
     ErrCode INTERFACE_FUNC unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
     ErrCode INTERFACE_FUNC detachRemovedSignal(const StringPtr& signalRemoteId) override;
+    ErrCode INTERFACE_FUNC setOwnerDevice(const DevicePtr& device) override;
 
 protected:
     void addToAvailableSignals(const StringPtr& signalStreamingId);
     void removeFromAvailableSignals(const StringPtr& signalStreamingId);
 
-    void startReconnection();
-    void completeReconnection();
+    virtual void updateConnectionStatus(const EnumerationPtr& status);
 
     /*!
      * @brief A function called when the active state of the Streaming is changed.
@@ -107,6 +110,8 @@ protected:
     StringPtr connectionString;
     ContextPtr context;
     LoggerComponentPtr loggerComponent;
+    WeakRefPtr<IDevice> ownerDeviceRef;
+    EnumerationPtr connectionStatus;
 
 private:
     /*!
@@ -137,6 +142,9 @@ private:
     ErrCode doUnsubscribeSignal(const StringPtr& signalRemoteId);
     void resubscribeAvailableSignal(const StringPtr& signalStreamingId);
 
+    void startReconnection();
+    void completeReconnection();
+
     bool isActive{false};
     bool isReconnecting{false};
     const bool skipDomainSignalSubscribe;
@@ -152,6 +160,7 @@ StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString, C
     : connectionString(connectionString)
     , context(std::move(context))
     , loggerComponent(this->context.getLogger().getOrAddComponent(fmt::format("Streaming({})", connectionString)))
+    , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
     , skipDomainSignalSubscribe(skipDomainSignalSubscribe)
 {
 }
@@ -380,6 +389,17 @@ ErrCode StreamingImpl<Interfaces...>::getConnectionString(IString** connectionSt
 }
 
 template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::getConnectionStatus(IEnumeration** connectionStatus)
+{
+    OPENDAQ_PARAM_NOT_NULL(connectionStatus);
+
+    std::scoped_lock lock(sync);
+
+    *connectionStatus = this->connectionStatus.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
 ErrCode StreamingImpl<Interfaces...>::doSubscribeSignal(const StringPtr& signalRemoteId)
 {
     std::scoped_lock lock(sync);
@@ -601,6 +621,15 @@ ErrCode StreamingImpl<Interfaces...>::detachRemovedSignal(const StringPtr& signa
 }
 
 template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::setOwnerDevice(const DevicePtr& device)
+{
+    std::scoped_lock lock(sync);
+
+    ownerDeviceRef = device;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
 ErrCode StreamingImpl<Interfaces...>::removeStreamingSourceForAllSignals()
 {
     auto allSignals = List<IMirroredSignalConfig>();
@@ -691,6 +720,29 @@ void StreamingImpl<Interfaces...>::triggerSubscribeAck(const StringPtr& signalSt
             signal.template asPtr<daq::IMirroredSignalPrivate>().subscribeCompleted(connectionString);
         else
             signal.template asPtr<daq::IMirroredSignalPrivate>().unsubscribeCompleted(connectionString);
+    }
+}
+
+template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::updateConnectionStatus(const EnumerationPtr& status)
+{
+    std::scoped_lock lock(sync);
+
+    if (status == "Connected")
+        completeReconnection();
+    else if (status == "Reconnecting")
+        startReconnection();
+
+    connectionStatus = status;
+
+    auto device = this->ownerDeviceRef.assigned() ? this->ownerDeviceRef.getRef() : nullptr;
+    if (device.assigned())
+    {
+        device.getConnectionStatusContainer().template asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatus(
+            this->connectionString,
+            connectionStatus,
+            this->template borrowPtr<StreamingPtr>()
+        );
     }
 }
 
@@ -808,8 +860,6 @@ void StreamingImpl<Interfaces...>::remapUnavailableSignal(const StringPtr& signa
 template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::startReconnection()
 {
-    std::scoped_lock lock(sync);
-
     // consider all signals as unavailable
     for (const auto& signalStreamingId : availableSignalIds)
         remapUnavailableSignal(signalStreamingId);
@@ -821,8 +871,6 @@ void StreamingImpl<Interfaces...>::startReconnection()
 template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::completeReconnection()
 {
-    std::scoped_lock lock(sync);
-
     if (!isReconnecting)
         throw InvalidStateException("Fail to complete reconnection - reconnection was not started");
 

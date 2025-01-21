@@ -282,7 +282,7 @@ StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
     {
         auto retObj = Dict<IString, IBaseObject>();
 
-        const auto obj = deserializer.deserialize(jsonStr, nullptr);
+        const auto obj = deserializer.deserialize(jsonStr, daqContext.getTypeManager());
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         const auto funcName = dictObj.get("Name");
@@ -328,7 +328,7 @@ void ConfigProtocolServer::processNoReplyRpc(const StringPtr& jsonStr)
     StringPtr funcName;
     try
     {
-        const auto obj = deserializer.deserialize(jsonStr, nullptr);
+        const auto obj = deserializer.deserialize(jsonStr, daqContext.getTypeManager());
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         funcName = dictObj.get("Name");
@@ -428,6 +428,23 @@ void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventA
     }
 }
 
+bool ConfigProtocolServer::isForwardedCoreEvent(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
+{
+    const auto coreEventId = static_cast<CoreEventId>(eventArgs.getEventId());
+
+    if (coreEventId == CoreEventId::ConnectionStatusChanged)
+    {
+        if (eventArgs.getParameters().get("StatusName") == "ConfigurationStatus")
+            return true;
+        else
+            return false;
+    }
+    else
+    {
+        return streamingConsumer.isForwardedCoreEvent(component, eventArgs);
+    }
+}
+
 ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
 {
     const auto globalId = component.assigned() ? component.getGlobalId() : "";
@@ -456,6 +473,7 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::TypeRemoved:
         case CoreEventId::DeviceDomainChanged:
         case CoreEventId::DeviceLockStateChanged:
+        case CoreEventId::ConnectionStatusChanged:
         default:
             packedEvent.pushBack(args);
     }

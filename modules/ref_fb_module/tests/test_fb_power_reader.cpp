@@ -23,6 +23,29 @@ static ContextPtr createContext()
     return Context(Scheduler(logger), logger, TypeManager(), nullptr, nullptr);
 }
 
+class PowerReaderTestStatus : public testing::Test
+{
+public:
+    FunctionBlockPtr fb;
+    ContextPtr context;
+
+protected:
+    void SetUp() override
+    {
+        // Create module
+        ModulePtr module;
+        const auto logger = Logger();
+        auto moduleManager = ModuleManager("[[none]]");
+        context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, nullptr);
+        createModule(&module, context);
+        moduleManager.addModule(module);
+        moduleManager = context.asPtr<IContextInternal>().moveModuleManager();
+
+        // Create function block
+        fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "fb");
+    }
+};
+
 class PowerReaderTest : public testing::Test
 {
 protected:
@@ -627,4 +650,64 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
     ASSERT_THAT(time2, testing::ElementsAreArray(expectedTime2));
 
     ctx.getScheduler().stop();
+}
+
+TEST_F(PowerReaderTestStatus, StatisticsStatusOk1)
+{
+    // ComponentStatus is Ok
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+}
+
+TEST_F(PowerReaderTestStatus, StatisticsStatusOk2)
+{
+    // Create signal with descriptor
+    auto signalDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(ExplicitDataRule()).build();
+    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "signal");
+
+    // Create domain signal with descriptor
+    auto domainSignalLinearDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setUnit(Unit("s", -1, "", "time")).setTickResolution(Ratio(1, 10)).setRule(LinearDataRule(1, 3)).build();
+    auto domainSignal = SignalWithDescriptor(context, domainSignalLinearDescriptor, nullptr, "signal");
+
+    // Set domain signal
+    signal.setDomainSignal(domainSignal);
+
+    // Trigger configure
+    fb.getInputPorts()[0].connect(signal);
+    fb.getInputPorts()[1].connect(signal);
+
+    // Incomplete input signal descriptors
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
+}
+
+
+TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
+{
+    // Create signal with descriptor
+    auto signalDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(ExplicitDataRule()).setUnit(Unit("G")).build();
+    auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "signal");
+
+    // Create domain signal with descriptor
+    auto domainSignalLinearDescriptor = DataDescriptorBuilder()
+                                            .setSampleType(SampleType::UInt64)
+                                            .setUnit(Unit("s", -1, "", "time"))
+                                            .setTickResolution(Ratio(1, 10))
+                                            .setRule(LinearDataRule(1, 3))
+                                            .build();
+    auto domainSignal = SignalWithDescriptor(context, domainSignalLinearDescriptor, nullptr, "signal");
+
+    // Set domain signal
+    signal.setDomainSignal(domainSignal);
+
+    // Trigger configure
+    fb.getInputPorts()[0].connect(signal);
+    fb.getInputPorts()[1].connect(signal);
+
+    // Incomplete input signal descriptors
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Failed to set descriptor for power signal: Invalid voltage signal unit");
 }

@@ -608,6 +608,8 @@ TEST_F(ConfigProtocolIntegrationTest, OnWriteReadEvents)
 {
     ASSERT_THROW(clientDevice.getOnPropertyValueWrite("location"), NativeClientCallNotAvailableException);
     ASSERT_THROW(clientDevice.getOnPropertyValueRead("location"), NativeClientCallNotAvailableException);
+    ASSERT_THROW(clientDevice.getOnAnyPropertyValueWrite(), NativeClientCallNotAvailableException);
+    ASSERT_THROW(clientDevice.getOnAnyPropertyValueRead(), NativeClientCallNotAvailableException);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)

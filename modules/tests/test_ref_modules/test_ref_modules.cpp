@@ -15,6 +15,7 @@
 #include "testutils/memcheck_listener.h"
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 
 using RefModulesTest = testing::Test;
 using namespace daq;
@@ -1085,7 +1086,14 @@ TEST_F_UNSTABLE_SKIPPED(RefModulesTest, ClassifierCheckAsyncMultiData)
 
 TEST_F(RefModulesTest, ScalingFbStatuses)
 {
-    const auto instance = Instance();
+    auto loggerSink = LastMessageLoggerSink();
+    loggerSink.setLevel(LogLevel::Warn);
+    auto privateSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+    auto sinks = DefaultSinks(nullptr);
+    sinks.pushBack(loggerSink);
+    auto logger = LoggerWithSinks(sinks);
+
+    const auto instance = InstanceBuilder().addLoggerSink(loggerSink).build();
 
     const auto signal =
         SignalWithDescriptor(instance.getContext(),
@@ -1101,47 +1109,25 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
                              nullptr,
                              "domain_sig");
 
+    // reset messages
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    privateSink.waitForMessage(0);
+
     const auto scalingFb = instance.addFunctionBlock("RefFBModuleScaling");
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Disconnected");
 
-    auto statusTest = [](const char* expectedValue)
-    {
-        return [expectedValue](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
-        {
-            ASSERT_EQ(static_cast<CoreEventId>(args.getEventId()), CoreEventId::StatusChanged);
-            ASSERT_TRUE(args.getParameters().hasKey("InputStatus"));
-            ASSERT_EQ(args.getParameters().get("InputStatus"), expectedValue);
-        };
-    };
+    // ComponentStatus is Ok
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", instance.getContext().getTypeManager()));
 
-    auto connectedStatusTest = statusTest("Connected");
-    auto disconnectedStatusTest = statusTest("Disconnected");
-    auto invalidStatusTest = statusTest("Invalid");
-
-    // incomplete descriptors - domain signal not assigned
-    scalingFb.getOnComponentCoreEvent() += invalidStatusTest;
+    // Incomplete descriptors - domain signal not assigned
     scalingFb.getInputPorts()[0].connect(signal);
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Invalid");
-    scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Error", instance.getContext().getTypeManager()));
+    ASSERT_EQ(scalingFb.getStatusContainer().getStatusMessage("ComponentStatus"),
+              "Failed to set descriptor for output signal: No domain input");
 
-    // complete descriptors, valid signal
-    signal.setDomainSignal(domainSignal);
-    scalingFb.getOnComponentCoreEvent() += connectedStatusTest;
-    scalingFb.getInputPorts()[0].connect(signal);
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Connected");
-    scalingFb.getOnComponentCoreEvent() -= connectedStatusTest;
-
-    scalingFb.getOnComponentCoreEvent() += disconnectedStatusTest;
-    scalingFb.getInputPorts()[0].disconnect();
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Disconnected");
-    scalingFb.getOnComponentCoreEvent() -= disconnectedStatusTest;
-
-    // complete descriptors, wrong sample type
-    signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Binary).build());
-    scalingFb.getOnComponentCoreEvent() += invalidStatusTest;
-    scalingFb.getInputPorts()[0].connect(signal);
-    ASSERT_EQ(scalingFb.getStatusContainer().getStatus("InputStatus"), "Invalid");
-    scalingFb.getOnComponentCoreEvent() -= invalidStatusTest;
+    logger.flush();
+    ASSERT_TRUE(privateSink.waitForMessage(100));
+    ASSERT_EQ(privateSink.getLastMessage(), "Component RefFBModuleScaling_1 status changed to Error with message: Failed to set descriptor for output signal: No domain input");
 }
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceScalingPerformanceTest)

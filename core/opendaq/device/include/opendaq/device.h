@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -348,6 +348,11 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      */
     virtual ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size = -1, Int offset = 0) = 0;
 
+    /*!
+     * @brief Gets the container holding the statuses of device configuration and streaming connections.
+     * @param[out] statusContainer The container for the device connection statuses.
+     */
+    virtual ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) = 0;
 };
 /*!@}*/
 

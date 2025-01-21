@@ -34,6 +34,7 @@ set(SRC_Cpp
     generated/device/py_address_info_builder.cpp
     generated/device/py_log_file_info.cpp
     generated/device/py_log_file_info_builder.cpp
+    generated/device/py_connection_status_container_private.cpp
     generated/functionblock/py_channel.cpp
     generated/functionblock/py_function_block.cpp
     generated/functionblock/py_function_block_type.cpp

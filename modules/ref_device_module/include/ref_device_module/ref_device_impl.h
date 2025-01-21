@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,19 +43,24 @@ public:
     bool allowAddFunctionBlocksFromModules() override;
 
 protected:
-    ListPtr<ILogFileInfo> ongetLogFileInfos() override;
+    ListPtr<ILogFileInfo> onGetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
 private:
+    void createSignals();
     void initClock();
     void initIoFolder();
     void initSyncComponent();
     void initProperties(const PropertyObjectPtr& config);
+    void collectTimeSignalSamples(std::chrono::microseconds curTim);
+    uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
+    void updateSamplesGenerated();
     void acqLoop();
     void updateNumberOfChannels();
     void enableCANChannel();
     void enableProtectedChannel();
     void updateAcqLoopTime();
+    void configureTimeSignal();
     void updateGlobalSampleRate();
     void enableLogging();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
@@ -68,8 +73,10 @@ private:
     std::condition_variable cv;
 
     std::chrono::steady_clock::time_point startTime;
+    std::chrono::microseconds startTimeInMs;
+    std::chrono::microseconds lastCollectTime;
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
-
+    
     std::vector<ChannelPtr> channels;
     ChannelPtr canChannel;
     ChannelPtr protectedChannel;
@@ -85,6 +92,11 @@ private:
 
     bool loggingEnabled;
     StringPtr loggingPath;
+    SignalConfigPtr timeSignal;
+    StringPtr refDomainId;
+    Float globalSampleRate;
+    uint64_t samplesGenerated;
+    uint64_t deltaT;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

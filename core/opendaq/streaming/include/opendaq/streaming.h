@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,10 @@
 #include <opendaq/signal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+/*#
+ * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
+ */
 
 /*!
  * @ingroup opendaq_streamings
@@ -98,6 +102,13 @@ DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
      * @param[out] connectionString The string used to connect to the streaming service.
      */
     virtual ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) const = 0;
+
+    /*!
+     * @brief Retrieves the current status of the streaming connection.
+     * @param[out] connectionStatus The connection status, represented as an enumeration of type "ConnectionStatusType"
+     * with possible values: "Connected", "Reconnecting", or "Unrecoverable".
+     */
+    virtual ErrCode INTERFACE_FUNC getConnectionStatus(IEnumeration** connectionStatus) = 0;
 };
 /*!@}*/
 

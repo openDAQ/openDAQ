@@ -286,7 +286,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 4u);
+    ASSERT_EQ(clientSignals.getCount(), 5u);
 
     ASSERT_EQ(clientSignals[0].getDomainSignal(), clientSignals[1]);
     ASSERT_TRUE(!clientSignals[1].getDomainSignal().assigned());
@@ -295,17 +295,19 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 
     for (size_t i = 0; i < clientSignals.getCount(); ++i)
     {
-        auto serverDataDescriptor = serverSignals[i].getDescriptor();
-        auto clientDataDescriptor = clientSignals[i].getDescriptor();
+        auto serverSignal = serverSignals[i];
+        auto clientSignal = clientSignals[i];
+        auto serverDataDescriptor = serverSignal.getDescriptor();
+        auto clientDataDescriptor = clientSignal.getDescriptor();
 
         ASSERT_EQ(clientDataDescriptor, serverDataDescriptor);
 
-        //ASSERT_EQ(serverSignals[i].getName(), clientSignals[i].getName());
-        ASSERT_EQ(serverSignals[i].getDescription(), clientSignals[i].getDescription());
+        ASSERT_EQ(serverSignal.getName(), clientSignal.getName());
+        ASSERT_EQ(serverSignal.getDescription(), clientSignal.getDescription());
 
-        auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
-        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[i].getGlobalId();
-        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
+        auto mirroredSignalPtr = clientSignal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignal.getGlobalId();
     }
 
     ASSERT_EQ(serverSignals[0].getName(), clientSignals[0].getName());
@@ -405,7 +407,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
 
     std::promise<StringPtr> connectionStatusPromise;
     std::future<StringPtr> connectionStatusFuture = connectionStatusPromise.get_future();
@@ -413,10 +415,16 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
-        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged)
         {
-            ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
-            connectionStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
+            ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
+            EXPECT_TRUE(args.getParameters().get("StatusName").assigned());
+            ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
+            EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.ns://127.0.0.1/");
+            ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
+            EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
+            ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+            connectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
         }
     };
 
@@ -426,7 +434,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     server.release();
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Reconnecting");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Reconnecting");
 
     // reset future / promise
     connectionStatusPromise = std::promise<StringPtr>();
@@ -438,7 +446,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
 
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Connected");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
 
     auto clientSignalsAfterReconnection = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignalsAfterReconnection.getCount(), clientSignalsBeforeDisconnection.getCount());
@@ -471,17 +479,31 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
     auto client = CreateClientInstance();
 
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
 
+    std::promise<StringPtr> connectionOldStatusPromise;
+    std::future<StringPtr> connectionOldStatusFuture = connectionOldStatusPromise.get_future();
     std::promise<StringPtr> connectionStatusPromise;
     std::future<StringPtr> connectionStatusFuture = connectionStatusPromise.get_future();
     client.getDevices()[0].getOnComponentCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
-        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged)
+        {
+            ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
+            EXPECT_TRUE(args.getParameters().get("StatusName").assigned());
+            ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
+            EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.ns://127.0.0.1/");
+            ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
+            EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
+            ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+            connectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
+        }
+        else if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
         {
             ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
-            connectionStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
+            connectionOldStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
         }
     };
 
@@ -510,11 +532,16 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
 
     // destroy server to emulate disconnection
     server.release();
+    ASSERT_TRUE(connectionOldStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(connectionOldStatusFuture.get(), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Reconnecting");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Reconnecting");
 
     // reset future / promise
+    connectionOldStatusPromise = std::promise<StringPtr>();
+    connectionOldStatusFuture = connectionOldStatusPromise.get_future();
     connectionStatusPromise = std::promise<StringPtr>();
     connectionStatusFuture = connectionStatusPromise.get_future();
 
@@ -538,9 +565,12 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
     // re-create server to enable reconnection
     server = CreateServerInstance();
 
+    ASSERT_TRUE(connectionOldStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(connectionOldStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Connected");
-    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
 
     // wait for new subscribe ack before further reading
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
@@ -589,10 +619,15 @@ TEST_F(NativeStreamingModulesTest, AddSignals)
 
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 6u);
+    ASSERT_EQ(clientSignals.getCount(), 7u);
 
-    ASSERT_EQ(clientSignals[4].getDomainSignal(), clientSignals[5]);
-    ASSERT_TRUE(!clientSignals[5].getDomainSignal().assigned());
+    ASSERT_EQ(clientSignals[5].getDomainSignal(), clientSignals[6]);
+    ASSERT_TRUE(!clientSignals[6].getDomainSignal().assigned());
+
+    ASSERT_EQ(serverSignals[6].getDescriptor(), clientSignals[4].getDescriptor());
+
+    removeDeviceDomainSignal(serverSignals);
+    removeDeviceDomainSignal(clientSignals);
 
     for (size_t i = 0; i < clientSignals.getCount(); ++i)
     {
@@ -651,7 +686,7 @@ TEST_F(NativeStreamingModulesTest, RemoveSignals)
     ASSERT_TRUE(clientSignals[3].isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 2u);
+    ASSERT_EQ(clientSignals.getCount(), 3u);
 }
 
 TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
@@ -685,7 +720,7 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
 
     auto server = CreateServerInstance(authenticationProvider);
     auto serverSignals = server.getSignalsRecursive(search::Any());
-    ASSERT_EQ(serverSignals.getCount(), 4u);
+    ASSERT_EQ(serverSignals.getCount(), 5u);
 
     serverSignals[0].getPermissionManager().setPermissions(permissions);
     serverSignals[1].getPermissionManager().setPermissions(permissions);
@@ -693,15 +728,15 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
     {
         auto client = CreateClientInstance("admin", "admin");
         auto clientSignals = client.getSignalsRecursive(search::Any());
-        ASSERT_EQ(clientSignals.getCount(), 4u);
+        ASSERT_EQ(clientSignals.getCount(), 5u);
     }
 
     {
         auto client = CreateClientInstance("opendaq", "opendaq");
         auto clientSignals = client.getSignalsRecursive(search::Any());
-        ASSERT_EQ(clientSignals.getCount(), 2u);
-        ASSERT_EQ(clientSignals[0].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1");
-        ASSERT_EQ(clientSignals[1].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1Time");
+        ASSERT_EQ(clientSignals.getCount(), 3u);
+        ASSERT_EQ(clientSignals[0].getName(), "AI1");
+        ASSERT_EQ(clientSignals[1].getName(), "AI1Time");
     }
 }
 

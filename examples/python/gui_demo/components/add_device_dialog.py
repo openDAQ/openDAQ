@@ -174,14 +174,13 @@ class AddDeviceDialog(Dialog):
                 self.select_parent_device(device.global_id)
                 self.event_port.emit()
             except Exception as e:
-                msg = str(e)
                 utils.show_error('Error adding device', f'{connection_string}: {str(e)}', self)
                 return
 
     def handle_add_device(self):
         config = None
         connection_string = self.conn_string_entry.get()
-        if self.is_add_with_config():
+        if self.is_add_with_config() and connection_string:
             add_config_dialog = AddConfigDialog(
                 self, self.context, connection_string)
             add_config_dialog.show()

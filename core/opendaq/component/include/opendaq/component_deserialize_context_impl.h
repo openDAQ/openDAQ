@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,8 @@ public:
                                            const ComponentPtr& root,
                                            const ComponentPtr& parent,
                                            const StringPtr& localId,
-                                           const IntfID* inftID);
+                                           const IntfID* inftID,
+                                           const ProcedurePtr& triggerCoreEvent = nullptr);
 
 
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
@@ -40,11 +41,13 @@ public:
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getIntfID(IntfID* id) override;
+    ErrCode INTERFACE_FUNC getTriggerCoreEvent(IProcedure** triggerCoreEvent) override;
 
     ErrCode INTERFACE_FUNC clone(IComponent* newParent,
                                  IString* newLocalId,
                                  IComponentDeserializeContext** newComponentDeserializeContext,
-                                 IntfID* newIntfID) override;
+                                 IntfID* newIntfID,
+                                 IProcedure* newTriggerCoreEvent) override;
 
     ErrCode INTERFACE_FUNC queryInterface(const IntfID& intfID, void** obj) override;
     ErrCode INTERFACE_FUNC borrowInterface(const IntfID& intfID, void** obj) const override;
@@ -56,6 +59,7 @@ protected:
     StringPtr localId;
     TypeManagerPtr typeManager;
     std::unique_ptr<IntfID> intfID;
+    ProcedurePtr triggerComponentCoreEvent;
 };
 
 using ComponentDeserializeContextImpl = GenericComponentDeserializeContextImpl<IComponentDeserializeContext>;
@@ -66,12 +70,14 @@ GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::GenericCom
     const ComponentPtr& root,
     const ComponentPtr& parent,
     const StringPtr& localId,
-    const IntfID* intfID)
+    const IntfID* intfID,
+    const ProcedurePtr& triggerCoreEvent)
     : context(context)
     , root(root)
     , parent(parent)
     , localId(localId)
     , typeManager(context.assigned() ? context.getTypeManager() : nullptr)
+    , triggerComponentCoreEvent(triggerCoreEvent)
 {
     if (intfID != nullptr)
         this->intfID = std::make_unique<IntfID>(*intfID);
@@ -129,17 +135,28 @@ ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::ge
     return OPENDAQ_NOTFOUND;
 }
 
+template <class MainInterface, class... Interfaces>
+ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::getTriggerCoreEvent(IProcedure** triggerCoreEvent)
+{
+    OPENDAQ_PARAM_NOT_NULL(triggerCoreEvent);
+
+    *triggerCoreEvent = this->triggerComponentCoreEvent.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
 template <class MainInterface, class ... Interfaces>
 ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::clone(
     IComponent* newParent,
     IString* newLocalId,
     IComponentDeserializeContext** newComponentDeserializeContext,
-    IntfID* newIntfID)
+    IntfID* newIntfID,
+    IProcedure* newTriggerCoreEvent)
 {
     OPENDAQ_PARAM_NOT_NULL(newLocalId);
     OPENDAQ_PARAM_NOT_NULL(newComponentDeserializeContext);
 
-    return createComponentDeserializeContext(newComponentDeserializeContext, context, root, newParent, newLocalId, newIntfID);
+    return createComponentDeserializeContext(newComponentDeserializeContext, context, root, newParent, newLocalId, newIntfID, newTriggerCoreEvent);
 }
 
 template <class MainInterface, class... Interfaces>

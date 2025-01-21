@@ -25,6 +25,7 @@ namespace PowerReader
 PowerReaderFbImpl::PowerReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    initComponentStatus();
     createInputPorts();
     createSignals();
     initProperties();
@@ -68,6 +69,11 @@ void PowerReaderFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("UseCustomOutputRange") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
+    const auto tickOffsetToleranceUsProp = IntProperty("TickOffsetToleranceUs", 0.0);
+    objPtr.addProperty(tickOffsetToleranceUsProp);
+    objPtr.getOnPropertyValueWrite("TickOffsetToleranceUs") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); createReader(); };
+
     readProperties();
 }
 
@@ -88,6 +94,7 @@ void PowerReaderFbImpl::readProperties()
     useCustomOutputRange = objPtr.getPropertyValue("UseCustomOutputRange");
     powerHighValue = objPtr.getPropertyValue("CustomHighValue");
     powerLowValue = objPtr.getPropertyValue("CustomLowValue");
+    tickOffsetToleranceUs = std::chrono::milliseconds(objPtr.getPropertyValue("TickOffsetToleranceUs"));
 }
 
 FunctionBlockTypePtr PowerReaderFbImpl::CreateType()
@@ -197,16 +204,24 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
             this->currentDescriptor = currentDescriptor;
 
         if (this->domainDescriptor == NullDataDescriptor())
+        {
             throw std::runtime_error("Input domain descriptor is not set");
+        }
         if (this->voltageDescriptor == NullDataDescriptor())
+        {
             throw std::runtime_error("Input voltage descriptor is not set");
+        }
+            
         if (this->currentDescriptor == NullDataDescriptor())
+        {
             throw std::runtime_error("Input current descriptor is not set");
+        }
 
-        if (this->voltageDescriptor.assigned() &&
-            this->voltageDescriptor.getUnit().assigned() &&
+        if (this->voltageDescriptor.assigned() && this->voltageDescriptor.getUnit().assigned() &&
             this->voltageDescriptor.getUnit().getSymbol() != "V")
+        {
             throw std::runtime_error("Invalid voltage signal unit");
+        }
 
         const auto powerDataDescriptorBuilder =
             DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("W", -1, "watt", "power"));
@@ -224,10 +239,12 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
 
         powerSignal.setDescriptor(powerDataDescriptor);
         powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to set descriptor for power signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
         reader.setActive(False);
     }
 }
@@ -240,11 +257,17 @@ void PowerReaderFbImpl::createInputPorts()
 
 void PowerReaderFbImpl::createReader()
 {
+    auto tolerance = SimplifiedRatio(tickOffsetToleranceUs.count(), 1'000'000);
+    tolerance = tolerance.simplify();
+
+    reader.release();
+
     reader = MultiReaderBuilder()
         .addInputPort(voltageInputPort)
         .addInputPort(currentInputPort)
         .setDomainReadType(SampleType::Int64)
         .setValueReadType(SampleType::Float64)
+        .setTickOffsetTolerance(tolerance)
         .build();
 
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,13 +47,26 @@ public class OpenDaqException : Exception
     public OpenDaqException(string message) : base(message) { }
     /// <inheritdoc/>
     public OpenDaqException(string message, Exception inner) : base(message, inner) { }
-    /// <inheritdoc/>
-    protected OpenDaqException(System.Runtime.Serialization.SerializationInfo info,
-                               System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
 
     //openDAQ specific constructors
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenDaqException"/> class with a specified error code.
+    /// </summary>
+    /// <param name="errorCode">The error code.</param>
     public OpenDaqException(ErrorCode errorCode) : this(errorCode, null, null) { }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenDaqException"/> class with a specified error code and message.
+    /// </summary>
+    /// <param name="errorCode">The error code.</param>
+    /// <param name="message">The message.</param>
     public OpenDaqException(ErrorCode errorCode, string message) : this(errorCode, message, null) { }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenDaqException"/> class with a specified error code, message
+    /// and a reference to the inner exception that is the cause of this exception.
+    /// </summary>
+    /// <param name="errorCode">The error code.</param>
+    /// <param name="message">The message.</param>
+    /// <param name="inner">The inner exception that is the cause of this exception.</param>
     public OpenDaqException(ErrorCode errorCode, string message, Exception inner) : base(message, inner)
     {
         this._errorCode = errorCode;

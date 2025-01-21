@@ -25,6 +25,7 @@ namespace Classifier
 ClassifierFbImpl::ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    initComponentStatus();
     createInputPorts();
     createSignals();
     initProperties();
@@ -95,7 +96,10 @@ void ClassifierFbImpl::readProperties()
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 
     if (blockSize == 0)
+    {
+        setComponentStatusWithMessage(ComponentStatus::Error, "Classifier property BlockSize must be greater than 0");
         throw InvalidParameterException("Classifier property BlockSize must be greater than 0");
+    }
 
     if (!useCustomClasses)
     {
@@ -103,19 +107,28 @@ void ClassifierFbImpl::readProperties()
     }
     else if (customClassList.empty())
     {
-        LOG_W("Classifier property CustomClassList is empty");
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Classifier property CustomClassList is empty");
     }
     else
     {
         Float lastValue = customClassList[0];
+        bool warning = false;
         for (const auto& el : customClassList)
         {
             if (static_cast<Float>(el) < lastValue)
             {
-                LOG_W("Classifier property CustomClassList is not incremental");
+                warning = true;
                 break;
             }
             lastValue = el;
+        }
+        if (warning)
+        {
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Classifier property CustomClassList is not incremental");
+        }
+        else
+        {
+            setComponentStatus(ComponentStatus::Ok);
         }
     }
 }
@@ -143,33 +156,31 @@ void ClassifierFbImpl::configure()
 {
     if (!inputDataDescriptor.assigned())
     {
-        LOG_D("ClassifierFb: Incomplete input data signal descriptor")
+        setComponentStatusWithMessage(ComponentStatus::Warning, "ClassifierFb: Incomplete input data signal descriptor");
         return;
     }
 
     if (!inputDomainDataDescriptor.assigned())
     {
-        LOG_D("ClassifierFb: Incomplete input domain signal descriptor")
+        setComponentStatusWithMessage(ComponentStatus::Warning, "ClassifierFb: Incomplete input domain signal descriptor");
         return;
     }
 
     try
     {
         if (inputDataDescriptor.getSampleType() == SampleType::Struct || inputDataDescriptor.getDimensions().getCount() > 0)
+        {
             throw std::runtime_error("Incompatible input value data descriptor");
+        }
 
         auto inputSampleType = inputDataDescriptor.getSampleType();
-        if (inputSampleType != SampleType::Float64 &&
-            inputSampleType != SampleType::Float32 &&
-            inputSampleType != SampleType::Int8 &&
-            inputSampleType != SampleType::Int16 &&
-            inputSampleType != SampleType::Int32 &&
-            inputSampleType != SampleType::Int64 &&
-            inputSampleType != SampleType::UInt8 &&
-            inputSampleType != SampleType::UInt16 &&
-            inputSampleType != SampleType::UInt32 &&
+        if (inputSampleType != SampleType::Float64 && inputSampleType != SampleType::Float32 && inputSampleType != SampleType::Int8 &&
+            inputSampleType != SampleType::Int16 && inputSampleType != SampleType::Int32 && inputSampleType != SampleType::Int64 &&
+            inputSampleType != SampleType::UInt8 && inputSampleType != SampleType::UInt16 && inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
+        {
             throw std::runtime_error("Invalid sample type");
+        }
 
         if (inputDomainDataDescriptor.getSampleType() != SampleType::Int64 && inputDomainDataDescriptor.getSampleType() != SampleType::UInt64)
         {
@@ -201,7 +212,9 @@ void ClassifierFbImpl::configure()
             linearBlockCount = blockSize * linearBlockCount / 1000;
 
             if (linearBlockCount == 0)
+            {
                 throw std::runtime_error("Calculation of linearBlockCount failed");
+            }
         }
         else
         {
@@ -249,10 +262,13 @@ void ClassifierFbImpl::configure()
         
         outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).build();
         outputDomainSignal.setDescriptor(outputDomainDataDescriptor);
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        LOG_W("ClassifierFb: Failed to set descriptor for classification signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Error,
+                                      fmt::format("ClassifierFb: Failed to set descriptor for classification signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
 }
@@ -329,7 +345,7 @@ void ClassifierFbImpl::processLinearData(const std::vector<Float>& inputData, co
     auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
     if (labels.getCount() == 0) 
     {
-        LOG_E("Classifier labels are not set correctly");
+        setComponentStatusWithMessage(ComponentStatus::Error, "Classifier labels are not set correctly");
         return;
     }
 
@@ -353,6 +369,8 @@ void ClassifierFbImpl::processLinearData(const std::vector<Float>& inputData, co
 
     outputSignal.sendPacket(outputPacket);
     outputDomainSignal.sendPacket(outputDomainPacket);
+
+    setComponentStatus(ComponentStatus::Ok);
 }
 
 inline UInt ClassifierFbImpl::blockSizeToTimeDuration() 
@@ -378,7 +396,7 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
     auto labels = outputDataDescriptor.getDimensions()[0].getLabels();
     if (labels.getCount() == 0) 
     {
-        LOG_E("Classifier labels are not set correctly");
+        setComponentStatusWithMessage(ComponentStatus::Error, "Classifier labels are not set correctly");
         packetGap = true;
         return;
     }
@@ -422,6 +440,7 @@ void ClassifierFbImpl::processExplicitData(Float inputData, UInt inputDomainData
     outputDomainSignal.sendPacket(outputDomainPacket);
 
     cachedSamples = List<Float>(inputData);
+    setComponentStatus(ComponentStatus::Ok);
 }
 
 void ClassifierFbImpl::createInputPorts()

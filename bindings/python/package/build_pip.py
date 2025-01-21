@@ -42,7 +42,7 @@ def auto_wheel_tag(opendaq_path):
             wheel_tag = 'macosx_10_9_x86_64'
     elif re.search(machine_pattern, opendaq_path):
         if re.search(linux_pattern, opendaq_path):
-            wheel_tag = 'manylinux_2_17_x86_64.manylinux2014_x86_64'
+            wheel_tag = 'manylinux_2_28_x86_64'
         elif re.search(windows_pattern, opendaq_path):
             wheel_tag = 'win_amd64'
     return wheel_tag

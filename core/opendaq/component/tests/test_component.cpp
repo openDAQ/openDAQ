@@ -12,6 +12,8 @@
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/component_exceptions.h>
+#include <opendaq/component_impl.h>
+#include <testutils/testutils.h>
 
 using namespace daq;
 using namespace testing;
@@ -169,6 +171,15 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
     ASSERT_EQ(str1, str2);
 }
 
+TEST_F(ComponentTest, SerializeName)
+{
+    const auto component = Component(NullContext(), nullptr, "Temp");
+    const auto serializer = JsonSerializer(True);
+    component.serialize(serializer);
+    const std::string str = serializer.getOutput();
+    ASSERT_TRUE(str.find("name") != std::string::npos);
+}
+
 TEST_F(ComponentTest, LockedProperties)
 {
     const auto component = Component(NullContext(), nullptr, "Temp");
@@ -243,4 +254,66 @@ TEST_F(ComponentTest, Remove)
     ASSERT_THROW(component.setDescription("ignored"), ComponentRemovedException);
     ASSERT_THROW(component.setVisible(false), ComponentRemovedException);
     ASSERT_THROW(component.setActive(true), ComponentRemovedException);
+}
+
+class MyTestComponent : public ComponentImpl<IComponent>
+{
+public:
+    MyTestComponent(const ContextPtr& context,
+        const ComponentPtr& parent)
+        : ComponentImpl<IComponent>(context, parent, "foo")
+    {
+    }
+
+    void initComponentStatusPublic()
+    {
+        this->initComponentStatus();
+    }
+
+    void setComponentStatusPublic(const ComponentStatus& status)
+    {
+        this->setComponentStatus(status);
+    }
+};
+
+TEST_F(ComponentTest, SetComponentStatusWithoutInit)
+{
+    auto component = createWithImplementation<IComponent, MyTestComponent>(NullContext(), nullptr);
+    auto implPtr = dynamic_cast<MyTestComponent*>(component.getObject());
+
+    ASSERT_THROW_MSG(implPtr->setComponentStatusPublic(ComponentStatus::Error),
+                     NotFoundException,
+                     "ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called before "
+                     "setComponentStatus.")
+}
+
+TEST_F(ComponentTest, InitThenSetComponentStatus)
+{
+    auto component = createWithImplementation<IComponent, MyTestComponent>(NullContext(), nullptr);
+    auto implPtr = dynamic_cast<MyTestComponent*>(component.getObject());
+    auto container = component.getStatusContainer();
+
+    implPtr->initComponentStatusPublic();
+
+    ASSERT_EQ(
+        container.getStatus("ComponentStatus"),
+        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentStatus::Ok), component.getContext().getTypeManager()));
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", component.getContext().getTypeManager()));
+
+    implPtr->setComponentStatusPublic(ComponentStatus::Error);
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"),
+              EnumerationWithIntValue(
+                  "ComponentStatusType", static_cast<Int>(ComponentStatus::Error), component.getContext().getTypeManager()));
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Error", component.getContext().getTypeManager()));
+
+    implPtr->setComponentStatusPublic(ComponentStatus::Warning);
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"),
+              EnumerationWithIntValue(
+                  "ComponentStatusType", static_cast<Int>(ComponentStatus::Warning), component.getContext().getTypeManager()));
+
+    ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", component.getContext().getTypeManager()));
 }

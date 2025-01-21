@@ -22,6 +22,7 @@ namespace FFT
 FFTFbImpl::FFTFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    initComponentStatus();
     initProperties();
     createSignals();
     createInputPorts();
@@ -98,7 +99,9 @@ void FFTFbImpl::configure()
     try
     {
         if (inputDataDescriptor.getSampleType() == SampleType::Struct || inputDataDescriptor.getDimensions().getCount() > 0)
+        {
             throw std::runtime_error("Incompatible input value data descriptor");
+        }
 
         inputSampleType = inputDataDescriptor.getSampleType();
         if (inputSampleType != SampleType::Float64 &&
@@ -111,7 +114,9 @@ void FFTFbImpl::configure()
             inputSampleType != SampleType::UInt16 &&
             inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
+        {
             throw std::runtime_error("Invalid sample type");
+        }
 
         if (inputDomainDataDescriptor.getSampleType() != SampleType::Int64 && inputDomainDataDescriptor.getSampleType() != SampleType::UInt64)
         {
@@ -170,10 +175,11 @@ void FFTFbImpl::configure()
         fftOut.resize(blockSize);
 
         configValid = true;
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        LOG_W("FFT: Failed to set descriptor for signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("FFT: Failed to set descriptor for signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
 }

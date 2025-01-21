@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,8 +49,14 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
     void makeSignalAvailable(const daq::StringPtr& signalStreamingId) override { addToAvailableSignals(signalStreamingId); }
     void makeSignalUnavailable(const daq::StringPtr& signalStreamingId) override { removeFromAvailableSignals(signalStreamingId); }
 
-    void triggerReconnectionStart() override { startReconnection(); }
-    void triggerReconnectionCompletion() override { completeReconnection(); }
+    void triggerReconnectionStart() override
+    {
+        updateConnectionStatus(Enumeration("ConnectionStatusType", "Reconnecting", this->context.getTypeManager()));
+    }
+    void triggerReconnectionCompletion() override
+    {
+        updateConnectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()));
+    }
 
     daq::MirroredSignalConfigPtr signal;
 

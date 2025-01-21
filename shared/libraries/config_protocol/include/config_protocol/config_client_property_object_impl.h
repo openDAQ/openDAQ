@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,8 @@ public:
     ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IString* propertyName, IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) override;
+    ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) override;
+    ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) override;
     ErrCode INTERFACE_FUNC getVisibleProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
     ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
@@ -218,25 +220,24 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    return daqTry(
-        [this, &propertyNamePtr, &value]()
+    return daqTry([this, &propertyNamePtr, &value]
+    {
+        // TODO: Refactor this
+        PropertyPtr prop;
+        checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
+        if (clientComm->getConnected() && (prop.getValueType() == ctFunc || prop.getValueType() == ctProc))
         {
-            // TODO: Refactor this
-            PropertyPtr prop;
-            checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
-            if (clientComm->getConnected() && (prop.getValueType() == ctFunc || prop.getValueType() == ctProc))
-            {
-                bool setValue;
-                auto v = getValueFromServer(propertyNamePtr, setValue);
+            bool setValue;
+            auto v = getValueFromServer(propertyNamePtr, setValue);
 
-                if (setValue)
-                    Impl::setPropertyValue(propertyNamePtr, v);
-                *value = v.detach();
-                return OPENDAQ_SUCCESS;
-            }
+            if (setValue)
+                Impl::setPropertyValue(propertyNamePtr, v);
+            *value = v.detach();
+            return OPENDAQ_SUCCESS;
+        }
 
-            return Impl::getPropertyValue(propertyNamePtr, value);
-        });
+        return Impl::getPropertyValue(propertyNamePtr, value);
+    });
 }
 
 template <class Impl>
@@ -290,13 +291,25 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* proper
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* propertyName, IEvent** event)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* /*propertyName*/, IEvent** /*event*/)
 {
     return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* propertyName, IEvent** event)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* /*propertyName*/, IEvent** /*event*/)
+{
+    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueWrite(IEvent** /*event*/)
+{
+    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueRead(IEvent** /*event*/)
 {
     return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
 }
@@ -626,7 +639,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
         const auto deserializer = JsonDeserializer();
 
         const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
-            this->clientComm, this->remoteGlobalId, nullptr, nullptr, nullptr, nullptr, nullptr, this->manager.getRef());
+            this->clientComm, this->remoteGlobalId, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, this->manager.getRef());
 
         const PropertyObjectPtr clientPropObj =
             deserializer.deserialize(serializer.getOutput(),

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,9 +33,15 @@ public:
     std::shared_ptr<daq::opendaq_native_streaming_protocol::NativeStreamingClientHandler> clientHandler;
     daq::ContextPtr clientContext;
 
+    std::promise< daq::EnumerationPtr > connectionStatusPromise;
+    std::future< daq::EnumerationPtr > connectionStatusFuture;
+
     void setUp()
     {
         clientContext = NullContext(Logger(nullptr, daq::LogLevel::Trace));
+
+        connectionStatusPromise = std::promise< daq::EnumerationPtr >();
+        connectionStatusFuture = connectionStatusPromise.get_future();
     }
 
     void tearDown()

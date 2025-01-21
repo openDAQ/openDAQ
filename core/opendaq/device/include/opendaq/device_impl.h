@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,8 @@
 #include <coreobjects/user_internal_ptr.h>
 #include <opendaq/device_private_ptr.h>
 #include <opendaq/user_lock_factory.h>
+#include <opendaq/connection_status_container_private_ptr.h>
+#include <opendaq/connection_status_container_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -102,6 +104,7 @@ public:
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
     ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) override;
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
+    ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -149,6 +152,7 @@ protected:
     PropertyObjectPtr deviceConfig;
     bool isRootDevice;
     UserLockPtr userLock;
+    ConnectionStatusContainerPrivatePtr connectionStatusContainer;
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
@@ -194,7 +198,7 @@ protected:
     virtual ServerPtr onAddServer(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveServer(const ServerPtr& server);
 
-    virtual ListPtr<ILogFileInfo> ongetLogFileInfos();
+    virtual ListPtr<ILogFileInfo> onGetLogFileInfos();
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
     DevicePtr getParentDevice();
 
@@ -225,6 +229,13 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
                                                            : throw ArgumentNullException("Logger must not be null"))
     , isRootDevice(false)
     , userLock(UserLock())
+    , connectionStatusContainer(createWithImplementation<IConnectionStatusContainerPrivate, ConnectionStatusContainerImpl>(
+          this->context,
+          [&](const CoreEventArgsPtr& args)
+          {
+              if (!this->coreEventMuted)
+                  this->triggerCoreEvent(args);
+          }))
 
 {
     this->defaultComponents.insert("Dev");
@@ -905,7 +916,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLocked(Bool* locked)
 }
 
 template <typename TInterface, typename... Interfaces>
-ListPtr<ILogFileInfo> GenericDevice<TInterface, Interfaces...>::ongetLogFileInfos()
+ListPtr<ILogFileInfo> GenericDevice<TInterface, Interfaces...>::onGetLogFileInfos()
 {
     return List<ILogFileInfo>();
 }
@@ -916,7 +927,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getLogFileInfos(IList** logFil
     OPENDAQ_PARAM_NOT_NULL(logFileInfos);
 
     ListPtr<ILogFileInfo> logFileInfosPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::ongetLogFileInfos, logFileInfosPtr);
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetLogFileInfos, logFileInfosPtr);
 
     *logFileInfos = logFileInfosPtr.detach();
     return errCode;
@@ -967,6 +978,17 @@ ListPtr<IChannel> GenericDevice<TInterface, Interfaces...>::getChannelsRecursive
         chList.pushBack(ch);
 
     return chList;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getConnectionStatusContainer(IComponentStatusContainer** statusContainer)
+{
+    OPENDAQ_PARAM_NOT_NULL(statusContainer);
+
+    auto ret = this->connectionStatusContainer.template asPtr<IComponentStatusContainer>();
+    *statusContainer = ret.detach();
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1480,7 +1502,9 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
             auto manufacturer = deviceInfo.getManufacturer();
             auto serialNumber = deviceInfo.getSerialNumber();
-            if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
+            bool isRemote = deviceInfo.getServerCapabilities().getCount();
+
+            if (isRemote && manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
             {
                 serializer.key("manufacturer");
                 serializer.writeString(manufacturer);
@@ -1505,6 +1529,12 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     serializer.key("UserLock");
     userLock.serialize(serializer);
+
+    if (connectionStatusContainer.asPtr<IComponentStatusContainer>().getStatuses().getCount() > 0)
+    {
+        serializer.key("connectionStatuses");
+        connectionStatusContainer.serialize(serializer);
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1562,6 +1592,10 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
             for (const auto& availableDevice : onGetAvailableDevices())
             {
+                const auto capabilities = availableDevice.getServerCapabilities();
+                if (!capabilities.assigned() || !capabilities.getCount())
+                    continue;
+
                 Bool deviceFound = false;
                 availableDevice.getManufacturer()->equals(manufacturer, &deviceFound);
                 if (!deviceFound)
@@ -1663,6 +1697,22 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
         this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Synchronization");
     }
 
+    if (serializedObject.hasKey("connectionStatuses"))
+    {
+        const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+        auto intfID = deserializeContext.getIntfID();
+        const auto triggerCoreEvent = [this](const CoreEventArgsPtr& args)
+        {
+            if (!this->coreEventMuted)
+                this->triggerCoreEvent(args);
+        };
+        const auto clonedDeserializeContext = deserializeContext.clone(deserializeContext.getParent(),
+                                                                    deserializeContext.getLocalId(),
+                                                                    &intfID,
+                                                                    triggerCoreEvent);
+        connectionStatusContainer = serializedObject.readObject("connectionStatuses", clonedDeserializeContext, factoryCallback);
+    }
+
     if (serializedObject.hasKey("UserLock"))
         userLock = serializedObject.readObject("UserLock", context);
     else
@@ -1737,6 +1787,9 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     {
         deviceDomain = obj.readObject("deviceDomain");
     }
+
+    if (obj.hasKey("UserLock"))
+        userLock = obj.readObject("UserLock", context);
 }
 
 template <typename TInterface, typename... Interfaces>

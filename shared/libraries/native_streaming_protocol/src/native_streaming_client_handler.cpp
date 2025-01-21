@@ -80,7 +80,7 @@ void NativeStreamingClientImpl::resetStreamingHandlers()
     this->signalUnavailableHandler = [](const StringPtr&) {};
     this->packetHandler = [](const StringPtr&, const PacketPtr&) {};
     this->signalSubscriptionAckCallback = [](const StringPtr&, bool) {};
-    this->connectionStatusChangedStreamingCb = [](ClientConnectionStatus) {};
+    this->connectionStatusChangedStreamingCb = [](const EnumerationPtr&) {};
     this->streamingInitDoneCb = []() {};
 }
 
@@ -101,7 +101,7 @@ void NativeStreamingClientImpl::setStreamingHandlers(const OnSignalAvailableCall
 
 void NativeStreamingClientImpl::resetConfigHandlers()
 {
-    this->connectionStatusChangedConfigCb = [](ClientConnectionStatus) {};
+    this->connectionStatusChangedConfigCb = [](const EnumerationPtr&) {};
     this->configPacketHandler = [](config_protocol::PacketBuffer&&) {};
 }
 
@@ -123,11 +123,11 @@ void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::err
         ConnectionResult result = connectedFuture.get();
         if (result == ConnectionResult::Connected)
         {
-            connectionStatusChanged(ClientConnectionStatus::Connected);
+            connectionStatusChanged(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()));
         }
         else if (result == ConnectionResult::ServerUnsupported)
         {
-            connectionStatusChanged(ClientConnectionStatus::Unrecoverable);
+            connectionStatusChanged(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()));
         }
         else
         {
@@ -157,7 +157,7 @@ void NativeStreamingClientImpl::tryReconnect()
     client->connect(connectionTimeout);
 }
 
-void NativeStreamingClientImpl::connectionStatusChanged(ClientConnectionStatus status)
+void NativeStreamingClientImpl::connectionStatusChanged(const EnumerationPtr& status)
 {
     connectionStatusChangedStreamingCb(status);
     connectionStatusChangedConfigCb(status);
@@ -256,7 +256,7 @@ void NativeStreamingClientImpl::onSessionError(const std::string& errorMessage, 
     sessionHandler.reset();
     packetStreamingServerPtr.reset();
 
-    connectionStatusChanged(ClientConnectionStatus::Reconnecting);
+    connectionStatusChanged(Enumeration("ConnectionStatusType", "Reconnecting", this->context.getTypeManager()));
     transportLayerProperties.setPropertyValue("Reconnected", True);
     tryReconnect();
 }
@@ -398,8 +398,14 @@ void NativeStreamingClientImpl::initClient(std::string host,
         [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
-            thisPtr->onConnectionFailed(fmt::format("Handshake failed: {}", ec.message()),
-                                        ConnectionResult::ServerUnsupported);
+        {
+            if (ec.value() == boost::asio::error::connection_reset)
+                thisPtr->onConnectionFailed(fmt::format("Handshake failed (server reset the connection): {}", ec.message()),
+                                            ConnectionResult::ServerUnreachable);
+            else
+                thisPtr->onConnectionFailed(fmt::format("Handshake failed: {}", ec.message()),
+                                            ConnectionResult::ServerUnsupported);
+        }
     };
     LogCallback logCallback =
         [thisWeakPtr = this->weak_from_this()](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg)

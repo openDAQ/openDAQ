@@ -16,8 +16,8 @@ This project contains the .NET-Bindings to the _openDAQ_ SDK.
 
 
 ## Development environment
-- Visual Studio 2022 (V17.11.x)  
-- TargetFramework: net6.0  
+- Visual Studio 2022 (V17.12.x)  
+- TargetFramework: net8.0  
 - Platform: x64  
 - Language: C#  
 - Test-framework: NUnit  
@@ -199,4 +199,4 @@ patterns allowed as displayed).
 - The pattern `x\**` means that all subdirectories and files behind `x` will be searched
   and excluded.  
 
-_<sub>Last changed on 2024-10-22 &copy; 2024 by openDAQ d.o.o.</sub>_
+_<sub>Last changed on 2024-10-22 &copy; 2025 by openDAQ d.o.o.</sub>_

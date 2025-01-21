@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,6 +55,7 @@ struct MockDevice : MockGenericSignalContainer<MockDevice, IDevice>
     MOCK_METHOD(ErrCode, isLocked, (Bool*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getLogFileInfos, (IList**), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getLog, (IString**, IString*, Int, Int), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, getConnectionStatusContainer, (IComponentStatusContainer** statusContainer), (override MOCK_CALL));
 };
 
 END_NAMESPACE_OPENDAQ

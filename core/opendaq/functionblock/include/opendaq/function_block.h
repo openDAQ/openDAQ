@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,13 +110,13 @@ DECLARE_OPENDAQ_INTERFACE(IFunctionBlock, IFolder)
 
     // [templateType(functionBlockTypes, IString, IFunctionBlockType)]
     /*!
-     * @brief Gets all neasted function block types that are supported, containing their description.
+     * @brief Gets all nested function block types that are supported, containing their description.
      * @param[out] functionBlockTypes A dictionary of available function block types.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) = 0;
 
     /*!
-     * @brief Creates and adds a function block as the neasted of current function block with the provided unique ID and returns it.
+     * @brief Creates and adds a function block as the nested of current function block with the provided unique ID and returns it.
      * @param[out] functionBlock The added function block.
      * @param typeId The unique ID of the function block. Can be obtained from its corresponding Function Block Info
      * object.

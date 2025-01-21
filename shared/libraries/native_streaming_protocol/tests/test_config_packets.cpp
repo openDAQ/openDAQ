@@ -99,9 +99,6 @@ public:
     ProcessConfigProtocolPacketCb configProtocolPacketHandler;
     OnConnectionStatusChangedCallback connectionStatusChangedHandler;
 
-    std::promise< ClientConnectionStatus > connectionStatusPromise;
-    std::future< ClientConnectionStatus > connectionStatusFuture;
-
     void setUp()
     {
         ClientAttributesBase::setUp();
@@ -121,9 +118,7 @@ public:
             configProtocolHandler->receivePacket(std::move(packetBuffer));
         };
 
-        connectionStatusPromise = std::promise< ClientConnectionStatus >();
-        connectionStatusFuture = connectionStatusPromise.get_future();
-        connectionStatusChangedHandler = [this](ClientConnectionStatus status)
+        connectionStatusChangedHandler = [this](const EnumerationPtr& status)
         {
             connectionStatusPromise.set_value(status);
         };
@@ -223,9 +218,9 @@ TEST_P(ConfigPacketsTest, Reconnection)
     stopServer();
 
     ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-    ASSERT_EQ(client.connectionStatusFuture.get(), ClientConnectionStatus::Reconnecting);
+    ASSERT_EQ(client.connectionStatusFuture.get(), "Reconnecting");
 
-    client.connectionStatusPromise = std::promise< ClientConnectionStatus >();
+    client.connectionStatusPromise = std::promise< EnumerationPtr >();
     client.connectionStatusFuture = client.connectionStatusPromise.get_future();
 
     configProtocolTriggeredPromise = std::promise< void > ();
@@ -234,11 +229,11 @@ TEST_P(ConfigPacketsTest, Reconnection)
     startServer();
 
     ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-    ASSERT_EQ(client.connectionStatusFuture.get(), ClientConnectionStatus::Connected);
+    ASSERT_EQ(client.connectionStatusFuture.get(), "Connected");
     triggerConfigProtocolSetUp();
     ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 
-    client.connectionStatusPromise = std::promise< ClientConnectionStatus >();
+    client.connectionStatusPromise = std::promise< EnumerationPtr >();
     client.connectionStatusFuture = client.connectionStatusPromise.get_future();
 }
 

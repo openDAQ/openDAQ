@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -268,7 +268,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     if (replyPacketBuffer.getPacketType() == PacketType::ConnectionRejected)
         clientComm->parseRpcOrRejectReply(replyPacketBuffer.parseConnectionRejectedReply(), nullptr);
 
-    const std::set<uint16_t> supportedClientVersions = std::move(GetSupportedConfigProtocolVersions());
+    const std::set<uint16_t> supportedClientVersions = GetSupportedConfigProtocolVersions();
 
     uint16_t currentVersion;
     std::set<uint16_t> supportedServerVersions;

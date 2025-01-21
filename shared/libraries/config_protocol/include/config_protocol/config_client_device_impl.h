@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ public:
     void onRemoveDevice(const DevicePtr& device) override;
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
 
-    ListPtr<ILogFileInfo> ongetLogFileInfos() override;
+    ListPtr<ILogFileInfo> onGetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
     ErrCode INTERFACE_FUNC lock(IUser* user) override;
@@ -74,6 +74,7 @@ private:
     void componentRemoved(const CoreEventArgsPtr& args);
     void deviceDomainChanged(const CoreEventArgsPtr& args);
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
+    void connectionStatusChanged(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -179,7 +180,7 @@ PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAdd
 }
 
 template <class TDeviceBase>
-ListPtr<ILogFileInfo> GenericConfigClientDeviceImpl<TDeviceBase>::ongetLogFileInfos()
+ListPtr<ILogFileInfo> GenericConfigClientDeviceImpl<TDeviceBase>::onGetLogFileInfos()
 {
     return this->clientComm->getLogFileInfos(this->remoteGlobalId);
 }
@@ -264,6 +265,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
             break;
         case CoreEventId::DeviceLockStateChanged:
             deviceLockStatusChanged(args);
+            break;
+        case CoreEventId::ConnectionStatusChanged:
+            connectionStatusChanged(args);
             break;
         case CoreEventId::PropertyValueChanged:
         case CoreEventId::PropertyObjectUpdateEnd:
@@ -409,6 +413,22 @@ inline void GenericConfigClientDeviceImpl<TDeviceBase>::deviceLockStatusChanged(
 
     if (isLocked)
         this->userLock.lock();
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::connectionStatusChanged(const CoreEventArgsPtr& args)
+{
+    ComponentStatusContainerPtr connectionStatusContainer;
+    checkErrorInfo(TDeviceBase::getConnectionStatusContainer(&connectionStatusContainer));
+    const auto parameters = args.getParameters();
+    const StringPtr connectionString = parameters.get("ConnectionString");
+    const StringPtr statusName = parameters.get("StatusName");
+    const EnumerationPtr value = parameters.get("StatusValue");
+    const auto addedStatuses = connectionStatusContainer.getStatuses();
+
+    // ignores status change if it was not added initially
+    if (addedStatuses.hasKey(statusName))
+        connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatus(connectionString, value, nullptr);
 }
 
 }

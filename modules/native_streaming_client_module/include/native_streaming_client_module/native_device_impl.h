@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public:
     void closeConnectionOnRemoval();
 
 private:
-    void connectionStatusChangedHandler(opendaq_native_streaming_protocol::ClientConnectionStatus status);
+    void connectionStatusChangedHandler(const EnumerationPtr& status);
     config_protocol::PacketBuffer doConfigRequestAndGetReply(const config_protocol::PacketBuffer& reqPacket);
     void doConfigNoReplyRequest(const config_protocol::PacketBuffer& reqPacket);
     void sendConfigRequest(const config_protocol::PacketBuffer& reqPacket);
@@ -83,7 +83,7 @@ private:
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;
-    opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
+    EnumerationPtr connectionStatus;
     bool acceptNotificationPackets;
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
@@ -93,7 +93,7 @@ private:
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
-    virtual void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) = 0;
+    virtual void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status) = 0;
     virtual void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) = 0;
     virtual void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) = 0;
 };
@@ -112,7 +112,7 @@ public:
     ~NativeDeviceImpl() override;
 
     // INativeDevicePrivate
-    void INTERFACE_FUNC publishConnectionStatus(ConstCharPtr statusValue) override;
+    void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status) override;
     void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 
@@ -123,7 +123,6 @@ protected:
     void removed() override;
 
 private:
-    void initStatuses();
     void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);
 
     std::shared_ptr<NativeDeviceHelper> deviceHelper;

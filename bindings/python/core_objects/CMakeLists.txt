@@ -17,6 +17,7 @@ set(SRC_Cpp
     generated/py_property_object_class_builder.cpp
     generated/py_property_object_protected.cpp
     generated/py_property_value_event_args.cpp
+    generated/py_core_event_args.cpp
     generated/py_validator.cpp
     generated/py_unit.cpp
     generated/py_unit_builder.cpp

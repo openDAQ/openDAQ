@@ -17,7 +17,7 @@ while also embracing existing standards such as MQTT and XCP via Ethernet.
 
 ## Features
 
-- Simple connection to openDAQ-enabled devices, allowing for property visualisation/configuration and data streaming.
+- Simple connection to openDAQ-enabled devices, allowing for property visualization/configuration and data streaming.
 - Simple integration of existing data acquisition devices into the openDAQ ecosystem.
 - SDK that runs the same code on both the device (server) and application (client).
 - Signal processing framework that allows for implementation of custom data processing blocks that run on any SDK instance (device or application).
@@ -126,16 +126,16 @@ documentation can be built with Antora by following the guide found in [docs/Ant
 
 ### Required tools before building
 
- - CMake 3.24 or higher: https://cmake.org/ (might come with development environment like Visual Studio)
- - Git: https://git-scm.com/
- - Compiler:
-   - (msvc) Visual Studio 2017 or higher with installed Workload for C++
-   - (gcc windows) MSYS2: http://www.msys2.org, https://github.com/msys2/msys2/wiki/MSYS2-installation
-   - (gcc) Ninja build system: https://ninja-build.org/
-   - Python3: https://www.python.org/downloads/
- - (optional) Boost C++ Library: https://sourceforge.net/projects/boost/files/boost-binaries/ , http://theboostcpplibraries.com
-   - If installed, set CMake option `OPENDAQ_ALWAYS_FETCH_BOOST=OFF` to allow the SDK to use it.
-   - See also document [BUILD.md](BUILD.md).
+- CMake 3.24 or higher: https://cmake.org/ (might come with development environment like Visual Studio)
+- Git: https://git-scm.com/
+- Compiler:
+  - (msvc) Visual Studio 2017 or higher with installed Workload for C++
+  - (gcc windows) MSYS2: http://www.msys2.org, https://github.com/msys2/msys2/wiki/MSYS2-installation
+  - (gcc) Ninja build system: https://ninja-build.org/
+  - Python3: https://www.python.org/downloads/
+- (optional) Boost C++ Library: https://sourceforge.net/projects/boost/files/boost-binaries/ , http://theboostcpplibraries.com
+  - If installed, set CMake option `OPENDAQ_ALWAYS_FETCH_BOOST=OFF` to allow the SDK to use it.
+  - See also document [BUILD.md](BUILD.md).
    
 ### Building on Windows
 
@@ -168,7 +168,7 @@ cmake --preset "x64/msvc-22/full"
 
 #### 4. Build the project
 
-Open and build `build/x64/msvc-22/full/openDAQ.sln` using Visual Studio (if one ``msvc`` preset had been used above).
+Open and build `build/x64/msvc-22/full/openDAQ.sln` using Visual Studio (if one `msvc` preset had been used above).
 
 Or use command line:
 ```shell
@@ -179,7 +179,7 @@ cd build/x64/msvc-22/full
 cmake --build .
 ```
 
-For other compilers than ``msvc`` one can add parameter ``-j 4`` to the build command to specify the number of parallel builds
+For compilers other than `msvc`, one can add parameter `-j 4` to the build command to specify the number of parallel builds
 (see _cmake.org_: [Build a Project with CMake](https://cmake.org/cmake/help/v3.24/manual/cmake.1.html#build-a-project)).
 
 ### Building on Linux

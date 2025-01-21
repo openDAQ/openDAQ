@@ -2,6 +2,8 @@
 #include <gtest/gtest.h>
 #include <opendaq/function_block_type_ptr.h>
 #include <opendaq/update_parameters_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/module_impl.h>
 
 using InstanceTest = testing::Test;
 
@@ -525,6 +527,30 @@ TEST_F(InstanceTest, SaveLoadRestoreDevice)
     }
 }
 
+TEST_F(InstanceTest, SaveLoadLocked)
+{
+    std::map<std::string, std::string> devicesNames;
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
+    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+
+    instance.lock();
+
+    auto config = instance.saveConfiguration();
+    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    instance2.loadConfiguration(config);
+
+    ASSERT_TRUE(instance2.isLocked());
+    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
+
+    for (const auto& device : instance2.getDevices())
+    {
+        ASSERT_TRUE(device.isLocked());
+        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
+        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
+    }
+}
+
 TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
 {
     std::map<std::string, std::string> devicesNames;
@@ -919,6 +945,94 @@ TEST_F(InstanceTest, DISABLED_SaveLoadServers)
     auto servers = instance2.getServers();
     ASSERT_EQ(servers.getCount(), 1u);
     ASSERT_EQ(servers[0].getId(), serverId);
+}
+
+TEST_F(InstanceTest, TestRemoved1)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.addFunctionBlock("mock_fb_uid");
+    instance.addDevice("daqmock://client_device");
+    instance.addDevice("daqmock://phys_device");
+
+    const ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));
+
+    const auto root = instance.getRootDevice();
+    root.remove();
+
+    Bool removed = false;
+    root.asPtr<IRemovable>()->isRemoved(&removed);
+    ASSERT_TRUE(removed);
+
+    for (const auto& component : components)
+    {
+        component.asPtr<IRemovable>()->isRemoved(&removed);
+        ASSERT_TRUE(removed);
+    }
+}
+
+TEST_F(InstanceTest, TestRemoved2)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.addFunctionBlock("mock_fb_uid");
+    instance.addDevice("daqmock://client_device");
+    instance.addDevice("daqmock://phys_device");
+
+    ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));
+    components.pushBack(instance.getRootDevice());
+
+    instance.release();
+
+    Bool removed = false;
+    for (const auto& component : components)
+    {
+        component.asPtr<IRemovable>()->isRemoved(&removed);
+        ASSERT_TRUE(removed);
+    }
+}
+
+class MockClientModule : public Module
+{
+public:
+
+    MockClientModule(daq::ContextPtr ctx)
+        : Module("Mock Client",
+                 daq::VersionInfo(1, 0, 0),
+                 std::move(ctx),
+                 "MockClient")
+    {
+    }
+
+    ListPtr<IDeviceInfo> onGetAvailableDevices() override
+    {
+        const auto info = DeviceInfo("false://mock_device");
+        info.setManufacturer("openDAQ");
+        info.setSerialNumber("mock_phys_ser");
+        const auto cap = ServerCapability("mock", "mock", ProtocolType::ConfigurationAndStreaming);
+        info.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+        return List<IDeviceInfo>(info);
+    }
+};
+
+TEST_F(InstanceTest, ModuleManagerGrouping)
+{
+    const auto instance = Instance("[[none]]");
+    const ModuleManagerPtr moduleManager = instance.getContext().getModuleManager();
+    moduleManager.addModule(createWithImplementation<IModule, MockClientModule>(instance.getContext()));
+    moduleManager.addModule(MockDeviceModule_Create(instance.getContext()));
+
+    const auto devs = instance.getAvailableDevices();
+    ASSERT_EQ(devs.getCount(), 3);
+
+    for (const auto& dev : devs)
+    {
+        if (dev.getSerialNumber() == "mock_phys_ser")
+        {
+            if (dev.getServerCapabilities().getCount())
+                ASSERT_EQ(dev.getConnectionString(), "daq://openDAQ_mock_phys_ser");
+            else
+                ASSERT_EQ(dev.getConnectionString(), "daqmock://phys_device");
+        }
+    }
 }
 
 END_NAMESPACE_OPENDAQ

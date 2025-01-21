@@ -12,6 +12,8 @@ namespace Trigger
 TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    initComponentStatus();
+
     state = false;
 
     if (config.assigned() && config.hasProperty("UseMultiThreadedScheduler") && !config.getPropertyValue("UseMultiThreadedScheduler"))
@@ -66,31 +68,37 @@ void TriggerFbImpl::configure()
 {
     if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
     {
-        LOG_D("Incomplete signal descriptors")
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Incomplete signal descriptors");
         return;
     }
 
     try
     {
         if (inputDataDescriptor.getDimensions().getCount() > 0)
+        {
             throw std::runtime_error("Arrays not supported");
+        }
 
         inputSampleType = inputDataDescriptor.getSampleType();
         if (inputSampleType != SampleType::Float64 && inputSampleType != SampleType::Float32 && inputSampleType != SampleType::Int8 &&
             inputSampleType != SampleType::Int16 && inputSampleType != SampleType::Int32 && inputSampleType != SampleType::Int64 &&
             inputSampleType != SampleType::UInt8 && inputSampleType != SampleType::UInt16 && inputSampleType != SampleType::UInt32 &&
             inputSampleType != SampleType::UInt64)
+        {
             throw std::runtime_error("Invalid sample type");
+        }
 
         outputDataDescriptor = DataDescriptorBuilder().setSampleType(SampleType::UInt8).setValueRange(Range(0, 1)).build();
         outputSignal.setDescriptor(outputDataDescriptor);
 
         outputDomainDataDescriptor = DataDescriptorBuilderCopy(inputDomainDataDescriptor).setRule(ExplicitDataRule()).build();
         outputDomainSignal.setDescriptor(outputDomainDataDescriptor);
+
+        setComponentStatus(ComponentStatus::Ok);
     }
     catch (const std::exception& e)
     {
-        LOG_W("Failed to set descriptor for trigger signal: {}", e.what())
+        setComponentStatusWithMessage(ComponentStatus::Error, fmt::format("Failed to set descriptor for trigger signal: {}", e.what()));
         outputSignal.setDescriptor(nullptr);
     }
 }

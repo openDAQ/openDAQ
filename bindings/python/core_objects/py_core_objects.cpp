@@ -16,6 +16,7 @@ void wrapDaqComponentCoreObjects(pybind11::module_ m)
     auto classIPropertyObjectClassBuilder = declareIPropertyObjectClassBuilder(m);
     auto classIPropertyObjectProtected = declareIPropertyObjectProtected(m);
     auto classIPropertyValueEventArgs = declareIPropertyValueEventArgs(m);
+    auto classICoreEventArgs = declareICoreEventArgs(m);
     auto classIValidator = declareIValidator(m);
     auto classIUnit = declareIUnit(m);
     auto classIUnitBuilder = declareIUnitBuilder(m);
@@ -38,6 +39,7 @@ void wrapDaqComponentCoreObjects(pybind11::module_ m)
     defineIPropertyObjectClassBuilder(m, classIPropertyObjectClassBuilder);
     defineIPropertyObjectProtected(m, classIPropertyObjectProtected);
     defineIPropertyValueEventArgs(m, classIPropertyValueEventArgs);
+    defineICoreEventArgs(m, classICoreEventArgs);
     defineIValidator(m, classIValidator);
     defineIUnit(m, classIUnit);
     defineIUnitBuilder(m, classIUnitBuilder);

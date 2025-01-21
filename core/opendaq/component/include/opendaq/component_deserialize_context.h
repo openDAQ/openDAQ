@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,15 +33,17 @@ DECLARE_OPENDAQ_INTERFACE(IComponentDeserializeContext, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getLocalId(IString** localId) = 0;
     virtual ErrCode INTERFACE_FUNC getContext(IContext** context) = 0;
     virtual ErrCode INTERFACE_FUNC getIntfID(IntfID* intfID) = 0;
+    virtual ErrCode INTERFACE_FUNC getTriggerCoreEvent(IProcedure** triggerCoreEvent) = 0;
     // [arrayArg(newIntfID, 1)]
     virtual ErrCode INTERFACE_FUNC clone(
         IComponent * newParent,
         IString* newLocalId,
         IComponentDeserializeContext** newComponentDeserializeContext,
-        IntfID* newIntfID) = 0;
+        IntfID* newIntfID,
+        IProcedure* newTriggerCoreEvent = nullptr) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(
-    LIBRARY_FACTORY, ComponentDeserializeContext, IContext*, context, IComponent*, root, IComponent*, parent, IString*, localId, IntfID*, intfID);
+    LIBRARY_FACTORY, ComponentDeserializeContext, IContext*, context, IComponent*, root, IComponent*, parent, IString*, localId, IntfID*, intfID, IProcedure*, triggerCoreEvent);
 
 END_NAMESPACE_OPENDAQ

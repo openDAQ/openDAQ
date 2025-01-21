@@ -18,6 +18,7 @@
 #include <opendaq/mock/mock_physical_device.h>
 #include <opendaq/device_domain_factory.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <opendaq/mock/mock_streaming_factory.h>
 
 using namespace daq;
 
@@ -1346,6 +1347,37 @@ TEST_F(CoreEventTest, StatusChanged)
     ASSERT_EQ(changeCount, 3);
 }
 
+TEST_F(CoreEventTest, StatusAndMsgChanged)
+{
+    const auto typeManager = instance.getContext().getTypeManager();
+    const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
+    typeManager.addType(statusType);
+
+    const auto statusInitValue = Enumeration("StatusType", "Status0", typeManager);
+    const auto statusValue = Enumeration("StatusType", "Status1", typeManager);
+
+    const auto device = instance.getRootDevice();
+    const auto statusContainer = device.getStatusContainer().asPtr<IComponentStatusContainerPrivate>();
+    statusContainer.addStatus("TestStatus", statusInitValue);
+
+    bool eventCalled = false;
+    getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(comp, instance.getRootDevice());
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::StatusChanged));
+        ASSERT_EQ(args.getEventName(), "StatusChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("TestStatus"));
+        ASSERT_TRUE(args.getParameters().hasKey("Message"));
+        ASSERT_EQ(args.getParameters().get("TestStatus"), statusValue);
+        ASSERT_EQ(args.getParameters().get("Message"), "Msg");
+        eventCalled = true;
+    };
+
+    statusContainer.setStatusWithMessage("TestStatus", statusValue, "Msg");
+
+    ASSERT_TRUE(eventCalled);
+}
+
 TEST_F(CoreEventTest, StatusChangedMuted)
 {
     const auto typeManager = instance.getContext().getTypeManager();
@@ -1465,4 +1497,193 @@ TEST_F(CoreEventTest, DomainChanged)
     ASSERT_EQ(device.getDomain().getOrigin(), "foo");
 
     ASSERT_EQ(changeCount, 3);
+}
+
+TEST_F(CoreEventTest, ConfigConnectionStatusChanged)
+{
+    const auto typeManager = instance.getContext().getTypeManager();
+    ASSERT_TRUE(typeManager.hasType("ConnectionStatusType"));
+
+    const auto connectionStatusInitValue = Enumeration("ConnectionStatusType", "Connected", typeManager);
+    const auto connectionStatusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
+
+    const auto device = instance.getRootDevice();
+    const auto connectionStatusContainer = device.getConnectionStatusContainer().asPtr<IConnectionStatusContainerPrivate>();
+
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ConnectionStatusChanged));
+        ASSERT_EQ(args.getEventName(), "ConnectionStatusChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
+        ASSERT_EQ(args.getParameters().get("StatusName"), "ConfigurationStatus");
+        ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
+        ASSERT_FALSE(args.getParameters().get("StreamingObject").assigned());
+        ASSERT_TRUE(args.getParameters().hasKey("ProtocolType"));
+        ASSERT_EQ(args.getParameters().get("ProtocolType"), (Int)ProtocolType::Configuration);
+        ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
+        ASSERT_EQ(args.getParameters().get("ConnectionString"), "ConfigConnectionString");
+        ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+    };
+
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(comp, instance.getRootDevice());
+        if (changeCount % 2 == 0)
+        {
+            ASSERT_EQ(args.getParameters().get("StatusValue"), connectionStatusInitValue);
+            ASSERT_EQ(args.getParameters().get("StatusValue"), "Connected");
+        }
+        else
+        {
+            ASSERT_EQ(args.getParameters().get("StatusValue"), connectionStatusValue);
+            ASSERT_EQ(args.getParameters().get("StatusValue"), "Reconnecting");
+        }
+        changeCount++;
+    };
+
+    connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnectionString", connectionStatusInitValue);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusValue, nullptr);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusValue, nullptr);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusInitValue, nullptr);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusValue, nullptr);
+
+    ASSERT_EQ(changeCount, 4);
+}
+
+TEST_F(CoreEventTest, ConfigConnectionStatusChangedMuted)
+{
+    const auto typeManager = instance.getContext().getTypeManager();
+    ASSERT_TRUE(typeManager.hasType("ConnectionStatusType"));
+
+    const auto connectionStatusInitValue = Enumeration("ConnectionStatusType", "Connected", typeManager);
+    const auto connectionStatusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
+
+    const auto device = instance.getRootDevice();
+    const auto connectionStatusContainer = device.getConnectionStatusContainer().asPtr<IConnectionStatusContainerPrivate>();
+
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& /*args*/)
+    {
+        changeCount++;
+    };
+
+    device.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnectionString", connectionStatusInitValue);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusValue, nullptr);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusValue, nullptr);
+
+    device.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusValue, nullptr);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusInitValue, nullptr);
+
+    instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusValue, nullptr);
+    connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusInitValue, nullptr);
+
+    ASSERT_EQ(changeCount, 1);
+}
+
+TEST_F(CoreEventTest, StreamingConnectionStatusChanged)
+{
+    const StreamingPtr mockStreamingObject = MockStreaming("MockStreaming", instance.getContext());
+    const auto typeManager = instance.getContext().getTypeManager();
+    ASSERT_TRUE(typeManager.hasType("ConnectionStatusType"));
+
+    const auto connectionStatusInitValue = Enumeration("ConnectionStatusType", "Connected", typeManager);
+    const auto connectionStatusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
+
+    const auto device = instance.getRootDevice();
+    const auto connectionStatusContainer = device.getConnectionStatusContainer().asPtr<IConnectionStatusContainerPrivate>();
+
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ConnectionStatusChanged));
+        ASSERT_EQ(args.getEventName(), "ConnectionStatusChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
+        ASSERT_EQ(args.getParameters().get("StatusName"), "StreamingStatus_1");
+        ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
+        if (changeCount != 2)
+        {
+            ASSERT_TRUE(args.getParameters().get("StreamingObject").assigned());
+            ASSERT_EQ(args.getParameters().get("StreamingObject"), mockStreamingObject);
+        }
+        else
+        {
+            ASSERT_FALSE(args.getParameters().get("StreamingObject").assigned());
+        }
+        ASSERT_TRUE(args.getParameters().hasKey("ProtocolType"));
+        ASSERT_EQ(args.getParameters().get("ProtocolType"), (Int)ProtocolType::Streaming);
+        ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
+        ASSERT_EQ(args.getParameters().get("ConnectionString"), "StreamingConnectionString");
+        ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+    };
+
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(comp, instance.getRootDevice());
+        if (changeCount == 0)
+        {
+            ASSERT_EQ(args.getParameters().get("StatusValue"), connectionStatusInitValue);
+            ASSERT_EQ(args.getParameters().get("StatusValue"), "Connected");
+        }
+        else if (changeCount == 1)
+        {
+            ASSERT_EQ(args.getParameters().get("StatusValue"), connectionStatusValue);
+            ASSERT_EQ(args.getParameters().get("StatusValue"), "Reconnecting");
+        }
+        else if (changeCount == 2)
+        {
+            ASSERT_EQ(args.getParameters().get("StatusValue"), "Removed");
+        }
+        changeCount++;
+    };
+
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnectionString", connectionStatusInitValue, mockStreamingObject);
+    connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusValue, mockStreamingObject);
+    connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusValue, mockStreamingObject);
+    connectionStatusContainer.removeStreamingConnectionStatus("StreamingConnectionString");
+
+    ASSERT_EQ(changeCount, 3);
+}
+
+TEST_F(CoreEventTest, StreamingConnectionStatusChangedMuted)
+{
+    const StreamingPtr mockStreamingObject = MockStreaming("MockStreaming", instance.getContext());
+    const auto typeManager = instance.getContext().getTypeManager();
+    ASSERT_TRUE(typeManager.hasType("ConnectionStatusType"));
+
+    const auto connectionStatusInitValue = Enumeration("ConnectionStatusType", "Connected", typeManager);
+    const auto connectionStatusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
+
+    const auto device = instance.getRootDevice();
+    const auto connectionStatusContainer = device.getConnectionStatusContainer().asPtr<IConnectionStatusContainerPrivate>();
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnectionString", connectionStatusInitValue, mockStreamingObject);
+
+    int changeCount = 0;
+    getOnCoreEvent() +=
+        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& /*args*/)
+    {
+        changeCount++;
+    };
+
+    device.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusValue, mockStreamingObject);
+    connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusValue, mockStreamingObject);
+
+    device.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusValue, mockStreamingObject);
+    connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusInitValue, mockStreamingObject);
+
+    instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusValue, mockStreamingObject);
+    connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusInitValue, mockStreamingObject);
+
+    ASSERT_EQ(changeCount, 1);
 }

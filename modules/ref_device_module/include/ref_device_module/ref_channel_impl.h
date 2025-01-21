@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ public:
     void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
     static RatioPtr getResolution();
+    static Int getDeltaT(double sr);
 protected:
     void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating) override;
 
@@ -70,6 +71,7 @@ private:
     double globalSampleRate;
     uint64_t counter;
     uint64_t deltaT;
+    SizeT offset;
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
     std::chrono::microseconds lastCollectTime;
@@ -96,7 +98,6 @@ private:
     uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
     void createSignals();
     std::tuple<PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
-    [[nodiscard]] Int getDeltaT(const double sr) const;
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;
     void signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args);

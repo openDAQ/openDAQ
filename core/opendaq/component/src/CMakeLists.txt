@@ -23,6 +23,7 @@ function(rtgen_component_${BASE_NAME})
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Component_PublicHeaders}
+        ${SRC_ComponentType_PublicHeaders}
         ${SRC_ComponentTypePrivate_PublicHeaders}
         ${SRC_Folder_PublicHeaders}
         ${SRC_FolderConfig_PublicHeaders}
@@ -51,6 +52,7 @@ function(rtgen_component_${BASE_NAME})
     
     set(SRC_Cpp_Component_Generated
         ${SRC_Component_Cpp}
+        ${SRC_ComponentType_Cpp}
         ${SRC_Folder_Cpp}
         ${SRC_FolderConfig_Cpp}
         ${SRC_FolderConfig_Cpp}

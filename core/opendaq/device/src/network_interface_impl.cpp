@@ -48,10 +48,10 @@ PropertyObjectPtr NetworkInterfaceImpl::createDefaultConfiguration()
     auto config = PropertyObject();
 
     config.addProperty(BoolProperty("dhcp4", True));
-    config.addProperty(ListProperty("addresses4", List<IString>()));
+    config.addProperty(StringProperty("address4", ""));
     config.addProperty(StringProperty("gateway4", ""));
     config.addProperty(BoolProperty("dhcp6", True));
-    config.addProperty(ListProperty("addresses6", List<IString>()));
+    config.addProperty(StringProperty("address6", ""));
     config.addProperty(StringProperty("gateway6", ""));
 
     return config;

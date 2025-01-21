@@ -53,10 +53,10 @@ protected:
         auto config = daq::PropertyObject();
 
         config.addProperty(daq::BoolProperty("dhcp4", daq::True));
-        config.addProperty(daq::ListProperty("addresses4", daq::List<daq::IString>()));
+        config.addProperty(daq::StringProperty("address4", ""));
         config.addProperty(daq::StringProperty("gateway4", ""));
         config.addProperty(daq::BoolProperty("dhcp6", daq::True));
-        config.addProperty(daq::ListProperty("addresses6", daq::List<daq::IString>()));
+        config.addProperty(daq::StringProperty("address6", ""));
         config.addProperty(daq::StringProperty("gateway6", ""));
 
         return config;

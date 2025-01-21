@@ -42,7 +42,6 @@ public:
     static constexpr const uint8_t IP_GET_CONFIG_OPCODE = 0x8;
 
     static void encodeIpConfiguration(const PropertyObjectPtr& config, TxtProperties& props);
-    static ListPtr<IString> populateAddresses(const std::string& addressesString);
     static PropertyObjectPtr populateIpConfigProperties(const TxtProperties& txtProps);
 };
 

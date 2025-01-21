@@ -39,10 +39,10 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * - **"dhcp4"**: A boolean property indicating whether DHCP is enabled for IPv4. Defaults to `True` (DHCP enabled).
  *   If set to `False` (DHCP disabled), non-empty static configuration properties are required.
- * - **"addresses4"**: A list property containing string representations of statically assigned IPv4 addresses in the format `address/netmask` (e.g. 192.168.1.2/24).
- *   This property is ignored when DHCP is enabled for IPv4. However, if DHCP is disabled, the list must include at least one address. Defaults to an empty list.
+ * - **"address4"**: A string property specifying the statically assigned IPv4 address in the format `address/netmask` (e.g. 192.168.1.2/24).
+ *   This property is ignored when DHCP is enabled for IPv4. However, if DHCP is disabled, the list must include at least one address. Defaults to an empty string.
  * - **"gateway4"**: A string property specifying the IPv4 gateway address. This is required if DHCP is disabled and ignored otherwise. Defaults to an empty string.
- * - **"dhcp6"**, **"addresses6"**, **"gateway6"**: These properties follow the same format and rules as their IPv4 counterparts but apply to IPv6 configuration.
+ * - **"dhcp6"**, **"address6"**, **"gateway6"**: These properties follow the same format and rules as their IPv4 counterparts but apply to IPv6 configuration.
  */
 
 DECLARE_OPENDAQ_INTERFACE(INetworkInterface, IBaseObject)
@@ -58,7 +58,7 @@ DECLARE_OPENDAQ_INTERFACE(INetworkInterface, IBaseObject)
      * @brief Submits a new configuration for the network interface.
      * @param config The new configuration to apply.
      *
-     * The provided configuration must adhere to the required properties, including "dhcp4", "addresses4", "gateway4", and their IPv6 equivalents,
+     * The provided configuration must adhere to the required properties, including "dhcp4", "address4", "gateway4", and their IPv6 equivalents,
      * as described in the class-level documentation.
      */
     virtual ErrCode INTERFACE_FUNC submitConfiguration(IPropertyObject* config) = 0;

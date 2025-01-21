@@ -28,19 +28,17 @@ def format_routes_yaml(dhcp4, dhcp6, gateway4, gateway6):
         formatted_routes.append(f"        - to: ::/0\n          via: {gateway6}")
     return "      routes:\n" + "\n".join(formatted_routes) if formatted_routes else ""
 
-def format_addresses_yaml(dhcp4, dhcp6, addresses4_list, addresses6_list):
+def format_addresses_yaml(dhcp4, dhcp6, address4, address6):
     formatted_addresses = []
-    if not dhcp4:
-        for address in addresses4_list:
-            formatted_addresses.append(f"        - {address}")
-    if not dhcp6:
-        for address in addresses6_list:
-            formatted_addresses.append(f"        - {address}")
+    if not dhcp4 and address4:
+        formatted_addresses.append(f"        - {address4}")
+    if not dhcp6 and address6:
+        formatted_addresses.append(f"        - {address6}")
     return "      addresses:\n" + "\n".join(formatted_addresses) if formatted_addresses else ""
 
-def generate_netplan_yaml_content(interface, dhcp4, dhcp6, addresses4, addresses6, gateway4, gateway6):
+def generate_netplan_yaml_content(interface, dhcp4, dhcp6, address4, address6, gateway4, gateway6):
     # Conditionally format addresses and routes based on DHCP settings
-    addresses = format_addresses_yaml(dhcp4, dhcp6, addresses4, addresses6)
+    addresses = format_addresses_yaml(dhcp4, dhcp6, address4, address6)
     routes = format_routes_yaml(dhcp4, dhcp6, gateway4, gateway6)
 
     # Substitute the template placeholders
@@ -106,12 +104,12 @@ def netplan_generate():
         sys.stderr.write(e.stderr)
         return False
 
-def verify_netplan_config(interface, dhcp4, dhcp6, addresses4, addresses6, gateway4, gateway6):
+def verify_netplan_config(interface, dhcp4, dhcp6, address4, address6, gateway4, gateway6):
     # Backup the existing YAML file if present
     backup_filename = backup_netplan_file(NETPLAN_YAML_FILENAME)
 
     # Generate new YAML content
-    content = generate_netplan_yaml_content(interface, dhcp4, dhcp6, addresses4, addresses6, gateway4, gateway6)
+    content = generate_netplan_yaml_content(interface, dhcp4, dhcp6, address4, address6, gateway4, gateway6)
 
     # Write the new YAML file (overwriting the old one)
     write_netplan_yaml_file(content)
@@ -173,8 +171,10 @@ def parse_netplan_yaml_file(interface):
 
         dhcp4 = ethernet_config.get("dhcp4", False)
         dhcp6 = ethernet_config.get("dhcp6", False)
-        addresses4 = [addr for addr in ethernet_config.get("addresses", []) if ":" not in addr]
-        addresses6 = [addr for addr in ethernet_config.get("addresses", []) if ":" in addr]
+
+        # Extract the first IPv4 and IPv6 addresses
+        address4 = next((addr for addr in ethernet_config.get("addresses", []) if ":" not in addr), "")
+        address6 = next((addr for addr in ethernet_config.get("addresses", []) if ":" in addr), "")
 
         routes = ethernet_config.get("routes", [])
         gateway4 = ""
@@ -189,8 +189,8 @@ def parse_netplan_yaml_file(interface):
             "__type": "Result",
             "dhcp4": dhcp4,
             "dhcp6": dhcp6,
-            "addresses4": addresses4,
-            "addresses6": addresses6,
+            "address4": address4,
+            "address6": address6,
             "gateway4": gateway4,
             "gateway6": gateway6
         }
@@ -214,21 +214,10 @@ def main():
             print("Error: IP configuration parameters required for 'verify' action.")
             sys.exit(1)
 
-        try:
-            # Parse addresses as lists
-            addresses4 = json.loads(sys.argv[5])
-            addresses6 = json.loads(sys.argv[6])
-            if not isinstance(addresses4, list) or not isinstance(addresses6, list):
-                print("Error: Addresses must be JSON arrays.")
-                sys.exit(1)
-        except json.JSONDecodeError:
-            print("Error: Invalid JSON format for addresses4 or addresses6.")
-            sys.exit(1)
-
         dhcp4 = sys.argv[3].lower() == "true"
         dhcp6 = sys.argv[4].lower() == "true"
 
-        if verify_netplan_config(sys.argv[2], dhcp4, dhcp6, addresses4, addresses6, sys.argv[7], sys.argv[8]) == False:
+        if verify_netplan_config(sys.argv[2], dhcp4, dhcp6, sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8]) == False:
             sys.exit(1)
 
     elif action == "apply":

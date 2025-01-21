@@ -285,10 +285,10 @@ TEST_F(DeviceInfoTest, NetworkInterfaces)
 
     const auto defaultConfig = info.getNetworkInterface("eth0").createDefaultConfiguration();
     EXPECT_EQ(defaultConfig.getPropertyValue("dhcp4"), True);
-    EXPECT_EQ(defaultConfig.getPropertyValue("addresses4"), List<IString>());
+    EXPECT_EQ(defaultConfig.getPropertyValue("address4"), String(""));
     EXPECT_EQ(defaultConfig.getPropertyValue("gateway4"), String(""));
     EXPECT_EQ(defaultConfig.getPropertyValue("dhcp6"), True);
-    EXPECT_EQ(defaultConfig.getPropertyValue("addresses6"), List<IString>());
+    EXPECT_EQ(defaultConfig.getPropertyValue("address6"), String(""));
     EXPECT_EQ(defaultConfig.getPropertyValue("gateway6"), String(""));
 }
 

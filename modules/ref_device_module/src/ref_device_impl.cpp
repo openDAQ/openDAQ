@@ -560,29 +560,16 @@ void RefDeviceImpl::createSignals()
 #ifdef __linux__
 void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
 {
-    const auto addrListToJson = [](const ListPtr<IString>& addresses) -> std::string
-    {
-        SerializerPtr serializer = JsonSerializer();
-        addresses.serialize(serializer);
-        return serializer.getOutput().toStdString();
-    };
-
-
     const auto verifyNetworkConfigProps = [](const Bool dhcp,
-                                             const ListPtr<IString>& addresses,
+                                             const StringPtr& address,
                                              const StringPtr& gateway)
     {
         if (!dhcp)
         {
             if (gateway.getLength() == 0)
                 throw InvalidParameterException("No gateway address specified");
-            if (addresses.getCount() == 0)
-                throw InvalidParameterException("None static addresses specified");
-            for (const auto& address : addresses)
-            {
-                if (address.getLength() == 0)
-                    throw InvalidParameterException("Empty static address specified");
-            }
+            if (address.getLength() == 0)
+                throw InvalidParameterException("Empty static address specified");
         }
     };
 
@@ -590,18 +577,18 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
     bool dhcp6 = config.getPropertyValue("dhcp6");
     StringPtr gateway4 = config.getPropertyValue("gateway4");
     StringPtr gateway6 = config.getPropertyValue("gateway6");
-    ListPtr<IString> addresses4 = config.getPropertyValue("addresses4");
-    ListPtr<IString> addresses6 = config.getPropertyValue("addresses6");
+    StringPtr address4 = config.getPropertyValue("address4");
+    StringPtr address6 = config.getPropertyValue("address6");
 
-    verifyNetworkConfigProps(dhcp4, addresses4, gateway4);
-    verifyNetworkConfigProps(dhcp6, addresses6, gateway6);
+    verifyNetworkConfigProps(dhcp4, address4, gateway4);
+    verifyNetworkConfigProps(dhcp6, address6, gateway6);
 
     const std::string scriptWithParams = "/home/opendaq/netplan_manager.py verify " +
                                          ifaceName.toStdString() + " " +
                                          (dhcp4 ? "true" : "false") + " " +
                                          (dhcp6 ? "true" : "false") + " " +
-                                         "'" + addrListToJson(addresses4) + "' " +
-                                         "'" + addrListToJson(addresses6) + "' " +
+                                         "\"" + address4.toStdString() + "\" " +
+                                         "\"" + address6.toStdString() + "\" " +
                                          "\"" + gateway4.toStdString() + "\" " +
                                          "\"" + gateway6.toStdString() + "\"";
 
@@ -661,10 +648,10 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
         auto config = PropertyObject();
 
         config.addProperty(BoolProperty("dhcp4", serializedObj.readBool("dhcp4")));
-        config.addProperty(ListProperty("addresses4", serializedObj.readList<IString>("addresses4")));
+        config.addProperty(StringProperty("address4", serializedObj.readString("address4")));
         config.addProperty(StringProperty("gateway4", serializedObj.readString("gateway4")));
         config.addProperty(BoolProperty("dhcp6", serializedObj.readBool("dhcp6")));
-        config.addProperty(ListProperty("addresses6", serializedObj.readList<IString>("addresses6")));
+        config.addProperty(StringProperty("address6", serializedObj.readString("address6")));
         config.addProperty(StringProperty("gateway6", serializedObj.readString("gateway6")));
 
         return config;

@@ -453,10 +453,10 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
 {
     const auto dhcp4 = False;
-    const auto addresses4 = List<IString>("192.168.2.100/24");
+    const auto address4 = String("192.168.2.100/24");
     const auto gateway4 = String("192.168.2.1");
     const auto dhcp6 = True;
-    const auto addresses6 = List<IString>();
+    const auto address6 = String("");
     const auto gateway6 = String("");
 
     SizeT modifyCallCount = 0;
@@ -465,10 +465,10 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
         ++modifyCallCount;
         EXPECT_EQ(ifaceName, "eth0");
         EXPECT_EQ(config.getPropertyValue("dhcp4"), dhcp4);
-        EXPECT_EQ(config.getPropertyValue("addresses4"), addresses4);
+        EXPECT_EQ(config.getPropertyValue("address4"), address4);
         EXPECT_EQ(config.getPropertyValue("gateway4"), gateway4);
         EXPECT_EQ(config.getPropertyValue("dhcp6"), dhcp6);
-        EXPECT_EQ(config.getPropertyValue("addresses6"), addresses6);
+        EXPECT_EQ(config.getPropertyValue("address6"), address6);
         EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
     });
 
@@ -496,10 +496,10 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
             auto ipConfig = devInfo.getNetworkInterface("eth0").createDefaultConfiguration();
             ipConfig.setPropertyValue("dhcp4", dhcp4);
-            ipConfig.setPropertyValue("addresses4", addresses4);
+            ipConfig.setPropertyValue("address4", address4);
             ipConfig.setPropertyValue("gateway4", gateway4);
             ipConfig.setPropertyValue("dhcp6", dhcp6);
-            ipConfig.setPropertyValue("addresses6", addresses6);
+            ipConfig.setPropertyValue("address6", address6);
             ipConfig.setPropertyValue("gateway6", gateway6);
             EXPECT_NO_THROW(devInfo.getNetworkInterface("eth0").submitConfiguration(ipConfig));
         }
@@ -547,10 +547,10 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfigError)
 TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
 {
     const auto dhcp4 = False;
-    const auto addresses4 = List<IString>("192.168.2.100/24");
+    const auto address4 = String("192.168.2.100/24");
     const auto gateway4 = String("192.168.2.1");
     const auto dhcp6 = False;
-    const auto addresses6 = List<IString>("2001:db8:1:0::100/64");
+    const auto address6 = String("2001:db8:1:0::100/64");
     const auto gateway6 = String("2001:db8:1:0::1");
 
     SizeT retrieveCallCount = 0;
@@ -561,10 +561,10 @@ TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
 
         auto config = PropertyObject();
         config.addProperty(BoolProperty("dhcp4", dhcp4));
-        config.addProperty(ListProperty("addresses4", addresses4));
+        config.addProperty(StringProperty("address4", address4));
         config.addProperty(StringProperty("gateway4", gateway4));
         config.addProperty(BoolProperty("dhcp6", dhcp6));
-        config.addProperty(ListProperty("addresses6", addresses6));
+        config.addProperty(StringProperty("address6", address6));
         config.addProperty(StringProperty("gateway6", gateway6));
 
         return config;
@@ -596,10 +596,10 @@ TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
             PropertyObjectPtr config;
             ASSERT_NO_THROW(config = devInfo.getNetworkInterface("eth0").requestCurrentConfiguration());
             EXPECT_EQ(config.getPropertyValue("dhcp4"), dhcp4);
-            EXPECT_EQ(config.getPropertyValue("addresses4"), addresses4);
+            EXPECT_EQ(config.getPropertyValue("address4"), address4);
             EXPECT_EQ(config.getPropertyValue("gateway4"), gateway4);
             EXPECT_EQ(config.getPropertyValue("dhcp6"), dhcp6);
-            EXPECT_EQ(config.getPropertyValue("addresses6"), addresses6);
+            EXPECT_EQ(config.getPropertyValue("address6"), address6);
             EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
         }
     }

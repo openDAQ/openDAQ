@@ -6,23 +6,18 @@ def retrieve_ip_config(network_interface: opendaq.INetworkInterface):
     try:
         config = network_interface.request_current_configuration()
         print("Parameters:")
-        print(f"- dhcp4: {config.get_property_value('dhcp4')}\n- addresses4: {config.get_property_value('addresses4')}\n- gateway4: {config.get_property_value('gateway4')}")
-        print(f"- dhcp6: {config.get_property_value('dhcp6')}\n- addresses6: {config.get_property_value('addresses6')}\n- gateway6: {config.get_property_value('gateway6')}")
+        print(f"- dhcp4: {config.get_property_value('dhcp4')}\n- address4: {config.get_property_value('address4')}\n- gateway4: {config.get_property_value('gateway4')}")
+        print(f"- dhcp6: {config.get_property_value('dhcp6')}\n- address6: {config.get_property_value('address6')}\n- gateway6: {config.get_property_value('gateway6')}")
     except Exception as e:
         print(f'Failed: {str(e)}', file=sys.stderr)
 
 def change_ip_config(device_info: opendaq.IDeviceInfo):
     net_interface = device_info.get_network_interface('enp0s3')
 
-    dhcp4 = False
-    addresses4 = opendaq.List()
-    addresses4.push_back(opendaq.String('192.168.56.166/24'))
-    gateway4 = opendaq.String('192.168.56.1')
-
     config = net_interface.create_default_configuration()
-    config.set_property_value('dhcp4', dhcp4)
-    config.set_property_value('addresses4', addresses4)
-    config.set_property_value('gateway4', gateway4)
+    config.set_property_value('dhcp4', False)
+    config.set_property_value('address4', opendaq.String('192.168.56.166/24'))
+    config.set_property_value('gateway4', opendaq.String('192.168.56.1'))
 
     try:
         print('Submitting new IP configuration parameters ...')

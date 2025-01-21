@@ -10,10 +10,10 @@ void retrieveIpConfiguration(const daq::NetworkInterfacePtr& iface)
         auto config = iface.requestCurrentConfiguration();
         std::cout << "Parameters:"
                   << "\n- dhcp4: " << config.getPropertyValue("dhcp4")
-                  << "\n- addresses4: " << config.getPropertyValue("addresses4")
+                  << "\n- address4: " << config.getPropertyValue("address4")
                   << "\n- gateway4: " << config.getPropertyValue("gateway4")
                   << "\n- dhcp6: " << config.getPropertyValue("dhcp6")
-                  << "\n- addresses6: " << config.getPropertyValue("addresses6")
+                  << "\n- address6: " << config.getPropertyValue("address6")
                   << "\n- gateway6: " << config.getPropertyValue("gateway6")
                   << std::endl;
     }
@@ -42,7 +42,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
             auto config = deviceInfo.getNetworkInterface("enp0s3").createDefaultConfiguration();
             config.setPropertyValue("dhcp4", False);
-            config.setPropertyValue("addresses4", List<IString>("192.168.56.155/24"));
+            config.setPropertyValue("address4", String("192.168.56.155/24"));
             config.setPropertyValue("gateway4", String("192.168.56.1"));
 
             try

@@ -466,18 +466,19 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
             return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
+        
+        // Connection strings with the "daq" prefix automatically choose the best method of connection
+        const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
 
         // Scan for devices if not yet done so
         // TODO: Should we re-scan after a timeout?
-        if (!availableDevicesGroup.assigned())
+        if (useSmartConnection && !availableDevicesGroup.assigned())
         {
             const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
             if (OPENDAQ_FAILED(errCode))
                 return this->makeErrorInfo(errCode, "Failed getting available devices");
         }
 
-        // Connection strings with the "daq" prefix automatically choose the best method of connection
-        const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
         const auto discoveredDeviceInfo = getDiscoveredDeviceInfo(connectionStringPtr, useSmartConnection);
         if (useSmartConnection)
             connectionStringPtr = resolveSmartConnectionString(connectionStringPtr, discoveredDeviceInfo, config, loggerComponent);

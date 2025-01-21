@@ -94,19 +94,13 @@ std::string DiscoveryUtils::extractRecordName(const void* buffer, size_t nameOff
 
 std::string DiscoveryUtils::toTxtValue(const char* source, size_t length)
 {
-    // Allowed characters based on mDNS TXT record key-value rules
-    auto isAllowedChar = [](char c)
-    {
-        return std::isalnum(c) || c == '-' || c == ' ';
-    };
-
     std::string result;
     result.reserve(length);
 
     for (const char* ptr = source; *ptr && result.size() < length; ++ptr)
     {
         // Replace whitespace, '=' or invalid characters with a space
-        if (std::isspace(*ptr) || *ptr == '=' || !isAllowedChar(*ptr))
+        if (std::isspace(*ptr) || *ptr == '=' || !std::isprint(*ptr))
             result += ' ';
         else
             result += *ptr;

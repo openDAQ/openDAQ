@@ -153,6 +153,7 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& roo
     }
 
     rootDeviceRef = rootDevice;
+
     ModifyIpConfigCallback modifyIpConfigCb = [this](const std::string& ifaceName, const TxtProperties& reqProps)
     {
         DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr;
@@ -165,24 +166,24 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& roo
             {
                 auto config = IpModificationUtils::populateIpConfigProperties(reqProps);
                 deviceNetworkConfig.submitNetworkConfiguration(ifaceName, config);
-                resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
-                resProps["ErrorMessage"] = "";
+                resProps[IpModificationUtils::ERROR_CODE_KEY] = std::to_string(OPENDAQ_SUCCESS);
+                resProps[IpModificationUtils::ERROR_MESSAGE_KEY] = "";
             }
             catch (const DaqException& e)
             {
-                resProps["ErrorCode"] = std::to_string(e.getErrCode());
-                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
+                resProps[IpModificationUtils::ERROR_CODE_KEY] = std::to_string(e.getErrCode());
+                resProps[IpModificationUtils::ERROR_MESSAGE_KEY] = DiscoveryUtils::toTxtValue(e.what(), IpModificationUtils::ERROR_MESSAGE_LENGTH);
             }
             catch (const std::exception& e)
             {
-                resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
-                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
+                resProps[IpModificationUtils::ERROR_CODE_KEY] = std::to_string(OPENDAQ_ERR_GENERALERROR);
+                resProps[IpModificationUtils::ERROR_MESSAGE_KEY] = DiscoveryUtils::toTxtValue(e.what(), IpModificationUtils::ERROR_MESSAGE_LENGTH);
             }
         }
         else
         {
-            resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_NOTIMPLEMENTED);
-            resProps["ErrorMessage"] = "";
+            resProps[IpModificationUtils::ERROR_CODE_KEY] = std::to_string(OPENDAQ_ERR_NOTIMPLEMENTED);
+            resProps[IpModificationUtils::ERROR_MESSAGE_KEY] = "";
         }
         return resProps;
     };
@@ -199,24 +200,24 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& roo
                 PropertyObjectPtr config = deviceNetworkConfig.retrieveNetworkConfiguration(ifaceName);
                 IpModificationUtils::encodeIpConfiguration(config, resProps);
 
-                resProps["ErrorCode"] = std::to_string(OPENDAQ_SUCCESS);
-                resProps["ErrorMessage"] = "";
+                resProps[IpModificationUtils::ERROR_CODE_KEY] = std::to_string(OPENDAQ_SUCCESS);
+                resProps[IpModificationUtils::ERROR_MESSAGE_KEY] = "";
             }
             catch (const DaqException& e)
             {
-                resProps["ErrorCode"] = std::to_string(e.getErrCode());
-                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
+                resProps[IpModificationUtils::ERROR_CODE_KEY] = std::to_string(e.getErrCode());
+                resProps[IpModificationUtils::ERROR_MESSAGE_KEY] = DiscoveryUtils::toTxtValue(e.what(), IpModificationUtils::ERROR_MESSAGE_LENGTH);
             }
             catch (const std::exception& e)
             {
-                resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_GENERALERROR);
-                resProps["ErrorMessage"] = DiscoveryUtils::toTxtValue(e.what(), 255 - sizeof("ErrorMessage="));
+                resProps[IpModificationUtils::ERROR_CODE_KEY] = std::to_string(OPENDAQ_ERR_GENERALERROR);
+                resProps[IpModificationUtils::ERROR_MESSAGE_KEY] = DiscoveryUtils::toTxtValue(e.what(), IpModificationUtils::ERROR_MESSAGE_LENGTH);
             }
         }
         else
         {
-            resProps["ErrorCode"] = std::to_string(OPENDAQ_ERR_NOTIMPLEMENTED);
-            resProps["ErrorMessage"] = "";
+            resProps[IpModificationUtils::ERROR_CODE_KEY] = std::to_string(OPENDAQ_ERR_NOTIMPLEMENTED);
+            resProps[IpModificationUtils::ERROR_MESSAGE_KEY] = "";
         }
         return resProps;
     };

@@ -44,6 +44,11 @@ if (DAQSIMULATOR_ENABLE_SIMULATOR_APP AND NOT DAQMODULES_OPENDAQ_SERVER_MODULE)
     set(DAQMODULES_OPENDAQ_SERVER_MODULE ON CACHE BOOL "" FORCE)
 endif()
 
+if (DAQSIMULATOR_ENABLE_SIMULATOR_APP)
+    message(NOTICE "Enable simulator support in reference device module.")
+    add_compile_definitions(DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED)
+endif()
+
 # Force enable modules required by python bindings tests
 if (OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS)
     if (NOT DAQMODULES_REF_DEVICE_MODULE)

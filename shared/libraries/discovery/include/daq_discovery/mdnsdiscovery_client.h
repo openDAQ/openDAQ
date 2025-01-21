@@ -780,9 +780,9 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
 
     answeredNonMdnsQueryIds.insert(responseQueryId);
 
-    if (const auto errCodeIt = resProps.find("ErrorCode"); errCodeIt != resProps.end())
+    if (const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY); errCodeIt != resProps.end())
     {
-        if (const auto errMsgIt = resProps.find("ErrorMessage"); errMsgIt != resProps.end())
+        if (const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY); errMsgIt != resProps.end())
         {
             ErrCode rpcErrorCodeTmp;
             try
@@ -847,9 +847,9 @@ inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
 
     answeredNonMdnsQueryIds.insert(responseQueryId);
 
-    if (const auto errCodeIt = resProps.find("ErrorCode"); errCodeIt != resProps.end())
+    if (const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY); errCodeIt != resProps.end())
     {
-        if (const auto errMsgIt = resProps.find("ErrorMessage"); errMsgIt != resProps.end())
+        if (const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY); errMsgIt != resProps.end())
         {
             ErrCode rpcErrorCodeTmp;
             try

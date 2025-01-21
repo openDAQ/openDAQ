@@ -33,6 +33,11 @@ public:
     static constexpr const char* DAQ_IP_MODIFICATION_SERVICE_ID = "OpenDAQIPC";
     static constexpr const char* DAQ_IP_MODIFICATION_SERVICE_VERSION = "0";
 
+    static constexpr const char* ERROR_CODE_KEY = "ErrorCode";
+    static constexpr const char* ERROR_MESSAGE_KEY = "ErrorMessage";
+    // max lenght of "key=value" in txt record is 255, so max length of "value" == 255 - size('=') - size("key")
+    static constexpr const size_t ERROR_MESSAGE_LENGTH = 255 - 1 - std::char_traits<char>::length(ERROR_MESSAGE_KEY);
+
     static constexpr const uint8_t IP_MODIFICATION_OPCODE = 0xF;
     static constexpr const uint8_t IP_GET_CONFIG_OPCODE = 0x8;
 

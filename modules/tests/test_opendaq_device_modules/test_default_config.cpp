@@ -521,9 +521,9 @@ TEST_F(ModulesDefaultConfigTest, ChangeIpConfigError)
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
     // Truncated error message with disallowed symbols replaced.
-    auto retrievedErrorMessage = "This Is An Extremely Long Test String With Invalid Characters Like  Tabs  NewLines   and Other Non-Alnum Chars"
-                                 "                                                                                                               "
-                                 "Truncated after this";
+    auto retrievedErrorMessage = "This Is An Extremely Long Test String With Invalid Characters Like  Tabs, NewLines , "
+                                 "and equals signs                                                                               "
+                                 "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after this";
 
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();

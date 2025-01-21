@@ -24,6 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>
 {
 public:
+    using Impl = MirroredDeviceBase<ITmsClientComponent>;
     using Super = TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>;
     explicit TmsClientDeviceImpl(const ContextPtr& ctx,
                                  const ComponentPtr& parent,
@@ -47,7 +48,6 @@ protected:
     void findAndCreateInputsOutputs();
     void findAndCreateCustomComponents();
     void findAndCreateSyncComponent();
-    void findAndCreateProporties();
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
@@ -55,7 +55,6 @@ protected:
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
-    void findAndGetEditableDeviceInfoFields(const DeviceInfoPtr& deviceInfo);
 
     void removed() override;
 
@@ -66,6 +65,7 @@ private:
     SizeT ticksSinceOrigin{};
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    std::unordered_map<std::string, opcua::OpcUaNodeId> deviceInfoChangeableFields;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

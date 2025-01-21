@@ -21,6 +21,8 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
+StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
+
 RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
     : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
@@ -57,6 +59,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     enableCANChannel();
     enableProtectedChannel();
     updateAcqLoopTime();
+    enableLogging();
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
@@ -74,12 +77,16 @@ RefDeviceImpl::~RefDeviceImpl()
 
 DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
 {
-    auto devInfo = DeviceInfo(fmt::format("daqref://device{}", id));
+    auto devInfo = DeviceInfoWithChanegableFields({"userName", "location"});
     devInfo.setName(fmt::format("Device {}", id));
+    devInfo.setConnectionString(fmt::format("daqref://device{}", id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
     devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("DevSer{}", id)));
     devInfo.setDeviceType(CreateType());
+
+    std::string currentTime = ToIso8601(std::chrono::system_clock::now());
+    devInfo.addProperty(StringProperty("SetupDate", currentTime));
 
     return devInfo;
 }
@@ -311,7 +318,6 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     objPtr.addProperty(BoolProperty("EnableLogging", loggingEnabled));
     objPtr.getOnPropertyValueWrite("EnableLogging") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableLogging(); };
-    enableLogging();
 }
 
 void RefDeviceImpl::collectTimeSignalSamples(std::chrono::microseconds curTime)
@@ -459,7 +465,7 @@ void RefDeviceImpl::enableLogging()
     loggingEnabled = objPtr.getPropertyValue("EnableLogging");
 }
 
-StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint) 
+StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint) 
 {
     std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
     std::tm tm = *std::gmtime(&time);  // Use gmtime for UTC
@@ -494,7 +500,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
         ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
     );
 
-    auto lastModified = toIso8601(sctp);
+    auto lastModified = ToIso8601(sctp);
 
     auto logFileInfo = LogFileInfoBuilder().setName(path.filename().string())
                                            .setId(path.string())

@@ -28,7 +28,6 @@ deviceInfo.addProperty(StringPropertyBuilder("CustomNotChangeableField", "defaul
 ```
 In the example above, the default properties `userName`, `location`, `manufacturer`, and custom `CustomChangeableField` are changeable. Other default device info properties and the custom property `CustomNotChangeableField` are not changeable.
 
-
 ```
 + [factory] DeviceInfoConfigPtr DeviceInfoWithChanegableFields(const ListPtr<IString>& changeableDefaultPropertyNames)
 ```

@@ -1141,33 +1141,16 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceUserNameLocation)
         serverDevice.setPropertyValue("userName", "testUser");
         serverDevice.setPropertyValue("location", "testLocation");
 
-        // old style
         ASSERT_EQ(clientDevice.getPropertyValue("userName"), "testUser");
         ASSERT_EQ(clientDevice.getPropertyValue("location"), "testLocation");
-        // new style
-        ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "testUser");
-        ASSERT_EQ(clientDevice.getPropertyValue("Location"), "testLocation");
     }
 
-    // set from client old style
+    // set from client
     {
         clientDevice.setPropertyValue("userName", "newUser");
         clientDevice.setPropertyValue("location", "newLocation");
 
         ASSERT_EQ(serverDevice.getPropertyValue("userName"), "newUser");
         ASSERT_EQ(serverDevice.getPropertyValue("location"), "newLocation");
-        ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "newUser");
-        ASSERT_EQ(clientDevice.getPropertyValue("Location"), "newLocation");
-    }
-
-    // set from client new style
-    {
-        clientDevice.setPropertyValue("UserName", "newUser2");
-        clientDevice.setPropertyValue("Location", "newLocation2");
-
-        ASSERT_EQ(serverDevice.getPropertyValue("userName"), "newUser2");
-        ASSERT_EQ(serverDevice.getPropertyValue("location"), "newLocation2");
-        ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "newUser2");
-        ASSERT_EQ(clientDevice.getPropertyValue("Location"), "newLocation2");
     }
 }

@@ -26,6 +26,15 @@ MdnsDiscoveryServerImpl::MdnsDiscoveryServerImpl(const LoggerPtr& logger)
 {
 }
 
+std::string GetPropertyValueOrDefault(const daq::PropertyObjectPtr& propObj, const daq::StringPtr& key, const std::string& defaultValue)
+{
+    daq::BaseObjectPtr value;
+    auto errCode = propObj->getPropertyValue(key, &value);
+    if (OPENDAQ_FAILED(errCode))
+        return defaultValue;
+    return std::string(value);
+}
+
 ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo)
 {
     if (!id)
@@ -35,7 +44,6 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     if (!deviceInfo)
         return OPENDAQ_IGNORED;
 
-    
     auto serviceId = StringPtr::Borrow(id);
     auto configPtr = PropertyObjectPtr::Borrow(config);
 
@@ -61,16 +69,8 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
 
     std::unordered_map<std::string, std::string> properties;
     properties["caps"] = std::string(configPtr.getPropertyValue("ServiceCap"));
-
-    if (configPtr.hasProperty("Path"))
-        properties["path"] = std::string(configPtr.getPropertyValue("Path"));
-    else
-        properties["path"] = "/";
-    
-    if (configPtr.hasProperty("ProtocolVersion"))
-        properties["protocolVersion"] = std::string(configPtr.getPropertyValue("ProtocolVersion"));
-    else
-        properties["protocolVersion"] = "";
+    properties["path"] = GetPropertyValueOrDefault(configPtr, "Path", "/");
+    properties["protocolVersion"] = GetPropertyValueOrDefault(configPtr, "ProtocolVersion", "");
 
     discovery_server::MdnsDiscoveredDevice device(serviceName, servicePort, properties, PropertyObjectPtr::Borrow(deviceInfo));
     if (discoveryServer.addDevice(serviceId, device))

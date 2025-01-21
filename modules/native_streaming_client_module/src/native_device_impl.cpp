@@ -531,38 +531,43 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
-    const auto newDeviceInfo = DeviceInfo(connectionString, deviceInfo.getName());
-    newDeviceInfo.asPtr<IDeviceInfoInternal>(true).setEditableProperties(deviceInfo.asPtr<IDeviceInfoInternal>().getEditableProperties());
-    newDeviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
-
-    for (const auto& prop : deviceInfo.getAllProperties())
+    if (clientComm->getProtocolVersion() < 8)
     {
-        const auto propName = prop.getName();
-        if (!newDeviceInfo.hasProperty(propName))
+        auto changeableFields = List<IString>();
+        PropertyPtr userNameProp;
+        deviceInfo->getProperty(String("userName"), &userNameProp);
+        if (userNameProp.assigned())
+            changeableFields.pushBack("userName");
+        
+        PropertyPtr locationProp;
+        deviceInfo->getProperty(String("location"), &locationProp);
+        if (locationProp.assigned())
+            changeableFields.pushBack("location");
+        
+        auto newDeviceInfo = DeviceInfoWithChanegableFields(changeableFields);
+        auto deviceInfoInternal = newDeviceInfo.asPtr<IPropertyObjectProtected>(true);
+    
+        for (const auto& prop : deviceInfo.getAllProperties())
         {
-            const auto internalProp = prop.asPtrOrNull<IPropertyInternal>(true);
-            if (!internalProp.assigned())
-                continue;
+            const auto propName = prop.getName();
+            if (!newDeviceInfo.hasProperty(propName))
+                if (const auto internalProp = prop.asPtrOrNull<IPropertyInternal>(true); internalProp.assigned())
+                    newDeviceInfo.addProperty(internalProp.clone());                
 
-            newDeviceInfo.addProperty(internalProp.clone());
+            if (const auto propValue = deviceInfo.getPropertyValue(propName); propValue.assigned())
+                deviceInfoInternal->setProtectedPropertyValue(propName, propValue);
         }
-
-        if (propName != "connectionString" && propName != "name")
-        {
-            const auto propValue = deviceInfo.getPropertyValue(propName);
-            if (propValue.assigned())
-                newDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propName, propValue);
-        }
+    
+        deviceInfo = newDeviceInfo;
     }
 
-    if (!newDeviceInfo.hasProperty("NativeConfigProtocolVersion"))
+    deviceInfo.asPtr<IPropertyObjectProtected>(true)->setProtectedPropertyValue(String("connectionString"), connectionString);
+
+    if (!deviceInfo.hasProperty("NativeConfigProtocolVersion"))
     {
-        newDeviceInfo.addProperty(IntProperty("NativeConfigProtocolVersion", clientComm->getProtocolVersion()));
+        auto propBuilder = IntPropertyBuilder("NativeConfigProtocolVersion", clientComm->getProtocolVersion()).setReadOnly(true);
+        deviceInfo.addProperty(propBuilder.build());
     }
-
-    newDeviceInfo.freeze();
-
-    deviceInfo = newDeviceInfo;
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

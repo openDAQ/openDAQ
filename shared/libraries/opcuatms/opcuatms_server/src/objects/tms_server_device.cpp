@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <set>
 #include <stdexcept>
 #include <opendaq/device_ptr.h>
 #include <opendaq/device_info_internal_ptr.h>
@@ -33,27 +34,36 @@ namespace detail
         return v;
     }
 
+    static std::unordered_map<std::string, std::string> componentFieldToDeviceInfo = {
+        {"AssetId", "assetId"},
+        {"ComponentName", "name"},
+        {"DeviceClass", "deviceClass"},
+        {"DeviceManual", "deviceManual"},
+        {"DeviceRevision", "deviceRevision"},
+        {"HardwareRevision", "hardwareRevision"},
+        {"Manufacturer", "manufacturer"},
+        {"ManufacturerUri", "manufacturerUri"},
+        {"Model", "model"},
+        {"ProductCode", "productCode"},
+        {"ProductInstanceUri", "productInstanceUri"},
+        {"RevisionCounter", "revisionCounter"},
+        {"SerialNumber", "serialNumber"},
+        {"SoftwareRevision", "softwareRevision"},
+        {"MacAddress", "macAddress"},
+        {"ParentMacAddress", "parentMacAddress"},
+        {"Platform", "platform"},
+        {"Position", "position"},
+        {"SystemType", "systemType"},
+        {"SystemUUID", "systemUuid"},
+        {"OpenDaqPackageVersion", "sdkVersion"},
+    };
+    
     static std::unordered_map<std::string, std::function<OpcUaVariant(const DeviceInfoPtr&)>> componentFieldToVariant = {
-        {"AssetId", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getAssetId().getCharPtr()}; }},
         {"ComponentName", [](const DeviceInfoPtr& info) { return createLocalizedTextVariant(info.getName().getCharPtr()); }},
-        {"DeviceClass", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceClass().getCharPtr()}; }},
-        {"DeviceManual", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceManual().getCharPtr()}; }},
-        {"DeviceRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getDeviceRevision().getCharPtr()}; }},
-        {"HardwareRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getHardwareRevision().getCharPtr()}; }},
         {"Manufacturer", [](const DeviceInfoPtr& info) { return createLocalizedTextVariant(info.getManufacturer().getCharPtr()); }},
-        {"ManufacturerUri", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getManufacturerUri().getCharPtr()}; }},
         {"Model", [](const DeviceInfoPtr& info) { return createLocalizedTextVariant(info.getModel().getCharPtr()); }},
-        {"ProductCode", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getProductCode().getCharPtr()}; }},
-        {"ProductInstanceUri", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getProductInstanceUri().getCharPtr()}; }},
         {"RevisionCounter", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<int>(info.getRevisionCounter())}; }},
-        {"SerialNumber", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSerialNumber().getCharPtr()}; }},
-        {"SoftwareRevision", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSoftwareRevision().getCharPtr()}; }},
-        {"MacAddress", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getMacAddress().getCharPtr()}; }},
-        {"ParentMacAddress", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getParentMacAddress().getCharPtr()}; }},
-        {"Platform", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getPlatform().getCharPtr()}; }},
         {"Position", [](const DeviceInfoPtr& info) { return OpcUaVariant{static_cast<uint16_t>(info.getPosition())}; }},
-        {"SystemType", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemType().getCharPtr()}; }},
-        {"SystemUUID", [](const DeviceInfoPtr& info) { return OpcUaVariant{info.getSystemUuid().getCharPtr()}; }},
     };
 }
 
@@ -92,38 +102,38 @@ bool TmsServerDevice::createOptionalNode(const OpcUaNodeId& nodeId)
 void TmsServerDevice::bindCallbacks()
 {
     this->addReadCallback("Domain", [this]
+    {
+        const auto deviceDomain = object.getDomain();
+        if (!deviceDomain.assigned())
+            return OpcUaVariant{};
+
+        const auto functionBlockNodeId = getChildNodeId("Domain");
+        try
         {
+            OpcUaObject<UA_DeviceDomainStructure> uaDeviceDomain;
+            uaDeviceDomain->resolution.numerator = deviceDomain.getTickResolution().getNumerator();
+            uaDeviceDomain->resolution.denominator = deviceDomain.getTickResolution().getDenominator();
+            uaDeviceDomain->origin = ConvertToOpcUaString(deviceDomain.getOrigin()).getDetachedValue();
+            uaDeviceDomain->ticksSinceOrigin = object.getTicksSinceOrigin();
+            auto unit = StructConverter<IUnit, UA_EUInformationWithQuantity>::ToTmsType(deviceDomain.getUnit());
+            uaDeviceDomain->unit = unit.getDetachedValue();
 
-            const auto deviceDomain = object.getDomain();
-            if (!deviceDomain.assigned())
-                return OpcUaVariant{};
-
-            const auto functionBlockNodeId = getChildNodeId("Domain");
-            try
-            {
-                OpcUaObject<UA_DeviceDomainStructure> uaDeviceDomain;
-                uaDeviceDomain->resolution.numerator = deviceDomain.getTickResolution().getNumerator();
-                uaDeviceDomain->resolution.denominator = deviceDomain.getTickResolution().getDenominator();
-                uaDeviceDomain->origin = ConvertToOpcUaString(deviceDomain.getOrigin()).getDetachedValue();
-                uaDeviceDomain->ticksSinceOrigin = object.getTicksSinceOrigin();
-                auto unit = StructConverter<IUnit, UA_EUInformationWithQuantity>::ToTmsType(deviceDomain.getUnit());
-                uaDeviceDomain->unit = unit.getDetachedValue();
-
-                OpcUaVariant v;
-                v.setScalar(*uaDeviceDomain);
-                return v;
-            }
-            catch (...)
-            {
-                return OpcUaVariant{};
-            }
-      });
+            OpcUaVariant v;
+            v.setScalar(*uaDeviceDomain);
+            return v;
+        }
+        catch (...)
+        {
+            return OpcUaVariant{};
+        }
+    });
 
     Super::bindCallbacks();
 }
 
 void TmsServerDevice::populateDeviceInfo()
 {
+    auto deviceInfo = object.getInfo();
 
     auto createNode = [this](std::string name, CoreType type)
     {
@@ -152,49 +162,15 @@ void TmsServerDevice::populateDeviceInfo()
         server->addVariableNode(params);
     };
 
-    auto deviceInfo = object.getInfo();
-
     createNode("OpenDaqPackageVersion", ctString);
 
-    auto customInfoNames = List<IString>();
-    // Editable properties of deviceInfo are actualy references to the device properties
-    // they are going to be added by device itself
-    {
-        const auto editableProps = deviceInfo.asPtr<IDeviceInfoInternal>().getEditableProperties();
-        for (const auto& propName : deviceInfo.getCustomInfoPropertyNames())
-        {
-            bool isEditable = false;
-            for (const auto& editableProp : editableProps)
-            {
-                if (propName == editableProp)
-                {
-                    isEditable = true;
-                    break;
-                }
-            }
-            if (!isEditable)
-                customInfoNames.pushBack(propName);
-        }
-
-        // we want to let client now that these properties are part of device info
-        const auto editablePropsInfo = PropertyObject();
-        for (const auto & propName : editableProps)
-        {
-            editablePropsInfo.addProperty(BoolPropertyBuilder(propName, true).setReadOnly(true).build());
-        }
-
-        auto tmsEditableProperties = registerTmsObjectOrAddReference<TmsServerPropertyObject>(
-            nodeId, editablePropsInfo, numberInList++, "DeviceInfoEditableProperties");
-        this->deviceInfoEditableProperties.push_back(std::move(tmsEditableProperties));
-    }
-    
     std::unordered_set<std::string> customInfoNamesSet;
-
-    for (auto propName : customInfoNames)
+    for (auto propName : deviceInfo.getCustomInfoPropertyNames())
     {
         try
         {
-            createNode(propName, deviceInfo.getProperty(propName).getValueType());
+            auto prop = deviceInfo.getProperty(propName);
+            createNode(propName, prop.getValueType());
             customInfoNamesSet.insert(propName);
         }
         catch(...)
@@ -212,46 +188,51 @@ void TmsServerDevice::populateDeviceInfo()
         const auto& reference = result->references[i];
         std::string browseName = opcua::utils::ToStdString(reference.browseName.name);
 
-        if (detail::componentFieldToVariant.count(browseName))
-        {
-            auto v = detail::componentFieldToVariant[browseName](deviceInfo);
-            server->writeValue(reference.nodeId.nodeId, *v);
-        }
-        else if (browseName == "OpenDaqPackageVersion")
-        {
-            auto v = OpcUaVariant{deviceInfo.getSdkVersion().getCharPtr()};
-            server->writeValue(reference.nodeId.nodeId, *v);
-        }
+        std::string propName;
+        if (const auto it = detail::componentFieldToDeviceInfo.find(browseName); it != detail::componentFieldToDeviceInfo.end())
+            propName = it->second;
         else if (customInfoNamesSet.count(browseName))
+            propName = browseName;
+        else
+            continue;
+
+        const auto & nodeId = reference.nodeId.nodeId;
+        const auto prop = deviceInfo.getProperty(propName);
+
+        if (prop.getReadOnly())
         {
-            const auto valueType = deviceInfo.getProperty(browseName).getValueType();
-            OpcUaVariant v;
-            if (valueType == ctBool)
+            server->setAccessLevel(nodeId, UA_ACCESSLEVELMASK_READ);
+            OpcUaVariant value;
+            if (const auto it = detail::componentFieldToVariant.find(browseName); it != detail::componentFieldToVariant.end())
             {
-                bool val = deviceInfo.getPropertyValue(browseName);
-                v = OpcUaVariant(val);
-            }
-            else if (valueType == ctInt)
-            {
-                int64_t val = deviceInfo.getPropertyValue(browseName);
-                v = OpcUaVariant(val);
-            }
-            else if (valueType == ctFloat)
-            {
-                double val = deviceInfo.getPropertyValue(browseName);
-                v = OpcUaVariant(val);
-            }
-            else if (valueType == ctString)
-            {
-                v = OpcUaVariant(deviceInfo.getPropertyValue(browseName).asPtr<IString>().getCharPtr());
+                value = it->second(deviceInfo);
             }
             else
             {
-                continue;
+                const auto daqValue = deviceInfo.getPropertyValue(propName);
+                value = VariantConverter<IBaseObject>::ToVariant(daqValue, nullptr, daqContext);
             }
-            
-            server->writeValue(reference.nodeId.nodeId, *v);
+            server->writeValue(nodeId, *value);
+            continue;
         }
+
+        server->setAccessLevel(nodeId, UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE);
+
+        if (const auto it = detail::componentFieldToVariant.find(browseName); it != detail::componentFieldToVariant.end())
+            tmsPropertyObject->addReadCallback(nodeId, std::bind(it->second, deviceInfo));
+        else
+            tmsPropertyObject->addReadCallback(nodeId, [this, name = propName]
+            {
+                const auto value = object.getInfo().getPropertyValue(name);
+                return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
+            });
+
+        tmsPropertyObject->addWriteCallback(nodeId, [this, name = propName](const OpcUaVariant& variant)
+        {
+            const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+            this->object.getInfo().setPropertyValue(name, value);
+            return UA_STATUSCODE_GOOD;
+        });
     }
 }
 

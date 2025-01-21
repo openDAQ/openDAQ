@@ -202,8 +202,6 @@ protected:
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
     DevicePtr getParentDevice();
 
-    virtual ListPtr<IString> getChangeableDeviceInfoFields();
-
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -256,15 +254,6 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     devices.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     ioFolder.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     servers.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
-
-    this->addProperty(StringProperty("userName", ""));
-    this->addProperty(StringProperty("location", ""));
-}
-
-template <typename TInterface, typename... Interfaces>
-ListPtr<IString> GenericDevice<TInterface, Interfaces...>::getChangeableDeviceInfoFields()
-{
-    return {"userName", "location"};
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -288,17 +277,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
         DeviceInfoPtr devInfo;
         errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
         this->deviceInfo = devInfo.detach();
-
-        if (this->deviceInfo.assigned())
-        {
-            this->deviceInfo.template as<IDeviceInfoInternal>(true)->setEditableProperties(this->getChangeableDeviceInfoFields());
-            this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
-            this->deviceInfo.freeze();
-        }
     }
 
     if (this->deviceInfo.assigned())
-        this->deviceInfo.getPermissionManager().template asPtr<IPermissionManagerInternal>().setParent(this->permissionManager);
+        this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
 
     *info = this->deviceInfo.addRefAndReturn();
     return errCode;
@@ -1683,8 +1665,7 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 
     if (serializedObject.hasKey("deviceInfo"))
     {
-        deviceInfo = serializedObject.readObject("deviceInfo");
-        deviceInfo.asPtr<IOwnable>(true).setOwner(this->objPtr);
+        deviceInfo = serializedObject.readObject("deviceInfo", context, factoryCallback);
     }
 
     if (serializedObject.hasKey("deviceDomain"))

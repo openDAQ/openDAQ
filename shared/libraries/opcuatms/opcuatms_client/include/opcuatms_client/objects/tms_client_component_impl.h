@@ -36,8 +36,9 @@ public:
                                const ComponentPtr& parent,
                                const StringPtr& localId,
                                const TmsClientContextPtr& clientContext,
-                               const opcua::OpcUaNodeId& nodeId)
-        : TmsClientPropertyObjectBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId)
+                               const opcua::OpcUaNodeId& nodeId,
+                               const std::map<std::string, std::string>& propBrowseName = {})
+        : TmsClientPropertyObjectBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId, propBrowseName)
     {
         initComponent();
         clientContext->readObjectAttributes(nodeId);

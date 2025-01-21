@@ -10,12 +10,12 @@ the SDK itself.
 
 
 ## Development environment
-- Visual Studio 2022 (V17.11.x when this package has been created)
-- TargetFramework: net6.0
+- Visual Studio 2022 (V17.12.x when this package has been created)
+- TargetFramework: net8.0
 - Platform: x64
 
 ## Prerequisites
-Install this NuGet package for your project using NuGet Manager.  
+Install this NuGet package for your project using NuGet Manager in Visual Studio.  
 On NuGet package restoration all relevant binaries will be copied to the configuration's
 target directory and adapts the file `*.deps.json` to find the libraries since they're
 being structured (e.g. `runtimes/win-x64/native/*`).

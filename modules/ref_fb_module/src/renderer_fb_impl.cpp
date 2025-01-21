@@ -26,6 +26,8 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent
     , axisColor(150, 150, 150)
 {
     initComponentStatus();
+    futureComponentStatus = ComponentStatus::Ok;
+    futureComponentMessage = "";
     initProperties();
     updateInputPorts();
 

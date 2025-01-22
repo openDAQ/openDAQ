@@ -168,5 +168,15 @@ auto wrapInterface(pybind11::module_ m, const char* name, const Extra&... extra)
     cls.def_static("cast_from", [](daq::IBaseObject* obj) { return castFrom<Interface>(obj); });
     cls.def_static("convert_from", [](daq::IBaseObject* obj) { return convertFrom<Interface>(obj); });
     cls.def_static("can_cast_from", [](daq::IBaseObject* obj) { return canCastFrom<Interface>(obj); });
+    cls.def_static("from_raw_interface",
+                   [](const py::capsule& rawInterface)
+                   {
+                       if (std::strcmp(rawInterface.name(), "opendaq.raw_interface") != 0)
+                           throw std::invalid_argument("Invalid capsule");
+
+                       daq::IBaseObject* obj = rawInterface.get_pointer<daq::IBaseObject>();
+                       return castFrom<Interface>(obj);
+                   });
+
     return cls;
 }

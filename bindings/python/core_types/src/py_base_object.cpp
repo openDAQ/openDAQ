@@ -81,4 +81,27 @@ void declareAndDefineIBaseObject(pybind11::module_ m)
         [](daq::IBaseObject* obj) {
             return canCastFrom<daq::IBaseObject>(obj);
         });
+    cls.def("get_raw_interface",
+        [](daq::IBaseObject* obj)
+        {
+            daq::IBaseObject* newObj;
+            const auto err = obj->queryInterface(daq::IBaseObject::Id, reinterpret_cast<void**>(&newObj));
+            daq::checkErrorInfo(err);
+
+            py::capsule rawInterface(newObj, "opendaq.raw_interface", [](void* f) { static_cast<daq::IBaseObject*>(f)->releaseRef(); });
+            return rawInterface;
+        });
+    cls.def_static("from_raw_interface",
+        [](py::capsule rawInterface)
+        {
+            if (std::strcmp(rawInterface.name(), "opendaq.raw_interface") != 0)
+                throw std::invalid_argument("Invalid capsule");
+
+            daq::IBaseObject* obj = rawInterface.get_pointer<daq::IBaseObject>();
+            if (obj != nullptr)
+                obj->addRef();
+
+            InterfaceWrapper<daq::IBaseObject> wrappedInterface(obj);
+            return py::cast(wrappedInterface);
+        });
 }

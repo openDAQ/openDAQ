@@ -57,15 +57,27 @@ class DisplayType(enum.Enum):
         elif index == 4:
             return DisplayType.TOPOLOGY
         return DisplayType.UNSPECIFIED
-
+        
+class ContextParams:
+    module_path: str = ''
 
 class App(tk.Tk):
 
     # MARK: -- INIT
     def __init__(self, args):
         super().__init__()
-
-        self.context = AppContext()
+         
+        context_params = ContextParams()
+        
+        try:
+            if args.module_path != '':
+                context_params.module_path = args.module_path
+            else:
+                context_params.module_path = None
+        except ValueError:
+            context_params.module_path = None
+            
+        self.context = AppContext(context_params)
         self.context.on_needs_refresh = lambda: self.on_refresh_event(None)
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
 
@@ -79,6 +91,7 @@ class App(tk.Tk):
         except ValueError:
             self.context.connection_string = None
 
+            
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
             1500 * self.context.ui_scaling_factor, 800 * self.context.ui_scaling_factor))
@@ -775,6 +788,8 @@ if __name__ == '__main__':
         '--demo', help='Include internal demo/reference devices', action='store_true')
     parser.add_argument(
         '--config', help='Saved config', type=str, default='')
+    parser.add_argument(
+        '--module_path', help='Additional modules path', type=str, default='')
 
     app = App(parser.parse_args())
     app.mainloop()

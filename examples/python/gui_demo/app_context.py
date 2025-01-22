@@ -17,7 +17,7 @@ class AppContext(object):
 
     default_folders = {'Dev', 'FB', 'IO', 'IP', 'Sig'}
 
-    def __init__(self):
+    def __init__(self, params):
 
         # logic
         self.nodes = {}
@@ -30,7 +30,20 @@ class AppContext(object):
         self.ui_scaling_factor = 1.0
         self.icons = {}
         # daq
-        self.instance = daq.Instance()
+        builder = daq.InstanceBuilder()
+        builder.scheduler_worker_num = 0
+        
+        try:
+            daq.OPENDAQ_MODULES_DIR
+        except:
+            builder.add_module_path('.')
+        else:
+            builder.add_module_path(daq.OPENDAQ_MODULES_DIR)
+
+        if params.module_path != None:
+            builder.add_module_path(params.module_path)
+        
+        self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.EventHandler(self.on_core_event)
         self.enabled_devices = {}
         self.connection_string = ''

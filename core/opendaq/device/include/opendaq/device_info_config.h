@@ -189,10 +189,22 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
     virtual ErrCode INTERFACE_FUNC setSystemUuid(IString* uuid) = 0;
     
     /*!
-     * @brief Sets the device's location.
-     * @param location The device's location.
+     * @brief Sets the location of the device.
+     * @param[out] location The location of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the location string value matches that of the device's "userName" property.
      */
     virtual ErrCode INTERFACE_FUNC setLocation(IString* location) = 0;
+
+    /*!
+     * @brief Sets the name of the current user of the device.
+     * @param[out] userName The location of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the username string value matches that of the device's "userName" property.
+     */
+    virtual ErrCode INTERFACE_FUNC setUserName(IString* userName) = 0;
 };
 /*!@}*/
 

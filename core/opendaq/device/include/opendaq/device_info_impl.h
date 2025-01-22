@@ -80,6 +80,7 @@ public:
     ErrCode INTERFACE_FUNC getCustomInfoPropertyNames(IList** customInfoNames) override;
     ErrCode INTERFACE_FUNC getSdkVersion(IString** version) override;
     ErrCode INTERFACE_FUNC getLocation(IString** location) override;
+    ErrCode INTERFACE_FUNC getUserName(IString** userName) override;
 
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) override;
@@ -104,6 +105,7 @@ public:
     ErrCode INTERFACE_FUNC setSystemType(IString* type) override;
     ErrCode INTERFACE_FUNC setSystemUuid(IString* uuid) override;
     ErrCode INTERFACE_FUNC setLocation(IString* location) override;
+    ErrCode INTERFACE_FUNC setUserName(IString* userName) override;
 
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
 
@@ -548,6 +550,12 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setLocation(IString* lo
 }
 
 template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setUserName(IString* userName)
+{
+    return setValueInternal(String("userName"), userName);
+}
+
+template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getLocation(IString** location)
 {
     OPENDAQ_PARAM_NOT_NULL(location);
@@ -555,6 +563,18 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getLocation(IString** l
     return daqTry([&]
     {
         *location = getStringProperty("location").detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getUserName(IString** userName)
+{
+    OPENDAQ_PARAM_NOT_NULL(userName);
+
+    return daqTry([&]
+    {
+        *userName = getStringProperty("userName").detach();
         return OPENDAQ_SUCCESS;
     });
 }

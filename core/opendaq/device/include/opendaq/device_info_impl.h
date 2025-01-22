@@ -992,7 +992,22 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setProtectedPropertyVal
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
 {
-    ErrCode err = Super::setOwner(newOwner);
+    if (this->getPropertyObjectParent() == newOwner)
+        return OPENDAQ_IGNORED;
+    
+    BaseObjectPtr userNameVal;
+    ErrCode err = Super::getPropertyValue(String("userName"), &userNameVal);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    BaseObjectPtr locationVal;
+    err = Super::getPropertyValue(String("location"), &locationVal);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    err = Super::setOwner(newOwner);
+    if (OPENDAQ_FAILED(err))
+        return err;
 
     if (newOwner != nullptr)
     {
@@ -1001,12 +1016,45 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         PropertyPtr userNameProp;
         this->getProperty(String("userName"), &userNameProp);
         if (userNameProp.assigned() && !userNameProp.getReadOnly())
-            parent->addProperty(StringProperty("userName", ""));
+        {
+            Bool hasProp;
+            err = parent->hasProperty(String("userName"), &hasProp);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
+            if (!hasProp)
+            {
+                err = parent->addProperty(StringProperty("userName", ""));
+                if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_ALREADYEXISTS)
+                    return err;
+            }
+
+
+            err = parent->setPropertyValue(String("userName"), userNameVal);
+            if (OPENDAQ_FAILED(err))
+                return err;
+        }
         
         PropertyPtr locationProp;
         this->getProperty(String("location"), &locationProp);
         if (locationProp.assigned() && !locationProp.getReadOnly())
-            parent->addProperty(StringProperty("location", ""));\
+        {
+            Bool hasProp;
+            err = parent->hasProperty(String("location"), &hasProp);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
+            if (!hasProp)
+            {
+                err = parent->addProperty(StringProperty("location", ""));
+                if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_ALREADYEXISTS)
+                    return err;
+            }
+
+            err = parent->setPropertyValue(String("location"), locationVal);
+            if (OPENDAQ_FAILED(err))
+                return err;
+        }
 
         if (!coreEvent.assigned())
         {

@@ -44,8 +44,11 @@ public class OpenDAQTestsBase
         _doCheckAliveObjectCount = true;
         _doWarn                  = true;
 
-        if (TestContext.CurrentContext.Test.Type?.Assembly.GetName().Name?.Contains(".CI.Test") ?? false)
+        string testAssemblyName = TestContext.CurrentContext.Test.Type?.Assembly.GetName().Name ?? string.Empty;
+
+        if (testAssemblyName.Contains(".CI.Test") || testAssemblyName.Contains(".NuGet.Test"))
         {
+            //turn off everything for any test in CI (standard and NuGet testing)
             DontCollectAndFinalize();
             DontCheckAliveObjectCount();
             DontWarn();

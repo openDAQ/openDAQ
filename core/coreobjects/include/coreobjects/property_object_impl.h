@@ -1871,7 +1871,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         BaseObjectPtr valuePtr;
         PropertyPtr prop;
 
-        getPropertyAndValueInternal(propName, valuePtr, prop, true, true);
+        getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
 
         if (!prop.assigned())
             throw NotFoundException(R"(Selection property "{}" not found)", propName);

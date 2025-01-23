@@ -169,6 +169,52 @@ TEST_F(NativeDeviceModulesTest, UseOldProtocolVersion)
     server.detach();
 }
 
+TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionLocationUsername)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(0);
+
+    auto serverDev = server.getDevices()[0];
+    auto serverInfo = serverDev.getInfo();
+    ASSERT_TRUE(serverDev.hasProperty("userName"));
+    ASSERT_TRUE(serverDev.hasProperty("location"));
+
+    auto dev = client.getDevices()[0].getDevices()[0];
+    auto info = dev.getInfo();
+    ASSERT_FALSE(info.getProperty("userName").getReadOnly());
+    ASSERT_FALSE(info.getProperty("location").getReadOnly());
+    ASSERT_TRUE(dev.hasProperty("userName"));
+    ASSERT_TRUE(dev.hasProperty("location"));
+
+    dev.setPropertyValue("location", "foo");
+    dev.setPropertyValue("userName", "foo");
+    
+    ASSERT_EQ(dev.getPropertyValue("location"), "foo");
+    ASSERT_EQ(dev.getPropertyValue("userName"), "foo");
+    ASSERT_EQ(info.getPropertyValue("location"), "foo");
+    ASSERT_EQ(info.getPropertyValue("userName"), "foo");
+
+    ASSERT_EQ(serverDev.getPropertyValue("location"), "foo");
+    ASSERT_EQ(serverDev.getPropertyValue("userName"), "foo");
+    ASSERT_EQ(serverInfo.getPropertyValue("location"), "foo");
+    ASSERT_EQ(serverInfo.getPropertyValue("userName"), "foo");
+
+    // because info holds a client device as owner, it have to be removed before module manager is destroyed
+    // otherwise module of native client device would not be removed
+    
+    serverInfo.release();
+    info.release();
+    serverDev.release();
+    dev.release();
+
+    client->releaseRef();
+    server->releaseRef();
+    client.detach();
+    server.detach();
+}
+
+
 TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 {
     SKIP_TEST_MAC_CI;

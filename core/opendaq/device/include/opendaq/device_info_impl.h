@@ -118,6 +118,7 @@ public:
     ErrCode INTERFACE_FUNC removeServerCapability(IString* protocolId) override;
     ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) override;
     ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() override;
+    ErrCode INTERFACE_FUNC setIsLocal(Bool isLocal) override;
     ErrCode INTERFACE_FUNC hasServerCapability(IString* protocolId, Bool* hasCapability) override;
     ErrCode INTERFACE_FUNC getServerCapability(IString* protocolId, IServerCapability** capability) override;
 
@@ -854,6 +855,13 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCap
 }
 
 template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setIsLocal(Bool isLocal)
+{
+    this->isLocal = isLocal;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::hasServerCapability(IString* protocolId, Bool* hasCapability)
 {
     OPENDAQ_PARAM_NOT_NULL(hasCapability);
@@ -994,7 +1002,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
 {
     if (this->getPropertyObjectParent() == newOwner)
         return OPENDAQ_IGNORED;
-    
+
     BaseObjectPtr userNameVal;
     ErrCode err = Super::getPropertyValue(String("userName"), &userNameVal);
     if (OPENDAQ_FAILED(err))
@@ -1013,45 +1021,26 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     {
         ComponentPtr parent = newOwner;
 
-        PropertyPtr userNameProp;
-        this->getProperty(String("userName"), &userNameProp);
-        if (userNameProp.assigned() && !userNameProp.getReadOnly())
+        if (isLocal)
         {
-            Bool hasProp;
-            err = parent->hasProperty(String("userName"), &hasProp);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            err = daqTry([&](){
+                if (!this->objPtr.getProperty("userName").getReadOnly())
+                {
+                    if (!parent.hasProperty(String("userName")))
+                        parent.addProperty(StringProperty("userName", ""));
 
-            if (!hasProp)
-            {
-                err = parent->addProperty(StringProperty("userName", ""));
-                if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_ALREADYEXISTS)
-                    return err;
-            }
+                    parent.setPropertyValue(String("userName"), userNameVal);
+                }
 
+                if (!this->objPtr.getProperty("location").getReadOnly())
+                {
+                    if (!parent.hasProperty(String("location")))
+                        parent.addProperty(StringProperty("location", ""));
 
-            err = parent->setPropertyValue(String("userName"), userNameVal);
-            if (OPENDAQ_FAILED(err))
-                return err;
-        }
-        
-        PropertyPtr locationProp;
-        this->getProperty(String("location"), &locationProp);
-        if (locationProp.assigned() && !locationProp.getReadOnly())
-        {
-            Bool hasProp;
-            err = parent->hasProperty(String("location"), &hasProp);
-            if (OPENDAQ_FAILED(err))
-                return err;
+                    parent.setPropertyValue(String("location"), locationVal);
+                }
+            });
 
-            if (!hasProp)
-            {
-                err = parent->addProperty(StringProperty("location", ""));
-                if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_ALREADYEXISTS)
-                    return err;
-            }
-
-            err = parent->setPropertyValue(String("location"), locationVal);
             if (OPENDAQ_FAILED(err))
                 return err;
         }

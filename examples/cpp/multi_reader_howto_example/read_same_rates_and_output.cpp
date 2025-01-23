@@ -18,7 +18,10 @@ void readDataSameRatesPortsAndOutput(const ListPtr<ISignal>& signals)
     }
 
     // Create reader that converts values to `double` and time data to `int64`
-    auto multiReaderBuilder = MultiReaderBuilder().setValueReadType(SampleType::Float64).setDomainReadType(SampleType::Int64);
+    auto multiReaderBuilder = MultiReaderBuilder()
+                              .setValueReadType(SampleType::Float64)
+                              .setDomainReadType(SampleType::Int64);
+
     for (const auto& port : ports)
         multiReaderBuilder.addInputPort(port);
     auto multiReader = multiReaderBuilder.build();
@@ -112,6 +115,12 @@ void readDataSameRatesPortsAndOutput(const ListPtr<ISignal>& signals)
         std::scoped_lock lock(mutex);
         running = false;
     }
+
+    for (size_t i = 0; i < signalsCount; ++i)
+    {
+        free(dataBuffers[i]);
+        free(domainBuffers[i]);
+    }
 }
 
 int main()
@@ -123,4 +132,9 @@ int main()
 
     std::cout << "Same rate data, using input ports, read in callbacks, data is output:\n";
     readDataSameRatesPortsAndOutput(signals);
+
+    
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
 }

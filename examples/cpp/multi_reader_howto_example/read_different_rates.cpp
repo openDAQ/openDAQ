@@ -74,6 +74,12 @@ void readDataDifferentRates(const ListPtr<ISignal>& signals)
 
         std::this_thread::sleep_for(50ms);
     }
+
+    for (size_t i = 0; i < signalsCount; ++i)
+    {
+        free(dataBuffers[i]);
+        free(domainBuffers[i]);
+    }
 }
 
 int main()
@@ -93,4 +99,8 @@ int main()
 	
     std::cout << "Different rate data:\n";
     readDataDifferentRates(signals);
+
+    std::cout << "Press \"enter\" to exit the application..." << std::endl;
+    std::cin.get();
+    return 0;
 }

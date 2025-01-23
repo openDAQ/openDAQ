@@ -520,6 +520,12 @@ void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
         }
 
         std::this_thread::sleep_for(50ms);
+    } 
+    
+    for (size_t i = 0; i < signalsCount; ++i)
+    {
+        free(dataBuffers[i]);
+        free(domainBuffers[i]);
     }
 }
 
@@ -536,7 +542,10 @@ void readDataSameRatesPortsAndOutput(const ListPtr<ISignal>& signals)
     }
 
     // Create reader that converts values to `double` and time data to `int64`
-    auto multiReaderBuilder = MultiReaderBuilder().setValueReadType(SampleType::Float64).setDomainReadType(SampleType::Int64);
+    auto multiReaderBuilder = MultiReaderBuilder()
+                              .setValueReadType(SampleType::Float64)
+                              .setDomainReadType(SampleType::Int64);
+
     for (const auto& port : ports)
         multiReaderBuilder.addInputPort(port);
     auto multiReader = multiReaderBuilder.build();
@@ -630,6 +639,12 @@ void readDataSameRatesPortsAndOutput(const ListPtr<ISignal>& signals)
         std::scoped_lock lock(mutex);
         running = false;
     }
+        
+    for (size_t i = 0; i < signalsCount; ++i)
+    {
+        free(dataBuffers[i]);
+        free(domainBuffers[i]);
+    }
 }
 
 void readDataDifferentRates(const ListPtr<ISignal>& signals)
@@ -700,6 +715,12 @@ void readDataDifferentRates(const ListPtr<ISignal>& signals)
         }
 
         std::this_thread::sleep_for(50ms);
+    } 
+    
+    for (size_t i = 0; i < signalsCount; ++i)
+    {
+        free(dataBuffers[i]);
+        free(domainBuffers[i]);
     }
 }
 ----

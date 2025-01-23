@@ -337,7 +337,7 @@ protected:
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
-    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value);
+    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
 
     // Serialization
@@ -1601,14 +1601,14 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
     auto lock = getRecursiveConfigLock();
-    return getPropertySelectionValueInternal(propertyName, value);
+    return getPropertySelectionValueInternal(propertyName, value, true);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValueNoLock(IString* propertyName,
                                                                                                     IBaseObject** value)
 {
-    return getPropertySelectionValueInternal(propertyName, value);
+    return getPropertySelectionValueInternal(propertyName, value, true);
 }
 
 template <class PropObjInterface, typename... Interfaces>
@@ -1859,7 +1859,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValueInternal(IString* propertyName,
-                                                                                                      IBaseObject** value)
+                                                                                                      IBaseObject** value,
+                                                                                                      Bool retrieveUpdatingValue)
 {
     if (propertyName == nullptr || value == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
@@ -1870,7 +1871,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         BaseObjectPtr valuePtr;
         PropertyPtr prop;
 
-        getPropertyAndValueInternal(propName, valuePtr, prop);
+        getPropertyAndValueInternal(propName, valuePtr, prop, true, true);
 
         if (!prop.assigned())
             throw NotFoundException(R"(Selection property "{}" not found)", propName);

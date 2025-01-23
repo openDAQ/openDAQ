@@ -545,7 +545,6 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
             changeableFields.pushBack("location");
         
         auto newDeviceInfo = DeviceInfoWithChanegableFields(changeableFields);
-        newDeviceInfo.asPtr<IDeviceInfoInternal>().setIsLocal(false);
         auto deviceInfoInternal = newDeviceInfo.asPtr<IPropertyObjectProtected>(true);
     
         for (const auto& prop : deviceInfo.getAllProperties())

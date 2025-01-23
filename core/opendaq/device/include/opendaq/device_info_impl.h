@@ -30,6 +30,7 @@
 #include <coretypes/validation.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/mirrored_device.h>
 #include <set>
 #include <cctype>
 
@@ -118,7 +119,6 @@ public:
     ErrCode INTERFACE_FUNC removeServerCapability(IString* protocolId) override;
     ErrCode INTERFACE_FUNC getServerCapabilities(IList** serverCapabilities) override;
     ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() override;
-    ErrCode INTERFACE_FUNC setIsLocal(Bool isLocal) override;
     ErrCode INTERFACE_FUNC hasServerCapability(IString* protocolId, Bool* hasCapability) override;
     ErrCode INTERFACE_FUNC getServerCapability(IString* protocolId, IServerCapability** capability) override;
 
@@ -133,7 +133,7 @@ public:
     virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
 
 
-private:
+protected:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
     ErrCode createAndSetIntProperty(const StringPtr& name, const IntegerPtr& value);
     StringPtr getStringProperty(const StringPtr& name);
@@ -143,14 +143,14 @@ private:
 
     void triggerCoreEventMethod(const CoreEventArgsPtr& args);
 
-    ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
+    virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
 
     std::set<std::string> changeableDefaultPropertyNames;
     DeviceTypePtr deviceType;
 
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
     PropertyObjectPtr getOwnerOfProperty(const StringPtr& propertyName);
-    bool isLocal;
+    // bool isLocal;
 };
 
 namespace deviceInfoDetails
@@ -198,7 +198,6 @@ template <typename TInterface, typename ... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     : Super()
 {
-    this->isLocal = false;
     this->path = "DaqDeviceInfo";
     createAndSetStringProperty("name", "");
     createAndSetStringProperty("connectionString", "");
@@ -222,7 +221,6 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
                                                                       const ListPtr<IString>& changeableDefaultPropertyNames)
     : DeviceInfoConfigImpl()
 {
-    this->isLocal = true;
     if (changeableDefaultPropertyNames.assigned())
     {
         for (const auto& propName : changeableDefaultPropertyNames)
@@ -855,13 +853,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCap
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setIsLocal(Bool isLocal)
-{
-    this->isLocal = isLocal;
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::hasServerCapability(IString* protocolId, Bool* hasCapability)
 {
     OPENDAQ_PARAM_NOT_NULL(hasCapability);
@@ -948,10 +939,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setValueInternal(IString* propertyName, IBaseObject* value)
 {
-    if (this->isLocal)
-        return Super::setProtectedPropertyValue(propertyName, value);
-    else
-        return this->objPtr->setPropertyValue(propertyName, value);
+    return Super::setProtectedPropertyValue(propertyName, value);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -1000,61 +988,54 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setProtectedPropertyVal
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
 {
-    if (this->getPropertyObjectParent() == newOwner)
-        return OPENDAQ_IGNORED;
+    ErrCode errCode = Super::setOwner(newOwner);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
 
-    BaseObjectPtr userNameVal;
-    ErrCode err = Super::getPropertyValue(String("userName"), &userNameVal);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    if (errCode == OPENDAQ_IGNORED)
+        return errCode;
 
-    BaseObjectPtr locationVal;
-    err = Super::getPropertyValue(String("location"), &locationVal);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    if (newOwner == nullptr)
+        return errCode;
 
-    err = Super::setOwner(newOwner);
-    if (OPENDAQ_FAILED(err))
-        return err;
-
-    if (newOwner != nullptr)
+    ComponentPtr parent = newOwner;
+    if (!coreEvent.assigned())
     {
-        ComponentPtr parent = newOwner;
-
-        if (isLocal)
-        {
-            err = daqTry([&](){
-                if (!this->objPtr.getProperty("userName").getReadOnly())
-                {
-                    if (!parent.hasProperty(String("userName")))
-                        parent.addProperty(StringProperty("userName", ""));
-
-                    parent.setPropertyValue(String("userName"), userNameVal);
-                }
-
-                if (!this->objPtr.getProperty("location").getReadOnly())
-                {
-                    if (!parent.hasProperty(String("location")))
-                        parent.addProperty(StringProperty("location", ""));
-
-                    parent.setPropertyValue(String("location"), locationVal);
-                }
-            });
-
-            if (OPENDAQ_FAILED(err))
-                return err;
-        }
-
-        if (!coreEvent.assigned())
-        {
-            parent.getContext()->getOnCoreEvent(&this->coreEvent);
-            ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMethod(args); };
-            this->setCoreEventTrigger(procedure);
-            this->coreEventMuted = false;
-        }
+        parent.getContext()->getOnCoreEvent(&coreEvent);
+        ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMethod(args); };
+        this->setCoreEventTrigger(procedure);
+        this->coreEventMuted = false;
     }
+
+    if (parent.supportsInterface<IMirroredDevice>())
+        return errCode;
     
-    return err;
+    auto lock = this->getRecursiveConfigLock();
+    for (const StringPtr& propertyName: {"userName", "location"})
+    {
+        PropertyPtr property;
+        errCode = this->getProperty(propertyName, &property);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+
+        if (property.getReadOnly())
+            continue;
+
+        errCode = parent->addProperty(StringProperty(propertyName, ""));
+        if (OPENDAQ_FAILED(errCode) && (errCode != OPENDAQ_ERR_DUPLICATEITEM))
+            return errCode;
+        
+        BaseObjectPtr propertyValue;
+        errCode = Super::getPropertyValueNoLock(propertyName, &propertyValue);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+        
+        errCode = parent->setPropertyValue(propertyName, propertyValue);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename ... Interfaces>

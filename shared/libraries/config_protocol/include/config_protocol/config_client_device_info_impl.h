@@ -50,6 +50,8 @@ protected:
 
     template <class Interface, class Implementation>
     static BaseObjectPtr DeserializeDeviceInfo(const SerializedObjectPtr& serialized, const BaseObjectPtr& context);
+
+    virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
 };
 
 template <class Impl>
@@ -76,6 +78,12 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setProtectedPropertyValue(IString*
         return Impl::setProtectedPropertyValue(propertyName, value);
 
     return Super::setProtectedPropertyValue(propertyName, value);
+}
+
+template <class Impl>
+ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setValueInternal(IString* propertyName, IBaseObject* value)
+{
+    return this->setPropertyValue(propertyName, value);
 }
 
 template <class Impl>

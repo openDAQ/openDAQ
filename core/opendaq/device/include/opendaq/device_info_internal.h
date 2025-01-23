@@ -51,12 +51,6 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      * @brief Removes all server streaming capabilities from the list of supported capabilities.
      */
     virtual ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() = 0;
-    
-    /*!
-     * @brief Sets the isLocal internal flag.
-     * @param isLocal True if the device info is local to the device; false otherwise.
-     */
-    virtual ErrCode INTERFACE_FUNC setIsLocal(Bool isLocal) = 0;
 };
 /*!@}*/
 

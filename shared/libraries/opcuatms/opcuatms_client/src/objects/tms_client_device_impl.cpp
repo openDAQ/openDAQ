@@ -239,7 +239,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         changeableProperties.pushBack("location");
 
     auto deviceInfo = DeviceInfoWithChanegableFields(changeableProperties);
-    deviceInfo.asPtr<IDeviceInfoInternal>().setIsLocal(false);
     deviceInfo.setName(this->client->readDisplayName(this->nodeId));
 
     for (const auto& [browseName, ref] : references.byBrowseName)

@@ -32,7 +32,6 @@ In the example above, the default properties `userName`, `location`, `manufactur
 + [factory] DeviceInfoConfigPtr DeviceInfoWithChanegableFields(const ListPtr<IString>& changeableDefaultPropertyNames)
 + [function] IDeviceInfo::getUserName(IString** userName);
 + [function] IDeviceInfoConfig::setUserName(IString* userName);
-+ [function] IDeviceInfoInternal::setIsLocal(Bool isLocal);
 ```
 
 # 2024-12-27

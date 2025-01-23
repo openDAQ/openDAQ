@@ -584,7 +584,10 @@ TEST_F(ConfigNestedPropertyObjectTest, SetSelectionPropertyValueInsideCallback)
     serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
     {
         if ((Int)arg.getValue() > 0)
+        {
+            ASSERT_NE(obj.getPropertySelectionValue("EditableProperty"), "defaultValue");
             obj.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("EditableProperty", 0);
+        }
     };
 
     ASSERT_EQ(clientDevice.getPropertySelectionValue("EditableProperty"), "defaultValue");
@@ -614,7 +617,10 @@ TEST_F(ConfigNestedPropertyObjectTest, SetSelectionPropertyValueCallbackFailed)
     serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
     {
         if ((Int)arg.getValue() > 0)
+        {
+            ASSERT_NE(obj.getPropertySelectionValue("EditableProperty"), "defaultValue");
             throw InvalidParameterException("Invalid value");
+        }
     };
 
     ASSERT_EQ(clientDevice.getPropertySelectionValue("EditableProperty"), "defaultValue");
@@ -644,7 +650,10 @@ TEST_F(ConfigNestedPropertyObjectTest, SetSelectionPropertyValueCallbackIgnoreVa
     serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
     {
         if ((Int)arg.getValue() > 0)
+        {
+            ASSERT_NE(obj.getPropertySelectionValue("EditableProperty"), "defaultValue");
             arg.setValue(0);
+        }
     };
 
     ASSERT_EQ(clientDevice.getPropertySelectionValue("EditableProperty"), "defaultValue");

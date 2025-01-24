@@ -51,7 +51,7 @@ protected:
     template <class Interface, class Implementation>
     static BaseObjectPtr DeserializeDeviceInfo(const SerializedObjectPtr& serialized, const BaseObjectPtr& context);
 
-    virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
+    ErrCode setValueInternal(IString* propertyName, IBaseObject* value) override;
 };
 
 template <class Impl>

@@ -456,7 +456,7 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
 {
     auto transportLayerConfig = daq::PropertyObject();
 
-    transportLayerConfig.addProperty(daq::BoolProperty("MonitoringEnabled", daq::False));
+    transportLayerConfig.addProperty(daq::BoolProperty("MonitoringEnabled", daq::True));
     transportLayerConfig.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("InactivityTimeout", 1500));
     transportLayerConfig.addProperty(daq::IntProperty("ConnectionTimeout", 1000));

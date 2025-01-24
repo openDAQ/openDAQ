@@ -555,7 +555,7 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
     {
         constexpr size_t capacity = 2048;
         std::vector<char> buffer(capacity);
-        for (int isock = 0; isock < sockets.size(); ++isock)
+        for (size_t isock = 0; isock < sockets.size(); ++isock)
             queryId[isock] = mdns_multiquery_send(sockets[isock], query.data(), query.size(), buffer.data(), buffer.size(), 0);
     }
 
@@ -649,17 +649,17 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
         int nfds = 0;
         fd_set readfs;
         FD_ZERO(&readfs);
-        for (int isock = 0; isock < sockets.size(); ++isock)
+        for (int socket : sockets)
         {
-            if (sockets[isock] >= nfds)
-                nfds = sockets[isock] + 1;
-            FD_SET((u_int) sockets[isock], &readfs);
+            if (socket >= nfds)
+                nfds = socket + 1;
+            FD_SET((u_int)socket, &readfs);
         }
 
         res = select(nfds, &readfs, 0, 0, &timeout);
         if (res > 0)
         {
-            for (int isock = 0; isock < sockets.size(); ++isock)
+            for (size_t isock = 0; isock < sockets.size(); ++isock)
             {
                 if (FD_ISSET(sockets[isock], &readfs))
                 {
@@ -672,8 +672,8 @@ inline void MDNSDiscoveryClient::sendMdnsQuery()
         }
     } while (res > 0);
 
-    for (int isock = 0; isock < sockets.size(); ++isock)
-        mdns_socket_close(sockets[isock]);
+    for (int socket: sockets)
+        mdns_socket_close(socket);
 }
 
 END_NAMESPACE_DISCOVERY

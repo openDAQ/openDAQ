@@ -29,11 +29,14 @@ MdnsDiscoveredDevice::MdnsDiscoveredDevice(const std::string& serviceName, uint3
 {
     if (this->serviceName.back() != '.')
         this->serviceName += ".";
+
+    this->recordSize = 1024;
+    for (const auto & [key, value] : this->properties)
+        this->recordSize += key.size() + value.size() + 2;
 }
 
 void MdnsDiscoveredDevice::populateRecords(std::vector<mdns_record_t>& records) const 
 {
-    this->recordSize = 1024;
     for (const auto & [key, value] : properties)
     {
         mdns_record_t record;
@@ -44,8 +47,6 @@ void MdnsDiscoveredDevice::populateRecords(std::vector<mdns_record_t>& records) 
         record.rclass = 0,
         record.ttl = 0;
         records.push_back(record);
-
-        this->recordSize += key.size() + value.size() + 2;
     }
 }
 
@@ -76,10 +77,8 @@ MDNSDiscoveryServer::MDNSDiscoveryServer(void)
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
     if (WSAStartup(versionWanted, &wsaData))
-    {
-        printf("Failed to initialize WinSock\n");
-        return;
-    }
+        throw std::runtime_error("MDNSDiscoveryServer: Failed to initialize WinSock");
+
 #endif
     hostName = getHostname();
     openServerSockets(sockets);
@@ -90,9 +89,7 @@ void MDNSDiscoveryServer::start()
     if (!running)
     {
         if (serviceThread.joinable())
-        {
             serviceThread.join();
-        }
 
         std::lock_guard<std::mutex> lock(mx);
         if (!running)
@@ -116,7 +113,6 @@ mdns_record_t MDNSDiscoveryServer::createPtrRecord(const MdnsDiscoveredDevice& d
 
 mdns_record_t MDNSDiscoveryServer::createSrvRecord(const MdnsDiscoveredDevice& device) const
 {
-
     mdns_record_t recordSrv;
     recordSrv.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
     recordSrv.type = MDNS_RECORDTYPE_SRV,
@@ -174,9 +170,7 @@ bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
 
     std::vector<char> buffer(device.recordSize);
     for (const auto & socket : sockets)
-    {
         mdns_announce_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
-    }
 
     bool success = false;
     {
@@ -201,9 +195,7 @@ void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredDevice& device)
 
     std::vector<char> buffer(device.recordSize);
     for (const auto & socket : sockets)
-    {
         mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
-    }
 }
 
 bool MDNSDiscoveryServer::removeDevice(const std::string& id)
@@ -228,9 +220,7 @@ void MDNSDiscoveryServer::stop()
         serviceThread.join();
 
     for (const auto & [_, device] : devices)
-    {
         goodbyeMulticast(device);
-    }
 }
 
 MDNSDiscoveryServer::~MDNSDiscoveryServer(void)
@@ -335,9 +325,7 @@ void MDNSDiscoveryServer::serviceLoop()
             for (const auto & socket : sockets)
             {
                 if (FD_ISSET(socket, &readfs))
-                {
                     mdns_socket_listen(socket, buffer.data(), buffer.size(), callbackWrapper, &callback);
-                }
                 FD_SET((u_int) socket, &readfs);
             }
         } 
@@ -383,6 +371,14 @@ void MDNSDiscoveryServer::openServerSockets(std::vector<int>& sockets)
         int sock = mdns_socket_open_ipv6(&sock_addr);
         if (sock >= 0)
             sockets.push_back(sock);
+    }
+
+    if (sockets.empty())
+    {
+#ifdef _WIN32
+        WSACleanup();
+#endif
+        throw std::runtime_error("MDNSDiscoveryServer: Failed to open sockets");
     }
 }
 
@@ -501,6 +497,14 @@ inline void MDNSDiscoveryServer::openClientSockets()
     
     freeifaddrs(ifaddr);
 #endif
+
+    if (!hasIpv4 && !hasIpv6)
+    {
+#ifdef _WIN32
+        WSACleanup();
+#endif
+        throw std::runtime_error("MDNSDiscoveryServer: Network interfaces not found");
+    }
 }
 
 void send_mdns_query_answer(bool unicast, int sock, const sockaddr* from, socklen_t addrlen, 

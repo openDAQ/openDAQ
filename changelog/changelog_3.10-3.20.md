@@ -7,7 +7,7 @@
 
 - Serialize component name when equal to localID [#660](https://github.com/openDAQ/openDAQ/pull/660)
 - Fix for openDAQ module loading failing on Android [#569](https://github.com/openDAQ/openDAQ/pull/659)
-- Show time domain signal last value as time [#657] https://github.com/openDAQ/openDAQ/pull/657
+- Show time domain signal last value as time [#657](https://github.com/openDAQ/openDAQ/pull/657)
 - Fix local device discovery and serialization on id clashes [#653](https://github.com/openDAQ/openDAQ/pull/653)
 - Support for Python lists in MultiReader  [#651](https://github.com/openDAQ/openDAQ/pull/651)
 - Make attributes editable in Python GUI Demo Application [#637](https://github.com/openDAQ/openDAQ/pull/637) 

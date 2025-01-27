@@ -1011,7 +1011,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         return errCode;
     
     auto lock = this->getRecursiveConfigLock();
-    for (const StringPtr& propertyName: {"userName", "location"})
+    for (const StringPtr& propertyName: {String("userName"), String("location")})
     {
         PropertyPtr property;
         errCode = this->getProperty(propertyName, &property);

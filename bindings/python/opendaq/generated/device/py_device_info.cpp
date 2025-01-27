@@ -296,4 +296,12 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
         },
         py::arg("interface_name"),
         "Gets the network interface with a given name.");
+    cls.def_property_readonly("user_name",
+        [](daq::IDeviceInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getUserName().toStdString();
+        },
+        "Gets the name of the current user of the device.");
 }

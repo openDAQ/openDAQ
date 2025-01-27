@@ -1,4 +1,4 @@
-# 2025-01-20
+# 2025-01-24
 ## Description
 - Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
 The implementation follows the DNS-SD standard, utilizing resource records and mDNS header formats with custom header 
@@ -37,6 +37,42 @@ and the implementation of onGetAvailableDevices in client modules.
 
 + [function] IModuleManagerUtils::changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config)
 + [function] IModuleManagerUtils::requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config)
+
+# 2025-01-21
+## Description
+- Implementing changeable fields of device info, which are synchronized between server and client.
+- Device info is no longer frozen.
+- Device properties `userName` and `location` are optional and do not exist by default. See integration changes to enable them.
+- mDNS server broadcasts all device info fields.
+- mDNS broadcasts synchronized changeable device info properties.
+- Device info fields are reflected as property types instead of introspection variables via OPC UA (except for `userName` and `location`).
+
+Changeable device info properties are properties that are synchronized between the server and the client. If a property is modified on either side, it will be updated on the other side as well. A changeable property is set to `ReadOnly: false`.
+
+Non-changeable properties of device info are read-only and can only be modified locally using the `setProtectedPropertyValue` method of the `IPropertyObjectProtected` interface. The modification does not update the other side, and these properties can be considered as a local. However, if a non-changeable property is updated on the server side, the client that connects after the modification will receive the latest value of this property.
+
+If the developer is using the mDNS discovery server, the server will broadcast the latest value of the changeable property but will broadcast the last value of the non-changeable property that was set when the mDNS server was registered.
+
+# Example
+To set default device info properties as changeable, use the factory to create Device Info with the list of property names that need to be changeable.
+To enable device properties userName or location, please use the Device Info factory:
+```cpp
+DeviceInfoConfigPtr deviceInfo = DeviceInfoWithChangeableFields({"userName", "location"});
+```
+If the properties `userName` or `location` are changeable, `deviceInfo` will create these properties on the device.
+Custom device info properties are changeable if they are not read-only:
+```cpp
+DeviceInfoConfigPtr deviceInfo = DeviceInfoWithChangeableFields({"userName", "location", "manufacturer"});
+deviceInfo.addProperty(StringPropertyBuilder("CustomChangeableField", "default value").setReadOnly(false).build());
+deviceInfo.addProperty(StringPropertyBuilder("CustomNotChangeableField", "default value").setReadOnly(true).build());
+```
+In the example above, the default properties `userName`, `location`, `manufacturer`, and custom `CustomChangeableField` are changeable. Other default device info properties and the custom property `CustomNotChangeableField` are not changeable.
+
+```
++ [factory] DeviceInfoConfigPtr DeviceInfoWithChanegableFields(const ListPtr<IString>& changeableDefaultPropertyNames)
++ [function] IDeviceInfo::getUserName(IString** userName);
++ [function] IDeviceInfoConfig::setUserName(IString* userName);
+>>>>>>> main
 ```
 
 # 2024-12-27

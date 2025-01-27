@@ -50,7 +50,7 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
     ASSERT_EQ(deviceInfo.getNetworkInterfaces().getCount(), 0u);
 
-    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 25u);
+    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 26u);
 }
 
 TEST_F(DeviceInfoTest, SetGetProperties)

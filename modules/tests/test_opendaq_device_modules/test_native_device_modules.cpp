@@ -134,12 +134,17 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    const auto info = client.getDevices()[0].getInfo();
+    auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 7);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 8);
 
-    client->releaseRef();
+    // because info holds a client device as owner, it have to be removed before module manager is destroyed
+    // otherwise module of native client device would not be removed
+    info.release();
+
+    client->releaseRef();    
     server->releaseRef();
+
     client.detach();
     server.detach();
 }
@@ -150,15 +155,65 @@ TEST_F(NativeDeviceModulesTest, UseOldProtocolVersion)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance(0);
 
-    const auto info = client.getDevices()[0].getInfo();
+    auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
     ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 0);
+
+    // because info holds a client device as owner, it have to be removed before module manager is destroyed
+    // otherwise module of native client device would not be removed
+    info.release();
 
     client->releaseRef();
     server->releaseRef();
     client.detach();
     server.detach();
 }
+
+TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionLocationUsername)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(0);
+
+    auto serverDev = server.getDevices()[0];
+    auto serverInfo = serverDev.getInfo();
+    ASSERT_TRUE(serverDev.hasProperty("userName"));
+    ASSERT_TRUE(serverDev.hasProperty("location"));
+
+    auto dev = client.getDevices()[0].getDevices()[0];
+    auto info = dev.getInfo();
+    ASSERT_FALSE(info.getProperty("userName").getReadOnly());
+    ASSERT_FALSE(info.getProperty("location").getReadOnly());
+    ASSERT_TRUE(dev.hasProperty("userName"));
+    ASSERT_TRUE(dev.hasProperty("location"));
+
+    dev.setPropertyValue("location", "foo");
+    dev.setPropertyValue("userName", "foo");
+    
+    ASSERT_EQ(dev.getPropertyValue("location"), "foo");
+    ASSERT_EQ(dev.getPropertyValue("userName"), "foo");
+    ASSERT_EQ(info.getPropertyValue("location"), "foo");
+    ASSERT_EQ(info.getPropertyValue("userName"), "foo");
+
+    ASSERT_EQ(serverDev.getPropertyValue("location"), "foo");
+    ASSERT_EQ(serverDev.getPropertyValue("userName"), "foo");
+    ASSERT_EQ(serverInfo.getPropertyValue("location"), "foo");
+    ASSERT_EQ(serverInfo.getPropertyValue("userName"), "foo");
+
+    // because info holds a client device as owner, it have to be removed before module manager is destroyed
+    // otherwise module of native client device would not be removed
+    
+    serverInfo.release();
+    info.release();
+    serverDev.release();
+    dev.release();
+
+    client->releaseRef();
+    server->releaseRef();
+    client.detach();
+    server.detach();
+}
+
 
 TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 {
@@ -553,11 +608,12 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        ASSERT_EQ(deviceInfo.getMacAddress(), "");
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
+
+            ASSERT_EQ(deviceInfo.getMacAddress(), "custom_mac");
             
             if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
             {
@@ -2615,7 +2671,7 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
     auto clientDevice = client.getDevices()[0];
     auto availableDevices = clientDevice.getAvailableDevices();
 
-    // if server discovered itself, it should should have server capabilities of itself with address info
+    // if server discovered itself, it should have server capabilities of itself with address info
     for (const auto & devInfo : availableDevices)
     {
         if (devInfo.getName() == name)
@@ -2628,6 +2684,45 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
             }
         }
     }
+}
+
+TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
+{
+    StringPtr name = "AvailableDevicesCheck";
+    auto server = CreateServerSimulator(name);
+    auto client = CreateClientConnectedToSimulator(name);
+    ASSERT_TRUE(client.assigned());
+    auto clientDevice = client.getDevices()[0];
+
+    auto serverInfo = server.getInfo();
+    auto clientInfo = clientDevice.getInfo();
+    
+    server.setPropertyValue("userName", "user1");
+    server.setPropertyValue("location", "location1");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    ASSERT_EQ(server.getPropertyValue("userName"), "user1");
+    ASSERT_EQ(server.getPropertyValue("location"), "location1");
+    ASSERT_EQ(serverInfo.getPropertyValue("userName"), "user1");
+    ASSERT_EQ(serverInfo.getPropertyValue("location"), "location1");
+
+    ASSERT_EQ(clientDevice.getPropertyValue("userName"), "user1");
+    ASSERT_EQ(clientDevice.getPropertyValue("location"), "location1");
+    ASSERT_EQ(clientInfo.getPropertyValue("userName"), "user1");
+    ASSERT_EQ(clientInfo.getPropertyValue("location"), "location1");
+
+    clientDevice.setPropertyValue("userName", "user2");
+    clientDevice.setPropertyValue("location", "location2");
+
+    ASSERT_EQ(clientDevice.getPropertyValue("userName"), "user2");
+    ASSERT_EQ(clientDevice.getPropertyValue("location"), "location2");
+    ASSERT_EQ(clientInfo.getPropertyValue("userName"), "user2");
+    ASSERT_EQ(clientInfo.getPropertyValue("location"), "location2");
+
+    ASSERT_EQ(server.getPropertyValue("userName"), "user2");
+    ASSERT_EQ(server.getPropertyValue("location"), "location2");
+    ASSERT_EQ(serverInfo.getPropertyValue("userName"), "user2");
+    ASSERT_EQ(serverInfo.getPropertyValue("location"), "location2");
 }
 
 using NativeC2DStreamingTest = testing::Test;

@@ -33,6 +33,7 @@ target_link_libraries(${MODULE_NAME}
     PUBLIC 
         mdns::mdns
         daq::discovery_common
+        daq::coreobjects
 )
 
 

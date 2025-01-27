@@ -90,7 +90,9 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     completeServerCapabilities(device, host);
 
     // Set the connection info for the device
-    ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    DeviceInfoConfigPtr deviceInfo = device.getInfo();
+    deviceInfo.setConnectionString(connectionString);
+    ServerCapabilityConfigPtr connectionInfo = deviceInfo.getConfigurationConnectionInfo();
     
     const auto addressInfo = AddressInfoBuilder().setAddress(host)
                                                  .setReachabilityStatus(AddressReachabilityStatus::Reachable)
@@ -120,7 +122,7 @@ void OpcUaClientModule::completeServerCapabilities(const DevicePtr& device, cons
         for (const auto& capability : deviceInfo.getServerCapabilities())
         {
             if (capability.getConnectionType() == "TCP/IP")
-                capability.asPtr<IServerCapabilityConfig>().addAddress(deviceAddress);
+                capability.asPtr<IServerCapabilityConfig>(true).addAddress(deviceAddress);
         }
     }
 }

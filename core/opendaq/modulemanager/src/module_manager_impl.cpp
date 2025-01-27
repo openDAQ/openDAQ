@@ -839,7 +839,7 @@ ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId,
     OPENDAQ_PARAM_NOT_NULL(server);
     OPENDAQ_PARAM_NOT_NULL(rootDevice);
 
-    auto typeId = convertIfOldIdProtocol(toStdString(serverTypeId));
+    auto typeId = convertIfOldIdProtocol(StringPtr::Borrow(serverTypeId));
 
     for (const auto& library : libraries)
     {

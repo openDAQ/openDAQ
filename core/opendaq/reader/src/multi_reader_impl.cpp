@@ -456,12 +456,6 @@ void MultiReaderImpl::setStartInfo()
         }
     }
 
-    auto systemClockResolution = system_clock::period::num / static_cast<double>(system_clock::period::den);
-    if (systemClockResolution < static_cast<double>(maxResolution))
-    {
-        maxResolution = Ratio(system_clock::period::num, system_clock::period::den);
-    }
-
     readResolution = maxResolution;
     readOrigin = date::format("%FT%TZ", minEpoch);
 

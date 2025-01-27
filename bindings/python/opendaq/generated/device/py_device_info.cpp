@@ -278,4 +278,12 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
         },
         py::arg("protocol_id"),
         "Gets the server capability with a given ID.");
+    cls.def_property_readonly("user_name",
+        [](daq::IDeviceInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getUserName().toStdString();
+        },
+        "Gets the name of the current user of the device.");
 }

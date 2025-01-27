@@ -66,16 +66,14 @@ daq::DevicePtr TmsClient::connect()
     auto device = TmsClientRootDevice(context, parent, rootDeviceBrowseName, tmsClientContext, rootDeviceNodeId);
 
     const auto deviceInfo = device.getInfo();
-    if (deviceInfo.hasProperty("OpenDaqPackageVersion"))
-    {
-        const std::string packageVersion = deviceInfo.getPropertyValue("OpenDaqPackageVersion");
+    deviceInfo.asPtr<IDeviceInfoConfig>(true).setConnectionString(endpoint.getUrl());
 
-        if (packageVersion != OPENDAQ_PACKAGE_VERSION)
-        {
-            LOG_D("Connected to openDAQ OPC UA server with different version. Client version: {}, server version: {}",
-                  OPENDAQ_PACKAGE_VERSION,
-                  packageVersion);
-        }
+    const std::string packageVersion = deviceInfo.getSdkVersion();
+    if (!packageVersion.empty() && packageVersion != OPENDAQ_PACKAGE_VERSION)
+    {
+        LOG_D("Connected to openDAQ OPC UA server with different version. Client version: {}, server version: {}",
+                OPENDAQ_PACKAGE_VERSION,
+                packageVersion);
     }
 
     const auto endTime = std::chrono::steady_clock::now();

@@ -70,6 +70,7 @@ protected:
     std::list<TmsServerPropertyObjectPtr> serverCapabilities;
     std::list<TmsServerFunctionBlockTypePtr> functionBlockTypes;
     std::list<TmsServerSyncComponentPtr> syncComponents;
+    std::list<TmsServerPropertyPtr> deviceInfoProperties;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

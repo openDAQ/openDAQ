@@ -852,7 +852,7 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     auto lock = getRecursiveConfigLock();
-    return setPropertyValueInternal(propertyName, value, true, false, updateCount > 0);
+    return setPropertyValueNoLock(propertyName, value);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1609,7 +1609,7 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
     auto lock = getRecursiveConfigLock();
-    return getPropertyValueInternal(propertyName, value, true);
+    return getPropertyValueNoLock(propertyName, value);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -1622,7 +1622,7 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
     auto lock = getRecursiveConfigLock();
-    return getPropertySelectionValueInternal(propertyName, value, true);
+    return getPropertySelectionValueNoLock(propertyName, value);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1724,7 +1724,7 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValue(IString* propertyName)
 {
     auto lock = getRecursiveConfigLock();
-    return clearPropertyValueInternal(propertyName, false, updateCount > 0);
+    return clearPropertyValueNoLock(propertyName);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2110,8 +2110,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
     if (objectClass.assigned())
     {
         auto propList = objectClass.getProperties(True);
+        allProperties.reserve(propList.getCount() + localProperties.size());
         for (const auto& prop : propList)
             allProperties.push_back(prop);
+    }
+    else
+    {
+        allProperties.reserve(localProperties.size());
     }
 
     for (const auto& prop : localProperties)
@@ -2553,7 +2558,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForReferences(IProperty* property, Bool* isReferenced)
 {
     auto lock = getRecursiveConfigLock();
-    return checkForReferencesInternal(property, isReferenced);
+    return checkForReferencesNoLock(property, isReferenced);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -3004,9 +3009,18 @@ WeakRefPtr<IPropertyObject> GenericPropertyObjectImpl<PropObjInterface, Interfac
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
 {
+    if (getPropertyObjectParent() == newOwner)
+        return OPENDAQ_IGNORED;
+
     this->owner = newOwner;
 
-    const PermissionManagerPtr parentManager = this->owner.assigned() ? this->owner.getRef().getPermissionManager() : nullptr;
+    PermissionManagerPtr parentManager;
+    if (newOwner != nullptr)
+    {
+        auto newOwnerPtr = PropertyObjectPtr::Borrow(newOwner);
+        parentManager = newOwnerPtr.getPermissionManager();
+    }
+
     this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
 
     return OPENDAQ_SUCCESS;

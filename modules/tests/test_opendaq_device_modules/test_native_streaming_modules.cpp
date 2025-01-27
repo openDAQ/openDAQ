@@ -129,6 +129,53 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
+{
+    auto server = InstanceBuilder().addDiscoveryServer("mdns")
+                                   .setDefaultRootDeviceLocalId("local")
+                                   .setRootDevice("daqref://device0")
+                                   .build();
+
+    // set initial username and location
+    server.setPropertyValue("userName", "testUser1");
+    server.setPropertyValue("location", "testLocation1");
+    server.getInfo().setPropertyValue("SetupDate", "2025-01-16T08:23:22Z");
+
+    ASSERT_EQ(server.getInfo().getPropertyValue("userName"), "testUser1");
+    ASSERT_EQ(server.getInfo().getPropertyValue("location"), "testLocation1");
+    ASSERT_EQ(server.getInfo().getPropertyValue("SetupDate"), "2025-01-16T08:23:22Z");
+
+    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    auto path = "/test/native_streaming/discovery/username_location/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+
+    // update the username and location after server creation
+    server.setPropertyValue("userName", "testUser2");
+    server.setPropertyValue("location", "testLocation2");
+    server.getInfo().setPropertyValue("SetupDate", "2025-01-17T08:23:22Z");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser2");
+            ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation2");
+            ASSERT_EQ(deviceInfo.getPropertyValue("SetupDate"), "2025-01-17T08:23:22Z");
+            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
+                return;
+        }
+    }
+    ASSERT_TRUE(false) << "Device not found";
+}
+
 #ifdef _WIN32
 
 TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)

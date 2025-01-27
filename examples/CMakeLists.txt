@@ -55,6 +55,18 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 
     add_executable(multi_reader_example cpp/multi_reader_example/multi_reader_example.cpp)
     target_link_libraries(multi_reader_example PRIVATE daq::opendaq)
+	
+    add_executable(multi_reader_read_same_rates cpp/multi_reader_howto_example/read_same_rates.cpp)
+    target_link_libraries(multi_reader_read_same_rates PRIVATE daq::opendaq)
+    add_dependencies(multi_reader_read_same_rates daq::ref_device_module)
+	
+    add_executable(multi_reader_read_different_rates cpp/multi_reader_howto_example/read_different_rates.cpp)
+    target_link_libraries(multi_reader_read_different_rates PRIVATE daq::opendaq)
+    add_dependencies(multi_reader_read_different_rates daq::ref_device_module)
+	
+    add_executable(multi_reader_read_same_rates_and_output cpp/multi_reader_howto_example/read_same_rates_and_output.cpp)
+    target_link_libraries(multi_reader_read_same_rates_and_output PRIVATE daq::opendaq)
+    add_dependencies(multi_reader_read_same_rates_and_output daq::ref_device_module)
 
     add_executable(reader_basics_example cpp/reader_basics_example/reader_basics_example.cpp)
     target_link_libraries(reader_basics_example PRIVATE daq::opendaq)
@@ -181,4 +193,16 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     if (OPENDAQ_ENABLE_NATIVE_STREAMING)
         add_dependencies(streaming_configuration_example daq::native_stream_cl_module)
     endif()
+	
+	add_executable(reconnection_example cpp/reconnection_example/reconnection.cpp)
+    target_link_libraries(reconnection_example PRIVATE daq::opendaq)
+    add_dependencies(reconnection_example daq::native_stream_cl_module
+                                          daq::native_stream_srv_module
+	)
+	
+	add_executable(reconnection_example_v3_10 cpp/reconnection_example/reconnection_v3_10.cpp)
+    target_link_libraries(reconnection_example_v3_10 PRIVATE daq::opendaq)
+    add_dependencies(reconnection_example_v3_10 daq::native_stream_cl_module
+                                                daq::native_stream_srv_module
+	)
 endif()

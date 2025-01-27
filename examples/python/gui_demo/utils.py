@@ -109,6 +109,8 @@ def show_selection(title, current_value, values):
     pd = int(top.winfo_screenheight() / 2 - wh / 2)
     top.geometry('+{}+{}'.format(pr, pd))
 
+    top.attributes("-topmost", True)
+
     show_modal(top)
     return result
 
@@ -151,7 +153,16 @@ def signal_time_domain_check(sig):
             if len(desc.origin) != 0:
                 return desc.origin
         
-    return None;
+    return None
+
+def parse_iso_string(date_string: str) -> datetime:
+    '''
+    Handles '1970-01-01T00:00:00Z' format
+    '''
+    try:
+        return datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S%z')
+    except ValueError as e:
+        raise RuntimeError(f'Failed to parse date: {e}')
 
 def get_last_value_for_signal(output_signal):
     last_value = 'N/A'
@@ -161,7 +172,10 @@ def get_last_value_for_signal(output_signal):
             last_value = sig.last_value
             origin_str = signal_time_domain_check(sig)
             if origin_str is not None:
-                origin = datetime.fromisoformat(origin_str)
+                try:
+                    origin = datetime.fromisoformat(origin_str)
+                except ValueError as e:
+                    origin = parse_iso_string(origin_str)
                 if last_value is not None:
                     desc = sig.descriptor
                     last_value_in_seconds = int(last_value) * desc.tick_resolution.numerator / desc.tick_resolution.denominator
@@ -275,3 +289,12 @@ metadata_converters = {
     'read_only': prettify_bool,
     'visible': prettify_bool
 }
+
+def is_device_connected(device: daq.IDevice):
+    status_container = device.status_container
+    try:
+        connection_status = status_container.get_status("ConnectionStatus")
+        return connection_status.name == "Connected"
+    except:
+        return True
+

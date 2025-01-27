@@ -94,8 +94,6 @@ namespace daq::config_protocol::test_utils
         void setDeviceInfoHelper(const DeviceInfoPtr& deviceInfo)
         {
             this->deviceInfo = deviceInfo;
-            if (!this->deviceInfo.isFrozen())
-                this->deviceInfo.freeze();
         }
 
     protected:
@@ -112,7 +110,6 @@ namespace daq::config_protocol::test_utils
         {
             auto info = DeviceInfo("", this->localId);
             info.setLocation("loc");
-            info.freeze();
             return info.detach();
         }
 
@@ -125,7 +122,6 @@ namespace daq::config_protocol::test_utils
                 const auto num = std::to_string(i);
                 const auto deviceInfo = DeviceInfo("mock://available_dev" + num, "AvailableMockDevice" + num);
                 deviceInfo.asPtr<IDeviceInfoConfig>().setManufacturer("Testing");
-                deviceInfo.freeze();
                 availableDevices.pushBack(deviceInfo);
             }
             return availableDevices;

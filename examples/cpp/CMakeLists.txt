@@ -18,6 +18,7 @@ option(OPENDAQ_EMPTY_EXAMPLE "Empty example source for user examples." ON)
 option(OPENDAQ_FUNCTION_BLOCK "Function block example using an averager and renderer" ON)
 option(OPENDAQ_CSV_WRITER "Example that connects to availble devices, writing their data to a .csv file" ON)
 option(OPENDAQ_STREAMING_CONFIG "Streaming configuration example that modifies the configuration of OpcUa enabled device" ON)
+option(OPENDAQ_RECONNECTION "Example on how to detect connection loss and reconnection" ON)
 
 if (OPENDAQ_CONSOLE_APP)
   add_subdirectory(console_application)
@@ -53,6 +54,7 @@ endif()
 
 if (OPENDAQ_MULTI_READER)
   add_subdirectory(multi_reader_example)
+  add_subdirectory(multi_reader_howto_example)
 endif()
 
 if (OPENDAQ_TAIL_READER)
@@ -81,4 +83,8 @@ endif()
 
 if (OPENDAQ_STREAMING_CONFIG)
   add_subdirectory(streaming_configuration_example)
+endif()
+
+if (OPENDAQ_RECONNECTION)
+  add_subdirectory(reconnection_example)
 endif()

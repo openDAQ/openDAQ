@@ -28,6 +28,8 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent
     , futureComponentMessage("")
 {
     initComponentStatus();
+    futureComponentStatus = ComponentStatus::Ok;
+    futureComponentMessage = "";
     initProperties();
     updateInputPorts();
 

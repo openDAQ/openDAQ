@@ -1,11 +1,11 @@
-#include <opendaq/event_packet_ids.h>
-#include <opendaq/signal_reader.h>
-#include <opendaq/event_packet_utils.h>
-#include <opendaq/reader_errors.h>
 #include <opendaq/custom_log.h>
-#include <opendaq/packet_factory.h>
-#include <opendaq/reader_factory.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/event_packet_ids.h>
+#include <opendaq/event_packet_utils.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/reader_errors.h>
+#include <opendaq/reader_factory.h>
+#include <opendaq/signal_reader.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -103,6 +103,7 @@ static std::string printSync(SyncStatus synced)
 {
     switch (synced)
     {
+        case SyncStatus::SynchronizationFailed:
         case SyncStatus::Unsynchronized:
             return "Unsynchronized";
         case SyncStatus::Synchronizing:
@@ -384,13 +385,20 @@ void SignalReader::skipUntilLastEventPacket()
         connection.dequeueAll();
 }
 
-bool SignalReader::sync(const Comparable& commonStart)
+bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp)
 {
     if (synced == SyncStatus::Synchronized)
+    {
+        if (firstSampleAbsoluteTimestamp)
+            *firstSampleAbsoluteTimestamp = cachedFirstTimestamp;
+
         return true;
+    }
 
     if (isFirstPacketEvent())
-       return false;
+    {
+        return false;
+    }
 
     SizeT startPackets = info.prevSampleIndex;
     Int droppedPackets = 0;
@@ -398,12 +406,12 @@ bool SignalReader::sync(const Comparable& commonStart)
     while (info.dataPacket.assigned())
     {
         auto domainPacket = info.dataPacket.getDomainPacket();
-
         info.prevSampleIndex = domainReader->getOffsetTo(
             domainInfo,
             commonStart,
             domainPacket.getData(),
-            domainPacket.getSampleCount()
+            domainPacket.getSampleCount(),
+            &cachedFirstTimestamp
         );
 
         if (info.prevSampleIndex == static_cast<SizeT>(-1))
@@ -420,6 +428,8 @@ bool SignalReader::sync(const Comparable& commonStart)
         else
         {
             droppedPackets += static_cast<Int>(info.prevSampleIndex - startPackets);
+            if (firstSampleAbsoluteTimestamp)
+                *firstSampleAbsoluteTimestamp = cachedFirstTimestamp;
             break;
         }
     }
@@ -523,6 +533,11 @@ void* SignalReader::getValuePacketData(const DataPacketPtr& packet) const
     }
 
     throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
+}
+
+bool SignalReader::isSynced() const
+{
+    return synced == SyncStatus::Synchronized;
 }
 
 ErrCode SignalReader::readPacketData()

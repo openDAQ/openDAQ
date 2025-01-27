@@ -60,8 +60,7 @@ void TmsServerFunctionBlockType::addDefaultConfigNode()
     if (!defaultConfig.assigned())
         return;
 
-    if (!defaultConfig.isFrozen())
-        defaultConfig.freeze();
+    defaultConfig.freeze();
 
     tmsDefaultConfig = std::make_shared<TmsServerPropertyObject>(defaultConfig, server, daqContext, tmsContext, "DefaultConfig");
     tmsDefaultConfig->registerOpcUaNode(nodeId);

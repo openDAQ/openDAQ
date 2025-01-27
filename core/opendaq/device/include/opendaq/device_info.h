@@ -280,6 +280,15 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * @retval OPENDAQ_ERR_NOTFOUND if the server capability is not available.
      */
     virtual ErrCode INTERFACE_FUNC getServerCapability(IString* protocolId, IServerCapability** serverCapability) = 0;
+
+    /*!
+     * @brief Gets the name of the current user of the device.
+     * @param[out] userName The location of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the username string value matches that of the device's "userName" property.
+     */
+    virtual ErrCode INTERFACE_FUNC getUserName(IString** userName) = 0;
 };
 /*!@}*/
 

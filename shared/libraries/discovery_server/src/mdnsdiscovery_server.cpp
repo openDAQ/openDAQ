@@ -23,31 +23,69 @@
 
 BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
-MdnsDiscoveredDevice::MdnsDiscoveredDevice(const std::string& serviceName, uint32_t servicePort, const std::unordered_map<std::string, std::string>& properties)
+MdnsDiscoveredDevice::MdnsDiscoveredDevice(const std::string& serviceName, 
+                                           uint32_t servicePort, 
+                                           const std::unordered_map<std::string, std::string>& properties, 
+                                           const daq::PropertyObjectPtr& deviceInfo)
     : serviceName(serviceName)
     , servicePort(servicePort)
     , properties(std::move(properties))
+    , deviceInfo(deviceInfo)
 {
     if (this->serviceName.back() != '.')
         this->serviceName += ".";
 
-    this->recordSize = 1024;
-    for (const auto & [key, value] : this->properties)
-        this->recordSize += key.size() + value.size() + 2;
+    this->staticRecordSize = 1024;
+    for (const auto& prop : deviceInfo.getAllProperties())
+    {
+        if ((Int)prop.getValueType() <= (Int)CoreType::ctString)
+        {
+            std::string key = prop.getName();
+            if (prop.getReadOnly())
+            {
+                std::string value = prop.getValue();
+                this->properties[key] = value;
+                staticRecordSize += key.size() + value.size() + 2;
+            }
+            else
+            {
+                dynamicProperties.push_back({key, ""});
+            }
+        }
+    }
+    this->recordSize = staticRecordSize;
+}
+
+size_t MdnsDiscoveredDevice::size() const
+{
+    return properties.size() + dynamicProperties.size();
+}
+
+mdns_record_t MdnsDiscoveredDevice::createRecord(const std::string& name, const std::string& value) const
+{
+    mdns_record_t record;
+    record.name = {name.c_str(), name.size()},
+    record.type = MDNS_RECORDTYPE_TXT,
+    record.data.txt.key = {name.c_str(), name.size()},
+    record.data.txt.value = {value.c_str(), value.size()},
+    record.rclass = 0,
+    record.ttl = 0;
+    return record;
 }
 
 void MdnsDiscoveredDevice::populateRecords(std::vector<mdns_record_t>& records) const 
 {
+    this->recordSize = this->staticRecordSize;
     for (const auto & [key, value] : properties)
     {
-        mdns_record_t record;
-        record.name = {serviceInstance.c_str(), serviceInstance.size()},
-        record.type = MDNS_RECORDTYPE_TXT,
-        record.data.txt.key = {key.c_str(), key.size()},
-        record.data.txt.value = {value.c_str(), value.size()},
-        record.rclass = 0,
-        record.ttl = 0;
-        records.push_back(record);
+        records.push_back(createRecord(key, value));
+    }
+
+    for (auto & [key, value] : dynamicProperties)
+    {
+        value = (std::string)deviceInfo.getPropertyValue(key);
+        records.push_back(createRecord(key, value));
+        this->recordSize += key.size() + value.size() + 2;
     }
 }
 
@@ -161,7 +199,7 @@ bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
     device.serviceQualified = hostName + ".local.";
 
     std::vector<mdns_record_t> records;
-    records.reserve(device.properties.size() + 3);
+    records.reserve(device.size() + 3);
     records.push_back(createSrvRecord(device));
     if (serviceAddressIpv4.sin_family == AF_INET)
         records.push_back(createARecord(device));
@@ -186,7 +224,7 @@ bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice&
 void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredDevice& device)
 {
     std::vector<mdns_record_t> records;
-    records.reserve(device.properties.size() + 3);
+    records.reserve(device.size() + 3);
     records.push_back(createSrvRecord(device));
     if (serviceAddressIpv4.sin_family == AF_INET)
         records.push_back(createARecord(device));
@@ -218,8 +256,9 @@ void MDNSDiscoveryServer::stop()
 {
     running = false;
     if (serviceThread.joinable())
+    {
         serviceThread.join();
-
+    }
     for (const auto & [_, device] : devices)
         goodbyeMulticast(device);
 }
@@ -599,7 +638,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 mdns_record_t answer = createPtrRecord(device);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(device.properties.size() + 3);
+                records.reserve(device.size() + 3);
 
                 records.push_back(createSrvRecord(device));
                 if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
@@ -619,7 +658,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 mdns_record_t answer = createSrvRecord(device);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(device.properties.size() + 2);
+                records.reserve(device.size() + 2);
 
                 if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
                     records.push_back(createARecord(device));
@@ -638,7 +677,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 mdns_record_t answer = createARecord(device);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(device.properties.size() + 1);
+                records.reserve(device.size() + 1);
 
                 records.push_back(answer);
                 device.populateRecords(records);
@@ -651,7 +690,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 mdns_record_t answer = createAaaaRecord(device);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(device.properties.size() + 1);
+                records.reserve(device.size() + 1);
 
                 records.push_back(answer);
                 device.populateRecords(records);

@@ -25,8 +25,11 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
+
 
 PyDaqIntf<daq::ISimpleType, daq::IType> declareISimpleType(pybind11::module_ m)
 {

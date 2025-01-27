@@ -25,6 +25,8 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
 
@@ -43,6 +45,7 @@ void defineIStructType(pybind11::module_ m, PyDaqIntf<daq::IStructType, daq::ITy
     cls.def_property_readonly("field_names",
         [](daq::IStructType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructTypePtr::Borrow(object);
             return objectPtr.getFieldNames().detach();
         },
@@ -51,6 +54,7 @@ void defineIStructType(pybind11::module_ m, PyDaqIntf<daq::IStructType, daq::ITy
     cls.def_property_readonly("field_default_values",
         [](daq::IStructType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructTypePtr::Borrow(object);
             return objectPtr.getFieldDefaultValues().detach();
         },
@@ -59,6 +63,7 @@ void defineIStructType(pybind11::module_ m, PyDaqIntf<daq::IStructType, daq::ITy
     cls.def_property_readonly("field_types",
         [](daq::IStructType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::StructTypePtr::Borrow(object);
             return objectPtr.getFieldTypes().detach();
         },

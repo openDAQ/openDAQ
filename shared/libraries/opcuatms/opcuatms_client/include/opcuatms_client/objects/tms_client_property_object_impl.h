@@ -46,9 +46,13 @@ class TmsClientPropertyObjectBaseImpl : public TmsClientObjectImpl, public Impl
 public:
     
     template <class T = Impl, template_utils::enable_if_any<T, PropertyObjectImpl> = 0>
-    TmsClientPropertyObjectBaseImpl(const ContextPtr& daqContext, const TmsClientContextPtr& clientContext, const opcua::OpcUaNodeId& nodeId)
+    TmsClientPropertyObjectBaseImpl(const ContextPtr& daqContext, 
+                                    const TmsClientContextPtr& clientContext, 
+                                    const opcua::OpcUaNodeId& nodeId,
+                                    const std::map<std::string, std::string>& propBrowseName = {})
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
         , Impl()
+        , propBrowseName(propBrowseName)
     {
         init();
     }
@@ -58,9 +62,11 @@ public:
                                     const StringPtr& protocolName,
                                     const StringPtr& protocolId,
                                     const TmsClientContextPtr& clientContext,
-                                    const opcua::OpcUaNodeId& nodeId)
+                                    const opcua::OpcUaNodeId& nodeId,
+                                    const std::map<std::string, std::string>& propBrowseName = {})
         : TmsClientObjectImpl(daqContext, clientContext, nodeId)
         , Impl(protocolId, protocolName, ProtocolType::Streaming)
+        , propBrowseName(propBrowseName)
     {
         init();
     }
@@ -70,9 +76,11 @@ public:
                                     const ComponentPtr& parent,
                                     const StringPtr& localId,
                                     const TmsClientContextPtr& clientContext,
-                                    const opcua::OpcUaNodeId& nodeId)
+                                    const opcua::OpcUaNodeId& nodeId,
+                                    const std::map<std::string, std::string>& propBrowseName = {})
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
         , Impl(ctx, parent, localId)
+        , propBrowseName(propBrowseName)
     {
         init();
     }
@@ -82,9 +90,11 @@ public:
                                     const ComponentPtr& parent,
                                     const StringPtr& localId,
                                     const TmsClientContextPtr& clientContext,
-                                    const opcua::OpcUaNodeId& nodeId)
+                                    const opcua::OpcUaNodeId& nodeId,
+                                    const std::map<std::string, std::string>& propBrowseName = {})
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
         , Impl(ctx, parent, localId, nullptr)
+        , propBrowseName(propBrowseName)
     {
         init();
     }
@@ -95,9 +105,11 @@ public:
                                     const StringPtr& localId,
                                     const TmsClientContextPtr& clientContext,
                                     const opcua::OpcUaNodeId& nodeId,
-                                    const FunctionBlockTypePtr& type)
+                                    const FunctionBlockTypePtr& type,
+                                    const std::map<std::string, std::string>& propBrowseName = {})
         : TmsClientObjectImpl(ctx, clientContext, nodeId)
         , Impl(type, ctx, parent, localId, nullptr)
+        , propBrowseName(propBrowseName)
     {
         init();
     }
@@ -128,6 +140,7 @@ protected:
     std::unordered_map<std::string, opcua::OpcUaNodeId> introspectionVariableIdMap;
     std::unordered_map<std::string, opcua::OpcUaNodeId> referenceVariableIdMap;
     std::unordered_map<std::string, opcua::OpcUaNodeId> objectTypeIdMap;
+    std::map<std::string, std::string> propBrowseName;
     opcua::OpcUaNodeId methodParentNodeId;
     LoggerComponentPtr loggerComponent;
 
@@ -141,7 +154,7 @@ protected:
     PropertyPtr addVariableBlockProperty(const StringPtr& propName, const OpcUaNodeId& propNodeId);
     void browseRawProperties();
     bool isIgnoredMethodPeoperty(const std::string& browseName);
-    ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite);
+    virtual ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite);
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

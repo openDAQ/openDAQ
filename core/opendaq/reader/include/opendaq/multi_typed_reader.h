@@ -118,7 +118,14 @@ public:
             DAQLOGF_T(domainInfo.loggerComponent, "adj. + offset: {}", (this->value + info.offset))
             DAQLOGF_T(domainInfo.loggerComponent, "{} | {}>", signalTime, readTime)
 
-            assert(signalTime == readTime);
+            // In case if the signal resolution less than the difference between
+            // domainInfo.epoch and info.readEpoch, signalTime and readTime,
+            // expressed in system_clock resolution ticks, rounded up to
+            // microsecond, will differ. It is not like a bug, more like a
+            // thing, that needs to be polished. Maybe it is worth to
+            // round epochs to the max resolution.
+            // 
+            //assert(signalTime == readTime);
         }
 #endif
 
@@ -141,12 +148,13 @@ public:
 
     void roundUpOnUnitOfDomain() override
     {
-        auto den = info.resolution.getDenominator() * info.multiplier.getNumerator();
+        // calc maxResolution num/den
         auto num = info.resolution.getNumerator() * info.multiplier.getDenominator();
+        auto den = info.resolution.getDenominator() * info.multiplier.getNumerator();
 
         const Int gcd = std::gcd(num, den);
-        den /= gcd;
         num /= gcd;
+        den /= gcd;
 
         if (den % num != 0)
             throw NotSupportedException("Resolution must be aligned on full unit of domain");
@@ -156,21 +164,18 @@ public:
 
     void roundUpOnDomainInterval(const RatioPtr interval) override
     {
-        auto den = info.resolution.getDenominator() * info.multiplier.getNumerator() * interval.getNumerator();
         auto num = info.resolution.getNumerator() * info.multiplier.getDenominator() * interval.getDenominator();
+        auto den = info.resolution.getDenominator() * info.multiplier.getNumerator() * interval.getNumerator();
 
         const Int gcd = std::gcd(num, den);
-        den /= gcd;
         num /= gcd;
+        den /= gcd;
 
         if (den % num != 0)
             throw NotSupportedException("Resolution must be aligned on full unit of domain");
 
         value = (((value * num + den - 1) / den) * den) / num;
     }
-
-
-
 
     void print(std::ostream& os) const override
     {

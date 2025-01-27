@@ -1276,7 +1276,8 @@ public:
             return OPENDAQ_ERR_ARGUMENT_NULL;
         }
 
-        return daqTry([&]() {
+        return daqTry([&]
+        {
             auto defaultValueObj = defaultValue;
 
             if (defaultValueObj.assigned())

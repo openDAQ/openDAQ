@@ -18,11 +18,8 @@ set(TEST_SOURCES docs_test_helpers.h
                  test_get_last_value.cpp
                  test_howto_configure_instance.cpp
                  test_howto_access_control.cpp
+                 test_streaming_config.cpp
 )
-
-if (OPENDAQ_ENABLE_NATIVE_STREAMING AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    list(APPEND TEST_SOURCES test_streaming_config.cpp)
-endif()
 
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
@@ -35,18 +32,11 @@ add_dependencies(${TEST_APP} daq::ref_fb_module
                              daq::ref_device_module
                              daq::opcua_client_module
                              daq::opcua_server_module
+                             daq::ws_stream_cl_module
+                             daq::ws_stream_srv_module
+                             daq::native_stream_cl_module
+                             daq::native_stream_srv_module
 )
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    add_dependencies(${TEST_APP} daq::ws_stream_cl_module
-                                 daq::ws_stream_srv_module
-    )
-endif()
-if (OPENDAQ_ENABLE_NATIVE_STREAMING)
-    add_dependencies(${TEST_APP} daq::native_stream_cl_module
-                                 daq::native_stream_srv_module
-    )
-endif()
-
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>

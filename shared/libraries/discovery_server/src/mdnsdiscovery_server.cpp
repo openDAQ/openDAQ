@@ -201,28 +201,30 @@ bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredS
     service.serviceInstance = hostName + "." + service.serviceName;
     service.serviceQualified = hostName + ".local.";
 
-    std::vector<mdns_record_t> records;
-    records.reserve(service.size() + 3);
-    records.push_back(createSrvRecord(service));
-    if (serviceAddressIpv4.sin_family == AF_INET)
-        records.push_back(createARecord(service));
-    if (serviceAddressIpv6.sin6_family == AF_INET6)
-        records.push_back(createAaaaRecord(service));
-    service.populateRecords(records);
-
-    std::vector<char> buffer(2048);
-    for (const auto & socket : sockets)
-    {
-        mdns_announce_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(service), 0, 0, records.data(), records.size());
-    }
-
     bool success = false;
     {
         std::lock_guard<std::mutex> lock(mx);
         success = services.emplace(id, service).second;
     }
+    if (success)
+    {
+        std::vector<mdns_record_t> records;
+        records.reserve(service.size() + 3);
+        records.push_back(createSrvRecord(service));
+        if (serviceAddressIpv4.sin_family == AF_INET)
+            records.push_back(createARecord(service));
+        if (serviceAddressIpv6.sin6_family == AF_INET6)
+            records.push_back(createAaaaRecord(service));
+        service.populateRecords(records);
 
-    start();
+        std::vector<char> buffer(2048);
+        for (const auto & socket : sockets)
+        {
+            mdns_announce_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(service), 0, 0, records.data(), records.size());
+        }
+        start();
+    }
+
     return success;
 }
 

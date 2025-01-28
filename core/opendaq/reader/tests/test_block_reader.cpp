@@ -1474,7 +1474,7 @@ TYPED_TEST(BlockReaderTest, DescriptorChangedConvertibleOverlapped)
     this->sendPacket(dataPacketInt32);
     this->scheduler.waitAll();
 
-    ASSERT_EQ(reader.getAvailableCount(), 0u);
+    ASSERT_EQ(reader.getAvailableCount(), 1u);
 
     {
         // read event packet
@@ -2297,6 +2297,64 @@ TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallback)
     ASSERT_EQ(count, 1u);
     ASSERT_EQ(samples[0], dataPtr[0]);
     ASSERT_EQ(samples[1], dataPtr[1]);
+}
+
+TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallbackEventAfterLessThanBlockSamples)
+{
+    using namespace std::chrono_literals;
+
+    SizeT count{1};
+    double samples[BLOCK_SIZE]{};
+
+    std::mutex m;
+    std::condition_variable cv;
+    bool c = false;
+
+    this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    auto reader = BlockReaderBuilder()
+                      .setSignal(this->signal)
+                      .setValueReadType(SampleType::Undefined)
+                      .setDomainReadType(SampleType::Undefined)
+                      .setBlockSize(BLOCK_SIZE)
+                      .build();
+
+    {
+        SizeT tmpCount{0};
+        auto status = reader.read(nullptr, &tmpCount);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    reader.setOnDataAvailable([&]
+    {
+        reader.read(&samples, &count);
+        std::unique_lock lock(m);
+        c = true;
+        cv.notify_all();
+    });
+
+    auto domainPacket = DataPacket(setupDescriptor(SampleType::RangeInt64, LinearDataRule(1, 0), nullptr), BLOCK_SIZE, 1);
+    auto dataPacket = DataPacketWithDomain(domainPacket, this->signal.getDescriptor(), BLOCK_SIZE);
+    auto dataPtr = static_cast<double*>(dataPacket.getData());
+    dataPtr[0] = 111.1;
+    dataPtr[1] = 222.2;
+
+    this->sendPacket(dataPacket);
+
+    {
+        std::unique_lock lock(m);
+        auto cv_status = cv.wait_for(lock, 1s, [&](){return c;});
+        ASSERT_EQ(cv_status, true);
+    }
+    c = false;
+    {
+        this->signal.setDescriptor(setupDescriptor(SampleType::Int64));
+        std::unique_lock lock(m);
+        auto cv_status = cv.wait_for(lock, 1s, [&](){return c;});
+        ASSERT_EQ(cv_status, true);
+    }
+
+    ASSERT_EQ(count, 0u);
 }
 
 TYPED_TEST(BlockReaderTest, BlockReaderOnReadCallbackOverlapped)

@@ -469,9 +469,21 @@ void BlockReaderImpl::initOverlap()
 SizeT BlockReaderImpl::calculateBlockCount(SizeT sampleCount) const
 {
     if (sampleCount < blockSize)
+    {
+        // return minimal block count (1) in case of there are some samples
+        // left in connection queue before event packet and their amount is
+        // less than the whole block, so that a user could reserve space and
+        // obtain them.
+        if (!connection.assigned())
+            return 0;
+        if (connection.hasGapPacket())
+            return sampleCount > 0;
+        if (!skipEvents && connection.hasEventPacket())
+            return sampleCount > 0;
         return 0;
-    else
-        return (sampleCount - blockSize) / overlappedBlockSizeRemainder + 1;
+    }
+
+    return (sampleCount - blockSize) / overlappedBlockSizeRemainder + 1;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

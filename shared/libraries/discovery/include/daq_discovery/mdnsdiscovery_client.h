@@ -889,7 +889,6 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
 {
     std::chrono::steady_clock::time_point queryingStarted = std::chrono::steady_clock::now();
 
-    constexpr int maxSockets = 32;
     std::vector<int> sockets;
     openClientSockets(sockets);
     if (sockets.empty())

@@ -46,7 +46,8 @@ public:
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId,
-                                const StringPtr& connectionString);
+                                const StringPtr& connectionString,
+                                Int reconnectionPeriod);
     ~NativeDeviceHelper();
 
     void setupProtocolClients(const ContextPtr& context);
@@ -73,6 +74,8 @@ private:
     void enableStreamingForComponent(const ComponentPtr& component);
     void tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming);
     void setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming);
+    void updateConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status);
+    void tryConfigProtocolReconnect();
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
@@ -89,6 +92,9 @@ private:
     Bool restoreClientConfigOnReconnect;
     const StringPtr connectionString;
     std::mutex sync;
+
+    std::shared_ptr<boost::asio::steady_timer> configProtocolReconnectionRetryTimer;
+    std::chrono::milliseconds reconnectionPeriod;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)

@@ -172,13 +172,13 @@ DictPtr<IString, IStreamingType> NativeStreamingClientModule::onGetAvailableStre
 DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& context,
                                                           const ComponentPtr& parent,
                                                           const StringPtr& connectionString,
-                                                          const PropertyObjectPtr& config,
+                                                          const PropertyObjectPtr& deviceConfig,
                                                           const StringPtr& host,
                                                           const StringPtr& port,
                                                           const StringPtr& path,
                                                           uint16_t& protocolVersion)
 {
-    auto transportClient = createAndConnectTransportClient(host, port, path, config);
+    auto transportClient = createAndConnectTransportClient(host, port, path, deviceConfig);
 
     auto processingIOContextPtr = std::make_shared<boost::asio::io_context>();
     auto processingThread = std::thread(
@@ -204,14 +204,18 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
 
     try
     {
+        PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
+        Int reconnectionPeriod = transportLayerConfig.getPropertyValue("ReconnectionPeriod");
+
         auto deviceHelper = std::make_shared<NativeDeviceHelper>(context,
                                                                  transportClient,
-                                                                 config.getPropertyValue("ConfigProtocolRequestTimeout"),
-                                                                 config.getPropertyValue("RestoreClientConfigOnReconnect"),
+                                                                 deviceConfig.getPropertyValue("ConfigProtocolRequestTimeout"),
+                                                                 deviceConfig.getPropertyValue("RestoreClientConfigOnReconnect"),
                                                                  processingIOContextPtr,
                                                                  reconnectionProcessingIOContextPtr,
                                                                  reconnectionProcessingThread.get_id(),
-                                                                 connectionString);
+                                                                 connectionString,
+                                                                 reconnectionPeriod);
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
         protocolVersion = deviceHelper->getProtocolVersion();

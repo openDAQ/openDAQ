@@ -40,12 +40,40 @@ PropertyObjectPtr IpModificationUtils::populateIpConfigProperties(const TxtPrope
     return config;
 }
 
+size_t DiscoveryUtils::getTxtRecordsCount(const void* buffer, size_t size, size_t offset, size_t length)
+{
+    // the calculation logic is from mdns_record_parse_txt
+    size_t count = 0;
+    const char* strdata;
+    size_t end = offset + length;
+
+    if (size < end)
+        end = size;
+
+    while (offset < end)
+    {
+        strdata = (const char*)MDNS_POINTER_OFFSET(buffer, offset);
+        size_t sublength = *(const unsigned char*)strdata;
+
+        if (sublength >= (end - offset))
+            break;
+
+        offset += sublength + 1;
+        count++;
+    }
+
+    return count;
+}
+
 TxtProperties DiscoveryUtils::readTxtRecord(size_t size, const void* buffer, size_t rdata_offset, size_t rdata_length)
 {
-    mdns_record_txt_t txtbuffer[128];
+    size_t recordsCount = getTxtRecordsCount(buffer, size, rdata_offset, rdata_length);
+    std::vector<mdns_record_txt_t> txtbuffer(recordsCount);
+
     TxtProperties txtProperties;
     size_t parsed =
-        mdns_record_parse_txt(buffer, size, rdata_offset, rdata_length, txtbuffer, sizeof(txtbuffer) / sizeof(mdns_record_txt_t));
+        mdns_record_parse_txt(buffer, size, rdata_offset, rdata_length, txtbuffer.data(), recordsCount);
+
     for (size_t itxt = 0; itxt < parsed; ++itxt)
     {
         std::string key(txtbuffer[itxt].key.str, txtbuffer[itxt].key.length);

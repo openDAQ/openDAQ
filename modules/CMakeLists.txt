@@ -8,59 +8,6 @@ if (POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
-# Force enable reference modules if example apps are enabled
-if (APP_ENABLE_EXAMPLE_APPS AND NOT DAQMODULES_REF_DEVICE_MODULE)
-    message(NOTICE "Example applications require DAQMODULES_REF_DEVICE_MODULE. Force enabling setting.")
-    set(DAQMODULES_REF_DEVICE_MODULE ON CACHE BOOL "" FORCE)
-endif()
-
-if (APP_ENABLE_EXAMPLE_APPS AND NOT DAQMODULES_REF_FB_MODULE)
-    message(NOTICE "Example applications require DAQMODULES_REF_FB_MODULE. Force enabling setting.")
-    set(DAQMODULES_REF_FB_MODULE ON CACHE BOOL "" FORCE)
-endif()
-
-if (APP_ENABLE_CONSOLE_APP AND NOT DAQMODULES_REF_FB_MODULE)
-    message(NOTICE "Console application requires DAQMODULES_REF_FB_MODULE. Force enabling setting.")
-    set(DAQMODULES_REF_FB_MODULE ON CACHE BOOL "" FORCE)
-endif()
-
-if (APP_ENABLE_CONSOLE_APP AND NOT DAQMODULES_REF_DEVICE_MODULE)
-    message(NOTICE "Console application requires DAQMODULES_REF_DEVICE_MODULE. Force enabling setting.")
-    set(DAQMODULES_REF_DEVICE_MODULE ON CACHE BOOL "" FORCE)
-endif()
-
-if (APP_ENABLE_AUDIO_APP AND NOT DAQMODULES_AUDIO_DEVICE_MODULE)
-    message(NOTICE "Audio application requires DAQMODULES_AUDIO_DEVICE_MODULE. Force enabling setting.")
-    set(DAQMODULES_AUDIO_DEVICE_MODULE ON CACHE BOOL "" FORCE)
-endif()
-
-if (DAQSIMULATOR_ENABLE_SIMULATOR_APP AND NOT DAQMODULES_REF_DEVICE_MODULE)
-    message(NOTICE "Simulator application requires DAQMODULES_REF_DEVICE_MODULE. Force enabling setting.")
-    set(DAQMODULES_REF_DEVICE_MODULE ON CACHE BOOL "" FORCE)
-endif()
-
-if (DAQSIMULATOR_ENABLE_SIMULATOR_APP AND NOT DAQMODULES_OPENDAQ_SERVER_MODULE)
-    message(NOTICE "Simulator application requires DAQMODULES_OPENDAQ_SERVER_MODULE. Force enabling setting.")
-    set(DAQMODULES_OPENDAQ_SERVER_MODULE ON CACHE BOOL "" FORCE)
-endif()
-
-if (DAQSIMULATOR_ENABLE_SIMULATOR_APP)
-    message(NOTICE "Enable simulator support in reference device module.")
-    add_compile_definitions(DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED)
-endif()
-
-# Force enable modules required by python bindings tests
-if (OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS)
-    if (NOT DAQMODULES_REF_DEVICE_MODULE)
-        message(NOTICE "Python tests require DAQMODULES_REF_DEVICE_MODULE. Force enabling setting.")
-        set(DAQMODULES_REF_DEVICE_MODULE ON CACHE BOOL "" FORCE)
-    endif()
-    if (NOT DAQMODULES_OPENDAQ_SERVER_MODULE)
-        message(NOTICE "Python tests requires DAQMODULES_OPENDAQ_SERVER_MODULE. Force enabling setting.")
-        set(DAQMODULES_OPENDAQ_SERVER_MODULE ON CACHE BOOL "" FORCE)
-    endif()
-endif()
-
 if (DAQMODULES_OPENDAQ_CLIENT_MODULE)
     message(STATUS "Client modules:")
 

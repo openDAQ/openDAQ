@@ -62,6 +62,9 @@ private:
     uint16_t servicePort;
     discovery_common::TxtProperties properties;
     const daq::PropertyObjectPtr deviceInfo;
+
+    size_t staticRecordSize;
+    mutable size_t recordSize;
     mutable std::vector<std::pair<std::string, std::string>> dynamicProperties;
 
     std::string serviceInstance;

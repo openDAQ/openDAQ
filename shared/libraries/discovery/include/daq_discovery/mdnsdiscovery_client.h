@@ -43,6 +43,8 @@
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netdb.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #endif
 
 #include <boost/uuid/uuid.hpp>
@@ -136,7 +138,7 @@ private:
                                    const discovery_common::TxtProperties& props,
                                    std::vector<mdns_record_t>& records);
     void setupDiscoveryQuery();
-    void openClientSockets(std::vector<int>& sockets, int maxSockets);
+    void openClientSockets(std::vector<int>& sockets);
     void pruneDevices();
     void sendDiscoveryQuery();
 
@@ -237,13 +239,10 @@ inline MDNSDiscoveryClient::MDNSDiscoveryClient(const ListPtr<IString>& serviceN
     uuid = boost::uuids::to_string(uuidBoost);
 
 #ifdef _WIN32
-
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
     if (WSAStartup(versionWanted, &wsaData))
-    {
-        printf("Failed to initialize WinSock\n");
-    }
+        throw std::runtime_error("MDNSDiscoveryClient::Failed to initialize WinSock");
 #endif
 }
 
@@ -259,15 +258,22 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevice
     devicesMap.clear();
     std::vector<MdnsDiscoveredDevice> devices;
 
-    try
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start < discoveryDuration)
     {
-        std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-        while (std::chrono::steady_clock::now() - start < discoveryDuration)
+        try
+        {
             this->sendDiscoveryQuery();
-    }
-    catch (...)
-    {
-        return devices;
+        }
+        catch (const std::exception& e)
+        {
+            printf("MDNSDiscoveryClient: sendMdnsQuery failed with the error %s\n", e.what());
+        }
+        catch (...)
+        {
+            fprintf(stderr, "MDNSDiscoveryClient: sendMdnsQuery failed with an unknown error\n");
+            return devices;
+        }
     }
 
     pruneDevices();
@@ -445,7 +451,7 @@ inline void MDNSDiscoveryClient::setupDiscoveryQuery()
     }
 }
 
-inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, int maxSockets)
+inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets)
 {
 #ifdef _WIN32
     IP_ADAPTER_ADDRESSES* adapterAddress = nullptr;
@@ -471,7 +477,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
     if (!adapterAddress || (ret != NO_ERROR))
     {
         free(adapterAddress);
-        return;
+        throw std::runtime_error("MDNSDiscoveryClient: Failed to get adapter addresses");
     }
 
     for (PIP_ADAPTER_ADDRESSES adapter = adapterAddress; adapter; adapter = adapter->Next)
@@ -490,13 +496,10 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
                 if ((saddr->sin_addr.S_un.S_un_b.s_b1 != 127) || (saddr->sin_addr.S_un.S_un_b.s_b2 != 0) ||
                     (saddr->sin_addr.S_un.S_un_b.s_b3 != 0) || (saddr->sin_addr.S_un.S_un_b.s_b4 != 1))
                 {
-                    if (static_cast<int>(sockets.size()) < maxSockets)
-                    {
-                        saddr->sin_port = htons(static_cast<unsigned short>(0));
-                        int sock = mdns_socket_open_ipv4(saddr);
-                        if (sock >= 0)
-                            sockets.push_back(sock);
-                    }
+                    saddr->sin_port = htons(static_cast<unsigned short>(0));
+                    int sock = mdns_socket_open_ipv4(saddr);
+                    if (sock >= 0)
+                        sockets.push_back(sock);
                 }
             }
             else if (unicast->Address.lpSockaddr->sa_family == AF_INET6)
@@ -508,13 +511,10 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
                 if ((unicast->DadState == NldsPreferred) && memcmp(saddr->sin6_addr.s6_addr, localhost, 16) &&
                     memcmp(saddr->sin6_addr.s6_addr, localhostMapped, 16))
                 {
-                    if (static_cast<int>(sockets.size()) < maxSockets)
-                    {
-                        saddr->sin6_port = htons(static_cast<unsigned short>(0));
-                        int sock = mdns_socket_open_ipv6(saddr);
-                        if (sock >= 0)
-                            sockets.push_back(sock);
-                    }
+                    saddr->sin6_port = htons(static_cast<unsigned short>(0));
+                    int sock = mdns_socket_open_ipv6(saddr);
+                    if (sock >= 0)
+                        sockets.push_back(sock);
                 }
             }
         }
@@ -526,7 +526,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
     struct ifaddrs* ifa = 0;
 
     if (getifaddrs(&ifaddr) < 0)
-      return;
+        throw std::runtime_error("MDNSDiscoveryClient: Failed to get network interfaces");
 
     for (ifa = ifaddr; ifa; ifa = ifa->ifa_next)
     {
@@ -542,13 +542,10 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
             struct sockaddr_in* saddr = (struct sockaddr_in*) ifa->ifa_addr;
             if (saddr->sin_addr.s_addr != htonl(INADDR_LOOPBACK))
             {
-                if (static_cast<int>(sockets.size()) < maxSockets)
-                {
-                    saddr->sin_port = htons(static_cast<unsigned short>(0));
-                    int sock = mdns_socket_open_ipv4(saddr);
-                    if (sock >= 0)
-                        sockets.push_back(sock);
-                }
+                saddr->sin_port = htons(static_cast<unsigned short>(0));
+                int sock = mdns_socket_open_ipv4(saddr);
+                if (sock >= 0)
+                    sockets.push_back(sock);
             }
         }
         else if (ifa->ifa_addr->sa_family == AF_INET6)
@@ -558,13 +555,10 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets, in
             static const unsigned char localhost_mapped[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1};
             if (memcmp(saddr->sin6_addr.s6_addr, localhost, 16) && memcmp(saddr->sin6_addr.s6_addr, localhost_mapped, 16))
             {
-                if (static_cast<int>(sockets.size()) < maxSockets)
-                {
-                    saddr->sin6_port = htons(static_cast<unsigned short>(0));
-                    int sock = mdns_socket_open_ipv6(saddr);
-                    if (sock >= 0)
-                        sockets.push_back(sock);
-                }
+                saddr->sin6_port = htons(static_cast<unsigned short>(0));
+                int sock = mdns_socket_open_ipv6(saddr);
+                if (sock >= 0)
+                    sockets.push_back(sock);
             }
         }
     }
@@ -667,6 +661,8 @@ inline bool MDNSDiscoveryClient::isValidMdnsDevice(const MdnsDiscoveredDevice& d
     return device.ipv4Address.size() > 0 || device.ipv6Address.size() > 0;
 }
 
+
+
 inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
                                                        const sockaddr* from,
                                                        size_t addrlen,
@@ -729,6 +725,7 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     else if (rtype == MDNS_RECORDTYPE_TXT)
     {
         deviceData.TXT.clear();
+
         auto reqProps = discovery_common::DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
         for (const auto& [key, value] : reqProps)
             deviceData.TXT.emplace_back(key, value);
@@ -801,6 +798,21 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
     }
 
     return 0;
+}
+
+inline unsigned long getAvailableData(int sock)
+{
+    unsigned long availableData = 0;
+
+#ifdef _WIN32
+    if (ioctlsocket(sock, FIONREAD, &availableData) == SOCKET_ERROR) 
+        return 0;
+#else
+    if (ioctl(sock, FIONREAD, &availableData) == -1)
+        return 0;
+#endif
+
+    return availableData;
 }
 
 inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
@@ -879,19 +891,19 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
 
     constexpr int maxSockets = 32;
     std::vector<int> sockets;
-    openClientSockets(sockets, maxSockets);
+    openClientSockets(sockets);
     if (sockets.empty())
-        return;
+        throw std::runtime_error("MDNSDiscoveryClient: Failed to open sockets");
 
-    const int numSockets = static_cast<int>(sockets.size());
-    int queryIds[maxSockets];
-    constexpr size_t capacity = 2048;
-    void* buffer = malloc(capacity);
-
-    for (int isock = 0; isock < numSockets; ++isock)
-        queryIds[isock] = non_mdns_query_send(sockets[isock], buffer, capacity, queryId, opCode, 0x0,
-                                              requestRecords.data(), requestRecords.size(), 0, 0, 0, 0, 0, 0,
-                                              0, 0, 0);
+    std::vector<int> queryIds(sockets.size());
+    {
+        constexpr size_t capacity = 2048;
+        std::vector<char> buffer(capacity);
+        for (size_t isock = 0; isock < sockets.size(); ++isock)
+            queryIds[isock] = non_mdns_query_send(sockets[isock], buffer.data(), buffer.size(), queryId, opCode, 0x0,
+                                                  requestRecords.data(), requestRecords.size(), 0, 0, 0, 0, 0, 0,
+                                                  0, 0, 0);
+    }
 
     auto callbackWrapper = [](int sock,
                               const sockaddr* from,
@@ -952,29 +964,32 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
         int nfds = 0;
         fd_set readfs;
         FD_ZERO(&readfs);
-        for (int isock = 0; isock < numSockets; ++isock)
+        for (int socket : sockets)
         {
-            if (sockets[isock] >= nfds)
-                nfds = sockets[isock] + 1;
-            FD_SET((u_int) sockets[isock], &readfs);
+            if (socket >= nfds)
+                nfds = socket + 1;
+            FD_SET((u_int)socket, &readfs);
         }
 
         res = select(nfds, &readfs, 0, 0, &timeout);
         if (res > 0)
         {
-            for (int isock = 0; isock < numSockets; ++isock)
+            for (size_t isock = 0; isock < sockets.size(); ++isock)
             {
                 if (FD_ISSET(sockets[isock], &readfs))
-                    mdns_query_recv(sockets[isock], buffer, capacity, callbackWrapper, &callback, queryIds[isock]);
+                {
+                    auto availableData = getAvailableData(sockets[isock]);
+                    std::vector<char> buffer(availableData);
+                    mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryIds[isock]);
+                }
                 FD_SET((u_int) sockets[isock], &readfs);
             }
         }
     }
     while (res > 0);
 
-    free(buffer);
-    for (int isock = 0; isock < numSockets; ++isock)
-        mdns_socket_close(sockets[isock]);
+    for (int socket : sockets)
+        mdns_socket_close(socket);
 }
 
 inline void MDNSDiscoveryClient::sendDiscoveryQuery()
@@ -983,19 +998,18 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
 
     std::chrono::steady_clock::time_point queryingStarted = std::chrono::steady_clock::now();
 
-    constexpr int maxSockets = 32;
     std::vector<int> sockets;
-    openClientSockets(sockets, maxSockets);
+    openClientSockets(sockets);
     if (sockets.empty())
-        return;
+        throw std::runtime_error("MDNSDiscoveryClient: Failed to open sockets");
 
-    const int numSockets = static_cast<int>(sockets.size());
-    int queryId[maxSockets];
-    constexpr size_t capacity = 2048;
-    void* buffer = malloc(capacity);
-
-    for (int isock = 0; isock < numSockets; ++isock)
-        queryId[isock] = mdns_multiquery_send(sockets[isock], discoveryQueries.data(), discoveryQueries.size(), buffer, capacity, 0);
+    std::vector<int> queryId(sockets.size());
+    {
+        constexpr size_t capacity = 2048;
+        std::vector<char> buffer(capacity);
+        for (size_t isock = 0; isock < sockets.size(); ++isock)
+            queryId[isock] = mdns_multiquery_send(sockets[isock], discoveryQueries.data(), discoveryQueries.size(), buffer.data(), buffer.size(), 0);
+    }
 
     auto callback = [&](int sock,
                         const sockaddr* from,
@@ -1091,28 +1105,31 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
         int nfds = 0;
         fd_set readfs;
         FD_ZERO(&readfs);
-        for (int isock = 0; isock < numSockets; ++isock)
+        for (int socket : sockets)
         {
-            if (sockets[isock] >= nfds)
-                nfds = sockets[isock] + 1;
-            FD_SET((u_int) sockets[isock], &readfs);
+            if (socket >= nfds)
+                nfds = socket + 1;
+            FD_SET((u_int)socket, &readfs);
         }
 
         res = select(nfds, &readfs, 0, 0, &timeout);
         if (res > 0)
         {
-            for (int isock = 0; isock < numSockets; ++isock)
+            for (size_t isock = 0; isock < sockets.size(); ++isock)
             {
                 if (FD_ISSET(sockets[isock], &readfs))
-                    mdns_query_recv(sockets[isock], buffer, capacity, callbackWrapper, &callback, queryId[isock]);
+                {
+                    auto availableData = getAvailableData(sockets[isock]);
+                    std::vector<char> buffer(availableData);
+                    mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryId[isock]);
+                }
                 FD_SET((u_int) sockets[isock], &readfs);
             }
         }
     } while (res > 0);
 
-    free(buffer);
-    for (int isock = 0; isock < numSockets; ++isock)
-        mdns_socket_close(sockets[isock]);
+    for (int socket: sockets)
+        mdns_socket_close(socket);
 }
 
 END_NAMESPACE_DISCOVERY

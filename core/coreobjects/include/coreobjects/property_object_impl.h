@@ -339,7 +339,7 @@ protected:
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
-    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value);
+    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
 
     // Serialization
@@ -1629,7 +1629,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValueNoLock(IString* propertyName,
                                                                                                     IBaseObject** value)
 {
-    return getPropertySelectionValueInternal(propertyName, value);
+    return getPropertySelectionValueInternal(propertyName, value, true);
 }
 
 template <class PropObjInterface, typename... Interfaces>
@@ -1880,7 +1880,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValueInternal(IString* propertyName,
-                                                                                                      IBaseObject** value)
+                                                                                                      IBaseObject** value,
+                                                                                                      Bool retrieveUpdatingValue)
 {
     if (propertyName == nullptr || value == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
@@ -1891,7 +1892,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         BaseObjectPtr valuePtr;
         PropertyPtr prop;
 
-        getPropertyAndValueInternal(propName, valuePtr, prop);
+        getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
 
         if (!prop.assigned())
             throw NotFoundException(R"(Selection property "{}" not found)", propName);

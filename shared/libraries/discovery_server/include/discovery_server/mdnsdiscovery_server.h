@@ -58,6 +58,9 @@ private:
     uint16_t servicePort;
     std::unordered_map<std::string, std::string> properties;
     const daq::PropertyObjectPtr deviceInfo;
+
+    size_t staticRecordSize;
+    mutable size_t recordSize;
     mutable std::vector<std::pair<std::string, std::string>> dynamicProperties;
 
     std::string serviceInstance;

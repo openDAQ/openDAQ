@@ -52,7 +52,11 @@ ErrCode UnitImpl::getSymbol(IString** symbol)
     if (!symbol)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *symbol = this->fields.get("Symbol").asPtr<IString>().addRefAndReturn();
+    auto symbolPtr = this->fields.get("Symbol");
+    if (!symbolPtr.assigned())
+        *symbol = nullptr;
+    else
+        *symbol = symbolPtr.asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -61,7 +65,11 @@ ErrCode UnitImpl::getName(IString** name)
     if (!name)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *name = this->fields.get("Name").asPtr<IString>().addRefAndReturn();
+    auto namePtr = this->fields.get("Name");
+    if (!namePtr.assigned())
+        *name = nullptr;
+    else
+        *name = namePtr.asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -69,8 +77,12 @@ ErrCode UnitImpl::getQuantity(IString** quantity)
 {
     if (!quantity)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
-    *quantity = this->fields.get("Quantity").asPtr<IString>().addRefAndReturn();
+
+    auto quantityPtr = this->fields.get("Quantity");
+    if (!quantityPtr.assigned())
+        *quantity = nullptr;
+    else
+        *quantity = quantityPtr.asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

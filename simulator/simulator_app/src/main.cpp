@@ -1,4 +1,5 @@
 #include <chrono>
+#include <csignal>
 #include <thread>
 #include <opendaq/opendaq.h>
 #include <coreobjects/authentication_provider_factory.h>
@@ -6,9 +7,20 @@
 
 using namespace daq;
 
+// Atomic flag to signal termination
+std::atomic<bool> stopped{false};
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
     using namespace std::chrono_literals;
+
+    {
+        // Applies the latest IP configuration before initializing the openDAQ instance.
+        // If unsuccessful, attempts to restore the previous configuration from the backup.
+        // py script runs with root privileges without requiring a password, as specified in sudoers
+        int result = std::system("sudo python3 /home/opendaq/netplan_manager.py apply");
+        (void)result;
+    }
 
     const ConfigProviderPtr configProvider = JsonConfigProvider();
 
@@ -30,16 +42,20 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     auto servers = instance.addStandardServers();
     for (const auto& server : servers)
-    {
-        // OPC UA server uses Avahi service for discovery for example purposes
-        if (server.getId() != "OpenDAQOPCUAServerModule")
-            server.enableDiscovery();
-    }
+        server.enableDiscovery();
 
-    while (true)
+    auto signalHandler = [](int signal)
+    {
+        if (signal == SIGINT)
+            stopped = true; // Set the flag to exit the loop
+    };
+    // Register the signal handler for SIGINT
+    std::signal(SIGINT, signalHandler);
+    while (!stopped)
     {
         std::this_thread::sleep_for(100ms);
     }
 
+    // Anticipated to be automatically restarted by the systemd service.
     return 0;
 }

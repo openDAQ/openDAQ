@@ -18,6 +18,8 @@
 #include <opendaq/discovery_server.h>
 #include <discovery_server/mdnsdiscovery_server.h>
 #include <opendaq/logger_ptr.h>
+#include <coreobjects/property_object_ptr.h>
+#include <opendaq/device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,11 +30,15 @@ public:
 
     ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) override;
     ErrCode INTERFACE_FUNC unregisterService(IString* id) override;
+    ErrCode INTERFACE_FUNC setRootDevice(IDevice* device) override;
 
 private:
+    void registerIpModificationService(const DevicePtr& rootDevice);
+
     discovery_server::MDNSDiscoveryServer discoveryServer;
     LoggerComponentPtr loggerComponent;
 
+    WeakRefPtr<IDevice> rootDeviceRef;
 };
 
 END_NAMESPACE_OPENDAQ

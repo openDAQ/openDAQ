@@ -63,6 +63,7 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx,
     componentB = addComponent("componentB");
     componentB.addProperty(IntProperty("IntProp", 5));
     registerProperties();
+    registerNetworkConfigProperties();
 
     const PropertyObjectPtr thisPtr = this->borrowPtr<PropertyObjectPtr>();
     thisPtr.addProperty(StringProperty("TestProperty", "Test").detach());
@@ -208,6 +209,54 @@ void MockPhysicalDeviceImpl::registerTestConfigProperties()
         obj.addProperty(PropertyBuilder(prop.getName()).setValueType(prop.getValueType()).setDefaultValue(prop.getDefaultValue()).build());
         obj.setPropertyValue(prop.getName(), config.getPropertyValue(prop.getName()));
     }
+}
+
+void MockPhysicalDeviceImpl::registerNetworkConfigProperties()
+{
+    if (!config.assigned())
+        return;
+
+    if (config.hasProperty("ifaceNames"))
+    {
+        ifaceNames = config.getPropertyValue("ifaceNames");
+    }
+    if (config.hasProperty("onSubmitConfig"))
+    {
+        onSubmitConfig = config.getPropertyValue("onSubmitConfig");
+    }
+    if (config.hasProperty("onRetrieveConfig"))
+    {
+        onRetrieveConfig = config.getPropertyValue("onRetrieveConfig");
+    }
+}
+
+void MockPhysicalDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
+{
+    if (onSubmitConfig.assigned())
+        onSubmitConfig(ifaceName, config);
+    else
+        throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+                                      "and equals signs =============================================================================="
+                                      "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated");
+}
+
+PropertyObjectPtr MockPhysicalDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr& ifaceName)
+{
+    if (onRetrieveConfig.assigned())
+        return onRetrieveConfig(ifaceName);
+    throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+                                  "and equals signs =============================================================================="
+                                  "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated");
+}
+
+Bool MockPhysicalDeviceImpl::onGetNetworkConfigurationEnabled()
+{
+    return True;
+}
+
+ListPtr<IString> MockPhysicalDeviceImpl::onGetNetworkInterfaceNames()
+{
+    return ifaceNames;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

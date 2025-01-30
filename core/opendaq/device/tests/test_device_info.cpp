@@ -5,6 +5,9 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/context_factory.h>
+#include <opendaq/network_interface_factory.h>
+#include <opendaq/module_manager_factory.h>
+#include "testutils/memcheck_listener.h"
 
 using DeviceInfoTest = testing::Test;
 
@@ -45,6 +48,7 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_EQ(deviceInfo.getSystemUuid(), "");
     ASSERT_EQ(deviceInfo.getLocation(), "");
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
+    ASSERT_EQ(deviceInfo.getNetworkInterfaces().getCount(), 0u);
 
     ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 26u);
 }
@@ -256,6 +260,36 @@ TEST_F(DeviceInfoTest, ServerCapabilities)
 
     internalInfo.clearServerStreamingCapabilities();
     ASSERT_EQ(info.getServerCapabilities().getCount(), 0u);
+}
+
+TEST_F(DeviceInfoTest, NetworkInterfaces)
+{
+    MemCheckListener::expectMemoryLeak = true;// memory leak in module manager
+    const auto moduleManager = ModuleManager("[[none]]");
+
+    DeviceInfoPtr info = DeviceInfo("", "");
+    DeviceInfoInternalPtr internalInfo = info;
+
+    auto iface0 = NetworkInterface("eth0", "manufacturer", "serial_number", moduleManager);
+    auto iface1 = NetworkInterface("eth1", "manufacturer", "serial_number", moduleManager);
+    auto iface2 = NetworkInterface("eth2", "manufacturer", "serial_number", moduleManager);
+
+    internalInfo.addNetworkInteface("eth0", iface0);
+    internalInfo.addNetworkInteface("eth1", iface1);
+    internalInfo.addNetworkInteface("eth2", iface2);
+    ASSERT_THROW(internalInfo.addNetworkInteface("eth2", iface2), DuplicateItemException);
+
+    ASSERT_EQ(info.getNetworkInterfaces().getCount(), 3u);
+
+    ASSERT_THROW(info.getNetworkInterface("eth3"), NotFoundException);
+
+    const auto defaultConfig = info.getNetworkInterface("eth0").createDefaultConfiguration();
+    EXPECT_EQ(defaultConfig.getPropertyValue("dhcp4"), True);
+    EXPECT_EQ(defaultConfig.getPropertyValue("address4"), String(""));
+    EXPECT_EQ(defaultConfig.getPropertyValue("gateway4"), String(""));
+    EXPECT_EQ(defaultConfig.getPropertyValue("dhcp6"), True);
+    EXPECT_EQ(defaultConfig.getPropertyValue("address6"), String(""));
+    EXPECT_EQ(defaultConfig.getPropertyValue("gateway6"), String(""));
 }
 
 END_NAMESPACE_OPENDAQ

@@ -13,6 +13,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
@@ -29,52 +30,6 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
             std::move(context),
             "OpenDAQOPCUAClientModule")
     , discoveryClient(
-        {
-            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
-            {
-                auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "OpenDAQOPCUA", ProtocolType::Configuration);
-                if (!discoveredDevice.ipv4Address.empty())
-                {
-                    auto connectionStringIpv4 = fmt::format("{}://{}:{}{}",
-                                    DaqOpcUaDevicePrefix,
-                                    discoveredDevice.ipv4Address,
-                                    discoveredDevice.servicePort,
-                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                    cap.addConnectionString(connectionStringIpv4);
-                    cap.addAddress(discoveredDevice.ipv4Address);
-
-                    const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
-                                                                 .setReachabilityStatus(AddressReachabilityStatus::Unknown)
-                                                                 .setType("IPv4")
-                                                                 .setConnectionString(connectionStringIpv4)
-                                                                 .build();
-                    cap.addAddressInfo(addressInfo);
-                }
-                if(!discoveredDevice.ipv6Address.empty())
-                {
-                    auto connectionStringIpv6 = fmt::format("{}://{}:{}{}",
-                                    DaqOpcUaDevicePrefix,
-                                    discoveredDevice.ipv6Address,
-                                    discoveredDevice.servicePort,
-                                    discoveredDevice.getPropertyOrDefault("path", "/"));
-                    cap.addConnectionString(connectionStringIpv6);
-                    cap.addAddress(discoveredDevice.ipv6Address);
-
-                    const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
-                                                                 .setReachabilityStatus(AddressReachabilityStatus::Unknown)
-                                                                 .setType("IPv6")
-                                                                 .setConnectionString(connectionStringIpv6)
-                                                                 .build();
-                    cap.addAddressInfo(addressInfo);
-                }
-                cap.setConnectionType("TCP/IP");
-                cap.setPrefix(DaqOpcUaDevicePrefix);
-                cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
-                if (discoveredDevice.servicePort > 0)
-                    cap.setPort(discoveredDevice.servicePort);
-                return cap;
-            }
-        },
         {"OPENDAQ"}
     )
 {
@@ -84,11 +39,9 @@ OpcUaClientModule::OpcUaClientModule(ContextPtr context)
 
 ListPtr<IDeviceInfo> OpcUaClientModule::onGetAvailableDevices()
 {
-    auto availableDevices = discoveryClient.discoverDevices();
-    for (auto device : availableDevices)
-    {
-        device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
-    }
+    auto availableDevices = List<IDeviceInfo>();
+    for (const auto& device : discoveryClient.discoverMdnsDevices())
+        availableDevices.pushBack(populateDiscoveredDevice(device));
     return availableDevices;
 }
 
@@ -185,6 +138,59 @@ PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectP
     }
 
     return defConfig;
+}
+
+DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
+{
+    PropertyObjectPtr deviceInfo = DeviceInfo("");
+    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
+
+    auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "OpenDAQOPCUA", ProtocolType::Configuration);
+    if (!discoveredDevice.ipv4Address.empty())
+    {
+        auto connectionStringIpv4 = fmt::format("{}://{}:{}{}",
+                                                DaqOpcUaDevicePrefix,
+                                                discoveredDevice.ipv4Address,
+                                                discoveredDevice.servicePort,
+                                                discoveredDevice.getPropertyOrDefault("path", "/"));
+        cap.addConnectionString(connectionStringIpv4);
+        cap.addAddress(discoveredDevice.ipv4Address);
+
+        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
+                                     .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                     .setType("IPv4")
+                                     .setConnectionString(connectionStringIpv4)
+                                     .build();
+        cap.addAddressInfo(addressInfo);
+    }
+    if(!discoveredDevice.ipv6Address.empty())
+    {
+        auto connectionStringIpv6 = fmt::format("{}://{}:{}{}",
+                                                DaqOpcUaDevicePrefix,
+                                                discoveredDevice.ipv6Address,
+                                                discoveredDevice.servicePort,
+                                                discoveredDevice.getPropertyOrDefault("path", "/"));
+        cap.addConnectionString(connectionStringIpv6);
+        cap.addAddress(discoveredDevice.ipv6Address);
+
+        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
+                                     .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                     .setType("IPv6")
+                                     .setConnectionString(connectionStringIpv6)
+                                     .build();
+        cap.addAddressInfo(addressInfo);
+    }
+    cap.setConnectionType("TCP/IP");
+    cap.setPrefix(DaqOpcUaDevicePrefix);
+    cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
+    if (discoveredDevice.servicePort > 0)
+        cap.setPort(discoveredDevice.servicePort);
+
+    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(cap.getConnectionString());
+    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
+
+    return deviceInfo;
 }
 
 StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port, std::string& hostType)

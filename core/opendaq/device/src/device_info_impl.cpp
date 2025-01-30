@@ -1,3 +1,4 @@
+#include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_impl.h>
 #include <coretypes/impl.h>
 

@@ -46,6 +46,7 @@
 #include <opendaq/user_lock_factory.h>
 #include <opendaq/connection_status_container_private_ptr.h>
 #include <opendaq/connection_status_container_impl.h>
+#include <opendaq/device_network_config.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -57,10 +58,10 @@ using DeviceBase = GenericDevice<TInterface, TTraits...>;
 using Device = DeviceBase<IDevice>;
 
 template <typename TInterface, typename... Interfaces>
-class GenericDevice : public SignalContainerImpl<TInterface, IDevicePrivate, Interfaces...>
+class GenericDevice : public SignalContainerImpl<TInterface, IDevicePrivate, IDeviceNetworkConfig, Interfaces...>
 {
 public:
-    using Super = SignalContainerImpl<TInterface, IDevicePrivate, Interfaces...>;
+    using Super = SignalContainerImpl<TInterface, IDevicePrivate, IDeviceNetworkConfig, Interfaces...>;
     using Self = GenericDevice<TInterface, Interfaces...>;
 
     GenericDevice(const ContextPtr& ctx,
@@ -114,6 +115,12 @@ public:
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
     ErrCode INTERFACE_FUNC isLockedInternal(Bool* locked) override;
     ErrCode INTERFACE_FUNC forceUnlock() override;
+
+    // IDeviceNetworkConfig
+    ErrCode INTERFACE_FUNC submitNetworkConfiguration(IString* ifaceName, IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC retrieveNetworkConfiguration(IString* ifaceName, IPropertyObject** config) override;
+    ErrCode INTERFACE_FUNC getNetworkConfigurationEnabled(Bool* enabled) override;
+    ErrCode INTERFACE_FUNC getNetworkInterfaceNames(IList** ifaceNames) override;
 
     // Function block devices
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
@@ -200,6 +207,12 @@ protected:
 
     virtual ListPtr<ILogFileInfo> onGetLogFileInfos();
     virtual StringPtr onGetLog(const StringPtr& id, Int size, Int offset);
+
+    virtual void onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config);
+    virtual PropertyObjectPtr onRetrieveNetworkConfiguration(const StringPtr& ifaceName);
+    virtual Bool onGetNetworkConfigurationEnabled();
+    virtual ListPtr<IString> onGetNetworkInterfaceNames();
+
     DevicePtr getParentDevice();
 
 private:
@@ -426,6 +439,64 @@ ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
         this->triggerCoreEvent(CoreEventArgsDeviceLockStateChanged(false));
 
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::submitNetworkConfiguration(IString* ifaceName, IPropertyObject* config)
+{
+    OPENDAQ_PARAM_NOT_NULL(ifaceName);
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    if (!this->isRootDevice)
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+
+    const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
+    const auto configPtr = PropertyObjectPtr::Borrow(config);
+    const ErrCode errCode = wrapHandler(this, &Self::onSubmitNetworkConfiguration, ifaceNamePtr, configPtr);
+
+    return errCode;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::retrieveNetworkConfiguration(IString* ifaceName, IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(ifaceName);
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    if (!this->isRootDevice)
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+
+    PropertyObjectPtr configPtr;
+    const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onRetrieveNetworkConfiguration, configPtr, ifaceNamePtr);
+
+    *config = configPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getNetworkConfigurationEnabled(Bool* enabled)
+{
+    OPENDAQ_PARAM_NOT_NULL(enabled);
+
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetNetworkConfigurationEnabled, *enabled);
+
+    return errCode;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getNetworkInterfaceNames(IList** ifaceNames)
+{
+    OPENDAQ_PARAM_NOT_NULL(ifaceNames);
+
+    if (!this->isRootDevice)
+        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+
+    ListPtr<IString> ifaceNamesPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetNetworkInterfaceNames, ifaceNamesPtr);
+
+    *ifaceNames = ifaceNamesPtr.detach();
+    return errCode;
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -919,6 +990,30 @@ template <typename TInterface, typename... Interfaces>
 StringPtr GenericDevice<TInterface, Interfaces...>::onGetLog(const StringPtr& /* id */, Int /* size */, Int /* offset */)
 {
     return "";
+}
+
+template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::onSubmitNetworkConfiguration(const StringPtr& /*ifaceName*/, const PropertyObjectPtr& /*config*/)
+{
+    throw NotImplementedException();
+}
+
+template <typename TInterface, typename... Interfaces>
+PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onRetrieveNetworkConfiguration(const StringPtr& /*ifaceName*/)
+{
+    throw NotImplementedException();
+}
+
+template <typename TInterface, typename... Interfaces>
+Bool GenericDevice<TInterface, Interfaces...>::onGetNetworkConfigurationEnabled()
+{
+    return False;
+}
+
+template <typename TInterface, typename... Interfaces>
+ListPtr<IString> GenericDevice<TInterface, Interfaces...>::onGetNetworkInterfaceNames()
+{
+    throw NotImplementedException();
 }
 
 template <typename TInterface, typename... Interfaces>

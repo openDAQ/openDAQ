@@ -18,7 +18,8 @@
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
-
+#include <opendaq/device_network_config_ptr.h>
+#include "testutils/testutils.h"
 
 using DeviceTest = testing::Test;
 
@@ -46,6 +47,24 @@ public:
 
         return deviceInfo;
     }
+
+protected:
+    void onSubmitNetworkConfiguration(const daq::StringPtr& ifaceName, const daq::PropertyObjectPtr& config) override {}
+    daq::PropertyObjectPtr onRetrieveNetworkConfiguration(const daq::StringPtr& ifaceName) override
+    {
+        auto config = daq::PropertyObject();
+
+        config.addProperty(daq::BoolProperty("dhcp4", daq::True));
+        config.addProperty(daq::StringProperty("address4", ""));
+        config.addProperty(daq::StringProperty("gateway4", ""));
+        config.addProperty(daq::BoolProperty("dhcp6", daq::True));
+        config.addProperty(daq::StringProperty("address6", ""));
+        config.addProperty(daq::StringProperty("gateway6", ""));
+
+        return config;
+    }
+    daq::Bool onGetNetworkConfigurationEnabled() override { return daq::True; }
+    daq::ListPtr<daq::IString> onGetNetworkInterfaceNames() override { return daq::List<daq::IString>("eth0"); }
 };
 
 class MockSrvImpl final : public daq::Server
@@ -477,4 +496,36 @@ TEST_F(DeviceTest, SerializeAndDeserializeManufacturer)
     const std::string str1 = serializer.getOutput();
     ASSERT_EQ(str1.find("manufacturer"), std::string::npos);
     ASSERT_EQ(str1.find("serialNumber"), std::string::npos);
+}
+
+TEST_F(DeviceTest, NetworkConfigEnabled)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    auto deviceNetworkConfig = device.asPtr<daq::IDeviceNetworkConfig>();
+    const auto msg = "Device must be set as root to manage network configuration.";
+
+    ASSERT_TRUE(deviceNetworkConfig.getNetworkConfigurationEnabled());
+    ASSERT_THROW_MSG(deviceNetworkConfig.submitNetworkConfiguration("eth0", daq::PropertyObject()), daq::InvalidStateException, msg);
+    ASSERT_THROW_MSG(deviceNetworkConfig.retrieveNetworkConfiguration("eth0"), daq::InvalidStateException, msg);
+    ASSERT_THROW_MSG(deviceNetworkConfig.getNetworkInterfaceNames(), daq::InvalidStateException, msg);
+
+    device.asPtr<daq::IDevicePrivate>().setAsRoot();
+
+    ASSERT_TRUE(deviceNetworkConfig.getNetworkConfigurationEnabled());
+    ASSERT_NO_THROW(deviceNetworkConfig.submitNetworkConfiguration("eth0", daq::PropertyObject()));
+    ASSERT_EQ(deviceNetworkConfig.retrieveNetworkConfiguration("eth0").getAllProperties().getCount(), 6u);
+    ASSERT_EQ(deviceNetworkConfig.getNetworkInterfaceNames(), daq::List<daq::IString>("eth0"));
+}
+
+TEST_F(DeviceTest, NetworkConfigDisabled)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    auto deviceNetworkConfig = device.asPtr<daq::IDeviceNetworkConfig>();
+
+    device.asPtr<daq::IDevicePrivate>().setAsRoot();
+
+    ASSERT_FALSE(deviceNetworkConfig.getNetworkConfigurationEnabled());
+    ASSERT_THROW(deviceNetworkConfig.submitNetworkConfiguration("eth0", daq::PropertyObject()), daq::NotImplementedException);
+    ASSERT_THROW(deviceNetworkConfig.retrieveNetworkConfiguration("eth0"), daq::NotImplementedException);
+    ASSERT_THROW(deviceNetworkConfig.getNetworkInterfaceNames(), daq::NotImplementedException);
 }

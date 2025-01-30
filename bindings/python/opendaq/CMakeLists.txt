@@ -25,9 +25,11 @@ set(SRC_Cpp
     generated/context/py_context.cpp
     generated/device/py_device.cpp
     generated/device/py_device_private.cpp
+    generated/device/py_device_network_config.cpp
     generated/device/py_device_domain.cpp
     generated/device/py_device_info.cpp
     generated/device/py_device_info_config.cpp
+    generated/device/py_network_interface.cpp
     generated/device/py_server_capability.cpp
     generated/device/py_device_type.cpp
     generated/device/py_address_info.cpp

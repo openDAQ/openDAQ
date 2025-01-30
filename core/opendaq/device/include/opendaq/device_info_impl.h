@@ -124,6 +124,10 @@ public:
 
     ErrCode INTERFACE_FUNC getConfigurationConnectionInfo(IServerCapability** connectionInfo) override;
 
+    ErrCode INTERFACE_FUNC addNetworkInteface(IString* name, INetworkInterface* networkInterface) override;
+    ErrCode INTERFACE_FUNC getNetworkInterfaces(IDict** interfaces) override;
+    ErrCode INTERFACE_FUNC getNetworkInterface(IString* interfaceName, INetworkInterface** interface) override;
+
     // IPropertyObject
     ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
@@ -147,6 +151,7 @@ protected:
 
     std::set<std::string> changeableDefaultPropertyNames;
     DeviceTypePtr deviceType;
+    DictPtr<IString, INetworkInterface> networkInterfaces;
 
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
     PropertyObjectPtr getOwnerOfProperty(const StringPtr& propertyName);
@@ -197,6 +202,7 @@ inline std::string ToLowerCase(const std::string &input)
 template <typename TInterface, typename ... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     : Super()
+    , networkInterfaces(Dict<IString, INetworkInterface>())
 {
     this->path = "DaqDeviceInfo";
     createAndSetStringProperty("name", "");
@@ -933,6 +939,50 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
     if (OPENDAQ_FAILED(err))
         return err;
     *connectionInfo = obj.asPtr<IServerCapability>().detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addNetworkInteface(IString* name, INetworkInterface* networkInterface)
+{
+    if (this->frozen)
+    {
+        return OPENDAQ_ERR_FROZEN;
+    }
+
+    OPENDAQ_PARAM_NOT_NULL(networkInterface);
+    OPENDAQ_PARAM_NOT_NULL(name);
+
+    const auto nameObj = StringPtr::Borrow(name);
+    if (nameObj == "")
+        return OPENDAQ_ERR_INVALIDPARAMETER;
+
+    if (networkInterfaces.hasKey(name))
+        return OPENDAQ_ERR_DUPLICATEITEM;
+
+    return networkInterfaces->set(name, networkInterface);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getNetworkInterfaces(IDict** interfaces)
+{
+    OPENDAQ_PARAM_NOT_NULL(interfaces);
+
+    *interfaces = this->networkInterfaces.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getNetworkInterface(IString* interfaceName, INetworkInterface** interface)
+{
+    OPENDAQ_PARAM_NOT_NULL(interfaceName);
+    OPENDAQ_PARAM_NOT_NULL(interface);
+
+    if (!networkInterfaces.hasKey(interfaceName))
+        return OPENDAQ_ERR_NOTFOUND;
+
+    *interface = networkInterfaces.get(interfaceName).addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

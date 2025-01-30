@@ -115,6 +115,9 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
         message(WARNING "DAQMODULES_OPENDAQ_CLIENT_MODULE and OPENDAQ_ENABLE_NATIVE_STREAMING must be ON to enable client_authentication application")
     endif()
 
+    add_executable(ip_modification cpp/ip_modification/ip_modification.cpp)
+    target_link_libraries(ip_modification PRIVATE daq::opendaq)
+
     set(SRC_HeadersConsoleApp cpp/console_application/console_application.h
                               cpp/console_application/app_channel.h
                               cpp/console_application/app_device.h

@@ -1,3 +1,43 @@
+# 2025-01-24
+## Description
+- Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
+The implementation follows the DNS-SD standard, utilizing resource records and mDNS header formats with custom header 
+flags to facilitate the exchange of IP configuration requests and responses. The availability of the IP configuration 
+modification feature for a device is advertised by discovering the _opendaq-ip-modification._udp.local. service on 
+port 5353 using the standard mDNS discovery mechanism.
+- Disables the Avahi daemon used for advertising the OPC UA service during discovery on the VBox device simulator, 
+replacing it with the openDAQ internal mDNS server used for same purpose.
+
+## Required integration changes
+- Breaks binary compatibility
+- Updates the usage of the openDAQ discovery client, requiring the changes in the initialization of the discovery client
+and the implementation of onGetAvailableDevices in client modules.
+
+```
+-m [function] IContext::getDiscoveryServers(IDict** services)
++m [function] IContext::getDiscoveryServers(IDict** servers)
+
++ [interface] INetworkInterface : public IBaseObject
++ [function] INetworkInterface::requestCurrentConfiguration(IPropertyObject** config)
++ [function] INetworkInterface::submitConfiguration(IPropertyObject* config)
++ [function] INetworkInterface::createDefaultConfiguration(IPropertyObject** defaultConfig)
++ [factory] NetworkInterfacePtr NetworkInterface(const StringPtr& name, const StringPtr& ownerDeviceManufacturerName, const StringPtr& ownerDeviceSerialNumber, const BaseObjectPtr& moduleManager)
+
++ [interface] IDeviceNetworkConfig : public IBaseObject
++ [function] IDeviceNetworkConfig::submitNetworkConfiguration(IString* ifaceName, IPropertyObject* config)
++ [function] IDeviceNetworkConfig::retrieveNetworkConfiguration(IString* ifaceName, IPropertyObject** config)
++ [function] IDeviceNetworkConfig::getNetworkConfigurationEnabled(Bool* enabled)
++ [function] IDeviceNetworkConfig::getNetworkInterfaceNames(IList** ifaceNames)
+
++ [function] IDeviceInfo::getNetworkInterfaces(IDict** interfaces)
++ [function] IDeviceInfo::getNetworkInterface(IString* interfaceName, INetworkInterface** interface)
++ [function] IDeviceInfoInternal::addNetworkInteface(IString* name, INetworkInterface* networkInterface)
+
++ [function] IDiscoveryServer::setRootDevice(IDevice* device)
+
++ [function] IModuleManagerUtils::changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config)
++ [function] IModuleManagerUtils::requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config)
+
 # 2025-01-21
 ## Description
 - Implementing changeable fields of device info, which are synchronized between server and client.

@@ -81,8 +81,11 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
         reconnectionProcessingIOContextPtr->stop();
     }
 
-    configProtocolClient.reset();
-    transportClientHandler.reset();
+    {
+        std::scoped_lock lock(sync);
+        configProtocolClient.reset();
+        transportClientHandler.reset();
+    }
 
     cancelPendingConfigRequests(ComponentRemovedException());
 }
@@ -411,10 +414,11 @@ void NativeDeviceHelper::cancelPendingConfigRequests(const DaqException& e)
 
 void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
 {
+    std::scoped_lock lock(sync);
     if (packet.getPacketType() == ServerNotification)
     {
         // allow server notifications only if connected / reconnection started
-        if (acceptNotificationPackets)
+        if (acceptNotificationPackets && configProtocolClient != nullptr)
         {
             configProtocolClient->triggerNotificationPacket(packet);
         }
@@ -425,7 +429,6 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
     }
     else
     {
-        std::scoped_lock lock(sync);
         if(auto it = replyPackets.find(packet.getId()); it != replyPackets.end())
         {
             it->second.set_value(std::move(packet));
@@ -508,9 +511,9 @@ ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
     OPENDAQ_PARAM_NOT_NULL(context);
 
     return daqTry([&obj, &serialized, &context, &factoryCallback]()
-                  {
-                      *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
-                  });
+    {
+        *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
+    });
 }
 
 void NativeDeviceImpl::removed()

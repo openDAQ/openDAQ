@@ -1,4 +1,5 @@
 #include <discovery_common/daq_discovery_common.h>
+#include <cctype>
 
 BEGIN_NAMESPACE_DISCOVERY_COMMON
 
@@ -106,7 +107,7 @@ std::string DiscoveryUtils::toTxtValue(const char* source, size_t length)
     for (const char* ptr = source; *ptr && result.size() < length; ++ptr)
     {
         // Replace whitespace, '=' or invalid characters with a space
-        if (std::isspace(static_cast<unsigned char>(*ptr)) || *ptr == '=' || !std::isprint(static_cast<unsigned char>(*ptr)))
+        if (isspace(static_cast<unsigned char>(*ptr)) || *ptr == '=' || !isprint(static_cast<unsigned char>(*ptr)))
             result += ' ';
         else
             result += *ptr;

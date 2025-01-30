@@ -127,8 +127,7 @@ class EditContainerPropertyDialog(Dialog):
             if value is None:
                 return
             try:
-                self.data.append(utils.value_to_coretype(
-                    value, self.property.item_type))
+                self.data.append(value)
                 self.fill()
             except Exception as e:
                 utils.show_error('Add item error',

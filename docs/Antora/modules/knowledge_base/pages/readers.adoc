@@ -147,7 +147,8 @@ No additional processing is done except to advance the reading position if requi
 === Handling Data Available
 When the Reader is notified about new packets, each packet follows its own logic to determine whether it should trigger the `onDataAvailable` function or not. Currently, the Stream reader, Packet reader, and Multi reader trigger the callback when any packet arrives at the Reader's input port. 
 The Tail reader triggers the callback if the total number of samples is greater than the history size. 
-The Block reader will trigger the callback if there is enough available samples for one block.
+The Block reader will trigger the callback if there is enough available samples for one block or if there are fewer samples,
+than one block, but event or gap packet right behind them.
 
 .The user callback signature
 [source,cpp]

@@ -106,7 +106,7 @@ std::string DiscoveryUtils::toTxtValue(const char* source, size_t length)
     for (const char* ptr = source; *ptr && result.size() < length; ++ptr)
     {
         // Replace whitespace, '=' or invalid characters with a space
-        if (std::isspace(*ptr) || *ptr == '=' || !std::isprint(*ptr))
+        if (std::isspace(static_cast<unsigned char>(*ptr)) || *ptr == '=' || !std::isprint(static_cast<unsigned char>(*ptr)))
             result += ' ';
         else
             result += *ptr;

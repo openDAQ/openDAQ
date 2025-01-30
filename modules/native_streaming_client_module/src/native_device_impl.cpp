@@ -23,7 +23,8 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId,
-                                       const StringPtr& connectionString)
+                                       const StringPtr& connectionString,
+                                       Int reconnectionPeriod)
     : processingIOContextPtr(processingIOContextPtr)
     , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
     , reconnectionProcessingThreadId(reconnectionProcessingThreadId)
@@ -34,11 +35,14 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
     , connectionString(connectionString)
+    , configProtocolReconnectionRetryTimer(std::make_shared<boost::asio::steady_timer>(*reconnectionProcessingIOContextPtr))
+    , reconnectionPeriod(std::chrono::milliseconds(reconnectionPeriod))
 {
 }
 
 NativeDeviceHelper::~NativeDeviceHelper()
 {
+    configProtocolReconnectionRetryTimer->cancel();
     closeConnectionOnRemoval();
 }
 
@@ -66,6 +70,8 @@ void NativeDeviceHelper::unsubscribeFromCoreEvent(const ContextPtr& context)
 
 void NativeDeviceHelper::closeConnectionOnRemoval()
 {
+    configProtocolReconnectionRetryTimer->cancel();
+
     if (transportClientHandler)
     {
         transportClientHandler->resetConfigHandlers();
@@ -259,25 +265,51 @@ void NativeDeviceHelper::connectionStatusChangedHandler(const EnumerationPtr& st
 {
     if (status == "Connected")
     {
-        try
-        {
-            acceptNotificationPackets = true;
-            configProtocolClient->reconnect(restoreClientConfigOnReconnect);
-        }
-        catch(const std::exception& e)
-        {
-            acceptNotificationPackets = false;
-            LOG_W("Reconnection failed: {}", e.what());
-            return;
-        }
+        tryConfigProtocolReconnect();
     }
     else
     {
+        configProtocolReconnectionRetryTimer->cancel();
         acceptNotificationPackets = false;
         cancelPendingConfigRequests(ConnectionLostException());
         configProtocolClient->disconnectExternalSignals();
+
+        updateConnectionStatus(status);
+    }
+}
+
+void NativeDeviceHelper::tryConfigProtocolReconnect()
+{
+    try
+    {
+        acceptNotificationPackets = true;
+        configProtocolClient->reconnect(restoreClientConfigOnReconnect);
+    }
+    catch(const std::exception& e)
+    {
+        acceptNotificationPackets = false;
+        LOG_E("Configuration protocol reconnection failed: {}.", e.what());
+
+        configProtocolReconnectionRetryTimer->expires_from_now(reconnectionPeriod);
+        configProtocolReconnectionRetryTimer->async_wait(
+            [this, weak_self = weak_from_this()](const boost::system::error_code& ec)
+            {
+                if (ec)
+                    return;
+                if (auto shared_self = weak_self.lock())
+                    this->tryConfigProtocolReconnect();
+            }
+        );
+        return;
     }
 
+    auto tmpStatusValue = connectionStatus;
+    tmpStatusValue = "Connected";
+    updateConnectionStatus(tmpStatusValue);
+}
+
+void NativeDeviceHelper::updateConnectionStatus(const EnumerationPtr& status)
+{
     connectionStatus = status;
 
     auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;

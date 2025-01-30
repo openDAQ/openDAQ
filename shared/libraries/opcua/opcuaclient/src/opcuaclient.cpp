@@ -61,9 +61,7 @@ OpcUaClient::OpcUaClient(const std::string& url)
 
 OpcUaClient::~OpcUaClient()
 {
-    stopIterate();
     disconnect();
-    clear();
 }
 
 void OpcUaClient::initialize()
@@ -217,11 +215,11 @@ void OpcUaClient::connect()
 
 void OpcUaClient::disconnect(bool doClear)
 {
+    stopIterate();
     std::lock_guard guard(getLock());
+
     if (!uaclient)
         return;
-
-    stopIterate();
 
     UA_Client_disconnect(uaclient);
 
@@ -328,8 +326,8 @@ void OpcUaClient::executeIterateCallback()
 
 UA_StatusCode OpcUaClient::iterate(std::chrono::milliseconds timeout)
 {
-    assert(timeout.count() >= 0);
     UA_Int32 timeoutMs = timeout.count();
+    assert(timeoutMs >= 0);
     return UA_Client_run_iterate_timer_tasks(getLockedUaClient(), timeoutMs, true);
 }
 

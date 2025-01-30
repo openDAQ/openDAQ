@@ -261,7 +261,7 @@ void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPt
     }
 }
 
-void NativeDeviceHelper::connectionStatusChangedHandler(const EnumerationPtr& status)
+void NativeDeviceHelper::transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
     if (status == "Connected")
     {
@@ -274,7 +274,7 @@ void NativeDeviceHelper::connectionStatusChangedHandler(const EnumerationPtr& st
         cancelPendingConfigRequests(ConnectionLostException());
         configProtocolClient->disconnectExternalSignals();
 
-        updateConnectionStatus(status);
+        updateConnectionStatus(status, statusMessage);
     }
 }
 
@@ -288,7 +288,10 @@ void NativeDeviceHelper::tryConfigProtocolReconnect()
     catch(const std::exception& e)
     {
         acceptNotificationPackets = false;
-        LOG_E("Configuration protocol reconnection failed: {}.", e.what());
+        const auto statusMessage = String(fmt::format("Configuration protocol reconnection failed: {}.", e.what()));
+        LOG_E("{}", statusMessage);
+
+        updateConnectionStatus(connectionStatus, statusMessage);
 
         configProtocolReconnectionRetryTimer->expires_from_now(reconnectionPeriod);
         configProtocolReconnectionRetryTimer->async_wait(
@@ -303,19 +306,20 @@ void NativeDeviceHelper::tryConfigProtocolReconnect()
         return;
     }
 
+    // use tmp var to implicitly copy the enumeration type
     auto tmpStatusValue = connectionStatus;
     tmpStatusValue = "Connected";
-    updateConnectionStatus(tmpStatusValue);
+    updateConnectionStatus(tmpStatusValue, "");
 }
 
-void NativeDeviceHelper::updateConnectionStatus(const EnumerationPtr& status)
+void NativeDeviceHelper::updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
     connectionStatus = status;
 
     auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
     if (!device.assigned())
         return;
-    device.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus);
+    device.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus, statusMessage);
 }
 
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
@@ -358,21 +362,21 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
         );
     };
 
-    OnConnectionStatusChangedCallback connectionStatusChangedCb =
-        [this](const EnumerationPtr& status)
+    OnConnectionStatusChangedCallback transportConnectionStatusChangedCb =
+        [this](const EnumerationPtr& status, const StringPtr& statusMessage)
     {
         boost::asio::dispatch(
             *reconnectionProcessingIOContextPtr,
-            [this, status, weak_self = weak_from_this()]()
+            [this, status, statusMessage, weak_self = weak_from_this()]()
             {
                 if (auto shared_self = weak_self.lock())
-                    this->connectionStatusChangedHandler(status);
+                    this->transportConnectionStatusChangedHandler(status, statusMessage);
             }
         );
     };
 
     transportClientHandler->setConfigHandlers(receiveConfigPacketCb,
-                                              connectionStatusChangedCb);
+                                              transportConnectionStatusChangedCb);
 }
 
 PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& reqPacket)
@@ -519,10 +523,10 @@ NativeDeviceImpl::~NativeDeviceImpl()
 }
 
 // INativeDevicePrivate
-void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status)
+void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", status);
-    this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), status, nullptr);
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage("ConnectionStatus", status, statusMessage);
+    this->connectionStatusContainer.updateConnectionStatusWithMessage(deviceInfo.getConnectionString(), status, nullptr, statusMessage);
 }
 
 void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString)

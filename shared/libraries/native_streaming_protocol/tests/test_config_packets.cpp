@@ -118,7 +118,7 @@ public:
             configProtocolHandler->receivePacket(std::move(packetBuffer));
         };
 
-        connectionStatusChangedHandler = [this](const EnumerationPtr& status)
+        connectionStatusChangedHandler = [this](const EnumerationPtr& status, const StringPtr& statusMessage)
         {
             connectionStatusPromise.set_value(status);
         };

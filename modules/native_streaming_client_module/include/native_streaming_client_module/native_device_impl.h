@@ -60,7 +60,7 @@ public:
     void closeConnectionOnRemoval();
 
 private:
-    void connectionStatusChangedHandler(const EnumerationPtr& status);
+    void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
     config_protocol::PacketBuffer doConfigRequestAndGetReply(const config_protocol::PacketBuffer& reqPacket);
     void doConfigNoReplyRequest(const config_protocol::PacketBuffer& reqPacket);
     void sendConfigRequest(const config_protocol::PacketBuffer& reqPacket);
@@ -74,7 +74,7 @@ private:
     void enableStreamingForComponent(const ComponentPtr& component);
     void tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming);
     void setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming);
-    void updateConnectionStatus(const EnumerationPtr& status);
+    void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
     void tryConfigProtocolReconnect();
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
@@ -99,7 +99,7 @@ private:
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
-    virtual void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status) = 0;
+    virtual void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) = 0;
     virtual void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) = 0;
     virtual void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) = 0;
 };
@@ -118,7 +118,7 @@ public:
     ~NativeDeviceImpl() override;
 
     // INativeDevicePrivate
-    void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status) override;
+    void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) override;
     void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 

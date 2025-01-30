@@ -1798,8 +1798,11 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False);
 
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("ConnectionStatus"), "");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("ConfigurationStatus"), "");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "");
 
     std::promise<StringPtr> connectionOldStatusPromise;
     std::future<StringPtr> connectionOldStatusFuture = connectionOldStatusPromise.get_future();
@@ -1807,6 +1810,21 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     std::future<StringPtr> configReconnectionStatusFuture = configReconnectionStatusPromise.get_future();
     std::promise<StringPtr> streamingReconnectionStatusPromise;
     std::future<StringPtr> streamingReconnectionStatusFuture = streamingReconnectionStatusPromise.get_future();
+
+    const auto testStatusMessage = [](const CoreEventArgsPtr& args, const EnumerationPtr& statusValue)
+    {
+        ASSERT_TRUE(args.getParameters().hasKey("Message"));
+        const StringPtr statusMessage = args.getParameters().get("Message");
+        if (statusValue == "Reconnecting")
+        {
+            EXPECT_EQ(statusMessage, "Network connection interrupted or closed by the remote device");
+        }
+        else if (statusValue == "Connected")
+        {
+            EXPECT_EQ(statusMessage, "");
+        }
+    };
+
     client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
@@ -1816,22 +1834,31 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
             ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
             ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
             ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+            const EnumerationPtr statusValue = args.getParameters().get("StatusValue");
             if (args.getParameters().get("StatusName") == "ConfigurationStatus")
             {
                 EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.nd://127.0.0.1");
                 EXPECT_FALSE(args.getParameters().get("StreamingObject").assigned());
-                configReconnectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
+                configReconnectionStatusPromise.set_value(statusValue.toString());
             }
             else
             {
                 EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
-                streamingReconnectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
+                streamingReconnectionStatusPromise.set_value(statusValue.toString());
             }
+            testStatusMessage(args, statusValue);
         }
-        else if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+    };
+
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
         {
             ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
-            connectionOldStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
+            const EnumerationPtr statusValue = args.getParameters().get("ConnectionStatus");
+            connectionOldStatusPromise.set_value(statusValue.toString());
+            testStatusMessage(args, statusValue);
         }
     };
 
@@ -1839,15 +1866,25 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
 
     // destroy server to emulate disconnection
     server.release();
+
     ASSERT_TRUE(connectionOldStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionOldStatusFuture.get(), "Reconnecting");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("ConnectionStatus"),
+              "Network connection interrupted or closed by the remote device");
+
     ASSERT_TRUE(configReconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(configReconnectionStatusFuture.get(), "Reconnecting");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("ConfigurationStatus"),
+              "Network connection interrupted or closed by the remote device");
+
     ASSERT_TRUE(streamingReconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(streamingReconnectionStatusFuture.get(), "Reconnecting");
-    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"),
+              "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"),
+              "Network connection interrupted or closed by the remote device");
 
     ASSERT_THROW(client.getDevices()[0].getDevices()[0].setPropertyValue("CustomProp", 1), ConnectionLostException);
 
@@ -1865,12 +1902,17 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(connectionOldStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionOldStatusFuture.get(), "Connected");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("ConnectionStatus"), "");
+
     ASSERT_TRUE(configReconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(configReconnectionStatusFuture.get(), "Connected");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("ConfigurationStatus"), "");
+
     ASSERT_TRUE(streamingReconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(streamingReconnectionStatusFuture.get(), "Connected");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "");
 
     auto channels = client.getDevices()[0].getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 3u);

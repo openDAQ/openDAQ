@@ -58,13 +58,14 @@ protected:
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
 
-    void updateConnectionStatus(const EnumerationPtr& status) override;
-    void processConnectionStatus(const EnumerationPtr& status);
+    void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) override;
+    void processTransportConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
 
     void initClientHandlerCallbacks();
     void upgradeClientHandlerCallbacks();
 
     void stopProcessingOperations();
+    void requestStreamingOnReconnection();
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
 

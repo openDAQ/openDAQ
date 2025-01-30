@@ -860,9 +860,19 @@ TEST_F(ConfigCoreEventTest, StatusChanged)
         ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::StatusChanged));
         ASSERT_EQ(args.getEventName(), "StatusChanged");
         ASSERT_TRUE(args.getParameters().hasKey("TestStatus"));
+        ASSERT_TRUE(args.getParameters().hasKey("Message"));
         ASSERT_EQ(comp, clientDevice);
 
-        if (changeCount % 2 == 0)
+        if (changeCount != 3)
+        {
+            ASSERT_EQ(args.getParameters().get("Message"), "");
+        }
+        else
+        {
+            ASSERT_EQ(args.getParameters().get("Message"), "Msg");
+        }
+
+        if (changeCount != 1)
         {
             ASSERT_EQ(args.getParameters().get("TestStatus"), statusValue);
             ASSERT_EQ(args.getParameters().get("TestStatus"), "Status1");
@@ -881,8 +891,9 @@ TEST_F(ConfigCoreEventTest, StatusChanged)
     statusContainer.setStatus("TestStatus", statusValue);
     statusContainer.setStatus("TestStatus", statusInitValue);
     statusContainer.setStatus("TestStatus", statusValue);
+    statusContainer.setStatusWithMessage("TestStatus", statusValue, "Msg");
 
-    ASSERT_EQ(changeCount, 3);
+    ASSERT_EQ(changeCount, 4);
 }
 
 TEST_F(ConfigCoreEventTest, ConnectionStatusChanged)
@@ -912,7 +923,18 @@ TEST_F(ConfigCoreEventTest, ConnectionStatusChanged)
         ASSERT_EQ(comp, clientDevice);
 
         ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
-        if (changeCount % 2 == 0)
+        ASSERT_TRUE(args.getParameters().hasKey("Message"));
+        ASSERT_TRUE(args.getParameters().get("Message").assigned());
+        if (changeCount != 3)
+        {
+            ASSERT_EQ(args.getParameters().get("Message"), "");
+        }
+        else
+        {
+            ASSERT_EQ(args.getParameters().get("Message"), "Msg");
+        }
+
+        if (changeCount != 1)
         {
             ASSERT_EQ(args.getParameters().get("StatusValue"), statusValue);
             ASSERT_EQ(args.getParameters().get("StatusValue"), "Reconnecting");
@@ -931,13 +953,15 @@ TEST_F(ConfigCoreEventTest, ConnectionStatusChanged)
     connectionStatusContainer.updateConnectionStatus("ConfigConnStr", statusValue, nullptr);
     connectionStatusContainer.updateConnectionStatus("ConfigConnStr", statusInitValue, nullptr);
     connectionStatusContainer.updateConnectionStatus("ConfigConnStr", statusValue, nullptr);
+    connectionStatusContainer.updateConnectionStatusWithMessage("ConfigConnStr", statusValue, nullptr, "Msg");
 
     // core events with streaming connection status change are not forwarded to client
     connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusValue, mockStreaming);
     connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusInitValue, mockStreaming);
     connectionStatusContainer.updateConnectionStatus("StreamingConnStr", statusValue, mockStreaming);
+    connectionStatusContainer.updateConnectionStatusWithMessage("StreamingConnStr", statusValue, mockStreaming, "Msg");
 
-    ASSERT_EQ(changeCount, 3);
+    ASSERT_EQ(changeCount, 4);
 }
 
 TEST_F(ConfigCoreEventTest, TypeAdded)

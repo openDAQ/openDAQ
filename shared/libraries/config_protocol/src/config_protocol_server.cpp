@@ -423,7 +423,7 @@ BaseObjectPtr ConfigProtocolServer::acceptsSignal(const RpcContext& context, con
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
-    if (streamingConsumer.isForwardedCoreEvent(component, eventArgs))
+    if (isForwardedCoreEvent(component, eventArgs))
     {
         const auto packed = packCoreEvent(component, eventArgs);
         sendNotification(packed);

@@ -79,6 +79,16 @@ DECLARE_OPENDAQ_INTERFACE(IConnectionStatusContainerPrivate, IBaseObject)
      * Set to nullptr for configuration connections.
      */
     virtual ErrCode INTERFACE_FUNC updateConnectionStatus(IString* connectionString, IEnumeration* value, IStreaming* streamingObject) = 0;
+
+    /*!
+     * @brief Updates the value of an existing connection status with a message.
+     * @param connectionString The connection string identifying the status to update.
+     * @param value The new value of the status.
+     * @param streamingObject The streaming object associated with the connection, used in triggered Core events.
+     * Set to nullptr for configuration connections.
+     * @param message The new message of the connection status. Usually describes last reconnect attempt failure.
+     */
+    virtual ErrCode INTERFACE_FUNC updateConnectionStatusWithMessage(IString* connectionString, IEnumeration* value, IStreaming* streamingObject, IString* message) = 0;
 };
 /*!@}*/
 

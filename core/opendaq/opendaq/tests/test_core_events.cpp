@@ -1524,6 +1524,7 @@ TEST_F(CoreEventTest, ConfigConnectionStatusChanged)
         ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
         ASSERT_EQ(args.getParameters().get("ConnectionString"), "ConfigConnectionString");
         ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+        ASSERT_TRUE(args.getParameters().hasKey("Message"));
     };
 
     int changeCount = 0;
@@ -1531,15 +1532,24 @@ TEST_F(CoreEventTest, ConfigConnectionStatusChanged)
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
     {
         ASSERT_EQ(comp, instance.getRootDevice());
-        if (changeCount % 2 == 0)
+        if (changeCount == 0 || changeCount == 2)
         {
             ASSERT_EQ(args.getParameters().get("StatusValue"), connectionStatusInitValue);
             ASSERT_EQ(args.getParameters().get("StatusValue"), "Connected");
+            ASSERT_EQ(args.getParameters().get("Message"), "");
         }
         else
         {
             ASSERT_EQ(args.getParameters().get("StatusValue"), connectionStatusValue);
             ASSERT_EQ(args.getParameters().get("StatusValue"), "Reconnecting");
+            if (changeCount == 4)
+            {
+                ASSERT_EQ(args.getParameters().get("Message"), "Msg");
+            }
+            else
+            {
+                ASSERT_EQ(args.getParameters().get("Message"), "");
+            }
         }
         changeCount++;
     };
@@ -1549,8 +1559,9 @@ TEST_F(CoreEventTest, ConfigConnectionStatusChanged)
     connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusValue, nullptr);
     connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusInitValue, nullptr);
     connectionStatusContainer.updateConnectionStatus("ConfigConnectionString", connectionStatusValue, nullptr);
+    connectionStatusContainer.updateConnectionStatusWithMessage("ConfigConnectionString", connectionStatusValue, nullptr, "Msg");
 
-    ASSERT_EQ(changeCount, 4);
+    ASSERT_EQ(changeCount, 5);
 }
 
 TEST_F(CoreEventTest, ConfigConnectionStatusChangedMuted)
@@ -1608,7 +1619,8 @@ TEST_F(CoreEventTest, StreamingConnectionStatusChanged)
         ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
         ASSERT_EQ(args.getParameters().get("StatusName"), "StreamingStatus_1");
         ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
-        if (changeCount != 2)
+        ASSERT_TRUE(args.getParameters().hasKey("Message"));
+        if (changeCount != 3)
         {
             ASSERT_TRUE(args.getParameters().get("StreamingObject").assigned());
             ASSERT_EQ(args.getParameters().get("StreamingObject"), mockStreamingObject);
@@ -1616,6 +1628,7 @@ TEST_F(CoreEventTest, StreamingConnectionStatusChanged)
         else
         {
             ASSERT_FALSE(args.getParameters().get("StreamingObject").assigned());
+            ASSERT_FALSE(args.getParameters().get("Message").assigned());
         }
         ASSERT_TRUE(args.getParameters().hasKey("ProtocolType"));
         ASSERT_EQ(args.getParameters().get("ProtocolType"), (Int)ProtocolType::Streaming);
@@ -1632,13 +1645,21 @@ TEST_F(CoreEventTest, StreamingConnectionStatusChanged)
         {
             ASSERT_EQ(args.getParameters().get("StatusValue"), connectionStatusInitValue);
             ASSERT_EQ(args.getParameters().get("StatusValue"), "Connected");
+            ASSERT_EQ(args.getParameters().get("Message"), "");
         }
         else if (changeCount == 1)
         {
             ASSERT_EQ(args.getParameters().get("StatusValue"), connectionStatusValue);
             ASSERT_EQ(args.getParameters().get("StatusValue"), "Reconnecting");
+            ASSERT_EQ(args.getParameters().get("Message"), "");
         }
         else if (changeCount == 2)
+        {
+            ASSERT_EQ(args.getParameters().get("StatusValue"), connectionStatusValue);
+            ASSERT_EQ(args.getParameters().get("StatusValue"), "Reconnecting");
+            ASSERT_EQ(args.getParameters().get("Message"), "Msg");
+        }
+        else if (changeCount == 3)
         {
             ASSERT_EQ(args.getParameters().get("StatusValue"), "Removed");
         }
@@ -1648,9 +1669,10 @@ TEST_F(CoreEventTest, StreamingConnectionStatusChanged)
     connectionStatusContainer.addStreamingConnectionStatus("StreamingConnectionString", connectionStatusInitValue, mockStreamingObject);
     connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusValue, mockStreamingObject);
     connectionStatusContainer.updateConnectionStatus("StreamingConnectionString", connectionStatusValue, mockStreamingObject);
+    connectionStatusContainer.updateConnectionStatusWithMessage("StreamingConnectionString", connectionStatusValue, mockStreamingObject, "Msg");
     connectionStatusContainer.removeStreamingConnectionStatus("StreamingConnectionString");
 
-    ASSERT_EQ(changeCount, 3);
+    ASSERT_EQ(changeCount, 4);
 }
 
 TEST_F(CoreEventTest, StreamingConnectionStatusChangedMuted)

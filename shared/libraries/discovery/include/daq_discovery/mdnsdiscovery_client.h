@@ -697,15 +697,12 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     }
     else if (rtype == MDNS_RECORDTYPE_A)
     {
-        std::string deviceAddr = ipAddressToString(from, addrlen);
-
         sockaddr_in addr;
         mdns_record_parse_a(buffer, size, rdata_offset, rdata_length, &addr);
         deviceData.A = ipv4AddressToString(&addr, sizeof(addr));
     }
     else if (rtype == MDNS_RECORDTYPE_AAAA)
     {
-        std::string deviceAddr = ipAddressToString(from, addrlen);
         sockaddr_in6 addr;
         mdns_record_parse_aaaa(buffer, size, rdata_offset, rdata_length, &addr);
         deviceData.AAAA = ipv6AddressToString(&addr, sizeof(addr));

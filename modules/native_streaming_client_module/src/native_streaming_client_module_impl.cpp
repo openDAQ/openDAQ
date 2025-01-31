@@ -368,7 +368,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     StringPtr protocolPrefix;
     ProtocolType protocolType = ProtocolType::Unknown;
     std::string protocolVersionStr;
-    if (ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
+    if (nativeType == NativeType::streaming)
     {
         std::string localId;
         {
@@ -395,7 +395,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         protocolPrefix = "daq.ns";
         protocolType = ProtocolType::Streaming;
     }
-    else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
+    else if (nativeType == NativeType::config)
     {
         uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
         device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion);

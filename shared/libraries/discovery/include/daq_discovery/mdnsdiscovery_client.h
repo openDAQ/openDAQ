@@ -108,7 +108,6 @@ protected:
         SRVRecord SRV;
         std::string A;
         std::string AAAA;
-        std::string linkLocalInterface;
         std::vector<std::pair<std::string, std::string>> TXT;
     } DeviceData;
 
@@ -255,7 +254,6 @@ inline MDNSDiscoveryClient::~MDNSDiscoveryClient()
 
 inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevices()
 {
-    devicesMap.clear();
     std::vector<MdnsDiscoveredDevice> devices;
 
     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
@@ -272,7 +270,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevice
         catch (...)
         {
             fprintf(stderr, "MDNSDiscoveryClient: sendMdnsQuery failed with an unknown error\n");
-            return devices;
+            break;
         }
     }
 
@@ -280,6 +278,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevice
     for (const auto& device : devicesMap)
         devices.push_back(createMdnsDiscoveredDevice(device.second));
 
+    devicesMap.clear();
     return devices;
 }
 
@@ -572,29 +571,17 @@ inline void MDNSDiscoveryClient::pruneDevices()
     std::unordered_set<std::string> toPrune;
     for (auto& [addr, data] : devicesMap)
     {
-        if (toPrune.count(addr))
-            continue;
-
-        for (const auto& [addr1, data1] : devicesMap)
+        if (!data.PTR.empty() || data.SRV.name.empty())
         {
-            if (addr == addr1)
-                continue;
+            toPrune.insert(addr);
+            continue;
+        }
 
-            if (data.SRV.port != data1.SRV.port)
-                continue;
-
-            if (data.AAAA == data1.AAAA && !data.AAAA.empty())
-            {
-                data.A = data.A.empty() ? data1.A : data.A;
-                data.linkLocalInterface = data.linkLocalInterface.empty() ? data1.linkLocalInterface : data.linkLocalInterface;
-                toPrune.insert(addr1);
-            }
-
-            if (data.A == data1.A && !data.A.empty())
-            {
-                data.AAAA = data.AAAA.empty() ? data1.AAAA : data.AAAA;
-                toPrune.insert(addr1);
-            }
+        data.PTR = addr;
+        if (auto it = devicesMap.find(data.SRV.name); it != devicesMap.end())
+        {
+            data.A = it->second.A;
+            data.AAAA = it->second.AAAA;
         }
     }
 
@@ -625,9 +612,14 @@ inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* 
     if (ret != 0)
         return "";
 
+    std::string hostStr(host);
+
+    if (IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr) && addr->sin6_scope_id != 0)
+        hostStr += "%" + std::to_string(addr->sin6_scope_id);
+
     if (addr->sin6_port != 0 && includePort)
-        return "[" + std::string(host) + "]:" + service;
-	return std::string(host);
+        return "[" + hostStr + "]:" + service;
+    return "[" + hostStr + "]";
 }
 
 inline std::string MDNSDiscoveryClient::ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort)
@@ -646,9 +638,7 @@ inline MdnsDiscoveredDevice MDNSDiscoveryClient::createMdnsDiscoveredDevice(cons
     device.servicePriority = data.SRV.priority;
     device.serviceWeight = data.SRV.weight;
     device.ipv4Address = data.A;
-    device.ipv6Address = data.AAAA + data.linkLocalInterface;
-    if (!device.ipv6Address.empty())
-        device.ipv6Address = "[" + device.ipv6Address + "]";
+    device.ipv6Address = data.AAAA;
 
     for (const auto& prop : data.TXT)
         device.properties.insert({prop.first, prop.second});
@@ -660,8 +650,6 @@ inline bool MDNSDiscoveryClient::isValidMdnsDevice(const MdnsDiscoveredDevice& d
 {
     return device.ipv4Address.size() > 0 || device.ipv6Address.size() > 0;
 }
-
-
 
 inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
                                                        const sockaddr* from,
@@ -684,21 +672,18 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     if (opcode)
         return 0;
 
-    char nameBuffer[256];
+    char nameBuffer[512];
 
     std::lock_guard lg(devicesMapLock);
-    
-    std::string deviceAddr = ipAddressToString(from, addrlen);
 
-    auto it = devicesMap.insert({deviceAddr, DeviceData{}});
-    DeviceData& deviceData = it.first->second;
-
-    if (from->sa_family == AF_INET6)
+    std::string deviceAddr;
     {
-        auto index = deviceAddr.find("%");
-        if (index != std::string::npos)
-            deviceData.linkLocalInterface = deviceAddr.substr(index, deviceAddr.find("]") - index);
+        mdns_string_t namestr = mdns_string_extract(buffer, size, &rname_offset, nameBuffer, sizeof(nameBuffer));
+        deviceAddr = std::string(namestr.str, namestr.length);
     }
+
+    auto it = devicesMap.emplace(deviceAddr, DeviceData{});
+    DeviceData& deviceData = it.first->second;
 
     if (rtype == MDNS_RECORDTYPE_PTR)
     {
@@ -712,12 +697,15 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     }
     else if (rtype == MDNS_RECORDTYPE_A)
     {
+        std::string deviceAddr = ipAddressToString(from, addrlen);
+
         sockaddr_in addr;
         mdns_record_parse_a(buffer, size, rdata_offset, rdata_length, &addr);
         deviceData.A = ipv4AddressToString(&addr, sizeof(addr));
     }
     else if (rtype == MDNS_RECORDTYPE_AAAA)
     {
+        std::string deviceAddr = ipAddressToString(from, addrlen);
         sockaddr_in6 addr;
         mdns_record_parse_aaaa(buffer, size, rdata_offset, rdata_length, &addr);
         deviceData.AAAA = ipv6AddressToString(&addr, sizeof(addr));

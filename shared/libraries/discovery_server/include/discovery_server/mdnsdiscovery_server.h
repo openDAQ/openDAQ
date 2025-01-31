@@ -55,7 +55,7 @@ private:
     friend class MDNSDiscoveryServer;
 
     size_t size() const;
-    mdns_record_t createRecord(const std::string& name, const std::string& value) const;
+    mdns_record_t createTxtRecord(const std::string& name, const std::string& value) const;
     void populateRecords(std::vector<mdns_record_t>& records) const;
 
     std::string serviceName;

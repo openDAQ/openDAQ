@@ -1,3 +1,30 @@
+# 2025-01-31
+## Description
+- Enables status messages for connection statuses
+- Introduces additional "Message" parameter of string-object-type within "ConnectionStatusChanged" core event arguments
+
+## Required integration changes
+- Breaks binary compatibility
+
+## Example
+To update existing connection status with status message:
+```cpp
+const auto typeManager = client.getDevices()[0].getContext().getTypeManager();
+const StringPtr statusMessage = "Network connection interrupted or closed by the remote device";
+const EnumerationPtr statusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
+const auto connectionStatusContainer = client.getDevices()[0].getConnectionStatusContainer();
+connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(connectionString, statusValue, nullptr, statusMessage);
+```
+To get the status message of connection status:
+```cpp
+StringPtr message = client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("ConfigurationStatus");
+```
+
+## API changes
+```
++ [function] IConnectionStatusContainerPrivate::updateConnectionStatusWithMessage(IString* connectionString, IEnumeration* value, IStreaming* streamingObject, IString* message)
+```
+
 # 2025-01-24
 ## Description
 - Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
@@ -37,6 +64,7 @@ and the implementation of onGetAvailableDevices in client modules.
 
 + [function] IModuleManagerUtils::changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config)
 + [function] IModuleManagerUtils::requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config)
+```
 
 # 2025-01-21
 ## Description

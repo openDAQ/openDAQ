@@ -19,10 +19,16 @@ set_target_properties(${LIB_NAME}
 )
 
 if(UNIX)
-    set_target_properties(${LIB_NAME}
-        PROPERTIES
-            BUILD_RPATH_USE_ORIGIN ON
-    )
+    if(APPLE)
+        set_target_properties(${LIB_NAME} PROPERTIES
+            BUILD_WITH_INSTALL_RPATH TRUE
+        )
+    else()
+        set_target_properties(${LIB_NAME}
+            PROPERTIES
+                BUILD_RPATH_USE_ORIGIN TRUE
+        )
+    endif()
 endif()
 
 

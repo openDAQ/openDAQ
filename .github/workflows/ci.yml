@@ -28,7 +28,7 @@ env:
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   dotnet_test_path: ${{ github.workspace }}/build/bindings/CSharp/test_results
   python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
+  python_versions: 3.8 3.13
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
@@ -562,6 +562,7 @@ jobs:
           - name: macos-13 clang Release
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_osx_deployment_target: 10.15
             runner: macos-13
           # - name: macos-13 clang Debug
             # cmake_generator: Ninja
@@ -576,28 +577,57 @@ jobs:
         uses: seanmiddleditch/gha-setup-ninja@v5
         with:
           version: 1.10.2
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
 
-      - name: Install numpy
-        run: python -m pip install numpy
+      - name: Install Pythons
+        run: |
+          brew install python@3.8 python@3.9 python@3.10 python@3.11 python@3.12 python@3.13
 
-      - name: Configure, fetch dependencies
+      - name: Make dirs
         run: |
           mkdir -p build
-          cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ${{ github.workspace }}
+          mkdir wheels
 
-      - name: Build
+      - name: Build wheels x86_64
         working-directory: ./build
-        run: cmake --build .
+        run: |
+          last_version="3.8"
+          for version in ${{ env.python_versions }}; do
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
+              cmake --build .
+              python$version -m venv venv
+              . venv/bin/activate
+              pip install numpy pybind11-stubgen
+              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
+              cp -f pip/packages/opendaq*.whl wheels
+              deactivate
+              rm -rf venv
+              last_version=$version
+          done
+          echo "last_version=$last_version" >> "$GITHUB_ENV"
 
       - name: Test
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+        run: |
+          python$last_version -m venv build/venv
+          . build/venv/bin/activate
+          pip install build/pip/packages/opendaq*.whl
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+
+      - name: Build wheels arm64
+        working-directory: ./build
+        run: |
+          for version in ${{ env.python_versions }}; do
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
+              cmake --build .
+              python$version -m venv venv
+              . venv/bin/activate
+              pip install numpy pybind11-stubgen
+              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
+              cp -f pip/packages/opendaq*.whl wheels
+              deactivate
+              rm -rf venv
+          done
 
       - name: Upload test results
         if: always()
@@ -605,6 +635,13 @@ jobs:
         with:
           name: Unit Test Results (${{ matrix.name }})
           path: ${{ env.test_path }}
+
+      - name: Upload PIP packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIP Package (${{ matrix.name }})
+          path: ${{ env.build_path }}/wheels/opendaq*.whl
+          retention-days: 7
 
   build_windows_pip:
     runs-on: ${{ matrix.runner }}

@@ -93,6 +93,8 @@ set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "External")
 
 if(APPLE)
     set(LIB_LOAD_ORIGIN @loader_path)
+    set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "Build architectures for macOS")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15"  CACHE STRING "Minimum deployment target for macOS")
 else()
     set(LIB_LOAD_ORIGIN $ORIGIN)
 endif()

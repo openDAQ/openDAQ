@@ -28,7 +28,25 @@ def auto_python_version(opendaq_filename):
     return version
 
 
-def auto_wheel_tag(opendaq_path):
+def auto_arch_macos(opendaq_filename):
+    try:
+        result = subprocess.run(
+            ['lipo', '-info', opendaq_filename], capture_output=True, text=True, check=True)
+        output = result.stdout.split(':')[-1]
+
+        # Check for specific architectures in the output
+        if 'x86_64' in output and 'arm64' in output:
+            return 'universal2'
+        elif 'arm64' in output:
+            return 'arm64'
+        elif 'x86_64' in output:
+            return 'x86_64'
+    except Exception as e:
+        pass
+    return 'unknown'
+
+
+def auto_wheel_tag(opendaq_path, bin_dir):
     linux_pattern = r'linux'
     windows_pattern = r'win'
     macos_pattern = r'macos|darwin'
@@ -36,10 +54,12 @@ def auto_wheel_tag(opendaq_path):
 
     wheel_tag = ''
     if re.search(macos_pattern, opendaq_path):
-        if 'arm64' in opendaq_path:
-            wheel_tag = 'macosx_11_0_arm64'
+        arch = auto_arch_macos(os.path.join(bin_dir, opendaq_path))
+        macos_tag = 'macosx_10_15' if arch != 'arm64' else 'macosx_11_0'
+        if arch == 'unknown':
+            raise RuntimeError('Can\'t determine arch')
         else:
-            wheel_tag = 'macosx_10_9_x86_64'
+            wheel_tag = macos_tag + '_' + arch
     elif re.search(machine_pattern, opendaq_path):
         if re.search(linux_pattern, opendaq_path):
             wheel_tag = 'manylinux_2_28_x86_64'
@@ -90,6 +110,7 @@ parser.add_argument('-l', '--lib-dir', help='Path to the directory containing bu
 parser.add_argument('-s', '--stage-dir',
                     help='Path to the pip stage directory (default: pip/packages)', default='pip/packages')
 parser.add_argument('-r', '--remove-module', help='Remove built module from binary directory', action='store_true')
+parser.add_argument('-c', '--cache_stubs', help='Cache typings to a directory', action='store_true')
 
 args = parser.parse_args()
 
@@ -97,6 +118,7 @@ python_version = args.python_version
 package_version = args.package_version
 wheel_tag = args.wheel_tag
 remove_module = args.remove_module
+stubs_use_cache = args.cache_stubs
 
 build_dir = args.build_dir
 build_bin_dir = os.path.join(build_dir, args.lib_dir)
@@ -104,7 +126,8 @@ build_bin_dir = os.path.join(build_dir, args.lib_dir)
 modules = find_modules(build_bin_dir)
 python_version = auto_python_version(
     modules.opendaq) if not python_version else python_version
-wheel_tag = auto_wheel_tag(modules.opendaq) if not wheel_tag else wheel_tag
+wheel_tag = auto_wheel_tag(
+    modules.opendaq, build_bin_dir) if not wheel_tag else wheel_tag
 path_build_pip_source_dir = os.path.dirname(__file__)
 package_version = read_opendaq_version(
     os.path.join(path_build_pip_source_dir, '..', '..', '..', 'opendaq_version')) if not package_version else package_version
@@ -129,6 +152,7 @@ if not package_version:
 print(f'Generating pip package for OpenDAQ ver. {package_version}')
 print(f'Python version: {python_version}')
 print(f'Wheel tag: {wheel_tag}')
+print(f'Stubs Cache: {'ON' if stubs_use_cache else 'OFF'}')
 
 path_stage_dir = os.path.abspath(args.stage_dir)
 path_stage_package = os.path.join(path_stage_dir, 'opendaq')
@@ -160,14 +184,29 @@ shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq',
             '__init__.py'), path_stage_package)
 os.makedirs(os.path.join(path_stage_package, 'opendaq'))
 
-# #generate stubs
-subprocess.call(['pybind11-stubgen', 'opendaq'],
-               env={**os.environ, 'PYTHONPATH': '.', 'PYTHONDONTWRITEBYTECODE': '1'}, cwd=path_stage_dir)
-shutil.move(os.path.join(path_stage_dir, 'stubs', 'opendaq',
-            '__init__.pyi'), path_stage_package)
-shutil.move(os.path.join(path_stage_dir, 'stubs', 'opendaq', 'opendaq.pyi'),
-            os.path.join(path_stage_package, 'opendaq', '__init__.pyi'))
-shutil.rmtree(os.path.join(path_stage_dir, 'stubs'))
+
+def generate_stubs(use_cache):
+    stubs_cache_path = os.path.join(path_stage_dir, '..', 'stubs')
+    if use_cache:
+        if os.path.exists(stubs_cache_path):
+            shutil.copy(os.path.join(stubs_cache_path, 'opendaq',
+                                     '__init__.pyi'), path_stage_package)
+            shutil.copy(os.path.join(stubs_cache_path, 'opendaq', 'opendaq.pyi'),
+                        os.path.join(path_stage_package, 'opendaq', '__init__.pyi'))
+            return
+    subprocess.call(['pybind11-stubgen', 'opendaq'],
+                    env={**os.environ, 'PYTHONPATH': '.', 'PYTHONDONTWRITEBYTECODE': '1'}, cwd=path_stage_dir)
+    shutil.copy(os.path.join(path_stage_dir, 'stubs', 'opendaq',
+                             '__init__.pyi'), path_stage_package)
+    shutil.copy(os.path.join(path_stage_dir, 'stubs', 'opendaq', 'opendaq.pyi'),
+                os.path.join(path_stage_package, 'opendaq', '__init__.pyi'))
+    if use_cache and not os.path.exists(stubs_cache_path):
+        shutil.copytree(os.path.join(
+            path_stage_dir, 'stubs'), stubs_cache_path)
+    shutil.rmtree(os.path.join(path_stage_dir, 'stubs'))
+
+
+generate_stubs(stubs_use_cache)
 
 
 # metadata

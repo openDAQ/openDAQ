@@ -564,6 +564,7 @@ jobs:
             cmake_build_type: Release
             cmake_osx_deployment_target: 10.15
             runner: macos-13
+            python_version_setup: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
           # - name: macos-13 clang Debug
             # cmake_generator: Ninja
             # cmake_build_type: Debug
@@ -577,6 +578,11 @@ jobs:
         uses: seanmiddleditch/gha-setup-ninja@v5
         with:
           version: 1.10.2
+
+      - name: Set up Python ${{ matrix.python_version_setup }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{matrix.python_version_setup}}
 
       - name: Make dirs
         run: |

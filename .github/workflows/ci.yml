@@ -582,7 +582,7 @@ jobs:
       - name: Set up Python ${{ matrix.python_version_setup }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{matrix.python_version_setup}}
+          python-version: ${{ matrix.python_version_setup }}
 
       - name: Make dirs
         run: |

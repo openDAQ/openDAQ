@@ -8,6 +8,11 @@ if (POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
+if (DAQSIMULATOR_ENABLE_SIMULATOR_APP)
+    message(NOTICE "Enable simulator support in reference device module.")
+    add_compile_definitions(DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED)
+endif()
+
 if (DAQMODULES_OPENDAQ_CLIENT_MODULE)
     message(STATUS "Client modules:")
 

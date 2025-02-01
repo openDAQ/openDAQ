@@ -152,7 +152,7 @@ if not package_version:
 print(f'Generating pip package for OpenDAQ ver. {package_version}')
 print(f'Python version: {python_version}')
 print(f'Wheel tag: {wheel_tag}')
-print(f'Stubs Cache: {'ON' if stubs_use_cache else 'OFF'}')
+print(f'Stubs Cache: {"ON" if stubs_use_cache else "OFF"}')
 
 path_stage_dir = os.path.abspath(args.stage_dir)
 path_stage_package = os.path.join(path_stage_dir, 'opendaq')

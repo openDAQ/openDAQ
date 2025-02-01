@@ -186,7 +186,7 @@ os.makedirs(os.path.join(path_stage_package, 'opendaq'))
 
 
 def generate_stubs(use_cache):
-    stubs_cache_path = os.path.join(path_stage_dir, '..', 'stubs')
+    stubs_cache_path = os.path.join(build_dir, '..', 'stubs')
     if use_cache:
         if os.path.exists(stubs_cache_path):
             shutil.copy(os.path.join(stubs_cache_path, 'opendaq',

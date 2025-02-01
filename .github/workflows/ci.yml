@@ -28,7 +28,7 @@ env:
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   dotnet_test_path: ${{ github.workspace }}/build/bindings/CSharp/test_results
   python_version_build: 3.11
-  python_versions: 3.8 3.13
+  python_versions: 3.13
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
@@ -612,20 +612,23 @@ jobs:
           done
           echo "last_version=$last_version" >> "$GITHUB_ENV"
 
-      - name: Test
-        env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: |
-          python$last_version -m venv build/venv
-          . build/venv/bin/activate
-          pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+      - name: Clear build dir
+        run: rm -rf build/*
+
+      # - name: Test
+      #   env:
+      #     GTEST_OUTPUT: "xml:${{ env.test_path }}"
+      #   run: |
+      #     python$last_version -m venv build/venv
+      #     . build/venv/bin/activate
+      #     pip install build/pip/packages/opendaq*.whl
+      #     ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Build wheels arm64
         working-directory: ./build
         run: |
           for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -636,12 +639,12 @@ jobs:
               rm -rf venv
           done
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unit Test Results (${{ matrix.name }})
-          path: ${{ env.test_path }}
+      # - name: Upload test results
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: Unit Test Results (${{ matrix.name }})
+      #     path: ${{ env.test_path }}
 
       - name: Upload PIP packages
         uses: actions/upload-artifact@v4

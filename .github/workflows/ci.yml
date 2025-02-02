@@ -28,7 +28,7 @@ env:
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   dotnet_test_path: ${{ github.workspace }}/build/bindings/CSharp/test_results
   python_version_build: 3.11
-  python_versions: 3.13
+  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
@@ -605,7 +605,7 @@ jobs:
               . venv/bin/activate
               pip install numpy pybind11-stubgen
               python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
-              cp -f pip/packages/opendaq*.whl wheels
+              cp -f pip/packages/opendaq*.whl ../wheels
               deactivate
               rm -rf venv
               last_version=$version
@@ -634,7 +634,7 @@ jobs:
               . venv/bin/activate
               pip install numpy pybind11-stubgen
               python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
-              cp -f pip/packages/opendaq*.whl wheels
+              cp -f pip/packages/opendaq*.whl ../wheels
               deactivate
               rm -rf venv
           done

@@ -93,8 +93,6 @@ set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "External")
 
 if(APPLE)
     set(LIB_LOAD_ORIGIN @loader_path)
-    set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "Build architectures for macOS")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15"  CACHE STRING "Minimum deployment target for macOS")
 else()
     set(LIB_LOAD_ORIGIN $ORIGIN)
 endif()
@@ -236,11 +234,11 @@ string(TIMESTAMP CURRENT_YEAR "%Y")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if (UNIX AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^arm.*$")  #e.g. armv7l
+if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm.*$")  #e.g. armv7l
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 
-if (UNIX AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^aarch.*$")  #e.g. aarch64
+if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch.*$")  #e.g. aarch64
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 

@@ -35,515 +35,515 @@ env:
   nuget_artifact: Packages (openDAQ.Net NuGet)
 
 jobs:
-  # build_windows:
-  #   runs-on: ${{ matrix.runner }}
-  #   name: ${{ matrix.name }}
-  #   # ${{ }} expression syntax because of leading '!'
-  #   if: ${{ ! github.event.pull_request.draft }}
+  build_windows:
+    runs-on: ${{ matrix.runner }}
+    name: ${{ matrix.name }}
+    # ${{ }} expression syntax because of leading '!'
+    if: ${{ ! github.event.pull_request.draft }}
 
-  #   concurrency:
-  #     group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
-  #     cancel-in-progress: true
-  #   timeout-minutes: 180
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
-  #       include:
-  #         - name: Windows VS 2019 x64 Release
-  #           runner: windows-2019
-  #           cmake_generator: "Visual Studio 16 2019"
-  #           cmake_generator_platform: x64
-  #           cmake_build_type: Release
-  #           cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
-  #           cpack: NSIS
-  #         - name: Windows VS 2022 x64 Release
-  #           runner: windows-2022
-  #           cmake_generator: "Visual Studio 17 2022"
-  #           cmake_generator_platform: x64
-  #           cmake_build_type: Release
-  #           cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-  #           cpack: NSIS
-  #         - name: Windows VS 2022 x64 Debug
-  #           runner: windows-2022
-  #           cmake_generator: "Visual Studio 17 2022"
-  #           cmake_generator_platform: x64
-  #           cmake_build_type: Debug
-  #           cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-  #           cpack: NSIS
-  #         - name: Windows VS 2022 Win32 Release
-  #           runner: windows-2022
-  #           cmake_generator: "Visual Studio 17 2022"
-  #           cmake_generator_platform: Win32
-  #           cmake_build_type: Release
-  #           cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-  #           cpack: NSIS
-  #         - name: Windows Clang Release
-  #           runner: windows-2022
-  #           cmake_generator: Ninja
-  #           cmake_build_type: Release
-  #           cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
-  #           cpack: NSIS
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+        include:
+          - name: Windows VS 2019 x64 Release
+            runner: windows-2019
+            cmake_generator: "Visual Studio 16 2019"
+            cmake_generator_platform: x64
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            cpack: NSIS
+          - name: Windows VS 2022 x64 Release
+            runner: windows-2022
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator_platform: x64
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cpack: NSIS
+          - name: Windows VS 2022 x64 Debug
+            runner: windows-2022
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator_platform: x64
+            cmake_build_type: Debug
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cpack: NSIS
+          - name: Windows VS 2022 Win32 Release
+            runner: windows-2022
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator_platform: Win32
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cpack: NSIS
+          - name: Windows Clang Release
+            runner: windows-2022
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            cpack: NSIS
 
-  #   outputs:
-  #     # trick for reusable workflow in build_nuget because cannot use env context in "with:"
-  #     test_path: ${{ env.test_path }}
-  #     windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
-  #     short_sha: ${{ env.short_sha }}
+    outputs:
+      # trick for reusable workflow in build_nuget because cannot use env context in "with:"
+      test_path: ${{ env.test_path }}
+      windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
+      short_sha: ${{ env.short_sha }}
 
-  #   env:
-  #     short_sha: 'ci'  # for .NET Bindings build
+    env:
+      short_sha: 'ci'  # for .NET Bindings build
 
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Set up Python 3.13
-  #       uses: actions/setup-python@v5
-  #       id: cp313
-  #       with:
-  #         python-version: "3.13"
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
 
-  #     - name: Install ninja-build
-  #       if: matrix.cmake_generator == 'Ninja'
-  #       uses: seanmiddleditch/gha-setup-ninja@v5
+      - name: Install ninja-build
+        if: matrix.cmake_generator == 'Ninja'
+        uses: seanmiddleditch/gha-setup-ninja@v5
 
-  #     # https://github.com/actions/runner-images/issues/10001
-  #     - name: Setup MSVC toolchain
-  #       uses: ilammy/msvc-dev-cmd@v1
+      # https://github.com/actions/runner-images/issues/10001
+      - name: Setup MSVC toolchain
+        uses: ilammy/msvc-dev-cmd@v1
 
-  #     - name: Remove outdated clang
-  #       shell: pwsh
-  #       run: mv 'C:\Program Files\LLVM' 'C:\Program Files\LLVM_old'
+      - name: Remove outdated clang
+        shell: pwsh
+        run: mv 'C:\Program Files\LLVM' 'C:\Program Files\LLVM_old'
 
-  #     - name: Install Python dependencies
-  #       shell: pwsh
-  #       run: |
-  #         foreach($version in "${{ env.python_versions }}".split(" ")) {
-  #           Write-Output "Installing numpy for Python $version"
-  #           Invoke-Expression "py -$version -m pip install numpy"
-  #         }
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          foreach($version in "${{ env.python_versions }}".split(" ")) {
+            Write-Output "Installing numpy for Python $version"
+            Invoke-Expression "py -$version -m pip install numpy"
+          }
 
-  #     - name: Configure
-  #       shell: pwsh
-  #       run: |
-  #         mkdir build
-  #         cd build
-  #         if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
-  #         {
-  #           cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} ${{ matrix.cmake_defines }} ..
-  #         }
-  #         else
-  #         {
-  #           cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} ${{ matrix.cmake_defines }} ..
-  #         }
+      - name: Configure
+        shell: pwsh
+        run: |
+          mkdir build
+          cd build
+          if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
+          {
+            cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} ${{ matrix.cmake_defines }} ..
+          }
+          else
+          {
+            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} ${{ matrix.cmake_defines }} ..
+          }
 
-  #     - name: Build
-  #       shell: pwsh
-  #       working-directory: ./build
-  #       env:
-  #         dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-  #       run: |
-  #         # for .NET Bindings build
-  #         $env:SHORT_SHA = "${{ env.short_sha }}"
-  #         cmake --build . --config ${{ matrix.cmake_build_type }}
+      - name: Build
+        shell: pwsh
+        working-directory: ./build
+        env:
+          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
+        run: |
+          # for .NET Bindings build
+          $env:SHORT_SHA = "${{ env.short_sha }}"
+          cmake --build . --config ${{ matrix.cmake_build_type }}
 
-  #     - name: Test
-  #       shell: pwsh
-  #       env:
-  #         GTEST_OUTPUT: "xml:${{ env.test_path }}"
-  #       run: |
-  #         ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
-  #         if (Test-Path -Path "${{ env.dotnet_test_path }}") {
-  #           if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
-  #           Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"
-  #         } else {
-  #           Write-Output "*** '${{ env.dotnet_test_path }}' not found, no .NET Bindings tests to copy"
-  #         }
+      - name: Test
+        shell: pwsh
+        env:
+          GTEST_OUTPUT: "xml:${{ env.test_path }}"
+        run: |
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          if (Test-Path -Path "${{ env.dotnet_test_path }}") {
+            if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
+            Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"
+          } else {
+            Write-Output "*** '${{ env.dotnet_test_path }}' not found, no .NET Bindings tests to copy"
+          }
 
-  #     - name: Upload test results
-  #       if: always()
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: Unit Test Results (${{ matrix.name }})
-  #         path: ${{ env.test_path }}
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unit Test Results (${{ matrix.name }})
+          path: ${{ env.test_path }}
 
-  #     - name: Package
-  #       if: matrix.cpack != ''
-  #       working-directory: ./build
-  #       run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+      - name: Package
+        if: matrix.cpack != ''
+        working-directory: ./build
+        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
-  #     - name: Upload package
-  #       if: matrix.cpack != ''
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: Packages (${{ matrix.name }})
-  #         path: ${{ env.package_path }}
-  #         retention-days: 7
+      - name: Upload package
+        if: matrix.cpack != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: Packages (${{ matrix.name }})
+          path: ${{ env.package_path }}
+          retention-days: 7
 
-  #     - name: Upload binaries for .NET Bindings NuGet package
-  #       # "There can be only one for now."
-  #       if: matrix.name == 'Windows VS 2022 x64 Release'
-  #       env:
-  #         dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: ${{ env.windows_x64_artifact }}
-  #         path: |
-  #           ${{ env.dotnetBuildPath }}
-  #           !${{ env.dotnetBuildPath }}/**/*.json
-  #           !${{ env.dotnetBuildPath }}/**/*.exe
-  #         #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-  #         retention-days: 1
+      - name: Upload binaries for .NET Bindings NuGet package
+        # "There can be only one for now."
+        if: matrix.name == 'Windows VS 2022 x64 Release'
+        env:
+          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.windows_x64_artifact }}
+          path: |
+            ${{ env.dotnetBuildPath }}
+            !${{ env.dotnetBuildPath }}/**/*.json
+            !${{ env.dotnetBuildPath }}/**/*.exe
+          #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+          retention-days: 1
 
-  # build_linux:
-  #   runs-on: ubuntu-latest
-  #   name: ${{ matrix.name }}
-  #   # ${{ }} expression syntax because of leading '!'
-  #   if: ${{ ! github.event.pull_request.draft }}
+  build_linux:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+    # ${{ }} expression syntax because of leading '!'
+    if: ${{ ! github.event.pull_request.draft }}
 
-  #   concurrency:
-  #     group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
-  #     cancel-in-progress: true
-  #   timeout-minutes: 180
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       include:
-  #         - name: Ubuntu 22.04 gcc-12 Release
-  #           image: ubuntu:22.04
-  #           cmake_generator: Ninja
-  #           cmake_build_type: Release
-  #           cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON
-  #           apt_packages: g++-12
-  #           cc: gcc-12
-  #           cxx: g++-12
-  #           cpack: DEB
-  #         # - name: Ubuntu 22.04 gcc-12 Debug
-  #         #   image: ubuntu:22.04
-  #         #   cmake_generator: Ninja
-  #         #   cmake_build_type: Debug
-  #         #   apt_packages: g++-12
-  #         #   cc: gcc-12
-  #         #   cxx: g++-12
-  #         #   cpack: DEB
-  #         - name: Ubuntu 20.04 gcc-7 Release
-  #           image: ubuntu:20.04
-  #           cmake_generator: Ninja
-  #           cmake_build_type: Release
-  #           cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-  #           apt_packages: g++-7
-  #           cc: gcc-7
-  #           cxx: g++-7
-  #         - name: Ubuntu 22.04 clang-14 Release
-  #           image: ubuntu:22.04
-  #           cmake_generator: Ninja
-  #           cmake_build_type: Release
-  #           apt_packages: clang++-14
-  #           cc: clang-14
-  #           cxx: clang++-14
-  #         # - name: Ubuntu 22.04 clang-14 libc++ Release
-  #           # image: ubuntu:22.04
-  #           # cmake_generator: Ninja
-  #           # cmake_build_type: Release
-  #           # cmake_defines: -DCMAKE_CXX_FLAGS=-stdlib=libc++
-  #           # apt_packages: clang++-14 libc++-14-dev libc++abi-14-dev
-  #           # cc: clang-14
-  #           # cxx: clang++-14
-  #           # cpack: ZIP
-  #         - name: Ubuntu 22.04 preinstalled packages
-  #           image: ubuntu:22.04
-  #           cmake_generator: Ninja
-  #           cmake_build_type: Release
-  #           apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev
-  #           cc: gcc
-  #           cxx: g++
-  #           cpack: DEB
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu 22.04 gcc-12 Release
+            image: ubuntu:22.04
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON
+            apt_packages: g++-12
+            cc: gcc-12
+            cxx: g++-12
+            cpack: DEB
+          # - name: Ubuntu 22.04 gcc-12 Debug
+          #   image: ubuntu:22.04
+          #   cmake_generator: Ninja
+          #   cmake_build_type: Debug
+          #   apt_packages: g++-12
+          #   cc: gcc-12
+          #   cxx: g++-12
+          #   cpack: DEB
+          - name: Ubuntu 20.04 gcc-7 Release
+            image: ubuntu:20.04
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+            apt_packages: g++-7
+            cc: gcc-7
+            cxx: g++-7
+          - name: Ubuntu 22.04 clang-14 Release
+            image: ubuntu:22.04
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            apt_packages: clang++-14
+            cc: clang-14
+            cxx: clang++-14
+          # - name: Ubuntu 22.04 clang-14 libc++ Release
+            # image: ubuntu:22.04
+            # cmake_generator: Ninja
+            # cmake_build_type: Release
+            # cmake_defines: -DCMAKE_CXX_FLAGS=-stdlib=libc++
+            # apt_packages: clang++-14 libc++-14-dev libc++abi-14-dev
+            # cc: clang-14
+            # cxx: clang++-14
+            # cpack: ZIP
+          - name: Ubuntu 22.04 preinstalled packages
+            image: ubuntu:22.04
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev
+            cc: gcc
+            cxx: g++
+            cpack: DEB
 
-  #   container:
-  #     image: ${{ matrix.image }}
-  #     env:
-  #       TZ: Europe/Berlin
-  #       DEBIAN_FRONTEND: noninteractive
-  #       CC: ${{ matrix.cc }}
-  #       CXX: ${{ matrix.cxx }}
+    container:
+      image: ${{ matrix.image }}
+      env:
+        TZ: Europe/Berlin
+        DEBIAN_FRONTEND: noninteractive
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
 
-  #   outputs:
-  #     # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
-  #       test_path: ${{ env.test_path }}
-  #       linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
+    outputs:
+      # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
+        test_path: ${{ env.test_path }}
+        linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
-  #   steps:
-  #     - name: Install basic dependencies
-  #       run: |
-  #         apt-get update
-  #         apt-get install -y git openssh-client
+    steps:
+      - name: Install basic dependencies
+        run: |
+          apt-get update
+          apt-get install -y git openssh-client
 
-  #     - name: Disable git safe directory checks
-  #       run : git config --global --add safe.directory '*'
+      - name: Disable git safe directory checks
+        run : git config --global --add safe.directory '*'
 
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Install additional dependencies
-  #       run: |
-  #         apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
-  #           awscli unzip \
-  #           lld ninja-build curl \
-  #           python3-dev python3-numpy python3-distutils python3-pip \
-  #           mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-  #           libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+      - name: Install additional dependencies
+        run: |
+          apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
+            awscli unzip \
+            lld ninja-build curl \
+            python3-dev python3-numpy python3-distutils python3-pip \
+            mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
+            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 
-  #     - name: Install latest CMake
-  #       run: pip install cmake
+      - name: Install latest CMake
+        run: pip install cmake
 
-  #     - name: Configure
-  #       run: |
-  #         mkdir build
-  #         cd build
-  #         cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
+      - name: Configure
+        run: |
+          mkdir build
+          cd build
+          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
-  #     - name: Build
-  #       working-directory: ./build
-  #       run: cmake --build .
+      - name: Build
+        working-directory: ./build
+        run: cmake --build .
 
-  #     - name: Test
-  #       env:
-  #         GTEST_OUTPUT: "xml:/junit_reports/unit/"
-  #       run: ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
+      - name: Test
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/unit/"
+        run: ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
 
-  #     - name: Upload test results
-  #       if: always()
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: Unit Test Results (${{ matrix.name }})
-  #         path: /junit_reports/unit
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unit Test Results (${{ matrix.name }})
+          path: /junit_reports/unit
 
-  #     - name: Package
-  #       if: matrix.cpack != ''
-  #       working-directory: ./build
-  #       run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+      - name: Package
+        if: matrix.cpack != ''
+        working-directory: ./build
+        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
-  #     - name: Upload package
-  #       if: matrix.cpack != ''
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: Packages (${{ matrix.name }})
-  #         path: ${{ env.package_path }}
-  #         retention-days: 7
+      - name: Upload package
+        if: matrix.cpack != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: Packages (${{ matrix.name }})
+          path: ${{ env.package_path }}
+          retention-days: 7
 
-  #     - name: Upload binaries for .NET Bindings NuGet package
-  #       # "There can be only one."
-  #       if: matrix.name == 'Ubuntu 22.04 gcc-12 Release'
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: ${{ env.linux_x64_artifact }}
-  #         path: |
-  #           ${{ env.build_path }}/bin/*.so
-  #           !${{ env.build_path }}/**/opendaq.cpython*
-  #           !${{ env.build_path }}/**/*_test_dll.so
-  #         # the exclusion filter does not work and the online-help does not explain
-  #         # most probably a pattern *xxx.yy does not work, only x*
-  #         #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-  #         retention-days: 1
+      - name: Upload binaries for .NET Bindings NuGet package
+        # "There can be only one."
+        if: matrix.name == 'Ubuntu 22.04 gcc-12 Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.linux_x64_artifact }}
+          path: |
+            ${{ env.build_path }}/bin/*.so
+            !${{ env.build_path }}/**/opendaq.cpython*
+            !${{ env.build_path }}/**/*_test_dll.so
+          # the exclusion filter does not work and the online-help does not explain
+          # most probably a pattern *xxx.yy does not work, only x*
+          #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+          retention-days: 1
 
-  #     # PROTOCOL REGRESSION TEST BEGIN
+      # PROTOCOL REGRESSION TEST BEGIN
 
-  #     - name: Check AWS secret availability
-  #       id: check-aws
-  #       env:
-  #         AWS_REG: ${{ secrets.AWS_REGION }}
-  #       run: echo "aws_available=${{ env.AWS_REG != '' }}" >> $GITHUB_OUTPUT
+      - name: Check AWS secret availability
+        id: check-aws
+        env:
+          AWS_REG: ${{ secrets.AWS_REGION }}
+        run: echo "aws_available=${{ env.AWS_REG != '' }}" >> $GITHUB_OUTPUT
 
-  #     - uses: aws-actions/configure-aws-credentials@v4
-  #       if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ secrets.AWS_REGION }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-  #     - name: Download regression simulator binaries .zip from S3 bucket
-  #       if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
+      - name: Download regression simulator binaries .zip from S3 bucket
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
 
-  #     - name: Unzip regression simulator binaries
-  #       if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       run: unzip "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
+      - name: Unzip regression simulator binaries
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        run: unzip "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
 
-  #     - name: Add execute permissions to regression simulator
-  #       if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
+      - name: Add execute permissions to regression simulator
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
 
-  #     - name: Create and give execute permissions to regression test runner script
-  #       if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       run: |
-  #         cat > regression_test_run.sh << EOL
-          
-  #         # Change directory because we expect the libraries to be in the folder we are running simulator from
-  #         cd ${{ env.regression_simulator_folder }}
-          
-  #         # Run simulator and wait for it to to be ready
-  #         ./regression_simulator &
-  #         while [ ! -f ready ]; do sleep 1; done
-          
-  #         # Change directory back
-  #         cd ..
-          
-  #         # Set trap that will catch failed (8) and successful (0) test and kill simulator gracefully, then exit with trapped code
-  #         trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
-          
-  #         # Perform tests
-  #         ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
-          
-  #         EOL
-          
-  #         # Make runner script executable
-  #         chmod +x regression_test_run.sh
+      - name: Create and give execute permissions to regression test runner script
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        run: |
+          cat > regression_test_run.sh << EOL
 
-  #     - name: Protocol regression test - OPC UA
-  #       if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       env:
-  #         GTEST_OUTPUT: "xml:/junit_reports/regression/opcua/"
-  #         protocol: opcua
-  #       run: ./regression_test_run.sh
+          # Change directory because we expect the libraries to be in the folder we are running simulator from
+          cd ${{ env.regression_simulator_folder }}
 
-  #     - name: Protocol regression test - ND
-  #       if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       env:
-  #         GTEST_OUTPUT: "xml:/junit_reports/regression/nd/"
-  #         protocol: nd
-  #       run: ./regression_test_run.sh
+          # Run simulator and wait for it to to be ready
+          ./regression_simulator &
+          while [ ! -f ready ]; do sleep 1; done
 
-  #     - name: Protocol regression test - NS
-  #       if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       env:
-  #         GTEST_OUTPUT: "xml:/junit_reports/regression/ns/"
-  #         protocol: ns
-  #       run: ./regression_test_run.sh
+          # Change directory back
+          cd ..
 
-  #     - name: Protocol regression test - LT
-  #       if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       env:
-  #         GTEST_OUTPUT: "xml:/junit_reports/regression/lt/"
-  #         protocol: lt
-  #       run: ./regression_test_run.sh
+          # Set trap that will catch failed (8) and successful (0) test and kill simulator gracefully, then exit with trapped code
+          trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
 
-  #     - name: Upload regression test results
-  #       if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: Regression Test Results (${{ matrix.name }})
-  #         path: /junit_reports/regression
+          # Perform tests
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+
+          EOL
+
+          # Make runner script executable
+          chmod +x regression_test_run.sh
+
+      - name: Protocol regression test - OPC UA
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/regression/opcua/"
+          protocol: opcua
+        run: ./regression_test_run.sh
+
+      - name: Protocol regression test - ND
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/regression/nd/"
+          protocol: nd
+        run: ./regression_test_run.sh
+
+      - name: Protocol regression test - NS
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/regression/ns/"
+          protocol: ns
+        run: ./regression_test_run.sh
+
+      - name: Protocol regression test - LT
+        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/regression/lt/"
+          protocol: lt
+        run: ./regression_test_run.sh
+
+      - name: Upload regression test results
+        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Regression Test Results (${{ matrix.name }})
+          path: /junit_reports/regression
 
       # PROTOCOL REGRESSION TEST END
 
-  # build_linux_manylinux:
-  #   runs-on: ubuntu-latest
-  #   name: ${{ matrix.name }}
-  #   # ${{ }} expression syntax because of leading '!'
-  #   if: ${{ ! github.event.pull_request.draft }}
+  build_linux_manylinux:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+    # ${{ }} expression syntax because of leading '!'
+    if: ${{ ! github.event.pull_request.draft }}
 
-  #   concurrency:
-  #     group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
-  #     cancel-in-progress: true
-  #   timeout-minutes: 180
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       include:
-  #         - name: manylinux_2_28 gcc Release
-  #           image: quay.io/pypa/manylinux_2_28_x86_64
-  #           cmake_generator: Ninja
-  #           cmake_build_type: Release
-  #           additional_packages:
-  #           cc: gcc
-  #           cxx: g++
-  #           cpack: ZIP
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: manylinux_2_28 gcc Release
+            image: quay.io/pypa/manylinux_2_28_x86_64
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            additional_packages:
+            cc: gcc
+            cxx: g++
+            cpack: ZIP
 
-  #   container:
-  #     image: ${{ matrix.image }}
-  #     env:
-  #       TZ: Europe/Berlin
-  #       CC: ${{ matrix.cc }}
-  #       CXX: ${{ matrix.cxx }}
+    container:
+      image: ${{ matrix.image }}
+      env:
+        TZ: Europe/Berlin
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
 
-  #   steps:
-  #     - name: Install basic dependencies
-  #       run: |
-  #         yum update -y
-  #         yum install -y git
+    steps:
+      - name: Install basic dependencies
+        run: |
+          yum update -y
+          yum install -y git
 
-  #     - name: Disable git safe directory checks
-  #       run : git config --global --add safe.directory '*'
+      - name: Disable git safe directory checks
+        run : git config --global --add safe.directory '*'
 
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Install build dependencies
-  #       run: |
-  #         yum install -y ${{ matrix.additional_packages }} \
-  #             ninja-build \
-  #             mono-core \
-  #             freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel
+      - name: Install build dependencies
+        run: |
+          yum install -y ${{ matrix.additional_packages }} \
+              ninja-build \
+              mono-core \
+              freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel
 
-  #     - name: Create build dir
-  #       run: mkdir build
+      - name: Create build dir
+        run: mkdir build
 
-  #     - name: Configure and build python packages
-  #       working-directory: ./build
-  #       run: |
-  #         mkdir wheels
-  #         last_version="3.7"
-  #         for version in ${{ env.python_versions }}; do
-  #             echo "Building for Python $version"
-  #             cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ..
-  #             cmake --build .
-  #             python$version -m venv venv
-  #             . venv/bin/activate
-  #             pip install numpy pybind11-stubgen
-  #             python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r
-  #             cp -f pip/packages/opendaq*.whl wheels
-  #             deactivate
-  #             rm -rf venv
-  #             last_version=$version
-  #         done
-  #         echo "last_version=$last_version" >> "$GITHUB_ENV"
+      - name: Configure and build python packages
+        working-directory: ./build
+        run: |
+          mkdir wheels
+          last_version="3.7"
+          for version in ${{ env.python_versions }}; do
+              echo "Building for Python $version"
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ..
+              cmake --build .
+              python$version -m venv venv
+              . venv/bin/activate
+              pip install numpy pybind11-stubgen
+              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r
+              cp -f pip/packages/opendaq*.whl wheels
+              deactivate
+              rm -rf venv
+              last_version=$version
+          done
+          echo "last_version=$last_version" >> "$GITHUB_ENV"
 
-  #     - name: Test
-  #       env:
-  #         GTEST_OUTPUT: "xml:/junit_reports/unit/"
-  #       run: |
-  #         python$last_version -m venv build/venv
-  #         . build/venv/bin/activate
-  #         pip install build/pip/packages/opendaq*.whl
-  #         ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+      - name: Test
+        env:
+          GTEST_OUTPUT: "xml:/junit_reports/unit/"
+        run: |
+          python$last_version -m venv build/venv
+          . build/venv/bin/activate
+          pip install build/pip/packages/opendaq*.whl
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
 
-  #     - name: Upload test results
-  #       if: always()
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: Unit Test Results (${{ matrix.name }})
-  #         path: /junit_reports/unit
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unit Test Results (${{ matrix.name }})
+          path: /junit_reports/unit
 
-  #     - name: Package
-  #       if: matrix.cpack != ''
-  #       working-directory: ./build
-  #       run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+      - name: Package
+        if: matrix.cpack != ''
+        working-directory: ./build
+        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
-  #     - name: Upload package
-  #       if: matrix.cpack != ''
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: Packages (${{ matrix.name }})
-  #         path: ${{ env.package_path }}
-  #         retention-days: 7
+      - name: Upload package
+        if: matrix.cpack != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: Packages (${{ matrix.name }})
+          path: ${{ env.package_path }}
+          retention-days: 7
 
-  #     - name: Upload PIP packages
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: PIP Package (${{ matrix.name }})
-  #         path: ${{ env.build_path }}/wheels/opendaq*.whl
-  #         retention-days: 7
+      - name: Upload PIP packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIP Package (${{ matrix.name }})
+          path: ${{ env.build_path }}/wheels/opendaq*.whl
+          retention-days: 7
 
   build_macos:
     name: ${{ matrix.name }}
@@ -554,7 +554,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 180
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
@@ -650,88 +650,88 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PIP Package (${{ matrix.name }})
-          path: ${{ env.build_path }}/wheels/opendaq*.whl
+          path: ./wheels/opendaq*.whl
           retention-days: 7
 
-  # build_windows_pip:
-  #   runs-on: ${{ matrix.runner }}
-  #   name: ${{ matrix.name }}
-  #   # ${{ }} expression syntax because of leading '!'
-  #   if: ${{ ! github.event.pull_request.draft }}
+  build_windows_pip:
+    runs-on: ${{ matrix.runner }}
+    name: ${{ matrix.name }}
+    # ${{ }} expression syntax because of leading '!'
+    if: ${{ ! github.event.pull_request.draft }}
 
-  #   concurrency:
-  #     group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
-  #     cancel-in-progress: true
-  #   timeout-minutes: 180
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
-  #       include:
-  #         - name: Windows VS 2022 x64 Release PIP
-  #           runner: windows-2022
-  #           cmake_generator: "Visual Studio 17 2022"
-  #           cmake_generator_platform: x64
-  #           cmake_build_type: Release
-  #           cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
-  #           cpack: NSIS
-  #           cmake_preset: package
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+        include:
+          - name: Windows VS 2022 x64 Release PIP
+            runner: windows-2022
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator_platform: x64
+            cmake_build_type: Release
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            cpack: NSIS
+            cmake_preset: package
 
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Set up Python 3.13
-  #       uses: actions/setup-python@v5
-  #       id: cp313
-  #       with:
-  #         python-version: "3.13"
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        id: cp313
+        with:
+          python-version: "3.13"
 
-  #     - name: Install ninja-build
-  #       if: matrix.cmake_generator == 'Ninja'
-  #       uses: seanmiddleditch/gha-setup-ninja@v5
-  #       with:
-  #         version: 1.10.2
+      - name: Install ninja-build
+        if: matrix.cmake_generator == 'Ninja'
+        uses: seanmiddleditch/gha-setup-ninja@v5
+        with:
+          version: 1.10.2
 
-  #     - name: Create build dir
-  #       run: New-Item build -ItemType Directory
+      - name: Create build dir
+        run: New-Item build -ItemType Directory
 
-  #     - name: Configure, build and test Python packages
-  #       working-directory: ./build
-  #       run: |
-  #         New-Item wheels -ItemType Directory
-  #         foreach ($version in "${{ env.python_versions }}".split(" ")) {
-  #           Write-Output "Building for Python $version"
-  #           if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
-  #           {
-  #             cmake -G "${{ matrix.cmake_generator }}" --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
-  #           }
-  #           else
-  #           {
-  #             cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }}  -DCI_GIT_BRANCH=${{ github.head_ref }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
-  #           }
-  #           cmake --build . --config ${{ matrix.cmake_build_type }}
-  #           Write-Output "Creating virtual environment for Python $version"
-  #           Invoke-Expression "py -$version -m venv venv"
-  #           ./venv/Scripts/activate
-  #           pip install numpy pybind11-stubgen
-  #           py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} -r
-  #           foreach ($file in Get-ChildItem -Filter *.whl -Path pip/packages) {
-  #             Write-Output "Installing $file"
-  #             pip install $file
-  #           }
-  #           cmake --build . --config ${{ matrix.cmake_build_type }} -t test_py_opendaq
-  #           Copy-Item pip/packages/*.whl wheels
-  #           deactivate
-  #           Remove-Item venv -Recurse
-  #         }
+      - name: Configure, build and test Python packages
+        working-directory: ./build
+        run: |
+          New-Item wheels -ItemType Directory
+          foreach ($version in "${{ env.python_versions }}".split(" ")) {
+            Write-Output "Building for Python $version"
+            if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
+            {
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
+            }
+            else
+            {
+              cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }}  -DCI_GIT_BRANCH=${{ github.head_ref }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
+            }
+            cmake --build . --config ${{ matrix.cmake_build_type }}
+            Write-Output "Creating virtual environment for Python $version"
+            Invoke-Expression "py -$version -m venv venv"
+            ./venv/Scripts/activate
+            pip install numpy pybind11-stubgen
+            py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} -r
+            foreach ($file in Get-ChildItem -Filter *.whl -Path pip/packages) {
+              Write-Output "Installing $file"
+              pip install $file
+            }
+            cmake --build . --config ${{ matrix.cmake_build_type }} -t test_py_opendaq
+            Copy-Item pip/packages/*.whl wheels
+            deactivate
+            Remove-Item venv -Recurse
+          }
 
-  #     - name: Upload PIP packages
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: PIP Package (${{ matrix.name }})
-  #         path: ${{ env.build_path }}/wheels/*.whl
-  #         retention-days: 7
+      - name: Upload PIP packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIP Package (${{ matrix.name }})
+          path: ${{ env.build_path }}/wheels/*.whl
+          retention-days: 7
 
   # build_android:
   #   runs-on: ubuntu-latest-8-cores
@@ -801,21 +801,21 @@ jobs:
   #       run: cmake --build .
 
   # using reusable workflow
-  # dotnet_bindings:
-  #     name: .NET Bindings
+  dotnet_bindings:
+      name: .NET Bindings
 
-  #     # needs: [build_windows,build_linux,build_macos]
-  #     needs: [build_windows,build_linux]
+      # needs: [build_windows,build_linux,build_macos]
+      needs: [build_windows,build_linux]
 
-  #     # ${{ }} expression syntax because of leading '!'
-  #     if: ${{ ! github.event.pull_request.draft }}
+      # ${{ }} expression syntax because of leading '!'
+      if: ${{ ! github.event.pull_request.draft }}
 
-  #     uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
-  #     with:
-  #       # cannot use env context here, so use needs.<job>.outputs.<variable> trick
-  #       windows_test_path: ${{ needs.build_windows.outputs.test_path }}
-  #       linux_test_path: ${{ needs.build_linux.outputs.test_path }}
-  #       windows_x64_artifact_name:  ${{ needs.build_windows.outputs.windows_x64_artifact_name }}
-  #       linux_x64_artifact_name:  ${{ needs.build_linux.outputs.linux_x64_artifact_name }}
-  #       short_sha: ${{ needs.build_windows.outputs.short_sha }}
-  #     # -> output.nuget_artifact_name
+      uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
+      with:
+        # cannot use env context here, so use needs.<job>.outputs.<variable> trick
+        windows_test_path: ${{ needs.build_windows.outputs.test_path }}
+        linux_test_path: ${{ needs.build_linux.outputs.test_path }}
+        windows_x64_artifact_name:  ${{ needs.build_windows.outputs.windows_x64_artifact_name }}
+        linux_x64_artifact_name:  ${{ needs.build_linux.outputs.linux_x64_artifact_name }}
+        short_sha: ${{ needs.build_windows.outputs.short_sha }}
+      # -> output.nuget_artifact_name

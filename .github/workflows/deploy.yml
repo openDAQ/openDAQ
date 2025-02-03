@@ -17,6 +17,7 @@ env:
   s3sdk_path: releases/${{ github.ref_name }}/SDK
   s3wheels_linux_x86_64_path: releases/${{ github.ref_name }}/Python Wheels (Linux x86_64)
   s3wheels_win_amd64_path: releases/${{ github.ref_name }}/Python Wheels (Windows amd64)
+  s3wheels_macos_path: releases/${{ github.ref_name }}/Python Wheels (MacOS)
   s3dotnet_path: releases/${{ github.ref_name }}/dotNET Bindings
   s3docpath: releases/${{ github.ref_name }}/Specifications and documentation
   s3simulatorpath: releases/${{ github.ref_name }}/Simulator
@@ -503,6 +504,114 @@ jobs:
         with:
           name: Wheels (${{ matrix.name }})
           path: ${{ env.wheels_path }}
+          retention-days: 7
+
+  deploy_macos_wheels:
+    name: ${{ matrix.name }}
+    runs-on: macos-13
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-13 clang Release
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            cmake_osx_deployment_target: 10.15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ninja-build
+        uses: seanmiddleditch/gha-setup-ninja@v5
+        with:
+          version: 1.10.2
+
+      - name: Set up Pythons
+        uses: actions/setup-python@v5
+        with:
+          python-version: |
+              3.8
+              3.9
+              3.10
+              3.11
+              3.12
+              3.13
+
+      - name: Make dirs
+        run: |
+          mkdir -p build
+          mkdir wheels
+
+      - name: Build wheels x86_64
+        working-directory: ./build
+        run: |
+          for version in ${{ env.python_versions }}; do
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake --build .
+              python$version -m venv venv
+              . venv/bin/activate
+              pip install numpy pybind11-stubgen
+              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
+              cp -f pip/packages/opendaq*.whl ../wheels
+              deactivate
+              rm -rf venv
+          done
+
+      - name: Clear build dir
+        run: rm -rf build/*
+
+      - name: Build wheels arm64
+        working-directory: ./build
+        run: |
+          for version in ${{ env.python_versions }}; do
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake --build .
+              python$version -m venv venv
+              . venv/bin/activate
+              pip install numpy pybind11-stubgen
+              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
+              cp -f pip/packages/opendaq*.whl ../wheels
+              deactivate
+              rm -rf venv
+          done
+
+      - name: Get short SHA
+        if: github.ref == 'refs/heads/main'
+        id: short-sha
+        uses: benjlevesque/short-sha@v3.0
+
+      - name: Rename Wheels (main)
+        working-directory: ./wheels
+        if: github.ref == 'refs/heads/main'
+        run: |
+          for filename in *.whl; do
+            new_filename=$(echo "$filename" | sed "s/-cp/+${{ steps.short-sha.outputs.sha }}-cp/")
+            mv "$filename" "$new_filename"
+          done
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload Wheels to S3
+        working-directory: ./wheels
+        run: |
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_path }}" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_path }}" --recursive
+
+      - name: Upload Wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wheels (${{ matrix.name }})
+          path: wheels
           retention-days: 7
 
   simulator-build:

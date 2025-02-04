@@ -86,41 +86,62 @@ void NativeStreamingImpl::signalUnavailableHandler(const StringPtr& signalString
     }
 }
 
-void NativeStreamingImpl::updateConnectionStatus(const EnumerationPtr& status)
+void NativeStreamingImpl::updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
     if (onDeviceConnectionStatusChangedCb)
     {
-        onDeviceConnectionStatusChangedCb(status);
+        onDeviceConnectionStatusChangedCb(status, statusMessage);
     }
 
-    Super::updateConnectionStatus(status);
+    Super::updateConnectionStatus(status, statusMessage);
 }
 
-void NativeStreamingImpl::processConnectionStatus(const EnumerationPtr& status)
+void NativeStreamingImpl::processTransportConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
     if (status == "Connected")
     {
-        this->transportClientHandler->sendStreamingRequest();
-        protocolInitPromise = std::promise<void>();
-        protocolInitFuture = protocolInitPromise.get_future();
-        protocolInitTimer->expires_from_now(streamingInitTimeout);
-        protocolInitTimer->async_wait(
-            [this](const boost::system::error_code& ec)
-            {
-                if (ec)
-                    return;
-
-                if (protocolInitFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-                    updateConnectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()));
-                else
-                    updateConnectionStatus(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()));
-            }
-        );
+        requestStreamingOnReconnection();
     }
     else
     {
-        updateConnectionStatus(status);
+        updateConnectionStatus(status, statusMessage);
     }
+}
+
+void NativeStreamingImpl::requestStreamingOnReconnection()
+{
+    transportClientHandler->sendStreamingRequest();
+
+    protocolInitPromise = std::promise<void>();
+    protocolInitFuture = protocolInitPromise.get_future();
+    WeakRefPtr<IStreaming> thisRef = this->template borrowPtr<StreamingPtr>();
+
+    protocolInitTimer->expires_from_now(streamingInitTimeout);
+    protocolInitTimer->async_wait(
+        [this, thisRef](const boost::system::error_code& ec)
+        {
+            if (ec)
+                return;
+
+            if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+            {
+                dispatch(
+                    *processingIOContextPtr,
+                    [this, thisRef]()
+                    {
+                        if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                        {
+                            if (protocolInitFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+                                updateConnectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()), "");
+                            else
+                                updateConnectionStatus(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()),
+                                                       "Reconnection failed – streaming request timed out");
+                        }
+                    }
+                );
+            };
+        }
+    );
 }
 
 void NativeStreamingImpl::upgradeClientHandlerCallbacks()
@@ -177,15 +198,15 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
             }
         );
     };
-    OnConnectionStatusChangedCallback onConnectionStatusChangedCb =
-        [this, thisRef](const EnumerationPtr& status)
+    OnConnectionStatusChangedCallback onTransportConnectionStatusChangedCb =
+        [this, thisRef](const EnumerationPtr& status, const StringPtr& statusMessage)
     {
         dispatch(
             *processingIOContextPtr,
-            [this, thisRef, status]()
+            [this, thisRef, status, statusMessage]()
             {
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
-                    processConnectionStatus(status);
+                    processTransportConnectionStatus(status, statusMessage);
             }
         );
     };
@@ -206,7 +227,7 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
                                                  signalUnavailableCb,
                                                  onPacketCallback,
                                                  onSignalSubscriptionAckCallback,
-                                                 onConnectionStatusChangedCb,
+                                                 onTransportConnectionStatusChangedCb,
                                                  onStreamingInitDoneCb);
 }
 
@@ -260,13 +281,13 @@ void NativeStreamingImpl::initClientHandlerCallbacks()
         );
     };
     OnConnectionStatusChangedCallback onConnectionStatusChangedCb =
-        [this](const EnumerationPtr& status)
+        [this](const EnumerationPtr& status, const StringPtr& statusMessage)
     {
         dispatch(
             *processingIOContextPtr,
-            [this, status]()
+            [this, status, statusMessage]()
             {
-                processConnectionStatus(status);
+                processTransportConnectionStatus(status, statusMessage);
             }
         );
     };

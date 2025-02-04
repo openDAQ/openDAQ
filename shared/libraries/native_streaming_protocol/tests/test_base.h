@@ -51,6 +51,7 @@ public:
 
     static daq::PropertyObjectPtr createTransportLayerConfig()
     {
+        static size_t clientId = 123456;
         auto config = daq::PropertyObject();
 
         config.addProperty(daq::BoolProperty("MonitoringEnabled", daq::True));
@@ -59,7 +60,7 @@ public:
         config.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
         config.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
         config.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));
-        config.addProperty(daq::StringProperty("ClientId", "123456"));
+        config.addProperty(daq::StringProperty("ClientId", std::to_string(clientId++)));
 
         return config;
     }

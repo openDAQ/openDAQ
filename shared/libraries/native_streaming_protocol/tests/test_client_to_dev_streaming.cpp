@@ -19,7 +19,7 @@ public:
             clientContext, ClientAttributesBase::createTransportLayerConfig(), ClientAttributesBase::createAuthenticationConfig());
 
         clientHandler->setConfigHandlers([](config_protocol::PacketBuffer&&) {},
-                                         [](const EnumerationPtr&) {});
+                                         [](const EnumerationPtr&, const StringPtr&) {});
     }
 
     void tearDown()

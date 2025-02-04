@@ -69,9 +69,9 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
                   });
 
     OnConnectionStatusChangedCallback onConnectionStatusChangedCallback =
-        [this](const EnumerationPtr& status)
+        [this](const EnumerationPtr& status, const StringPtr& statusMessage)
         {
-            connectionStatusChangedHandler(status);
+            connectionStatusChangedHandler(status, statusMessage);
         };
 
     nativeStreaming =
@@ -239,7 +239,7 @@ void NativeStreamingDeviceImpl::signalUnavailableHandler(const StringPtr& signal
     deviceSignals.erase(signalStringId);
 }
 
-void NativeStreamingDeviceImpl::connectionStatusChangedHandler(const EnumerationPtr& status)
+void NativeStreamingDeviceImpl::connectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
     if (status == "Connected")
     {
@@ -261,7 +261,7 @@ void NativeStreamingDeviceImpl::connectionStatusChangedHandler(const Enumeration
     }
     connectionStatus = status;
 
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", connectionStatus);
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage("ConnectionStatus", connectionStatus, statusMessage);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

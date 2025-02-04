@@ -461,9 +461,15 @@ TEST_F(DeviceTest, SerializeAndDeserializeWithConnectionStatuses)
     const auto statusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
 
     auto connectionStatusContainer = dev.getConnectionStatusContainer().asPtr<daq::IConnectionStatusContainerPrivate>();
+    auto mockStreaming1 = daq::MockStreaming("MockStreaming1", context);
+    auto mockStreaming2 = daq::MockStreaming("MockStreaming2", context);
     connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnStr", statusValue);
-    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr1", statusValue, daq::MockStreaming("MockStreaming1", context));
-    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr2", statusValue, daq::MockStreaming("MockStreaming2", context));
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr1", statusValue, mockStreaming1);
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr2", statusValue, mockStreaming2);
+
+    connectionStatusContainer.updateConnectionStatusWithMessage("ConfigConnStr", statusValue, nullptr, "Config connection status message");
+    connectionStatusContainer.updateConnectionStatusWithMessage("StreamingConnStr1", statusValue, mockStreaming1, "Streaming connection 1 status message");
+    connectionStatusContainer.updateConnectionStatusWithMessage("StreamingConnStr2", statusValue, mockStreaming2, "Streaming connection 2 status message");
 
     const auto serializer = daq::JsonSerializer(daq::True);
     dev.serialize(serializer);
@@ -473,17 +479,20 @@ TEST_F(DeviceTest, SerializeAndDeserializeWithConnectionStatuses)
 
     const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "dev");
 
-    const daq::DevicePtr newDev = deserializer.deserialize(str1, deserializeContext, nullptr);
+    const daq::DevicePtr deserializedDev = deserializer.deserialize(str1, deserializeContext, nullptr);
 
     // TODO streaming statuses are not serialized/deserialized
-    // ASSERT_EQ(newDev.getConnectionStatusContainer().getStatuses(), newDev.getConnectionStatusContainer().getStatuses());
+    // ASSERT_EQ(deserializedDev.getConnectionStatusContainer().getStatuses(),
+    //           deserializedDev.getConnectionStatusContainer().getStatuses());
     // test config status only
-    auto newConnectionStatusContainer = newDev.getConnectionStatusContainer();
-    ASSERT_EQ(newConnectionStatusContainer.getStatuses().getCount(), 1u);
-    ASSERT_EQ(newConnectionStatusContainer.getStatus("ConfigurationStatus"),
+    auto deserializedConnectionStatusContainer = deserializedDev.getConnectionStatusContainer();
+    ASSERT_EQ(deserializedConnectionStatusContainer.getStatuses().getCount(), 1u);
+    ASSERT_EQ(deserializedConnectionStatusContainer.getStatus("ConfigurationStatus"),
               dev.getConnectionStatusContainer().getStatus("ConfigurationStatus"));
-    ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_1"));
-    ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_2"));
+    ASSERT_EQ(deserializedConnectionStatusContainer.getStatusMessage("ConfigurationStatus"),
+              "Config connection status message");
+    ASSERT_FALSE(deserializedConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_1"));
+    ASSERT_FALSE(deserializedConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_2"));
 }
 
 TEST_F(DeviceTest, SerializeAndDeserializeManufacturer)

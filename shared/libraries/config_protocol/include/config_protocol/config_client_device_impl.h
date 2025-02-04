@@ -430,9 +430,13 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::connectionStatusChanged(const C
     const EnumerationPtr value = parameters.get("StatusValue");
     const auto addedStatuses = connectionStatusContainer.getStatuses();
 
+    StringPtr message = String("");
+    if (parameters.hasKey("Message"))
+        message = parameters.get("Message");
+
     // ignores status change if it was not added initially
     if (addedStatuses.hasKey(statusName))
-        connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatus(connectionString, value, nullptr);
+        connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(connectionString, value, nullptr, message);
 }
 
 template <class TDeviceBase>

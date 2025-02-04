@@ -80,7 +80,7 @@ void NativeStreamingClientImpl::resetStreamingHandlers()
     this->signalUnavailableHandler = [](const StringPtr&) {};
     this->packetHandler = [](const StringPtr&, const PacketPtr&) {};
     this->signalSubscriptionAckCallback = [](const StringPtr&, bool) {};
-    this->connectionStatusChangedStreamingCb = [](const EnumerationPtr&) {};
+    this->connectionStatusChangedStreamingCb = [](const EnumerationPtr&, const StringPtr&) {};
     this->streamingInitDoneCb = []() {};
 }
 
@@ -101,7 +101,7 @@ void NativeStreamingClientImpl::setStreamingHandlers(const OnSignalAvailableCall
 
 void NativeStreamingClientImpl::resetConfigHandlers()
 {
-    this->connectionStatusChangedConfigCb = [](const EnumerationPtr&) {};
+    this->connectionStatusChangedConfigCb = [](const EnumerationPtr&, const StringPtr&) {};
     this->configPacketHandler = [](config_protocol::PacketBuffer&&) {};
 }
 
@@ -123,11 +123,12 @@ void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::err
         ConnectionResult result = connectedFuture.get();
         if (result == ConnectionResult::Connected)
         {
-            connectionStatusChanged(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()));
+            connectionStatusChanged(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()), "");
         }
         else if (result == ConnectionResult::ServerUnsupported)
         {
-            connectionStatusChanged(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()));
+            connectionStatusChanged(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()),
+                                    "Reconnection failed – no valid device found at the connection address");
         }
         else
         {
@@ -157,10 +158,10 @@ void NativeStreamingClientImpl::tryReconnect()
     client->connect(connectionTimeout);
 }
 
-void NativeStreamingClientImpl::connectionStatusChanged(const EnumerationPtr& status)
+void NativeStreamingClientImpl::connectionStatusChanged(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
-    connectionStatusChangedStreamingCb(status);
-    connectionStatusChangedConfigCb(status);
+    connectionStatusChangedStreamingCb(status, statusMessage);
+    connectionStatusChangedConfigCb(status, statusMessage);
 }
 
 bool NativeStreamingClientImpl::connect(std::string host,
@@ -256,7 +257,8 @@ void NativeStreamingClientImpl::onSessionError(const std::string& errorMessage, 
     sessionHandler.reset();
     packetStreamingServerPtr.reset();
 
-    connectionStatusChanged(Enumeration("ConnectionStatusType", "Reconnecting", this->context.getTypeManager()));
+    connectionStatusChanged(Enumeration("ConnectionStatusType", "Reconnecting", this->context.getTypeManager()),
+                            "Network connection interrupted or closed by the remote device");
     transportLayerProperties.setPropertyValue("Reconnected", True);
     tryReconnect();
 }

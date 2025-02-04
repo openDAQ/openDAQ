@@ -39,7 +39,7 @@ using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStri
 using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
 using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
 using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
-using OnConnectionStatusChangedCallback = std::function<void(const EnumerationPtr& status)>;
+using OnConnectionStatusChangedCallback = std::function<void(const EnumerationPtr& status, const StringPtr& statusMessage)>;
 
 class NativeStreamingClientHandler;
 using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHandler>;
@@ -92,7 +92,7 @@ protected:
 
     void checkReconnectionResult(const boost::system::error_code& ec);
     void tryReconnect();
-    void connectionStatusChanged(const EnumerationPtr& status);
+    void connectionStatusChanged(const EnumerationPtr& status, const StringPtr& statusMessage);
 
     enum class ConnectionResult
     {

@@ -239,7 +239,8 @@ inline bool CoreEventArgsImpl::validateParameters() const
                    && parameters.hasKey("StatusValue")
                    && parameters.hasKey("ConnectionString")
                    && parameters.hasKey("ProtocolType")
-                   && parameters.hasKey("StreamingObject");
+                   && parameters.hasKey("StreamingObject")
+                   && parameters.hasKey("Message");
         default:
             break;
     }

@@ -205,11 +205,12 @@ private:
                                      std::string& rpcErrorMessage,
                                      discovery_common::TxtProperties& resProps);
 
-    std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort = true);
-    std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort = true);
-    std::string ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort = true);
+    std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort = false);
+    std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort = false);
+    std::string ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort = false);
     MdnsDiscoveredDevice createMdnsDiscoveredDevice(const DeviceData& device);
     bool isValidMdnsDevice(const MdnsDiscoveredDevice& device);
+    std::string getIpv6NetworkInterface(const struct sockaddr_in6* from, size_t addrlen);
 
     std::vector<mdns_query_t> discoveryQueries;
     std::vector<std::string> serviceNames;
@@ -232,6 +233,7 @@ inline MDNSDiscoveryClient::MDNSDiscoveryClient(const ListPtr<IString>& serviceN
     this->serviceNames.reserve(serviceNames.getCount());
     for (const auto & service : serviceNames)
         this->serviceNames.push_back(service.toStdString());
+
     setupDiscoveryQuery();
 
     boost::uuids::random_generator gen;
@@ -255,7 +257,6 @@ inline MDNSDiscoveryClient::~MDNSDiscoveryClient()
 
 inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevices()
 {
-    devicesMap.clear();
     std::vector<MdnsDiscoveredDevice> devices;
 
     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
@@ -272,7 +273,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevice
         catch (...)
         {
             fprintf(stderr, "MDNSDiscoveryClient: sendMdnsQuery failed with an unknown error\n");
-            return devices;
+            break;
         }
     }
 
@@ -280,6 +281,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::getAvailableDevice
     for (const auto& device : devicesMap)
         devices.push_back(createMdnsDiscoveredDevice(device.second));
 
+    devicesMap.clear();
     return devices;
 }
 
@@ -477,7 +479,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets)
     if (!adapterAddress || (ret != NO_ERROR))
     {
         free(adapterAddress);
-        throw std::runtime_error("MDNSDiscoveryClient: Failed to get adapter addresses");
+        throw std::runtime_error("Failed to get adapter addresses");
     }
 
     for (PIP_ADAPTER_ADDRESSES adapter = adapterAddress; adapter; adapter = adapter->Next)
@@ -526,7 +528,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets)
     struct ifaddrs* ifa = 0;
 
     if (getifaddrs(&ifaddr) < 0)
-        throw std::runtime_error("MDNSDiscoveryClient: Failed to get network interfaces");
+        throw std::runtime_error("Failed to get network interfaces");
 
     for (ifa = ifaddr; ifa; ifa = ifa->ifa_next)
     {
@@ -572,29 +574,21 @@ inline void MDNSDiscoveryClient::pruneDevices()
     std::unordered_set<std::string> toPrune;
     for (auto& [addr, data] : devicesMap)
     {
-        if (toPrune.count(addr))
-            continue;
-
-        for (const auto& [addr1, data1] : devicesMap)
+        if (data.SRV.name.empty())
         {
-            if (addr == addr1)
-                continue;
+            toPrune.insert(addr);
+            continue;
+        }
 
-            if (data.SRV.port != data1.SRV.port)
-                continue;
-
-            if (data.AAAA == data1.AAAA && !data.AAAA.empty())
-            {
-                data.A = data.A.empty() ? data1.A : data.A;
-                data.linkLocalInterface = data.linkLocalInterface.empty() ? data1.linkLocalInterface : data.linkLocalInterface;
-                toPrune.insert(addr1);
-            }
-
-            if (data.A == data1.A && !data.A.empty())
-            {
-                data.AAAA = data.AAAA.empty() ? data1.AAAA : data.AAAA;
-                toPrune.insert(addr1);
-            }
+        data.PTR = addr;
+        if (auto it = devicesMap.find(data.SRV.name); it != devicesMap.end())
+        {
+            if (data.linkLocalInterface.empty())
+                data.linkLocalInterface = it->second.linkLocalInterface;
+            data.A = it->second.A;
+            data.AAAA = it->second.AAAA;
+            if (!data.AAAA.empty())
+                data.AAAA = "[" + data.AAAA + data.linkLocalInterface + "]";
         }
     }
 
@@ -625,9 +619,11 @@ inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* 
     if (ret != 0)
         return "";
 
+    std::string hostStr(host);
+
     if (addr->sin6_port != 0 && includePort)
-        return "[" + std::string(host) + "]:" + service;
-	return std::string(host);
+        return "[" + hostStr + "]:" + service;
+    return hostStr;
 }
 
 inline std::string MDNSDiscoveryClient::ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort)
@@ -635,6 +631,14 @@ inline std::string MDNSDiscoveryClient::ipAddressToString(const sockaddr* addr, 
     if (addr->sa_family == AF_INET6)
         return ipv6AddressToString(reinterpret_cast<const sockaddr_in6*>(addr), addrlen, includePort);
     return ipv4AddressToString(reinterpret_cast<const sockaddr_in*>(addr), addrlen, includePort);
+}
+
+inline std::string MDNSDiscoveryClient::getIpv6NetworkInterface(const struct sockaddr_in6* addr, size_t addrlen)
+{
+    char ifname[IF_NAMESIZE] = {0};
+    if (addr->sin6_scope_id && if_indextoname(addr->sin6_scope_id, ifname)) 
+        return "%" + std::string(ifname);
+    return "";
 }
 
 inline MdnsDiscoveredDevice MDNSDiscoveryClient::createMdnsDiscoveredDevice(const DeviceData& data)
@@ -646,12 +650,10 @@ inline MdnsDiscoveredDevice MDNSDiscoveryClient::createMdnsDiscoveredDevice(cons
     device.servicePriority = data.SRV.priority;
     device.serviceWeight = data.SRV.weight;
     device.ipv4Address = data.A;
-    device.ipv6Address = data.AAAA + data.linkLocalInterface;
-    if (!device.ipv6Address.empty())
-        device.ipv6Address = "[" + device.ipv6Address + "]";
+    device.ipv6Address = data.AAAA;
 
     for (const auto& prop : data.TXT)
-        device.properties.insert({prop.first, prop.second});
+        device.properties.insert(prop);
 
     return device;
 }
@@ -660,8 +662,6 @@ inline bool MDNSDiscoveryClient::isValidMdnsDevice(const MdnsDiscoveredDevice& d
 {
     return device.ipv4Address.size() > 0 || device.ipv6Address.size() > 0;
 }
-
-
 
 inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
                                                        const sockaddr* from,
@@ -684,30 +684,28 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     if (opcode)
         return 0;
 
-    char nameBuffer[256];
+    // There is no need to handle PTR records
+    if (rtype == MDNS_RECORDTYPE_PTR)
+        return 0;
+
+    std::string deviceName = discovery_common::DiscoveryUtils::extractRecordName(buffer, rname_offset, size);
 
     std::lock_guard lg(devicesMapLock);
-    
-    std::string deviceAddr = ipAddressToString(from, addrlen);
 
-    auto it = devicesMap.insert({deviceAddr, DeviceData{}});
+    auto it = devicesMap.emplace(deviceName, DeviceData{});
     DeviceData& deviceData = it.first->second;
 
     if (from->sa_family == AF_INET6)
     {
-        auto index = deviceAddr.find("%");
-        if (index != std::string::npos)
-            deviceData.linkLocalInterface = deviceAddr.substr(index, deviceAddr.find("]") - index);
-    }
+        std::string linkLocalInterface = getIpv6NetworkInterface(reinterpret_cast<const sockaddr_in6*>(from), addrlen);
+        if (!linkLocalInterface.empty())
+            deviceData.linkLocalInterface = linkLocalInterface;
+    }    
 
-    if (rtype == MDNS_RECORDTYPE_PTR)
+    if (rtype == MDNS_RECORDTYPE_SRV)
     {
-        mdns_string_t namestr = mdns_record_parse_ptr(buffer, size, rdata_offset, rdata_length, nameBuffer, sizeof(nameBuffer));
-        deviceData.PTR = std::string(namestr.str, namestr.length);
-    }
-    else if (rtype == MDNS_RECORDTYPE_SRV)
-    {
-        mdns_record_srv_t srv = mdns_record_parse_srv(buffer, size, rdata_offset, rdata_length, nameBuffer, sizeof(nameBuffer));
+        char tempBuffer[1024];
+        mdns_record_srv_t srv = mdns_record_parse_srv(buffer, size, rdata_offset, rdata_length, tempBuffer, sizeof(tempBuffer));
         deviceData.SRV = SRVRecord{std::string(srv.name.str, srv.name.length), srv.priority, srv.weight, srv.port};
     }
     else if (rtype == MDNS_RECORDTYPE_A)
@@ -727,8 +725,8 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
         deviceData.TXT.clear();
 
         auto reqProps = discovery_common::DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
-        for (const auto& [key, value] : reqProps)
-            deviceData.TXT.emplace_back(key, value);
+        for (const auto& prop : reqProps)
+            deviceData.TXT.emplace_back(prop);
     }
 
     return 0;
@@ -763,7 +761,7 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
         return 0;
 
     // ignore duplicates of already handled answer
-    if (const auto it = answeredNonMdnsQueryIds.find(responseQueryId); it != answeredNonMdnsQueryIds.end())
+    if (answeredNonMdnsQueryIds.find(responseQueryId) != answeredNonMdnsQueryIds.end())
         return 0;
 
     if (DiscoveryUtils::extractRecordName(buffer, rname_offset, size) != IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME)
@@ -777,25 +775,27 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
 
     answeredNonMdnsQueryIds.insert(responseQueryId);
 
-    if (const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY); errCodeIt != resProps.end())
-    {
-        if (const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY); errMsgIt != resProps.end())
-        {
-            ErrCode rpcErrorCodeTmp;
-            try
-            {
-                rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
-            }
-            catch (...)
-            {
-                return 0;
-            }
+    const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY);
+    if (errCodeIt == resProps.end())
+        return 0;
+    
+    const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY);
+    if (errMsgIt == resProps.end())
+        return 0;
 
-            // set output parameters only if required txt records are correct
-            rpcErrorCode = rpcErrorCodeTmp;
-            rpcErrorMessage = errMsgIt->second;
-        }
+    ErrCode rpcErrorCodeTmp;
+    try
+    {
+        rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
     }
+    catch (...)
+    {
+        return 0;
+    }
+
+    // set output parameters only if required txt records are correct
+    rpcErrorCode = rpcErrorCodeTmp;
+    rpcErrorMessage = errMsgIt->second;
 
     return 0;
 }
@@ -845,7 +845,7 @@ inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
         return 0;
 
     // ignore duplicates of already handled answer
-    if (const auto it = answeredNonMdnsQueryIds.find(responseQueryId); it != answeredNonMdnsQueryIds.end())
+    if (answeredNonMdnsQueryIds.find(responseQueryId) != answeredNonMdnsQueryIds.end())
         return 0;
 
     if (DiscoveryUtils::extractRecordName(buffer, rname_offset, size) != IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME)
@@ -859,25 +859,27 @@ inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
 
     answeredNonMdnsQueryIds.insert(responseQueryId);
 
-    if (const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY); errCodeIt != resProps.end())
-    {
-        if (const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY); errMsgIt != resProps.end())
-        {
-            ErrCode rpcErrorCodeTmp;
-            try
-            {
-                rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
-            }
-            catch (...)
-            {
-                return 0;
-            }
+    const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY);
+    if (errCodeIt == resProps.end())
+        return 0;
+    
+    const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY);
+    if (errMsgIt == resProps.end())
+        return 0;
 
-            // set output parameters only if required txt records are correct
-            rpcErrorCode = rpcErrorCodeTmp;
-            rpcErrorMessage = errMsgIt->second;
-        }
+    ErrCode rpcErrorCodeTmp;
+    try
+    {
+        rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
     }
+    catch (...)
+    {
+        return 0;
+    }
+
+    // set output parameters only if required txt records are correct
+    rpcErrorCode = rpcErrorCodeTmp;
+    rpcErrorMessage = errMsgIt->second;
 
     return 0;
 }
@@ -892,7 +894,7 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
     std::vector<int> sockets;
     openClientSockets(sockets);
     if (sockets.empty())
-        throw std::runtime_error("MDNSDiscoveryClient: Failed to open sockets");
+        throw std::runtime_error("Failed to open sockets");
 
     std::vector<int> queryIds(sockets.size());
     {
@@ -939,8 +941,7 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
                                                               opcode);
     };
 
-    int res;
-    do
+    while(true)
     {
         std::chrono::microseconds elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - queryingStarted
@@ -970,22 +971,20 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
             FD_SET((u_int)socket, &readfs);
         }
 
-        res = select(nfds, &readfs, 0, 0, &timeout);
-        if (res > 0)
+        if (select(nfds, &readfs, 0, 0, &timeout) <= 0)
+            break;
+    
+        for (size_t isock = 0; isock < sockets.size(); ++isock)
         {
-            for (size_t isock = 0; isock < sockets.size(); ++isock)
+            if (FD_ISSET(sockets[isock], &readfs))
             {
-                if (FD_ISSET(sockets[isock], &readfs))
-                {
-                    auto availableData = getAvailableData(sockets[isock]);
-                    std::vector<char> buffer(availableData);
-                    mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryIds[isock]);
-                }
-                FD_SET((u_int) sockets[isock], &readfs);
+                auto availableData = getAvailableData(sockets[isock]);
+                std::vector<char> buffer(availableData);
+                mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryIds[isock]);
             }
+            FD_SET((u_int) sockets[isock], &readfs);
         }
-    }
-    while (res > 0);
+    };
 
     for (int socket : sockets)
         mdns_socket_close(socket);
@@ -1000,7 +999,7 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
     std::vector<int> sockets;
     openClientSockets(sockets);
     if (sockets.empty())
-        throw std::runtime_error("MDNSDiscoveryClient: Failed to open sockets");
+        throw std::runtime_error("Failed to open sockets");
 
     std::vector<int> queryId(sockets.size());
     {
@@ -1080,8 +1079,7 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
                                                                opcode);
     };
 
-    int res;
-    do
+    while (true)
     {
         std::chrono::microseconds elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - queryingStarted
@@ -1111,21 +1109,20 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
             FD_SET((u_int)socket, &readfs);
         }
 
-        res = select(nfds, &readfs, 0, 0, &timeout);
-        if (res > 0)
+        if (select(nfds, &readfs, 0, 0, &timeout) <= 0)
+            break;
+        
+        for (size_t isock = 0; isock < sockets.size(); ++isock)
         {
-            for (size_t isock = 0; isock < sockets.size(); ++isock)
+            if (FD_ISSET(sockets[isock], &readfs))
             {
-                if (FD_ISSET(sockets[isock], &readfs))
-                {
-                    auto availableData = getAvailableData(sockets[isock]);
-                    std::vector<char> buffer(availableData);
-                    mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryId[isock]);
-                }
-                FD_SET((u_int) sockets[isock], &readfs);
+                auto availableData = getAvailableData(sockets[isock]);
+                std::vector<char> buffer(availableData);
+                mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryId[isock]);
             }
+            FD_SET((u_int) sockets[isock], &readfs);
         }
-    } while (res > 0);
+    };
 
     for (int socket: sockets)
         mdns_socket_close(socket);

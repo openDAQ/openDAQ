@@ -62,12 +62,12 @@ size_t MdnsDiscoveredService::size() const
     return properties.size() + dynamicProperties.size();
 }
 
-mdns_record_t MdnsDiscoveredService::createRecord(const std::string& name, const std::string& value) const
+mdns_record_t MdnsDiscoveredService::createTxtRecord(const std::string& key, const std::string& value) const
 {
     mdns_record_t record;
-    record.name = {name.c_str(), name.size()},
+    record.name = {serviceInstance.c_str(), serviceInstance.size()},
     record.type = MDNS_RECORDTYPE_TXT,
-    record.data.txt.key = {name.c_str(), name.size()},
+    record.data.txt.key = {key.c_str(), key.size()},
     record.data.txt.value = {value.c_str(), value.size()},
     record.rclass = 0,
     record.ttl = 0;
@@ -79,13 +79,13 @@ void MdnsDiscoveredService::populateRecords(std::vector<mdns_record_t>& records)
     this->recordSize = this->staticRecordSize;
     for (const auto & [key, value] : properties)
     {
-        records.push_back(createRecord(key, value));
+        records.push_back(createTxtRecord(key, value));
     }
 
     for (auto & [key, value] : dynamicProperties)
     {
         value = (std::string)deviceInfo.getPropertyValue(key);
-        records.push_back(createRecord(key, value));
+        records.push_back(createTxtRecord(key, value));
         this->recordSize += key.size() + value.size() + 2;
     }
 }
@@ -206,14 +206,16 @@ void MDNSDiscoveryServer::populateTxtRecords(const std::string& recordName,
 
 bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredService& service)
 {
-    std::string hostName = this->hostName;
+    std::string serviceName = hostName;
 
     auto manufacturer = service.properties["manufacturer"];
     auto serialNumber = service.properties["serialNumber"];
     if (!manufacturer.empty() && !serialNumber.empty())
-        hostName = manufacturer + "_" + serialNumber;
+        serviceName = manufacturer + "_" + serialNumber;
+    else
+        fprintf(stderr, "MDNSDiscoveryServer: Manufacturer and serial number not provided for service %s. It can cause mdns conflict\n", id.c_str());
 
-    service.serviceInstance = hostName + "." + service.serviceName;
+    service.serviceInstance = serviceName + "." + service.serviceName;
     service.serviceQualified = hostName + ".local.";
 
     bool success = false;

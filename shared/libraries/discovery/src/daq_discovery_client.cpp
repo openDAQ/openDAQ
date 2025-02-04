@@ -24,10 +24,13 @@ std::vector<MdnsDiscoveredDevice> DiscoveryClient::discoverMdnsDevices() const
 
     auto mdnsDevices = mdnsClient->getAvailableDevices();
 
-    for (const auto& device : mdnsDevices)
+    for (auto& device : mdnsDevices)
     {
         if (verifyDiscoveredDevice(device))
+        {
+            device.properties.erase("caps");
             discovered.push_back(device);
+        }
     }
 
     return discovered;

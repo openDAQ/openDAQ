@@ -687,15 +687,9 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     if (rtype == MDNS_RECORDTYPE_PTR)
         return 0;
 
-    char nameBuffer[512];
+    std::string deviceName = discovery_common::DiscoveryUtils::extractRecordName(buffer, rname_offset, size);
 
     std::lock_guard lg(devicesMapLock);
-
-    std::string deviceName;
-    {
-        mdns_string_t namestr = mdns_string_extract(buffer, size, &rname_offset, nameBuffer, sizeof(nameBuffer));
-        deviceName = std::string(namestr.str, namestr.length);
-    }
 
     auto it = devicesMap.emplace(deviceName, DeviceData{});
     DeviceData& deviceData = it.first->second;
@@ -709,7 +703,8 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
 
     if (rtype == MDNS_RECORDTYPE_SRV)
     {
-        mdns_record_srv_t srv = mdns_record_parse_srv(buffer, size, rdata_offset, rdata_length, nameBuffer, sizeof(nameBuffer));
+        char tempBuffer[1024];
+        mdns_record_srv_t srv = mdns_record_parse_srv(buffer, size, rdata_offset, rdata_length, tempBuffer, sizeof(tempBuffer));
         deviceData.SRV = SRVRecord{std::string(srv.name.str, srv.name.length), srv.priority, srv.weight, srv.port};
     }
     else if (rtype == MDNS_RECORDTYPE_A)

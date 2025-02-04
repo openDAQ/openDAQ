@@ -233,6 +233,7 @@ inline MDNSDiscoveryClient::MDNSDiscoveryClient(const ListPtr<IString>& serviceN
     this->serviceNames.reserve(serviceNames.getCount());
     for (const auto & service : serviceNames)
         this->serviceNames.push_back(service.toStdString());
+
     setupDiscoveryQuery();
 
     boost::uuids::random_generator gen;
@@ -478,7 +479,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets)
     if (!adapterAddress || (ret != NO_ERROR))
     {
         free(adapterAddress);
-        throw std::runtime_error("MDNSDiscoveryClient: Failed to get adapter addresses");
+        throw std::runtime_error("Failed to get adapter addresses");
     }
 
     for (PIP_ADAPTER_ADDRESSES adapter = adapterAddress; adapter; adapter = adapter->Next)
@@ -527,7 +528,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets)
     struct ifaddrs* ifa = 0;
 
     if (getifaddrs(&ifaddr) < 0)
-        throw std::runtime_error("MDNSDiscoveryClient: Failed to get network interfaces");
+        throw std::runtime_error("Failed to get network interfaces");
 
     for (ifa = ifaddr; ifa; ifa = ifa->ifa_next)
     {
@@ -573,7 +574,7 @@ inline void MDNSDiscoveryClient::pruneDevices()
     std::unordered_set<std::string> toPrune;
     for (auto& [addr, data] : devicesMap)
     {
-        if (!data.PTR.empty() || data.SRV.name.empty())
+        if (data.SRV.name.empty())
         {
             toPrune.insert(addr);
             continue;
@@ -652,7 +653,7 @@ inline MdnsDiscoveredDevice MDNSDiscoveryClient::createMdnsDiscoveredDevice(cons
     device.ipv6Address = data.AAAA;
 
     for (const auto& prop : data.TXT)
-        device.properties.insert({prop.first, prop.second});
+        device.properties.insert(prop);
 
     return device;
 }
@@ -724,8 +725,8 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
         deviceData.TXT.clear();
 
         auto reqProps = discovery_common::DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
-        for (const auto& [key, value] : reqProps)
-            deviceData.TXT.emplace_back(key, value);
+        for (const auto& prop : reqProps)
+            deviceData.TXT.emplace_back(prop);
     }
 
     return 0;
@@ -760,7 +761,7 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
         return 0;
 
     // ignore duplicates of already handled answer
-    if (const auto it = answeredNonMdnsQueryIds.find(responseQueryId); it != answeredNonMdnsQueryIds.end())
+    if (answeredNonMdnsQueryIds.find(responseQueryId) != answeredNonMdnsQueryIds.end())
         return 0;
 
     if (DiscoveryUtils::extractRecordName(buffer, rname_offset, size) != IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME)
@@ -774,25 +775,27 @@ inline int MDNSDiscoveryClient::ipConfigModificationQueryCallback(int sock,
 
     answeredNonMdnsQueryIds.insert(responseQueryId);
 
-    if (const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY); errCodeIt != resProps.end())
-    {
-        if (const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY); errMsgIt != resProps.end())
-        {
-            ErrCode rpcErrorCodeTmp;
-            try
-            {
-                rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
-            }
-            catch (...)
-            {
-                return 0;
-            }
+    const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY);
+    if (errCodeIt == resProps.end())
+        return 0;
+    
+    const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY);
+    if (errMsgIt == resProps.end())
+        return 0;
 
-            // set output parameters only if required txt records are correct
-            rpcErrorCode = rpcErrorCodeTmp;
-            rpcErrorMessage = errMsgIt->second;
-        }
+    ErrCode rpcErrorCodeTmp;
+    try
+    {
+        rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
     }
+    catch (...)
+    {
+        return 0;
+    }
+
+    // set output parameters only if required txt records are correct
+    rpcErrorCode = rpcErrorCodeTmp;
+    rpcErrorMessage = errMsgIt->second;
 
     return 0;
 }
@@ -842,7 +845,7 @@ inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
         return 0;
 
     // ignore duplicates of already handled answer
-    if (const auto it = answeredNonMdnsQueryIds.find(responseQueryId); it != answeredNonMdnsQueryIds.end())
+    if (answeredNonMdnsQueryIds.find(responseQueryId) != answeredNonMdnsQueryIds.end())
         return 0;
 
     if (DiscoveryUtils::extractRecordName(buffer, rname_offset, size) != IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME)
@@ -856,25 +859,27 @@ inline int MDNSDiscoveryClient::currentIpConfigQueryCallback(int sock,
 
     answeredNonMdnsQueryIds.insert(responseQueryId);
 
-    if (const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY); errCodeIt != resProps.end())
-    {
-        if (const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY); errMsgIt != resProps.end())
-        {
-            ErrCode rpcErrorCodeTmp;
-            try
-            {
-                rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
-            }
-            catch (...)
-            {
-                return 0;
-            }
+    const auto errCodeIt = resProps.find(IpModificationUtils::ERROR_CODE_KEY);
+    if (errCodeIt == resProps.end())
+        return 0;
+    
+    const auto errMsgIt = resProps.find(IpModificationUtils::ERROR_MESSAGE_KEY);
+    if (errMsgIt == resProps.end())
+        return 0;
 
-            // set output parameters only if required txt records are correct
-            rpcErrorCode = rpcErrorCodeTmp;
-            rpcErrorMessage = errMsgIt->second;
-        }
+    ErrCode rpcErrorCodeTmp;
+    try
+    {
+        rpcErrorCodeTmp = static_cast<ErrCode>(std::stoul(errCodeIt->second));
     }
+    catch (...)
+    {
+        return 0;
+    }
+
+    // set output parameters only if required txt records are correct
+    rpcErrorCode = rpcErrorCodeTmp;
+    rpcErrorMessage = errMsgIt->second;
 
     return 0;
 }
@@ -889,7 +894,7 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
     std::vector<int> sockets;
     openClientSockets(sockets);
     if (sockets.empty())
-        throw std::runtime_error("MDNSDiscoveryClient: Failed to open sockets");
+        throw std::runtime_error("Failed to open sockets");
 
     std::vector<int> queryIds(sockets.size());
     {
@@ -936,8 +941,7 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
                                                               opcode);
     };
 
-    int res;
-    do
+    while(true)
     {
         std::chrono::microseconds elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - queryingStarted
@@ -967,22 +971,20 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
             FD_SET((u_int)socket, &readfs);
         }
 
-        res = select(nfds, &readfs, 0, 0, &timeout);
-        if (res > 0)
+        if (select(nfds, &readfs, 0, 0, &timeout) <= 0)
+            break;
+    
+        for (size_t isock = 0; isock < sockets.size(); ++isock)
         {
-            for (size_t isock = 0; isock < sockets.size(); ++isock)
+            if (FD_ISSET(sockets[isock], &readfs))
             {
-                if (FD_ISSET(sockets[isock], &readfs))
-                {
-                    auto availableData = getAvailableData(sockets[isock]);
-                    std::vector<char> buffer(availableData);
-                    mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryIds[isock]);
-                }
-                FD_SET((u_int) sockets[isock], &readfs);
+                auto availableData = getAvailableData(sockets[isock]);
+                std::vector<char> buffer(availableData);
+                mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryIds[isock]);
             }
+            FD_SET((u_int) sockets[isock], &readfs);
         }
-    }
-    while (res > 0);
+    };
 
     for (int socket : sockets)
         mdns_socket_close(socket);
@@ -997,7 +999,7 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
     std::vector<int> sockets;
     openClientSockets(sockets);
     if (sockets.empty())
-        throw std::runtime_error("MDNSDiscoveryClient: Failed to open sockets");
+        throw std::runtime_error("Failed to open sockets");
 
     std::vector<int> queryId(sockets.size());
     {
@@ -1077,8 +1079,7 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
                                                                opcode);
     };
 
-    int res;
-    do
+    while (true)
     {
         std::chrono::microseconds elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - queryingStarted
@@ -1108,21 +1109,20 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
             FD_SET((u_int)socket, &readfs);
         }
 
-        res = select(nfds, &readfs, 0, 0, &timeout);
-        if (res > 0)
+        if (select(nfds, &readfs, 0, 0, &timeout) <= 0)
+            break;
+        
+        for (size_t isock = 0; isock < sockets.size(); ++isock)
         {
-            for (size_t isock = 0; isock < sockets.size(); ++isock)
+            if (FD_ISSET(sockets[isock], &readfs))
             {
-                if (FD_ISSET(sockets[isock], &readfs))
-                {
-                    auto availableData = getAvailableData(sockets[isock]);
-                    std::vector<char> buffer(availableData);
-                    mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryId[isock]);
-                }
-                FD_SET((u_int) sockets[isock], &readfs);
+                auto availableData = getAvailableData(sockets[isock]);
+                std::vector<char> buffer(availableData);
+                mdns_query_recv(sockets[isock], buffer.data(), availableData, callbackWrapper, &callback, queryId[isock]);
             }
+            FD_SET((u_int) sockets[isock], &readfs);
         }
-    } while (res > 0);
+    };
 
     for (int socket: sockets)
         mdns_socket_close(socket);

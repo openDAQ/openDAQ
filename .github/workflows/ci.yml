@@ -554,7 +554,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 240
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -599,7 +599,7 @@ jobs:
         run: |
           last_version="3.8"
           for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -620,24 +620,6 @@ jobs:
           . build/venv/bin/activate
           pip install build/pip/packages/opendaq*.whl
           ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
-
-      - name: Clear build dir
-        run: rm -rf build/*
-
-      - name: Build wheels arm64
-        working-directory: ./build
-        run: |
-          for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
-              cp -f pip/packages/opendaq*.whl ../wheels
-              deactivate
-              rm -rf venv
-          done
 
       - name: Upload test results
         if: always()

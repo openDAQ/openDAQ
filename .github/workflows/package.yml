@@ -389,7 +389,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 240
+    timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:
@@ -428,7 +428,7 @@ jobs:
         working-directory: ./build
         run: |
           for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DOPENDAQ_PYTHON_VERSION=$version ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -446,7 +446,7 @@ jobs:
         working-directory: ./build
         run: |
           for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DOPENDAQ_PYTHON_VERSION=$version ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate

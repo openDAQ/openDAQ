@@ -1,4 +1,4 @@
-# 2025-01-31
+# 2025-02-04
 ## Description
 - Enables status messages for connection statuses
 - Introduces additional "Message" parameter of string-object-type within "ConnectionStatusChanged" core event arguments
@@ -24,6 +24,12 @@ StringPtr message = client.getDevices()[0].getConnectionStatusContainer().getSta
 ```
 + [function] IConnectionStatusContainerPrivate::updateConnectionStatusWithMessage(IString* connectionString, IEnumeration* value, IStreaming* streamingObject, IString* message)
 ```
+
+# 2025-02-04
+## Description
+- Fixed an mDNS issue where multiple devices broadcasting with the same IP address were present, but only one could be detected by the client.
+## Required integration changes
+- The device manufacturer and serial number are now used as identifiers in mDNS. These properties should create a unique name to prevent conflicts in the mDNS network. Otherwise, name conflicts could occur.
 
 # 2025-01-24
 ## Description
@@ -184,7 +190,7 @@ propObj.setPropertyValue("prop1", 345);
 **Throw an exception in the callback**: This will cancel the property update and propagate the exception to the setPropertyValue call.
 - **Alternatively, skip the update**: Use the following pattern to revert to the old value without throwing an exception:
 ```cpp
-propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg) 
 {
     // Restore by throwing an exeption
     if ((Int)arg.getValue() < 0)

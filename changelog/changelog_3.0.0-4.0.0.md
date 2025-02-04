@@ -1,3 +1,9 @@
+# 2025-02-04
+## Description
+- Fixed an mDNS issue where multiple devices broadcasting with the same IP address were present, but only one could be detected by the client.
+## Required integration changes
+- The device manufacturer and serial number are now used as identifiers in mDNS. These properties should create a unique name to prevent conflicts in the mDNS network. Otherwise, name conflicts could occur.
+
 # 2025-01-24
 ## Description
 - Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
@@ -156,7 +162,7 @@ propObj.setPropertyValue("prop1", 345);
 **Throw an exception in the callback**: This will cancel the property update and propagate the exception to the setPropertyValue call.
 - **Alternatively, skip the update**: Use the following pattern to revert to the old value without throwing an exception:
 ```cpp
-propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg) 
 {
     // Restore by throwing an exeption
     if ((Int)arg.getValue() < 0)

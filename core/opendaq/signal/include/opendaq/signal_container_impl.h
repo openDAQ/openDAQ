@@ -112,6 +112,8 @@ protected:
     void callBeginUpdateOnChildren() override;
     void callEndUpdateOnChildren() override;
 
+    void onOperationModeChanged(OperationModeType modeType) override;
+
 private:
     template <class Component>
     void swapComponent(Component& origComponent, const Component& newComponent);
@@ -651,6 +653,19 @@ void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
     }
 
     Super::callEndUpdateOnChildren();
+}
+
+template <class Intf, class... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::onOperationModeChanged(OperationModeType modeType)
+{
+    Super::onOperationModeChanged(modeType);
+
+    for (const BaseObjectPtr & component : components)
+    {   
+        auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+        if (componentPrivate.assigned())
+            componentPrivate.updateOperationMode(modeType);
+    }
 }
 
 template <class Intf, class... Intfs>

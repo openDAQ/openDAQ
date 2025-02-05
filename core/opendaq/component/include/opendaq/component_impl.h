@@ -69,6 +69,7 @@ template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>
 {
 public:
+    using Self = ComponentImpl<Intf, Intfs...>;
     using Super = GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>;
 
     ComponentImpl(const ContextPtr& context,
@@ -102,6 +103,8 @@ public:
     ErrCode INTERFACE_FUNC unlockAttributes(IList* attributes) override;
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -184,6 +187,8 @@ protected:
     void setComponentStatus(const ComponentStatus& status) const;
     // Set component status with message and log status and message (if different from previous, and not OK and empty string)
     void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
+
+    virtual void onOperationModeChanged(OperationModeType modeType);
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
@@ -642,6 +647,17 @@ ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs*
 }
 
 template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::onOperationModeChanged(OperationModeType /* modeType */)
+{
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
+{
+    return wrapHandler(this, &Self::onOperationModeChanged, modeType);
+}
+
+template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::getOnComponentCoreEvent(IEvent** event)
 {
     OPENDAQ_PARAM_NOT_NULL(event);
@@ -656,24 +672,23 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
     OPENDAQ_PARAM_NOT_NULL(outComponent);
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    return daqTry(
-        [&]
+    return daqTry([&]
+    {
+        std::string str = StringPtr(id);
+        if (str != "" && str[0] == '/')
         {
-            std::string str = StringPtr(id);
-            if (str != "" && str[0] == '/')
-            {
-                str.erase(str.begin(), str.begin() + 1);
-                std::string startStr;
-                std::string restStr;
-                IdsParser::splitRelativeId(str, startStr, restStr);
-                if (startStr == localId)
-                    str = restStr;
-            }
+            str.erase(str.begin(), str.begin() + 1);
+            std::string startStr;
+            std::string restStr;
+            IdsParser::splitRelativeId(str, startStr, restStr);
+            if (startStr == localId)
+                str = restStr;
+        }
 
-            *outComponent = findComponentInternal(this->template borrowPtr<ComponentPtr>(), str).detach();
+        *outComponent = findComponentInternal(this->template borrowPtr<ComponentPtr>(), str).detach();
 
-            return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
-        });
+        return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
+    });
 }
 
 template<class Intf, class ... Intfs>

@@ -87,11 +87,14 @@ protected:
     void callEndUpdateOnChildren() override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
+    void onOperationModeChanged(OperationModeType modeType) override;
+
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
     void clearInternal();
 
     IntfID itemId;
+    OperationModeType operationMode;
 };
 
 template <class Intf, class... Intfs>
@@ -451,6 +454,10 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
         throw InvalidParameterException("Type of item not allowed in the folder");
 
     const auto res = items.insert({component.getLocalId(), component});
+
+    auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+    if (componentPrivate.assigned())
+        componentPrivate.updateOperationMode(operationMode);
     
     return res.second;
 }
@@ -539,6 +546,17 @@ void FolderImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& conte
             updatable.updateEnded(context);
     }
     Super::onUpdatableUpdateEnd(context);
+}
+
+template <class Intf, class... Intfs>
+void FolderImpl<Intf, Intfs...>::onOperationModeChanged(OperationModeType modeType)
+{
+    for (const auto& [_, item] : items)
+    {
+        auto componentPrivate = item.asPtrOrNull<IComponentPrivate>(true);
+        if (componentPrivate.assigned())
+            componentPrivate.updateOperationMode(operationMode);
+    }
 }
 
 template <class Intf, class... Intfs>

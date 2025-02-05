@@ -353,6 +353,10 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param[out] statusContainer The container for the device connection statuses.
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) = 0;
+
+
+    virtual ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) = 0;
+
 };
 /*!@}*/
 

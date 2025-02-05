@@ -114,6 +114,8 @@ protected:
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
+    void onOperationModeChanged(OperationModeType modeType) override;
+
     template <class Impl>
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
                                                   const BaseObjectPtr& context,
@@ -660,6 +662,17 @@ BaseObjectPtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionB
 }
 
 template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
+{
+    bool active = modeType != OperationModeType::Idle;
+    for (const auto& signal : signals.getItems())
+    {
+        signal.setActive(active);
+    }
+}
+
+
+template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
     IBaseObject* context,
     IFunction* factoryCallback,
@@ -667,11 +680,10 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObj
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeFunctionBlock<FunctionBlock>(serialized, context, factoryCallback).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = DeserializeFunctionBlock<FunctionBlock>(serialized, context, factoryCallback).detach();
+    });
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlock)

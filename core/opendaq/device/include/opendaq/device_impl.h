@@ -106,6 +106,7 @@ public:
     ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) override;
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
+    ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -212,6 +213,9 @@ protected:
     virtual PropertyObjectPtr onRetrieveNetworkConfiguration(const StringPtr& ifaceName);
     virtual Bool onGetNetworkConfigurationEnabled();
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
+
+    void onOperationModeChanged(OperationModeType modeType) override;
+
 
     DevicePtr getParentDevice();
 
@@ -1065,6 +1069,29 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getConnectionStatusContainer(I
     auto ret = this->connectionStatusContainer.template asPtr<IComponentStatusContainer>();
     *statusContainer = ret.detach();
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
+{
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
+{
+    for (const auto& component : this->components)
+    {
+        auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+        if (componentPrivate.assigned() && component.getLocalId() != "Dev")
+            componentPrivate.updateOperationMode(modeType);
+    }
+
+    if (includeSubDevices)
+    {
+        for (const DevicePtr & dev: this->devices.getItems())
+            dev->setOperationMode(modeType, includeSubDevices);
+    }
     return OPENDAQ_SUCCESS;
 }
 

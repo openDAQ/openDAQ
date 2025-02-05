@@ -309,6 +309,11 @@ ErrCode InstanceImpl::getConnectionStatusContainer(IComponentStatusContainer** s
     return rootDevice->getConnectionStatusContainer(statusContainer);
 }
 
+ErrCode InstanceImpl::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
+{
+    return rootDevice->setOperationMode(modeType, includeSubDevices);
+}
+
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
 {
     OPENDAQ_PARAM_NOT_NULL(currentRootDevice);

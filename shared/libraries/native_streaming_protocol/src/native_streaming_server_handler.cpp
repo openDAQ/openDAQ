@@ -226,13 +226,11 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
     return false;
 }
 
-void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, PacketPtr&& packet)
+void NativeStreamingServerHandler::sendPacket(const std::string& globalId, PacketPtr&& packet)
 {
-    const auto signalStringId = signal.getGlobalId().toStdString();
-
     // The lambda passed as a parameter will be invoked immediately, making it safe to directly capture this
     streamingManager.sendPacketToSubscribers(
-        signalStringId,
+        globalId,
         std::move(packet),
         [this](const std::string& subscribedClientId, packet_streaming::PacketBufferPtr&& packetBuffer)
         {

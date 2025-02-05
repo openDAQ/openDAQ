@@ -453,12 +453,12 @@ void NativeStreamingServerImpl::startReadThread()
     {
         {
             std::scoped_lock lock(readersSync);
-            for (const auto& [signal, reader] : signalReaders)
+            for (const auto& [_, globalId, reader] : signalReaders)
             {
                 PacketPtr packet = reader.read();
                 while (packet.assigned())
                 {
-                    serverHandler->sendPacket(signal, std::move(packet));
+                    serverHandler->sendPacket(globalId, std::move(packet));
                     packet = reader.read();
                 }
             }
@@ -472,25 +472,25 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
                            {
-                               return element.first == signalToRead;
+                               return std::get<0>(element) == signalToRead;
                            });
     if (it != signalReaders.end())
         return;
 
     LOG_I("Add reader for signal {}", signalToRead.getGlobalId());
     auto reader = PacketReader(signalToRead);
-    signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signalToRead, reader}));
+    signalReaders.push_back(std::tuple<SignalPtr, std::string, PacketReaderPtr>({signalToRead, signalToRead.getGlobalId().toStdString(), reader}));
 }
 
 void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
                            {
-                               return element.first == signalToRead;
+                               return std::get<0>(element) == signalToRead;
                            });
     if (it == signalReaders.end())
         return;

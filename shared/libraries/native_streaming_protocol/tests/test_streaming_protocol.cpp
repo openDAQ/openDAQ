@@ -143,7 +143,7 @@ public:
         {
             // called only when signal first time subscribed by any client
             if (initialEventPacket.assigned())
-                serverHandler->sendPacket(signal, initialEventPacket);
+                serverHandler->sendPacket(signal.getGlobalId(), initialEventPacket);
             signalSubscribedPromise.set_value(signal);
         };
 
@@ -605,7 +605,7 @@ TEST_P(StreamingProtocolTest, InitialEventPacketPostSubscribe)
 
     ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
 
-    serverHandler->sendPacket(serverSignal, firstEventPacket);
+    serverHandler->sendPacket(serverSignal.getGlobalId(), firstEventPacket);
     for (auto& client : clients)
     {
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
@@ -639,7 +639,7 @@ TEST_P(StreamingProtocolTest, SendEventPacket)
 
     ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
 
-    serverHandler->sendPacket(serverSignal, firstEventPacket);
+    serverHandler->sendPacket(serverSignal.getGlobalId(), firstEventPacket);
     for (auto& client : clients)
     {
         ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
@@ -654,7 +654,7 @@ TEST_P(StreamingProtocolTest, SendEventPacket)
 
     const auto newValueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Binary).build();
     auto secondEventPacket = DataDescriptorChangedEventPacket(newValueDescriptor, nullptr);
-    serverHandler->sendPacket(serverSignal, secondEventPacket);
+    serverHandler->sendPacket(serverSignal.getGlobalId(), secondEventPacket);
 
     for (auto& client : clients)
     {
@@ -682,7 +682,7 @@ TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
     }
 
     auto serverDataPacket = DataPacket(valueDescriptor, 100);
-    serverHandler->sendPacket(serverSignal, serverDataPacket);
+    serverHandler->sendPacket(serverSignal.getGlobalId(), serverDataPacket);
 
     // no subscribers - so packets wont be sent to clients
     for (auto& client : clients)
@@ -728,7 +728,7 @@ TEST_P(StreamingProtocolTest, SendDataPacket)
         client.packetReceivedFuture = client.packetReceivedPromise.get_future();
     }
 
-    serverHandler->sendPacket(serverSignal, serverDataPacket);
+    serverHandler->sendPacket(serverSignal.getGlobalId(), serverDataPacket);
     for (auto& client : clients)
     {
         // wait for data packet

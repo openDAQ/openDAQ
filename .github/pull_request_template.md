@@ -1,6 +1,6 @@
 # Brief
 
-(Brief should be a (preferably concise one-line) high-level description of what changed and what was added/removed, maybe even why)
+(Concise one-line description of what changed and what was added/removed, maybe even why)
 
 
 

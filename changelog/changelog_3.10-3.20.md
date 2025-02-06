@@ -23,8 +23,144 @@
 
 ## Required application changes
 
+### [#606](https://github.com/openDAQ/openDAQ/pull/606)
+
+None, since the old mechanism remains available for backward compatibility:
+
+```cpp
+EnumerationPtr status = instance.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus");
+```
+
+However, user can opt to use the new mechanism instead to retrieve the native device's configuration connection status:
+
+```cpp
+EnumerationPtr status = instance.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus");
+```
 
 
 ## Required module changes
 
+### [#642](https://github.com/openDAQ/openDAQ/pull/642)
 
+Updates the usage of the openDAQ discovery client, requiring the changes in the initialization of the discovery client
+and the implementation of `onGetAvailableDevices` in client modules: 
+* The discovery client does not anymore accept callbacks for build the `ServerCapability` as first parameter of its constructor. 
+* The return type of `DiscoveryClient::discoverMdnsDevices()` changed from `ListPtr<IDeviceInfo>` to `std::vector<MdnsDiscoveredDevice>`
+
+So, the following module implementation snippet:
+
+```cpp
+ExampleClientModule::ExampleClientModule(ContextPtr context)
+    : Module("ExampleClientModule",
+            daq::VersionInfo(MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION),
+            std::move(context),
+            "ExampleClientModule")
+    // create discovery client
+    , discoveryClient(
+        {
+            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
+            {
+                auto cap = ServerCapability("ExampleProtocolId", "ExampleProtocolName", ProtocolType::Configuration);
+                if (!discoveredDevice.ipv4Address.empty())
+                {
+                   // ... build connection string and address info
+                }
+                if(!discoveredDevice.ipv6Address.empty())
+                {
+                    // ... build connection string and address info
+                }
+                // ... set additional parameter of capability
+                return cap;
+            }
+        },
+        {"OPENDAQ"}
+    )
+{
+    // init discovery client
+    discoveryClient.initMdnsClient(List<IString>("_example-tcp._tcp.local."));
+}
+
+ListPtr<IDeviceInfo> ExampleClientModule::onGetAvailableDevices()
+{
+    ListPtr<IDeviceInfo> availableDevices = discoveryClient.discoverDevices();
+    for (auto device : availableDevices)
+    {
+        device.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
+    }
+    return availableDevices;
+}
+```
+
+is to be replaced with:
+
+```cpp
+ExampleClientModule::ExampleClientModule(ContextPtr context)
+    : Module("ExampleClientModule",
+            daq::VersionInfo(MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION),
+            std::move(context),
+            "ExampleClientModule")
+    // create discovery client
+    , discoveryClient(
+        {"OPENDAQ"}
+    )
+{
+    // init discovery client
+    discoveryClient.initMdnsClient(List<IString>("_example-tcp._tcp.local."));
+}
+
+ListPtr<IDeviceInfo> ExampleClientModule::onGetAvailableDevices()
+{
+    auto availableDevices = List<IDeviceInfo>();
+    std::vector<MdnsDiscoveredDevice> discoveredDevices = discoveryClient.discoverMdnsDevices();
+    for (const auto& device : discoveredDevices)
+        availableDevices.pushBack(populateDiscoveredDevice(device));
+    return availableDevices;
+}
+
+DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
+{
+    PropertyObjectPtr deviceInfo = DeviceInfo("");
+    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
+
+    auto cap = ServerCapability("ExampleProtocolId", "ExampleProtocolName", ProtocolType::Configuration);
+    if (!discoveredDevice.ipv4Address.empty())
+    {
+       // ... build connection string and address info
+    }
+    if(!discoveredDevice.ipv6Address.empty())
+    {
+       // ... build connection string and address info
+    }
+    // ... set additional parameter of capability
+
+    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(cap.getConnectionString());
+    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
+
+    return deviceInfo;
+}
+```
+
+### [#630](https://github.com/openDAQ/openDAQ/pull/630)
+
+The `ongetLogFileInfos` function override must be renamed to `onGetLogFileInfos`. This change will cause all modules developed with an older version of openDAQ that override the aforementioned method to no longer compile.
+
+### [#606](https://github.com/openDAQ/openDAQ/pull/606)
+
+If the device's implementation previously managed configuration connection status as follows:
+
+```cpp
+// ... to initialize status:
+this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
+// ... and to update status:
+this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", value);
+```
+
+It now need to be extended to include the new mechanism:
+
+```cpp
+// ... to initialize status:
+this->connectionStatusContainer.addConfigurationConnectionStatus(connectionString, statusInitValue);
+// ... and to update status:
+this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), value, nullptr);
+```

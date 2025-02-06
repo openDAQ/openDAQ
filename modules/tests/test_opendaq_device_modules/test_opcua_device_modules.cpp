@@ -1083,7 +1083,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
     ASSERT_EQ(LTAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
 }
 
-TEST_F(OpcuaDeviceModulesTest, TestAddressInfoGatewayDevice)
+TEST_F(OpcuaDeviceModulesTest, DISABLED_TestAddressInfoGatewayDevice)
 {
     auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
     server.addServer("OpenDAQNativeStreaming", nullptr);

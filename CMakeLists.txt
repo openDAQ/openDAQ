@@ -234,11 +234,11 @@ string(TIMESTAMP CURRENT_YEAR "%Y")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if (UNIX AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^arm.*$")  #e.g. armv7l
+if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm.*$")  #e.g. armv7l
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 
-if (UNIX AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^aarch.*$")  #e.g. aarch64
+if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch.*$")  #e.g. aarch64
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 

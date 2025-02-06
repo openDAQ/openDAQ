@@ -1,5 +1,3 @@
-# Changes since 3.10
-
 # 2025-02-04
 ## Description
 - Enables status messages for connection statuses
@@ -110,6 +108,7 @@ In the example above, the default properties `userName`, `location`, `manufactur
 + [function] IDeviceInfoConfig::setUserName(IString* userName);
 ```
 
+# Changes since 3.10
 
 ## Description
 

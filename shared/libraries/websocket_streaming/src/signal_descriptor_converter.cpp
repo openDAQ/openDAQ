@@ -227,7 +227,11 @@ daq::DataRulePtr SignalDescriptorConverter::GetRule(const daq::streaming_protoco
         break;
         case daq::streaming_protocol::RULETYPE_LINEAR:
         {
-            return LinearDataRule(subscribedSignal.linearDelta(), 0);
+            nlohmann::json linearDeltaJson = subscribedSignal.linearDeltaMeta();
+            if (linearDeltaJson.is_number_integer())
+                return LinearDataRule(linearDeltaJson.get<Int>(), 0);
+            else
+                return LinearDataRule(linearDeltaJson.get<Float>(), 0);
         }
         break;
         default:

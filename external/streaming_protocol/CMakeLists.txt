@@ -6,8 +6,8 @@ endif()
 
 opendaq_dependency(
     NAME                streaming_protocol
-    REQUIRED_VERSION    1.2.1
+    REQUIRED_VERSION    1.2.2
     GIT_REPOSITORY      https://github.com/openDAQ/streaming-protocol-lt.git
-    GIT_REF             v1.2.1
+    GIT_REF             v1.2.2-dev
     EXPECT_TARGET       daq::streaming_protocol
 )

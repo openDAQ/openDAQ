@@ -142,7 +142,8 @@ public:
                             const std::string& tabledId,
                             const SubscribedSignalInfo& signalInfo,
                             const InputSignalBasePtr& domainSignal,
-                            streaming_protocol::LogCallback logCb);
+                            streaming_protocol::LogCallback logCb,
+                            const nlohmann::json& metaInfoStartValue);
 
     void processSamples(const NumberPtr& absoluteStartDomainValue, const uint8_t* data, size_t sampleCount) override;
     DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
@@ -152,9 +153,16 @@ public:
     bool isDomainSignal() const override;
     bool isCountable() const override;
 
+    void updateStartValue(const nlohmann::json& metaInfoStartValue);
+
 private:
+    using CachedSignalValues = std::map<NumberPtr, SignalValueType>;
+
     template<typename DataType>
-    static SignalValueType extractConstantValue(const uint8_t* pValue);
+    static DataType convertToNumeric(const nlohmann::json& jsonNumeric);
+
+    template <typename Func>
+    static auto callWithSampleType(daq::SampleType sampleType, Func&& func);
 
     template<typename DataType>
     static DataPacketPtr createTypedConstantPacket(
@@ -167,8 +175,11 @@ private:
     NumberPtr calcDomainValue(const NumberPtr& startDomainValue, const uint64_t sampleIndex);
     NumberPtr getDomainRuleDelta();
     uint32_t calcPosition(const NumberPtr& startDomainValue, const NumberPtr& domainValue);
+    CachedSignalValues::iterator insertDefaultValue(const NumberPtr& domainValue);
 
-    std::map<NumberPtr, SignalValueType> cachedSignalValues;
+    CachedSignalValues cachedSignalValues;
+    std::optional<SignalValueType> defaultStartValue;
+    bool suppressDefaultStartValueWarnings;
 };
 
 inline InputSignalBasePtr InputSignal(const std::string& signalId,
@@ -176,7 +187,8 @@ inline InputSignalBasePtr InputSignal(const std::string& signalId,
                                       const SubscribedSignalInfo& signalInfo,
                                       bool isTimeSignal,
                                       const InputSignalBasePtr& domainSignal,
-                                      streaming_protocol::LogCallback logCb)
+                                      streaming_protocol::LogCallback logCb,
+                                      const nlohmann::json& constRuleStartValueMeta)
 {
     auto dataRuleType = signalInfo.dataDescriptor.getRule().getType();
 
@@ -192,7 +204,7 @@ inline InputSignalBasePtr InputSignal(const std::string& signalId,
         if (dataRuleType == daq::DataRuleType::Explicit)
             return std::make_shared<InputExplicitDataSignal>(signalId, tabledId, signalInfo, domainSignal, logCb);
         else if (dataRuleType == daq::DataRuleType::Constant)
-            return std::make_shared<InputConstantDataSignal>(signalId, tabledId, signalInfo, domainSignal, logCb);
+            return std::make_shared<InputConstantDataSignal>(signalId, tabledId, signalInfo, domainSignal, logCb, constRuleStartValueMeta);
         else
             throw ConversionFailedException("Unsupported input data signal rule");
     }

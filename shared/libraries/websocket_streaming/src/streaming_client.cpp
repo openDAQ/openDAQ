@@ -480,7 +480,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
                 if (!relatedSignal->isCountable())
                 {
                     auto packet = relatedSignal->generateDataPacket(domainValue, nullptr, valueCount, domainPacket);
-                    if (packet.assigned())
+                    if (packet.assigned() && relatedSignal->getSubscribed())
                         onPacketCallback(relatedSignal->getSignalId(), packet);
                 }
             }
@@ -517,7 +517,7 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
 
     if (!inputSignal && !available)
     {
-        inputSignal = InputSignal(signalId, tableId, sInfo, false, domainInputSignal, logCallback);
+        inputSignal = InputSignal(signalId, tableId, sInfo, false, domainInputSignal, logCallback, subscribedSignal.constRuleStartMeta());
         hiddenSignals.insert({signalId, inputSignal});
         onHiddenStreamingSignalCb(signalId, sInfo);
         onHiddenDeviceSignalInitCb(signalId, sInfo);
@@ -527,7 +527,7 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
     else if (available && isPlaceHolderSignal(inputSignal))
     {
         bool subscribed = inputSignal->getSubscribed();
-        inputSignal = InputSignal(signalId, tableId, sInfo, false, domainInputSignal, logCallback);
+        inputSignal = InputSignal(signalId, tableId, sInfo, false, domainInputSignal, logCallback, subscribedSignal.constRuleStartMeta());
         inputSignal->setSubscribed(subscribed);
         availableSignals[signalId] = inputSignal;
         onAvailableSignalInitCb(signalId, sInfo);
@@ -568,7 +568,7 @@ void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSig
     if (!inputSignal && !available)
     {
         // the time signal was not published as available by server, add as hidden
-        inputSignal = InputSignal(timeSignalId, tableId, sInfo, true, nullptr, logCallback);
+        inputSignal = InputSignal(timeSignalId, tableId, sInfo, true, nullptr, logCallback, subscribedSignal.constRuleStartMeta());
         hiddenSignals.insert({timeSignalId, inputSignal});
         onHiddenStreamingSignalCb(timeSignalId, sInfo);
         onHiddenDeviceSignalInitCb(timeSignalId, sInfo);
@@ -576,7 +576,7 @@ void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSig
     else if (available && isPlaceHolderSignal(inputSignal))
     {
         bool subscribed = inputSignal->getSubscribed();
-        inputSignal = InputSignal(timeSignalId, tableId, sInfo, true, nullptr, logCallback);
+        inputSignal = InputSignal(timeSignalId, tableId, sInfo, true, nullptr, logCallback, subscribedSignal.constRuleStartMeta());
         inputSignal->setSubscribed(subscribed);
         availableSignals[timeSignalId] = inputSignal;
         // the time signal is published as available by server,
@@ -595,6 +595,10 @@ void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSig
             {
                 publishSignalChanges(inputDataSignal, false, true);
             }
+        }
+        if (auto constRuleSignal = std::dynamic_pointer_cast<InputConstantDataSignal>(inputSignal))
+        {
+            constRuleSignal->updateStartValue(subscribedSignal.constRuleStartMeta());
         }
         onSignalUpdatedCallback(timeSignalId, sInfo);
     }

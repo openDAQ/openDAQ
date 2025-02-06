@@ -168,13 +168,46 @@ bool InputExplicitDataSignal::isCountable() const
     return true;
 }
 
+template <typename Func>
+auto InputConstantDataSignal::callWithSampleType(daq::SampleType sampleType, Func&& func)
+{
+    switch (sampleType)
+    {
+        case daq::SampleType::Int8:
+            return func(daq::SampleTypeToType<daq::SampleType::Int8>::Type{});
+        case daq::SampleType::Int16:
+            return func(daq::SampleTypeToType<daq::SampleType::Int16>::Type{});
+        case daq::SampleType::Int32:
+            return func(daq::SampleTypeToType<daq::SampleType::Int32>::Type{});
+        case daq::SampleType::Int64:
+            return func(daq::SampleTypeToType<daq::SampleType::Int64>::Type{});
+        case daq::SampleType::UInt8:
+            return func(daq::SampleTypeToType<daq::SampleType::UInt8>::Type{});
+        case daq::SampleType::UInt16:
+            return func(daq::SampleTypeToType<daq::SampleType::UInt16>::Type{});
+        case daq::SampleType::UInt32:
+            return func(daq::SampleTypeToType<daq::SampleType::UInt32>::Type{});
+        case daq::SampleType::UInt64:
+            return func(daq::SampleTypeToType<daq::SampleType::UInt64>::Type{});
+        case daq::SampleType::Float32:
+            return func(daq::SampleTypeToType<daq::SampleType::Float32>::Type{});
+        case daq::SampleType::Float64:
+            return func(daq::SampleTypeToType<daq::SampleType::Float64>::Type{});
+        default:
+            throw std::invalid_argument("Unsupported sample type");
+    }
+}
+
 InputConstantDataSignal::InputConstantDataSignal(const std::string& signalId,
                                                  const std::string& tabledId,
                                                  const SubscribedSignalInfo& signalInfo,
                                                  const InputSignalBasePtr& domainSignal,
-                                                 streaming_protocol::LogCallback logCb)
+                                                 streaming_protocol::LogCallback logCb,
+                                                 const nlohmann::json& metaInfoStartValue)
     : InputSignalBase(signalId, tabledId, signalInfo, domainSignal, logCb)
+    , suppressDefaultStartValueWarnings(false)
 {
+    updateStartValue(metaInfoStartValue);
 }
 
 NumberPtr InputConstantDataSignal::calcDomainValue(const NumberPtr& startDomainValue, const uint64_t sampleIndex)
@@ -189,6 +222,8 @@ NumberPtr InputConstantDataSignal::calcDomainValue(const NumberPtr& startDomainV
 
 void InputConstantDataSignal::processSamples(const NumberPtr& absoluteStartDomainValue, const uint8_t* data, size_t sampleCount)
 {
+    std::scoped_lock lock(descriptorsSync);
+
     auto sampleType = currentDataDescriptor.getSampleType();
     const auto sampleSize = getSampleSize(sampleType);
     const auto bufferSize = sampleCount * (sampleSize + sizeof(uint64_t));
@@ -199,44 +234,20 @@ void InputConstantDataSignal::processSamples(const NumberPtr& absoluteStartDomai
         const uint8_t* pSignalValue = data + addrOffset + sizeof(uint64_t);
         auto domainValue = calcDomainValue(absoluteStartDomainValue, *pIndex);
 
-        SignalValueType signalValue;
-        switch (sampleType)
+        try
         {
-            case daq::SampleType::Int8:
-                signalValue = extractConstantValue<int8_t>(pSignalValue);
-                break;
-            case daq::SampleType::Int16:
-                signalValue = extractConstantValue<int16_t>(pSignalValue);
-                break;
-            case daq::SampleType::Int32:
-                signalValue = extractConstantValue<int32_t>(pSignalValue);
-                break;
-            case daq::SampleType::Int64:
-                signalValue = extractConstantValue<int64_t>(pSignalValue);
-                break;
-            case daq::SampleType::UInt8:
-                signalValue = extractConstantValue<uint8_t>(pSignalValue);
-                break;
-            case daq::SampleType::UInt16:
-                signalValue = extractConstantValue<uint16_t>(pSignalValue);
-                break;
-            case daq::SampleType::UInt32:
-                signalValue = extractConstantValue<uint32_t>(pSignalValue);
-                break;
-            case daq::SampleType::UInt64:
-                signalValue = extractConstantValue<uint64_t>(pSignalValue);
-                break;
-            case daq::SampleType::Float32:
-                signalValue = extractConstantValue<float>(pSignalValue);
-                break;
-            case daq::SampleType::Float64:
-                signalValue = extractConstantValue<double>(pSignalValue);
-                break;
-            default:
-                return;
+            auto extractConstantValue = [pSignalValue](const auto& typeTag)
+            {
+                using DataType = typename std::decay_t<decltype(typeTag)>;
+                return SignalValueType(*(reinterpret_cast<const DataType*>(pSignalValue)));
+            };
+            SignalValueType signalValue = callWithSampleType(sampleType, extractConstantValue);
+            cachedSignalValues.insert_or_assign(domainValue, signalValue);
         }
-
-        cachedSignalValues.insert_or_assign(domainValue, signalValue);
+        catch (...)
+        {
+            return;
+        }
     }
 }
 
@@ -253,6 +264,37 @@ uint32_t InputConstantDataSignal::calcPosition(const NumberPtr& startDomainValue
         return (domainValue.getFloatValue() - startDomainValue.getFloatValue()) / domainRuleDelta.getFloatValue();
     else
         return (domainValue.getIntValue() - startDomainValue.getIntValue()) / domainRuleDelta.getIntValue();
+}
+
+InputConstantDataSignal::CachedSignalValues::iterator InputConstantDataSignal::insertDefaultValue(const NumberPtr& domainValue)
+{
+    if (!suppressDefaultStartValueWarnings)
+    {
+        if (defaultStartValue.has_value())
+        {
+            STREAMING_PROTOCOL_LOG_W("Constant rule signal id \"{}\" (table \"{}\"): "
+                                     "packet start value isn't yet received, will use default start value from meta-info",
+                                     this->signalId,
+                                     this->tableId);
+        }
+        else
+        {
+            STREAMING_PROTOCOL_LOG_W("Constant rule signal id \"{}\" (table \"{}\"): "
+                                     "packet start value isn't yet received nor valid one provided in meta-info, will use default start value 0",
+                                     this->signalId,
+                                     this->tableId);
+        }
+        suppressDefaultStartValueWarnings = true; // log warning message just ones
+    }
+
+    auto createZeroValue = [](const auto& typeTag)
+    {
+        using DataType = typename std::decay_t<decltype(typeTag)>;
+        return SignalValueType(static_cast<DataType>(0));
+    };
+    SignalValueType zeroValue = callWithSampleType(currentDataDescriptor.getSampleType(), createZeroValue);
+    const auto result = cachedSignalValues.insert_or_assign(domainValue, defaultStartValue.value_or(zeroValue));
+    return result.first;
 }
 
 DataPacketPtr InputConstantDataSignal::generateDataPacket(const NumberPtr& /*packetOffset*/,
@@ -283,11 +325,21 @@ DataPacketPtr InputConstantDataSignal::generateDataPacket(const NumberPtr& /*pac
             itStart = it;
     }
 
-    // start value is not found
+    bool removeDefaultValueFromCache = false;
+    // appropriate start value is not found as it wasn't received as signal data
+    // temporary insert default value into cache and use it to generate packet
     if (itStart == cachedSignalValues.end())
     {
-        STREAMING_PROTOCOL_LOG_E("Fail to generate constant data packet: packet start value is unknown");
-        return nullptr;
+        try
+        {
+            itStart = insertDefaultValue(packetStartDomainValue);
+            removeDefaultValueFromCache = true;
+        }
+        catch (const std::exception& e)
+        {
+            STREAMING_PROTOCOL_LOG_E("Fail to generate constant data packet: {}", e.what());
+            return nullptr;
+        }
     }
 
     // start value found
@@ -310,32 +362,25 @@ DataPacketPtr InputConstantDataSignal::generateDataPacket(const NumberPtr& /*pac
     {
         cachedSignalValues.erase(cachedSignalValues.begin(), itStart);
     }
-
-    switch (currentDataDescriptor.getSampleType())
+    // erase temporary inserted default value
+    if (removeDefaultValueFromCache)
     {
-        case daq::SampleType::Int8:
-            return createTypedConstantPacket<int8_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        case daq::SampleType::Int16:
-            return createTypedConstantPacket<int16_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        case daq::SampleType::Int32:
-            return createTypedConstantPacket<int32_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        case daq::SampleType::Int64:
-            return createTypedConstantPacket<int64_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        case daq::SampleType::UInt8:
-            return createTypedConstantPacket<uint8_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        case daq::SampleType::UInt16:
-            return createTypedConstantPacket<uint16_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        case daq::SampleType::UInt32:
-            return createTypedConstantPacket<uint32_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        case daq::SampleType::UInt64:
-            return createTypedConstantPacket<uint64_t>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        case daq::SampleType::Float32:
-            return createTypedConstantPacket<float>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        case daq::SampleType::Float64:
-            return createTypedConstantPacket<double>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
-        default:
-            STREAMING_PROTOCOL_LOG_E("Fail to generate constant data packet: unsupported sample type");
-            return nullptr;
+        cachedSignalValues.erase(itStart);
+    }
+
+    try
+    {
+        auto createPacket = [&](const auto& typeTag)
+        {
+            using DataType = typename std::decay_t<decltype(typeTag)>;
+            return createTypedConstantPacket<DataType>(packetStartValue, packetOtherValues, sampleCount, domainPacket, currentDataDescriptor);
+        };
+        return callWithSampleType(currentDataDescriptor.getSampleType(), createPacket);
+    }
+    catch (const std::exception& e)
+    {
+        STREAMING_PROTOCOL_LOG_E("Fail to generate constant data packet: {}", e.what());
+        return nullptr;
     }
 }
 
@@ -349,10 +394,57 @@ bool InputConstantDataSignal::isCountable() const
     return false;
 }
 
-template<typename DataType>
-InputConstantDataSignal::SignalValueType InputConstantDataSignal::extractConstantValue(const uint8_t* pValue)
+void InputConstantDataSignal::updateStartValue(const nlohmann::json& metaInfoStartValue)
 {
-    return SignalValueType(*(reinterpret_cast<const DataType*>(pValue)));
+    std::scoped_lock lock(descriptorsSync);
+
+    try
+    {
+        auto getValueFromJson = [&metaInfoStartValue](const auto& typeTag)
+        {
+            using DataType = typename std::decay_t<decltype(typeTag)>;
+            return SignalValueType(convertToNumeric<DataType>(metaInfoStartValue));
+        };
+        defaultStartValue = callWithSampleType(currentDataDescriptor.getSampleType(), getValueFromJson);
+        suppressDefaultStartValueWarnings = false;
+    }
+    catch (const std::exception& e)
+    {
+        STREAMING_PROTOCOL_LOG_I("Cannot get default start value from signal meta-info: {}", e.what());
+    }
+}
+
+template<typename DataType>
+DataType InputConstantDataSignal::convertToNumeric(const nlohmann::json& jsonNumeric)
+{
+    if (jsonNumeric.is_null())
+        throw std::invalid_argument("No value provided");
+
+    if (!jsonNumeric.is_number())
+        throw std::invalid_argument("JSON value is not number");
+
+    if constexpr (std::is_floating_point<DataType>::value)
+    {
+        double numeric = jsonNumeric.get<double>();
+        if (numeric < std::numeric_limits<DataType>::min() || numeric > std::numeric_limits<DataType>::max())
+            throw std::out_of_range("Value out of range");
+        return static_cast<DataType>(numeric);
+    }
+    else if constexpr (std::is_signed<DataType>::value)
+    {
+        int64_t numeric = jsonNumeric.get<int64_t>();
+        if (numeric < std::numeric_limits<DataType>::min() || numeric > std::numeric_limits<DataType>::max())
+            throw std::out_of_range("Value out of range");
+        return static_cast<DataType>(numeric);
+    }
+    else if constexpr (std::is_unsigned<DataType>::value)
+    {
+        uint64_t numeric = jsonNumeric.get<uint64_t>();
+        if (numeric < std::numeric_limits<DataType>::min() || numeric > std::numeric_limits<DataType>::max())
+            throw std::out_of_range("Value out of range");
+        return static_cast<DataType>(numeric);
+    }
+    throw std::invalid_argument("Conversion failed - invalid sample type");
 }
 
 template<typename DataType>

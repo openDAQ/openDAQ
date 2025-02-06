@@ -4,9 +4,6 @@
 
 
 
-> [!CAUTION]
-> Breaks binary compatibility
-
 # Description
 
 (Individual high-level changes)
@@ -29,9 +26,21 @@ In terminal use:
 cd folder
 ```
 
+# API changes
+
+> [!NOTE]
+> Modifying, removing, or adding a function to an interface inherited by another breaks binary compatibility of module shared libraries
+
+(An overview of changes on the interface level (abstract structs with pure virtual functions), if any, one function per line)
+
+```diff
++ this
+- that
+```
+
 # Required application changes
 
-(Changes to integration of openDAQ required for client integration to work after a version update, otherwise write "None.")
+(Changes required in openDAQ applications/executables)
 
 - (E.g. change renamed function name)
 - ...
@@ -50,7 +59,7 @@ bar();
 
 # Required module changes
 
-(Describe how we broke module integration and how to fix it, otherwise write "None.")
+(Changes required in openDAQ shared libraries/modules)
 
 - (E.g. change renamed function name)
 - ...
@@ -65,13 +74,4 @@ Do:
 
 ```cpp
 bar();
-```
-
-# API changes
-
-(An overview of changes on the interface level (abstract structs with pure virtual functions), if any, one function per line)
-
-```diff
-+ this
-- that
 ```

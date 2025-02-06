@@ -664,6 +664,7 @@ BaseObjectPtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionB
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
 {
+    Super::onOperationModeChanged(modeType);
     bool active = modeType != OperationModeType::Idle;
     for (const auto& signal : signals.getItems())
     {

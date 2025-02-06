@@ -1073,19 +1073,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getConnectionStatusContainer(I
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
+void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType /* modeType */)
 {
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
 {
-    for (const auto& component : this->components)
-    {
-        auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
-        if (componentPrivate.assigned() && component.getLocalId() != "Dev")
-            componentPrivate.updateOperationMode(modeType);
-    }
+    Super::onOperationModeChanged(modeType);
 
     if (includeSubDevices)
     {

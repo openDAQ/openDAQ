@@ -105,7 +105,6 @@ public:
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
 
-
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
     ErrCode INTERFACE_FUNC isRemoved(Bool* removed) override;

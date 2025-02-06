@@ -150,6 +150,9 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+
 protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
@@ -213,9 +216,6 @@ protected:
     virtual PropertyObjectPtr onRetrieveNetworkConfiguration(const StringPtr& ifaceName);
     virtual Bool onGetNetworkConfigurationEnabled();
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
-
-    void onOperationModeChanged(OperationModeType modeType) override;
-
 
     DevicePtr getParentDevice();
 
@@ -1073,19 +1073,24 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getConnectionStatusContainer(I
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType /* modeType */)
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType modeType)
 {
+    return OPENDAQ_IGNORED;
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
 {
-    Super::onOperationModeChanged(modeType);
+    Super::updateOperationMode(modeType);
 
     if (includeSubDevices)
     {
         for (const DevicePtr & dev: this->devices.getItems())
-            dev->setOperationMode(modeType, includeSubDevices);
+        {
+            const ErrCode errCode = dev->setOperationMode(modeType, includeSubDevices);
+            if (OPENDAQ_FAILED(errCode))
+                return errCode;
+        }
     }
     return OPENDAQ_SUCCESS;
 }
@@ -1424,18 +1429,18 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
 
-    return daqTry(
-        [this, &configuration]() {
-            auto serializer = JsonSerializer(True);
+    return daqTry([this, &configuration]
+    {
+        auto serializer = JsonSerializer(True);
 
-            checkErrorInfo(this->serialize(serializer));
+        checkErrorInfo(this->serialize(serializer));
 
-            auto str = serializer.getOutput();
+        auto str = serializer.getOutput();
 
-            *configuration = str.detach();
+        *configuration = str.detach();
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <typename TInterface, typename ... Interfaces>

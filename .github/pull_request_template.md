@@ -28,11 +28,9 @@ In terminal use:
 cd folder
 ```
 
-# Required integration changes
+# Required application changes
 
-## Breaking application changes
-
-(Changes to integration of openDAQ required for integration to work after a version update, otherwise write "None.")
+(Changes to integration of openDAQ required for client integration to work after a version update, otherwise write "None.")
 
 - (E.g. change renamed function name)
 - ...
@@ -49,7 +47,7 @@ Do:
 bar();
 ```
 
-## Breaking module changes
+# Required module changes
 
 (Describe how we broke module integration and how to fix it, otherwise write "None.")
 

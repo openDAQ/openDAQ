@@ -123,7 +123,8 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
     StringPtr lastProccessDescription = "";
-    ErrCode errCode = daqTry([&]() {
+    ErrCode errCode = daqTry([&]
+    {
         if (const auto& introIt = introspectionVariableIdMap.find(propertyNamePtr); introIt != introspectionVariableIdMap.cend())
         {
             const auto variant = client->readValue(introIt->second);
@@ -145,7 +146,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     });
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object", propertyNamePtr);
+        LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
     }
     return OPENDAQ_SUCCESS;
 }
@@ -282,7 +283,9 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
     for (auto& [childNodeId, ref] : references.byNodeId)
     {
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
-        const auto propName = String(utils::ToStdString(ref->browseName.name));
+        auto propName = String(utils::ToStdString(ref->browseName.name));
+        if (propBrowseName.count(propName))
+            propName = propBrowseName[propName];
         if (detail::ignoredPropertyNames.count(propName))
             continue;
 
@@ -299,7 +302,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
                     prop = ReferenceProperty(propName, EvalValue(refPropEval));
                 }
 
-                referenceVariableIdMap.insert(std::pair(propName, childNodeId));
+                referenceVariableIdMap.emplace(propName, childNodeId);
                 addProperties(childNodeId, orderedProperties, unorderedProperties);
             }
             catch(const std::exception& e)
@@ -314,9 +317,9 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             try
             {
                 if (!hasProp)
-                    prop = TmsClientProperty(daqContext, clientContext, ref->nodeId.nodeId);
+                    prop = TmsClientProperty(daqContext, clientContext, ref->nodeId.nodeId, propName);
 
-                introspectionVariableIdMap.insert(std::pair(propName, childNodeId));
+                introspectionVariableIdMap.emplace(propName, childNodeId);
             }
             catch(const std::exception& e)
             {
@@ -331,7 +334,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
                 if (!hasProp)
                     prop = addVariableBlockProperty(propName, childNodeId);
 
-                objectTypeIdMap.insert(std::pair(propName, childNodeId));
+                objectTypeIdMap.emplace(propName, childNodeId);
             }
             catch (const std::exception& e)
             {
@@ -344,7 +347,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
         {
             auto numberInList = tryReadChildNumberInList(childNodeId);
             if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedProperties.count(numberInList))
-                orderedProperties.insert(std::pair<uint32_t, PropertyPtr>(numberInList, prop));
+                orderedProperties.emplace(numberInList, prop);
             else
                 unorderedProperties.push_back(prop);
         }
@@ -423,9 +426,9 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
                     func = TmsClientProcedure(clientContext, daqContext, parentNodeId, childNodeId);
                 }
 
-                functionPropValues.insert(std::pair<std::string, BaseObjectPtr>(propName, func));
+                functionPropValues.emplace(propName, func);
                 if (numberInList != std::numeric_limits<uint32_t>::max() && !orderedProperties.count(numberInList))
-                    orderedProperties.insert(std::pair<uint32_t, PropertyPtr>(numberInList, prop));
+                    orderedProperties.emplace(numberInList, prop);
                 else
                     unorderedProperties.push_back(prop);
             }

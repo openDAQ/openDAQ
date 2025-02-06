@@ -67,6 +67,11 @@ Vagrant.configure("2") do |config|
     chmod +x /home/opendaq/opendaq/application_simulator
     SCRIPT
 
+    # Add the sudoers configuration to allow netplan modifications without password
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    echo "opendaq ALL=(ALL) NOPASSWD: /usr/bin/python3 /home/opendaq/netplan_manager.py *" | sudo tee -a /etc/sudoers > /dev/null
+    SCRIPT
+
     # Remove unused packages
     list_packages = <<-SCRIPT
     dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 30
@@ -90,10 +95,10 @@ Vagrant.configure("2") do |config|
     SCRIPT
     config.vm.provision :shell, :inline => list_packages
 
-    # Install avahi daemon and fb module dependencies
+    # Install fb module dependencies
     config.vm.provision :shell, :inline => <<-SCRIPT
     sudo apt-get update
-    sudo apt-get install -y --no-install-recommends avahi-daemon net-tools libxcursor-dev libxrandr-dev
+    sudo apt-get install -y --no-install-recommends net-tools libxcursor-dev libxrandr-dev
     SCRIPT
 
     # Modify netplan to make VM export/import easier
@@ -104,13 +109,13 @@ Vagrant.configure("2") do |config|
     SCRIPT
 
     # Get files to /tmp/
-    config.vm.provision "file", source: "opcuatms.service", destination: "/tmp/opcuatms.service"
     config.vm.provision "file", source: "opendaq-config.json", destination: "/tmp/opendaq-config.json"
     config.vm.provision "file", source: "simulator.service", destination: "/tmp/simulator.service"
     config.vm.provision "file", source: "configurator.py", destination: "/tmp/configurator.py"
+    config.vm.provision "file", source: "netplan_manager.py", destination: "/tmp/netplan_manager.py"
 
     # Copy files to /home/opendaq/
-    config.vm.provision "shell", inline: "cp /tmp/{opcuatms.service,opendaq-config.json,simulator.service,configurator.py} /home/opendaq/"
+    config.vm.provision "shell", inline: "cp /tmp/{opendaq-config.json,simulator.service,configurator.py,netplan_manager.py} /home/opendaq/"
 
     # Move systemd service file
     config.vm.provision "shell", inline: "mv /home/opendaq/simulator.service /etc/systemd/system/"
@@ -118,9 +123,15 @@ Vagrant.configure("2") do |config|
     # Make systemd service run on boot (before login)
     config.vm.provision "shell", inline: "sudo systemctl enable simulator"
 	
-	# Set permissions
+    # Set permissions
     config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /home/opendaq/"
-    config.vm.provision "shell", inline: "sudo chown opendaq:opendaq -hR /etc/avahi/services/"
+
+    # Modify systemd-networkd-wait-online.service reducing timeout
+    # The timeout takes place when network is offline - "cable no connected" or DHCP mode disabled
+    config.vm.provision :shell, :inline => <<-SCRIPT
+    sed -i 's|ExecStart=/lib/systemd/systemd-networkd-wait-online.*|ExecStart=/lib/systemd/systemd-networkd-wait-online --interface=enp0s3 --ipv4 --ipv6 --timeout=10|' \
+    /etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service
+    SCRIPT
 
     # Reduce memory usage
     config.vm.provision :shell, :inline => <<-SCRIPT

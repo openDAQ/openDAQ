@@ -42,7 +42,7 @@ protected:
 
     void signalAvailableHandler(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void signalUnavailableHandler(const StringPtr& signalStringId);
-    void connectionStatusChangedHandler(const EnumerationPtr& status);
+    void connectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
     void publishConnectionStatus();
     void createNativeStreaming(opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
                                std::shared_ptr<boost::asio::io_context> processingIOContextPtr,

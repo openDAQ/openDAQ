@@ -248,7 +248,10 @@ void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
 
 std::shared_ptr<ServerSessionHandler> NativeStreamingServerHandler::releaseSessionHandlerInternal(SessionPtr session, bool enableSyncLock)
 {
-    std::shared_ptr<ServerSessionHandler> removedSessionHandler;  // keep object outside the scoped lock
+    std::shared_ptr<ServerSessionHandler> removedSessionHandler;
+    // keep session handler object outside the scoped lock as it holds reference to config protocol server object
+    // which being released along with the session handler might remove client-to-device streaming signals if exist
+    // so will call NativeStreamingServerHandler::removeComponentSignals(const StringPtr& componentId)
 
     {
         std::unique_lock lock(sync, std::defer_lock);
@@ -320,29 +323,45 @@ void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjec
         StringPtr clientId = propertyObject.getPropertyValue("ClientId");
         Bool reconnected = propertyObject.getPropertyValue("Reconnected");
 
+        // session handler object have to be released outside the sync lock
+        // see `releaseSessionHandlerInternal` for details
+        std::shared_ptr<ServerSessionHandler> removedObsoleteSessionHandler;
+        bool doRegisterSessionWithClientId = true;
         {
             std::scoped_lock lock(sync);
 
             if (auto clientIter = sessionHandlers.find(clientId); clientIter != sessionHandlers.end())
             {
-                LOG_W("Client with id {} is already registered", clientId);
-                return;
+                if (reconnected)
+                {
+                    LOG_W("Client with id {} reconnected, removing obsolete session", clientId);
+                    removedObsoleteSessionHandler = releaseSessionHandlerInternal(clientIter->second->getSession(), false);
+                }
+                else
+                {
+                    LOG_W("Client with id {} is already registered", clientId);
+                    doRegisterSessionWithClientId = false;
+                }
             }
 
-            auto clientIdAssignedByServer = sessionHandler->getClientId();
-            if (auto clientIter = sessionHandlers.find(clientIdAssignedByServer); clientIter != sessionHandlers.end())
+            if (doRegisterSessionWithClientId)
             {
-                auto item = sessionHandlers.extract(clientIter);
-                item.key() = clientId.toStdString();
-                sessionHandlers.insert(std::move(item));
-            }
-            else
-            {
-                throw NativeStreamingProtocolException(fmt::format("Client with id {} is not registered", clientIdAssignedByServer));
+                auto clientIdAssignedByServer = sessionHandler->getClientId();
+                if (auto clientIter = sessionHandlers.find(clientIdAssignedByServer); clientIter != sessionHandlers.end())
+                {
+                    auto item = sessionHandlers.extract(clientIter);
+                    item.key() = clientId.toStdString();
+                    sessionHandlers.insert(std::move(item));
+                }
+                else
+                {
+                    throw NativeStreamingProtocolException(fmt::format("Client with id {} is not registered", clientIdAssignedByServer));
+                }
             }
         }
 
-        sessionHandler->setClientId(clientId.toStdString());
+        if (doRegisterSessionWithClientId)
+            sessionHandler->setClientId(clientId.toStdString());
         sessionHandler->setReconnected(reconnected);
     }
     else
@@ -413,7 +432,8 @@ void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<
 void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerSessionHandler> sessionHandler,
                                                          config_protocol::PacketBuffer&& firstPacketBuffer)
 {
-    // session hanlders have to be relaeased outside the sync lock
+    // session handlers have to be released outside the sync lock
+    // see `releaseSessionHandlerInternal` for details
     std::vector<std::shared_ptr<ServerSessionHandler>> releasedSessions;
 
     {

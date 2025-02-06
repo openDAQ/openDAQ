@@ -47,7 +47,7 @@ public:
     ErrCode INTERFACE_FUNC moveModuleManager(IModuleManager** manager) override;
     ErrCode INTERFACE_FUNC getOptions(IDict** options) override;
     ErrCode INTERFACE_FUNC getModuleOptions(IString* moduleId, IDict** options) override;
-    ErrCode INTERFACE_FUNC getDiscoveryServers(IDict** services) override;
+    ErrCode INTERFACE_FUNC getDiscoveryServers(IDict** servers) override;
 
 private:
     void componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
@@ -61,7 +61,7 @@ private:
     AuthenticationProviderPtr authenticationProvider;
     EventEmitter<ComponentPtr, CoreEventArgsPtr> coreEvent;
     DictPtr<IString, IBaseObject> options;
-    DictPtr<IString, IDiscoveryServer> discoveryServices;
+    DictPtr<IString, IDiscoveryServer> discoveryServers;
 };
 
 END_NAMESPACE_OPENDAQ

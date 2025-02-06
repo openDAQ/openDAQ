@@ -149,7 +149,7 @@ ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)
     }
     else
     {
-        LOG_I("Client was not registered");
+        LOG_I("Client {} was not registered as streaming client", clientId);
         return List<ISignal>();
     }
 

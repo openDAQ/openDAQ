@@ -24,8 +24,12 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent
     , signalContextIndex(0)
     , inputPortCount(0)
     , axisColor(150, 150, 150)
+    , futureComponentStatus(ComponentStatus::Ok)
+    , futureComponentMessage("")
 {
     initComponentStatus();
+    futureComponentStatus = ComponentStatus::Ok;
+    futureComponentMessage = "";
     initProperties();
     updateInputPorts();
 

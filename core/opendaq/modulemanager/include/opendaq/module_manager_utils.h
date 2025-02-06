@@ -116,6 +116,33 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * The local ID of created server component is equal to the name of the server type.
      */
     virtual ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr) = 0;
+
+    /*!
+     * @brief Initiates the modification of IP configuration parameters for a specified network interface associated with a target device.
+     * @param iface The name of the network interface whose IP configuration parameters need to be updated.
+     * @param manufacturer The manufacturer's name identifying the device owning the network interface.
+     * @param serialNumber The serial number of the device owning the network interface.
+     * @param config A property object containing the configuration parameters to be applied.
+     *
+     * The manufacturer name and serial number are used to uniquely identify the target device. Once the config modification is invoked,
+     * the new config parameters are advertised via multicast to all devices in the subnet. The target device compares the received
+     * identification parameters with its own and, if they match, attempts to apply the new configuration parameters for the specified interface.
+     */
+    virtual ErrCode INTERFACE_FUNC changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config) = 0;
+
+    /*!
+     * @brief Attempts to retrieve the current IP configuration parameters for a specified network interface associated with a target device.
+     * @param iface The name of the network interface whose IP configuration parameters are to be retrieved.
+     * @param manufacturer The manufacturer's name identifying the device owning the network interface.
+     * @param serialNumber The serial number of the device owning the network interface.
+     * @param[out] config A property object where the retrieved configuration parameters are stored.
+     *
+     * The manufacturer name and serial number are used to uniquely identify the target device. The method queries the current
+     * IP configuration parameters of the specified network interface via multicast addressing query to all devices in the subnet.
+     * The target device compares the received identification parameters with its own and, if they match, attempts to retrieve
+     * the currently active configuration parameters for the specified interface.
+     */
+    virtual ErrCode INTERFACE_FUNC requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config) = 0;
 };
 /*!@}*/
 

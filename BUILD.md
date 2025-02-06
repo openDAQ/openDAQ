@@ -4,6 +4,8 @@ Basic building instructions can be found in [README.md](README.md) document.
 
 # Additional building options
 
+The complete list of build options can be found in [CMake-Options.md](CMake-Options.md) document.
+
 ## BOOST
 
 If you want to use a **custom BOOST version**:

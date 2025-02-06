@@ -16,33 +16,77 @@
  */
 
 #include <discovery_server/mdnsdiscovery_server.h>
+#include <discovery_common/daq_discovery_common.h>
+#include <stdexcept>
 #ifdef _WIN32
     #define _CRT_SECURE_NO_WARNINGS 1
 #endif
 
 BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
-MdnsDiscoveredDevice::MdnsDiscoveredDevice(const std::string& serviceName, uint32_t servicePort, const std::unordered_map<std::string, std::string>& properties)
+MdnsDiscoveredService::MdnsDiscoveredService(const std::string& serviceName,
+                                             uint32_t servicePort,
+                                             const std::unordered_map<std::string, std::string>& properties,
+                                             const daq::PropertyObjectPtr& deviceInfo)
     : serviceName(serviceName)
     , servicePort(servicePort)
     , properties(std::move(properties))
+    , deviceInfo(deviceInfo)
 {
     if (this->serviceName.back() != '.')
         this->serviceName += ".";
+
+    this->staticRecordSize = 1024;
+    for (const auto& prop : deviceInfo.getAllProperties())
+    {
+        if ((Int)prop.getValueType() <= (Int)CoreType::ctString)
+        {
+            std::string key = prop.getName();
+            if (prop.getReadOnly())
+            {
+                std::string value = prop.getValue();
+                this->properties[key] = value;
+                staticRecordSize += key.size() + value.size() + 2;
+            }
+            else
+            {
+                dynamicProperties.push_back({key, ""});
+            }
+        }
+    }
+    this->recordSize = staticRecordSize;
 }
 
-void MdnsDiscoveredDevice::populateRecords(std::vector<mdns_record_t>& records) const 
+size_t MdnsDiscoveredService::size() const
 {
+    return properties.size() + dynamicProperties.size();
+}
+
+mdns_record_t MdnsDiscoveredService::createTxtRecord(const std::string& key, const std::string& value) const
+{
+    mdns_record_t record;
+    record.name = {serviceInstance.c_str(), serviceInstance.size()},
+    record.type = MDNS_RECORDTYPE_TXT,
+    record.data.txt.key = {key.c_str(), key.size()},
+    record.data.txt.value = {value.c_str(), value.size()},
+    record.rclass = 0,
+    record.ttl = 0;
+    return record;
+}
+
+void MdnsDiscoveredService::populateRecords(std::vector<mdns_record_t>& records) const
+{
+    this->recordSize = this->staticRecordSize;
     for (const auto & [key, value] : properties)
     {
-        mdns_record_t record;
-        record.name = {serviceInstance.c_str(), serviceInstance.size()},
-        record.type = MDNS_RECORDTYPE_TXT,
-        record.data.txt.key = {key.c_str(), key.size()},
-        record.data.txt.value = {value.c_str(), value.size()},
-        record.rclass = 0,
-        record.ttl = 0;
-        records.push_back(record);
+        records.push_back(createTxtRecord(key, value));
+    }
+
+    for (auto & [key, value] : dynamicProperties)
+    {
+        value = (std::string)deviceInfo.getPropertyValue(key);
+        records.push_back(createTxtRecord(key, value));
+        this->recordSize += key.size() + value.size() + 2;
     }
 }
 
@@ -53,11 +97,13 @@ std::string MDNSDiscoveryServer::getHostname()
 
 #ifdef _WIN32
     DWORD hostname_size = sizeof(hostname_buffer);
-    if (GetComputerNameA(hostname_buffer, &hostname_size)) {
+    if (GetComputerNameA(hostname_buffer, &hostname_size))
+    {
         hostname = hostname_buffer;
     }
 #else
-    if (gethostname(hostname_buffer, sizeof(hostname_buffer)) == 0) {
+    if (gethostname(hostname_buffer, sizeof(hostname_buffer)) == 0)
+    {
         hostname = hostname_buffer;
     }
 #endif
@@ -71,9 +117,8 @@ MDNSDiscoveryServer::MDNSDiscoveryServer(void)
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
     if (WSAStartup(versionWanted, &wsaData))
-    {
-        printf("Failed to initialize WinSock\n");
-    }
+        throw std::runtime_error("MDNSDiscoveryServer: Failed to initialize WinSock");
+
 #endif
     hostName = getHostname();
     openServerSockets(sockets);
@@ -84,9 +129,7 @@ void MDNSDiscoveryServer::start()
     if (!running)
     {
         if (serviceThread.joinable())
-        {
             serviceThread.join();
-        }
 
         std::lock_guard<std::mutex> lock(mx);
         if (!running)
@@ -97,25 +140,24 @@ void MDNSDiscoveryServer::start()
     }
 }
 
-mdns_record_t MDNSDiscoveryServer::createPtrRecord(const MdnsDiscoveredDevice& device) const
+mdns_record_t MDNSDiscoveryServer::createPtrRecord(const MdnsDiscoveredService& service) const
 {
     mdns_record_t recordPtr;
-    recordPtr.name = {device.serviceName.c_str(), device.serviceName.size()},
+    recordPtr.name = {service.serviceName.c_str(), service.serviceName.size()},
     recordPtr.type = MDNS_RECORDTYPE_PTR,
-    recordPtr.data.ptr.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
+    recordPtr.data.ptr.name = {service.serviceInstance.c_str(), service.serviceInstance.size()},
     recordPtr.rclass = 0,
     recordPtr.ttl = 0;
     return recordPtr;
 }
 
-mdns_record_t MDNSDiscoveryServer::createSrvRecord(const MdnsDiscoveredDevice& device) const
+mdns_record_t MDNSDiscoveryServer::createSrvRecord(const MdnsDiscoveredService& service) const
 {
-
     mdns_record_t recordSrv;
-    recordSrv.name = {device.serviceInstance.c_str(), device.serviceInstance.size()},
+    recordSrv.name = {service.serviceInstance.c_str(), service.serviceInstance.size()},
     recordSrv.type = MDNS_RECORDTYPE_SRV,
-    recordSrv.data.srv.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
-    recordSrv.data.srv.port = device.servicePort,
+    recordSrv.data.srv.name = {service.serviceQualified.c_str(), service.serviceQualified.size()},
+    recordSrv.data.srv.port = service.servicePort,
     recordSrv.data.srv.priority = 0,
     recordSrv.data.srv.weight = 0,
     recordSrv.rclass = 0,
@@ -123,10 +165,10 @@ mdns_record_t MDNSDiscoveryServer::createSrvRecord(const MdnsDiscoveredDevice& d
     return recordSrv;
 }
 
-mdns_record_t MDNSDiscoveryServer::createARecord(const MdnsDiscoveredDevice& device) const
+mdns_record_t MDNSDiscoveryServer::createARecord(const MdnsDiscoveredService& service) const
 {
     mdns_record_t recordA;
-    recordA.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
+    recordA.name = {service.serviceQualified.c_str(), service.serviceQualified.size()},
     recordA.type = MDNS_RECORDTYPE_A,
     recordA.data.a.addr = serviceAddressIpv4,
     recordA.rclass = 0,
@@ -134,10 +176,10 @@ mdns_record_t MDNSDiscoveryServer::createARecord(const MdnsDiscoveredDevice& dev
     return recordA;
 }
 
-mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredDevice& device) const
+mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredService& service) const
 {
     mdns_record_t recordAAA;
-    recordAAA.name = {device.serviceQualified.c_str(), device.serviceQualified.size()},
+    recordAAA.name = {service.serviceQualified.c_str(), service.serviceQualified.size()},
     recordAAA.type = MDNS_RECORDTYPE_AAAA,
     recordAAA.data.aaaa.addr = serviceAddressIpv6,
     recordAAA.rclass = 0,
@@ -145,79 +187,133 @@ mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredDevice& 
     return recordAAA;
 }
 
-bool MDNSDiscoveryServer::addDevice(const std::string& id, MdnsDiscoveredDevice& device)
+void MDNSDiscoveryServer::populateTxtRecords(const std::string& recordName,
+                                             const discovery_common::TxtProperties& props,
+                                             std::vector<mdns_record_t>& records) const
 {
-    device.serviceInstance = hostName + "." + device.serviceName;
-    device.serviceQualified = hostName + ".local.";
-
-    std::vector<mdns_record_t> records;
-    records.reserve(device.properties.size() + 3);
-    records.push_back(createSrvRecord(device));
-    if (serviceAddressIpv4.sin_family == AF_INET)
-        records.push_back(createARecord(device));
-    if (serviceAddressIpv6.sin6_family == AF_INET6)
-        records.push_back(createAaaaRecord(device));
-    device.populateRecords(records);
-
-    std::vector<char> buffer(2048);
-    for (const auto & socket : sockets)
+    for (const auto & [key, value] : props)
     {
-        mdns_announce_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
+        mdns_record_t record;
+        record.name = {recordName.c_str(), recordName.size()},
+        record.type = MDNS_RECORDTYPE_TXT,
+        record.data.txt.key = {key.c_str(), key.size()},
+        record.data.txt.value = {value.c_str(), value.size()},
+        record.rclass = MDNS_CLASS_IN,
+        record.ttl = 0;
+        records.push_back(record);
     }
+}
+
+bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredService& service)
+{
+    std::string serviceName = hostName;
+
+    auto manufacturer = service.properties["manufacturer"];
+    auto serialNumber = service.properties["serialNumber"];
+    if (!manufacturer.empty() && !serialNumber.empty())
+        serviceName = manufacturer + "_" + serialNumber;
+    else
+        fprintf(stderr, "MDNSDiscoveryServer: Manufacturer and serial number not provided for service %s. It can cause mdns conflict\n", id.c_str());
+
+    service.serviceInstance = serviceName + "." + service.serviceName;
+    service.serviceQualified = hostName + ".local.";
 
     bool success = false;
     {
         std::lock_guard<std::mutex> lock(mx);
-        success = devices.emplace(id, device).second;
+        success = services.emplace(id, service).second;
+    }
+    if (success)
+    {
+        std::vector<mdns_record_t> records;
+        records.reserve(service.size() + 3);
+        records.push_back(createSrvRecord(service));
+        if (serviceAddressIpv4.sin_family == AF_INET)
+            records.push_back(createARecord(service));
+        if (serviceAddressIpv6.sin6_family == AF_INET6)
+            records.push_back(createAaaaRecord(service));
+        service.populateRecords(records);
+
+        std::vector<char> buffer(service.recordSize);
+        for (const auto & socket : sockets)
+            mdns_announce_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(service), 0, 0, records.data(), records.size());
+
+        start();
     }
 
-    start();
     return success;
 }
 
-void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredDevice& device)
+void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredService& service)
 {
-        std::vector<mdns_record_t> records;
-        records.reserve(device.properties.size() + 3);
-        records.push_back(createSrvRecord(device));
-        if (serviceAddressIpv4.sin_family == AF_INET)
-            records.push_back(createARecord(device));
-        if (serviceAddressIpv6.sin6_family == AF_INET6)
-            records.push_back(createAaaaRecord(device));
-        device.populateRecords(records);
+    std::vector<mdns_record_t> records;
+    records.reserve(service.size() + 3);
+    records.push_back(createSrvRecord(service));
+    if (serviceAddressIpv4.sin_family == AF_INET)
+        records.push_back(createARecord(service));
+    if (serviceAddressIpv6.sin6_family == AF_INET6)
+        records.push_back(createAaaaRecord(service));
+    service.populateRecords(records);
 
-        std::vector<char> buffer(2048);
-        for (const auto & socket : sockets)
-        {
-            mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(device), 0, 0, records.data(), records.size());
-        }
+    std::vector<char> buffer(service.recordSize);
+    for (const auto & socket : sockets)
+        mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(service), 0, 0, records.data(), records.size());
 }
 
-bool MDNSDiscoveryServer::removeDevice(const std::string& id)
+bool MDNSDiscoveryServer::unregisterService(const std::string& id)
 {
     bool success = false;
     std::lock_guard<std::mutex> lock(mx);
-    auto it = devices.find(id);
-    if (it != devices.end())
+    auto it = services.find(id);
+    if (it != services.end())
     {
-        success = false;
+        success = true;
         goodbyeMulticast(it->second);
-        devices.erase(it);
+        services.erase(it);
     }
 
     return success;
+}
+
+bool MDNSDiscoveryServer::registerIpModificationService(MdnsDiscoveredService& service,
+                                                        const ModifyIpConfigCallback& modifyIpConfigCb,
+                                                        const RetrieveIpConfigCallback& retrieveIpConfigCb)
+{
+    this->manufacturer = service.properties["manufacturer"];
+    this->serialNumber = service.properties["serialNumber"];
+    this->modifyIpConfigCallback = modifyIpConfigCb;
+    this->retrieveIpConfigCallback = retrieveIpConfigCb;
+
+    return registerService(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID, service);
+}
+
+bool MDNSDiscoveryServer::unregisterIpModificationService()
+{
+    this->manufacturer = "";
+    this->serialNumber = "";
+    this->modifyIpConfigCallback = nullptr;
+    this->retrieveIpConfigCallback = nullptr;
+
+    return unregisterService(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID);
+}
+
+bool MDNSDiscoveryServer::isServiceRegistered(const std::string& id)
+{
+    std::lock_guard<std::mutex> lock(mx);
+    if (auto it = services.find(id); it != services.end())
+        return true;
+    return false;
 }
 
 void MDNSDiscoveryServer::stop()
 {
     running = false;
     if (serviceThread.joinable())
-        serviceThread.join();
-
-    for (const auto & [_, device] : devices)
     {
-        goodbyeMulticast(device);
+        serviceThread.join();
     }
+    for (const auto & [_, service] : services)
+        goodbyeMulticast(service);
 }
 
 MDNSDiscoveryServer::~MDNSDiscoveryServer(void)
@@ -242,13 +338,14 @@ void MDNSDiscoveryServer::serviceLoop()
                            uint16_t rtype,
                            uint16_t rclass,
                            uint32_t ttl,
-                           const void* data,
+                           const void* buffer,
                            size_t size,
                            size_t name_offset,
                            size_t name_length,
-                           size_t record_offset,
-                           size_t record_length,
-                           void* user_data) -> int
+                           size_t rdata_offset,
+                           size_t rdata_length,
+                           void* user_data,
+                           uint8_t opcode) -> int
     {
         return serviceCallback(sock,
                                from,
@@ -258,13 +355,14 @@ void MDNSDiscoveryServer::serviceLoop()
                                rtype,
                                rclass,
                                ttl,
-                               data,
+                               buffer,
                                size,
                                name_offset,
                                name_length,
-                               record_offset,
-                               record_length,
-                               user_data);
+                               rdata_offset,
+                               rdata_length,
+                               user_data,
+                               opcode);
     };
 
     auto callbackWrapper = [](int sock,
@@ -275,13 +373,14 @@ void MDNSDiscoveryServer::serviceLoop()
                               uint16_t rtype,
                               uint16_t rclass,
                               uint32_t ttl,
-                              const void* data,
+                              const void* buffer,
                               size_t size,
                               size_t name_offset,
                               size_t name_length,
-                              size_t record_offset,
-                              size_t record_length,
-                              void* user_data) -> int
+                              size_t rdata_offset,
+                              size_t rdata_length,
+                              void* user_data,
+                              uint8_t opcode) -> int
     {
         return (*static_cast<decltype(callback)*>(user_data)) (sock,
                                from,
@@ -291,13 +390,14 @@ void MDNSDiscoveryServer::serviceLoop()
                                rtype,
                                rclass,
                                ttl,
-                               data,
+                               buffer,
                                size,
                                name_offset,
                                name_length,
-                               record_offset,
-                               record_length,
-                               nullptr);
+                               rdata_offset,
+                               rdata_length,
+                               nullptr,
+                               opcode);
     };
 
     std::vector<char> buffer(2048);
@@ -322,9 +422,7 @@ void MDNSDiscoveryServer::serviceLoop()
             for (const auto & socket : sockets)
             {
                 if (FD_ISSET(socket, &readfs))
-                {
                     mdns_socket_listen(socket, buffer.data(), buffer.size(), callbackWrapper, &callback);
-                }
                 FD_SET((u_int) socket, &readfs);
             }
         } 
@@ -335,7 +433,8 @@ void MDNSDiscoveryServer::serviceLoop()
     }
 }
 
-void MDNSDiscoveryServer::openServerSockets(std::vector<int>& sockets) {
+void MDNSDiscoveryServer::openServerSockets(std::vector<int>& sockets) 
+{
     sockets.reserve(2);
     openClientSockets();
     
@@ -369,6 +468,14 @@ void MDNSDiscoveryServer::openServerSockets(std::vector<int>& sockets) {
         int sock = mdns_socket_open_ipv6(&sock_addr);
         if (sock >= 0)
             sockets.push_back(sock);
+    }
+
+    if (sockets.empty())
+    {
+#ifdef _WIN32
+        WSACleanup();
+#endif
+        throw std::runtime_error("MDNSDiscoveryServer: Failed to open sockets");
     }
 }
 
@@ -415,9 +522,11 @@ inline void MDNSDiscoveryServer::openClientSockets()
             if (!hasIpv4 && unicast->Address.lpSockaddr->sa_family == AF_INET)
             {
                 auto saddr = reinterpret_cast<sockaddr_in*>(unicast->Address.lpSockaddr);
-                
-                if ((saddr->sin_addr.S_un.S_un_b.s_b1 != 127) || (saddr->sin_addr.S_un.S_un_b.s_b2 != 0) ||
-                    (saddr->sin_addr.S_un.S_un_b.s_b3 != 0) || (saddr->sin_addr.S_un.S_un_b.s_b4 != 1))
+
+                if ((saddr->sin_addr.S_un.S_un_b.s_b1 != 127) ||
+                    (saddr->sin_addr.S_un.S_un_b.s_b2 != 0) || 
+                    (saddr->sin_addr.S_un.S_un_b.s_b3 != 0) ||
+                    (saddr->sin_addr.S_un.S_un_b.s_b4 != 1))
                 {
                     serviceAddressIpv4 = *saddr;
                     hasIpv4 = true;
@@ -485,6 +594,14 @@ inline void MDNSDiscoveryServer::openClientSockets()
     
     freeifaddrs(ifaddr);
 #endif
+
+    if (!hasIpv4 && !hasIpv6)
+    {
+#ifdef _WIN32
+        WSACleanup();
+#endif
+        throw std::runtime_error("MDNSDiscoveryServer: Network interfaces not found");
+    }
 }
 
 void send_mdns_query_answer(bool unicast, int sock, const sockaddr* from, socklen_t addrlen, 
@@ -523,33 +640,131 @@ std::string rtypeToString(mdns_record_type rtype)
     }
 }
 
-int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
-                 uint16_t query_id, uint16_t rtype, uint16_t rclass, uint32_t ttl, const void* data,
-                 size_t size, size_t name_offset, size_t name_length, size_t record_offset,
-                 size_t record_length, void* user_data) 
+int MDNSDiscoveryServer::serviceCallback(
+    int sock, const sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
+    uint16_t query_id, uint16_t rtype, uint16_t rclass, uint32_t ttl, const void* buffer,
+    size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
+    size_t rdata_length, void* user_data, uint8_t opcode)
 {
     (void)sizeof(ttl);
+
+    if (opcode)
+        return nonDiscoveryCallback(sock, from, addrlen, entry,
+                                    query_id, rtype, rclass, buffer,
+                                    size, name_offset, name_length, rdata_offset,
+                                    rdata_length, user_data, opcode);
+    else
+        return discoveryCallback(sock, from, addrlen, entry,
+                                 query_id, rtype, rclass, buffer,
+                                 size, name_offset, name_length, rdata_offset,
+                                 rdata_length, user_data);
+}
+
+void MDNSDiscoveryServer::sendIpConfigResponse(int sock,
+                                               const sockaddr* to,
+                                               size_t addrlen,
+                                               uint16_t query_id,
+                                               discovery_common::TxtProperties& resProps,
+                                               uint8_t opcode,
+                                               bool unicast,
+                                               const std::string& uuid)
+{
+    resProps["uuid"] = uuid;
+
+    std::vector<mdns_record_t> txtRecords;
+    std::string recordName(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME);
+    populateTxtRecords(recordName, resProps, txtRecords);
+
+    std::vector<char>sendBuffer(2048);
+    non_mdns_query_send(sock, sendBuffer.data(), sendBuffer.size(), query_id, opcode, 0x1, 0, 0, txtRecords.data(), txtRecords.size(), 0, 0, 0, 0, unicast ? 0x1 : 0x0, to, addrlen);
+}
+
+int MDNSDiscoveryServer::nonDiscoveryCallback(
+    int sock, const sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
+    uint16_t query_id, uint16_t rtype, uint16_t rclass, const void* buffer,
+    size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
+    size_t rdata_length, void* user_data, uint8_t opcode)
+{
+    using namespace discovery_common;
+
+    if (entry != MDNS_ENTRYTYPE_QUESTION)
+        return 0;
+
+    if (isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID) &&
+        DiscoveryUtils::extractRecordName(buffer, name_offset, size) == IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME &&
+        rtype == MDNS_RECORDTYPE_TXT &&
+        (opcode == IpModificationUtils::IP_MODIFICATION_OPCODE || opcode == IpModificationUtils::IP_GET_CONFIG_OPCODE))
+    {
+        uint16_t responseUnicast = (rclass & MDNS_UNICAST_RESPONSE);
+        TxtProperties reqProps = DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
+
+        // manufacturer & serialNumber pair is not specified or does not match those values of the device - ignore request
+        if (const auto it = reqProps.find("manufacturer"); it == reqProps.end() || it->second != manufacturer)
+            return 0;
+        if (const auto it = reqProps.find("serialNumber"); it == reqProps.end() || it->second != serialNumber)
+            return 0;
+
+        std::string clientUuid;
+        if (const auto it = reqProps.find("uuid"); it == reqProps.end())
+        {
+            // uuid is not specified - ignore request
+            return 0;
+        }
+        else
+        {
+            clientUuid = it->second;
+            // ignore already processed requests
+            std::string requestId = clientUuid + std::to_string(query_id);
+            if(const auto requestIdIt = processedIpConfigReqIds.find(requestId); requestIdIt != processedIpConfigReqIds.end())
+                return 0;
+            else
+                processedIpConfigReqIds.insert(requestId);
+        }
+
+        if (const auto it = reqProps.find("ifaceName"); it == reqProps.end())
+        {
+            return 0;
+        }
+        else
+        {
+            std::string interfaceName = it->second;
+            if (opcode == IpModificationUtils::IP_MODIFICATION_OPCODE && modifyIpConfigCallback)
+            {
+                TxtProperties resProps = modifyIpConfigCallback(interfaceName, reqProps);
+                sendIpConfigResponse(sock, from, addrlen, query_id, resProps, opcode, responseUnicast, clientUuid);
+            }
+            else if (opcode == IpModificationUtils::IP_GET_CONFIG_OPCODE && retrieveIpConfigCallback)
+            {
+                TxtProperties resProps = retrieveIpConfigCallback(interfaceName);
+                resProps["manufacturer"] = manufacturer;
+                resProps["serialNumber"] = serialNumber;
+                resProps["ifaceName"] = interfaceName;
+                sendIpConfigResponse(sock, from, addrlen, query_id, resProps, opcode, responseUnicast, clientUuid);
+            }
+        }
+    }
+
+    return 0;
+}
+
+int MDNSDiscoveryServer::discoveryCallback(
+    int sock, const sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
+    uint16_t query_id, uint16_t rtype, uint16_t rclass, const void* buffer,
+    size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
+    size_t rdata_length, void* user_data)
+{
     if (entry != MDNS_ENTRYTYPE_QUESTION)
         return 0;
 
     std::string dns_sd = "_services._dns-sd._udp.local.";
-    size_t offset = name_offset;
+    std::string name = discovery_common::DiscoveryUtils::extractRecordName(buffer, name_offset, size);
 
-    std::string name;
-    {
-        std::vector<char> nameBuffer(256);
-        mdns_string_t nameTmp = mdns_string_extract(data, size, &offset, nameBuffer.data(), nameBuffer.size());
-        name = std::string(MDNS_STRING_ARGS(nameTmp));
-    }
-
-    auto recordName = rtypeToString(mdns_record_type(rtype));
-    if (recordName == "UNKNOWN")
+    auto recordTypeName = rtypeToString(mdns_record_type(rtype));
+    if (recordTypeName == "UNKNOWN")
         return 0;
-        
-    std::vector<char>sendBuffer(1024);
 
     std::lock_guard lock(mx);
-    if (devices.empty())
+    if (services.empty())
     {
         running = false;
         return 0;
@@ -557,9 +772,9 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
 
     uint16_t unicast = (rclass & MDNS_UNICAST_RESPONSE);
 
-    for (const auto& [_, device]: devices)
+    for (const auto& [_, service]: services)
     {
-        auto serviceName = device.serviceName;
+        auto serviceName = service.serviceName;
         if (name == dns_sd) 
         {
             if ((rtype == MDNS_RECORDTYPE_PTR) || (rtype == MDNS_RECORDTYPE_ANY)) 
@@ -569,6 +784,7 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
                 answer.type = MDNS_RECORDTYPE_PTR, 
                 answer.data.ptr.name = {serviceName.c_str(), serviceName.size()};
 
+                std::vector<char>sendBuffer(1024);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, {});
             }
         } 
@@ -576,58 +792,67 @@ int MDNSDiscoveryServer::serviceCallback(int sock, const sockaddr* from, size_t 
         {
             if ((rtype == MDNS_RECORDTYPE_PTR) || (rtype == MDNS_RECORDTYPE_ANY)) 
             {
-                mdns_record_t answer = createPtrRecord(device);
+                mdns_record_t answer = createPtrRecord(service);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(device.properties.size() + 3);
+                records.reserve(service.size() + 3);
 
-                records.push_back(createSrvRecord(device));
+                records.push_back(createSrvRecord(service));
                 if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
-                    records.push_back(createARecord(device));
+                    records.push_back(createARecord(service));
                 if (serviceAddressIpv6.sin6_family == AF_INET6)
-                    records.push_back(createAaaaRecord(device));
-                device.populateRecords(records);
+                    records.push_back(createAaaaRecord(service));
+                service.populateRecords(records);
 
+                std::vector<char>sendBuffer(service.recordSize);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         } 
-        else if (name == device.serviceInstance) 
+        else if (name == service.serviceInstance)
         {
             if ((rtype == MDNS_RECORDTYPE_SRV) || (rtype == MDNS_RECORDTYPE_ANY)) 
             {
-                mdns_record_t answer = createSrvRecord(device);
+                mdns_record_t answer = createSrvRecord(service);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(device.properties.size() + 2);
+                records.reserve(service.size() + 2);
 
                 if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
-                    records.push_back(createARecord(device));
+                    records.push_back(createARecord(service));
                 if (serviceAddressIpv6.sin6_family == AF_INET6)
-                    records.push_back(createAaaaRecord(device));
+                    records.push_back(createAaaaRecord(service));
+                service.populateRecords(records);
 
+                std::vector<char>sendBuffer(service.recordSize);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         } 
-        else if (name == device.serviceQualified) 
+        else if (name == service.serviceQualified)
         {
-            if (((rtype == MDNS_RECORDTYPE_A) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv4.sin_family == AF_INET) && from->sa_family == AF_INET) 
+            if (((rtype == MDNS_RECORDTYPE_A) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv4.sin_family == AF_INET) && from->sa_family == AF_INET)
             {
-                mdns_record_t answer = createARecord(device);
+                mdns_record_t answer = createARecord(service);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(device.properties.size() + 1);
+                records.reserve(service.size() + 1);
 
                 records.push_back(answer);
+                service.populateRecords(records);
+
+                std::vector<char>sendBuffer(service.recordSize);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             } 
-            else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6)) 
+            else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6))
             {
-                mdns_record_t answer = createAaaaRecord(device);
+                mdns_record_t answer = createAaaaRecord(service);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(device.properties.size() + 1);
+                records.reserve(service.size() + 1);
 
                 records.push_back(answer);
+                service.populateRecords(records);
+
+                std::vector<char>sendBuffer(service.recordSize);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             }
         }

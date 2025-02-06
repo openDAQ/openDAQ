@@ -134,12 +134,17 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    const auto info = client.getDevices()[0].getInfo();
+    auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 7);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 8);
 
-    client->releaseRef();
+    // because info holds a client device as owner, it have to be removed before module manager is destroyed
+    // otherwise module of native client device would not be removed
+    info.release();
+
+    client->releaseRef();    
     server->releaseRef();
+
     client.detach();
     server.detach();
 }
@@ -150,15 +155,65 @@ TEST_F(NativeDeviceModulesTest, UseOldProtocolVersion)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance(0);
 
-    const auto info = client.getDevices()[0].getInfo();
+    auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
     ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 0);
+
+    // because info holds a client device as owner, it have to be removed before module manager is destroyed
+    // otherwise module of native client device would not be removed
+    info.release();
 
     client->releaseRef();
     server->releaseRef();
     client.detach();
     server.detach();
 }
+
+TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionLocationUsername)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(0);
+
+    auto serverDev = server.getDevices()[0];
+    auto serverInfo = serverDev.getInfo();
+    ASSERT_TRUE(serverDev.hasProperty("userName"));
+    ASSERT_TRUE(serverDev.hasProperty("location"));
+
+    auto dev = client.getDevices()[0].getDevices()[0];
+    auto info = dev.getInfo();
+    ASSERT_FALSE(info.getProperty("userName").getReadOnly());
+    ASSERT_FALSE(info.getProperty("location").getReadOnly());
+    ASSERT_TRUE(dev.hasProperty("userName"));
+    ASSERT_TRUE(dev.hasProperty("location"));
+
+    dev.setPropertyValue("location", "foo");
+    dev.setPropertyValue("userName", "foo");
+    
+    ASSERT_EQ(dev.getPropertyValue("location"), "foo");
+    ASSERT_EQ(dev.getPropertyValue("userName"), "foo");
+    ASSERT_EQ(info.getPropertyValue("location"), "foo");
+    ASSERT_EQ(info.getPropertyValue("userName"), "foo");
+
+    ASSERT_EQ(serverDev.getPropertyValue("location"), "foo");
+    ASSERT_EQ(serverDev.getPropertyValue("userName"), "foo");
+    ASSERT_EQ(serverInfo.getPropertyValue("location"), "foo");
+    ASSERT_EQ(serverInfo.getPropertyValue("userName"), "foo");
+
+    // because info holds a client device as owner, it have to be removed before module manager is destroyed
+    // otherwise module of native client device would not be removed
+    
+    serverInfo.release();
+    info.release();
+    serverDev.release();
+    dev.release();
+
+    client->releaseRef();
+    server->releaseRef();
+    client.detach();
+    server.detach();
+}
+
 
 TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 {
@@ -553,11 +608,12 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
-        ASSERT_EQ(deviceInfo.getMacAddress(), "");
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
+
+            ASSERT_EQ(deviceInfo.getMacAddress(), "custom_mac");
             
             if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
             {
@@ -1742,8 +1798,11 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False);
 
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("ConnectionStatus"), "");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("ConfigurationStatus"), "");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "");
 
     std::promise<StringPtr> connectionOldStatusPromise;
     std::future<StringPtr> connectionOldStatusFuture = connectionOldStatusPromise.get_future();
@@ -1751,6 +1810,21 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     std::future<StringPtr> configReconnectionStatusFuture = configReconnectionStatusPromise.get_future();
     std::promise<StringPtr> streamingReconnectionStatusPromise;
     std::future<StringPtr> streamingReconnectionStatusFuture = streamingReconnectionStatusPromise.get_future();
+
+    const auto testStatusMessage = [](const CoreEventArgsPtr& args, const EnumerationPtr& statusValue)
+    {
+        ASSERT_TRUE(args.getParameters().hasKey("Message"));
+        const StringPtr statusMessage = args.getParameters().get("Message");
+        if (statusValue == "Reconnecting")
+        {
+            EXPECT_EQ(statusMessage, "Network connection interrupted or closed by the remote device");
+        }
+        else if (statusValue == "Connected")
+        {
+            EXPECT_EQ(statusMessage, "");
+        }
+    };
+
     client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
     {
         auto params = args.getParameters();
@@ -1760,22 +1834,31 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
             ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
             ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
             ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+            const EnumerationPtr statusValue = args.getParameters().get("StatusValue");
             if (args.getParameters().get("StatusName") == "ConfigurationStatus")
             {
                 EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.nd://127.0.0.1");
                 EXPECT_FALSE(args.getParameters().get("StreamingObject").assigned());
-                configReconnectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
+                configReconnectionStatusPromise.set_value(statusValue.toString());
             }
             else
             {
                 EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
-                streamingReconnectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
+                streamingReconnectionStatusPromise.set_value(statusValue.toString());
             }
+            testStatusMessage(args, statusValue);
         }
-        else if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
+    };
+
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::StatusChanged)
         {
             ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
-            connectionOldStatusPromise.set_value(args.getParameters().get("ConnectionStatus").toString());
+            const EnumerationPtr statusValue = args.getParameters().get("ConnectionStatus");
+            connectionOldStatusPromise.set_value(statusValue.toString());
+            testStatusMessage(args, statusValue);
         }
     };
 
@@ -1783,15 +1866,25 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
 
     // destroy server to emulate disconnection
     server.release();
+
     ASSERT_TRUE(connectionOldStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionOldStatusFuture.get(), "Reconnecting");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("ConnectionStatus"),
+              "Network connection interrupted or closed by the remote device");
+
     ASSERT_TRUE(configReconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(configReconnectionStatusFuture.get(), "Reconnecting");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("ConfigurationStatus"),
+              "Network connection interrupted or closed by the remote device");
+
     ASSERT_TRUE(streamingReconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(streamingReconnectionStatusFuture.get(), "Reconnecting");
-    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"),
+              "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"),
+              "Network connection interrupted or closed by the remote device");
 
     ASSERT_THROW(client.getDevices()[0].getDevices()[0].setPropertyValue("CustomProp", 1), ConnectionLostException);
 
@@ -1809,12 +1902,17 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(connectionOldStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionOldStatusFuture.get(), "Connected");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("ConnectionStatus"), "");
+
     ASSERT_TRUE(configReconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(configReconnectionStatusFuture.get(), "Connected");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("ConfigurationStatus"), "");
+
     ASSERT_TRUE(streamingReconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(streamingReconnectionStatusFuture.get(), "Connected");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "");
 
     auto channels = client.getDevices()[0].getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 3u);
@@ -2615,7 +2713,7 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
     auto clientDevice = client.getDevices()[0];
     auto availableDevices = clientDevice.getAvailableDevices();
 
-    // if server discovered itself, it should should have server capabilities of itself with address info
+    // if server discovered itself, it should have server capabilities of itself with address info
     for (const auto & devInfo : availableDevices)
     {
         if (devInfo.getName() == name)
@@ -2628,6 +2726,45 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
             }
         }
     }
+}
+
+TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
+{
+    StringPtr name = "AvailableDevicesCheck";
+    auto server = CreateServerSimulator(name);
+    auto client = CreateClientConnectedToSimulator(name);
+    ASSERT_TRUE(client.assigned());
+    auto clientDevice = client.getDevices()[0];
+
+    auto serverInfo = server.getInfo();
+    auto clientInfo = clientDevice.getInfo();
+    
+    server.setPropertyValue("userName", "user1");
+    server.setPropertyValue("location", "location1");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    ASSERT_EQ(server.getPropertyValue("userName"), "user1");
+    ASSERT_EQ(server.getPropertyValue("location"), "location1");
+    ASSERT_EQ(serverInfo.getPropertyValue("userName"), "user1");
+    ASSERT_EQ(serverInfo.getPropertyValue("location"), "location1");
+
+    ASSERT_EQ(clientDevice.getPropertyValue("userName"), "user1");
+    ASSERT_EQ(clientDevice.getPropertyValue("location"), "location1");
+    ASSERT_EQ(clientInfo.getPropertyValue("userName"), "user1");
+    ASSERT_EQ(clientInfo.getPropertyValue("location"), "location1");
+
+    clientDevice.setPropertyValue("userName", "user2");
+    clientDevice.setPropertyValue("location", "location2");
+
+    ASSERT_EQ(clientDevice.getPropertyValue("userName"), "user2");
+    ASSERT_EQ(clientDevice.getPropertyValue("location"), "location2");
+    ASSERT_EQ(clientInfo.getPropertyValue("userName"), "user2");
+    ASSERT_EQ(clientInfo.getPropertyValue("location"), "location2");
+
+    ASSERT_EQ(server.getPropertyValue("userName"), "user2");
+    ASSERT_EQ(server.getPropertyValue("location"), "location2");
+    ASSERT_EQ(serverInfo.getPropertyValue("userName"), "user2");
+    ASSERT_EQ(serverInfo.getPropertyValue("location"), "location2");
 }
 
 using NativeC2DStreamingTest = testing::Test;

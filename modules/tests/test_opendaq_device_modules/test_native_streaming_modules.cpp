@@ -129,6 +129,53 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
+{
+    auto server = InstanceBuilder().addDiscoveryServer("mdns")
+                                   .setDefaultRootDeviceLocalId("local")
+                                   .setRootDevice("daqref://device0")
+                                   .build();
+
+    // set initial username and location
+    server.setPropertyValue("userName", "testUser1");
+    server.setPropertyValue("location", "testLocation1");
+    server.getInfo().setPropertyValue("SetupDate", "2025-01-16T08:23:22Z");
+
+    ASSERT_EQ(server.getInfo().getPropertyValue("userName"), "testUser1");
+    ASSERT_EQ(server.getInfo().getPropertyValue("location"), "testLocation1");
+    ASSERT_EQ(server.getInfo().getPropertyValue("SetupDate"), "2025-01-16T08:23:22Z");
+
+    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    auto path = "/test/native_streaming/discovery/username_location/";
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+
+    // update the username and location after server creation
+    server.setPropertyValue("userName", "testUser2");
+    server.setPropertyValue("location", "testLocation2");
+    server.getInfo().setPropertyValue("SetupDate", "2025-01-17T08:23:22Z");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    auto client = Instance();
+    DevicePtr device;
+    for (const auto & deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto & capability : deviceInfo.getServerCapabilities())
+        {
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                break;
+
+            ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser2");
+            ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation2");
+            ASSERT_EQ(deviceInfo.getPropertyValue("SetupDate"), "2025-01-17T08:23:22Z");
+            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
+                return;
+        }
+    }
+    ASSERT_TRUE(false) << "Device not found";
+}
+
 #ifdef _WIN32
 
 TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
@@ -363,6 +410,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     auto client = CreateClientInstance();
 
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "");
 
     std::promise<StringPtr> connectionStatusPromise;
     std::future<StringPtr> connectionStatusFuture = connectionStatusPromise.get_future();
@@ -379,7 +427,19 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
             ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
             EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
             ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
-            connectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
+            const EnumerationPtr statusValue = args.getParameters().get("StatusValue");
+            connectionStatusPromise.set_value(statusValue.toString());
+
+            ASSERT_TRUE(args.getParameters().hasKey("Message"));
+            const StringPtr statusMessage = args.getParameters().get("Message");
+            if (statusValue == "Reconnecting")
+            {
+                EXPECT_EQ(statusMessage, "Network connection interrupted or closed by the remote device");
+            }
+            else if (statusValue == "Connected")
+            {
+                EXPECT_EQ(statusMessage, "");
+            }
         }
     };
 
@@ -390,6 +450,8 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Reconnecting");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"),
+              "Network connection interrupted or closed by the remote device");
 
     // reset future / promise
     connectionStatusPromise = std::promise<StringPtr>();
@@ -402,6 +464,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
     ASSERT_TRUE(connectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Connected");
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "");
 
     auto clientSignalsAfterReconnection = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignalsAfterReconnection.getCount(), clientSignalsBeforeDisconnection.getCount());

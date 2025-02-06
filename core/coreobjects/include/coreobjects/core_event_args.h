@@ -260,6 +260,7 @@ BEGIN_NAMESPACE_OPENDAQ
  *  3 - ConfigurationAndStreaming) under the key "ProtocolType"
  *  - The Streaming object associated with connection under the key "StreamingObject", the parameter is nullptr if connection
  *  is of configuration type or the corresponding streaming connection has been removed
+ *  - The new status message under the key "Message", the parameter is nullptr if the corresponding connection has been removed
  *
  * The ID of the event is 170, and the event name is "ConnectionStatusChanged".
  *

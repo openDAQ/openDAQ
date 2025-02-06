@@ -63,6 +63,7 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx,
     componentB = addComponent("componentB");
     componentB.addProperty(IntProperty("IntProp", 5));
     registerProperties();
+    registerNetworkConfigProperties();
 
     const PropertyObjectPtr thisPtr = this->borrowPtr<PropertyObjectPtr>();
     thisPtr.addProperty(StringProperty("TestProperty", "Test").detach());
@@ -78,7 +79,7 @@ MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
 
 DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = DeviceInfo("");
+    auto deviceInfo = DeviceInfoWithChanegableFields({"userName", "location"});
     deviceInfo.setName("MockPhysicalDevice");
     deviceInfo.setConnectionString("daqmock://phys_device");
     deviceInfo.setManufacturer("manufacturer");
@@ -92,10 +93,10 @@ DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
     deviceInfo.setSerialNumber("serial_number");
     deviceInfo.setProductInstanceUri("product_instance_uri");
     deviceInfo.setRevisionCounter(123);
-    deviceInfo.addProperty(StringProperty("custom_string", "custom_string"));
-    deviceInfo.addProperty(IntProperty("custom_int", 1));
-    deviceInfo.addProperty(FloatProperty("custom_float", 1.123));
-    deviceInfo.freeze();
+    deviceInfo.addProperty(StringPropertyBuilder("custom_string", "custom_string").setReadOnly(true).build());
+    deviceInfo.addProperty(IntPropertyBuilder("custom_int", 1).setReadOnly(true).build());
+    deviceInfo.addProperty(FloatPropertyBuilder("custom_float", 1.123).setReadOnly(true).build());
+    deviceInfo.addProperty(StringProperty("TestChangeableField", "Test"));
     return deviceInfo;
 }
 
@@ -208,6 +209,54 @@ void MockPhysicalDeviceImpl::registerTestConfigProperties()
         obj.addProperty(PropertyBuilder(prop.getName()).setValueType(prop.getValueType()).setDefaultValue(prop.getDefaultValue()).build());
         obj.setPropertyValue(prop.getName(), config.getPropertyValue(prop.getName()));
     }
+}
+
+void MockPhysicalDeviceImpl::registerNetworkConfigProperties()
+{
+    if (!config.assigned())
+        return;
+
+    if (config.hasProperty("ifaceNames"))
+    {
+        ifaceNames = config.getPropertyValue("ifaceNames");
+    }
+    if (config.hasProperty("onSubmitConfig"))
+    {
+        onSubmitConfig = config.getPropertyValue("onSubmitConfig");
+    }
+    if (config.hasProperty("onRetrieveConfig"))
+    {
+        onRetrieveConfig = config.getPropertyValue("onRetrieveConfig");
+    }
+}
+
+void MockPhysicalDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
+{
+    if (onSubmitConfig.assigned())
+        onSubmitConfig(ifaceName, config);
+    else
+        throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+                                      "and equals signs =============================================================================="
+                                      "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated");
+}
+
+PropertyObjectPtr MockPhysicalDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr& ifaceName)
+{
+    if (onRetrieveConfig.assigned())
+        return onRetrieveConfig(ifaceName);
+    throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+                                  "and equals signs =============================================================================="
+                                  "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated");
+}
+
+Bool MockPhysicalDeviceImpl::onGetNetworkConfigurationEnabled()
+{
+    return True;
+}
+
+ListPtr<IString> MockPhysicalDeviceImpl::onGetNetworkInterfaceNames()
+{
+    return ifaceNames;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

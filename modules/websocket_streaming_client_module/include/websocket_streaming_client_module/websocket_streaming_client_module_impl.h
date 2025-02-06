@@ -45,6 +45,7 @@ private:
     static StreamingTypePtr createWebsocketStreamingType();
     static PropertyObjectPtr createDefaultConfig();
     static StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    static DeviceInfoPtr populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
 
     std::mutex sync;
     size_t deviceIndex;

@@ -58,6 +58,7 @@ target_link_libraries(${TEST_APP_INTERNAL}
         $<BUILD_INTERFACE:Boost::asio>
         $<BUILD_INTERFACE:Threads::Threads>
         $<BUILD_INTERFACE:fmt::fmt>
+        $<BUILD_INTERFACE:daq::discovery>
 )
 
 if (WIN32)

@@ -189,14 +189,39 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
     virtual ErrCode INTERFACE_FUNC setSystemUuid(IString* uuid) = 0;
     
     /*!
-     * @brief Sets the device's location.
-     * @param location The device's location.
+     * @brief Sets the location of the device.
+     * @param[out] location The location of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the location string value matches that of the device's "userName" property.
      */
     virtual ErrCode INTERFACE_FUNC setLocation(IString* location) = 0;
+
+    /*!
+     * @brief Sets the name of the current user of the device.
+     * @param[out] userName The location of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the username string value matches that of the device's "userName" property.
+     */
+    virtual ErrCode INTERFACE_FUNC setUserName(IString* userName) = 0;
 };
 /*!@}*/
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DeviceInfoConfig, IDeviceInfoConfig, IString*, name, IString*, connectionString)
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, DeviceInfoConfigWithCustomSdkVersion, IDeviceInfoConfig, IString*, name, IString*, connectionString, IString*, sdkVersion)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, DeviceInfoConfig, IDeviceInfoConfig,
+    IString*, name,
+    IString*, connectionString)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, DeviceInfoConfigWithCustomSdkVersion, IDeviceInfoConfig,
+    IString*, name,
+    IString*, connectionString,
+    IString*, sdkVersion)
+
+//[factory(Hide)]
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, DeviceInfoConfigWithChanegableFields, IDeviceInfoConfig,
+    IList*, changeableDefaultPropertyNames)
 
 END_NAMESPACE_OPENDAQ

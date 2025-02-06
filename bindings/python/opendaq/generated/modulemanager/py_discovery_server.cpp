@@ -60,4 +60,13 @@ void defineIDiscoveryServer(pybind11::module_ m, PyDaqIntf<daq::IDiscoveryServer
         },
         py::arg("id"),
         "");
+    cls.def_property("root_device",
+        nullptr,
+        [](daq::IDiscoveryServer *object, daq::IDevice* device)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DiscoveryServerPtr::Borrow(object);
+            objectPtr.setRootDevice(device);
+        },
+        "");
 }

@@ -8,6 +8,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <regex>
+#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
@@ -26,54 +27,6 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
             "OpenDAQWebsocketClientModule")
     , deviceIndex(0)
     , discoveryClient(
-        {
-            [context = this->context](MdnsDiscoveredDevice discoveredDevice)
-            {
-                auto cap = ServerCapability(WebsocketDeviceTypeId, "OpenDAQLTStreaming", ProtocolType::Streaming);
-
-                if (!discoveredDevice.ipv4Address.empty())
-                {
-                    auto connectionStringIpv4 = WebsocketStreamingClientModule::createUrlConnectionString(
-                        discoveredDevice.ipv4Address,
-                        discoveredDevice.servicePort,
-                        discoveredDevice.getPropertyOrDefault("path", "/")
-                    );
-                    cap.addConnectionString(connectionStringIpv4);
-                    cap.addAddress(discoveredDevice.ipv4Address);
-                    const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
-                                                                 .setReachabilityStatus(AddressReachabilityStatus::Unknown)
-                                                                 .setType("IPv4")
-                                                                 .setConnectionString(connectionStringIpv4)
-                                                                 .build();
-                    cap.addAddressInfo(addressInfo);
-                }
-
-                if(!discoveredDevice.ipv6Address.empty())
-                {
-                    auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
-                        discoveredDevice.ipv6Address,
-                        discoveredDevice.servicePort,
-                        discoveredDevice.getPropertyOrDefault("path", "/")
-                    );
-                    cap.addConnectionString(connectionStringIpv6);
-                    cap.addAddress(discoveredDevice.ipv6Address);
-
-                    const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
-                                                                 .setReachabilityStatus(AddressReachabilityStatus::Unknown)
-                                                                 .setType("IPv6")
-                                                                 .setConnectionString(connectionStringIpv6)
-                                                                 .build();
-                    cap.addAddressInfo(addressInfo);
-                }
-
-                cap.setConnectionType("TCP/IP");
-                cap.setPrefix("daq.lt");
-                cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
-                if (discoveredDevice.servicePort > 0)
-                    cap.setPort(discoveredDevice.servicePort);
-                return cap;
-            }
-        }, 
         {"LT"}
     )
 {
@@ -83,11 +36,9 @@ WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr contex
 
 ListPtr<IDeviceInfo> WebsocketStreamingClientModule::onGetAvailableDevices()
 {
-    auto availableDevices = discoveryClient.discoverDevices();
-    for (auto device : availableDevices)
-    {
-        device.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType(false));
-    }
+    auto availableDevices = List<IDeviceInfo>();
+    for (const auto& device : discoveryClient.discoverMdnsDevices())
+        availableDevices.pushBack(populateDiscoveredDevice(device));
     return availableDevices;
 }
 
@@ -327,6 +278,61 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
     }
 
     return connectionString;
+}
+
+DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
+{
+    PropertyObjectPtr deviceInfo = DeviceInfo("");
+    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
+
+    auto cap = ServerCapability(WebsocketDeviceTypeId, "OpenDAQLTStreaming", ProtocolType::Streaming);
+
+    if (!discoveredDevice.ipv4Address.empty())
+    {
+        auto connectionStringIpv4 = WebsocketStreamingClientModule::createUrlConnectionString(
+            discoveredDevice.ipv4Address,
+            discoveredDevice.servicePort,
+            discoveredDevice.getPropertyOrDefault("path", "/")
+            );
+        cap.addConnectionString(connectionStringIpv4);
+        cap.addAddress(discoveredDevice.ipv4Address);
+        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
+                                     .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                     .setType("IPv4")
+                                     .setConnectionString(connectionStringIpv4)
+                                     .build();
+        cap.addAddressInfo(addressInfo);
+    }
+
+    if(!discoveredDevice.ipv6Address.empty())
+    {
+        auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
+            discoveredDevice.ipv6Address,
+            discoveredDevice.servicePort,
+            discoveredDevice.getPropertyOrDefault("path", "/")
+            );
+        cap.addConnectionString(connectionStringIpv6);
+        cap.addAddress(discoveredDevice.ipv6Address);
+
+        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
+                                     .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                     .setType("IPv6")
+                                     .setConnectionString(connectionStringIpv6)
+                                     .build();
+        cap.addAddressInfo(addressInfo);
+    }
+
+    cap.setConnectionType("TCP/IP");
+    cap.setPrefix("daq.lt");
+    cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
+    if (discoveredDevice.servicePort > 0)
+        cap.setPort(discoveredDevice.servicePort);
+
+    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(cap.getConnectionString());
+    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType(false));
+
+    return deviceInfo;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE

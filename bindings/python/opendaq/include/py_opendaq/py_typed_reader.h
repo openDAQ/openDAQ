@@ -510,7 +510,7 @@ private:
     }
 
     template <typename ReaderType>
-    static inline typename daq::ReaderStatusType<ReaderType>::Type readZeroValues(const ReaderType& reader, size_t timeoutMs)
+    static inline typename daq::ReaderStatusType<ReaderType>::Type readZeroValues(const ReaderType& reader, [[maybe_unused]] size_t timeoutMs)
     {
         using StatusType = typename daq::ReaderStatusType<ReaderType>::Type;
         StatusType status;

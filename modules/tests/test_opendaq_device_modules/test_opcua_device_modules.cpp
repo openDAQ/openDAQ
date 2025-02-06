@@ -5,6 +5,9 @@
 #include "test_helpers/test_helpers.h"
 #include <coreobjects/authentication_provider_factory.h>
 #include <coreobjects/user_factory.h>
+#include <opendaq/device_impl.h>
+#include <opendaq/module_info_factory.h>
+#include <opendaq/device_type_factory.h>
 
 using OpcuaDeviceModulesTest = testing::Test;
 
@@ -1141,33 +1144,167 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceUserNameLocation)
         serverDevice.setPropertyValue("userName", "testUser");
         serverDevice.setPropertyValue("location", "testLocation");
 
-        // old style
         ASSERT_EQ(clientDevice.getPropertyValue("userName"), "testUser");
         ASSERT_EQ(clientDevice.getPropertyValue("location"), "testLocation");
-        // new style
-        ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "testUser");
-        ASSERT_EQ(clientDevice.getPropertyValue("Location"), "testLocation");
     }
 
-    // set from client old style
+    // set from client
     {
         clientDevice.setPropertyValue("userName", "newUser");
         clientDevice.setPropertyValue("location", "newLocation");
 
         ASSERT_EQ(serverDevice.getPropertyValue("userName"), "newUser");
         ASSERT_EQ(serverDevice.getPropertyValue("location"), "newLocation");
-        ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "newUser");
-        ASSERT_EQ(clientDevice.getPropertyValue("Location"), "newLocation");
+    }
+}
+
+class TestDevice : public daq::Device
+{
+public:
+    TestDevice(const ContextPtr& ctx, const ComponentPtr& parent, const PropertyObjectPtr& config)
+        : daq::Device(ctx, parent, "dev")
+        , config(config)
+    {
     }
 
-    // set from client new style
+    daq::DeviceInfoPtr onGetInfo() override
     {
-        clientDevice.setPropertyValue("UserName", "newUser2");
-        clientDevice.setPropertyValue("Location", "newLocation2");
+        auto deviceInfo = daq::DeviceInfoWithChanegableFields(config.getPropertyValue("cheangableFields"));
+        deviceInfo.setUserName("default_userName");
+        deviceInfo.setLocation("default_location");
+        return deviceInfo;
+    }
 
-        ASSERT_EQ(serverDevice.getPropertyValue("userName"), "newUser2");
-        ASSERT_EQ(serverDevice.getPropertyValue("location"), "newLocation2");
-        ASSERT_EQ(clientDevice.getPropertyValue("UserName"), "newUser2");
-        ASSERT_EQ(clientDevice.getPropertyValue("Location"), "newLocation2");
+    PropertyObjectPtr config;
+};
+
+class TestDeviceModuleImpl : public daq::ImplementationOf<daq::IModule>
+{
+public:
+    TestDeviceModuleImpl(daq::ContextPtr ctx)
+        : ctx(ctx)
+    {
+    }
+
+    daq::ErrCode INTERFACE_FUNC getModuleInfo(daq::IModuleInfo** info) override
+    {
+        *info = ModuleInfo(VersionInfo(0, 0, 0), "TestDeviceModule", "TestDevice").detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+    daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** availableDevices) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(availableDevices);
+
+        auto daqClientDeviceInfo = DeviceInfo("daqtest://test_device");
+        daqClientDeviceInfo.setDeviceType(DeviceType("test_device", "test_device", "test_device", "daqtest"));
+        *availableDevices = List<IDeviceInfo>(daqClientDeviceInfo).detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+    daq::ErrCode INTERFACE_FUNC getAvailableDeviceTypes(daq::IDict** deviceTypes) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(deviceTypes);
+
+        auto mockConfig = PropertyObject();
+        mockConfig.addProperty(ListProperty("cheangableFields", List<IString>()));
+
+        auto types = Dict<IString, IDeviceType>();
+        types.set("test_device", DeviceType("test_device", "test_device", "test_device", "daqtest", mockConfig));
+
+        *deviceTypes = types.detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+    daq::ErrCode INTERFACE_FUNC createDevice(daq::IDevice** device, daq::IString* connectionString, daq::IComponent* parent, daq::IPropertyObject* config) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(device);
+        OPENDAQ_PARAM_NOT_NULL(connectionString);
+
+        StringPtr connStr = connectionString;
+        if (connStr == "daqtest://test_device")
+        {
+            *device = daq::createWithImplementation<daq::IDevice, TestDevice>(ctx, parent, config).detach();
+            return OPENDAQ_SUCCESS;
+        }
+        return OPENDAQ_ERR_INVALIDPARAMETER;
+    }
+
+    daq::ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(daq::IDict**) override
+    {
+        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    }
+    daq::ErrCode INTERFACE_FUNC createFunctionBlock(daq::IFunctionBlock**, daq::IString*, daq::IComponent*, daq::IString*, daq::IPropertyObject*) override
+    {
+        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    }
+    daq::ErrCode INTERFACE_FUNC getAvailableServerTypes(daq::IDict**) override
+    {
+        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    }
+    daq::ErrCode INTERFACE_FUNC createServer(daq::IServer**, daq::IString*, daq::IDevice*, daq::IPropertyObject*) override
+    {
+        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    }
+    daq::ErrCode INTERFACE_FUNC createStreaming(daq::IStreaming**, daq::IString*, daq::IPropertyObject*) override
+    {
+        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    }
+    daq::ErrCode INTERFACE_FUNC getAvailableStreamingTypes(daq::IDict**) override
+    {
+        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    }
+    daq::ErrCode INTERFACE_FUNC completeServerCapability(daq::Bool*, daq::IServerCapability*, daq::IServerCapabilityConfig*) override
+    {
+        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    }
+
+private:
+    daq::ContextPtr ctx;
+};
+
+InstancePtr CreateTestDeviceInstance()
+{
+    auto instance = Instance();
+    auto moduleManager = instance.getModuleManager();
+    moduleManager.addModule(daq::createWithImplementation<daq::IModule, TestDeviceModuleImpl>(instance.getContext()));
+    return instance;
+}
+
+TEST_F(OpcuaDeviceModulesTest, GetSetNonCheangableUserNameLocation)
+{
+    auto serverInstance = CreateTestDeviceInstance();
+    auto serverDevice = serverInstance.addDevice("daqtest://test_device");
+    serverInstance.addServer("OpenDAQOPCUA", nullptr);
+
+    auto clientInstance = CreateTestDeviceInstance();
+    auto clientDevice = clientInstance.addDevice("daq.opcua://127.0.0.1").getDevices()[0];
+
+    auto serverDeviceInfo = serverDevice.getInfo();
+    auto clientDeviceInfo = clientDevice.getInfo();
+
+    for (const auto & propertyName: {"userName", "location"})
+    {
+        ASSERT_TRUE(serverDeviceInfo.getProperty(propertyName).getReadOnly());
+        ASSERT_FALSE(clientDeviceInfo.getProperty(propertyName).getReadOnly());
+
+        ASSERT_EQ(serverDeviceInfo.getPropertyValue(propertyName), std::string("default_") + propertyName);
+        ASSERT_EQ(clientDeviceInfo.getPropertyValue(propertyName), serverDeviceInfo.getPropertyValue(propertyName));
+
+        ASSERT_ANY_THROW(serverDeviceInfo.setPropertyValue(propertyName, "serverValue"));
+        ASSERT_EQ(serverDeviceInfo.getPropertyValue(propertyName), std::string("default_") + propertyName);
+        ASSERT_EQ(clientDeviceInfo.getPropertyValue(propertyName), std::string("default_") + propertyName);
+
+        serverDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, "serverValue");
+        ASSERT_EQ(serverDeviceInfo.getPropertyValue(propertyName), "serverValue");
+        ASSERT_EQ(clientDeviceInfo.getPropertyValue(propertyName), "serverValue");
+
+        clientDeviceInfo.setPropertyValue(propertyName, "clientValue");
+        ASSERT_EQ(clientDeviceInfo.getPropertyValue(propertyName), "serverValue");
+        ASSERT_EQ(serverDeviceInfo.getPropertyValue(propertyName), "serverValue");
+
+        clientDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, "NewClientValue");
+        ASSERT_EQ(clientDeviceInfo.getPropertyValue(propertyName), "serverValue");
+        ASSERT_EQ(serverDeviceInfo.getPropertyValue(propertyName), "serverValue");      
     }
 }

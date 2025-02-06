@@ -1,15 +1,12 @@
 #include <daq_discovery/daq_discovery_client.h>
-#include <opendaq/device_info_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
-#include <opendaq/device_info_internal_ptr.h>
+#include <coreobjects/property_object_factory.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
-DiscoveryClient::DiscoveryClient(std::vector<ServerCapabilityCallback> serverCapabilityCbs,
-                                 std::unordered_set<std::string> requiredCaps)
+DiscoveryClient::DiscoveryClient(std::unordered_set<std::string> requiredCaps)
     : requiredCaps(std::move(requiredCaps))
-    , serverCapabilityCallbacks(std::move(serverCapabilityCbs))
 {
 }
 
@@ -19,30 +16,20 @@ void DiscoveryClient::initMdnsClient(const ListPtr<IString>& serviceNames, std::
     mdnsClient->setDiscoveryDuration(discoveryDuration);
 }
 
-daq::ListPtr<daq::IDeviceInfo> DiscoveryClient::discoverDevices() const
+std::vector<MdnsDiscoveredDevice> DiscoveryClient::discoverMdnsDevices() const
 {
-    return discoverMdnsDevices();
-}
-
-ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
-{
-    auto discovered = List<IDeviceInfo>();
+    std::vector<MdnsDiscoveredDevice> discovered;
     if (mdnsClient == nullptr)
         return discovered;
 
     auto mdnsDevices = mdnsClient->getAvailableDevices();
 
-    for (const auto& device : mdnsDevices)
+    for (auto& device : mdnsDevices)
     {
-        for (const auto& serverCapabilityFormatCallback : serverCapabilityCallbacks)
+        if (verifyDiscoveredDevice(device))
         {
-            if (DeviceInfoPtr deviceInfo = createDeviceInfo(device); deviceInfo.assigned())
-            {
-                auto serverCapability = serverCapabilityFormatCallback(device);
-                deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
-                deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(serverCapability.getConnectionString());
-                discovered.pushBack(deviceInfo);
-            }
+            device.properties.erase("caps");
+            discovered.push_back(device);
         }
     }
 
@@ -50,7 +37,7 @@ ListPtr<IDeviceInfo> DiscoveryClient::discoverMdnsDevices() const
 }
 
 template <typename T>
-void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValue)
+void addInfoProperty(PropertyObjectPtr& info, std::string propName, T propValue)
 {
     if (info.hasProperty(propName))
     {
@@ -93,10 +80,70 @@ void addInfoProperty(DeviceInfoConfigPtr& info, std::string propName, T propValu
     }
 }
 
-DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const
+void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info, const MdnsDiscoveredDevice& device)
+{
+    for (const auto& prop : device.properties)
+    {
+        addInfoProperty(info, prop.first, prop.second);
+    }
+}
+
+ErrCode DiscoveryClient::applyIpConfiguration(const StringPtr& manufacturer,
+                                              const StringPtr& serialNumber,
+                                              const StringPtr& ifaceName,
+                                              const PropertyObjectPtr& config)
+{
+    using namespace discovery_common;
+
+    TxtProperties requestProperties;
+    requestProperties["manufacturer"] = manufacturer.toStdString();
+    requestProperties["serialNumber"] = serialNumber.toStdString();
+    requestProperties["ifaceName"] = ifaceName.toStdString();
+    IpModificationUtils::encodeIpConfiguration(config, requestProperties);
+
+    return mdnsClient->requestIpConfigModification(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties);
+}
+
+ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
+                                                const StringPtr& serialNumber,
+                                                const StringPtr& ifaceName,
+                                                PropertyObjectPtr& config)
+{
+    using namespace discovery_common;
+
+    TxtProperties requestProperties;
+    requestProperties["manufacturer"] = manufacturer.toStdString();
+    requestProperties["serialNumber"] = serialNumber.toStdString();
+    requestProperties["ifaceName"] = ifaceName.toStdString();
+
+    TxtProperties responseProperties;
+    auto errCode =
+        mdnsClient->requestCurrentIpConfiguration(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties, responseProperties);
+
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        errCode = daqTry(
+            [&]()
+            {
+                if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
+                    responseProperties["serialNumber"] != serialNumber.toStdString() ||
+                    responseProperties["ifaceName"] != ifaceName.toStdString())
+                {
+                    return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response", nullptr);
+                }
+                config = IpModificationUtils::populateIpConfigProperties(responseProperties);
+                return OPENDAQ_SUCCESS;
+            }
+        );
+    }
+
+    return errCode;
+}
+
+bool DiscoveryClient::verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const
 {
     if (discoveredDevice.ipv4Address.empty() && discoveredDevice.ipv6Address.empty())
-        return nullptr;
+        return false;
 
     std::unordered_set<std::string> requiredCapsCopy = requiredCaps;
     auto caps = discoveredDevice.getPropertyOrDefault("caps");
@@ -116,17 +163,7 @@ DeviceInfoPtr DiscoveryClient::createDeviceInfo(MdnsDiscoveredDevice discoveredD
             requiredCapsCopy.erase(segment);
     }
 
-    if (!requiredCapsCopy.empty())
-        return nullptr;
-
-    DeviceInfoConfigPtr deviceInfo = DeviceInfo("");
-
-    for (const auto& prop : discoveredDevice.properties)
-    {
-        addInfoProperty(deviceInfo, prop.first, prop.second);
-    }
-    
-    return deviceInfo;
+    return requiredCapsCopy.empty();
 }
 
 END_NAMESPACE_DISCOVERY

@@ -41,7 +41,7 @@ propObj.setPropertyValue("prop1", 345);
 - **Alternatively, skip the update** using the following pattern to revert to the old value without throwing an exception:
 
 ```cpp
-propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg)
+propObj.getOnPropertyValueWrite("prop1") += [](PropertyObjectPtr& /* obj */, PropertyValueEventArgsPtr& arg)
 {
     // Restore by throwing an exception
     if ((Int)arg.getValue() < 0)

@@ -19,7 +19,16 @@
 #include <iomanip>
 #include <opendaq/packet_factory.h>
 
+#ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
+#ifdef __linux__
+#include <csignal>
+#include <cstdio>
+#endif
+#endif
+
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
+
+StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
 RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
     : GenericDevice<>(ctx, parent, localId, nullptr, name)
@@ -43,7 +52,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     if (options.assigned() && options.hasKey("SerialNumber"))
     {
-        const StringPtr serialTemp = config.getPropertyValue("SerialNumber");
+        const StringPtr serialTemp = options.get("SerialNumber");
         serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
     }
 
@@ -57,6 +66,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     enableCANChannel();
     enableProtectedChannel();
     updateAcqLoopTime();
+    enableLogging();
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
@@ -74,12 +84,16 @@ RefDeviceImpl::~RefDeviceImpl()
 
 DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
 {
-    auto devInfo = DeviceInfo(fmt::format("daqref://device{}", id));
+    auto devInfo = DeviceInfoWithChanegableFields({"userName", "location"});
     devInfo.setName(fmt::format("Device {}", id));
+    devInfo.setConnectionString(fmt::format("daqref://device{}", id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
     devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("DevSer{}", id)));
     devInfo.setDeviceType(CreateType());
+
+    std::string currentTime = ToIso8601(std::chrono::system_clock::now());
+    devInfo.addProperty(StringProperty("SetupDate", currentTime));
 
     return devInfo;
 }
@@ -104,9 +118,7 @@ DeviceTypePtr RefDeviceImpl::CreateType()
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    auto deviceInfo = RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
-    deviceInfo.freeze();
-    return deviceInfo;
+    return RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
 }
 
 uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
@@ -313,7 +325,6 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     objPtr.addProperty(BoolProperty("EnableLogging", loggingEnabled));
     objPtr.getOnPropertyValueWrite("EnableLogging") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableLogging(); };
-    enableLogging();
 }
 
 void RefDeviceImpl::collectTimeSignalSamples(std::chrono::microseconds curTime)
@@ -461,7 +472,7 @@ void RefDeviceImpl::enableLogging()
     loggingEnabled = objPtr.getPropertyValue("EnableLogging");
 }
 
-StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint) 
+StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint) 
 {
     std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
     std::tm tm = *std::gmtime(&time);  // Use gmtime for UTC
@@ -496,7 +507,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
         ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now()
     );
 
-    auto lastModified = toIso8601(sctp);
+    auto lastModified = ToIso8601(sctp);
 
     auto logFileInfo = LogFileInfoBuilder().setName(path.filename().string())
                                            .setId(path.string())
@@ -548,5 +559,122 @@ void RefDeviceImpl::createSignals()
     timeSignal = createAndAddSignal("Time", nullptr, true);
     timeSignal.getTags().asPtr<ITagsPrivate>(true).add("DeviceDomain");
 }
+
+#ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
+#ifdef __linux__
+void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config)
+{
+    const auto verifyNetworkConfigProps = [](const Bool dhcp,
+                                             const StringPtr& address,
+                                             const StringPtr& gateway)
+    {
+        if (!dhcp)
+        {
+            if (gateway.getLength() == 0)
+                throw InvalidParameterException("No gateway address specified");
+            if (address.getLength() == 0)
+                throw InvalidParameterException("Empty static address specified");
+        }
+    };
+
+    bool dhcp4 = config.getPropertyValue("dhcp4");
+    bool dhcp6 = config.getPropertyValue("dhcp6");
+    StringPtr gateway4 = config.getPropertyValue("gateway4");
+    StringPtr gateway6 = config.getPropertyValue("gateway6");
+    StringPtr address4 = config.getPropertyValue("address4");
+    StringPtr address6 = config.getPropertyValue("address6");
+
+    verifyNetworkConfigProps(dhcp4, address4, gateway4);
+    verifyNetworkConfigProps(dhcp6, address6, gateway6);
+
+    const std::string scriptWithParams = "/home/opendaq/netplan_manager.py verify " +
+                                         ifaceName.toStdString() + " " +
+                                         (dhcp4 ? "true" : "false") + " " +
+                                         (dhcp6 ? "true" : "false") + " " +
+                                         "\"" + address4.toStdString() + "\" " +
+                                         "\"" + address6.toStdString() + "\" " +
+                                         "\"" + gateway4.toStdString() + "\" " +
+                                         "\"" + gateway6.toStdString() + "\"";
+
+    // py script runs with root privileges without requiring a password, as specified in sudoers
+    const std::string command = "sudo python3 " + scriptWithParams + " 2>&1";
+    std::array<char, 256> buffer;
+    std::string result;
+
+    // Open the command for reading
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe)
+        throw GeneralErrorException("Failed to start IP modification");
+
+    // Read the output of the command
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+        result += buffer.data();
+
+    // Get the exit status
+    int exitCode = pclose(pipe);
+    if (exitCode)
+        throw InvalidParameterException("Invalid IP configuration: {}", result);
+
+    // The new IP configuration has been successfully verified. Stop the application now
+    // to allow it to adopt the updated configuration and reopen network sockets upon relaunch.
+    std::raise(SIGINT);
+}
+
+PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr& ifaceName)
+{
+    // py script runs with root privileges without requiring a password, as specified in sudoers
+    const std::string command = "sudo python3 /home/opendaq/netplan_manager.py parse " + ifaceName.toStdString() + " 2>&1";
+    std::array<char, 256> buffer;
+    std::string result;
+
+    // Open the command for reading
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe)
+        throw GeneralErrorException("Failed to run retrieve IP configuration script");
+
+    // Read the output of the command
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+        result += buffer.data();
+
+    // Get the exit status
+    int exitCode = pclose(pipe);
+    if (exitCode)
+        throw GeneralErrorException("Retrieve IP configuration script failed: {}", result);
+
+    auto factoryCallback = [](const StringPtr& typeId,
+                              const SerializedObjectPtr& serializedObj,
+                              const BaseObjectPtr& context,
+                              const FunctionPtr& factoryCallback)
+    {
+        if (typeId != "Result")
+            throw DeserializeException("Wrong script result type ID: {}", typeId);
+
+        auto config = PropertyObject();
+
+        config.addProperty(BoolProperty("dhcp4", serializedObj.readBool("dhcp4")));
+        config.addProperty(StringProperty("address4", serializedObj.readString("address4")));
+        config.addProperty(StringProperty("gateway4", serializedObj.readString("gateway4")));
+        config.addProperty(BoolProperty("dhcp6", serializedObj.readBool("dhcp6")));
+        config.addProperty(StringProperty("address6", serializedObj.readString("address6")));
+        config.addProperty(StringProperty("gateway6", serializedObj.readString("gateway6")));
+
+        return config;
+    };
+
+    auto deserializer = JsonDeserializer();
+    return deserializer.deserialize(result, nullptr, factoryCallback);
+}
+
+Bool RefDeviceImpl::onGetNetworkConfigurationEnabled()
+{
+    return True;
+}
+
+ListPtr<IString> RefDeviceImpl::onGetNetworkInterfaceNames()
+{
+    return List<IString>("enp0s3");
+}
+#endif
+#endif
 
 END_NAMESPACE_REF_DEVICE_MODULE

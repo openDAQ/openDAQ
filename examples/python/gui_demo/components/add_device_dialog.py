@@ -180,7 +180,7 @@ class AddDeviceDialog(Dialog):
     def handle_add_device(self):
         config = None
         connection_string = self.conn_string_entry.get()
-        if self.is_add_with_config():
+        if self.is_add_with_config() and connection_string:
             add_config_dialog = AddConfigDialog(
                 self, self.context, connection_string)
             add_config_dialog.show()
@@ -225,6 +225,7 @@ class AddDeviceDialog(Dialog):
             return
 
         for device_info in available_devices:
+            device_info = daq.IDeviceInfo.cast_from(device_info)
             name = device_info.name
             conn = device_info.connection_string
             used = conn in self.context.enabled_devices

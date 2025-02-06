@@ -57,15 +57,27 @@ class DisplayType(enum.Enum):
         elif index == 4:
             return DisplayType.TOPOLOGY
         return DisplayType.UNSPECIFIED
-
+        
+class ContextParams:
+    module_path: str = ''
 
 class App(tk.Tk):
 
     # MARK: -- INIT
     def __init__(self, args):
         super().__init__()
-
-        self.context = AppContext()
+         
+        context_params = ContextParams()
+        
+        try:
+            if args.module_path != '':
+                context_params.module_path = args.module_path
+            else:
+                context_params.module_path = None
+        except ValueError:
+            context_params.module_path = None
+            
+        self.context = AppContext(context_params)
         self.context.on_needs_refresh = lambda: self.on_refresh_event(None)
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
 
@@ -79,6 +91,7 @@ class App(tk.Tk):
         except ValueError:
             self.context.connection_string = None
 
+            
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
             1500 * self.context.ui_scaling_factor, 800 * self.context.ui_scaling_factor))
@@ -145,6 +158,9 @@ class App(tk.Tk):
             os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.init_opendaq()
+        
+        if args.config != '':
+            self._load_config(args.config)
 
     def init_opendaq(self):
 
@@ -662,7 +678,10 @@ class App(tk.Tk):
     def end_update_on_node(self, node):
         node_obj = utils.find_component(node, self.context.instance)
         node_obj = daq.IPropertyObject.cast_from(node_obj)
-        node_obj.end_update()
+        try:
+            node_obj.end_update()
+        except RuntimeError:
+            pass
 
     def handle_lock(self):
         node = utils.treeview_get_first_selection(self.tree)
@@ -744,6 +763,17 @@ class App(tk.Tk):
         children = self.tree.get_children(node)
         for child in children:
             self._set_node_lock_status_recursive(child, locked)
+            
+    def _load_config(self, config):
+        file = open(config, "r")
+        if file is None:
+            return
+        config_string = file.read()
+        file.close()
+
+        updata_params = daq.UpdateParameters()
+        self.context.instance.load_configuration(
+            config_string, updata_params)
 
 
 # MARK: - Entry point
@@ -756,6 +786,10 @@ if __name__ == '__main__':
                         help='Connection string', type=str, default='')
     parser.add_argument(
         '--demo', help='Include internal demo/reference devices', action='store_true')
+    parser.add_argument(
+        '--config', help='Saved config', type=str, default='')
+    parser.add_argument(
+        '--module_path', help='Additional modules path', type=str, default='')
 
     app = App(parser.parse_args())
     app.mainloop()

@@ -746,6 +746,21 @@ install(FILES cmake/${SDK_NAME}Utils.cmake
         COMPONENT ${SDK_NAME}_Development
 )
 
+install(FILES cmake/DaqUtils.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+
+install(FILES cmake/DaqInternal.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+
+install(FILES cmake/version/version.h.in cmake/version/version.rc.in
+        DESTINATION share/cmake/version
+        COMPONENT ${SDK_NAME}_Development
+)
+
 install(EXPORT ${SDK_NAME}
         NAMESPACE ${SDK_TARGET_NAMESPACE}::
         FILE ${SDK_NAME}.cmake

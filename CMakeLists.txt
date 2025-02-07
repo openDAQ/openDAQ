@@ -171,6 +171,7 @@ option(DAQMODULES_OPENDAQ_SERVER_MODULE "Building of ${SDK_NAME} server modules"
 option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
 option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
+option(DAQMODULES_REF_TEMPLATE_DEVICE_MODULE "Building of reference device module created from the device module template" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,10 @@
  */
 
 #pragma once
-#include <opendaq/module_exports.h>
+#include <coretypes/common.h>
 
-DECLARE_MODULE_EXPORTS(RefDeviceModule)
+#define BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE BEGIN_NAMESPACE_OPENDAQ_MODULE(ref_template_device_module)
+
+static const std::string REF_TEMPLATE_MODULE_ID = "ReferenceDevice";
+
+#define END_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE END_NAMESPACE_OPENDAQ_MODULE

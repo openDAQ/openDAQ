@@ -25,16 +25,32 @@
 #include <coretypes/filesystem.h>
 
 using namespace daq;
-using RefDeviceModuleTest = testing::Test;
 using namespace test_config_provider_helpers;
 using RefDeviceModuleTestConfig = ConfigProviderTest;
 
-static ModulePtr CreateModule()
+class RefDeviceModuleTest : public testing::Test
 {
+public:
+
+    void createDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config = nullptr)
+    {
+        device = module.createDevice(connectionString, parent, config);
+    }
+
+    void SetUp() override
+    {
+        createModule(&module, NullContext());
+    }
+
+    void TearDown() override
+    {
+        if (device.assigned() && !device.isRemoved())
+            device.remove();
+    }
+    
     ModulePtr module;
-    createModule(&module, NullContext());
-    return module;
-}
+    DevicePtr device;
+};
 
 TEST_F(RefDeviceModuleTest, CreateModule)
 {
@@ -48,19 +64,16 @@ TEST_F(RefDeviceModuleTest, CreateModule)
 
 TEST_F(RefDeviceModuleTest, ModuleName)
 {
-    auto module = CreateModule();
     ASSERT_EQ(module.getModuleInfo().getName(), "ReferenceDeviceModule");
 }
 
 TEST_F(RefDeviceModuleTest, VersionAvailable)
 {
-    auto module = CreateModule();
     ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
 TEST_F(RefDeviceModuleTest, VersionCorrect)
 {
-    auto module = CreateModule();
     auto version = module.getModuleInfo().getVersionInfo();
 
     ASSERT_EQ(version.getMajor(), REF_DEVICE_MODULE_MAJOR_VERSION);
@@ -70,8 +83,6 @@ TEST_F(RefDeviceModuleTest, VersionCorrect)
 
 TEST_F(RefDeviceModuleTest, EnumerateDevices)
 {
-    auto module = CreateModule();
-
     ListPtr<IDeviceInfo> deviceInfo;
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
 
@@ -82,53 +93,37 @@ TEST_F(RefDeviceModuleTest, EnumerateDevices)
 
 TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringNull)
 {
-    auto module = CreateModule();
-
-    DevicePtr device;
-    ASSERT_THROW(device = module.createDevice(nullptr, nullptr), ArgumentNullException);
+    ASSERT_THROW(createDevice(nullptr, nullptr), ArgumentNullException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringEmpty)
 {
-    auto module = CreateModule();
-
-    ASSERT_THROW(module.createDevice("", nullptr), InvalidParameterException);
+    ASSERT_THROW(createDevice("", nullptr), InvalidParameterException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringInvalid)
 {
-    auto module = CreateModule();
-
-    ASSERT_THROW(module.createDevice("fdfdfdfdde", nullptr), InvalidParameterException);
+    ASSERT_THROW(createDevice("fdfdfdfdde", nullptr), NotFoundException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringInvalidId)
 {
-    auto module = CreateModule();
-
-    ASSERT_THROW(module.createDevice("daqref://devicett3axxr1", nullptr), InvalidParameterException);
+    ASSERT_THROW(createDevice("daqref://devicett3axxr1", nullptr), NotFoundException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringOutOfRange)
 {
-    auto module = CreateModule();
-
-    ASSERT_THROW(module.createDevice("daqref://device3", nullptr), NotFoundException);
+    ASSERT_THROW(createDevice("daqref://device3", nullptr), NotFoundException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringCorrect)
 {
-    auto module = CreateModule();
-
-    DevicePtr device;
-    ASSERT_NO_THROW(device = module.createDevice("daqref://device1", nullptr));
+    ASSERT_NO_THROW(createDevice("daqref://device0", nullptr));
 }
 
 TEST_F(RefDeviceModuleTest, DeviceDomainResolution)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto domain = device.getDomain();
 
     auto res = domain.getTickResolution();
@@ -137,9 +132,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainResolution)
 
 TEST_F(RefDeviceModuleTest, DeviceDomainUnit)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto domain = device.getDomain();
 
     auto unit = domain.getUnit();
@@ -150,9 +143,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainUnit)
 
 TEST_F(RefDeviceModuleTest, DeviceDomainTicksSinceEpoch)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
 
     auto res = device.getTicksSinceOrigin();
     ASSERT_GT(res, 0u);
@@ -160,9 +151,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainTicksSinceEpoch)
 
 TEST_F(RefDeviceModuleTest, DeviceDomainOrigin)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto domain = device.getDomain();
 
     auto res = domain.getOrigin();
@@ -171,20 +160,16 @@ TEST_F(RefDeviceModuleTest, DeviceDomainOrigin)
 
 TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getReferenceDomainId();
-    ASSERT_EQ(res, "openDAQ_DevSer1");
+    ASSERT_EQ(res, "openDAQ_RefDev1");
 }
 
 TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getReferenceDomainOffset();
@@ -193,9 +178,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
 
 TEST_F(RefDeviceModuleTest, DeviceDomainReferenceTimeSource)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getReferenceTimeSource();
@@ -204,42 +187,15 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceTimeSource)
 
 TEST_F(RefDeviceModuleTest, DeviceDomainUsesOffset)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getUsesOffset();
     ASSERT_EQ(res, UsesOffset::Unknown);
 }
 
-TEST_F(RefDeviceModuleTest, DeviceDomainSignal)
-{
-    const auto module = CreateModule();
-
-    const auto device = module.createDevice("daqref://device1", nullptr);
-    const auto deviceDomainSignal = device.getSignals()[0];
-
-    ASSERT_TRUE(deviceDomainSignal.getTags().contains("DeviceDomain"));
-
-    BaseObjectPtr lastValue;
-    size_t retryCount = 0;
-    do
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        lastValue = deviceDomainSignal.getLastValue();
-        retryCount++;
-    } while (!lastValue.assigned() && retryCount < 2000);
-
-    const auto lastIntValue = static_cast<Int>(lastValue);
-
-    ASSERT_GT(lastIntValue, 0);
-}
-
 TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
 {
-    const auto module = CreateModule();
-
     DictPtr<IString, IFunctionBlockType> functionBlockTypes;
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_EQ(functionBlockTypes.getCount(), 0u);
@@ -289,24 +245,18 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
 
 TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdNull)
 {
-    auto module = CreateModule();
-
     FunctionBlockPtr functionBlock;
     ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "Id"), ArgumentNullException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateFunctionBlockIdEmpty)
 {
-    auto module = CreateModule();
-
     ASSERT_THROW(module.createFunctionBlock("", nullptr, "Id"), NotFoundException);
 }
 
 TEST_F(RefDeviceModuleTest, DeviceNumberOfChannels)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
 
     Int numChannels = device.getPropertyValue("NumberOfChannels");
     ASSERT_EQ(numChannels, 2);
@@ -316,9 +266,7 @@ TEST_F(RefDeviceModuleTest, DeviceNumberOfChannels)
 
 TEST_F(RefDeviceModuleTest, DeviceChangeNumberOfChannels)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
 
     device.setPropertyValue("NumberOfChannels", 5);
     Int numChannels = device.getPropertyValue("NumberOfChannels");
@@ -333,9 +281,7 @@ TEST_F(RefDeviceModuleTest, DeviceChangeNumberOfChannels)
 
 TEST_F(RefDeviceModuleTest, DeviceChangeAcqLoopTime)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
 
     device.setPropertyValue("AcquisitionLoopTime", 100);
     Int acqLoopTime = device.getPropertyValue("AcquisitionLoopTime");
@@ -344,22 +290,19 @@ TEST_F(RefDeviceModuleTest, DeviceChangeAcqLoopTime)
 
 TEST_F(RefDeviceModuleTest, DeviceGlobalSampleRate)
 {
-    auto module = CreateModule();
+    createDevice("daqref://device0", nullptr);
 
-    auto device = module.createDevice("daqref://device1", nullptr);
-
-    Float globalSampleRate = device.getPropertyValue("GlobalSampleRate");
+    Float globalSampleRate = device.getPropertyValue("SampleRate");
     ASSERT_DOUBLE_EQ(globalSampleRate, 1000.0);
 
-    device.setPropertyValue("GlobalSampleRate", 500.0);
-    globalSampleRate = device.getPropertyValue("GlobalSampleRate");
+    device.setPropertyValue("SampleRate", 500.0);
+    globalSampleRate = device.getPropertyValue("SampleRate");
     ASSERT_DOUBLE_EQ(globalSampleRate, 500.0);
 }
 
 TEST_F(RefDeviceModuleTest, ChannelWaveform)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -372,8 +315,7 @@ TEST_F(RefDeviceModuleTest, ChannelWaveform)
 
 TEST_F(RefDeviceModuleTest, ChannelFrequency)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -386,8 +328,7 @@ TEST_F(RefDeviceModuleTest, ChannelFrequency)
 
 TEST_F(RefDeviceModuleTest, ChannelDC)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -400,8 +341,7 @@ TEST_F(RefDeviceModuleTest, ChannelDC)
 
 TEST_F(RefDeviceModuleTest, ChannelAmplitude)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -414,22 +354,20 @@ TEST_F(RefDeviceModuleTest, ChannelAmplitude)
 
 TEST_F(RefDeviceModuleTest, ChannelName)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
 
     size_t i = 0;
     for (const auto& ch : channels)
     {
         std::string chName = ch.getFunctionBlockType().getName();
-        ASSERT_EQ(chName, fmt::format("AI{}", ++i));
+        ASSERT_EQ(chName, fmt::format("Reference Channel", ++i));
     }
 }
 
 TEST_F(RefDeviceModuleTest, ChannelNoiseAmplitude)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -442,8 +380,7 @@ TEST_F(RefDeviceModuleTest, ChannelNoiseAmplitude)
 
 TEST_F(RefDeviceModuleTest, ChannelCustomRange)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channel = device.getChannels()[0];
     auto signal = channel.getSignals()[0];
 
@@ -460,8 +397,7 @@ TEST_F(RefDeviceModuleTest, ChannelCustomRange)
 
 TEST_F(RefDeviceModuleTest, ChannelSampleRate)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -473,37 +409,37 @@ TEST_F(RefDeviceModuleTest, ChannelSampleRate)
     ASSERT_DOUBLE_EQ(sampleRate, 10000.0);
 
     ASSERT_TRUE(channel.getProperty("SampleRate").getVisible());
+    device.remove();
 }
 
 TEST_F(RefDeviceModuleTest, CoerceChannelSampleRate)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
-    device.setPropertyValue("GlobalSampleRate", 49999);
+    device.setPropertyValue("SampleRate", 49999);
     double sampleRate = channel.getPropertyValue("SampleRate");
     ASSERT_DOUBLE_EQ(sampleRate, 50000.0);
 }
 
 TEST_F(RefDeviceModuleTest, Ids)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
-    auto valueSignal = channel.getSignals()[0];
-    auto domainSignal = channel.getSignals(search::Any())[1];
+    auto signals = channel.getSignals(search::Any());
+    auto domainSignal = signals[0];
+    auto valueSignal = signals[1];
 
-    ASSERT_EQ(channel.getLocalId(), "RefCh0");
-    ASSERT_EQ(channel.getGlobalId(), "/RefDev1/IO/AI/RefCh0");
+    ASSERT_EQ(channel.getLocalId(), "AI1");
+    ASSERT_EQ(channel.getGlobalId(), "/openDAQ_RefDev1/IO/AI/AI1");
 
-    ASSERT_EQ(valueSignal.getLocalId(), "AI0");
-    ASSERT_EQ(valueSignal.getGlobalId(), "/RefDev1/IO/AI/RefCh0/Sig/AI0");
+    ASSERT_EQ(valueSignal.getLocalId(), "AI1");
+    ASSERT_EQ(valueSignal.getGlobalId(), "/openDAQ_RefDev1/IO/AI/AI1/Sig/AI1");
 
-    ASSERT_EQ(domainSignal.getLocalId(), "AI0Time");
-    ASSERT_EQ(domainSignal.getGlobalId(), "/RefDev1/IO/AI/RefCh0/Sig/AI0Time");
+    ASSERT_EQ(domainSignal.getLocalId(), "AI1Time");
+    ASSERT_EQ(domainSignal.getGlobalId(), "/openDAQ_RefDev1/IO/AI/AI1/Sig/AI1Time");
 }
 
 bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
@@ -520,8 +456,7 @@ bool propertyInfoListDoesntContainProperty(const ListPtr<IProperty>& list, const
 
 TEST_F(RefDeviceModuleTest, ChannelProperties)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -536,8 +471,7 @@ TEST_F(RefDeviceModuleTest, ChannelProperties)
 
 TEST_F(RefDeviceModuleTest, SignalCheck)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
     auto signals = channel.getSignals(search::Any());
@@ -546,8 +480,7 @@ TEST_F(RefDeviceModuleTest, SignalCheck)
 
 TEST_F(RefDeviceModuleTest, DeviceRemoveDisconnectsInputPort)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
     auto signals = channel.getSignals();
@@ -563,8 +496,7 @@ TEST_F(RefDeviceModuleTest, DeviceRemoveDisconnectsInputPort)
 
 TEST_F(RefDeviceModuleTest, ChannelRemovedDisconnectsInputPort)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[1];
     auto signals = channel.getSignals();
@@ -580,27 +512,21 @@ TEST_F(RefDeviceModuleTest, ChannelRemovedDisconnectsInputPort)
 
 TEST_F(RefDeviceModuleTest, CreateDeviceTwice)
 {
-    auto module = CreateModule();
-
-    DevicePtr device;
-    ASSERT_NO_THROW(device = module.createDevice("daqref://device1", nullptr));
-    ASSERT_THROW(module.createDevice("daqref://device1", nullptr), AlreadyExistsException);
+    ASSERT_NO_THROW(createDevice("daqref://device0", nullptr));
+    ASSERT_THROW(createDevice("daqref://device0", nullptr), AlreadyExistsException);
 }
 
 TEST_F(RefDeviceModuleTest, CreateReleaseAndCreateDevice)
 {
-    auto module = CreateModule();
-
-    DevicePtr device;
-    ASSERT_NO_THROW(device = module.createDevice("daqref://device1", nullptr));
+    ASSERT_NO_THROW(createDevice("daqref://device0", nullptr));
+    device.remove();
     device.release();
-    ASSERT_NO_THROW(module.createDevice("daqref://device1", nullptr));
+    ASSERT_NO_THROW(createDevice("daqref://device0", nullptr));
 }
 
 TEST_F(RefDeviceModuleTest, Folders)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
     FolderPtr ioFolder = device.getItem("IO");
     FolderPtr aiFolder = ioFolder.getItem("AI");
     ChannelPtr chX = aiFolder.getItems()[0];
@@ -613,11 +539,10 @@ TEST_F(RefDeviceModuleTest, Folders)
 
 TEST_F(RefDeviceModuleTest, Serialize)
 {
-    auto module = CreateModule();
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
 
     device.setPropertyValue("NumberOfChannels", 5);
-    device.setPropertyValue("GlobalSampleRate", 500.0);
+    device.setPropertyValue("SampleRate", 500.0);
 
     auto serializer = JsonSerializer(True);
 
@@ -629,9 +554,7 @@ TEST_F(RefDeviceModuleTest, Serialize)
 
 TEST_F(RefDeviceModuleTest, DeviceEnableCANChannel)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
 
     Int numChannels = device.getPropertyValue("NumberOfChannels");
     ASSERT_EQ(numChannels, 2);
@@ -645,9 +568,7 @@ TEST_F(RefDeviceModuleTest, DeviceEnableCANChannel)
 
 TEST_F(RefDeviceModuleTest, ReadCANChannel)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
 
     device.setPropertyValue("EnableCANChannel", True);
 
@@ -696,9 +617,7 @@ TEST_F(RefDeviceModuleTest, ReadCANChannel)
 
 TEST_F(RefDeviceModuleTest, ReadCANChannelWithStreamReader)
 {
-    const auto module = CreateModule();
-
-    const auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
 
     device.setPropertyValue("EnableCANChannel", True);
 
@@ -735,12 +654,10 @@ TEST_F(RefDeviceModuleTest, ReadCANChannelWithStreamReader)
 
 TEST_F(RefDeviceModuleTest, ReadAIChannelWithFixedPacketSize)
 {
-    const auto module = CreateModule();
-
     constexpr SizeT packetSize = 1000;
 
-    const auto device = module.createDevice("daqref://device1", nullptr);
-    device.setPropertyValue("GlobalSampleRate", 1000);
+    createDevice("daqref://device0", nullptr);
+    device.setPropertyValue("SampleRate", 1000);
 
     const auto channel = device.getChannels()[0];
     channel.setPropertyValue("FixedPacketSize", True);
@@ -778,9 +695,7 @@ TEST_F(RefDeviceModuleTest, ReadAIChannelWithFixedPacketSize)
 
 TEST_F(RefDeviceModuleTest, ReadConstantRule)
 {
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
+    createDevice("daqref://device0", nullptr);
 
     const ChannelPtr ch = device.getChannels()[0];
     ch.setPropertyValue("ConstantValue", 4.0);
@@ -804,6 +719,12 @@ TEST_F(RefDeviceModuleTest, ReadConstantRule)
     }
 }
 
+TEST_F(RefDeviceModuleTest, DeviceModuleJsonConfigNoOptions)
+{
+    ASSERT_NO_THROW(createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(device.getLocalId(), "openDAQ_RefDev1");
+}
+
 TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
 {
     std::string filename = "test.json";
@@ -820,10 +741,11 @@ TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
 
     ASSERT_EQ(options, expectedOptions);
 }
+
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": \"testtest\" } } }";
+    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"SerialNumber\": \"testtest\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -837,8 +759,10 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "testtest");
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device0", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "openDAQ_testtest");
+
+    ptr.remove();
 }
 
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigName)
@@ -858,14 +782,16 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigName)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device0", nullptr));
     ASSERT_EQ(ptr.getName(), "testname");
+
+    ptr.remove();
 }
 
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": \"testtest\", \"Name\": \"testname\" } } }";
+    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"SerialNumber\": \"testtest\", \"Name\": \"testname\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -879,9 +805,11 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "testtest");
+    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device0", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "openDAQ_testtest");
     ASSERT_EQ(ptr.getName(), "testname");
+
+    ptr.remove();
 }
 
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigMalformed)
@@ -900,7 +828,10 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigMalformed)
     ModulePtr module;
     createModule(&module, context);
 
-    ASSERT_THROW(module.createDevice("daqref://device1", nullptr), NoInterfaceException);
+    DevicePtr device;
+    ASSERT_NO_THROW(device = module.createDevice("daqref://device0", nullptr), NoInterfaceException);
+
+    device.remove();
 }
 
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
@@ -914,16 +845,9 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
 
     DevicePtr ptr;
     ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "RefDev1");
-}
+    ASSERT_EQ(ptr.getLocalId(), "openDAQ_RefDev1");
 
-TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigNoOptions)
-{
-    auto module = CreateModule();
-
-    DevicePtr ptr;
-    ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "RefDev1");
+    ptr.remove();
 }
 
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
@@ -937,9 +861,13 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
 
     DevicePtr ptr;
     ASSERT_NO_THROW(ptr = module.createDevice("daqref://device1", nullptr));
+
+    ptr.remove();
 }
 
-TEST_F(RefDeviceModuleTest, AddRemoveAddDevice)
+using RefDeviceInstanceTest = testing::Test;
+
+TEST_F(RefDeviceInstanceTest, AddRemoveAddDevice)
 {
     const auto instance = Instance();
 

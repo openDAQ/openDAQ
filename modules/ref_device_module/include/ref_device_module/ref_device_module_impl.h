@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,31 +16,26 @@
 
 #pragma once
 #include <ref_device_module/common.h>
-#include <opendaq_module_template/module_template.h>
+#include <opendaq/module_impl.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-class RefDeviceModuleBase final : public templates::ModuleTemplateHooks
+class RefDeviceModule final : public Module
 {
 public:
-    RefDeviceModuleBase(const ContextPtr& context);
-};
+    explicit RefDeviceModule(ContextPtr context);
 
-class RefDeviceModule final : public templates::ModuleTemplate
-{
-public:
-    explicit RefDeviceModule(const ContextPtr& context);
-
-protected:
-    templates::ModuleParams buildModuleParams() override;
-    std::vector<templates::DeviceTypeParams> getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options) override;
-    std::vector<templates::DeviceInfoParams> getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options) override;
-    DevicePtr createDevice(const templates::DeviceParams& params) override;
+    ListPtr<IDeviceInfo> onGetAvailableDevices() override;
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
 
 private:
-    static PropertyObjectPtr createDefaultConfig();
-    static DictPtr<IString, IBaseObject> createDefaultModuleOptions();
+    std::vector<WeakRefPtr<IDevice>> devices;
+    std::mutex sync;
     size_t maxNumberOfDevices;
+
+    size_t getIdFromConnectionString(const std::string& connectionString) const;
+    void clearRemovedDevices();
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

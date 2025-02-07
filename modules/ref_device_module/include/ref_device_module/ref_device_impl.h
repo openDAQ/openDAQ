@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,66 +17,95 @@
 #pragma once
 #include <ref_device_module/common.h>
 #include <opendaq/channel_ptr.h>
-#include <opendaq_module_template/device_template.h>
+#include <opendaq/device_impl.h>
+#include <opendaq/logger_ptr.h>
+#include <opendaq/logger_component_ptr.h>
+#include <thread>
 #include <condition_variable>
-#include <ref_device_module/ref_channel_impl.h>
-#include <ref_device_module/ref_can_channel_impl.h>
 #include <opendaq/log_file_info_ptr.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-class RefDeviceBase final : public templates::DeviceTemplateHooks
+class RefDeviceImpl final : public Device
 {
 public:
-    RefDeviceBase(const templates::DeviceParams& params);
-};
+    explicit RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
+    ~RefDeviceImpl() override;
 
-class RefDeviceImpl final : public templates::DeviceTemplate
-{
-public:
-    explicit RefDeviceImpl();
+    static DeviceInfoPtr CreateDeviceInfo(size_t id, const StringPtr& serialNumber = nullptr);
+    static DeviceTypePtr CreateType();
+
+    // IDevice
+    DeviceInfoPtr onGetInfo() override;
+    uint64_t onGetTicksSinceOrigin() override;
+
+    bool allowAddDevicesFromModules() override;
+    bool allowAddFunctionBlocksFromModules() override;
 
 protected:
-    void initProperties() override;
-    void applyConfig(const PropertyObjectPtr& config) override;
+    ListPtr<ILogFileInfo> onGetLogFileInfos() override;
+    StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
 
-    DeviceDomainPtr initDeviceDomain() override;
-    void initIOFolder(const IoFolderConfigPtr& ioFolder) override;
-    void start() override;
-
-    templates::AcquisitionLoopParams getAcquisitionLoopParameters() override;
-    void onAcquisitionLoop() override;
-
-    uint64_t getTicksSinceOrigin() override;
-    BaseObjectPtr onPropertyWrite(const templates::PropertyEventArgs& args) override;
-
-    ListPtr<ILogFileInfo> getLogFileInfos() override;
-    StringPtr getLog(const StringPtr& id, Int size, Int offset) override;
+#ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
+#ifdef __linux__
+    void onSubmitNetworkConfiguration(const StringPtr& ifaceName, const PropertyObjectPtr& config) override;
+    PropertyObjectPtr onRetrieveNetworkConfiguration(const StringPtr& ifaceName) override;
+    Bool onGetNetworkConfigurationEnabled() override;
+    ListPtr<IString> onGetNetworkInterfaceNames() override;
+#endif
+#endif
 
 private:
-    std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
-    static PropertyObjectPtr createProtectedObject();
-
-    void removeRedundantChannels(size_t numberOfChannels);
-    void addMissingChannels(size_t numberOfChannels);
-    void updateNumberOfChannels(size_t numberOfChannels);
-    void enableCANChannel(bool enableCANChannel);
+    void createSignals();
+    void initClock();
+    void initIoFolder();
+    void initSyncComponent();
+    void initProperties(const PropertyObjectPtr& config);
+    void collectTimeSignalSamples(std::chrono::microseconds curTim);
+    uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
+    void updateSamplesGenerated();
+    void acqLoop();
+    void updateNumberOfChannels();
+    void enableCANChannel();
     void enableProtectedChannel();
-    void updateAcqLoopTime(size_t loopTime) const;
-    void updateDeviceSampleRate(double sampleRate) const;
+    void updateAcqLoopTime();
+    void configureTimeSignal();
+    void updateGlobalSampleRate();
+    void enableLogging();
+    std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
+    PropertyObjectPtr createProtectedObject() const;
 
-    StringPtr loggingPath;
+    size_t id;
+    StringPtr serialNumber;
+
+    std::thread acqThread;
+    std::condition_variable cv;
 
     std::chrono::steady_clock::time_point startTime;
+    std::chrono::microseconds startTimeInMs;
+    std::chrono::microseconds lastCollectTime;
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
-
-    std::vector<std::shared_ptr<RefChannelImpl>> channels;
-    //ChannelPtr protectedChannel;
-    std::shared_ptr<RefCANChannelImpl> canChannel;
     
-    UnitPtr domainUnit;
+    std::vector<ChannelPtr> channels;
+    ChannelPtr canChannel;
+    ChannelPtr protectedChannel;
+    size_t acqLoopTime;
+    bool stopAcq;
+
     FolderConfigPtr aiFolder;
     FolderConfigPtr canFolder;
+    ComponentPtr syncComponent;
+
+    LoggerPtr logger;
+    LoggerComponentPtr loggerComponent;
+
+    bool loggingEnabled;
+    StringPtr loggingPath;
+    SignalConfigPtr timeSignal;
+    StringPtr refDomainId;
+    Float globalSampleRate;
+    uint64_t samplesGenerated;
+    uint64_t deltaT;
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

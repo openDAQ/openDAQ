@@ -42,7 +42,7 @@ if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
 endif()
 
-target_link_libraries(${LIB_NAME} PUBLIC daq::daqmodule_template
+target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

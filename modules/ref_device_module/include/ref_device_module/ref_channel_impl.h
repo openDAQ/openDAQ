@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,16 @@
 #include <opendaq/signal_config_ptr.h>
 #include <optional>
 #include <random>
-#include <opendaq_module_template/channel_template.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
+
+enum class WaveformType { Sine, Rect, None, Counter, ConstantValue };
+
+DECLARE_OPENDAQ_INTERFACE(IRefChannel, IBaseObject)
+{
+    virtual void collectSamples(std::chrono::microseconds curTime) = 0;
+    virtual void globalSampleRateChanged(double globalSampleRate) = 0;
+};
 
 struct RefChannelInit
 {
@@ -33,56 +40,24 @@ struct RefChannelInit
     StringPtr referenceDomainId;
 };
 
-class RefChannelBase final : public templates::ChannelTemplateHooks
+class RefChannelImpl final : public ChannelImpl<IRefChannel>
 {
 public:
-    RefChannelBase(const templates::ChannelParams& params, const RefChannelInit& init);
-};
+    explicit RefChannelImpl(const ContextPtr& context,
+                            const ComponentPtr& parent,
+                            const StringPtr& localId,
+                            const RefChannelInit& init);
 
-enum class WaveformType { Sine, Rect, None, Counter, ConstantValue };
-
-class RefChannelImpl final : public templates::ChannelTemplate
-{
-public:
-    explicit RefChannelImpl(const RefChannelInit& init);
-
-    void collectSamples(std::chrono::microseconds curTime);
-    void globalSampleRateChanged(double newGlobalSampleRate);
-
+    // IRefChannel
+    void collectSamples(std::chrono::microseconds curTime) override;
+    void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
     static RatioPtr getResolution();
+    static Int getDeltaT(double sr);
+protected:
+    void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating) override;
 
 private:
-    void initProperties() override;
-    BaseObjectPtr onPropertyWrite(const templates::PropertyEventArgs& args) override;
-    BaseObjectPtr onPropertyRead(const templates::PropertyEventArgs& propArgs) override;
-    void onEndUpdate(const templates::UpdateEndArgs& args) override;
-
-    void initSignals(const FolderConfigPtr& signalsFolder) override;
-
-    void packetSizeChanged();
-    void waveformChanged();
-    
-    void updateSamplesGenerated();
-    void buildSignalDescriptors();
-    void setSignalDescriptors() const;
-    void updateSignalParams();
-    void signalTypeChanged();
-
-    void resetCounter();
-    void setCounter(uint64_t cnt, bool shouldLock = true);
-
-    uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
-    std::tuple<PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
-
-    [[nodiscard]] static Int getDeltaT(double sr);
-    [[nodiscard]] static double coerceSampleRate(double wantedSampleRate);
-
-    DataDescriptorPtr valueDescriptor;
-    DataDescriptorPtr timeDescriptor;
-    SignalConfigPtr valueSignal;
-    SignalConfigPtr timeSignal;
-
     WaveformType waveformType;
     double freq;
     double ampl;
@@ -96,19 +71,36 @@ private:
     double globalSampleRate;
     uint64_t counter;
     uint64_t deltaT;
+    SizeT offset;
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
     std::chrono::microseconds lastCollectTime;
     uint64_t samplesGenerated;
     std::default_random_engine re;
     std::normal_distribution<double> dist;
+    SignalConfigPtr valueSignal;
+    SignalConfigPtr timeSignal;
+    bool needsSignalTypeChanged;
     bool fixedPacketSize;
     uint64_t packetSize;
     StringPtr referenceDomainId;
 
-    std::unordered_set<std::string> signalTypeProps;
-    std::unordered_set<std::string> waveformProps;
-    std::unordered_set<std::string> packetSizeProps;
+    void initProperties();
+    void packetSizeChangedInternal();
+    void packetSizeChanged();
+    void waveformChanged();
+    void waveformChangedInternal();
+    void updateSamplesGenerated();
+    void signalTypeChanged();
+    void signalTypeChangedInternal();
+    void resetCounter();
+    void setCounter(uint64_t cnt, bool shouldLock = true);
+    uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
+    void createSignals();
+    std::tuple<PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
+    void buildSignalDescriptors();
+    [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;
+    void signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args);
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

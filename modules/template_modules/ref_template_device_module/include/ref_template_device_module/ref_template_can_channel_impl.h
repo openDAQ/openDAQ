@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2024 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,18 +15,16 @@
  */
 
 #pragma once
-#include <ref_device_module/common.h>
-#include <ref_device_module/ref_channel_impl.h>
+#include <ref_template_device_module/common.h>
+#include <ref_template_device_module/ref_template_channel_impl.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
-#include <optional>
 #include <random>
 
-BEGIN_NAMESPACE_REF_DEVICE_MODULE
+BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 
 struct RefCANChannelInit
 {
-    std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
 };
 
@@ -41,41 +39,42 @@ struct CANData
 
 static_assert(sizeof(CANData) == 69);
 
-class RefCANChannelImpl final : public ChannelImpl<IRefChannel>
+class RefCANChannelBase final : public templates::ChannelTemplateHooks
 {
 public:
-    explicit RefCANChannelImpl(const ContextPtr& context,
-                               const ComponentPtr& parent,
-                               const StringPtr& localId,
-                               const RefCANChannelInit& init);
+    RefCANChannelBase(const templates::ChannelParams& params, const RefCANChannelInit& init);
+};
 
-    // IRefChannel
-    void collectSamples(std::chrono::microseconds curTime) override;
-    void globalSampleRateChanged(double globalSampleRate) override;
+class RefCANChannelImpl final : public templates::ChannelTemplate
+{
+public:
+    explicit RefCANChannelImpl(const RefCANChannelInit& init);
+
+    void collectSamples(std::chrono::microseconds curTime);
 
     static std::string getEpoch();
     static RatioPtr getResolution();
+
 private:
+    
+    void initProperties() override;
+    BaseObjectPtr onPropertyWrite(const templates::PropertyEventArgs& args) override;
+    void propertyChanged();
+    void onEndUpdate(const templates::UpdateEndArgs& args) override;
+    
+    void initSignals(const FolderConfigPtr& signalsFolder) override;
+
+    SignalConfigPtr valueSignal;
+    SignalConfigPtr timeSignal;
+
     int32_t lowerLimit;
     int32_t upperLimit;
     int32_t counter1;
     int32_t counter2;
-    size_t index;
-    double globalSampleRate;
-    uint64_t deltaT;
-    std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
     std::chrono::microseconds lastCollectTime;
-    uint64_t samplesGenerated;
-    SignalConfigPtr valueSignal;
-    SignalConfigPtr timeSignal;
 
-    void initProperties();
-    void propChangedInternal();
-    void propChanged();
-    void createSignals();
     void generateSamples(int64_t curTime, uint64_t duration, size_t newSamples);
-    void buildSignalDescriptors();
 };
 
-END_NAMESPACE_REF_DEVICE_MODULE
+END_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE

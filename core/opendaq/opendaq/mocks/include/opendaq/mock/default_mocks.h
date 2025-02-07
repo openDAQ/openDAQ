@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,9 +37,7 @@ public:
 
     DeviceInfoPtr onGetInfo() override
     {
-        deviceInfo = DeviceInfo("", "default_dev");
-        deviceInfo.freeze();
-        return deviceInfo;
+        return DeviceInfo("", "default_dev");
     }
 
     void addCustomComponent(const ComponentPtr& component) override

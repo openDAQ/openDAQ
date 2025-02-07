@@ -87,8 +87,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         var daqInstance = OpenDAQFactory.Instance(".");
         var device = daqInstance.AddDevice(REFERENCE_DEVICE);
         var signal = device.GetChannels()[0].GetSignals()[0];
-        var functionBlockTypes = daqInstance.AvailableFunctionBlockTypes;
-        var functionBlock = daqInstance.AddFunctionBlock(functionBlockTypes.Keys.First());
+        var functionBlock = daqInstance.AddFunctionBlock("RefFBModuleStatistics");
         var inputPort = functionBlock.GetInputPorts()[0];
         #endregion
 
@@ -108,7 +107,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         //    Console.WriteLine((string)key);
         #endregion
 
-        FunctionBlock fb = daqInstance.AddFunctionBlock("ref_fb_module_fft"); //"fft_fb"
+        FunctionBlock fb = daqInstance.AddFunctionBlock("RefFBModuleFFT");
         // Function Block appears under FunctionBlocks of the instance
         IListObject<FunctionBlock> fbs = daqInstance.GetFunctionBlocks();
         FunctionBlock fb1 = fbs[fbs.Count - 1];

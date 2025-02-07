@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,9 @@ public:
     static BaseObjectPtr getAvailableDeviceTypes(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getLogFileInfos(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getLog(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+
+    static BaseObjectPtr setPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const RpcContext& context,
@@ -203,6 +206,42 @@ inline BaseObjectPtr ConfigServerDevice::getAvailableDeviceTypes(const RpcContex
 
     const auto devTypes = device.getAvailableDeviceTypes();
     return devTypes;
+}
+
+inline BaseObjectPtr ConfigServerDevice::setPropertyValue(const RpcContext& context,
+                                                             const ComponentPtr& component,
+                                                             const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    const auto propertyValue = params["PropertyValue"];
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
+
+    component.setPropertyValue(propertyName, propertyValue);
+
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::setProtectedPropertyValue(const RpcContext& context,
+                                                                      const ComponentPtr& component,
+                                                                      const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    const auto propertyValue = static_cast<std::string>(params["PropertyValue"]);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
+
+    component.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, propertyValue);
+
+    return nullptr;
 }
 
 }

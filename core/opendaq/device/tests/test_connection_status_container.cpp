@@ -32,6 +32,8 @@ TEST_F(ConnectionStatusContainerTest, EmptyStatuses)
 
     ASSERT_THROW(connectionStatusContainer.getStatus("ConfigurationStatus"), NotFoundException);
     ASSERT_THROW(connectionStatusContainer.getStatus("StreamingStatus_1"), NotFoundException);
+    ASSERT_THROW(connectionStatusContainer.getStatusMessage("ConfigurationStatus"), NotFoundException);
+    ASSERT_THROW(connectionStatusContainer.getStatusMessage("StreamingStatus_1"), NotFoundException);
 }
 
 TEST_F(ConnectionStatusContainerTest, AddConfigStatus)
@@ -58,6 +60,10 @@ TEST_F(ConnectionStatusContainerTest, AddConfigStatus)
     EnumerationPtr statusValue;
     ASSERT_NO_THROW(statusValue = connectionStatusContainer.getStatus("ConfigurationStatus"));
     ASSERT_EQ(statusValue, statusInitValue);
+
+    StringPtr statusMessage;
+    ASSERT_NO_THROW(statusMessage = connectionStatusContainer.getStatusMessage("ConfigurationStatus"));
+    ASSERT_EQ(statusMessage, "");
 }
 
 TEST_F(ConnectionStatusContainerTest, AddStreamingStatus)
@@ -86,6 +92,10 @@ TEST_F(ConnectionStatusContainerTest, AddStreamingStatus)
     EnumerationPtr statusValue;
     ASSERT_NO_THROW(statusValue = connectionStatusContainer.getStatus("StreamingStatus_1"));
     ASSERT_EQ(statusValue, statusInitValue);
+
+    StringPtr statusMessage;
+    ASSERT_NO_THROW(statusMessage = connectionStatusContainer.getStatusMessage("StreamingStatus_1"));
+    ASSERT_EQ(statusMessage, "");
 }
 
 TEST_F(ConnectionStatusContainerTest, AddConfigAndStreamingStatuses)
@@ -151,6 +161,8 @@ TEST_F(ConnectionStatusContainerTest, RemoveAddStreamingStatus)
 
     EnumerationPtr statusValue;
     ASSERT_THROW(statusValue = connectionStatusContainer.getStatus("StreamingStatus_1"), NotFoundException);
+    StringPtr statusMessage;
+    ASSERT_THROW(statusMessage = connectionStatusContainer.getStatusMessage("StreamingStatus_1"), NotFoundException);
 
     connectionStatusContainerPrivate.addStreamingConnectionStatus(connectionString1, statusInitValue, mockStreamingObject);
     ASSERT_NO_THROW(statusValue = connectionStatusContainer.getStatus("StreamingStatus_3"));
@@ -185,6 +197,47 @@ TEST_F(ConnectionStatusContainerTest, SetStatus)
     EnumerationPtr statusValue;
     ASSERT_NO_THROW(statusValue = connectionStatusContainer.getStatus("ConfigurationStatus"));
     ASSERT_EQ(statusValue, statusNewValue);
+
+    StringPtr statusMessage;
+    ASSERT_NO_THROW(statusMessage = connectionStatusContainer.getStatusMessage("ConfigurationStatus"));
+    ASSERT_EQ(statusMessage, "");
+}
+
+TEST_F(ConnectionStatusContainerTest, SetStatusWithMessage)
+{
+    const auto context = NullContext();
+    const auto typeManager = context.getTypeManager();
+    const auto otherType = EnumerationType("OtherType", List<IString>("zero", "one"));
+    typeManager.addType(otherType);
+
+    const auto otherTypeValue = Enumeration("OtherType", "zero", typeManager);
+    const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", typeManager);
+    const auto statusNewValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
+
+    const auto connectionStatusContainer = ConnectionStatusContainer();
+    const auto connectionString = String("ConnectionString");
+    auto connectionStatusContainerPrivate = connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>();
+
+    connectionStatusContainerPrivate.addConfigurationConnectionStatus(connectionString, statusInitValue);
+
+    ASSERT_THROW(connectionStatusContainerPrivate.updateConnectionStatus(nullptr, nullptr, nullptr), ArgumentNullException);
+    ASSERT_THROW(connectionStatusContainerPrivate.updateConnectionStatus(connectionString, nullptr, nullptr), ArgumentNullException);
+    ASSERT_THROW(connectionStatusContainerPrivate.updateConnectionStatus(nullptr, statusNewValue, nullptr), ArgumentNullException);
+    ASSERT_THROW(connectionStatusContainerPrivate.updateConnectionStatus("", statusNewValue, nullptr), InvalidParameterException);
+    ASSERT_THROW(connectionStatusContainerPrivate.updateConnectionStatus(connectionString, otherTypeValue, nullptr), InvalidTypeException);
+
+    ASSERT_EQ(connectionStatusContainerPrivate->updateConnectionStatus(connectionString, statusInitValue, nullptr), OPENDAQ_IGNORED);
+    ASSERT_EQ(connectionStatusContainerPrivate->updateConnectionStatusWithMessage(connectionString, statusInitValue, nullptr, String("")), OPENDAQ_IGNORED);
+    ASSERT_NO_THROW(connectionStatusContainerPrivate.updateConnectionStatus(connectionString, statusNewValue, nullptr));
+    ASSERT_NO_THROW(connectionStatusContainerPrivate.updateConnectionStatusWithMessage(connectionString, statusNewValue, nullptr, "New message"));
+
+    EnumerationPtr statusValue;
+    ASSERT_NO_THROW(statusValue = connectionStatusContainer.getStatus("ConfigurationStatus"));
+    ASSERT_EQ(statusValue, statusNewValue);
+
+    StringPtr statusMessage;
+    ASSERT_NO_THROW(statusMessage = connectionStatusContainer.getStatusMessage("ConfigurationStatus"));
+    ASSERT_EQ(statusMessage, "New message");
 }
 
 TEST_F(ConnectionStatusContainerTest, SerializeDeserialize)
@@ -197,9 +250,13 @@ TEST_F(ConnectionStatusContainerTest, SerializeDeserialize)
     const auto configConnectionString = String("ConfigConnectionString");
     const auto streamingConnectionString = String("StreamingConnectionString");
     auto connectionStatusContainerPrivate = statusContainer.asPtr<IConnectionStatusContainerPrivate>();
+    const auto mockStreaming = MockStreaming("MockStreaming", context);
 
     connectionStatusContainerPrivate.addConfigurationConnectionStatus(configConnectionString, statusInitValue);
-    connectionStatusContainerPrivate.addStreamingConnectionStatus(streamingConnectionString, statusInitValue, MockStreaming("MockStreaming", context));
+    connectionStatusContainerPrivate.addStreamingConnectionStatus(streamingConnectionString, statusInitValue, mockStreaming);
+
+    connectionStatusContainerPrivate.updateConnectionStatusWithMessage(configConnectionString, statusInitValue, nullptr, "Config connection status message");
+    connectionStatusContainerPrivate.updateConnectionStatusWithMessage(streamingConnectionString, statusInitValue, mockStreaming, "Streaming connection status message");
 
     auto serializer = JsonSerializer(False);
     statusContainer.serialize(serializer);
@@ -216,5 +273,7 @@ TEST_F(ConnectionStatusContainerTest, SerializeDeserialize)
     ASSERT_EQ(deserializedStatusContainer.getStatuses().getCount(), 1u);
     ASSERT_EQ(deserializedStatusContainer.getStatus("ConfigurationStatus"),
               statusContainer.getStatus("ConfigurationStatus"));
+    ASSERT_EQ(deserializedStatusContainer.getStatusMessage("ConfigurationStatus"),
+              "Config connection status message");
     ASSERT_FALSE(deserializedStatusContainer.getStatuses().hasKey("StreamingStatus_1"));
 }

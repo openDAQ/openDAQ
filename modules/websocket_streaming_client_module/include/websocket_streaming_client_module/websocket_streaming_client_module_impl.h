@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ private:
     static StreamingTypePtr createWebsocketStreamingType();
     static PropertyObjectPtr createDefaultConfig();
     static StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config);
+    static DeviceInfoPtr populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
 
     std::mutex sync;
     size_t deviceIndex;

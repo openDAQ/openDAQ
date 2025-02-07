@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -197,12 +197,15 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
         return OPENDAQ_ERR_NOTFOUND;
 
     const auto valueObj = EnumerationPtr::Borrow(value);
-    const auto oldValue = statuses.get(name);
-    if (valueObj.getEnumerationType() != oldValue.getEnumerationType())
+    const auto oldStatus = statuses.get(name);
+    const auto oldMessage = messages.get(name);
+
+    if (valueObj.getEnumerationType() != oldStatus.getEnumerationType())
         return OPENDAQ_ERR_INVALIDTYPE;
-    if (valueObj == oldValue)
+
+    if (valueObj == oldStatus)
     {
-        if (messages.get(name) == messageObj)
+        if (oldMessage == messageObj)
         {
             // No change in value or message
             return OPENDAQ_IGNORED;
@@ -219,14 +222,14 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
         if (OPENDAQ_FAILED(errCode))
             return errCode;
 
-        if (messages.get(name) != messageObj)
+        if (oldMessage != messageObj)
         {
             // Change in message
             errCode = messages->set(name, messageObj);
             if (OPENDAQ_FAILED(errCode))
             {
                 // Rollback
-                statuses.set(name, oldValue);
+                statuses.set(name, oldStatus);
                 // Return error
                 return errCode;
             }

@@ -8,6 +8,8 @@
 #include <opendaq/instance_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/module_info_factory.h>
+#include <coreobjects/callable_info_factory.h>
+#include <coreobjects/argument_info_factory.h>
 
 using namespace daq;
 
@@ -40,6 +42,14 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 
     auto mockConfig = PropertyObject();
     mockConfig.addProperty(StringProperty("message", ""));
+
+    mockConfig.addProperty(ListProperty("ifaceNames", List<IString>()));
+
+    auto submitArguments = List<IArgumentInfo>(ArgumentInfo("ifaceName", ctString), ArgumentInfo("config", ctObject));
+    mockConfig.addProperty(FunctionProperty("onSubmitConfig", ProcedureInfo(submitArguments)));
+
+    auto retrieveArguments = List<IArgumentInfo>(ArgumentInfo("ifaceName", ctString));
+    mockConfig.addProperty(FunctionProperty("onRetrieveConfig", FunctionInfo(ctObject, retrieveArguments)));
 
     auto types = Dict<IString, IDeviceType>();
     types.set("mock_client_device", DeviceType("mock_client_device", "Client", "Client device", "daqmock"));

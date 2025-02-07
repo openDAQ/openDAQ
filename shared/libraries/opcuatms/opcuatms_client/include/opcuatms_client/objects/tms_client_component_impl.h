@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,9 @@ public:
                                const ComponentPtr& parent,
                                const StringPtr& localId,
                                const TmsClientContextPtr& clientContext,
-                               const opcua::OpcUaNodeId& nodeId)
-        : TmsClientPropertyObjectBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId)
+                               const opcua::OpcUaNodeId& nodeId,
+                               const std::map<std::string, std::string>& propBrowseName = {})
+        : TmsClientPropertyObjectBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId, propBrowseName)
     {
         initComponent();
         clientContext->readObjectAttributes(nodeId);

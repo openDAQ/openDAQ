@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,11 +51,11 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
 
     void triggerReconnectionStart() override
     {
-        updateConnectionStatus(Enumeration("ConnectionStatusType", "Reconnecting", this->context.getTypeManager()));
+        updateConnectionStatus(Enumeration("ConnectionStatusType", "Reconnecting", this->context.getTypeManager()), "");
     }
     void triggerReconnectionCompletion() override
     {
-        updateConnectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()));
+        updateConnectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()), "");
     }
 
     daq::MirroredSignalConfigPtr signal;

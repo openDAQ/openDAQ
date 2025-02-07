@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,8 @@ public:
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId,
-                                const StringPtr& connectionString);
+                                const StringPtr& connectionString,
+                                Int reconnectionPeriod);
     ~NativeDeviceHelper();
 
     void setupProtocolClients(const ContextPtr& context);
@@ -59,7 +60,7 @@ public:
     void closeConnectionOnRemoval();
 
 private:
-    void connectionStatusChangedHandler(const EnumerationPtr& status);
+    void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
     config_protocol::PacketBuffer doConfigRequestAndGetReply(const config_protocol::PacketBuffer& reqPacket);
     void doConfigNoReplyRequest(const config_protocol::PacketBuffer& reqPacket);
     void sendConfigRequest(const config_protocol::PacketBuffer& reqPacket);
@@ -73,6 +74,8 @@ private:
     void enableStreamingForComponent(const ComponentPtr& component);
     void tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming);
     void setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming);
+    void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
+    void tryConfigProtocolReconnect();
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
@@ -89,11 +92,14 @@ private:
     Bool restoreClientConfigOnReconnect;
     const StringPtr connectionString;
     std::mutex sync;
+
+    std::shared_ptr<boost::asio::steady_timer> configProtocolReconnectionRetryTimer;
+    std::chrono::milliseconds reconnectionPeriod;
 };
 
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
-    virtual void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status) = 0;
+    virtual void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) = 0;
     virtual void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) = 0;
     virtual void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) = 0;
 };
@@ -112,7 +118,7 @@ public:
     ~NativeDeviceImpl() override;
 
     // INativeDevicePrivate
-    void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status) override;
+    void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) override;
     void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 

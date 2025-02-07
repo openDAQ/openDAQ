@@ -18,7 +18,8 @@
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
-
+#include <opendaq/device_network_config_ptr.h>
+#include "testutils/testutils.h"
 
 using DeviceTest = testing::Test;
 
@@ -36,14 +37,34 @@ public:
 
     daq::DeviceInfoPtr onGetInfo() override
     {
-        auto deviceInfo = daq::DeviceInfo("conn");
+        auto deviceInfo = daq::DeviceInfoWithChanegableFields({"userName", "location"});
+        deviceInfo.setConnectionString("conn");
         deviceInfo.setName("test");
         deviceInfo.setManufacturer("test");
         deviceInfo.setSerialNumber("test");
         deviceInfo.setLocation("test");
-        deviceInfo.freeze();
+        deviceInfo.addProperty(daq::StringProperty("CustomChangeableField", "default value"));
+
         return deviceInfo;
     }
+
+protected:
+    void onSubmitNetworkConfiguration(const daq::StringPtr& ifaceName, const daq::PropertyObjectPtr& config) override {}
+    daq::PropertyObjectPtr onRetrieveNetworkConfiguration(const daq::StringPtr& ifaceName) override
+    {
+        auto config = daq::PropertyObject();
+
+        config.addProperty(daq::BoolProperty("dhcp4", daq::True));
+        config.addProperty(daq::StringProperty("address4", ""));
+        config.addProperty(daq::StringProperty("gateway4", ""));
+        config.addProperty(daq::BoolProperty("dhcp6", daq::True));
+        config.addProperty(daq::StringProperty("address6", ""));
+        config.addProperty(daq::StringProperty("gateway6", ""));
+
+        return config;
+    }
+    daq::Bool onGetNetworkConfigurationEnabled() override { return daq::True; }
+    daq::ListPtr<daq::IString> onGetNetworkInterfaceNames() override { return daq::List<daq::IString>("eth0"); }
 };
 
 class MockSrvImpl final : public daq::Server
@@ -103,7 +124,7 @@ TEST_F(DeviceTest, DeviceInfoNameLocationSync)
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
     auto info = device.getInfo();
 
-    ASSERT_EQ(info.getLocation(), "");
+    ASSERT_EQ(info.getLocation(), "test");
     ASSERT_EQ(info.getName(), "dev");
 
     device.setPropertyValue("location", "new_loc");
@@ -111,6 +132,34 @@ TEST_F(DeviceTest, DeviceInfoNameLocationSync)
 
     ASSERT_EQ(info.getLocation(), "new_loc");
     ASSERT_EQ(info.getName(), "new_name");
+}
+
+TEST_F(DeviceTest, DeviceInfoForwardCallbacks)
+{
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    auto info = device.getInfo();
+
+    daq::SizeT readCounter = 0;
+    info.getOnPropertyValueRead("CustomChangeableField") += [&readCounter](daq::PropertyObjectPtr& obj, daq::PropertyValueEventArgsPtr& args)
+    {
+        readCounter++;
+    };
+
+    daq::SizeT writeCounter = 0;
+    info.getOnPropertyValueWrite("CustomChangeableField") += [&writeCounter](daq::PropertyObjectPtr& obj, daq::PropertyValueEventArgsPtr& args) 
+    {
+        writeCounter++;
+    };
+
+    ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "default value");
+    ASSERT_EQ(writeCounter, 0u);
+
+    info.setPropertyValue("CustomChangeableField", "new_value2");
+    ASSERT_EQ(info.getPropertyValue("CustomChangeableField"), "new_value2");
+    ASSERT_EQ(writeCounter, 1u);
+
+    // we are reading actualy the owner property
+    ASSERT_EQ(readCounter, 2u);
 }
 
 TEST_F(DeviceTest, Folders)
@@ -166,7 +215,8 @@ TEST_F(DeviceTest, CustomComponentSubItems)
 TEST_F(DeviceTest, DefaultProperties)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
-    ASSERT_EQ(device.getPropertyValue("location"), "");
+    device.getInfo();
+    ASSERT_EQ(device.getPropertyValue("location"), "test");
     ASSERT_EQ(device.getPropertyValue("userName"), "");
 }
 
@@ -411,9 +461,15 @@ TEST_F(DeviceTest, SerializeAndDeserializeWithConnectionStatuses)
     const auto statusValue = Enumeration("ConnectionStatusType", "Reconnecting", typeManager);
 
     auto connectionStatusContainer = dev.getConnectionStatusContainer().asPtr<daq::IConnectionStatusContainerPrivate>();
+    auto mockStreaming1 = daq::MockStreaming("MockStreaming1", context);
+    auto mockStreaming2 = daq::MockStreaming("MockStreaming2", context);
     connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnStr", statusValue);
-    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr1", statusValue, daq::MockStreaming("MockStreaming1", context));
-    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr2", statusValue, daq::MockStreaming("MockStreaming2", context));
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr1", statusValue, mockStreaming1);
+    connectionStatusContainer.addStreamingConnectionStatus("StreamingConnStr2", statusValue, mockStreaming2);
+
+    connectionStatusContainer.updateConnectionStatusWithMessage("ConfigConnStr", statusValue, nullptr, "Config connection status message");
+    connectionStatusContainer.updateConnectionStatusWithMessage("StreamingConnStr1", statusValue, mockStreaming1, "Streaming connection 1 status message");
+    connectionStatusContainer.updateConnectionStatusWithMessage("StreamingConnStr2", statusValue, mockStreaming2, "Streaming connection 2 status message");
 
     const auto serializer = daq::JsonSerializer(daq::True);
     dev.serialize(serializer);
@@ -423,17 +479,64 @@ TEST_F(DeviceTest, SerializeAndDeserializeWithConnectionStatuses)
 
     const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "dev");
 
-    const daq::DevicePtr newDev = deserializer.deserialize(str1, deserializeContext, nullptr);
+    const daq::DevicePtr deserializedDev = deserializer.deserialize(str1, deserializeContext, nullptr);
 
     // TODO streaming statuses are not serialized/deserialized
-    // ASSERT_EQ(newDev.getConnectionStatusContainer().getStatuses(), newDev.getConnectionStatusContainer().getStatuses());
+    // ASSERT_EQ(deserializedDev.getConnectionStatusContainer().getStatuses(),
+    //           deserializedDev.getConnectionStatusContainer().getStatuses());
     // test config status only
-    auto newConnectionStatusContainer = newDev.getConnectionStatusContainer();
-    ASSERT_EQ(newConnectionStatusContainer.getStatuses().getCount(), 1u);
-    ASSERT_EQ(newConnectionStatusContainer.getStatus("ConfigurationStatus"),
+    auto deserializedConnectionStatusContainer = deserializedDev.getConnectionStatusContainer();
+    ASSERT_EQ(deserializedConnectionStatusContainer.getStatuses().getCount(), 1u);
+    ASSERT_EQ(deserializedConnectionStatusContainer.getStatus("ConfigurationStatus"),
               dev.getConnectionStatusContainer().getStatus("ConfigurationStatus"));
-    ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_1"));
-    ASSERT_FALSE(newConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_2"));
+    ASSERT_EQ(deserializedConnectionStatusContainer.getStatusMessage("ConfigurationStatus"),
+              "Config connection status message");
+    ASSERT_FALSE(deserializedConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_1"));
+    ASSERT_FALSE(deserializedConnectionStatusContainer.getStatuses().hasKey("StreamingStatus_2"));
+}
+
+TEST_F(DeviceTest, SerializeAndDeserializeManufacturer)
+{
+    const auto context = daq::NullContext();
+    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(context, nullptr, "dev");
+    
+    const auto serializer = daq::JsonSerializer(daq::True);
+    dev.serialize(serializer);
+    const std::string str1 = serializer.getOutput();
+    ASSERT_EQ(str1.find("manufacturer"), std::string::npos);
+    ASSERT_EQ(str1.find("serialNumber"), std::string::npos);
+}
+
+TEST_F(DeviceTest, NetworkConfigEnabled)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    auto deviceNetworkConfig = device.asPtr<daq::IDeviceNetworkConfig>();
+    const auto msg = "Device must be set as root to manage network configuration.";
+
+    ASSERT_TRUE(deviceNetworkConfig.getNetworkConfigurationEnabled());
+    ASSERT_THROW_MSG(deviceNetworkConfig.submitNetworkConfiguration("eth0", daq::PropertyObject()), daq::InvalidStateException, msg);
+    ASSERT_THROW_MSG(deviceNetworkConfig.retrieveNetworkConfiguration("eth0"), daq::InvalidStateException, msg);
+    ASSERT_THROW_MSG(deviceNetworkConfig.getNetworkInterfaceNames(), daq::InvalidStateException, msg);
+
+    device.asPtr<daq::IDevicePrivate>().setAsRoot();
+
+    ASSERT_TRUE(deviceNetworkConfig.getNetworkConfigurationEnabled());
+    ASSERT_NO_THROW(deviceNetworkConfig.submitNetworkConfiguration("eth0", daq::PropertyObject()));
+    ASSERT_EQ(deviceNetworkConfig.retrieveNetworkConfiguration("eth0").getAllProperties().getCount(), 6u);
+    ASSERT_EQ(deviceNetworkConfig.getNetworkInterfaceNames(), daq::List<daq::IString>("eth0"));
+}
+
+TEST_F(DeviceTest, NetworkConfigDisabled)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    auto deviceNetworkConfig = device.asPtr<daq::IDeviceNetworkConfig>();
+
+    device.asPtr<daq::IDevicePrivate>().setAsRoot();
+
+    ASSERT_FALSE(deviceNetworkConfig.getNetworkConfigurationEnabled());
+    ASSERT_THROW(deviceNetworkConfig.submitNetworkConfiguration("eth0", daq::PropertyObject()), daq::NotImplementedException);
+    ASSERT_THROW(deviceNetworkConfig.retrieveNetworkConfiguration("eth0"), daq::NotImplementedException);
+    ASSERT_THROW(deviceNetworkConfig.getNetworkInterfaceNames(), daq::NotImplementedException);
 }
 
 TEST_F(DeviceTest, SerializeAndDeserializeManufacturer)

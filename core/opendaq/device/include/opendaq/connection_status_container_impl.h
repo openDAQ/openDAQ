@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,12 +40,14 @@ public:
     // IComponentStatusContainer
     ErrCode INTERFACE_FUNC getStatus(IString* name, IEnumeration** value) override;
     ErrCode INTERFACE_FUNC getStatuses(IDict** statuses) override;
+    ErrCode INTERFACE_FUNC getStatusMessage(IString* name, IString** message) override;
 
     // IConnectionStatusContainerPrivate
     ErrCode INTERFACE_FUNC addConfigurationConnectionStatus(IString* connectionString, IEnumeration* initialValue) override;
     ErrCode INTERFACE_FUNC addStreamingConnectionStatus(IString* connectionString, IEnumeration* initialValue, IStreaming* streamingObject) override;
     ErrCode INTERFACE_FUNC removeStreamingConnectionStatus(IString* connectionString) override;
     ErrCode INTERFACE_FUNC updateConnectionStatus(IString* connectionString, IEnumeration* value, IStreaming* streamingObject) override;
+    ErrCode INTERFACE_FUNC updateConnectionStatusWithMessage(IString* connectionString, IEnumeration* value, IStreaming* streamingObject, IString* message) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -99,6 +101,29 @@ inline ErrCode ConnectionStatusContainerImpl::getStatus(IString* name, IEnumerat
     return OPENDAQ_ERR_NOTFOUND;
 }
 
+inline ErrCode ConnectionStatusContainerImpl::getStatusMessage(IString* name, IString** message)
+{
+    OPENDAQ_PARAM_NOT_NULL(name);
+    OPENDAQ_PARAM_NOT_NULL(message);
+
+    const auto nameObj = StringPtr::Borrow(name);
+    if (nameObj == "")
+        return OPENDAQ_ERR_INVALIDPARAMETER;
+
+    std::scoped_lock lock(sync);
+
+    for (const auto& [connectionString, nameAlias] : statusNameAliases)
+    {
+        if (nameAlias == nameObj && messages.hasKey(connectionString))
+        {
+            *message = messages.get(connectionString).addRefAndReturn();
+            return OPENDAQ_SUCCESS;
+        }
+    }
+
+    return OPENDAQ_ERR_NOTFOUND;
+}
+
 inline ErrCode ConnectionStatusContainerImpl::getStatuses(IDict** statuses)
 {
     OPENDAQ_PARAM_NOT_NULL(statuses);
@@ -128,10 +153,12 @@ inline ErrCode ConnectionStatusContainerImpl::addConfigurationConnectionStatus(I
 
     std::scoped_lock lock(sync);
 
-    if (configConnectionStatusAdded || statuses.hasKey(connectionStringObj))
+    if (configConnectionStatusAdded || statuses.hasKey(connectionStringObj) || messages.hasKey(connectionStringObj))
         return OPENDAQ_ERR_ALREADYEXISTS;
 
+    const auto message = String("");
     statuses[connectionStringObj] = initialValue;
+    messages[connectionStringObj] = message;
     statusNameAliases[connectionStringObj] = ConfigurationConnectionStatusAlias;
     configConnectionStatusAdded = true;
 
@@ -143,7 +170,8 @@ inline ErrCode ConnectionStatusContainerImpl::addConfigurationConnectionStatus(I
                                         {"StatusValue", initialValue},
                                         {"ConnectionString", connectionStringObj},
                                         {"ProtocolType", Integer((Int)ProtocolType::Configuration)},
-                                        {"StreamingObject", nullptr}}));
+                                        {"StreamingObject", nullptr},
+                                        {"Message", message}}));
         triggerCoreEvent(args);
     }
 
@@ -161,11 +189,13 @@ inline ErrCode ConnectionStatusContainerImpl::addStreamingConnectionStatus(IStri
 
     std::scoped_lock lock(sync);
 
-    if (statuses.hasKey(connectionStringObj))
+    if (statuses.hasKey(connectionStringObj) || messages.hasKey(connectionStringObj))
         return OPENDAQ_ERR_ALREADYEXISTS;
 
     ++streamingConnectionsCounter;
+    const auto message = String("");
     statuses[connectionStringObj] = initialValue;
+    messages[connectionStringObj] = message;
     const StringPtr statusNameAlias = getStreamingStatusNameAlias(connectionStringObj);
     statusNameAliases[connectionStringObj] = statusNameAlias;
 
@@ -177,7 +207,8 @@ inline ErrCode ConnectionStatusContainerImpl::addStreamingConnectionStatus(IStri
                                         {"StatusValue", initialValue},
                                         {"ConnectionString", connectionStringObj},
                                         {"ProtocolType", Integer((Int)ProtocolType::Streaming)},
-                                        {"StreamingObject", streamingObject}}));
+                                        {"StreamingObject", streamingObject},
+                                        {"Message", message}}));
         triggerCoreEvent(args);
     }
 
@@ -190,7 +221,7 @@ inline ErrCode ConnectionStatusContainerImpl::removeStreamingConnectionStatus(IS
 
     std::scoped_lock lock(sync);
 
-    if (!statuses.hasKey(connectionString))
+    if (!statuses.hasKey(connectionString) || !messages.hasKey(connectionString))
         return OPENDAQ_ERR_NOTFOUND;
 
     const StringPtr statusNameAlias =
@@ -198,6 +229,7 @@ inline ErrCode ConnectionStatusContainerImpl::removeStreamingConnectionStatus(IS
             ? statusNameAliases.remove(connectionString)
             : nullptr;
 
+    messages.remove(connectionString);
     auto value = statuses.remove(connectionString);
     value = "Removed";
 
@@ -209,7 +241,8 @@ inline ErrCode ConnectionStatusContainerImpl::removeStreamingConnectionStatus(IS
                                         {"StatusValue", value},
                                         {"ConnectionString", connectionString},
                                         {"ProtocolType", Integer((Int)ProtocolType::Streaming)},
-                                        {"StreamingObject", nullptr}}));
+                                        {"StreamingObject", nullptr},
+                                        {"Message", nullptr}}));
         triggerCoreEvent(args);
     }
 
@@ -218,26 +251,39 @@ inline ErrCode ConnectionStatusContainerImpl::removeStreamingConnectionStatus(IS
 
 inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatus(IString* connectionString, IEnumeration* value, IStreaming* streamingObject)
 {
+    return updateConnectionStatusWithMessage(connectionString, value, streamingObject, String(""));
+}
+
+inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatusWithMessage(IString* connectionString, IEnumeration* value, IStreaming* streamingObject, IString* message)
+{
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     OPENDAQ_PARAM_NOT_NULL(value);
+    OPENDAQ_PARAM_NOT_NULL(message);
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
     if (connectionStringObj == "")
         return OPENDAQ_ERR_INVALIDPARAMETER;
+    const auto messageObj = StringPtr::Borrow(message);
 
     std::scoped_lock lock(sync);
 
-    if (!statuses.hasKey(connectionStringObj))
+    if (!statuses.hasKey(connectionStringObj) || !messages.hasKey(connectionStringObj))
         return OPENDAQ_ERR_NOTFOUND;
 
     const auto valueObj = EnumerationPtr::Borrow(value);
     const auto oldValue = statuses.get(connectionStringObj);
+    const auto oldMessage = messages.get(connectionStringObj);
+
     if (valueObj.getEnumerationType() != oldValue.getEnumerationType())
         return OPENDAQ_ERR_INVALIDTYPE;
-    if (valueObj == oldValue)
+    if (valueObj == oldValue && oldMessage == messageObj)
         return OPENDAQ_IGNORED;
 
     auto errCode = statuses->set(connectionStringObj, value);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    errCode = messages->set(connectionStringObj, message);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
@@ -259,7 +305,8 @@ inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatus(IString* co
                                         {"StatusValue", value},
                                         {"ConnectionString", connectionStringObj},
                                         {"ProtocolType", connectionType},
-                                        {"StreamingObject", streamingObject}}));
+                                        {"StreamingObject", streamingObject},
+                                        {"Message", message}}));
         triggerCoreEvent(args);
     }
 
@@ -271,14 +318,16 @@ inline ErrCode ConnectionStatusContainerImpl::serialize(ISerializer* serializer)
     OPENDAQ_PARAM_NOT_NULL(serializer);
 
     serializer->startTaggedObject(this);
-    {
-        serializer->key("connectionStatuses");
-        statuses.serialize(serializer);
-    }
-    {
-        serializer->key("statusNames");
-        statusNameAliases.serialize(serializer);
-    }
+
+    serializer->key("connectionStatuses");
+    statuses.serialize(serializer);
+
+    serializer->key("statusNames");
+    statusNameAliases.serialize(serializer);
+
+    serializer->key("messages");
+    messages.serialize(serializer);
+
     serializer->endObject();
 
     return OPENDAQ_SUCCESS;
@@ -319,6 +368,11 @@ inline ErrCode ConnectionStatusContainerImpl::Deserialize(ISerializedObject* ser
     DictPtr<IString, IEnumeration> statuses = serializedObj.readObject("connectionStatuses", context, factoryCallback);
     DictPtr<IString, IString> statusNameAliases = serializedObj.readObject("statusNames", context, factoryCallback);
 
+    // Supports backwards compatibility without messages
+    DictPtr<IString, IString> messages = Dict<IString, IString>();
+    if (serializedObj.hasKey("messages"))
+        messages = serializedObj.readObject("messages", context, factoryCallback);
+
     for (const auto& [connString, nameAlias] : statusNameAliases)
     {
         if (nameAlias == ConfigurationConnectionStatusAlias && statuses.hasKey(connString))
@@ -326,6 +380,12 @@ inline ErrCode ConnectionStatusContainerImpl::Deserialize(ISerializedObject* ser
             errCode = statusContainer->addConfigurationConnectionStatus(connString, statuses.get(connString));
             if (OPENDAQ_FAILED(errCode))
                 return errCode;
+            if (messages.hasKey(connString))
+            {
+                errCode = statusContainer->updateConnectionStatusWithMessage(connString, statuses.get(connString), nullptr, messages.get(connString));
+                if (OPENDAQ_FAILED(errCode))
+                    return errCode;
+            }
             break;
         }
     }

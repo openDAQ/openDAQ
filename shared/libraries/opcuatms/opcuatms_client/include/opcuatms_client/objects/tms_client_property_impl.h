@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 class TmsClientPropertyImpl : public TmsClientObjectImpl, public PropertyImpl
 {
 public:
-    explicit TmsClientPropertyImpl(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const opcua::OpcUaNodeId& nodeId);
+    explicit TmsClientPropertyImpl(const ContextPtr& daqContext, const TmsClientContextPtr& ctx, const opcua::OpcUaNodeId& nodeId, const StringPtr& propertyName = nullptr);
 
 protected:
     LoggerComponentPtr loggerComponent;

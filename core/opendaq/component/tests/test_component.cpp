@@ -171,6 +171,15 @@ TEST_F(ComponentTest, SerializeAndDeserialize)
     ASSERT_EQ(str1, str2);
 }
 
+TEST_F(ComponentTest, SerializeName)
+{
+    const auto component = Component(NullContext(), nullptr, "Temp");
+    const auto serializer = JsonSerializer(True);
+    component.serialize(serializer);
+    const std::string str = serializer.getOutput();
+    ASSERT_TRUE(str.find("name") != std::string::npos);
+}
+
 TEST_F(ComponentTest, LockedProperties)
 {
     const auto component = Component(NullContext(), nullptr, "Temp");
@@ -256,55 +265,55 @@ public:
     {
     }
 
-    void initComponentErrorStateStatusPublic()
+    void initComponentStatusPublic()
     {
-        this->initComponentErrorStateStatus();
+        this->initComponentStatus();
     }
 
-    void setComponentErrorStateStatusPublic(const ComponentErrorState& status)
+    void setComponentStatusPublic(const ComponentStatus& status)
     {
-        this->setComponentErrorStateStatus(status);
+        this->setComponentStatus(status);
     }
 };
 
-TEST_F(ComponentTest, SetComponentErrorStateStatusWithoutInit)
+TEST_F(ComponentTest, SetComponentStatusWithoutInit)
 {
     auto component = createWithImplementation<IComponent, MyTestComponent>(NullContext(), nullptr);
     auto implPtr = dynamic_cast<MyTestComponent*>(component.getObject());
 
-    ASSERT_THROW_MSG(implPtr->setComponentErrorStateStatusPublic(ComponentErrorState::Error),
+    ASSERT_THROW_MSG(implPtr->setComponentStatusPublic(ComponentStatus::Error),
                      NotFoundException,
-                     "ComponentStatus has not been added to statusContainer. initComponentErrorStateStatus needs to be called before "
-                     "setComponentErrorStateStatus.")
+                     "ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called before "
+                     "setComponentStatus.")
 }
 
-TEST_F(ComponentTest, InitThenSetComponentErrorStateStatus)
+TEST_F(ComponentTest, InitThenSetComponentStatus)
 {
     auto component = createWithImplementation<IComponent, MyTestComponent>(NullContext(), nullptr);
     auto implPtr = dynamic_cast<MyTestComponent*>(component.getObject());
     auto container = component.getStatusContainer();
 
-    implPtr->initComponentErrorStateStatusPublic();
+    implPtr->initComponentStatusPublic();
 
     ASSERT_EQ(
         container.getStatus("ComponentStatus"),
-        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentErrorState::Ok), component.getContext().getTypeManager()));
+        EnumerationWithIntValue("ComponentStatusType", static_cast<Int>(ComponentStatus::Ok), component.getContext().getTypeManager()));
 
     ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", component.getContext().getTypeManager()));
 
-    implPtr->setComponentErrorStateStatusPublic(ComponentErrorState::Error);
+    implPtr->setComponentStatusPublic(ComponentStatus::Error);
 
     ASSERT_EQ(container.getStatus("ComponentStatus"),
               EnumerationWithIntValue(
-                  "ComponentStatusType", static_cast<Int>(ComponentErrorState::Error), component.getContext().getTypeManager()));
+                  "ComponentStatusType", static_cast<Int>(ComponentStatus::Error), component.getContext().getTypeManager()));
 
     ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Error", component.getContext().getTypeManager()));
 
-    implPtr->setComponentErrorStateStatusPublic(ComponentErrorState::Warning);
+    implPtr->setComponentStatusPublic(ComponentStatus::Warning);
 
     ASSERT_EQ(container.getStatus("ComponentStatus"),
               EnumerationWithIntValue(
-                  "ComponentStatusType", static_cast<Int>(ComponentErrorState::Warning), component.getContext().getTypeManager()));
+                  "ComponentStatusType", static_cast<Int>(ComponentStatus::Warning), component.getContext().getTypeManager()));
 
     ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", component.getContext().getTypeManager()));
 }

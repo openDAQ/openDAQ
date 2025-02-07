@@ -38,7 +38,7 @@ function(opendaq_is_64bit_build ARGS)
         set(BUILD_64Bit On)
     endif()
 
-    if (UNIX AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^aarch64$")  # arm architecture 64bit
+    if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch64$")  # arm architecture 64bit
         set(BUILD_64Bit On)
     endif()
 

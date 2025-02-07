@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,5 +59,14 @@ void defineIDiscoveryServer(pybind11::module_ m, PyDaqIntf<daq::IDiscoveryServer
             objectPtr.unregisterService(getVariantValue<daq::IString*>(id));
         },
         py::arg("id"),
+        "");
+    cls.def_property("root_device",
+        nullptr,
+        [](daq::IDiscoveryServer *object, daq::IDevice* device)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DiscoveryServerPtr::Borrow(object);
+            objectPtr.setRootDevice(device);
+        },
         "");
 }

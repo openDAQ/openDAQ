@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,6 +75,7 @@ private:
     void deviceDomainChanged(const CoreEventArgsPtr& args);
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
     void connectionStatusChanged(const CoreEventArgsPtr& args);
+    bool handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -243,10 +244,10 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObjec
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::template DeserializeConfigComponent<IDevice, ConfigClientDeviceImpl>(serialized, context, factoryCallback).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = Super::template DeserializeConfigComponent<IDevice, ConfigClientDeviceImpl>(serialized, context, factoryCallback).detach();
+    });
 }
 
 template <class TDeviceBase>
@@ -270,6 +271,11 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
             connectionStatusChanged(args);
             break;
         case CoreEventId::PropertyValueChanged:
+        {
+            if (handleDeviceInfoPropertyValueChanged(args))
+                return;
+            break;
+        }
         case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::PropertyAdded:
         case CoreEventId::PropertyRemoved:
@@ -368,8 +374,6 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     if (serialized.hasKey("deviceInfo"))
     {
         this->deviceInfo = serialized.readObject("deviceInfo");
-        this->deviceInfo.template asPtr<IOwnable>().setOwner(this->objPtr);
-        this->deviceInfo.freeze();
     }
 }
 
@@ -426,9 +430,34 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::connectionStatusChanged(const C
     const EnumerationPtr value = parameters.get("StatusValue");
     const auto addedStatuses = connectionStatusContainer.getStatuses();
 
+    StringPtr message = String("");
+    if (parameters.hasKey("Message"))
+        message = parameters.get("Message");
+
     // ignores status change if it was not added initially
     if (addedStatuses.hasKey(statusName))
-        connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatus(connectionString, value, nullptr);
+        connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(connectionString, value, nullptr, message);
+}
+
+template <class TDeviceBase>
+bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    const std::string path = params.get("Path");
+
+    const std::string prefix = "DaqDeviceInfo";
+    if (path.find(prefix) == std::string::npos)
+        return false;
+
+    std::string propName = params.get("Name");
+    if (path.size() != prefix.size())
+        propName = path.substr(prefix.size() + 1) + "." + propName;
+
+    const auto val = params.get("Value");
+
+    ScopedRemoteUpdate update(this->deviceInfo);
+    this->deviceInfo.setPropertyValue(propName, val);
+    return true;
 }
 
 }

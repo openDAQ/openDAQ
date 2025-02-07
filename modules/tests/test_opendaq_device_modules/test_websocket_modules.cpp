@@ -263,7 +263,7 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto signals = client.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(signals.getCount(), 4u);
+    ASSERT_EQ(signals.getCount(), 5u);
 }
 
 TEST_F(WebsocketModulesTest, RemoveDevice)
@@ -382,7 +382,6 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1/");
 }
-
 TEST_F(WebsocketModulesTest, AddSignals)
 {
     SKIP_TEST_MAC_CI;
@@ -415,7 +414,10 @@ TEST_F(WebsocketModulesTest, AddSignals)
 
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 6u);
+    ASSERT_EQ(clientSignals.getCount(), 7u);
+
+    removeDeviceDomainSignal(serverSignals);
+    removeDeviceDomainSignal(clientSignals);
 
     testSignalDescriptors(4u, 6u, clientSignals, serverSignals);
 
@@ -472,7 +474,7 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
     ASSERT_TRUE(clientSignals[3].isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 2u);
+    ASSERT_EQ(clientSignals.getCount(), 3u);
 }
 
 TEST_F(WebsocketModulesTest, UpdateAddSignals)
@@ -518,7 +520,10 @@ TEST_F(WebsocketModulesTest, UpdateAddSignals)
 
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 4u);
+    ASSERT_EQ(clientSignals.getCount(), 5u);
+
+    removeDeviceDomainSignal(serverSignals);
+    removeDeviceDomainSignal(clientSignals);
 
     testSignalDescriptors(0u, 4u, clientSignals, serverSignals);
 
@@ -586,5 +591,5 @@ TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
     ASSERT_TRUE(clientSignals[5].isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 4u);
+    ASSERT_EQ(clientSignals.getCount(), 5u);
 }

@@ -117,7 +117,6 @@ endif()
 
 # Feature options
 option(OPENDAQ_ENABLE_PARAMETER_VALIDATION "Enable parameter validation in functions" ON)
-option(OPENDAQ_ENABLE_APPLICATION "Enable building of ${SDK_NAME} application" OFF)
 option(OPENDAQ_ENABLE_WEBSOCKET_STREAMING "Enable ${SDK_NAME} websocket streaming" OFF)
 option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" ON)
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
@@ -151,7 +150,6 @@ option(OPENDAQ_RELEASE_WARNINGS_AS_ERRORS "Treat release warnings as errors" ON)
 option(OPENDAQ_USE_CCACHE "Use compiler cache driver if available" ON)
 
 # Dependent options
-cmake_dependent_option(OPENDAQ_ENABLE_INTEGRATION_TESTS "Enable testing" ON "OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindings tests" ON "OPENDAQ_GENERATE_DELPHI_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS "Enable python bindings tests" ON "OPENDAQ_GENERATE_PYTHON_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS "Enable csharp bindings tests" ON "OPENDAQ_GENERATE_CSHARP_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
@@ -237,11 +235,11 @@ string(TIMESTAMP CURRENT_YEAR "%Y")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if (UNIX AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^arm.*$")  #e.g. armv7l
+if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm.*$")  #e.g. armv7l
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 
-if (UNIX AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^aarch.*$")  #e.g. aarch64
+if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch.*$")  #e.g. aarch64
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 

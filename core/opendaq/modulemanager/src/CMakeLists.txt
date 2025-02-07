@@ -171,6 +171,7 @@ set(SRC_PrivateLinkLibraries_Component
     $<BUILD_INTERFACE:Threads::Threads>
     $<BUILD_INTERFACE:fmt::fmt>
     $<BUILD_INTERFACE:daq::discovery_server>
+    $<BUILD_INTERFACE:daq::discovery>
     PARENT_SCOPE
 )
 

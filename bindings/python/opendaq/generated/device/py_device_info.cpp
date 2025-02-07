@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -278,4 +278,30 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
         },
         py::arg("protocol_id"),
         "Gets the server capability with a given ID.");
+    cls.def_property_readonly("network_interfaces",
+        [](daq::IDeviceInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getNetworkInterfaces().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the dictionary of network interfaces stored in device info.");
+    cls.def("get_network_interface",
+        [](daq::IDeviceInfo *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& interfaceName)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getNetworkInterface(getVariantValue<daq::IString*>(interfaceName)).detach();
+        },
+        py::arg("interface_name"),
+        "Gets the network interface with a given name.");
+    cls.def_property_readonly("user_name",
+        [](daq::IDeviceInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getUserName().toStdString();
+        },
+        "Gets the name of the current user of the device.");
 }

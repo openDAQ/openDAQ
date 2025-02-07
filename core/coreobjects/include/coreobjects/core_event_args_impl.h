@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -239,7 +239,8 @@ inline bool CoreEventArgsImpl::validateParameters() const
                    && parameters.hasKey("StatusValue")
                    && parameters.hasKey("ConnectionString")
                    && parameters.hasKey("ProtocolType")
-                   && parameters.hasKey("StreamingObject");
+                   && parameters.hasKey("StreamingObject")
+                   && parameters.hasKey("Message");
         default:
             break;
     }

@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,4 +58,22 @@ void defineIComponentStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::
         },
         py::arg("name"), py::arg("value"),
         "Sets the value for the existing component status.");
+    cls.def("add_status_with_message",
+        [](daq::IComponentStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEnumeration* initialValue, std::variant<daq::IString*, py::str, daq::IEvalValue*>& message)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentStatusContainerPrivatePtr::Borrow(object);
+            objectPtr.addStatusWithMessage(getVariantValue<daq::IString*>(name), initialValue, getVariantValue<daq::IString*>(message));
+        },
+        py::arg("name"), py::arg("initial_value"), py::arg("message"),
+        "Adds the new status with given name, initial value, and message.");
+    cls.def("set_status_with_message",
+        [](daq::IComponentStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::IEnumeration* value, std::variant<daq::IString*, py::str, daq::IEvalValue*>& message)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentStatusContainerPrivatePtr::Borrow(object);
+            objectPtr.setStatusWithMessage(getVariantValue<daq::IString*>(name), value, getVariantValue<daq::IString*>(message));
+        },
+        py::arg("name"), py::arg("value"), py::arg("message"),
+        "Sets the value for the existing component status with a message.");
 }

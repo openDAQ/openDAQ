@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,6 +90,8 @@ public:
 
     void setDescription(const OpcUaNodeId& nodeId, const OpcUaObject<UA_LocalizedText>& localizedText);
     void setDescription(const OpcUaNodeId& nodeId, const std::string& text);
+
+    void setAccessLevel(const OpcUaNodeId& nodeId, UA_Byte accessLevel);
 
     void writeValue(const OpcUaNodeId& nodeId, const OpcUaVariant& var);
     OpcUaVariant readValue(const OpcUaNodeId& nodeId);

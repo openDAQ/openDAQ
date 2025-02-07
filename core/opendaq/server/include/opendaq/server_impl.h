@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,9 +68,9 @@ public:
         if (const DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr; rootDevice.assigned() && context.assigned())
         {
             DeviceInfoPtr rootDeviceInfo = rootDevice.getInfo();
-            for (const auto& [_, service] : context.getDiscoveryServers())
+            for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
             {
-                service.template asPtr<IDiscoveryServer>().registerService(id, getDiscoveryConfig(), rootDeviceInfo);
+                discoveryServer.template asPtr<IDiscoveryServer>().registerService(id, getDiscoveryConfig(), rootDeviceInfo);
             }
         }
         return OPENDAQ_SUCCESS;
@@ -80,9 +80,9 @@ public:
     {
         if (context != nullptr)
         {
-            for (const auto& [_, service] : context.getDiscoveryServers())
+            for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
             {
-                service.template asPtr<IDiscoveryServer>().unregisterService(id);
+                discoveryServer.template asPtr<IDiscoveryServer>().unregisterService(id);
             }
         }
         return wrapHandler(this, &Self::onStopServer);

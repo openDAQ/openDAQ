@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ protected:
     void addToAvailableSignals(const StringPtr& signalStreamingId);
     void removeFromAvailableSignals(const StringPtr& signalStreamingId);
 
-    virtual void updateConnectionStatus(const EnumerationPtr& status);
+    virtual void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
 
     /*!
      * @brief A function called when the active state of the Streaming is changed.
@@ -724,7 +724,7 @@ void StreamingImpl<Interfaces...>::triggerSubscribeAck(const StringPtr& signalSt
 }
 
 template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::updateConnectionStatus(const EnumerationPtr& status)
+void StreamingImpl<Interfaces...>::updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
     std::scoped_lock lock(sync);
 
@@ -738,10 +738,11 @@ void StreamingImpl<Interfaces...>::updateConnectionStatus(const EnumerationPtr& 
     auto device = this->ownerDeviceRef.assigned() ? this->ownerDeviceRef.getRef() : nullptr;
     if (device.assigned())
     {
-        device.getConnectionStatusContainer().template asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatus(
+        device.getConnectionStatusContainer().template asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(
             this->connectionString,
             connectionStatus,
-            this->template borrowPtr<StreamingPtr>()
+            this->template borrowPtr<StreamingPtr>(),
+            statusMessage
         );
     }
 }

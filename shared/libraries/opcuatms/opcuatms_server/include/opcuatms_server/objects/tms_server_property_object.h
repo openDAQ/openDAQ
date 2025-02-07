@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,14 +54,14 @@ public:
     void setMethodParentNodeId(const opcua::OpcUaNodeId& methodParentNodeId);
     void addProperty(const TmsServerPropertyPtr& childProperty);
     std::unordered_set<std::string> ignoredProps;
-    std::unordered_map<std::string, std::string> propBrowseName; // property name -> browse name (if not set use browse name as property name)
+    std::unordered_map<std::string, std::string> propBrowseName; // property name -> browse name (if not use browse name as property name)
 
 protected:
     void configureNodeAttributes(opcua::OpcUaObject<UA_ObjectAttributes>& attr) override;
     void triggerEvent(PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args);
     opcua::OpcUaNodeId getTmsTypeId() override;
     void addPropertyNode(const std::string& name, const opcua::OpcUaNodeId& parentId);
-    void bindPropertyCallbacks(const std::string& browseName, const std::string& propName);
+    void bindPropertyCallbacks(const opcua::OpcUaNodeId& nodeId, const std::string& propName);
 
     std::unordered_map<opcua::OpcUaNodeId, TmsServerPropertyPtr> childProperties;
     std::unordered_map<opcua::OpcUaNodeId, TmsServerPropertyObjectPtr> childObjects;

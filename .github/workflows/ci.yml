@@ -140,7 +140,7 @@ jobs:
 
       - name: Build
         shell: pwsh
-        working-directory: build
+        working-directory: ./build
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
@@ -170,7 +170,7 @@ jobs:
 
       - name: Package
         if: matrix.cpack != ''
-        working-directory: build
+        working-directory: ./build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
       - name: Upload package
@@ -270,7 +270,8 @@ jobs:
 
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
-      linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
+        test_path: ${{ env.test_path }}
+        linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
       - name: Install basic dependencies
@@ -303,7 +304,7 @@ jobs:
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
       - name: Build
-        working-directory: build
+        working-directory: ./build
         run: cmake --build .
 
       - name: Test
@@ -320,7 +321,7 @@ jobs:
 
       - name: Package
         if: matrix.cpack != ''
-        working-directory: build
+        working-directory: ./build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
       - name: Upload package
@@ -377,25 +378,25 @@ jobs:
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
         run: |
           cat > regression_test_run.sh << EOL
-          
+
           # Change directory because we expect the libraries to be in the folder we are running simulator from
           cd ${{ env.regression_simulator_folder }}
-          
+
           # Run simulator and wait for it to to be ready
           ./regression_simulator &
           while [ ! -f ready ]; do sleep 1; done
-          
+
           # Change directory back
           cd ..
-          
+
           # Set trap that will catch failed (8) and successful (0) test and kill simulator gracefully, then exit with trapped code
           trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
-          
+
           # Perform tests
           ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
-          
+
           EOL
-          
+
           # Make runner script executable
           chmod +x regression_test_run.sh
 
@@ -489,7 +490,7 @@ jobs:
         run: mkdir build
 
       - name: Configure and build python packages
-        working-directory: build
+        working-directory: ./build
         run: |
           mkdir wheels
           last_version="3.7"
@@ -526,7 +527,7 @@ jobs:
 
       - name: Package
         if: matrix.cpack != ''
-        working-directory: build
+        working-directory: ./build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
 
       - name: Upload package
@@ -561,6 +562,7 @@ jobs:
           - name: macos-13 clang Release
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_osx_deployment_target: 10.15
             runner: macos-13
           # - name: macos-13 clang Debug
             # cmake_generator: Ninja
@@ -575,28 +577,49 @@ jobs:
         uses: seanmiddleditch/gha-setup-ninja@v5
         with:
           version: 1.10.2
-      - name: Set up Python
-        uses: actions/setup-python@v4
+
+      - name: Set up Pythons
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: |
+              3.8
+              3.9
+              3.10
+              3.11
+              3.12
+              3.13
 
-      - name: Install numpy
-        run: python -m pip install numpy
-
-      - name: Configure, fetch dependencies
+      - name: Make dirs
         run: |
           mkdir -p build
-          cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ${{ github.workspace }}
+          mkdir wheels
 
-      - name: Build
-        working-directory: build
-        run: cmake --build .
+      - name: Build wheels x86_64
+        working-directory: ./build
+        run: |
+          last_version="3.8"
+          for version in ${{ env.python_versions }}; do
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
+              cmake --build .
+              python$version -m venv venv
+              . venv/bin/activate
+              pip install numpy pybind11-stubgen
+              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
+              cp -f pip/packages/opendaq*.whl ../wheels
+              deactivate
+              rm -rf venv
+              last_version=$version
+          done
+          echo "last_version=$last_version" >> "$GITHUB_ENV"
 
       - name: Test
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+        run: |
+          python$last_version -m venv build/venv
+          . build/venv/bin/activate
+          pip install build/pip/packages/opendaq*.whl
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()
@@ -604,6 +627,13 @@ jobs:
         with:
           name: Unit Test Results (${{ matrix.name }})
           path: ${{ env.test_path }}
+
+      - name: Upload PIP packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIP Package (${{ matrix.name }})
+          path: ./wheels/opendaq*.whl
+          retention-days: 7
 
   build_windows_pip:
     runs-on: ${{ matrix.runner }}
@@ -649,7 +679,7 @@ jobs:
         run: New-Item build -ItemType Directory
 
       - name: Configure, build and test Python packages
-        working-directory: build
+        working-directory: ./build
         run: |
           New-Item wheels -ItemType Directory
           foreach ($version in "${{ env.python_versions }}".split(" ")) {
@@ -749,7 +779,7 @@ jobs:
   #           -DCI_GIT_BRANCH=${{ github.head_ref }} \
   #           ..
   #     - name: Build
-  #       working-directory: build
+  #       working-directory: ./build
   #       run: cmake --build .
 
   # using reusable workflow
@@ -765,7 +795,8 @@ jobs:
       uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
       with:
         # cannot use env context here, so use needs.<job>.outputs.<variable> trick
-        test_path: ${{ needs.build_windows.outputs.test_path }}
+        windows_test_path: ${{ needs.build_windows.outputs.test_path }}
+        linux_test_path: ${{ needs.build_linux.outputs.test_path }}
         windows_x64_artifact_name:  ${{ needs.build_windows.outputs.windows_x64_artifact_name }}
         linux_x64_artifact_name:  ${{ needs.build_linux.outputs.linux_x64_artifact_name }}
         short_sha: ${{ needs.build_windows.outputs.short_sha }}

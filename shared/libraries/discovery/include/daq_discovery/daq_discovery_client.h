@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,29 +15,36 @@
  */
 
 #pragma once
-#include <coretypes/listobject_factory.h>
-#include <opendaq/device_info_ptr.h>
+#include <coreobjects/property_object_ptr.h>
 #include <daq_discovery/mdnsdiscovery_client.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
-using ServerCapabilityCallback = std::function<ServerCapabilityPtr(MdnsDiscoveredDevice)>;
-
 class DiscoveryClient final
 {
 public:
-    explicit DiscoveryClient(std::vector<ServerCapabilityCallback> serverCapabilityCbs, std::unordered_set<std::string> requiredCaps = {});
+    explicit DiscoveryClient(std::unordered_set<std::string> requiredCaps = {});
     
     void initMdnsClient(const ListPtr<IString>& serviceNames, std::chrono::milliseconds discoveryDuration = 500ms);
-    ListPtr<IDeviceInfo> discoverDevices() const;
+    std::vector<MdnsDiscoveredDevice> discoverMdnsDevices() const;
+
+    static void populateDiscoveredInfoProperties(PropertyObjectPtr& info, const MdnsDiscoveredDevice& device);
+
+    ErrCode applyIpConfiguration(const StringPtr& manufacturer,
+                                 const StringPtr& serialNumber,
+                                 const StringPtr& ifaceName,
+                                 const PropertyObjectPtr& config);
+
+    ErrCode requestIpConfiguration(const StringPtr& manufacturer,
+                                   const StringPtr& serialNumber,
+                                   const StringPtr& ifaceName,
+                                   PropertyObjectPtr& config);
 
 protected:
-    ListPtr<IDeviceInfo> discoverMdnsDevices() const;
-    DeviceInfoPtr createDeviceInfo(MdnsDiscoveredDevice discoveredDevice) const;
+    bool verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const;
 
     std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
     std::unordered_set<std::string> requiredCaps;
-    std::vector<ServerCapabilityCallback> serverCapabilityCallbacks;
 };
 
 END_NAMESPACE_DISCOVERY

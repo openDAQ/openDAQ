@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,15 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      * @brief Removes all server streaming capabilities from the list of supported capabilities.
      */
     virtual ErrCode INTERFACE_FUNC clearServerStreamingCapabilities() = 0;
+
+    /*!
+     * @brief Adds a network interface to the dictionary of available interfaces.
+     * @param networkInterface The available interface to add.
+     * @param name The name of available interface to add.
+     *
+     * The provided name should be unique within the device info as used as the key in the dictionary of available interfaces.
+     */
+    virtual ErrCode INTERFACE_FUNC addNetworkInteface(IString* name, INetworkInterface* networkInterface) = 0;
 };
 /*!@}*/
 

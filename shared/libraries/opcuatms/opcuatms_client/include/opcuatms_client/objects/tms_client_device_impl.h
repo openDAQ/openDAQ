@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 class TmsClientDeviceImpl : public TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>
 {
 public:
+    using Impl = MirroredDeviceBase<ITmsClientComponent>;
     using Super = TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent>>;
     explicit TmsClientDeviceImpl(const ContextPtr& ctx,
                                  const ComponentPtr& parent,
@@ -47,7 +48,6 @@ protected:
     void findAndCreateInputsOutputs();
     void findAndCreateCustomComponents();
     void findAndCreateSyncComponent();
-    void findAndCreateProporties();
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
@@ -65,6 +65,7 @@ private:
     SizeT ticksSinceOrigin{};
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    std::unordered_map<std::string, opcua::OpcUaNodeId> deviceInfoChangeableFields;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

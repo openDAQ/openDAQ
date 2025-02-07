@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,6 +70,7 @@ protected:
     std::list<TmsServerPropertyObjectPtr> serverCapabilities;
     std::list<TmsServerFunctionBlockTypePtr> functionBlockTypes;
     std::list<TmsServerSyncComponentPtr> syncComponents;
+    std::list<TmsServerPropertyPtr> deviceInfoProperties;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

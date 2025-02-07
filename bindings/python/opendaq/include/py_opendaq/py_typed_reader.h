@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -510,7 +510,7 @@ private:
     }
 
     template <typename ReaderType>
-    static inline typename daq::ReaderStatusType<ReaderType>::Type readZeroValues(const ReaderType& reader, size_t timeoutMs)
+    static inline typename daq::ReaderStatusType<ReaderType>::Type readZeroValues(const ReaderType& reader, [[maybe_unused]] size_t timeoutMs)
     {
         using StatusType = typename daq::ReaderStatusType<ReaderType>::Type;
         StatusType status;

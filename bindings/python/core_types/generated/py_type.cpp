@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,11 @@
  * limitations under the License.
  */
 
+#include <pybind11/gil.h>
+
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
+
 
 PyDaqIntf<daq::IType, daq::IBaseObject> declareIType(pybind11::module_ m)
 {
@@ -40,6 +43,7 @@ void defineIType(pybind11::module_ m, PyDaqIntf<daq::IType, daq::IBaseObject> cl
     cls.def_property_readonly("name",
         [](daq::IType *object)
         {
+            py::gil_scoped_release release;
             const auto objectPtr = daq::TypePtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },

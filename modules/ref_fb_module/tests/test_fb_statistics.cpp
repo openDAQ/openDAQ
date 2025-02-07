@@ -3,7 +3,8 @@
 #include <opendaq/module_ptr.h>
 #include <opendaq/opendaq.h>
 #include <ref_fb_module/module_dll.h>
-#include "testutils/memcheck_listener.h"
+#include <testutils/memcheck_listener.h>
+
 using namespace daq;
 
 template <typename T>
@@ -11,6 +12,47 @@ using vecvec = std::vector<std::vector<T> >;
 
 class StatisticsTest : public testing::Test
 {
+};
+
+class StatisticsTestStatus: public StatisticsTest
+{
+public:
+    FunctionBlockPtr fb;
+    ContextPtr context;
+protected:
+    void SetUp() override
+    {
+        // Create module
+        ModulePtr module;
+        const auto logger = Logger();
+        auto moduleManager = ModuleManager("[[none]]");
+        context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, nullptr);
+        createModule(&module, context);
+        moduleManager.addModule(module);
+        moduleManager = context.asPtr<IContextInternal>().moveModuleManager();
+
+        // Crate config
+        PropertyObjectPtr config = module.getAvailableFunctionBlockTypes().get("RefFBModuleStatistics").createDefaultConfig();
+        config.setPropertyValue("UseMultiThreadedScheduler", false);
+
+        // Create function block
+        fb = module.createFunctionBlock("RefFBModuleStatistics", nullptr, "fb", config);
+    }
+};
+
+class StatisticsTestStatusSignal : public StatisticsTestStatus
+{
+public:
+    SignalConfigPtr signal;
+protected:
+    void SetUp() override
+    {
+        StatisticsTestStatus::SetUp();
+
+        // Create signal with descriptor
+        auto signalDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(ExplicitDataRule()).build();
+        signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "signal");
+    }
 };
 
 struct RangeData
@@ -962,4 +1004,68 @@ TEST_F(StatisticsTest, StatisticsTestOverlapWithTrigger)
                                        mockTriggerPackets,
                                        mockTriggerDomainPackets);
     helper.run();
+}
+
+TEST_F(StatisticsTestStatus, StatisticsOk1)
+{
+    // ComponentStatus is Ok
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
+}
+
+TEST_F(StatisticsTestStatus, StatisticsException1)
+{
+    // Trigger configure
+    fb.setPropertyValue("BlockSize", 20);
+
+    // Incomplete input signal descriptors
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Incomplete input signal descriptors");
+}
+
+TEST_F(StatisticsTestStatusSignal, StatisticsException2)
+{
+    // Trigger configure
+    fb.getInputPorts()[0].connect(signal);
+
+    // Incomplete input signal descriptors
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Incompatible domain data sample type Null");
+}
+
+TEST_F(StatisticsTestStatusSignal, StatisticsException3)
+{
+    // Create domain signal with descriptor
+    auto domainSignalNonLinearDescriptor = DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(ConstantDataRule()).build();
+    auto domainSignalNonLinear = SignalWithDescriptor(context, domainSignalNonLinearDescriptor, nullptr, "signal");
+
+    // Set domain signal
+    signal.setDomainSignal(domainSignalNonLinear);
+
+    // Trigger configure
+    fb.getInputPorts()[0].connect(signal);
+
+    // Incomplete input signal descriptors
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Domain rule type is not Linear");
+}
+
+TEST_F(StatisticsTestStatusSignal, StatisticsOk2)
+{
+    // Create domain signal with descriptor
+    auto domainSignalLinearDescriptor = DataDescriptorBuilder().setSampleType(SampleType::UInt64).setRule(LinearDataRule(1, 3)).build();
+    auto domainSignal = SignalWithDescriptor(context, domainSignalLinearDescriptor, nullptr, "signal");
+
+    // Set domain signal
+    signal.setDomainSignal(domainSignal);
+
+    // Trigger configure
+    fb.getInputPorts()[0].connect(signal);
+
+    // Successful configuration
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
 }

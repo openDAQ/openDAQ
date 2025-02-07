@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -255,5 +255,14 @@ void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConf
             const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
             objectPtr.setLocation(getVariantValue<daq::IString*>(location));
         },
-        "Sets the device's location.");
+        "Sets the location of the device.");
+    cls.def_property("user_name",
+        nullptr,
+        [](daq::IDeviceInfoConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& userName)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceInfoConfigPtr::Borrow(object);
+            objectPtr.setUserName(getVariantValue<daq::IString*>(userName));
+        },
+        "Sets the name of the current user of the device.");
 }

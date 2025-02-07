@@ -286,7 +286,8 @@ namespace RTGen.Python.Generators
                 }
                 else
                 {
-                    var argName = GetAllowNullArgumentName(argument);
+                    var argName = GetPyBind11WrappedName(argument);
+                    argName = GetAllowNullArgumentName(argument, argName);
                     factoryLambda.Append(argName);
                 }
                 if (argumentIndex < factory.Arguments.Length - 1)
@@ -316,12 +317,13 @@ namespace RTGen.Python.Generators
             return factoryLambda.ToString();
         }
 
-        private string GetAllowNullArgumentName(IArgument argument)
+        private string GetAllowNullArgumentName(IArgument argument, string argumentName)
         {
+            var argName = argumentName ?? argument.Name;
             if (argument.AllowNull)
-                return String.Format("{0}.has_value() ? {0}.value() : nullptr", argument.Name);
+                return String.Format("{0}.has_value() ? {0}.value() : nullptr", argName);
             else
-                return argument.Name;
+                return argName;
         }
 
         private string MakeTypeNameOptional(string typeName)

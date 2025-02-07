@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ private:
     static PropertyObjectPtr createDefaultConfig();
     static void completeServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress);
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config);
+    static DeviceInfoPtr populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
     discovery::DiscoveryClient discoveryClient;
 
     std::mutex sync;

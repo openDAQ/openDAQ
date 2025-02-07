@@ -3,6 +3,7 @@ import os
 import opendaq as daq
 
 from . import utils
+from typing import Callable, Optional
 
 
 class DeviceInfoLocal:
@@ -16,7 +17,7 @@ class AppContext(object):
 
     default_folders = {'Dev', 'FB', 'IO', 'IP', 'Sig'}
 
-    def __init__(self):
+    def __init__(self, params):
 
         # logic
         self.nodes = {}
@@ -29,10 +30,25 @@ class AppContext(object):
         self.ui_scaling_factor = 1.0
         self.icons = {}
         # daq
-        self.instance = daq.Instance()
+        builder = daq.InstanceBuilder()
+        builder.scheduler_worker_num = 0
+        
+        try:
+            daq.OPENDAQ_MODULES_DIR
+        except:
+            builder.add_module_path('.')
+        else:
+            builder.add_module_path(daq.OPENDAQ_MODULES_DIR)
+
+        if params.module_path != None:
+            builder.add_module_path(params.module_path)
+        
+        self.instance = daq.InstanceFromBuilder(builder)
+        self.instance.context.on_core_event + daq.EventHandler(self.on_core_event)
         self.enabled_devices = {}
         self.connection_string = ''
         self.signals = {}
+        self.on_needs_refresh: Optional[Callable[[], None]] = None
 
     def register_device(self, device_info):
         conn = device_info.connection_string
@@ -160,3 +176,10 @@ class AppContext(object):
             return daq.IList()
 
         return component.all_properties if self.view_hidden_components else component.visible_properties
+
+    def on_core_event(self, sender: Optional[daq.IComponent], args: daq.IEventArgs):
+        if sender is not None and daq.IDevice.can_cast_from(sender) and args.event_name == "StatusChanged" and self.on_needs_refresh is not None:
+            core_event_args: daq.ICoreEventArgs = daq.ICoreEventArgs.cast_from(args)
+            has_connection_status = "ConnectionStatus" in core_event_args.parameters.keys()
+            if has_connection_status:
+                self.on_needs_refresh()

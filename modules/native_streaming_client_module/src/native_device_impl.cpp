@@ -2,6 +2,7 @@
 #include <native_streaming_client_module/native_streaming_impl.h>
 
 #include <opendaq/custom_log.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <regex>
 #include <boost/asio/dispatch.hpp>
 
@@ -22,7 +23,8 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId,
-                                       const StringPtr& connectionString)
+                                       const StringPtr& connectionString,
+                                       Int reconnectionPeriod)
     : processingIOContextPtr(processingIOContextPtr)
     , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
     , reconnectionProcessingThreadId(reconnectionProcessingThreadId)
@@ -33,11 +35,14 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
     , connectionString(connectionString)
+    , configProtocolReconnectionRetryTimer(std::make_shared<boost::asio::steady_timer>(*reconnectionProcessingIOContextPtr))
+    , reconnectionPeriod(std::chrono::milliseconds(reconnectionPeriod))
 {
 }
 
 NativeDeviceHelper::~NativeDeviceHelper()
 {
+    configProtocolReconnectionRetryTimer->cancel();
     closeConnectionOnRemoval();
 }
 
@@ -65,6 +70,8 @@ void NativeDeviceHelper::unsubscribeFromCoreEvent(const ContextPtr& context)
 
 void NativeDeviceHelper::closeConnectionOnRemoval()
 {
+    configProtocolReconnectionRetryTimer->cancel();
+
     if (transportClientHandler)
     {
         transportClientHandler->resetConfigHandlers();
@@ -80,8 +87,11 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
         reconnectionProcessingIOContextPtr->stop();
     }
 
-    configProtocolClient.reset();
-    transportClientHandler.reset();
+    {
+        std::scoped_lock lock(sync);
+        configProtocolClient.reset();
+        transportClientHandler.reset();
+    }
 
     cancelPendingConfigRequests(ComponentRemovedException());
 }
@@ -251,35 +261,65 @@ void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPt
     }
 }
 
-void NativeDeviceHelper::connectionStatusChangedHandler(const EnumerationPtr& status)
+void NativeDeviceHelper::transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
     if (status == "Connected")
     {
-        try
-        {
-            acceptNotificationPackets = true;
-            configProtocolClient->reconnect(restoreClientConfigOnReconnect);
-        }
-        catch(const std::exception& e)
-        {
-            acceptNotificationPackets = false;
-            LOG_W("Reconnection failed: {}", e.what());
-            return;
-        }
+        tryConfigProtocolReconnect();
     }
     else
     {
+        configProtocolReconnectionRetryTimer->cancel();
         acceptNotificationPackets = false;
         cancelPendingConfigRequests(ConnectionLostException());
         configProtocolClient->disconnectExternalSignals();
+
+        updateConnectionStatus(status, statusMessage);
+    }
+}
+
+void NativeDeviceHelper::tryConfigProtocolReconnect()
+{
+    try
+    {
+        acceptNotificationPackets = true;
+        configProtocolClient->reconnect(restoreClientConfigOnReconnect);
+    }
+    catch(const std::exception& e)
+    {
+        acceptNotificationPackets = false;
+        const auto statusMessage = String(fmt::format("Configuration protocol reconnection failed: {}.", e.what()));
+        LOG_E("{}", statusMessage);
+
+        updateConnectionStatus(connectionStatus, statusMessage);
+
+        configProtocolReconnectionRetryTimer->expires_from_now(reconnectionPeriod);
+        configProtocolReconnectionRetryTimer->async_wait(
+            [this, weak_self = weak_from_this()](const boost::system::error_code& ec)
+            {
+                if (ec)
+                    return;
+                if (auto shared_self = weak_self.lock())
+                    this->tryConfigProtocolReconnect();
+            }
+        );
+        return;
     }
 
+    // use tmp var to implicitly copy the enumeration type
+    auto tmpStatusValue = connectionStatus;
+    tmpStatusValue = "Connected";
+    updateConnectionStatus(tmpStatusValue, "");
+}
+
+void NativeDeviceHelper::updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
+{
     connectionStatus = status;
 
     auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
     if (!device.assigned())
         return;
-    device.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus);
+    device.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus, statusMessage);
 }
 
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
@@ -322,21 +362,21 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
         );
     };
 
-    OnConnectionStatusChangedCallback connectionStatusChangedCb =
-        [this](const EnumerationPtr& status)
+    OnConnectionStatusChangedCallback transportConnectionStatusChangedCb =
+        [this](const EnumerationPtr& status, const StringPtr& statusMessage)
     {
         boost::asio::dispatch(
             *reconnectionProcessingIOContextPtr,
-            [this, status, weak_self = weak_from_this()]()
+            [this, status, statusMessage, weak_self = weak_from_this()]()
             {
                 if (auto shared_self = weak_self.lock())
-                    this->connectionStatusChangedHandler(status);
+                    this->transportConnectionStatusChangedHandler(status, statusMessage);
             }
         );
     };
 
     transportClientHandler->setConfigHandlers(receiveConfigPacketCb,
-                                              connectionStatusChangedCb);
+                                              transportConnectionStatusChangedCb);
 }
 
 PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& reqPacket)
@@ -410,10 +450,11 @@ void NativeDeviceHelper::cancelPendingConfigRequests(const DaqException& e)
 
 void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
 {
+    std::scoped_lock lock(sync);
     if (packet.getPacketType() == ServerNotification)
     {
         // allow server notifications only if connected / reconnection started
-        if (acceptNotificationPackets)
+        if (acceptNotificationPackets && configProtocolClient != nullptr)
         {
             configProtocolClient->triggerNotificationPacket(packet);
         }
@@ -424,7 +465,6 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
     }
     else
     {
-        std::scoped_lock lock(sync);
         if(auto it = replyPackets.find(packet.getId()); it != replyPackets.end())
         {
             it->second.set_value(std::move(packet));
@@ -483,10 +523,10 @@ NativeDeviceImpl::~NativeDeviceImpl()
 }
 
 // INativeDevicePrivate
-void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status)
+void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatus("ConnectionStatus", status);
-    this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), status, nullptr);
+    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage("ConnectionStatus", status, statusMessage);
+    this->connectionStatusContainer.updateConnectionStatusWithMessage(deviceInfo.getConnectionString(), status, nullptr, statusMessage);
 }
 
 void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString)
@@ -507,9 +547,9 @@ ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
     OPENDAQ_PARAM_NOT_NULL(context);
 
     return daqTry([&obj, &serialized, &context, &factoryCallback]()
-                  {
-                      *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
-                  });
+    {
+        *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
+    });
 }
 
 void NativeDeviceImpl::removed()
@@ -530,35 +570,43 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
-    const auto newDeviceInfo = DeviceInfo(connectionString, deviceInfo.getName());
-
-    for (const auto& prop : deviceInfo.getAllProperties())
+    if (clientComm->getProtocolVersion() < 8)
     {
-        const auto propName = prop.getName();
-        if (!newDeviceInfo.hasProperty(propName))
+        auto changeableFields = List<IString>();
+        PropertyPtr userNameProp;
+        deviceInfo->getProperty(String("userName"), &userNameProp);
+        if (userNameProp.assigned())
+            changeableFields.pushBack("userName");
+        
+        PropertyPtr locationProp;
+        deviceInfo->getProperty(String("location"), &locationProp);
+        if (locationProp.assigned())
+            changeableFields.pushBack("location");
+        
+        auto newDeviceInfo = DeviceInfoWithChanegableFields(changeableFields);
+        auto deviceInfoInternal = newDeviceInfo.asPtr<IPropertyObjectProtected>(true);
+    
+        for (const auto& prop : deviceInfo.getAllProperties())
         {
-            const auto internalProp = prop.asPtrOrNull<IPropertyInternal>(true);
-            if (!internalProp.assigned())
-                continue;
+            const auto propName = prop.getName();
+            if (!newDeviceInfo.hasProperty(propName))
+                if (const auto internalProp = prop.asPtrOrNull<IPropertyInternal>(true); internalProp.assigned())
+                    newDeviceInfo.addProperty(internalProp.clone());                
 
-            newDeviceInfo.addProperty(internalProp.clone());
+            if (const auto propValue = deviceInfo.getPropertyValue(propName); propValue.assigned())
+                deviceInfoInternal->setProtectedPropertyValue(propName, propValue);
         }
-        if (propName != "connectionString" && propName != "Name")
-        {
-            const auto propValue = deviceInfo.getPropertyValue(propName);
-            if (propValue.assigned())
-                newDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propName, propValue);
-        }
+    
+        deviceInfo = newDeviceInfo;
     }
 
-    if (!newDeviceInfo.hasProperty("NativeConfigProtocolVersion"))
+    deviceInfo.asPtr<IPropertyObjectProtected>(true)->setProtectedPropertyValue(String("connectionString"), connectionString);
+
+    if (!deviceInfo.hasProperty("NativeConfigProtocolVersion"))
     {
-        newDeviceInfo.addProperty(IntProperty("NativeConfigProtocolVersion", clientComm->getProtocolVersion()));
+        auto propBuilder = IntPropertyBuilder("NativeConfigProtocolVersion", clientComm->getProtocolVersion()).setReadOnly(true);
+        deviceInfo.addProperty(propBuilder.build());
     }
-
-    newDeviceInfo.freeze();
-
-    deviceInfo = newDeviceInfo;
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

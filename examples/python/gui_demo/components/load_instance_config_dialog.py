@@ -117,7 +117,6 @@ class LoadInstanceConfigDialog(Dialog):
                 entry.place(x=x, y=y, width=width, height=height)
                 entry.insert(0, value)
                 entry.focus()
-                path = utils.get_item_path(self.tree, item_id)
                 entry.bind('<Return>', lambda e: self.save_value(
                     entry, item_id, column, path))
                 entry.bind('<FocusOut>', lambda e: self.save_value(

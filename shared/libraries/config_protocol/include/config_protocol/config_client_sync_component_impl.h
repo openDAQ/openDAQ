@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,33 +45,31 @@ public:
 protected:
     template <class Interface, class Implementation>
     static BaseObjectPtr DeserializeSyncComponent(const SerializedObjectPtr& serialized,
-                                                 const BaseObjectPtr& context,
-                                                 const FunctionPtr& factoryCallback);
+                                                  const BaseObjectPtr& context,
+                                                  const FunctionPtr& factoryCallback);
 
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 };
 
 template <class Impl>
 ErrCode ConfigClientBaseSyncComponentImpl<Impl>::Deserialize(ISerializedObject* serialized,
-    IBaseObject* context,
-    IFunction* factoryCallback,
-    IBaseObject** obj)
+                                                             IBaseObject* context,
+                                                             IFunction* factoryCallback,
+                                                             IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeSyncComponent<ISyncComponent, ConfigClientSyncComponentImpl>(serialized, context, factoryCallback).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = DeserializeSyncComponent<ISyncComponent, ConfigClientSyncComponentImpl>(serialized, context, factoryCallback).detach();
+    });
 }
 
 template <class Impl>
 template <class Interface, class Implementation>
-BaseObjectPtr ConfigClientBaseSyncComponentImpl<Impl>::DeserializeSyncComponent(
-    const SerializedObjectPtr& serialized,
-    const BaseObjectPtr& context,
-    const FunctionPtr& factoryCallback)
+BaseObjectPtr ConfigClientBaseSyncComponentImpl<Impl>::DeserializeSyncComponent(const SerializedObjectPtr& serialized,
+                                                                                const BaseObjectPtr& context,
+                                                                                const FunctionPtr& factoryCallback)
 {
     return Impl::DeserializeComponent(
         serialized,

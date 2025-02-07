@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2024 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,4 +76,13 @@ void defineIConnectionStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq:
         },
         py::arg("connection_string"), py::arg("value"), py::arg("streaming_object"),
         "Updates the value of an existing connection status.");
+    cls.def("update_connection_status_with_message",
+        [](daq::IConnectionStatusContainerPrivate *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IEnumeration* value, daq::IStreaming* streamingObject, std::variant<daq::IString*, py::str, daq::IEvalValue*>& message)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ConnectionStatusContainerPrivatePtr::Borrow(object);
+            objectPtr.updateConnectionStatusWithMessage(getVariantValue<daq::IString*>(connectionString), value, streamingObject, getVariantValue<daq::IString*>(message));
+        },
+        py::arg("connection_string"), py::arg("value"), py::arg("streaming_object"), py::arg("message"),
+        "Updates the value of an existing connection status with a message.");
 }

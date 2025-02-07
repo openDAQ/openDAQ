@@ -29,7 +29,7 @@ cd folder
 # API changes
 
 > [!NOTE]
-> Modifying, removing, or adding a function to an interface inherited by another breaks binary compatibility of module shared libraries
+> Modifying, removing, or adding a function to an interface inherited by another, breaks binary compatibility of module shared libraries
 
 (An overview of changes on the interface level (abstract structs with pure virtual functions), if any, one function per line)
 

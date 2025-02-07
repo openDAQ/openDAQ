@@ -17,6 +17,7 @@
 #pragma once
 #include <coreobjects/property.h>
 #include <coreobjects/property_object.h>
+#include <coreobjects/object_lock_guard.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,6 +26,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @ingroup objects_property_object
  * @addtogroup objects_property_object_obj PropertyObjectInternal
  * @{
+ */
+
+/*#
+ * [interfaceSmartPtr(ILockGuard, LockGuardPtr, "<coreobjects/object_lock_guard_ptr.h>")]
  */
 
 DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
@@ -44,6 +49,10 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* name, IBaseObject** value) = 0;
     virtual ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* name, IBaseObject* value) = 0;
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* name) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) = 0;
+    // [templateType(lockGuard, ILockGuard)]
+    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(IList* lockGuard) = 0;
 };
 
 /*!@}*/

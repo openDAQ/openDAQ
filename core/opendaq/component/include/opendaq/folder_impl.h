@@ -65,6 +65,7 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC getRecursiveLockGuard(IList* lockGuardList) override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -548,6 +549,7 @@ void FolderImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& conte
     }
     Super::onUpdatableUpdateEnd(context);
 }
+
 template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
 {
@@ -557,7 +559,7 @@ ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeTy
 
     for (const auto& [_, item] : items)
     {
-        auto componentPrivate = item.asPtrOrNull<IComponentPrivate>(true);
+        auto componentPrivate = item.template asPtrOrNull<IComponentPrivate>(true);
         if (componentPrivate.assigned())
         {
             errCode = componentPrivate->updateOperationMode(operationMode);
@@ -569,6 +571,25 @@ ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeTy
     return OPENDAQ_SUCCESS;
 }
 
+template <class Intf, class... Intfs>
+ErrCode FolderImpl<Intf, Intfs...>::getRecursiveLockGuard(IList* lockGuardList)
+{
+    ErrCode errCode = Super::getRecursiveLockGuard(lockGuardList);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    
+    for (const auto& [_, item] : items)
+    {
+        auto objProtected = item.template asPtrOrNull<IPropertyObjectInternal>(true);
+        if (objProtected.assigned())
+        {
+            errCode = objProtected->getRecursiveLockGuard(lockGuardList);
+            if (OPENDAQ_FAILED(errCode))
+                return errCode;
+        }
+    }
+    return OPENDAQ_SUCCESS;
+}
 
 template <class Intf, class... Intfs>
 bool FolderImpl<Intf, Intfs...>::removeItemWithLocalIdInternal(const std::string& str)

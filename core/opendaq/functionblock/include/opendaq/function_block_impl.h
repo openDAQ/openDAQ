@@ -665,7 +665,7 @@ template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
 {
     bool active = modeType != OperationModeType::Idle;
-    for (const auto& signal : signals.getItems())
+    for (const auto& signal : this->signals.getItems())
     {
         signal.setActive(active);
     }

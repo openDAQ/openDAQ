@@ -153,6 +153,8 @@ public:
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
 
+    // IPropertyObjectInternal
+    ErrCode INTERFACE_FUNC getRecursiveLockGuard(IList* lockGuardList) override;
 protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
@@ -1073,6 +1075,29 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getConnectionStatusContainer(I
 }
 
 template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getRecursiveLockGuard(IList* lockGuardList)
+{
+    ErrCode errCode = Super::getRecursiveLockGuard(lockGuardList);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    
+    for (const auto& component : this->components)
+    {
+        if (component.getLocalId() == "Dev")
+            continue;
+
+        auto objProtected = component.template asPtrOrNull<IPropertyObjectInternal>(true);
+        if (objProtected.assigned())
+        {
+            errCode = objProtected->getRecursiveLockGuard(lockGuardList);
+            if (OPENDAQ_FAILED(errCode))
+                return errCode;
+        }
+    }
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType modeType)
 {
     return OPENDAQ_IGNORED;
@@ -1081,6 +1106,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
 {
+    ListPtr<ILockGuard> lockGuardList;
+    ErrCode errCode = this->getRecursiveLockGuard(lockGuardList);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
     Super::updateOperationMode(modeType);
 
     if (includeSubDevices)

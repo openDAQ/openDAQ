@@ -46,6 +46,7 @@ rtgen(SRC_PermisisonsBuilder permissions_builder.h)
 rtgen(SRC_PermisisonMaskBuilder permission_mask_builder.h)
 rtgen(SRC_Permisisons permissions.h)
 rtgen(SRC_PermisisonsInternal permissions_internal.h)
+rtgen(SRC_ObjectLockGuard object_lock_guard.h)
 
 get_target_property(CORE_CONTAINERS_SRCS core_containers INTERFACE_SOURCES)
 
@@ -100,6 +101,7 @@ source_group("property_object" FILES ${SDK_HEADERS_DIR}/property_object.h
                                      ${SDK_HEADERS_DIR}/property_object_ptr.custom.h
                                      ${SDK_HEADERS_DIR}/property_object_protected.h
                                      ${SDK_HEADERS_DIR}/property_object_internal.h
+                                     ${SDK_HEADERS_DIR}/object_lock_guard.h
                                      property_object_impl.cpp
 )
 
@@ -257,6 +259,7 @@ set(SRC_PublicHeaders coreobjects.h
                       permissions_builder_factory.h
                       permission_mask_builder.h
                       permission_mask_builder_factory.h
+                      object_lock_guard.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -318,6 +321,7 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_PermisisonsBuilder}
                                ${SRC_PermisisonMaskBuilder}
                                ${SRC_Permisisons}
+                               ${SRC_ObjectLockGuard}
                                coreobjects.natvis
 )
 

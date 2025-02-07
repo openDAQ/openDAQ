@@ -396,7 +396,6 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
                             valueInternal.addServerCapability(capability);
                 }
                 else
-                else
                 {
                     if (devicesWithIpModSupport.hasKey(id))
                     {

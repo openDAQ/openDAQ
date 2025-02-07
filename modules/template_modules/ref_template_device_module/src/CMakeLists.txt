@@ -1,34 +1,34 @@
-set(LIB_NAME ref_template_template_device_module)
+set(LIB_NAME ref_template_device_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 
 set(SRC_Include common.h
                 module_dll.h
-                ref_template_template_device_module_impl.h
-                ref_template_template_device_impl.h
-                ref_template_template_channel_impl.h
-				ref_template_template_can_channel_impl.h
+                ref_template_device_module_impl.h
+                ref_template_device_impl.h
+                ref_template_channel_impl.h
+				ref_template_can_channel_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
-             ref_template_template_device_module_impl.cpp
-             ref_template_template_device_impl.cpp
-             ref_template_template_channel_impl.cpp
-			 ref_template_template_can_channel_impl.cpp
+             ref_template_device_module_impl.cpp
+             ref_template_device_impl.cpp
+             ref_template_channel_impl.cpp
+			 ref_template_can_channel_impl.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
-source_group("module" FILES ${MODULE_HEADERS_DIR}/ref_template_template_device_module_common.h
-                            ${MODULE_HEADERS_DIR}/ref_template_template_device_module_impl.h
-                            ${MODULE_HEADERS_DIR}/ref_template_template_channel_impl.h
-                            ${MODULE_HEADERS_DIR}/ref_template_template_can_channel_impl.h
-                            ${MODULE_HEADERS_DIR}/ref_template_template_device_impl.h
+source_group("module" FILES ${MODULE_HEADERS_DIR}/ref_template_device_module_common.h
+                            ${MODULE_HEADERS_DIR}/ref_template_device_module_impl.h
+                            ${MODULE_HEADERS_DIR}/ref_template_channel_impl.h
+                            ${MODULE_HEADERS_DIR}/ref_template_can_channel_impl.h
+                            ${MODULE_HEADERS_DIR}/ref_template_device_impl.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             module_dll.cpp
-                            ref_template_template_device_module_impl.cpp
-                            ref_template_template_device_impl.cpp
-                            ref_template_template_channel_impl.cpp
-							ref_template_template_can_channel_impl.cpp
+                            ref_template_device_module_impl.cpp
+                            ref_template_device_impl.cpp
+                            ref_template_channel_impl.cpp
+							ref_template_can_channel_impl.cpp
 )
 
 

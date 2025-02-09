@@ -104,4 +104,10 @@ void declareAndDefineIBaseObject(pybind11::module_ m)
             InterfaceWrapper<daq::IBaseObject> wrappedInterface(obj);
             return py::cast(wrappedInterface);
         });
+    cls.def("to_native_object",
+        [](daq::IBaseObject* obj)
+        {
+            const auto objPtr = daq::BaseObjectPtr::Borrow(obj);
+            return baseObjectToPyObject(obj, daq::IBaseObject::Id, false);
+        });
 }

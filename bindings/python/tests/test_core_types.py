@@ -134,6 +134,12 @@ class TestInteger(TestNumObjectWrapper.TestNumObject):
 
     def test_can_cast_from(self):
         self.assertTrue(daq.IBaseObject.can_cast_from(daq.Integer(2)))
+        
+    def test_to_py_object(self):
+        obj = daq.Integer(2)
+        py_obj = obj.to_native_object()
+        self.assertFalse(isinstance(obj, int))
+        self.assertTrue(isinstance(py_obj, int))
 
 class TestFloat(TestNumObjectWrapper.TestNumObject):
     def createObject(self, num):

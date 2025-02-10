@@ -4,6 +4,10 @@ function (opendaq_set_module_properties MODULE_NAME LIB_MAJOR_VERSION)
     set(multiValueArgs "")
     cmake_parse_arguments(OPENDAQ_SET_MODULE_PARAMS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
+	if (NOT DEFINED OPENDAQ_MODULE_SUFFIX)
+		set(OPENDAQ_MODULE_SUFFIX ".module${CMAKE_SHARED_LIBRARY_SUFFIX}")
+	endif()
+	
     set_target_properties(${MODULE_NAME} PROPERTIES SUFFIX ${OPENDAQ_MODULE_SUFFIX})
     target_compile_definitions(${MODULE_NAME} PRIVATE BUILDING_SHARED_LIBRARY
                                                       OPENDAQ_TRACK_SHARED_LIB_OBJECT_COUNT

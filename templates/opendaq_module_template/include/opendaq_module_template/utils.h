@@ -1,6 +1,11 @@
 #pragma once
-#include <opendaq/opendaq.h>
 #include <set>
+#include <opendaq/opendaq.h>
+
+/*
+ * Utils TODO:
+ *  - Implement circular buffer class for packet with pre-allocated memory creation
+ */
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
@@ -68,32 +73,58 @@ struct SignalAttributeConfig : ComponentAttributeConfig
 
 struct DeviceInfoParams
 {
-    DeviceInfoParams(){}
+    DeviceInfoParams() = default;
 
-    StringAttribute address{""};
-    StringAttribute typeId{""};
-    StringAttribute name{""};
-    StringAttribute manufacturer{""};
-    StringAttribute manufacturerUri{""};
-    StringAttribute model{""};
-    StringAttribute productCode{""};
-    StringAttribute deviceRevision{""};
-    StringAttribute hardwareRevision{""};
-    StringAttribute softwareRevision{""};
-    StringAttribute deviceManual{""};
-    StringAttribute deviceClass{""};
-    StringAttribute serialNumber{""};
-    StringAttribute productInstanceUri{""};
-    IntAttribute revisionCounter{0};
-    StringAttribute assetId{""};
-    StringAttribute macAddress{""};
-    StringAttribute parentMacAddress{""};
-    StringAttribute platform{""};
-    IntAttribute position{0};
-    StringAttribute systemType{""};
-    StringAttribute systemUuid{""};
-    StringAttribute location{""};
+    StringAttribute address{"", true};
+    StringAttribute typeId{"", true};
+    StringAttribute name{"", false};
+    StringAttribute manufacturer{"", true};
+    StringAttribute manufacturerUri{"", true};
+    StringAttribute model{"", true};
+    StringAttribute productCode{"", true};
+    StringAttribute deviceRevision{"", true};
+    StringAttribute hardwareRevision{"", true};
+    StringAttribute softwareRevision{"", true};
+    StringAttribute deviceManual{"", true};
+    StringAttribute deviceClass{"", true};
+    StringAttribute serialNumber{"", true};
+    StringAttribute productInstanceUri{"", true};
+    IntAttribute revisionCounter{0, true};
+    StringAttribute assetId{"", true};
+    StringAttribute macAddress{"", true};
+    StringAttribute parentMacAddress{"", true};
+    StringAttribute platform{"", false};
+    IntAttribute position{0, false};
+    StringAttribute systemType{"", true};
+    StringAttribute systemUuid{"", true};
+    StringAttribute location{"", false};
     std::map<std::string, StringAttribute> other;
+
+    std::map<std::string, AttributeTemplate*> attributes{
+        {"address", &address},
+        {"typeId", &typeId},
+        {"name", &name},
+        {"manufacturer", &manufacturer},
+        {"manufacturerUri", &manufacturerUri},
+        {"model", &model},
+        {"productCode", &productCode},
+        {"deviceRevision", &deviceRevision},
+        {"hardwareRevision", &hardwareRevision},
+        {"softwareRevision", &softwareRevision},
+        {"deviceManual", &deviceManual},
+        {"deviceClass", &deviceClass},
+        {"serialNumber", &serialNumber},
+        {"productInstanceUri", &productInstanceUri},
+        {"revisionCounter", &revisionCounter},
+        {"assetId", &assetId},
+        {"macAddress", &macAddress},
+        {"parentMacAddress", &parentMacAddress},
+        {"platform", &platform},
+        {"position", &position},
+        {"systemType", &systemType},
+        {"systemUuid", &systemUuid},
+        {"location", &location}
+    };
 };
 
 struct DeviceTypeParams
@@ -120,7 +151,7 @@ struct ChannelParams
 {
     std::string logName;
     std::string localId;
-    std::string className = "";
+    std::string className;
 
     FunctionBlockTypePtr type;
     ContextPtr context;
@@ -131,7 +162,7 @@ struct FunctionBlockParams
 {
     std::string logName;
     std::string localId;
-    std::string className = "";
+    std::string className;
 
     FunctionBlockTypePtr type;
     ContextPtr context;

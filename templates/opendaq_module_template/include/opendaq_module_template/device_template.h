@@ -7,6 +7,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
+/*
+ * Device template TODO:
+ *  - Reevaluate adding devices/function blocks under template device
+ *  - Implement device domain as builder and pass it to the device template as such
+ */
+
 class DeviceTemplateHooks;
 
 class DeviceTemplate : public ComponentTemplateBase<DeviceTemplateHooks>, public AddableComponentTemplateBase

@@ -3,7 +3,6 @@
 #include <ref_template_device_module/ref_template_can_channel_impl.h>
 #include <fmt/format.h>
 #include <opendaq/device_domain_factory.h>
-#include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/log_file_info_factory.h>
 #include <coretypes/filesystem.h>
@@ -17,7 +16,6 @@ BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 using namespace templates;
 static constexpr size_t DEFAULT_NUMBER_OF_CHANNELS = 2;
 static constexpr bool DEFAULT_ENABLE_CAN_CHANNEL = false;
-static constexpr bool DEFAULT_ENABLE_PROTECTED_CHANNEL = false;
 static constexpr bool DEFAULT_ENABLE_LOGGING = false;
 static constexpr char DEFAULT_LOGGING_PATH[] = "ref_template_device_simulator.log";
 static constexpr double DEFAULT_DEVICE_SAMPLE_RATE = 1000;
@@ -48,23 +46,19 @@ void RefTemplateDevice::initProperties()
     objPtr.addProperty(acqLoopTimeProp);
     objPtr.addProperty(IntProperty("NumberOfChannels", DEFAULT_NUMBER_OF_CHANNELS));
     objPtr.addProperty(BoolProperty("EnableCANChannel", DEFAULT_ENABLE_CAN_CHANNEL));
-    objPtr.addProperty(BoolProperty("EnableProtectedChannel", DEFAULT_ENABLE_PROTECTED_CHANNEL));
     objPtr.addProperty(BoolProperty("LoggingEnabled", DEFAULT_ENABLE_LOGGING));
     objPtr.addProperty(loggingPathProp);
-    objPtr.addProperty(ObjectProperty("ProtectedObject", createProtectedObject()));
 }
 
 void RefTemplateDevice::applyConfig(const PropertyObjectPtr& config)
 {
     objPtr.setPropertyValue("NumberOfChannels", config.getPropertyValue("NumberOfChannels"));
     objPtr.setPropertyValue("EnableCANChannel", config.getPropertyValue("EnableCANChannel"));
-    objPtr.setPropertyValue("EnableProtectedChannel", config.getPropertyValue("EnableProtectedChannel"));
     objPtr.setPropertyValue("LoggingEnabled", config.getPropertyValue("EnableLogging"));
     loggingPath = config.getPropertyValue("LoggingPath");
     objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("LoggingPath", loggingPath);
 }
 
-// TODO: Add reference domain implementation
 DeviceDomainPtr RefTemplateDevice::initDeviceDomain()
 {
     startTime = std::chrono::steady_clock::now();
@@ -97,7 +91,6 @@ AcquisitionLoopParams RefTemplateDevice::getAcquisitionLoopParameters()
     return params;
 }
 
-// TODO: Change to TAI
 std::chrono::microseconds RefTemplateDevice::getMicroSecondsSinceDeviceStart() const
 {
     const auto currentTime = std::chrono::steady_clock::now();
@@ -109,7 +102,6 @@ uint64_t RefTemplateDevice::getTicksSinceOrigin()
     return static_cast<uint64_t>((microSecondsFromEpochToDeviceStart + getMicroSecondsSinceDeviceStart()).count());
 }
 
-// TODO: Handle begin/end update
 BaseObjectPtr RefTemplateDevice::onPropertyWrite(const PropertyEventArgs& args)
 {
     if (args.propertyName == "NumberOfChannels")
@@ -120,8 +112,6 @@ BaseObjectPtr RefTemplateDevice::onPropertyWrite(const PropertyEventArgs& args)
         updateAcqLoopTime(args.value);
     else if (args.propertyName == "EnableCANChannel")
         enableCANChannel(args.value);
-    else if (args.propertyName == "EnableProtectedChannel")
-        enableProtectedChannel();
 
     return nullptr;
 }
@@ -190,35 +180,6 @@ void RefTemplateDevice::enableCANChannel(bool enableCANChannel)
         RefCANChannelInit init{microSecondsFromEpochToDeviceStart};
         canChannel = createAndAddChannel<RefTemplateCANChannelBase, RefTemplateCANChannelImpl>(params, init);
     }
-}
-
-void RefTemplateDevice::enableProtectedChannel()
-{
-    //bool enabled = objPtr.getPropertyValue("EnableProtectedChannel");
-
-    //if (!enabled)
-    //{
-    //    if (protectedChannel.assigned() && hasChannel(aiFolder, protectedChannel))
-    //        removeChannel(aiFolder, protectedChannel);
-
-    //    protectedChannel.release();
-    //}
-    //else
-    //{
-    //    auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
-    //    auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-    //    size_t index = channels.size();
-
-    //    RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
-    //    const auto channelLocalId = "ProtectedChannel";
-
-    //    auto permissions = PermissionsBuilder()
-    //                           .inherit(false)
-    //                           .assign("admin", PermissionMaskBuilder().read().write().execute())
-    //                           .build();
-
-    //    protectedChannel = createAndAddChannelWithPermissions<RefTemplateChannelImpl>(aiFolder, channelLocalId, permissions, init);
-    //}
 }
 
 void RefTemplateDevice::updateAcqLoopTime(size_t loopTime) const
@@ -306,35 +267,6 @@ StringPtr RefTemplateDevice::getLog(const StringPtr& id, Int size, Int offset)
     return String(buffer.data(), size);
 }
 
-// TODO: Change to representative example
-PropertyObjectPtr RefTemplateDevice::createProtectedObject()
-{
-    const auto func = Function([](Int a, Int b) { return a + b; });
-
-    const auto funcProp =
-        FunctionPropertyBuilder("Sum", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
-            .setReadOnly(false)
-            .build();
-
-    auto protectedObject = PropertyObject();
-    protectedObject.addProperty(StringProperty("Owner", "openDAQ TM"));
-    protectedObject.addProperty(funcProp);
-    protectedObject.setPropertyValue("Sum", func);
-
-    // group "everyone" has read-only access to the protected object
-    // group "admin" can change the protected object and call methods on it
-
-    auto permissions = PermissionsBuilder()
-                           .inherit(false)
-                           .assign("everyone", PermissionMaskBuilder().read())
-                           .assign("admin", PermissionMaskBuilder().read().write().execute())
-                           .build();
-
-    protectedObject.getPermissionManager().setPermissions(permissions);
-
-    return protectedObject;
-}
-
 void RefTemplateDevice::onAcquisitionLoop()
 {
     const auto curTime = getMicroSecondsSinceDeviceStart();
@@ -344,12 +276,6 @@ void RefTemplateDevice::onAcquisitionLoop()
 
     if (canChannel)
         canChannel->collectSamples(curTime);
-
-    //if (protectedChannel.assigned())
-    //{
-    //    auto chPrivate = protectedChannel.asPtr<IRefChannel>();
-    //    chPrivate->collectSamples(curTime);
-    //}
 }
 
 END_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE

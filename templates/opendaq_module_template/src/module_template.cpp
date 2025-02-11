@@ -1,10 +1,13 @@
 #include <opendaq_module_template/module_template.h>
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <coretypes/cloneable.h>
+#include <map>
+#include <coreobjects/property_object_protected_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
-
 ListPtr<IDeviceInfo> ModuleTemplateHooks::onGetAvailableDevices()
 {
     std::scoped_lock lock(module_->sync);
@@ -139,8 +142,17 @@ DeviceInfoPtr ModuleTemplateHooks::createDeviceInfo(const DeviceInfoParams& info
         throw ArgumentNullException("Serial number must not be empty");
     if (infoParams.manufacturer.value.empty())
         throw ArgumentNullException("Manufacturer must not be empty");
-    
-    auto deviceInfo = DeviceInfo(typeParams.connectionStringPrefix + "://" + infoParams.address.value);
+
+    ListPtr<IString> changeableDeviceInfoFields = List<IString>();
+
+    for (const auto& [key, value] : infoParams.attributes)
+    {
+        if (!(*value).readOnly)
+            changeableDeviceInfoFields.pushBack(key);
+    }
+
+    auto deviceInfo = DeviceInfoWithChanegableFields(changeableDeviceInfoFields);
+    deviceInfo.setConnectionString(typeParams.connectionStringPrefix + "://" + infoParams.address.value);
 
     if (!typeParams.id.empty() && !typeParams.connectionStringPrefix.empty())
     {
@@ -175,8 +187,11 @@ DeviceInfoPtr ModuleTemplateHooks::createDeviceInfo(const DeviceInfoParams& info
     deviceInfo.setSystemUuid(infoParams.systemUuid.value);
     deviceInfo.setLocation(infoParams.location.value);
 
+
     for (const auto& [key, value] : infoParams.other)
-        deviceInfo.addProperty(StringProperty(key, value.value));
+    {
+        deviceInfo.addProperty(StringPropertyBuilder(key, value.value).setReadOnly(value.readOnly).build());
+    }
 
     return deviceInfo.detach();
 }

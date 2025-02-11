@@ -5,6 +5,16 @@
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
+/*
+ * Function block template TODO:
+ *  - Translate reference function block to template
+ *  - Reevaluate template function block functionalities and extend the templates
+ *      - Helpers for reader creation and data access
+ *      - Helpers for multi reader creation and usage
+ *      - Helpers for handling signal events
+ *      - Helpers for input port creation
+ */
+
 class FunctionBlockTemplateHooks;
 
 class FunctionBlockTemplate : public ComponentTemplateBase<FunctionBlockTemplateHooks>,

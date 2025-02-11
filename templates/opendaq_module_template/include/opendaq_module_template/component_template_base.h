@@ -4,6 +4,14 @@
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
+/*
+ * Component template base TODO:
+ *  - Reorganize and document helper methods
+ *  - Add attribute locking mechanism to component template
+ *  - Move acquisition loop to component template base
+ *  - Implement better component status handling
+ */
+
 template <typename Type>
 class ComponentTemplateBase;
 class AddableComponentTemplateBase;
@@ -36,7 +44,6 @@ public:
     virtual void initProperties();
     virtual void initTags(const TagsPrivatePtr& tags);
     virtual void initStatuses(const ComponentStatusContainerPrivatePtr& statusContainer);
-    virtual ComponentAttributeConfig getAttributeConfig();
     
     virtual void start();
 
@@ -214,12 +221,6 @@ void ComponentTemplateBase<Type>::initTags(const TagsPrivatePtr& /*tags*/)
 template <typename Type>
 void ComponentTemplateBase<Type>::initStatuses(const ComponentStatusContainerPrivatePtr& /*statusContainer*/)
 {
-}
-
-template <typename Type>
-ComponentAttributeConfig ComponentTemplateBase<Type>::getAttributeConfig()
-{
-    return {};
 }
 
 template <typename Type>

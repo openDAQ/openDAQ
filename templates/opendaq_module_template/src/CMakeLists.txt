@@ -8,8 +8,6 @@ set(SRC_Include
     device_template.h
     function_block_template.h
     module_template.h
-    io_folder_template.h
-    component_template.h
     component_template_base.h
     hooks_template_base.h
     component_helpers.h
@@ -21,11 +19,8 @@ set(SRC_Srcs
     device_template.cpp
     function_block_template.cpp
     module_template.cpp
-    component_template_base.cpp
     hooks_template_base.cpp
     component_helpers.cpp
-    io_folder_template.cpp
-    component_template.cpp
     utils.cpp
 )
 

@@ -5,6 +5,11 @@
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 
+/* 
+ * Module template TODO:
+ *  - Test changeable device info fields
+ */
+
 class ModuleTemplateHooks;
 
 class ModuleTemplate

@@ -25,6 +25,20 @@
 
 BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 
+/*
+ * Template device TODO:
+ * - Add example protected objects with different access levels (e.g. nested object, channel)
+ * - Refactor getLogInfo/getLog mechanism
+ * - Change device time to TAI
+ * - Add reference domain implementation example that syncs via NTP or some other protocol
+ * - Adjust device to always start on a full second
+ * - Handle begin/end update instead of always applying properties
+ * - Add device time signal
+ * - Add sample rate divider instead of fully custom sample rate
+ * - Add status information to device
+ * - Add changeable device info fields
+ */
+
 class RefDeviceBase final : public templates::DeviceTemplateHooks
 {
 public:
@@ -55,13 +69,11 @@ protected:
 
 private:
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
-    static PropertyObjectPtr createProtectedObject();
 
     void removeRedundantChannels(size_t numberOfChannels);
     void addMissingChannels(size_t numberOfChannels);
     void updateNumberOfChannels(size_t numberOfChannels);
     void enableCANChannel(bool enableCANChannel);
-    void enableProtectedChannel();
     void updateAcqLoopTime(size_t loopTime) const;
     void updateDeviceSampleRate(double sampleRate) const;
 
@@ -71,7 +83,6 @@ private:
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
 
     std::vector<std::shared_ptr<RefTemplateChannelImpl>> channels;
-    //ChannelPtr protectedChannel;
     std::shared_ptr<RefTemplateCANChannelImpl> canChannel;
     
     UnitPtr domainUnit;

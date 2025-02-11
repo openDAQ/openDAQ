@@ -29,6 +29,8 @@ template <class V, class Intf, class ... Intfs>
 class OrdinalObjectImpl : public ImplementationOf<Intf, IConvertible, ICoreType, IComparable, ISerializable, Intfs...>
 {
 public:
+    using Super = ImplementationOf<Intf, IConvertible, ICoreType, IComparable, ISerializable, Intfs...>;
+
     OrdinalObjectImpl(V value);
 
     // IBaseObject
@@ -58,6 +60,10 @@ public:
     {
         return OPENDAQ_ERR_NOTIMPLEMENTED;
     }
+
+    // IUnknown
+    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
+    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
 
 protected:
     V value;
@@ -222,6 +228,66 @@ template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::serialize(ISerializer* serializer)
 {
     return OPENDAQ_ERR_NOTIMPLEMENTED;
+}
+
+template <class V, class Intf, class ... Intfs>
+ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::queryInterface(const IntfID& id, void** intf)
+{
+    if (intf == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    if (id == Intf::Id)
+    {
+        *intf = static_cast<Intf*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (id == ICoreType::Id)
+    {
+        *intf = static_cast<ICoreType*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (id == IConvertible::Id)
+    {
+        *intf = static_cast<IConvertible*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::queryInterface(id, intf);
+}
+
+template <class V, class Intf, class ... Intfs>
+ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::borrowInterface(const IntfID& id, void** intf) const
+{
+    if (id == Intf::Id)
+    {
+        *intf = const_cast<Intf*>(static_cast<const Intf*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (id == ICoreType::Id)
+    {
+        *intf = const_cast<ICoreType*>(static_cast<const ICoreType*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (id == IConvertible::Id)
+    {
+        *intf = const_cast<IConvertible*>(static_cast<const IConvertible*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::borrowInterface(id, intf);
 }
 
 END_NAMESPACE_OPENDAQ

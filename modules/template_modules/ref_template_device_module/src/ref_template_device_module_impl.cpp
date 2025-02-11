@@ -56,7 +56,7 @@ std::vector<templates::DeviceInfoParams> RefTemplateDeviceModule::getAvailableDe
 
         info.address = fmt::format("device{}", i);
         info.typeId = std::string(DEVICE_TYPE_ID);
-        info.name = customName.getLength() ? customName.toStdString() : fmt::format("Template Reference device {}", i);
+        info.name = customName.getLength() ? customName.toStdString() : fmt::format("Template reference device {}", i);
         info.manufacturer = {"openDAQ"};
         info.manufacturerUri = {"https://www.opendaq.com/"};
         info.model = {"Template reference device"};

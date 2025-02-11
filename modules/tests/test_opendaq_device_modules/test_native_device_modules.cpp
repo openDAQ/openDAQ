@@ -1166,9 +1166,9 @@ TEST_F(NativeDeviceModulesTest, GetSetDeviceProperties)
     ASSERT_EQ(refDevice.getPropertyValue("NumberOfChannels"), 1);
     ASSERT_EQ(serverRefDevice.getPropertyValue("NumberOfChannels"), 1);
 
-    refDevice.setPropertyValue("SampleRate", 2000);
-    ASSERT_EQ(refDevice.getPropertyValue("SampleRate"), 2000);
-    ASSERT_EQ(serverRefDevice.getPropertyValue("SampleRate"), 2000);
+    refDevice.setPropertyValue("GlobalSampleRate", 2000);
+    ASSERT_EQ(refDevice.getPropertyValue("GlobalSampleRate"), 2000);
+    ASSERT_EQ(serverRefDevice.getPropertyValue("GlobalSampleRate"), 2000);
 
     ASSERT_ANY_THROW(refDevice.setPropertyValue("InvalidProp", 100));
 
@@ -1191,10 +1191,10 @@ TEST_F(NativeDeviceModulesTest, DeviceInfo)
     ASSERT_EQ(info.getServerCapabilities()[1].getProtocolId(), "OpenDAQNativeConfiguration");
 
     auto subDeviceInfo = client.getDevices()[0].getDevices()[0].getInfo();
-    ASSERT_EQ(subDeviceInfo.getName(), "Reference device 0");
+    ASSERT_EQ(subDeviceInfo.getName(), "RefDev0");
     ASSERT_EQ(subDeviceInfo.getConnectionString(), "daqref://device0");
     ASSERT_EQ(subDeviceInfo.getModel(), "Reference device");
-    ASSERT_EQ(subDeviceInfo.getSerialNumber(), "RefDev0");
+    ASSERT_EQ(subDeviceInfo.getSerialNumber(), "DevSer0");
 }
 
 TEST_F(NativeDeviceModulesTest, ChannelProps)
@@ -2528,7 +2528,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreServerConfiguration)
         auto client = CreateClientInstance();
         auto clientRoot = client.getDevices()[0];
         auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics");
-        fb.getInputPorts()[0].connect(clientRoot.getSignals(search::Recursive(search::Visible()))[1]);
+        fb.getInputPorts()[0].connect(clientRoot.getSignals(search::Recursive(search::Visible()))[0]);
         config = client.saveConfiguration();
     }
 

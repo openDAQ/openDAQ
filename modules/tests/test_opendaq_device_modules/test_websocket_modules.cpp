@@ -49,7 +49,7 @@ public:
 
         auto instance = InstanceCustom(context, "local");
 
-        const auto refDevice = instance.addDevice("daqref://device1");
+        const auto refDevice = instance.addDevice("daq.template://device1");
 
         instance.addServer("openDAQ LT Streaming", nullptr);
 
@@ -263,7 +263,7 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto signals = client.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(signals.getCount(), 5u);
+    ASSERT_EQ(signals.getCount(), 4u);
 }
 
 TEST_F(WebsocketModulesTest, RemoveDevice)
@@ -414,7 +414,7 @@ TEST_F(WebsocketModulesTest, AddSignals)
 
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 7u);
+    ASSERT_EQ(clientSignals.getCount(), 6u);
 
     removeDeviceDomainSignal(serverSignals);
     removeDeviceDomainSignal(clientSignals);
@@ -474,7 +474,7 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
     ASSERT_TRUE(clientSignals[3].isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 3u);
+    ASSERT_EQ(clientSignals.getCount(), 2u);
 }
 
 TEST_F(WebsocketModulesTest, UpdateAddSignals)
@@ -520,7 +520,7 @@ TEST_F(WebsocketModulesTest, UpdateAddSignals)
 
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 5u);
+    ASSERT_EQ(clientSignals.getCount(), 4u);
 
     removeDeviceDomainSignal(serverSignals);
     removeDeviceDomainSignal(clientSignals);
@@ -591,5 +591,5 @@ TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
     ASSERT_TRUE(clientSignals[5].isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 5u);
+    ASSERT_EQ(clientSignals.getCount(), 4u);
 }

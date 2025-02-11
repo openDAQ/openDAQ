@@ -27,6 +27,7 @@
 using namespace daq;
 using namespace test_config_provider_helpers;
 using RefTemplateDeviceModuleTestConfig = ConfigProviderTest;
+using RefTemplateDeviceTestInstance = testing::Test;
 
 class RefTemplateDeviceModuleTest : public testing::Test
 {
@@ -433,13 +434,13 @@ TEST_F(RefTemplateDeviceModuleTest, Ids)
     auto valueSignal = signals[1];
 
     ASSERT_EQ(channel.getLocalId(), "AI1");
-    ASSERT_EQ(channel.getGlobalId(), "/openDAQ_TemplateRefDev1/IO/AI/AI1");
+    ASSERT_EQ(channel.getGlobalId(), "/openDAQ_TempRefDev1/IO/AI/AI1");
 
     ASSERT_EQ(valueSignal.getLocalId(), "AI1");
-    ASSERT_EQ(valueSignal.getGlobalId(), "/openDAQ_TemplateRefDev1/IO/AI/AI1/Sig/AI1");
+    ASSERT_EQ(valueSignal.getGlobalId(), "/openDAQ_TempRefDev1/IO/AI/AI1/Sig/AI1");
 
     ASSERT_EQ(domainSignal.getLocalId(), "AI1Time");
-    ASSERT_EQ(domainSignal.getGlobalId(), "/openDAQ_TemplateRefDev1/IO/AI/AI1/Sig/AI1Time");
+    ASSERT_EQ(domainSignal.getGlobalId(), "/openDAQ_TempRefDev1/IO/AI/AI1/Sig/AI1Time");
 }
 
 bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
@@ -845,7 +846,7 @@ TEST_F(RefTemplateDeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
 
     DevicePtr ptr;
     ASSERT_NO_THROW(ptr = module.createDevice("daq.template://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "openDAQ_RefDev1");
+    ASSERT_EQ(ptr.getLocalId(), "openDAQ_TempRefDev1");
 
     ptr.remove();
 }
@@ -865,9 +866,9 @@ TEST_F(RefTemplateDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
     ptr.remove();
 }
 
-using RefDeviceInstanceTest = testing::Test;
+using RefTemplateDeviceInstanceTest = testing::Test;
 
-TEST_F(RefDeviceInstanceTest, AddRemoveAddDevice)
+TEST_F(RefTemplateDeviceInstanceTest, AddRemoveAddDevice)
 {
     const auto instance = Instance();
 
@@ -906,7 +907,7 @@ StringPtr getFileLastModifiedTime(const std::string& path)
     return oss.str();
 }
 
-TEST_F(RefTemplateDeviceModuleTest, EnableLogging)
+TEST_F(RefTemplateDeviceTestInstance, EnableLogging)
 {
     StringPtr loggerPath = "ref_template_device_simulator.log";
 

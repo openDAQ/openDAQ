@@ -290,10 +290,10 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignals.getCount(), 5u);
 
-    ASSERT_EQ(clientSignals[1].getDomainSignal(), clientSignals[0]);
-    ASSERT_TRUE(!clientSignals[0].getDomainSignal().assigned());
-    ASSERT_EQ(clientSignals[3].getDomainSignal(), clientSignals[2]);
-    ASSERT_TRUE(!clientSignals[2].getDomainSignal().assigned());
+    ASSERT_EQ(clientSignals[0].getDomainSignal(), clientSignals[1]);
+    ASSERT_TRUE(!clientSignals[1].getDomainSignal().assigned());
+    ASSERT_EQ(clientSignals[2].getDomainSignal(), clientSignals[3]);
+    ASSERT_TRUE(!clientSignals[3].getDomainSignal().assigned());
 
     for (size_t i = 0; i < clientSignals.getCount(); ++i)
     {
@@ -473,10 +473,10 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
         ASSERT_EQ(clientSignalsAfterReconnection[i], clientSignalsBeforeDisconnection[i]);
     }
 
-    ASSERT_EQ(clientSignalsAfterReconnection[1].getDomainSignal(), clientSignalsAfterReconnection[0]);
-    ASSERT_TRUE(!clientSignalsAfterReconnection[0].getDomainSignal().assigned());
-    ASSERT_EQ(clientSignalsAfterReconnection[3].getDomainSignal(), clientSignalsAfterReconnection[2]);
-    ASSERT_TRUE(!clientSignalsAfterReconnection[2].getDomainSignal().assigned());
+    ASSERT_EQ(clientSignalsAfterReconnection[0].getDomainSignal(), clientSignalsAfterReconnection[1]);
+    ASSERT_TRUE(!clientSignalsAfterReconnection[1].getDomainSignal().assigned());
+    ASSERT_EQ(clientSignalsAfterReconnection[2].getDomainSignal(), clientSignalsAfterReconnection[3]);
+    ASSERT_TRUE(!clientSignalsAfterReconnection[3].getDomainSignal().assigned());
 
     for (size_t i = 0; i < serverSignals.getCount(); ++i)
     {
@@ -525,7 +525,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
         }
     };
 
-    auto signal = client.getSignals(search::Recursive(search::Any()))[1].template asPtr<IMirroredSignalConfig>();
+    auto signal = client.getSignals(search::Recursive(search::Any()))[0].template asPtr<IMirroredSignalConfig>();
     auto domainSignal = signal.getDomainSignal().template asPtr<IMirroredSignalConfig>();
 
     std::promise<StringPtr> signalSubscribePromise;
@@ -753,8 +753,8 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
         auto client = CreateClientInstance("opendaq", "opendaq");
         auto clientSignals = client.getSignalsRecursive(search::Any());
         ASSERT_EQ(clientSignals.getCount(), 3u);
-        ASSERT_EQ(clientSignals[0].getName(), "AI1");
-        ASSERT_EQ(clientSignals[1].getName(), "AI1Time");
+        ASSERT_EQ(clientSignals[0].getName(), "AI0");
+        ASSERT_EQ(clientSignals[1].getName(), "AI0Time");
     }
 }
 

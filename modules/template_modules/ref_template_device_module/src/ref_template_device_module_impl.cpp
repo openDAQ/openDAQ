@@ -7,43 +7,43 @@
 BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 
 static constexpr size_t DEFAULT_MAX_REFERENCE_DEVICE_COUNT = 2;
-static constexpr char DEVICE_TYPE_ID[] = "daqref";
-static constexpr char CONNECTION_STRING_PREFIX[] = "daqref";
+static constexpr char DEVICE_TYPE_ID[] = "TemplateReferenceDevice";
+static constexpr char CONNECTION_STRING_PREFIX[] = "daq.template";
 
-RefDeviceModuleBase::RefDeviceModuleBase(const ContextPtr& context)
-    : ModuleTemplateHooks(std::make_shared<RefDeviceModule>(context))
+RefTemplateDeviceModuleBase::RefTemplateDeviceModuleBase(const ContextPtr& context)
+    : ModuleTemplateHooks(std::make_shared<RefTemplateDeviceModule>(context))
 {
 }
 
-RefDeviceModule::RefDeviceModule(const ContextPtr& context)
+RefTemplateDeviceModule::RefTemplateDeviceModule(const ContextPtr& context)
     : ModuleTemplate(context)
     , maxNumberOfDevices(DEFAULT_MAX_REFERENCE_DEVICE_COUNT)
 {
 }
 
-templates::ModuleParams RefDeviceModule::buildModuleParams()
+templates::ModuleParams RefTemplateDeviceModule::buildModuleParams()
 {
     templates::ModuleParams params;
     params.version = VersionInfo(REF_TEMPLATE_DEVICE_MODULE_MAJOR_VERSION, REF_TEMPLATE_DEVICE_MODULE_MINOR_VERSION, REF_TEMPLATE_DEVICE_MODULE_PATCH_VERSION);
-    params.name = "ReferenceDeviceModule";
+    params.name = "TemplateReferenceDeviceModule";
     params.id = REF_TEMPLATE_MODULE_ID;
-    params.logName = "ReferenceDeviceModule";
+    params.logName = "TemplateReferenceDeviceModule";
     params.defaultOptions = createDefaultModuleOptions();
     return params;
 }
 
-std::vector<templates::DeviceTypeParams> RefDeviceModule::getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options)
+std::vector<templates::DeviceTypeParams> RefTemplateDeviceModule::getAvailableDeviceTypes(const DictPtr<IString, IBaseObject>& options)
 {
     templates::DeviceTypeParams params;
     params.id = DEVICE_TYPE_ID;
-    params.name = "Reference device";
-    params.description = "Reference device";
+    params.name = "Template reference device";
+    params.description = "Template reference device";
     params.connectionStringPrefix = CONNECTION_STRING_PREFIX;
     params.defaultConfiguration = createDefaultConfig();
     return {params};
 }
 
-std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options)
+std::vector<templates::DeviceInfoParams> RefTemplateDeviceModule::getAvailableDeviceInfo(const DictPtr<IString, IBaseObject>& options)
 {
     const StringPtr customName = options.get("Name");
     const StringPtr customSerial = options.get("SerialNumber");
@@ -56,15 +56,15 @@ std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo
 
         info.address = fmt::format("device{}", i);
         info.typeId = std::string(DEVICE_TYPE_ID);
-        info.name = customName.getLength() ? customName.toStdString() : fmt::format("Reference device {}", i);
+        info.name = customName.getLength() ? customName.toStdString() : fmt::format("Template Reference device {}", i);
         info.manufacturer = {"openDAQ"};
         info.manufacturerUri = {"https://www.opendaq.com/"};
-        info.model = {"Reference device"};
+        info.model = {"Template reference device"};
         info.productCode = {"REF_TEMPLATE_DEV"};
         info.deviceRevision = {"1.0"};
         info.hardwareRevision = {"1.0"};
         info.softwareRevision = {"1.0"};
-        info.serialNumber = customSerial.getLength() ? customSerial.toStdString() : fmt::format("RefDev{}", i);
+        info.serialNumber = customSerial.getLength() ? customSerial.toStdString() : fmt::format("TempRefDev{}", i);
 
         params.push_back(info);
     }
@@ -72,12 +72,12 @@ std::vector<templates::DeviceInfoParams> RefDeviceModule::getAvailableDeviceInfo
     return params;
 }
 
-DevicePtr RefDeviceModule::createDevice(const templates::DeviceParams& params)
+DevicePtr RefTemplateDeviceModule::createDevice(const templates::DeviceParams& params)
 {
     return createWithImplementation<IDevice, RefDeviceBase>(params);
 }
 
-PropertyObjectPtr RefDeviceModule::createDefaultConfig()
+PropertyObjectPtr RefTemplateDeviceModule::createDefaultConfig()
 {
     const auto defaultConfig = PropertyObject();
 
@@ -91,7 +91,7 @@ PropertyObjectPtr RefDeviceModule::createDefaultConfig()
     return defaultConfig;
 }
 
-DictPtr<IString, IBaseObject> RefDeviceModule::createDefaultModuleOptions()
+DictPtr<IString, IBaseObject> RefTemplateDeviceModule::createDefaultModuleOptions()
 {
     DictPtr<IString, IBaseObject> options = Dict<IString, IBaseObject>();
     options.set("Name", "");

@@ -20,16 +20,16 @@
 
 BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 
-class RefDeviceModuleBase final : public templates::ModuleTemplateHooks
+class RefTemplateDeviceModuleBase final : public templates::ModuleTemplateHooks
 {
 public:
-    RefDeviceModuleBase(const ContextPtr& context);
+    RefTemplateDeviceModuleBase(const ContextPtr& context);
 };
 
-class RefDeviceModule final : public templates::ModuleTemplate
+class RefTemplateDeviceModule final : public templates::ModuleTemplate
 {
 public:
-    explicit RefDeviceModule(const ContextPtr& context);
+    explicit RefTemplateDeviceModule(const ContextPtr& context);
 
 protected:
     templates::ModuleParams buildModuleParams() override;

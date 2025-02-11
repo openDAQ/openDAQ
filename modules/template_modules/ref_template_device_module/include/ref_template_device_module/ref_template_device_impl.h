@@ -31,10 +31,10 @@ public:
     RefDeviceBase(const templates::DeviceParams& params);
 };
 
-class RefDeviceImpl final : public templates::DeviceTemplate
+class RefTemplateDevice final : public templates::DeviceTemplate
 {
 public:
-    explicit RefDeviceImpl();
+    explicit RefTemplateDevice();
 
 protected:
     void initProperties() override;
@@ -70,9 +70,9 @@ private:
     std::chrono::steady_clock::time_point startTime;
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
 
-    std::vector<std::shared_ptr<RefChannelImpl>> channels;
+    std::vector<std::shared_ptr<RefTemplateChannelImpl>> channels;
     //ChannelPtr protectedChannel;
-    std::shared_ptr<RefCANChannelImpl> canChannel;
+    std::shared_ptr<RefTemplateCANChannelImpl> canChannel;
     
     UnitPtr domainUnit;
     FolderConfigPtr aiFolder;

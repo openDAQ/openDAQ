@@ -4,5 +4,5 @@
 
 using namespace daq::modules::ref_template_device_module;
 
-DEFINE_MODULE_EXPORTS(RefDeviceModuleBase)
+DEFINE_MODULE_EXPORTS(RefTemplateDeviceModuleBase)
 

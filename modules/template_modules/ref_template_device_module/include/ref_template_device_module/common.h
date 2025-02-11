@@ -19,6 +19,6 @@
 
 #define BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE BEGIN_NAMESPACE_OPENDAQ_MODULE(ref_template_device_module)
 
-static const std::string REF_TEMPLATE_MODULE_ID = "ReferenceDevice";
+static const std::string REF_TEMPLATE_MODULE_ID = "TemplateReferenceDevice";
 
 #define END_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE END_NAMESPACE_OPENDAQ_MODULE

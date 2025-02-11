@@ -24,17 +24,17 @@ static constexpr double DEFAULT_DEVICE_SAMPLE_RATE = 1000;
 static constexpr int DEFAULT_ACQ_LOOP_TIME = 20;
 
 RefDeviceBase::RefDeviceBase(const DeviceParams& params)
-    : DeviceTemplateHooks(std::make_shared<RefDeviceImpl>(), params)
+    : DeviceTemplateHooks(std::make_shared<RefTemplateDevice>(), params)
 {
 }
 
-RefDeviceImpl::RefDeviceImpl()
+RefTemplateDevice::RefTemplateDevice()
     : microSecondsFromEpochToDeviceStart(0)
     , domainUnit(UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build())
 {
 }
 
-void RefDeviceImpl::initProperties()
+void RefTemplateDevice::initProperties()
 {
     const auto globalSampleRateProp =
         FloatPropertyBuilder("SampleRate", DEFAULT_DEVICE_SAMPLE_RATE).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
@@ -54,7 +54,7 @@ void RefDeviceImpl::initProperties()
     objPtr.addProperty(ObjectProperty("ProtectedObject", createProtectedObject()));
 }
 
-void RefDeviceImpl::applyConfig(const PropertyObjectPtr& config)
+void RefTemplateDevice::applyConfig(const PropertyObjectPtr& config)
 {
     objPtr.setPropertyValue("NumberOfChannels", config.getPropertyValue("NumberOfChannels"));
     objPtr.setPropertyValue("EnableCANChannel", config.getPropertyValue("EnableCANChannel"));
@@ -65,17 +65,17 @@ void RefDeviceImpl::applyConfig(const PropertyObjectPtr& config)
 }
 
 // TODO: Add reference domain implementation
-DeviceDomainPtr RefDeviceImpl::initDeviceDomain()
+DeviceDomainPtr RefTemplateDevice::initDeviceDomain()
 {
     startTime = std::chrono::steady_clock::now();
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
-    return DeviceDomain(RefChannelImpl::getResolution(),
-                        RefChannelImpl::getEpoch(),
+    return DeviceDomain(RefTemplateChannelImpl::getResolution(),
+                        RefTemplateChannelImpl::getEpoch(),
                         domainUnit,
                         ReferenceDomainInfoBuilder().setReferenceDomainId(objPtr.getLocalId()).setReferenceDomainOffset(0).build());
 }
 
-void RefDeviceImpl::initIOFolder(const IoFolderConfigPtr& ioFolder)
+void RefTemplateDevice::initIOFolder(const IoFolderConfigPtr& ioFolder)
 {
     aiFolder = createAndAddIOFolder("AI", ioFolder);
     canFolder = createAndAddIOFolder("CAN", ioFolder);
@@ -84,12 +84,12 @@ void RefDeviceImpl::initIOFolder(const IoFolderConfigPtr& ioFolder)
     enableCANChannel(objPtr.getPropertyValue("EnableCANChannel"));
 }
 
-void RefDeviceImpl::start()
+void RefTemplateDevice::start()
 {
     updateAcqLoopTime(objPtr.getPropertyValue("AcquisitionLoopTime"));
 }
 
-AcquisitionLoopParams RefDeviceImpl::getAcquisitionLoopParameters()
+AcquisitionLoopParams RefTemplateDevice::getAcquisitionLoopParameters()
 {
     AcquisitionLoopParams params;
     params.enableLoop = true;
@@ -98,19 +98,19 @@ AcquisitionLoopParams RefDeviceImpl::getAcquisitionLoopParameters()
 }
 
 // TODO: Change to TAI
-std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
+std::chrono::microseconds RefTemplateDevice::getMicroSecondsSinceDeviceStart() const
 {
     const auto currentTime = std::chrono::steady_clock::now();
     return std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
 }
 
-uint64_t RefDeviceImpl::getTicksSinceOrigin()
+uint64_t RefTemplateDevice::getTicksSinceOrigin()
 {
     return static_cast<uint64_t>((microSecondsFromEpochToDeviceStart + getMicroSecondsSinceDeviceStart()).count());
 }
 
 // TODO: Handle begin/end update
-BaseObjectPtr RefDeviceImpl::onPropertyWrite(const PropertyEventArgs& args)
+BaseObjectPtr RefTemplateDevice::onPropertyWrite(const PropertyEventArgs& args)
 {
     if (args.propertyName == "NumberOfChannels")
         updateNumberOfChannels(args.value);
@@ -126,12 +126,12 @@ BaseObjectPtr RefDeviceImpl::onPropertyWrite(const PropertyEventArgs& args)
     return nullptr;
 }
 
-void RefDeviceImpl::removeRedundantChannels(size_t numberOfChannels)
+void RefTemplateDevice::removeRedundantChannels(size_t numberOfChannels)
 {
     if (numberOfChannels > channels.size())
         return;
 
-    const auto removeFunc = [this](const std::shared_ptr<RefChannelImpl>& ch)
+    const auto removeFunc = [this](const std::shared_ptr<RefTemplateChannelImpl>& ch)
         {
             LOG_T("Removed AI Channel: {}", ch.getLocalId())
             removeComponent(aiFolder, ch->getChannel());
@@ -141,7 +141,7 @@ void RefDeviceImpl::removeRedundantChannels(size_t numberOfChannels)
     channels.erase(std::next(channels.begin(), numberOfChannels), channels.end());
 }
 
-void RefDeviceImpl::addMissingChannels(size_t numberOfChannels)
+void RefTemplateDevice::addMissingChannels(size_t numberOfChannels)
 {
     const auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     const auto deviceSampleRate = objPtr.getPropertyValue("SampleRate");
@@ -157,19 +157,19 @@ void RefDeviceImpl::addMissingChannels(size_t numberOfChannels)
         params.type = FunctionBlockType("RefChannel", "Reference Channel", "Simulates waveform data");
         params.logName = "RefChannel";
 
-        channels.push_back(createAndAddChannel<RefChannelBase, RefChannelImpl>(params, init));
+        channels.push_back(createAndAddChannel<RefTemplateChannelBase, RefTemplateChannelImpl>(params, init));
         LOG_T("Added AI Channel: {}", localId)
     }
 }
 
-void RefDeviceImpl::updateNumberOfChannels(size_t numberOfChannels)
+void RefTemplateDevice::updateNumberOfChannels(size_t numberOfChannels)
 {
     LOG_I("Properties: NumberOfChannels {}", numberOfChannels)
     removeRedundantChannels(numberOfChannels);
     addMissingChannels(numberOfChannels);
 }
 
-void RefDeviceImpl::enableCANChannel(bool enableCANChannel)
+void RefTemplateDevice::enableCANChannel(bool enableCANChannel)
 {
     if (!enableCANChannel)
     {
@@ -188,11 +188,11 @@ void RefDeviceImpl::enableCANChannel(bool enableCANChannel)
         params.logName = "CANChannel";
 
         RefCANChannelInit init{microSecondsFromEpochToDeviceStart};
-        canChannel = createAndAddChannel<RefCANChannelBase, RefCANChannelImpl>(params, init);
+        canChannel = createAndAddChannel<RefTemplateCANChannelBase, RefTemplateCANChannelImpl>(params, init);
     }
 }
 
-void RefDeviceImpl::enableProtectedChannel()
+void RefTemplateDevice::enableProtectedChannel()
 {
     //bool enabled = objPtr.getPropertyValue("EnableProtectedChannel");
 
@@ -217,17 +217,17 @@ void RefDeviceImpl::enableProtectedChannel()
     //                           .assign("admin", PermissionMaskBuilder().read().write().execute())
     //                           .build();
 
-    //    protectedChannel = createAndAddChannelWithPermissions<RefChannelImpl>(aiFolder, channelLocalId, permissions, init);
+    //    protectedChannel = createAndAddChannelWithPermissions<RefTemplateChannelImpl>(aiFolder, channelLocalId, permissions, init);
     //}
 }
 
-void RefDeviceImpl::updateAcqLoopTime(size_t loopTime) const
+void RefTemplateDevice::updateAcqLoopTime(size_t loopTime) const
 {
     LOG_I("Properties: AcquisitionLoopTime {}", loopTime)
     this->componentImpl->updateAcquisitionLoop(AcquisitionLoopParams{true, std::chrono::milliseconds(loopTime)});
 }
 
-void RefDeviceImpl::updateDeviceSampleRate(double sampleRate) const
+void RefTemplateDevice::updateDeviceSampleRate(double sampleRate) const
 {
     LOG_I("Properties: GlobalSampleRate {}", sampleRate)
     for (auto& ch : channels)
@@ -244,7 +244,7 @@ StringPtr toIso8601(const std::chrono::system_clock::time_point& timePoint)
     return oss.str();
 }
 
-ListPtr<ILogFileInfo> RefDeviceImpl::getLogFileInfos()
+ListPtr<ILogFileInfo> RefTemplateDevice::getLogFileInfos()
 {    
     if (!objPtr.getPropertyValue("LoggingEnabled"))
         return List<ILogFileInfo>();
@@ -275,7 +275,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::getLogFileInfos()
     return List<ILogFileInfo>(logFileInfo);
 }
 
-StringPtr RefDeviceImpl::getLog(const StringPtr& id, Int size, Int offset)
+StringPtr RefTemplateDevice::getLog(const StringPtr& id, Int size, Int offset)
 {
     if(!objPtr.getPropertyValue("LoggingEnabled"))
         return "";
@@ -307,7 +307,7 @@ StringPtr RefDeviceImpl::getLog(const StringPtr& id, Int size, Int offset)
 }
 
 // TODO: Change to representative example
-PropertyObjectPtr RefDeviceImpl::createProtectedObject()
+PropertyObjectPtr RefTemplateDevice::createProtectedObject()
 {
     const auto func = Function([](Int a, Int b) { return a + b; });
 
@@ -335,7 +335,7 @@ PropertyObjectPtr RefDeviceImpl::createProtectedObject()
     return protectedObject;
 }
 
-void RefDeviceImpl::onAcquisitionLoop()
+void RefTemplateDevice::onAcquisitionLoop()
 {
     const auto curTime = getMicroSecondsSinceDeviceStart();
 

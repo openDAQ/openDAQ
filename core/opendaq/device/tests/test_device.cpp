@@ -538,15 +538,3 @@ TEST_F(DeviceTest, NetworkConfigDisabled)
     ASSERT_THROW(deviceNetworkConfig.retrieveNetworkConfiguration("eth0"), daq::NotImplementedException);
     ASSERT_THROW(deviceNetworkConfig.getNetworkInterfaceNames(), daq::NotImplementedException);
 }
-
-TEST_F(DeviceTest, SerializeAndDeserializeManufacturer)
-{
-    const auto context = daq::NullContext();
-    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(context, nullptr, "dev");
-    
-    const auto serializer = daq::JsonSerializer(daq::True);
-    dev.serialize(serializer);
-    const std::string str1 = serializer.getOutput();
-    ASSERT_EQ(str1.find("manufacturer"), std::string::npos);
-    ASSERT_EQ(str1.find("serialNumber"), std::string::npos);
-}

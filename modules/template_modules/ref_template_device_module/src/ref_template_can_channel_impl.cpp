@@ -9,12 +9,12 @@ BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 
 #define PI 3.141592653589793
 
-RefCANChannelBase::RefCANChannelBase(const templates::ChannelParams& params, const RefCANChannelInit& init)
-    : ChannelTemplateHooks(std::make_shared<RefCANChannelImpl>(init), params)
+RefTemplateCANChannelBase::RefTemplateCANChannelBase(const templates::ChannelParams& params, const RefCANChannelInit& init)
+    : ChannelTemplateHooks(std::make_shared<RefTemplateCANChannelImpl>(init), params)
 {
 }
 
-RefCANChannelImpl::RefCANChannelImpl(const RefCANChannelInit& init)
+RefTemplateCANChannelImpl::RefTemplateCANChannelImpl(const RefCANChannelInit& init)
     : lowerLimit(-1000)
     , upperLimit(1000)
     , counter1(0)
@@ -24,13 +24,13 @@ RefCANChannelImpl::RefCANChannelImpl(const RefCANChannelInit& init)
 {
 }
 
-void RefCANChannelImpl::initProperties()
+void RefTemplateCANChannelImpl::initProperties()
 {
     objPtr.addProperty(IntPropertyBuilder("UpperLimit", 1000).setMaxValue(10000000).setMinValue(1).build());
     objPtr.addProperty(IntPropertyBuilder("LowerLimit", -1000).setMaxValue(1).setMinValue(-10000000).build());
 }
 
-BaseObjectPtr RefCANChannelImpl::onPropertyWrite(const templates::PropertyEventArgs& args)
+BaseObjectPtr RefTemplateCANChannelImpl::onPropertyWrite(const templates::PropertyEventArgs& args)
 {
     if (args.isUpdating)
         return ChannelTemplate::onPropertyWrite(args);
@@ -39,7 +39,7 @@ BaseObjectPtr RefCANChannelImpl::onPropertyWrite(const templates::PropertyEventA
     return ChannelTemplate::onPropertyWrite(args);
 }
 
-void RefCANChannelImpl::propertyChanged()
+void RefTemplateCANChannelImpl::propertyChanged()
 {
     lowerLimit = objPtr.getPropertyValue("LowerLimit");
     upperLimit = objPtr.getPropertyValue("UpperLimit");
@@ -47,13 +47,13 @@ void RefCANChannelImpl::propertyChanged()
     counter2 = 0;
 }
 
-void RefCANChannelImpl::onEndUpdate(const templates::UpdateEndArgs& args)
+void RefTemplateCANChannelImpl::onEndUpdate(const templates::UpdateEndArgs& args)
 {
     if (!args.changedProperties.empty())
         propertyChanged();
 }
 
-void RefCANChannelImpl::initSignals(const FolderConfigPtr& signalsFolder)
+void RefTemplateCANChannelImpl::initSignals(const FolderConfigPtr& signalsFolder)
 {
     const auto arbIdDescriptor = DataDescriptorBuilder().setName("ArbId").setSampleType(SampleType::Int32).build();
     const auto lengthDescriptor = DataDescriptorBuilder().setName("Length").setSampleType(SampleType::Int8).build();
@@ -92,7 +92,7 @@ void RefCANChannelImpl::initSignals(const FolderConfigPtr& signalsFolder)
     valueSignal = createAndAddSignal(valueSigParams);
 }
 
-void RefCANChannelImpl::collectSamples(std::chrono::microseconds curTime)
+void RefTemplateCANChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
     auto lock = this->getAcquisitionLock();
     const auto duration = static_cast<int64_t>(curTime.count() - lastCollectTime.count());
@@ -106,7 +106,7 @@ void RefCANChannelImpl::collectSamples(std::chrono::microseconds curTime)
     lastCollectTime = curTime;
 }
 
-void RefCANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size_t newSamples)
+void RefTemplateCANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size_t newSamples)
 {
     const auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
     const auto dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
@@ -138,7 +138,7 @@ void RefCANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size
     timeSignal.sendPacket(domainPacket);
 }
 
-std::string RefCANChannelImpl::getEpoch()
+std::string RefTemplateCANChannelImpl::getEpoch()
 {
     const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
 
@@ -148,7 +148,7 @@ std::string RefCANChannelImpl::getEpoch()
     return { buf };
 }
 
-RatioPtr RefCANChannelImpl::getResolution()
+RatioPtr RefTemplateCANChannelImpl::getResolution()
 {
     return Ratio(1, 1000000);
 }

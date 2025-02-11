@@ -39,16 +39,16 @@ struct CANData
 
 static_assert(sizeof(CANData) == 69);
 
-class RefCANChannelBase final : public templates::ChannelTemplateHooks
+class RefTemplateCANChannelBase final : public templates::ChannelTemplateHooks
 {
 public:
-    RefCANChannelBase(const templates::ChannelParams& params, const RefCANChannelInit& init);
+    RefTemplateCANChannelBase(const templates::ChannelParams& params, const RefCANChannelInit& init);
 };
 
-class RefCANChannelImpl final : public templates::ChannelTemplate
+class RefTemplateCANChannelImpl final : public templates::ChannelTemplate
 {
 public:
-    explicit RefCANChannelImpl(const RefCANChannelInit& init);
+    explicit RefTemplateCANChannelImpl(const RefCANChannelInit& init);
 
     void collectSamples(std::chrono::microseconds curTime);
 

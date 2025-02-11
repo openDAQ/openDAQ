@@ -33,18 +33,18 @@ struct RefChannelInit
     StringPtr referenceDomainId;
 };
 
-class RefChannelBase final : public templates::ChannelTemplateHooks
+class RefTemplateChannelBase final : public templates::ChannelTemplateHooks
 {
 public:
-    RefChannelBase(const templates::ChannelParams& params, const RefChannelInit& init);
+    RefTemplateChannelBase(const templates::ChannelParams& params, const RefChannelInit& init);
 };
 
 enum class WaveformType { Sine, Rect, None, Counter, ConstantValue };
 
-class RefChannelImpl final : public templates::ChannelTemplate
+class RefTemplateChannelImpl final : public templates::ChannelTemplate
 {
 public:
-    explicit RefChannelImpl(const RefChannelInit& init);
+    explicit RefTemplateChannelImpl(const RefChannelInit& init);
 
     void collectSamples(std::chrono::microseconds curTime);
     void globalSampleRateChanged(double newGlobalSampleRate);

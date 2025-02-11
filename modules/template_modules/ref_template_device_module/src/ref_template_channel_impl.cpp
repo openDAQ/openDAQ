@@ -16,12 +16,12 @@ BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 
 #define PI 3.141592653589793
 
-RefChannelBase::RefChannelBase(const templates::ChannelParams& params, const RefChannelInit& init)
-    : ChannelTemplateHooks(std::make_shared<RefChannelImpl>(init), params)
+RefTemplateChannelBase::RefTemplateChannelBase(const templates::ChannelParams& params, const RefChannelInit& init)
+    : ChannelTemplateHooks(std::make_shared<RefTemplateChannelImpl>(init), params)
 {
 }
 
-RefChannelImpl::RefChannelImpl(const RefChannelInit& init)
+RefTemplateChannelImpl::RefTemplateChannelImpl(const RefChannelInit& init)
     : waveformType(WaveformType::Sine)
     , freq(0)
     , ampl(0)
@@ -45,7 +45,7 @@ RefChannelImpl::RefChannelImpl(const RefChannelInit& init)
 {
 }
 
-void RefChannelImpl::initProperties()
+void RefTemplateChannelImpl::initProperties()
 {
     const auto waveformSelectionValues = List<IString>("Sine", "Rect", "None", "Counter", "Constant");
     const auto waveformProp = SelectionProperty("Waveform", waveformSelectionValues, 0);
@@ -127,7 +127,7 @@ void RefChannelImpl::initProperties()
     packetSizeProps = {"FixedPacketSize", "PacketSize", "Amplitude"};
 }
 
-BaseObjectPtr RefChannelImpl::onPropertyWrite(const templates::PropertyEventArgs& args)
+BaseObjectPtr RefTemplateChannelImpl::onPropertyWrite(const templates::PropertyEventArgs& args)
 {
     if (args.propertyName == "SampleRate" && args.value.assigned())
         return coerceSampleRate(args.value);
@@ -145,7 +145,7 @@ BaseObjectPtr RefChannelImpl::onPropertyWrite(const templates::PropertyEventArgs
     return ChannelTemplate::onPropertyWrite(args);
 }
 
-BaseObjectPtr RefChannelImpl::onPropertyRead(const templates::PropertyEventArgs& args)
+BaseObjectPtr RefTemplateChannelImpl::onPropertyRead(const templates::PropertyEventArgs& args)
 {
     if (args.propertyName == "SampleRate" && objPtr.getPropertyValue("UseGlobalSampleRate"))
         return globalSampleRate;
@@ -153,7 +153,7 @@ BaseObjectPtr RefChannelImpl::onPropertyRead(const templates::PropertyEventArgs&
     return ChannelTemplate::onPropertyRead(args);
 }
 
-void RefChannelImpl::onEndUpdate(const templates::UpdateEndArgs& args)
+void RefTemplateChannelImpl::onEndUpdate(const templates::UpdateEndArgs& args)
 {
     bool changeSignalType = false;
     bool changeWaveform = false;
@@ -177,13 +177,13 @@ void RefChannelImpl::onEndUpdate(const templates::UpdateEndArgs& args)
         packetSizeChanged();
 }
 
-void RefChannelImpl::packetSizeChanged()
+void RefTemplateChannelImpl::packetSizeChanged()
 {
     fixedPacketSize = objPtr.getPropertyValue("FixedPacketSize");
     packetSize = objPtr.getPropertyValue("PacketSize");
 }
 
-void RefChannelImpl::waveformChanged()
+void RefTemplateChannelImpl::waveformChanged()
 {
     waveformType = objPtr.getPropertyValue("Waveform");
     freq = objPtr.getPropertyValue("Frequency");
@@ -196,13 +196,13 @@ void RefChannelImpl::waveformChanged()
         objPtr.getPropertySelectionValue("Waveform").toString(), freq, dc, ampl, noiseAmpl, constantValue);
 }
 
-void RefChannelImpl::updateSamplesGenerated()
+void RefTemplateChannelImpl::updateSamplesGenerated()
 {
     if (lastCollectTime.count() > 0)
         samplesGenerated = getSamplesSinceStart(lastCollectTime);
 }
 
-void RefChannelImpl::buildSignalDescriptors()
+void RefTemplateChannelImpl::buildSignalDescriptors()
 {
     const auto valueDescriptorBuilder = DataDescriptorBuilder()
                                         .setSampleType(SampleType::Float64)
@@ -233,13 +233,13 @@ void RefChannelImpl::buildSignalDescriptors()
     this->timeDescriptor = timeDescriptorBuilder.build();
 }
 
-void RefChannelImpl::setSignalDescriptors() const
+void RefTemplateChannelImpl::setSignalDescriptors() const
 {
     valueSignal.setDescriptor(valueDescriptor);
     timeSignal.setDescriptor(timeDescriptor);
 }
 
-void RefChannelImpl::updateSignalParams()
+void RefTemplateChannelImpl::updateSignalParams()
 {
     sampleRate = objPtr.getPropertyValue("UseGlobalSampleRate") ? globalSampleRate : objPtr.getPropertyValue("SampleRate");
     sampleRate = coerceSampleRate(sampleRate);
@@ -251,7 +251,7 @@ void RefChannelImpl::updateSignalParams()
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
 
-void RefChannelImpl::signalTypeChanged()
+void RefTemplateChannelImpl::signalTypeChanged()
 {
     updateSignalParams();
     buildSignalDescriptors();
@@ -259,13 +259,13 @@ void RefChannelImpl::signalTypeChanged()
     updateSamplesGenerated();
 }
 
-void RefChannelImpl::resetCounter()
+void RefTemplateChannelImpl::resetCounter()
 {
     auto lock = this->getRecursiveConfigLock();
     counter = 0;
 }
 
-void RefChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
+void RefTemplateChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
 {
     if (shouldLock)
     {
@@ -276,7 +276,7 @@ void RefChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
         counter = cnt;
 }
 
-void RefChannelImpl::initSignals(const FolderConfigPtr& signalsFolder)
+void RefTemplateChannelImpl::initSignals(const FolderConfigPtr& signalsFolder)
 {
     waveformChanged();
     updateSignalParams();
@@ -298,13 +298,13 @@ void RefChannelImpl::initSignals(const FolderConfigPtr& signalsFolder)
     valueSignal = createAndAddSignal(valueSigParams);
 }
 
-uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
+uint64_t RefTemplateChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
 {
     const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1000000.0 * sampleRate));
     return samplesSinceStart;
 }
 
-void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
+void RefTemplateChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
     auto lock = this->getAcquisitionLock();
     const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
@@ -354,7 +354,7 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
     lastCollectTime = curTime;
 }
 
-std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
+std::tuple<PacketPtr, PacketPtr> RefTemplateChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
 {
     auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
     DataPacketPtr dataPacket;
@@ -424,7 +424,7 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
     return {dataPacket, domainPacket};
 }
 
-std::string RefChannelImpl::getEpoch()
+std::string RefTemplateChannelImpl::getEpoch()
 {
     const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
 
@@ -434,12 +434,12 @@ std::string RefChannelImpl::getEpoch()
     return { buf };
 }
 
-RatioPtr RefChannelImpl::getResolution()
+RatioPtr RefTemplateChannelImpl::getResolution()
 {
     return Ratio(1, 1000000);
 }
 
-Int RefChannelImpl::getDeltaT(const double sr)
+Int RefTemplateChannelImpl::getDeltaT(const double sr)
 {
     const double tickPeriod = getResolution();
     const double samplePeriod = 1.0 / sr;
@@ -447,7 +447,7 @@ Int RefChannelImpl::getDeltaT(const double sr)
     return deltaT;
 }
 
-double RefChannelImpl::coerceSampleRate(const double wantedSampleRate)
+double RefTemplateChannelImpl::coerceSampleRate(const double wantedSampleRate)
 {
     const double tickPeriod = getResolution();
     const double samplePeriod = 1.0 / wantedSampleRate;
@@ -467,7 +467,7 @@ double RefChannelImpl::coerceSampleRate(const double wantedSampleRate)
     return roundedSampleRate;
 }
 
-void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
+void RefTemplateChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
 {
     const auto lock = getRecursiveConfigLock();
     globalSampleRate = coerceSampleRate(newGlobalSampleRate);

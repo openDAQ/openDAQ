@@ -122,6 +122,7 @@ option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" 
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
 option(OPENDAQ_ALWAYS_FETCH_DEPENDENCIES "Ignore any installed libraries and always build all dependencies from source" ON)
+option(OPENDAQ_ENABLE_MODULE_TEMPLATES "Module templates that provide a skeleton for simpler device and function block module creation" OFF)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 cmake_dependent_option(OPCUA_ENABLE_ENCRYPTION "Enable OpcUa encryption" OFF "OPENDAQ_ENABLE_OPCUA" OFF)
@@ -158,6 +159,7 @@ if (NOT APPLE AND UNIX)
 endif()
 cmake_dependent_option(OPENDAQ_GENERATE_PYTHON_BINDINGS_STUBS "Generate python bindings stubs for auto-completion" OFF "OPENDAQ_GENERATE_PYTHON_BINDINGS" OFF)
 cmake_dependent_option(OPENDAQ_SKIP_UNSTABLE_TESTS "Skip tests marked as unstable" ON "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS" ON)
+cmake_dependent_option(DAQMODULES_REF_TEMPLATE_DEVICE_MODULE "Building of reference device module created from template" ON "OPENDAQ_ENABLE_MODULE_TEMPLATES" ON)
 
 if (OPENDAQ_ENABLE_TESTS)
     set(OPENDAQ_ENABLE_TEST_UTILS ON)
@@ -169,7 +171,6 @@ option(DAQMODULES_OPENDAQ_SERVER_MODULE "Building of ${SDK_NAME} server modules"
 option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
 option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
-option(DAQMODULES_REF_TEMPLATE_DEVICE_MODULE "Building of reference device module created from the device module template" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
@@ -692,7 +693,12 @@ if(CMAKE_COMPILER_IS_CLANGXX)
 endif()
 
 add_subdirectory(core)
-add_subdirectory(templates)
+
+if (OPENDAQ_ENABLE_MODULE_TEMPLATES)
+    message(WARNING "Building openDAQ module templates. This feature is a WIP and will change significantly between releases, with a high likelihood of changes that break user modules. Use with caution.")
+    add_subdirectory(templates)
+endif()
+
 add_subdirectory(modules)
 add_subdirectory(bindings)
 add_subdirectory(shared)

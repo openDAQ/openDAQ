@@ -17,18 +17,15 @@ public:
 
         for (size_t i = rangeBegin; i < rangeEnd; i += 2)
         {
-            const auto domainIndex = i;
-            const auto valueIndex = i + 1;
+            ASSERT_TRUE(clientSignals[i].getDomainSignal().assigned());
+            ASSERT_EQ(clientSignals[i].getDomainSignal(), clientSignals[i+1]);
+            ASSERT_FALSE(clientSignals[i+1].getDomainSignal().assigned());
 
-            ASSERT_TRUE(clientSignals[valueIndex].getDomainSignal().assigned());
-            ASSERT_EQ(clientSignals[valueIndex].getDomainSignal(), clientSignals[domainIndex]);
-            ASSERT_FALSE(clientSignals[domainIndex].getDomainSignal().assigned());
+            DataDescriptorPtr dataDescriptor = clientSignals[i].getDescriptor();
+            DataDescriptorPtr serverDataDescriptor = serverSignals[i].getDescriptor();
 
-            DataDescriptorPtr dataDescriptor = clientSignals[valueIndex].getDescriptor();
-            DataDescriptorPtr serverDataDescriptor = serverSignals[valueIndex].getDescriptor();
-
-            DataDescriptorPtr domainDataDescriptor = clientSignals[valueIndex].getDomainSignal().getDescriptor();
-            DataDescriptorPtr serverDomainDataDescriptor = serverSignals[valueIndex].getDomainSignal().getDescriptor();
+            DataDescriptorPtr domainDataDescriptor = clientSignals[i].getDomainSignal().getDescriptor();
+            DataDescriptorPtr serverDomainDataDescriptor = serverSignals[i].getDomainSignal().getDescriptor();
 
             ASSERT_EQ(dataDescriptor, serverDataDescriptor);
 
@@ -49,7 +46,7 @@ public:
 
         auto instance = InstanceCustom(context, "local");
 
-        const auto refDevice = instance.addDevice("daq.template://device1");
+        const auto refDevice = instance.addDevice("daqref://device1");
 
         instance.addServer("openDAQ LT Streaming", nullptr);
 
@@ -263,7 +260,7 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto signals = client.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(signals.getCount(), 4u);
+    ASSERT_EQ(signals.getCount(), 5u);
 }
 
 TEST_F(WebsocketModulesTest, RemoveDevice)
@@ -289,7 +286,7 @@ TEST_F(WebsocketModulesTest, SignalConfig_Server)
     auto client = CreateClientInstance();
 
     auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Visible()));
-    auto clientSignal = clientSignals[1].asPtr<ISignalConfig>();
+    auto clientSignal = clientSignals[0].asPtr<ISignalConfig>();
 
     auto clientSignalDataDescriptor = DataDescriptorBuilderCopy(clientSignal.getDescriptor()).build();
 
@@ -314,7 +311,7 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    auto signal = client.getSignalsRecursive()[1].template asPtr<IMirroredSignalConfig>();
+    auto signal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
 
     StringPtr streamingSource = signal.getActiveStreamingSource();
 
@@ -414,7 +411,7 @@ TEST_F(WebsocketModulesTest, AddSignals)
 
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 6u);
+    ASSERT_EQ(clientSignals.getCount(), 7u);
 
     removeDeviceDomainSignal(serverSignals);
     removeDeviceDomainSignal(clientSignals);
@@ -474,7 +471,7 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
     ASSERT_TRUE(clientSignals[3].isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 2u);
+    ASSERT_EQ(clientSignals.getCount(), 3u);
 }
 
 TEST_F(WebsocketModulesTest, UpdateAddSignals)
@@ -512,7 +509,7 @@ TEST_F(WebsocketModulesTest, UpdateAddSignals)
         }
     };
 
-    // update device to restore removed channels
+    // update device to backup removed channels
     const auto deserializer = JsonDeserializer();
     deserializer.update(serverRefDevice, str);
 
@@ -520,7 +517,7 @@ TEST_F(WebsocketModulesTest, UpdateAddSignals)
 
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 4u);
+    ASSERT_EQ(clientSignals.getCount(), 5u);
 
     removeDeviceDomainSignal(serverSignals);
     removeDeviceDomainSignal(clientSignals);
@@ -591,5 +588,5 @@ TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
     ASSERT_TRUE(clientSignals[5].isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
-    ASSERT_EQ(clientSignals.getCount(), 4u);
+    ASSERT_EQ(clientSignals.getCount(), 5u);
 }

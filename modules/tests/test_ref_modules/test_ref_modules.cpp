@@ -320,37 +320,6 @@ TEST_F(InvertDestructOrderTest, InvertedDestructOrder)
     device.release();
 }
 
-TEST_F(RefModulesTest, FindComponentSignal)
-{
-    auto instance = Instance("", "localInstance");
-    auto device = instance.addDevice("daq.template://device1");
-
-    auto comp = instance.findComponent("Dev/openDAQ_TempRefDev1/IO/AI/AI1/Sig/AI1");
-    ASSERT_TRUE(comp.assigned());
-    ASSERT_TRUE(comp.supportsInterface<ISignal>());
-}
-
-TEST_F(RefModulesTest, FindComponentSignalRelative)
-{
-    auto instance = Instance("", "localInstance");
-    auto device = instance.addDevice("daq.template://device1");
-    auto ch = device.getChannels()[0];
-
-    auto comp = ch.findComponent("Sig/AI1");
-    ASSERT_TRUE(comp.assigned());
-    ASSERT_TRUE(comp.supportsInterface<ISignal>());
-}
-
-TEST_F(RefModulesTest, FindComponentChannel)
-{
-    auto instance = Instance("", "localInstance");
-    auto device = instance.addDevice("daq.template://device1");
-
-    auto comp = instance.findComponent("Dev/openDAQ_TempRefDev1/IO/AI/AI1");
-    ASSERT_TRUE(comp.assigned());
-    ASSERT_TRUE(comp.supportsInterface<IChannel>());
-}
-
 TEST_F(RefModulesTest, OptionViaConnectionString)
 {
     auto instance = Instance("", "localInstance");

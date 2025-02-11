@@ -155,6 +155,10 @@ void NativeStreamingServerImpl::startTransportOperations()
     transportThread = std::thread(
         [this]()
         {
+            {
+                std::string name("NtvTransport");
+                pthread_setname_np(pthread_self(), name.c_str());
+            }
             using namespace boost::asio;
             auto workGuard = make_work_guard(*transportIOContextPtr);
             transportIOContextPtr->run();
@@ -188,6 +192,10 @@ void NativeStreamingServerImpl::startProcessingOperations()
     processingThread = std::thread(
         [this]()
         {
+            {
+                std::string name("NtvProcessing");
+                pthread_setname_np(pthread_self(), name.c_str());
+            }
             using namespace boost::asio;
             auto workGuard = make_work_guard(processingIOContext);
             processingIOContext.run();
@@ -447,21 +455,53 @@ void NativeStreamingServerImpl::stopReading()
     signalReaders.clear();
 }
 
+//#define NO_OPTIMIZATION
+//#define PART_OPTIMIZATION
+#define FULL_OPTIMIZATION
+
 void NativeStreamingServerImpl::startReadThread()
 {
+    {
+        std::string name("NtvReadThread");
+        pthread_setname_np(pthread_self(), name.c_str());
+    }
     while (readThreadActive)
     {
         {
             std::scoped_lock lock(readersSync);
+
+#ifdef FULL_OPTIMIZATION
+            auto allPackets = Dict<ISignal, ListPtr<IPacket>>();
+#endif
             for (const auto& [signal, reader] : signalReaders)
             {
-                PacketPtr packet = reader.read();
-                while (packet.assigned())
+#if defined(NO_OPTIMIZATION)
                 {
-                    serverHandler->sendPacket(signal, std::move(packet));
-                    packet = reader.read();
+                    PacketPtr packet = reader.read();
+                    while (packet.assigned())
+                    {
+                        serverHandler->sendPacket(signal, std::move(packet));
+                        packet = reader.read();
+                    }
                 }
+#elif defined(PART_OPTIMIZATION)
+                {
+                    auto packets = reader.readAll();
+                    if (packets.getCount() != 0)
+                        serverHandler->sendPackets(signal, std::move(packets));
+                }
+#elif defined(FULL_OPTIMIZATION)
+                {
+                    auto packets = reader.readAll();
+                    if (packets.getCount() != 0)
+                        allPackets.set(signal, std::move(packets));
+                }
+#endif
             }
+#ifdef FULL_OPTIMIZATION
+            if (allPackets.getCount() != 0)
+                serverHandler->sendAllPackets(std::move(allPackets));
+#endif
         }
 
         std::this_thread::sleep_for(readThreadSleepTime);

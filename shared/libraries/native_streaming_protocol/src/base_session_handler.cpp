@@ -343,11 +343,52 @@ void BaseSessionHandler::sendPacketBuffer(PacketBufferPtr&& packetBuffer)
     std::vector<WriteTask> tasks;
     tasks.reserve(3);
 
+    auto deadlineTime =
+        packetBuffer->timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
+            ? std::optional(packetBuffer->timeStamp.value() + streamingPacketSendTimeout)
+            : std::nullopt;
+
+    createAndPushPacketBufferTasks(std::move(packetBuffer), tasks);
+
+    session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
+}
+
+void BaseSessionHandler::sendPacketBuffers(std::vector<packet_streaming::PacketBufferPtr>&& packetBuffers)
+{
+    if (packetBuffers.empty())
+        return;
+
+    std::vector<WriteTask> tasks;
+    tasks.reserve(3 * packetBuffers.size());
+    OptionalWriteDeadline deadlineTime;
+
+    for (auto&& packetBuffer : packetBuffers)
+    {
+        // use deadlineTime of a first time-stamped packet for the whole batch write
+        if (!deadlineTime.has_value())
+        {
+            deadlineTime =
+                packetBuffer->timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
+                    ? std::optional(packetBuffer->timeStamp.value() + streamingPacketSendTimeout)
+                    : std::nullopt;
+        }
+        createAndPushPacketBufferTasks(std::move(packetBuffer), tasks);
+    }
+
+    session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
+}
+
+void BaseSessionHandler::createAndPushPacketBufferTasks(packet_streaming::PacketBufferPtr&& packetBuffer,
+                                                        std::vector<native_streaming::WriteTask>& tasks)
+{
     // create write task for packet buffer header
     boost::asio::const_buffer packetBufferHeader(packetBuffer->packetHeader,
                                                  packetBuffer->packetHeader->size);
     WriteHandler packetBufferHeaderHandler = [packetBuffer]() {};
     tasks.push_back(WriteTask(packetBufferHeader, packetBufferHeaderHandler));
+
+    size_t tasksAdded = 1;
+    size_t payloadSize = tasks.back().getBuffer().size();
 
     if (packetBuffer->packetHeader->payloadSize > 0)
     {
@@ -356,19 +397,18 @@ void BaseSessionHandler::sendPacketBuffer(PacketBufferPtr&& packetBuffer)
                                                       packetBuffer->packetHeader->payloadSize);
         WriteHandler packetBufferPayloadHandler = [packetBuffer]() {};
         tasks.push_back(WriteTask(packetBufferPayload, packetBufferPayloadHandler));
+
+        ++tasksAdded;
+        payloadSize += tasks.back().getBuffer().size();
     }
 
-    // create write task for transport header
-    size_t payloadSize = calculatePayloadSize(tasks);
+    if (payloadSize > TransportHeader::MAX_PAYLOAD_SIZE)
+    {
+        throw NativeStreamingProtocolException("Size of message payload exceeds limit");
+    }
+
     auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
-    tasks.insert(tasks.begin(), writeHeaderTask);
-
-    auto deadlineTime =
-        packetBuffer->timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
-            ? std::optional(packetBuffer->timeStamp.value() + streamingPacketSendTimeout)
-            : std::nullopt;
-
-    session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
+    tasks.insert(tasks.end() - tasksAdded, writeHeaderTask);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

@@ -30,6 +30,8 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using SendPacketBufferCallback = std::function<void(const std::string& subscribedClientId,
                                                     packet_streaming::PacketBufferPtr&& packetBuffer)>;
+using SendPacketBuffersCallback = std::function<void(const std::string& subscribedClientId,
+                                                     std::vector<packet_streaming::PacketBufferPtr>&& packetBuffers)>;
 
 class StreamingManager
 {
@@ -46,6 +48,10 @@ public:
     void sendPacketToSubscribers(const std::string& signalStringId,
                                  PacketPtr&& packet,
                                  const SendPacketBufferCallback& sendPacketBufferCb);
+
+    void sendPacketsToSubscribers(const std::string& signalStringId,
+                                  ListPtr<IPacket>&& packets,
+                                  const SendPacketBuffersCallback& sendPacketBuffersCb);
 
     /// Registers a signal using its global ID as a unique key
     /// and assigns a numeric ID to it.
@@ -131,6 +137,11 @@ private:
                        PacketPtr&& packet,
                        const std::string& clientId,
                        SignalNumericIdType singalNumericId);
+    void sendDaqPackets(const SendPacketBuffersCallback& sendPacketBuffersCb,
+                        const PacketStreamingServerPtr& packetStreamingServerPtr,
+                        ListPtr<IPacket>&& packets,
+                        const std::string& clientId,
+                        SignalNumericIdType singalNumericId);
 
     bool removeSignalSubscriberNoLock(const std::string& signalStringId, const std::string& subscribedClientId);
 

@@ -44,6 +44,7 @@ public:
     const SessionPtr getSession() const;
     void sendConfigurationPacket(const config_protocol::PacketBuffer& packet);
     void sendPacketBuffer(packet_streaming::PacketBufferPtr&& packetBuffer);
+    void sendPacketBuffers(std::vector<packet_streaming::PacketBufferPtr>&& packetBuffers);
 
     void setConfigPacketReceivedHandler(const ProcessConfigProtocolPacketCb& configPacketReceivedHandler);
     void setPacketBufferReceivedHandler(const OnPacketBufferReceivedCallback& packetBufferReceivedHandler);
@@ -59,9 +60,9 @@ protected:
     daq::native_streaming::ReadTask createReadStopTask();
     daq::native_streaming::ReadTask discardPayload(const void* data, size_t size);
 
-    size_t calculatePayloadSize(const std::vector<daq::native_streaming::WriteTask>& writePayloadTasks);
-    daq::native_streaming::WriteTask createWriteHeaderTask(PayloadType payloadType, size_t payloadSize);
-    daq::native_streaming::WriteTask createWriteStringTask(const std::string& str);
+    static size_t calculatePayloadSize(const std::vector<daq::native_streaming::WriteTask>& writePayloadTasks);
+    static daq::native_streaming::WriteTask createWriteHeaderTask(PayloadType payloadType, size_t payloadSize);
+    static daq::native_streaming::WriteTask createWriteStringTask(const std::string& str);
 
     template<typename T>
     daq::native_streaming::WriteTask createWriteNumberTask(const T& value)
@@ -73,7 +74,9 @@ protected:
     }
 
     static void copyData(void* destination, const void* source, size_t bytesToCopy, size_t sourceOffset, size_t sourceSize);
-    static std::string getStringFromData(const void *source, size_t stringSize, size_t sourceOffset, size_t sourceSize);
+    static std::string getStringFromData(const void* source, size_t stringSize, size_t sourceOffset, size_t sourceSize);
+    static void createAndPushPacketBufferTasks(packet_streaming::PacketBufferPtr&& packetBuffer,
+                                               std::vector<daq::native_streaming::WriteTask>& tasks);
 
     SessionPtr session;
     ProcessConfigProtocolPacketCb configPacketReceivedHandler;

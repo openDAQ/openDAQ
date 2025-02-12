@@ -175,6 +175,7 @@ option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
 option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
+option(DAQMODULES_BASIC_RECORDER_MODULE "Building of basic recorder module" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
 

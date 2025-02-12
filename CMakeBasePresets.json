@@ -102,6 +102,7 @@
                 "DAQMODULES_REF_DEVICE_MODULE": true,
                 "DAQMODULES_REF_FB_MODULE": true,
                 "DAQMODULES_AUDIO_DEVICE_MODULE": true,
+                "DAQMODULES_BASIC_RECORDER_MODULE": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "APP_ENABLE_WEBPAGE_EXAMPLES": true,
                 "OPENDAQ_DOCUMENTATION_TESTS": true,
@@ -122,6 +123,7 @@
                 "DAQMODULES_AUDIO_DEVICE_MODULE": false,
                 "DAQMODULES_OPENDAQ_CLIENT_MODULE": false,
                 "DAQMODULES_OPENDAQ_SERVER_MODULE": true,
+                "DAQMODULES_BASIC_RECORDER_MODULE": true,
                 "OPENDAQ_ENABLE_OPCUA": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
@@ -140,6 +142,7 @@
                 "DAQMODULES_AUDIO_DEVICE_MODULE": true,
                 "DAQMODULES_OPENDAQ_CLIENT_MODULE": true,
                 "DAQMODULES_OPENDAQ_SERVER_MODULE": true,
+                "DAQMODULES_BASIC_RECORDER_MODULE": true,
                 "OPENDAQ_ENABLE_OPCUA": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true

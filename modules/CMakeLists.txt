@@ -71,6 +71,11 @@ if (DAQMODULES_AUDIO_DEVICE_MODULE)
     add_subdirectory(audio_device_module)
 endif()
 
+if (DAQMODULES_BASIC_RECORDER_MODULE)
+    message(STATUS "Basic recorder module")
+    add_subdirectory(basic_recorder_module)
+endif()
+
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()

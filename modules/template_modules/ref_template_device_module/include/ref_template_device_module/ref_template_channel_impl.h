@@ -24,6 +24,13 @@
 
 BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 
+/*
+ * Template reference channel TODO:
+ *  - Refactor code
+ *  - Update with function block template changes
+ *  - Make a distinction between addable and non-addable components (e.g. Channel vs. FunctionBlock)
+ */
+
 struct RefChannelInit
 {
     size_t index;

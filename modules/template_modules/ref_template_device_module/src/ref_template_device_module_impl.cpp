@@ -47,7 +47,7 @@ std::vector<templates::DeviceInfoParams> RefTemplateDeviceModule::getAvailableDe
 {
     const StringPtr customName = options.get("Name");
     const StringPtr customSerial = options.get("SerialNumber");
-    maxNumberOfDevices = customSerial.getLength() ? 1 : options.get("MaxNumberOfDevices");
+    maxNumberOfDevices = customSerial.getLength() ? static_cast<size_t>(1) : static_cast<size_t>(options.get("MaxNumberOfDevices"));
 
     std::vector<templates::DeviceInfoParams> params;
     for (size_t i = 0; i < maxNumberOfDevices; ++i)

@@ -23,6 +23,12 @@
 
 BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 
+/*
+ * Template CAN channel TODO:
+ *  - Refactor code and match it to the template reference channel
+ *  - 
+ */
+
 struct RefCANChannelInit
 {
     std::chrono::microseconds microSecondsFromEpochToStartTime;

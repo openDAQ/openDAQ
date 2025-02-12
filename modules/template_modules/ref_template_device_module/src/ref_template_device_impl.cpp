@@ -168,7 +168,7 @@ void RefTemplateDevice::enableCANChannel(bool enableCANChannel)
     
         canChannel.reset();
     }
-    else
+    else if (!canChannel)
     {
         ChannelParams params;
         params.context = this->context;

@@ -241,7 +241,7 @@ void RefTemplateChannelImpl::setSignalDescriptors() const
 
 void RefTemplateChannelImpl::updateSignalParams()
 {
-    sampleRate = objPtr.getPropertyValue("UseGlobalSampleRate") ? globalSampleRate : objPtr.getPropertyValue("SampleRate");
+    sampleRate = objPtr.getPropertyValue("UseGlobalSampleRate") ? globalSampleRate : static_cast<double>(objPtr.getPropertyValue("SampleRate"));
     sampleRate = coerceSampleRate(sampleRate);
 
     clientSideScaling = objPtr.getPropertyValue("ClientSideScaling");

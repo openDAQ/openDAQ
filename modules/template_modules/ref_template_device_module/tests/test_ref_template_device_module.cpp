@@ -732,9 +732,9 @@ TEST_F(RefTemplateDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
     std::string json = "{ \"Modules\": { \"TemplateReferenceDevice\": { \"LocalId\": \"testtest\" } } }";
     createConfigFile(filename, json);
 
-    auto options = GetOptionsWithReferenceDevice();
+    auto options = GetOptionsWithReferenceDevice("TemplateReferenceDevice");
 
-    auto expectedOptions = GetOptionsWithReferenceDevice();
+    auto expectedOptions = GetOptionsWithReferenceDevice("TemplateReferenceDevice");
     getChildren(getChildren(expectedOptions, "Modules"), "TemplateReferenceDevice").set("LocalId", "testtest");
 
     auto provider = JsonConfigProvider(StringPtr(filename));

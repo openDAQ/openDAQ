@@ -20,6 +20,7 @@
 #include <opendaq_module_template/hooks_template_base.h>
 #include <opendaq/io_folder_config_ptr.h>
 #include <opendaq/log_file_info_ptr.h>
+#include <condition_variable>
 
 BEGIN_NAMESPACE_OPENDAQ_TEMPLATES
 

@@ -3,8 +3,6 @@
 #include <coreobjects/unit_factory.h>
 #include <opendaq/dimension_factory.h>
 
-
-
 BEGIN_NAMESPACE_REF_TEMPLATE_DEVICE_MODULE
 
 #define PI 3.141592653589793

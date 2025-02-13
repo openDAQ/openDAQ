@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <sstream>
 #include <string>
 
 #include <boost/algorithm/string.hpp>
@@ -29,7 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE
  *
  * @returns A filename, including a ".csv" extension.
  */
-static std::string getFilename(const std::filesystem::path& path, const daq::SignalPtr& signal)
+static std::string getFilename(const std::filesystem::path& path, const SignalPtr& signal)
 {
     std::string id = signal.getGlobalId();
 
@@ -52,34 +53,91 @@ static std::string getFilename(const std::filesystem::path& path, const daq::Sig
 }
 
 /**
+ * If a signal has a Unit attached to its descriptor, writes the unit's symbol (or name, if the
+ * symbol is empty) to an output stream in parentheses. If a tick resolution is specified, the
+ * resolution is also included after the unit.
+ *
+ * @param stream The output stream to write to.
+ * @param signal The signal whose unit name to write.
+ *
+ * @return @p stream.
+ */
+static std::ostream& appendUnitInfo(std::ostream& stream, const SignalPtr& signal)
+{
+    bool parentheses = false;
+
+    if (auto descriptor = signal.getDescriptor(); descriptor.assigned())
+    {
+        if (auto unit = descriptor.getUnit(); unit.assigned())
+        {
+            parentheses = true;
+            if (auto symbol = unit.getSymbol(); symbol.assigned())
+                stream << " (" << symbol;
+            else if (auto unitName = unit.getName(); unitName.assigned())
+                stream << " (" << unitName;
+            else
+                parentheses = false;
+        }
+
+        if (auto ratio = descriptor.getTickResolution(); ratio.assigned())
+        {
+            int numerator = ratio.getNumerator();
+            int denominator = ratio.getDenominator();
+
+            if (denominator != 1)
+                stream << " * " << denominator;
+            if (numerator != 1)
+                stream << " / " << numerator;
+        }
+    }
+
+    if (parentheses)
+        stream << ')';
+
+    return stream;
+}
+
+/**
  * Gets the name of the signal's associated domain signal, for use as a CSV header. If the signal
- * has an associated domain signal, that signal's name is returned. Otherwise, "Domain" is
- * returned.
+ * has an associated domain signal, that signal's name is returned. If the signal additionally has
+ * a Unit assigned to its descriptor, the unit's symbol (or name, if no symbol) is appended in
+ * parentheses. Otherwise, "Domain" is returned.
  *
  * @param signal The value signal.
  *
  * @return The name of the domain signal associated with @p signal, or if there is no associated
  *     domain signal, "Domain".
  */
-static std::string getDomainName(const daq::SignalPtr& signal)
+static std::string getDomainName(const SignalPtr& signal)
 {
     auto domainSignal = signal.getDomainSignal();
-    return domainSignal.assigned() ? domainSignal.getName() : "Domain";
+
+    if (!domainSignal.assigned())
+        return "Domain";
+
+    std::ostringstream stream;
+    stream << domainSignal.getName();
+    appendUnitInfo(stream, domainSignal);
+    return stream.str();
 }
 
 /**
- * Gets the name of the signal, for use as a CSV header.
+ * Gets the name of the signal, for use as a CSV header. If the signal has a Unit assigned to its
+ * descriptor, the unit's symbol (or name, if no symbol) is appended in parentheses.
  *
  * @param signal The value signal.
  *
  * @return The name of the @p signal.
  */
-static std::string getValueName(const daq::SignalPtr& signal)
+static std::string getValueName(const SignalPtr& signal)
 {
-    return signal.getName();
+    std::ostringstream stream;
+    stream << signal.getName();
+    appendUnitInfo(stream, signal);
+    return stream.str();
 }
 
-BasicRecorderSignal::BasicRecorderSignal(std::filesystem::path path, const daq::SignalPtr& signal)
+BasicRecorderSignal::BasicRecorderSignal(std::filesystem::path path, const SignalPtr& signal)
     : writer(path / getFilename(path, signal))
 {
     writer.headers(
@@ -87,9 +145,9 @@ BasicRecorderSignal::BasicRecorderSignal(std::filesystem::path path, const daq::
         getValueName(signal).c_str());
 }
 
-void BasicRecorderSignal::onPacketReceived(const daq::InputPortPtr& port)
+void BasicRecorderSignal::onPacketReceived(const InputPortPtr& port)
 {
-    daq::PacketPtr packet;
+    PacketPtr packet;
 
     while ((packet = port.getConnection().dequeue()).assigned())
     {
@@ -108,9 +166,9 @@ void BasicRecorderSignal::onPacketReceived(const daq::InputPortPtr& port)
 /**
  * Records the values in the specified data packet to the CSV file.
  *
- * @todo The current implementation uses `daq::IDataPacket::getData()` on both the value signal
- *     and the associated domain signal. Directly supporting linear-rule domain signals would
- *     avoid unnecessary in-memory expansion of linear-rule domain values.
+ * @todo The current implementation uses `IDataPacket::getData()` on both the value signal and the
+ *     associated domain signal. Directly supporting linear-rule domain signals would avoid
+ *     unnecessary in-memory expansion of linear-rule domain values.
  *
  * @tparam Sample The type of values in the value signal's data buffer.
  * @tparam Domain The type of values in the domain signal's data buffer.
@@ -120,7 +178,7 @@ void BasicRecorderSignal::onPacketReceived(const daq::InputPortPtr& port)
  * @param writer The CSV writer to write to.
  */
 template <typename Sample, typename Domain>
-void writeSamples(daq::DataPacketPtr packet, daq::DataPacketPtr domainPacket, CsvWriter& writer)
+void writeSamples(DataPacketPtr packet, DataPacketPtr domainPacket, CsvWriter& writer)
 {
     auto data = reinterpret_cast<const Sample *>(packet.getData());
     auto domainData = reinterpret_cast<const Domain *>(domainPacket.getData());
@@ -144,7 +202,7 @@ void writeSamples(daq::DataPacketPtr packet, daq::DataPacketPtr domainPacket, Cs
  * @param writer The CSV writer to write to.
  */
 template <typename Sample>
-void writeSamples(daq::DataPacketPtr packet, CsvWriter& writer)
+void writeSamples(DataPacketPtr packet, CsvWriter& writer)
 {
     auto domainPacket = packet.getDomainPacket();
     if (!domainPacket.assigned())
@@ -170,7 +228,7 @@ void writeSamples(daq::DataPacketPtr packet, CsvWriter& writer)
     }
 }
 
-void BasicRecorderSignal::onDataPacketReceived(daq::DataPacketPtr packet)
+void BasicRecorderSignal::onDataPacketReceived(DataPacketPtr packet)
 {
     auto descriptor = packet.getDataDescriptor();
     if (!descriptor.assigned())

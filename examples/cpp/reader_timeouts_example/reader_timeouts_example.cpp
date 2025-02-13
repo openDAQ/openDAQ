@@ -6,6 +6,7 @@
 #include <opendaq/signal_factory.h>
 
 #include <cassert>
+#include <chrono>
 #include <thread>
 
 using namespace daq;

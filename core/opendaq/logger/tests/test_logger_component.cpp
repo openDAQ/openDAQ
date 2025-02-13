@@ -17,6 +17,7 @@
 #include <coretypes/impl.h>
 #include <opendaq/logger_sink_ptr.h>
 
+#include <chrono>
 #include <thread>
 
 using namespace daq;

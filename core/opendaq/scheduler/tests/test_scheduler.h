@@ -24,6 +24,7 @@
 
 #include <mutex>
 #include <random>
+#include <chrono>
 #include <thread>
 #include <opendaq/logger_factory.h>
 

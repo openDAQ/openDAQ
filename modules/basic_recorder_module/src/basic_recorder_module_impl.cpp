@@ -11,10 +11,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE
 
-BasicRecorderModule::BasicRecorderModule(daq::ContextPtr context)
-    : daq::Module(
+BasicRecorderModule::BasicRecorderModule(ContextPtr context)
+    : Module(
         MODULE_NAME,
-        daq::VersionInfo(
+        VersionInfo(
             BASIC_RECORDER_MODULE_MAJOR_VERSION,
             BASIC_RECORDER_MODULE_MINOR_VERSION,
             BASIC_RECORDER_MODULE_PATCH_VERSION),
@@ -24,26 +24,26 @@ BasicRecorderModule::BasicRecorderModule(daq::ContextPtr context)
 {
 }
 
-daq::DictPtr<daq::IString, daq::IFunctionBlockType>
+DictPtr<IString, IFunctionBlockType>
 BasicRecorderModule::onGetAvailableFunctionBlockTypes()
 {
     auto id = basicRecorderType.getId();
-    return daq::Dict<daq::IString, daq::IFunctionBlockType>(
+    return Dict<IString, IFunctionBlockType>(
     {
         { basicRecorderType.getId(), basicRecorderType },
     });
 }
 
-daq::FunctionBlockPtr BasicRecorderModule::onCreateFunctionBlock(
-    const daq::StringPtr& id,
-    const daq::ComponentPtr& parent,
-    const daq::StringPtr& localId,
-    const daq::PropertyObjectPtr& config)
+FunctionBlockPtr BasicRecorderModule::onCreateFunctionBlock(
+    const StringPtr& id,
+    const ComponentPtr& parent,
+    const StringPtr& localId,
+    const PropertyObjectPtr& config)
 {
     if (id == basicRecorderType.getId())
-        return daq::createWithImplementation<daq::IFunctionBlock, BasicRecorderImpl>(context, parent, localId, config);
+        return createWithImplementation<IFunctionBlock, BasicRecorderImpl>(context, parent, localId, config);
 
-    throw daq::NotFoundException("This module does not support function block type '" + id + "'");
+    throw NotFoundException("This module does not support function block type '" + id + "'");
 }
 
 END_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE

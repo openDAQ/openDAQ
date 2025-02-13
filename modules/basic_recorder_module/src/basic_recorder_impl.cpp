@@ -12,22 +12,22 @@
 
 BEGIN_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE
 
-daq::FunctionBlockTypePtr BasicRecorderImpl::createType()
+FunctionBlockTypePtr BasicRecorderImpl::createType()
 {
-    return daq::FunctionBlockType(
+    return FunctionBlockType(
         TYPE_ID,
         "BasicRecorder",
         "Basic CSV recording functionality",
-        daq::PropertyObject());
+        PropertyObject());
 }
 
 BasicRecorderImpl::BasicRecorderImpl(
-    const daq::ContextPtr& context,
-    const daq::ComponentPtr& parent,
-    const daq::StringPtr& localId,
-    const daq::PropertyObjectPtr& config
+    const ContextPtr& context,
+    const ComponentPtr& parent,
+    const StringPtr& localId,
+    const PropertyObjectPtr& config
 )
-    : daq::FunctionBlock(createType(), context, parent, localId, nullptr)
+    : FunctionBlockImpl<IFunctionBlock, IRecorder>(createType(), context, parent, localId, nullptr)
 {
     this->tags.add(Tags::RECORDER);
 
@@ -35,27 +35,31 @@ BasicRecorderImpl::BasicRecorderImpl(
     addProperties();
 }
 
-void BasicRecorderImpl::startRecording()
+ErrCode BasicRecorderImpl::startRecording()
 {
-    objPtr.setPropertyValue(Props::RECORDING_ACTIVE, true);
+    return setPropertyValue(
+        String(Props::RECORDING_ACTIVE).getObject(),
+        Boolean(true).getObject());
 }
 
-void BasicRecorderImpl::stopRecording()
+ErrCode BasicRecorderImpl::stopRecording()
 {
-    objPtr.setPropertyValue(Props::RECORDING_ACTIVE, false);
+    return setPropertyValue(
+        String(Props::RECORDING_ACTIVE).getObject(),
+        Boolean(false).getObject());
 }
 
-void BasicRecorderImpl::onConnected(const daq::InputPortPtr& port)
+void BasicRecorderImpl::onConnected(const InputPortPtr& port)
 {
     addInputPort();
     reconfigure();
 }
 
-void BasicRecorderImpl::onDisconnected(const daq::InputPortPtr& port)
+void BasicRecorderImpl::onDisconnected(const InputPortPtr& port)
 {
     while (portCount >= 2)
     {
-        auto ports = objPtr.template asPtr<daq::IFunctionBlock>(true).getInputPorts();
+        auto ports = objPtr.template asPtr<IFunctionBlock>(true).getInputPorts();
         if (ports.getItemAt(portCount - 1).getConnection().assigned())
             break;
         if (ports.getItemAt(portCount - 2).getConnection().assigned())
@@ -67,7 +71,7 @@ void BasicRecorderImpl::onDisconnected(const daq::InputPortPtr& port)
     reconfigure();
 }
 
-void BasicRecorderImpl::onPacketReceived(const daq::InputPortPtr& port)
+void BasicRecorderImpl::onPacketReceived(const InputPortPtr& port)
 {
     if (auto signal = findSignal(port))
         signal->onPacketReceived(port);
@@ -75,8 +79,8 @@ void BasicRecorderImpl::onPacketReceived(const daq::InputPortPtr& port)
 
 void BasicRecorderImpl::addProperties()
 {
-    objPtr.addProperty(daq::StringProperty(Props::PATH, ""));
-    objPtr.addProperty(daq::BoolProperty(Props::RECORDING_ACTIVE, false));
+    objPtr.addProperty(StringProperty(Props::PATH, ""));
+    objPtr.addProperty(BoolProperty(Props::RECORDING_ACTIVE, false));
 
     auto reconfigure = std::bind(&BasicRecorderImpl::reconfigure, this);
 
@@ -86,7 +90,7 @@ void BasicRecorderImpl::addProperties()
 
 void BasicRecorderImpl::addInputPort()
 {
-    auto c = createAndAddInputPort("Value" + std::to_string(++portCount), daq::PacketReadyNotification::SameThread);
+    auto c = createAndAddInputPort("Value" + std::to_string(++portCount), PacketReadyNotification::SameThread);
 }
 
 void BasicRecorderImpl::reconfigure()
@@ -96,9 +100,9 @@ void BasicRecorderImpl::reconfigure()
 
     if (recordingActive)
     {
-        std::set<daq::IInputPort *> ports;
+        std::set<IInputPort *> ports;
 
-        auto inputPorts = borrowPtr<daq::FunctionBlockPtr>().getInputPorts();
+        auto inputPorts = borrowPtr<FunctionBlockPtr>().getInputPorts();
         for (const auto& inputPort : inputPorts)
         {
             auto connection = inputPort.getConnection();
@@ -106,7 +110,7 @@ void BasicRecorderImpl::reconfigure()
             {
                 ports.emplace(inputPort.getObject());
 
-                daq::SignalPtr signal = connection.getSignal();
+                SignalPtr signal = connection.getSignal();
 
                 auto it = signals.find(inputPort.getObject());
                 if (it == signals.end())
@@ -140,7 +144,7 @@ void BasicRecorderImpl::reconfigure()
     }
 }
 
-std::shared_ptr<BasicRecorderSignal> BasicRecorderImpl::findSignal(daq::IInputPort *port)
+std::shared_ptr<BasicRecorderSignal> BasicRecorderImpl::findSignal(IInputPort *port)
 {
     std::shared_ptr<BasicRecorderSignal> signal;
     auto lock = getRecursiveConfigLock();

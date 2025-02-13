@@ -21,7 +21,7 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE
  * disconnected while the recording is active. Doing so does not disturb ongoing recording of
  * other signals.
  */
-class BasicRecorderImpl final : public daq::FunctionBlock
+class BasicRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
     public:
 
@@ -67,7 +67,7 @@ class BasicRecorderImpl final : public daq::FunctionBlock
          *
          * @param return A populated function block type object.
          */
-        static daq::FunctionBlockTypePtr createType();
+        static FunctionBlockTypePtr createType();
 
         /**
          * Creates a new function block.
@@ -78,22 +78,22 @@ class BasicRecorderImpl final : public daq::FunctionBlock
          * @param config A property object containing configuration data for this function block.
          */
         BasicRecorderImpl(
-            const daq::ContextPtr& context,
-            const daq::ComponentPtr& parent,
-            const daq::StringPtr& localId,
-            const daq::PropertyObjectPtr& config);
+            const ContextPtr& context,
+            const ComponentPtr& parent,
+            const StringPtr& localId,
+            const PropertyObjectPtr& config);
 
         /**
          * Starts the recording. This has the same effect as (and is implemented in terms of)
          * setting the `RecordingActive` property to `true`.
          */
-        void startRecording();
+        ErrCode INTERFACE_FUNC startRecording() override;
 
         /**
          * Stops the recording. This has the same effect as (and is implemented in terms of)
          * setting the `RecordingActive` property to `false`.
          */
-        void stopRecording();
+        ErrCode INTERFACE_FUNC stopRecording() override;
 
         /**
          * When a signal is connected to an input port, a new input port is dynamically added,
@@ -101,7 +101,7 @@ class BasicRecorderImpl final : public daq::FunctionBlock
          *
          * @param inputPort The input port that was connected.
          */
-        void onConnected(const daq::InputPortPtr& port) override;
+        void onConnected(const InputPortPtr& port) override;
 
         /**
          * When a signal is disconnected from the second-to-last input port, the last input
@@ -111,7 +111,7 @@ class BasicRecorderImpl final : public daq::FunctionBlock
          *
          * @param port The input port that was disconnected.
          */
-        void onDisconnected(const daq::InputPortPtr& port) override;
+        void onDisconnected(const InputPortPtr& port) override;
 
         /**
          * Records a packet.
@@ -126,9 +126,9 @@ class BasicRecorderImpl final : public daq::FunctionBlock
         void addInputPort();
         void reconfigure();
 
-        std::shared_ptr<BasicRecorderSignal> findSignal(daq::IInputPort *port);
+        std::shared_ptr<BasicRecorderSignal> findSignal(IInputPort *port);
 
-        std::map<daq::IInputPort *, std::shared_ptr<BasicRecorderSignal>> signals;
+        std::map<IInputPort *, std::shared_ptr<BasicRecorderSignal>> signals;
 
         unsigned portCount = 0;
 };

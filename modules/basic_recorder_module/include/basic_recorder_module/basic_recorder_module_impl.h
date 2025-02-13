@@ -10,7 +10,7 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE
 /**
  * An openDAQ module which exposes a single `FunctionBlock` object, BasicRecorderImpl.
  */
-class BasicRecorderModule final : public daq::Module
+class BasicRecorderModule final : public Module
 {
     public:
 
@@ -24,12 +24,12 @@ class BasicRecorderModule final : public daq::Module
          *
          * @param context The openDAQ context object.
          */
-        BasicRecorderModule(daq::ContextPtr context);
+        BasicRecorderModule(ContextPtr context);
 
         /**
          * Returns a dictionary of the function block types supported by this module.
          */
-        daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+        DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
 
         /**
          * Creates and returns a new function block.
@@ -39,18 +39,18 @@ class BasicRecorderModule final : public daq::Module
          * @param localId The local identifier of the function block.
          * @param config A property object containing configuration data for the function block.
          *
-         * @throws daq::NotFoundException This module does not support the specified function
-         *     block type.
+         * @throws NotFoundException This module does not support the specified function block
+         *     type.
          */
-        daq::FunctionBlockPtr onCreateFunctionBlock(
-            const daq::StringPtr& id,
-            const daq::ComponentPtr& parent,
-            const daq::StringPtr& localId,
-            const daq::PropertyObjectPtr& config) override;
+        FunctionBlockPtr onCreateFunctionBlock(
+            const StringPtr& id,
+            const ComponentPtr& parent,
+            const StringPtr& localId,
+            const PropertyObjectPtr& config) override;
 
     private:
 
-        daq::FunctionBlockTypePtr basicRecorderType;
+        FunctionBlockTypePtr basicRecorderType;
 };
 
 END_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE

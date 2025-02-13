@@ -41,7 +41,7 @@ class BasicRecorderSignal
          * @throws std::ios_base::failure The header line could not be written to the CSV file due
          *     to an I/O error.
          */
-        BasicRecorderSignal(std::filesystem::path path, const daq::SignalPtr& signal);
+        BasicRecorderSignal(std::filesystem::path path, const SignalPtr& signal);
 
         /**
          * Records the values in all packets in the port's input queue to the CSV file. The
@@ -52,7 +52,7 @@ class BasicRecorderSignal
          * @throws std::ios_base::failure A data line could not be written to the CSV file due to
          *     an I/O error.
          */
-        void onPacketReceived(const daq::InputPortPtr& port);
+        void onPacketReceived(const InputPortPtr& port);
 
     private:
 
@@ -69,7 +69,7 @@ class BasicRecorderSignal
          * @throws std::ios_base::failure A data line could not be written to the CSV file due to
          *     an I/O error.
          */
-        void onDataPacketReceived(const daq::DataPacketPtr packet);
+        void onDataPacketReceived(const DataPacketPtr packet);
 
         CsvWriter writer;
 };

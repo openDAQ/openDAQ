@@ -54,9 +54,11 @@ set(buildCmd dotnet build ${dotnet_cmd_args})                      # https://lea
 set(testCmd dotnet test ${dotnet_test_args})                       # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-test
 #set(packCmd dotnet pack ${dotnet_pack_args})                       # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-pack
 set(generateCoreTypesDllInfoCmd ${RTGEN} -ns daq.core.coretypes -ln CoreTypes -config -lo daqcoretypes -lv ${OPENDAQ_PACKAGE_VERSION} -lang csharp -d "${bindingsSrcDir}")
+set(generateCoreTypesDllInfoCmdDebug ${RTGEN} -nt -ns daq.core.coretypes -ln CoreTypes -config -lo daqcoretypes -lv ${OPENDAQ_PACKAGE_VERSION} -lang csharp -d "${bindingsSrcDir}")
 
 set(configEnabled "$<CONFIG:Debug,Release>")
 set(configRelease "$<CONFIG:Release>")
+set(configDebug "$<CONFIG:Debug>")
 
 message(DEBUG "targetName                     = '${targetName}'")
 message(DEBUG "projectName                    = '${projectName}'")
@@ -132,7 +134,8 @@ add_custom_command(TARGET ${targetName}
                    PRE_BUILD
                    COMMENT "[${targetName}] cleanup '${outputBinDir}' (${platform}/$<CONFIG>) and RTGen CoreTypesDllInfo.cs"
                    COMMAND "$<${configEnabled}:${cleanCmd}>"
-                   COMMAND "$<${configEnabled}:${generateCoreTypesDllInfoCmd}>"
+                   COMMAND "$<${configRelease}:${generateCoreTypesDllInfoCmd}>"
+                   COMMAND "$<${configDebug}:${generateCoreTypesDllInfoCmdDebug}>"
                    COMMAND_EXPAND_LISTS
                    VERBATIM
 )

@@ -59,6 +59,7 @@ namespace RTGen.CSharp.Generators
         private readonly Dictionary<string, string>                     _delegateTypeReplacements    = new Dictionary<string, string>();
         private readonly List<string>                                   _factoryEnumTypesToIgnore    = new List<string>();
         private readonly Dictionary<string, string>                     _factoryArgumentDefaults     = new Dictionary<string, string>();
+        private readonly List<string>                                   _methodsToIgnore             = new List<string>(); //format "class.method"
 
         private readonly List<string>                                   _defaultMethodsToHideWithNew = new List<string>();
 
@@ -253,6 +254,10 @@ namespace RTGen.CSharp.Generators
                 _factoryArgumentDefaults.Add("startOnFullUnitOfDomain", "false");
                 _factoryArgumentDefaults.Add("requiredCommonSampleRate", "-1");
                 _factoryArgumentDefaults.Add("minReadCount", "1");
+
+                //ignore certain methods (C++ names, mapped)
+                _methodsToIgnore.Add("IListObject.moveBack");  //not applicable in .NET due to reference-count not incremented
+                _methodsToIgnore.Add("IListObject.moveFront"); //not applicable in .NET due to reference-count not incremented
 
                 _keyWords.Add("base");
                 _keyWords.Add("event");
@@ -2866,6 +2871,9 @@ namespace RTGen.CSharp.Generators
             foreach (IMethod method in rtClass.Methods)
             {
                 if (IsProperty(method))
+                    continue;
+
+                if (_methodsToIgnore.Contains($"{_currentClassType.Name}.{method.Name}"))
                     continue;
 
                 bool hasRetVal          = method.ReturnsByRef()

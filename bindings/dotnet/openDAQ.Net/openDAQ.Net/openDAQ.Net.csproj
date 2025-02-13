@@ -15,7 +15,7 @@
   <PropertyGroup>
     <!-- the <OPENDAQ_PACKAGE_VERSION> is normally set externally -->
     <OPENDAQ_PACKAGE_VERSION Condition="'$(OPENDAQ_PACKAGE_VERSION)' == ''">0.0.0</OPENDAQ_PACKAGE_VERSION>
-    <_BuildNumber>20</_BuildNumber>
+    <_BuildNumber>21</_BuildNumber>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x64</PlatformTarget>
     <Title>openDAQ SDK .Net-Bindings</Title>

@@ -20,6 +20,7 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
+#include <chrono>
 #include <thread>
 #include <condition_variable>
 #include <opendaq/log_file_info_ptr.h>

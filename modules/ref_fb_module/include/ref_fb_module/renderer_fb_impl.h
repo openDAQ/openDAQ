@@ -35,6 +35,7 @@
     #pragma warning(pop)
 #endif
 
+#include <chrono>
 #include <thread>
 #include <condition_variable>
 #include <queue>

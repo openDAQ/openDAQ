@@ -10,6 +10,7 @@
 #include <ref_fb_module/module_dll.h>
 #include <ref_fb_module/version.h>
 #include <testutils/testutils.h>
+#include <chrono>
 #include <thread>
 #include "testutils/memcheck_listener.h"
 

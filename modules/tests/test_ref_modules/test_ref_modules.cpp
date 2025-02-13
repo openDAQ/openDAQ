@@ -9,6 +9,7 @@
 #include <opendaq/config_provider_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
+#include <chrono>
 #include <thread>
 #include <fstream>
 #include "classifier_test_helper.h"

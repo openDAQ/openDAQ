@@ -2,8 +2,8 @@
 #include <opendaq/scheduler_impl.h>
 #include <gtest/gtest.h>
 
-#include <thread>
 #include <chrono>
+#include <thread>
 #include <opendaq/logger_factory.h>
 
 class SchedulerInternalsTest : public testing::Test

@@ -1,5 +1,6 @@
 #include <testutils/testutils.h>
 #include <functional>
+#include <chrono>
 #include <thread>
 #include <opendaq/utils/thread_ex.h>
 

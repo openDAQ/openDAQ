@@ -7,7 +7,9 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/module_manager_factory.h>
-#include "testutils/memcheck_listener.h"
+#include <coreobjects/ownable_ptr.h>
+#include <opendaq/component_factory.h>
+#include <testutils/memcheck_listener.h>
 
 using DeviceInfoTest = testing::Test;
 
@@ -292,4 +294,23 @@ TEST_F(DeviceInfoTest, NetworkInterfaces)
     EXPECT_EQ(defaultConfig.getPropertyValue("gateway6"), String(""));
 }
 
+TEST_F(DeviceInfoTest, OwnerName)
+{
+    DeviceInfoConfigPtr info = DeviceInfo("", "foo");
+    ComponentPtr component = Component(NullContext(), nullptr, "id");
+
+    ASSERT_EQ(info.getName(), "foo");
+    info.setName("test");
+    ASSERT_EQ(info.getName(), "test");
+
+    info.asPtr<IOwnable>().setOwner(component);
+
+    ASSERT_EQ(info.getName(), "id");
+    component.setName("new_id");
+    ASSERT_EQ(info.getName(), "new_id");
+
+    info.setName("new_id1");
+    ASSERT_EQ(info.getName(), "new_id1");
+    ASSERT_EQ(component.getName(), "new_id1");
+}
 END_NAMESPACE_OPENDAQ

@@ -55,7 +55,7 @@ public:
     void addSignal(const SignalPtr& signal);
     void removeComponentSignals(const StringPtr& componentId);
 
-    void sendPacket(const SignalPtr& signal, PacketPtr&& packet);
+    void sendPacket(const std::string& signalId, PacketPtr&& packet);
     void processStreamingPackets(const std::string& signalId, ListPtr<IPacket>&& packets);
     void scheduleStreamingWriteTasks();
 

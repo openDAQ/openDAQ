@@ -440,7 +440,7 @@ DataType InputConstantDataSignal::convertToNumeric(const nlohmann::json& jsonNum
     else if constexpr (std::is_unsigned<DataType>::value)
     {
         uint64_t numeric = jsonNumeric.get<uint64_t>();
-        if (numeric < std::numeric_limits<DataType>::min() || numeric > std::numeric_limits<DataType>::max())
+        if (numeric > std::numeric_limits<DataType>::max())
             throw std::out_of_range("Value out of range");
         return static_cast<DataType>(numeric);
     }

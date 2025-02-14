@@ -7,7 +7,9 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/module_manager_factory.h>
-#include "testutils/memcheck_listener.h"
+#include <coreobjects/ownable_ptr.h>
+#include <opendaq/component_factory.h>
+#include <testutils/memcheck_listener.h>
 
 using DeviceInfoTest = testing::Test;
 
@@ -290,6 +292,46 @@ TEST_F(DeviceInfoTest, NetworkInterfaces)
     EXPECT_EQ(defaultConfig.getPropertyValue("dhcp6"), True);
     EXPECT_EQ(defaultConfig.getPropertyValue("address6"), String(""));
     EXPECT_EQ(defaultConfig.getPropertyValue("gateway6"), String(""));
+}
+
+TEST_F(DeviceInfoTest, OwnerName)
+{
+    DeviceInfoConfigPtr info = DeviceInfo("", "foo");
+    ComponentPtr component = Component(NullContext(), nullptr, "id");
+
+    ASSERT_EQ(info.getName(), "foo");
+    info.setName("test");
+    ASSERT_EQ(info.getName(), "test");
+
+    info.asPtr<IOwnable>().setOwner(component);
+
+    ASSERT_EQ(info.getName(), "id");
+    component.setName("new_id");
+    ASSERT_EQ(info.getName(), "new_id");
+
+    info.setName("new_id1");
+    ASSERT_EQ(info.getName(), "new_id1");
+    ASSERT_EQ(component.getName(), "new_id1");
+}
+
+TEST_F(DeviceInfoTest, PropertyWriteAfterOwnerSet)
+{
+    DeviceInfoConfigPtr info = DeviceInfo("", "foo");
+    ComponentPtr component = Component(NullContext(), nullptr, "id");
+
+    ASSERT_NO_THROW(info.setManufacturer("test"));
+    ASSERT_EQ(info.getManufacturer(), "test");
+    
+    ASSERT_NO_THROW(info.setLocation("test"));
+    ASSERT_EQ(info.getLocation(), "test");
+
+    info.asPtr<IOwnable>().setOwner(component);
+    
+    ASSERT_THROW(info.setManufacturer("test1"), AccessDeniedException);
+    ASSERT_EQ(info.getManufacturer(), "test");
+    
+    ASSERT_THROW(info.setLocation("test1"), AccessDeniedException);
+    ASSERT_EQ(info.getLocation(), "test");
 }
 
 END_NAMESPACE_OPENDAQ

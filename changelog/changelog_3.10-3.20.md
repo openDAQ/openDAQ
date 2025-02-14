@@ -22,6 +22,19 @@
 - Add support for View Only client to the config protocol [#605](https://github.com/openDAQ/openDAQ/pull/605)
 
 ## Required application changes
+### [#607](https://github.com/openDAQ/openDAQ/pull/607)
+
+The "location" and "userName" properties no longer appear on devices on which said properties are not changeable. Applications should first check whether those properties exist before accessing them, or access them through the  "DeviceInfo" object as is the case for other properties.
+
+```cpp
+if (device.hasProperty("location"))
+	device.setPropertyValue("location", "new_location");
+	
+// Option 2:
+auto locationProp = device.getInfo().getProperty("location");
+if (!location.getReadOnly())
+	location.setValue("new_location");
+```
 
 ### [#606](https://github.com/openDAQ/openDAQ/pull/606)
 
@@ -143,7 +156,22 @@ DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscovered
 
 ### [#630](https://github.com/openDAQ/openDAQ/pull/630)
 
-The `ongetLogFileInfos` function override must be renamed to `onGetLogFileInfos`. This change will cause all modules developed with an older version of openDAQ that override the aforementioned method to no longer compile.
+The `ongetLogFileInfos` function override must be renamed to `onGetLogFileInfos`. This change will cause all modules developed with an older version of openDAQ that override the aforementioned method to no longer compile
+
+### [#607](https://github.com/openDAQ/openDAQ/pull/607)
+
+The "location" and "userName" properties previously always appeared on devices, regardless of whether or not devices used them. A device must explicitly define the "location" and "userName" to be configurable when constructing its DeviceInfo object.
+
+```cpp
+
+DeviceInfoPtr MyDeviceImpl::onGetInfo()
+{
+    auto info = DeviceInfoWithChanegableFields({"userName", "location"});
+	
+	...
+}
+
+```
 
 ### [#606](https://github.com/openDAQ/openDAQ/pull/606)
 

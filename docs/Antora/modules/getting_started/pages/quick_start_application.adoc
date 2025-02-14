@@ -7,7 +7,7 @@ The openDAQ(TM) SDK allows users to quickly and easily set up an application tha
 This guide illustrates the process of configuring and connecting to Devices, using simulated
 xref:glossary:glossary.adoc#device[Device]s and xref:glossary:glossary.adoc#signal[Signal]s, requiring no prior knowledge of the openDAQ(TM) framework.
 
-Full final source files of the examples featured in this guide are available at the bottom of the page, as well as within the binary packages available at {docs-website}[the openDAQ(TM) documentation and releases webpage].
+Full final source files of the examples featured in this guide are available at the bottom of the page, as well as within the binary packages available at https://docs.opendaq.com.
 
 This guide continues from the openDAQ(TM) project state at the end of the Setting up guide
 (xref:quick_start_setting_up_cpp.adoc[{cpp}]/xref:quick_start_setting_up_python.adoc[Python]/xref:quick_start_setting_up_csharp.adoc[C#]),
@@ -21,7 +21,7 @@ The simulator can be downloaded in the form of a VirtualBox image, or built from
 
 === Using a virtual machine
 
-The simulator can be used in the form of a VirtualBox `.ova` image. The image (opendaq-version_device_simulator.ova) can be found at {docs-website}[the openDAQ(TM) documentation and releases webpage], and should be run with https://www.virtualbox.org/wiki/Downloads/[VirtualBox 7.0.6 or newer].
+The simulator can be used in the form of a VirtualBox `.ova` image. The image (opendaq-version_device_simulator.ova) can be found at https://docs.opendaq.com, and should be run with https://www.virtualbox.org/wiki/Downloads/[VirtualBox 7.0.6 or newer].
 
 Once your see the log in prompt, the simulator is already started as a service in the background and there is no need to log in.
 

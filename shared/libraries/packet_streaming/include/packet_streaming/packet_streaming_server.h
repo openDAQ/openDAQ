@@ -43,6 +43,7 @@ public:
     void addDaqPacket(const uint32_t signalId, const PacketPtr& packet);
     void addDaqPacket(const uint32_t signalId, PacketPtr&& packet);
     PacketBufferPtr getNextPacketBuffer();
+    size_t getAvailableBuffersCount();
 
     void checkAndSendReleasePacket(bool force);
     void addAlreadySentPacket(uint32_t signalId, Int packetId, Int domainPacketId, bool markForRelease);

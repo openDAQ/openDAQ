@@ -21,7 +21,7 @@ StreamingManager::StreamingManager(const ContextPtr& context)
 
 void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId,
                                                PacketPtr&& packet,
-                                               const SendPacketBufferCallback& sendPacketBufferCb)
+                                               const ConsumePacketBufferCallback& consumePacketBufferCb)
 {
     std::scoped_lock lock(sync);
 
@@ -47,11 +47,11 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
         {
             while (std::next(it) != registeredSignal.subscribedClientsIds.end())
             {
-                sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), PacketPtr(packet), *it, registeredSignal.numericId);  // copy packet ptr
+                sendDaqPacket(consumePacketBufferCb, packetStreamingServers.at(*it), PacketPtr(packet), *it, registeredSignal.numericId);  // copy packet ptr
                 ++it;
             }
 
-            sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), std::move(packet), *it, registeredSignal.numericId); // move packet ptr
+            sendDaqPacket(consumePacketBufferCb, packetStreamingServers.at(*it), std::move(packet), *it, registeredSignal.numericId); // move packet ptr
         }
     }
     else
@@ -60,9 +60,7 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
     }
 }
 
-void StreamingManager::sendPacketsToSubscribers(const std::string& signalStringId,
-                                                ListPtr<IPacket>&& packets,
-                                                const SendPacketBuffersCallback& sendPacketBuffersCb)
+void StreamingManager::processPackets(const std::string& signalStringId, ListPtr<IPacket>&& packets)
 {
     std::scoped_lock lock(sync);
 
@@ -91,11 +89,12 @@ void StreamingManager::sendPacketsToSubscribers(const std::string& signalStringI
         {
             while (std::next(it) != registeredSignal.subscribedClientsIds.end())
             {
-                sendDaqPackets(sendPacketBuffersCb, packetStreamingServers.at(*it), ListPtr<IPacket>(packets), *it, registeredSignal.numericId);  // copy packet list ptr
+                for (const auto& packet : packets)
+                    packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, PacketPtr(packet));
                 ++it;
             }
-
-            sendDaqPackets(sendPacketBuffersCb, packetStreamingServers.at(*it), std::move(packets), *it, registeredSignal.numericId); // move packet list ptr
+            for (auto&& packet : packets)
+                packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, std::move(packet));
         }
     }
     else
@@ -104,7 +103,26 @@ void StreamingManager::sendPacketsToSubscribers(const std::string& signalStringI
     }
 }
 
-void StreamingManager::sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
+void StreamingManager::consumeAllPacketBuffers(const std::string& clientId,
+                                               std::vector<daq::native_streaming::WriteTask>& tasks,
+                                               const ConsumePacketBufferCallback& consumePacketBufferCb)
+{
+    std::scoped_lock lock(sync);
+
+    if (const auto it = streamingClientsIds.find(clientId); it != streamingClientsIds.end())
+    {
+        bool result = false;
+        auto& packetStreamingServerPtr = packetStreamingServers.at(clientId);
+        tasks.reserve(3 * packetStreamingServerPtr->getAvailableBuffersCount());
+
+        while (auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
+        {
+            consumePacketBufferCb(clientId, std::move(packetBuffer));
+        }
+    }
+}
+
+void StreamingManager::sendDaqPacket(const ConsumePacketBufferCallback& sendPacketBufferCb,
                                      const PacketStreamingServerPtr& packetStreamingServerPtr,
                                      PacketPtr&& packet,
                                      const std::string& clientId,
@@ -115,25 +133,6 @@ void StreamingManager::sendDaqPacket(const SendPacketBufferCallback& sendPacketB
     {
         sendPacketBufferCb(clientId, std::move(packetBuffer));
     }
-}
-
-void StreamingManager::sendDaqPackets(const SendPacketBuffersCallback& sendPacketBuffersCb,
-                                      const PacketStreamingServerPtr& packetStreamingServerPtr,
-                                      ListPtr<IPacket>&& packets,
-                                      const std::string& clientId,
-                                      SignalNumericIdType singalNumericId)
-{
-    std::vector<packet_streaming::PacketBufferPtr> packetBuffers;
-    packetBuffers.reserve(packets.getCount());
-    for (auto&& packet : packets)
-    {
-        packetStreamingServerPtr->addDaqPacket(singalNumericId, std::move(packet));
-    }
-    while (auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
-    {
-        packetBuffers.push_back(std::move(packetBuffer));
-    }
-    sendPacketBuffersCb(clientId, std::move(packetBuffers));
 }
 
 SignalNumericIdType StreamingManager::registerSignal(const SignalPtr& signal)
@@ -237,7 +236,7 @@ ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)
 
 bool StreamingManager::registerSignalSubscriber(const std::string& signalStringId,
                                                 const std::string& subscribedClientId,
-                                                const SendPacketBufferCallback& sendPacketBufferCb)
+                                                const ConsumePacketBufferCallback& sendPacketBufferCb)
 {
     bool doSignalSubscribe = false;
 

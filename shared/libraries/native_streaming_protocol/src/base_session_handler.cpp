@@ -353,27 +353,13 @@ void BaseSessionHandler::sendPacketBuffer(PacketBufferPtr&& packetBuffer)
     session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
 }
 
-void BaseSessionHandler::sendPacketBuffers(std::vector<packet_streaming::PacketBufferPtr>&& packetBuffers)
+void BaseSessionHandler::schedulePacketBufferWriteTasks(std::vector<native_streaming::WriteTask>&& tasks,
+                                                        std::optional<std::chrono::steady_clock::time_point>&& timeStamp)
 {
-    if (packetBuffers.empty())
-        return;
-
-    std::vector<WriteTask> tasks;
-    tasks.reserve(3 * packetBuffers.size());
-    OptionalWriteDeadline deadlineTime;
-
-    for (auto&& packetBuffer : packetBuffers)
-    {
-        // use deadlineTime of a first time-stamped packet for the whole batch write
-        if (!deadlineTime.has_value())
-        {
-            deadlineTime =
-                packetBuffer->timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
-                    ? std::optional(packetBuffer->timeStamp.value() + streamingPacketSendTimeout)
-                    : std::nullopt;
-        }
-        createAndPushPacketBufferTasks(std::move(packetBuffer), tasks);
-    }
+    auto deadlineTime =
+        timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
+            ? std::optional(timeStamp.value() + streamingPacketSendTimeout)
+            : std::nullopt;
 
     session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
 }

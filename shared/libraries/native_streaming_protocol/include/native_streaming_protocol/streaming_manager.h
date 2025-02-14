@@ -28,10 +28,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
-using SendPacketBufferCallback = std::function<void(const std::string& subscribedClientId,
-                                                    packet_streaming::PacketBufferPtr&& packetBuffer)>;
-using SendPacketBuffersCallback = std::function<void(const std::string& subscribedClientId,
-                                                     std::vector<packet_streaming::PacketBufferPtr>&& packetBuffers)>;
+using ConsumePacketBufferCallback = std::function<void(const std::string& subscribedClientId,
+                                                       packet_streaming::PacketBufferPtr&& packetBuffer)>;
 
 class StreamingManager
 {
@@ -43,15 +41,17 @@ public:
     /// servers and sends them to clients using the specified callback.
     /// @param signalStringId The unique string ID of the signal.
     /// @param packet The openDAQ packet to be processed and delivered to the client.
-    /// @param sendPacketBufferCb The callback used to send the created packet buffer to the client.
+    /// @param consumePacketBufferCb The callback used to send the created packet buffer to the client.
     /// @throw NativeStreamingProtocolException if the signal is not registered.
     void sendPacketToSubscribers(const std::string& signalStringId,
                                  PacketPtr&& packet,
-                                 const SendPacketBufferCallback& sendPacketBufferCb);
+                                 const ConsumePacketBufferCallback& consumePacketBufferCb);
 
-    void sendPacketsToSubscribers(const std::string& signalStringId,
-                                  ListPtr<IPacket>&& packets,
-                                  const SendPacketBuffersCallback& sendPacketBuffersCb);
+    void processPackets(const std::string& signalStringId, ListPtr<IPacket>&& packets);
+
+    void consumeAllPacketBuffers(const std::string& clientId,
+                                 std::vector<daq::native_streaming::WriteTask>& tasks,
+                                 const ConsumePacketBufferCallback& consumePacketBufferCb);
 
     /// Registers a signal using its global ID as a unique key
     /// and assigns a numeric ID to it.
@@ -88,7 +88,7 @@ public:
     /// @throw NativeStreamingProtocolException if the signal or client is not registered.
     bool registerSignalSubscriber(const std::string& signalStringId,
                                   const std::string& subscribedClientId,
-                                  const SendPacketBufferCallback& sendPacketBufferCb);
+                                  const ConsumePacketBufferCallback& sendPacketBufferCb);
 
     /// Removes a client with the specified ID from the list of signal subscribers.
     /// @param signalStringId The unique string ID of the signal.
@@ -132,16 +132,11 @@ private:
         DataDescriptorPtr lastDomainDescriptorParam;
     };
 
-    void sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
+    void sendDaqPacket(const ConsumePacketBufferCallback& sendPacketBufferCb,
                        const PacketStreamingServerPtr& registeredSignal,
                        PacketPtr&& packet,
                        const std::string& clientId,
                        SignalNumericIdType singalNumericId);
-    void sendDaqPackets(const SendPacketBuffersCallback& sendPacketBuffersCb,
-                        const PacketStreamingServerPtr& packetStreamingServerPtr,
-                        ListPtr<IPacket>&& packets,
-                        const std::string& clientId,
-                        SignalNumericIdType singalNumericId);
 
     bool removeSignalSubscriberNoLock(const std::string& signalStringId, const std::string& subscribedClientId);
 

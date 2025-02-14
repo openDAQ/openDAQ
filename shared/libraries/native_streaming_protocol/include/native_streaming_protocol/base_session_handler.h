@@ -44,7 +44,11 @@ public:
     const SessionPtr getSession() const;
     void sendConfigurationPacket(const config_protocol::PacketBuffer& packet);
     void sendPacketBuffer(packet_streaming::PacketBufferPtr&& packetBuffer);
-    void sendPacketBuffers(std::vector<packet_streaming::PacketBufferPtr>&& packetBuffers);
+
+    void schedulePacketBufferWriteTasks(std::vector<daq::native_streaming::WriteTask>&& tasks,
+                                        std::optional<std::chrono::steady_clock::time_point>&& timeStamp);
+    static void createAndPushPacketBufferTasks(packet_streaming::PacketBufferPtr&& packetBuffer,
+                                               std::vector<daq::native_streaming::WriteTask>& tasks);
 
     void setConfigPacketReceivedHandler(const ProcessConfigProtocolPacketCb& configPacketReceivedHandler);
     void setPacketBufferReceivedHandler(const OnPacketBufferReceivedCallback& packetBufferReceivedHandler);
@@ -75,8 +79,6 @@ protected:
 
     static void copyData(void* destination, const void* source, size_t bytesToCopy, size_t sourceOffset, size_t sourceSize);
     static std::string getStringFromData(const void* source, size_t stringSize, size_t sourceOffset, size_t sourceSize);
-    static void createAndPushPacketBufferTasks(packet_streaming::PacketBufferPtr&& packetBuffer,
-                                               std::vector<daq::native_streaming::WriteTask>& tasks);
 
     SessionPtr session;
     ProcessConfigProtocolPacketCb configPacketReceivedHandler;

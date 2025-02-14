@@ -64,6 +64,11 @@ PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
     return nullptr;
 }
 
+size_t PacketStreamingServer::getAvailableBuffersCount()
+{
+    return queue.size();
+}
+
 void PacketStreamingServer::addEventPacket(const uint32_t signalId, const EventPacketPtr& packet)
 {
     const auto packetHeader = new GenericPacketHeader();

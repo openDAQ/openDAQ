@@ -454,27 +454,27 @@ void NativeStreamingServerImpl::startReadThread()
         {
             std::scoped_lock lock(readersSync);
 
-#if 1
+#if 0
             bool hasPacketsToSend = false;
-            for (const auto& [signal, reader] : signalReaders)
+            for (const auto& [_, signalGlobalId, reader] : signalReaders)
             {
                 auto packets = reader.readAll();
                 if (!packets.empty())
                 {
-                    serverHandler->processStreamingPackets(signal.getGlobalId().toStdString(), std::move(packets));
+                    serverHandler->processStreamingPackets(signalGlobalId, std::move(packets));
                     hasPacketsToSend = true;
                 }
             }
             if (hasPacketsToSend)
                 serverHandler->scheduleStreamingWriteTasks();
 #else
-            for (const auto& [signal, reader] : signalReaders)
+            for (const auto& [_, signalGlobalId, reader] : signalReaders)
             {
                 {
                     PacketPtr packet = reader.read();
                     while (packet.assigned())
                     {
-                        serverHandler->sendPacket(signal, std::move(packet));
+                        serverHandler->sendPacket(signalGlobalId, std::move(packet));
                         packet = reader.read();
                     }
                 }
@@ -490,25 +490,25 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
                            {
-                               return element.first == signalToRead;
+                               return std::get<0>(element) == signalToRead;
                            });
     if (it != signalReaders.end())
         return;
 
     LOG_I("Add reader for signal {}", signalToRead.getGlobalId());
     auto reader = PacketReader(signalToRead);
-    signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signalToRead, reader}));
+    signalReaders.push_back(std::tuple<SignalPtr, std::string, PacketReaderPtr>({signalToRead, signalToRead.getGlobalId().toStdString(), reader}));
 }
 
 void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
                            {
-                               return element.first == signalToRead;
+                               return std::get<0>(element) == signalToRead;
                            });
     if (it == signalReaders.end())
         return;

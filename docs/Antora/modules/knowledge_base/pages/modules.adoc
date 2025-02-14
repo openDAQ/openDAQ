@@ -15,8 +15,7 @@ allowing to view its structure and modify its configuration.
 The Streaming Client Modules are used to connect to devices with corresponding Streaming Server running,
 allowing to read device signals data.
 
-Those modules are present in the binary files available at the
-{docs-website}[openDAQ(TM) documentation and releases webpage] in the `modules`
+Those modules are present in the binary files available at https://docs.opendaq.com in the `modules`
 directory, as files with the `.module.dll` / `.module.so` / `.module.dylib` extension, depending on your operating
 system.
 

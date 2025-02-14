@@ -1,6 +1,6 @@
 = Setting up ({cpp})
 
-To start working with openDAQ(TM), the requisite binaries are required. They can be obtained at {docs-website}[the openDAQ(TM) documentation and releases webpage]. The binaries are currently available for Windows and Ubuntu (20.04 or newer).
+To start working with openDAQ(TM), the requisite binaries are required. They can be obtained from https://docs.opendaq.com and from https://docs-dev.opendaq.com for the latest development version. The binaries are currently available for Windows and Ubuntu (20.04 or newer).
 
 [tabs]
 ====
@@ -26,7 +26,7 @@ sudo apt install ./opendaq-{version}-ubuntu20.04-x86_64.deb
 
 == Creating an openDAQ(TM) project
 
-We start our project from the `"quick_start_app"` example that can be found at the {docs-website}[openDAQ(TM) documentation and releases webpage]. Download the `examples.zip` archive and extract it to a folder of choice.
+We start our project from the `"quick_start_app"` example that can be found at https://docs.opendaq.com. Download the `examples.zip` archive and extract it to a folder of choice.
 
 === Requirements
 

@@ -1,6 +1,6 @@
 = Setting up (C#)
 
-To start working with openDAQ(TM), the requisite binaries are required. They can be obtained at {docs-website}[the openDAQ(TM) documentation and releases webpage] or from http://nuget.org (recommended way). 
+To start working with openDAQ(TM), the requisite binaries are required. They can be obtained from http://nuget.org (the recommended way) or from https://docs.opendaq.com (https://docs-dev.opendaq.com for the development version).
 
 NOTE: The .NET binaries are currently only available in the Windows(TM) SDK packages. For Linux(TM) they are included in the NuGet package, although here the .NET Bindings are not tested.  
 
@@ -8,7 +8,7 @@ All commands in this guide use the .NET command-line interface (dotnet CLI) whic
 
 == Creating an openDAQ(TM) project
 
-Below, we start a Console Project in Visual Studio(TM) from scratch but there are also example files which can be found in the examples archive from the {docs-website}[openDAQ(TM) documentation and releases webpage].
+Below, we start a Console Project in Visual Studio(TM) from scratch but there are also example files which can be found in the examples archive from https://docs.opendaq.com.
 
 === Requirements
 

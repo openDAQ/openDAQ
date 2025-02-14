@@ -64,6 +64,8 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
 
+    const uint16_t pollingPeriod = config.getPropertyValue("StreamingDataPollingPeriod");
+    readThreadSleepTime = std::chrono::milliseconds(pollingPeriod);
     startReading();
 }
 
@@ -369,6 +371,15 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
                                                 .setMinValue(0)
                                                 .build();
     defaultConfig.addProperty(configConnectionsLimitProp);
+
+    const auto pollingPeriodProp = IntPropertyBuilder("StreamingDataPollingPeriod", 20)
+                                       .setMinValue(1)
+                                       .setMaxValue(65535)
+                                       .setDescription("Polling period in milliseconds "
+                                                       "which specifies how often the server collects and sends "
+                                                       "subscribed signals' data to clients")
+                                       .build();
+    defaultConfig.addProperty(pollingPeriodProp);
 
     const auto streamingPacketSendTimeoutPropDescription =
         "Defines the timeout for sending streaming packets, measured in milliseconds. "

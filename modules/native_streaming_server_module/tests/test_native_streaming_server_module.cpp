@@ -123,6 +123,9 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
 
     ASSERT_TRUE(config.hasProperty("StreamingPacketSendTimeout"));
     ASSERT_EQ(config.getPropertyValue("StreamingPacketSendTimeout"), 0);
+
+    ASSERT_TRUE(config.hasProperty("StreamingDataPollingPeriod"));
+    ASSERT_EQ(config.getPropertyValue("StreamingDataPollingPeriod"), 20);
 }
 
 TEST_F(NativeStreamingServerModuleTest, CreateServer)

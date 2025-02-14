@@ -239,9 +239,9 @@ void NativeStreamingServerHandler::sendPacket(const std::string& signalId, Packe
     );
 }
 
-void NativeStreamingServerHandler::processStreamingPackets(const std::string& signalId, ListPtr<IPacket>&& packets)
+void NativeStreamingServerHandler::processStreamingPacket(const std::string& signalId, PacketPtr&& packet)
 {
-    streamingManager.processPackets(signalId, std::move(packets));
+    streamingManager.processPacket(signalId, std::move(packet));
 }
 
 void NativeStreamingServerHandler::scheduleStreamingWriteTasks()

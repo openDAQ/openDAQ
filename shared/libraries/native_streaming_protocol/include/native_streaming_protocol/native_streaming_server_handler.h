@@ -56,7 +56,7 @@ public:
     void removeComponentSignals(const StringPtr& componentId);
 
     void sendPacket(const std::string& signalId, PacketPtr&& packet);
-    void processStreamingPackets(const std::string& signalId, ListPtr<IPacket>&& packets);
+    void processStreamingPacket(const std::string& signalId, PacketPtr&& packet);
     void scheduleStreamingWriteTasks();
 
 protected:

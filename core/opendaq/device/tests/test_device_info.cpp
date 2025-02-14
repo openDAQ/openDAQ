@@ -313,4 +313,25 @@ TEST_F(DeviceInfoTest, OwnerName)
     ASSERT_EQ(info.getName(), "new_id1");
     ASSERT_EQ(component.getName(), "new_id1");
 }
+
+TEST_F(DeviceInfoTest, PropertyWriteAfterOwnerSet)
+{
+    DeviceInfoConfigPtr info = DeviceInfo("", "foo");
+    ComponentPtr component = Component(NullContext(), nullptr, "id");
+
+    ASSERT_NO_THROW(info.setManufacturer("test"));
+    ASSERT_EQ(info.getManufacturer(), "test");
+    
+    ASSERT_NO_THROW(info.setLocation("test"));
+    ASSERT_EQ(info.getLocation(), "test");
+
+    info.asPtr<IOwnable>().setOwner(component);
+    
+    ASSERT_THROW(info.setManufacturer("test1"), AccessDeniedException);
+    ASSERT_EQ(info.getManufacturer(), "test");
+    
+    ASSERT_THROW(info.setLocation("test1"), AccessDeniedException);
+    ASSERT_EQ(info.getLocation(), "test");
+}
+
 END_NAMESPACE_OPENDAQ

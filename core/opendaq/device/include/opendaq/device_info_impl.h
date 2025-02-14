@@ -993,6 +993,9 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getNetworkInterface(ISt
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setValueInternal(IString* propertyName, IBaseObject* value)
 {
+    if (Super::getPropertyObjectParent().assigned())
+        return Super::setPropertyValue(propertyName, value);
+
     return Super::setProtectedPropertyValue(propertyName, value);
 }
 

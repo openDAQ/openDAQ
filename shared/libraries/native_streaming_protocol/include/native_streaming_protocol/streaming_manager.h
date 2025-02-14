@@ -47,7 +47,7 @@ public:
                                  PacketPtr&& packet,
                                  const ConsumePacketBufferCallback& consumePacketBufferCb);
 
-    void processPackets(const std::string& signalStringId, ListPtr<IPacket>&& packets);
+    void processPacket(const std::string& signalStringId, PacketPtr&& packet);
 
     void consumeAllPacketBuffers(const std::string& clientId,
                                  std::vector<daq::native_streaming::WriteTask>& tasks,

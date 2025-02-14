@@ -60,7 +60,7 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
     }
 }
 
-void StreamingManager::processPackets(const std::string& signalStringId, ListPtr<IPacket>&& packets)
+void StreamingManager::processPacket(const std::string& signalStringId, PacketPtr&& packet)
 {
     std::scoped_lock lock(sync);
 
@@ -68,20 +68,17 @@ void StreamingManager::processPackets(const std::string& signalStringId, ListPtr
     {
         auto& registeredSignal = iter->second;
 
-        for (const auto& packet : packets)
+        if (packet.getType() == PacketType::Event)
         {
-            if (packet.getType() == PacketType::Event)
+            auto eventPacket = packet.asPtr<IEventPacket>();
+            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
-                auto eventPacket = packet.asPtr<IEventPacket>();
-                if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-                {
-                    const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                    const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-                    if (dataDescriptorParam.assigned())
-                        registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
-                    if (domainDescriptorParam.assigned())
-                        registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
-                }
+                const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                if (dataDescriptorParam.assigned())
+                    registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
+                if (domainDescriptorParam.assigned())
+                    registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
             }
         }
 
@@ -89,12 +86,10 @@ void StreamingManager::processPackets(const std::string& signalStringId, ListPtr
         {
             while (std::next(it) != registeredSignal.subscribedClientsIds.end())
             {
-                for (const auto& packet : packets)
-                    packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, PacketPtr(packet));
+                packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, PacketPtr(packet));
                 ++it;
             }
-            for (auto&& packet : packets)
-                packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, std::move(packet));
+            packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, std::move(packet));
         }
     }
     else

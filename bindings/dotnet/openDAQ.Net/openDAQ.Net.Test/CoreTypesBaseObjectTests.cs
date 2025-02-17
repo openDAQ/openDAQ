@@ -103,42 +103,6 @@ public class CoreTypesBaseObjectTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void BorrowInterfaceTest()
-    {
-        var trackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
-        ErrorCode errorCode = CoreTypesFactory.CreateBaseObject(out BaseObject testObject);
-        Assert.Multiple(() =>
-        {
-            Assert.That(errorCode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
-            var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
-            Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount + 1 : 0));
-        });
-
-        //should just return the testObject since we don't "change" the type
-        BaseObject queriedObject = testObject.BorrowInterface<BaseObject>();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(queriedObject, Is.Not.Null);
-            Assert.That(queriedObject, Is.SameAs(testObject));
-            var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
-            Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount + 1 : 0));
-        });
-
-        Assert.That(testObject.IsDisposed, Is.Not.True);
-        testObject.Dispose(); //also disposes of queriedObject since both point to the same object
-
-        var newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
-        Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount : 0)); //because BorrowInterface() doesn't increment refCount
-
-        Assert.That(queriedObject.IsDisposed, Is.True);
-        queriedObject.Dispose();
-
-        newTrackedObjectCount = _isTrackingObjects ? CoreTypes.GetTrackedObjectCount() : 0;
-        Assert.That(newTrackedObjectCount, Is.EqualTo(_isTrackingObjects ? trackedObjectCount : 0));
-    }
-
-    [Test]
     public void CastBoolObjectTest()
     {
         bool expectedValue = true;

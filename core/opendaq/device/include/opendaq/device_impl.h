@@ -255,7 +255,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
               if (!this->coreEventMuted)
                   this->triggerCoreEvent(args);
           }))
-    , operationMode(OperationModeType::Idle)
+    , operationMode(OperationModeType::Operation)
 
 {
     this->defaultComponents.insert("Dev");

@@ -27,8 +27,8 @@ using DeviceTest = testing::Test;
 class TestDevice : public daq::Device
 {
 public:
-    TestDevice()
-        : daq::Device(daq::NullContext(), nullptr, "dev")
+    TestDevice(const daq::ContextPtr& ctx = daq::NullContext(), const daq::ComponentPtr& parent = nullptr, const daq::StringPtr& localId = "dev")
+        : daq::Device(ctx, parent, localId)
     {
         auto parentFolder = this->addFolder("Folder1");
         this->addFolder("Folder2", parentFolder);
@@ -115,6 +115,9 @@ public:
 
         const auto srv = daq::createWithImplementation<daq::IServer, MockSrvImpl>(ctx, this->template borrowPtr<daq::DevicePtr>());
         servers.addItem(srv);
+
+        const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>(ctx, devices, "subDev");
+        addSubDevice(device);
     }
 };
 
@@ -539,11 +542,44 @@ TEST_F(DeviceTest, NetworkConfigDisabled)
     ASSERT_THROW(deviceNetworkConfig.getNetworkInterfaceNames(), daq::NotImplementedException);
 }
 
+void checkDeviceOperationMode(const daq::DevicePtr& device, daq::OperationModeType expected)
+{
+    ASSERT_EQ(device.getOperationMode(), expected);
+    bool active = expected != daq::OperationModeType::Idle;
+
+    for (const auto& fb: device.getFunctionBlocks())
+    {
+        for (const auto& sig: fb.getSignalsRecursive())
+            ASSERT_EQ(sig.getActive(), active);
+    }
+    for (const auto& ch: device.getChannelsRecursive())
+    {
+        for (const auto& sig: ch.getSignalsRecursive())
+            ASSERT_EQ(sig.getActive(), active);
+    }
+}
+
 TEST_F(DeviceTest, DeviceSetOperationModeSanity)
 {
-    const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    const auto subDevice = device.getDevices()[0];
+
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Operation);
+
     ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Idle));
-    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Idle);
-    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Operation, daq::True));
-    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
+    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
+
+    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Operation, false));
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
+
+    ASSERT_NO_THROW(subDevice.setOperationMode(daq::OperationModeType::SafeOperation));
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::SafeOperation);
+
+    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Idle));
+    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
 }

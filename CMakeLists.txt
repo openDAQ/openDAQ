@@ -234,11 +234,11 @@ string(TIMESTAMP CURRENT_YEAR "%Y")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if (UNIX AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^arm.*$")  #e.g. armv7l
+if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm.*$")  #e.g. armv7l
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 
-if (UNIX AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES "^aarch.*$")  #e.g. aarch64
+if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch.*$")  #e.g. aarch64
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 
@@ -743,6 +743,21 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}ConfigVersion.cmake
 
 install(FILES cmake/${SDK_NAME}Utils.cmake
         DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+
+install(FILES cmake/DaqUtils.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+
+install(FILES cmake/DaqInternal.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+
+install(FILES cmake/version/version.h.in cmake/version/version.rc.in
+        DESTINATION share/cmake/version
         COMPONENT ${SDK_NAME}_Development
 )
 

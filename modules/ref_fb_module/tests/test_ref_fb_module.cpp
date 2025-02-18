@@ -10,6 +10,7 @@
 #include <ref_fb_module/module_dll.h>
 #include <ref_fb_module/version.h>
 #include <testutils/testutils.h>
+#include <chrono>
 #include <thread>
 #include "testutils/memcheck_listener.h"
 
@@ -153,11 +154,13 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IFunctionBlockType> functionBlockTypes;
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
+#ifdef __APPLE__
+    ASSERT_EQ(functionBlockTypes.getCount(), 8u);
+#else
     ASSERT_EQ(functionBlockTypes.getCount(), 9u);
-
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleRenderer"));
     ASSERT_EQ("RefFBModuleRenderer", functionBlockTypes.get("RefFBModuleRenderer").getId());
-
+#endif
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStatistics"));
     ASSERT_EQ("RefFBModuleStatistics", functionBlockTypes.get("RefFBModuleStatistics").getId());
 

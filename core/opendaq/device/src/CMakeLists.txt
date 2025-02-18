@@ -200,6 +200,7 @@ set(SRC_PublicHeaders_Component
     user_lock.h
     user_lock_factory.h
     connection_status_container_private.h
+    connection_status_container_impl.h
     network_interface.h
     network_interface_factory.h
     device_network_config.h
@@ -215,7 +216,6 @@ set(SRC_PrivateHeaders_Component
     log_file_info_impl.h
     log_file_info_builder_impl.h
     user_lock_impl.h
-    connection_status_container_impl.h
     network_interface_impl.h
     PARENT_SCOPE
 )

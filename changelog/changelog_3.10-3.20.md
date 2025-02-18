@@ -5,7 +5,7 @@
 - Enables status messages for connection statuses [#687](https://github.com/openDAQ/openDAQ/pull/687)
 - Fixed an mDNS issue where multiple devices broadcasting with the same IP address were present, but only one could be detected by the client [#689](https://github.com/openDAQ/openDAQ/pull/689)
 - Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices [#642](https://github.com/openDAQ/openDAQ/pull/642)
-- Introduce Changeable Device Info Properties with mDNS Synchronization and Customization [#607](https://github.com/openDAQ/openDAQ/pull/607)
+- Introduce Changeable Device Info Properties with mDNS Synchronization and Customization [#607](https://github.com/openDAQ/openDAQ/pull/607)[#700](https://github.com/openDAQ/openDAQ/pull/700)
 - The "Name" attribute was not serialized when equal to the local ID, causing issues when the localID of a deserialized signal was overridden to be different than the original [#660](https://github.com/openDAQ/openDAQ/pull/660)
 - Fixing building openDAQ on android, by removing multiple coping of loaded library to the final vector in ModuleManager constructor [#569](https://github.com/openDAQ/openDAQ/pull/659)
 - Display time domain signal last value as time in Python GUI demo app [#657](https://github.com/openDAQ/openDAQ/pull/657)
@@ -22,6 +22,19 @@
 - Add support for View Only client to the config protocol [#605](https://github.com/openDAQ/openDAQ/pull/605)
 
 ## Required application changes
+### [#607](https://github.com/openDAQ/openDAQ/pull/607)
+
+The "location" and "userName" properties no longer appear on devices on which said properties are not changeable. Applications should first check whether those properties exist before accessing them, or access them through the  "DeviceInfo" object as is the case for other properties.
+
+```cpp
+if (device.hasProperty("location"))
+	device.setPropertyValue("location", "new_location");
+	
+// Option 2:
+auto locationProp = device.getInfo().getProperty("location");
+if (!location.getReadOnly())
+	location.setValue("new_location");
+```
 
 ### [#606](https://github.com/openDAQ/openDAQ/pull/606)
 
@@ -39,6 +52,32 @@ EnumerationPtr status = instance.getDevices()[0].getConnectionStatusContainer().
 
 
 ## Required module changes
+
+### [#700] https://github.com/openDAQ/openDAQ/pull/700
+
+`IDeviceInfoConfig` setters no longer have protected access once `DeviceInfo` has an owner. To change the value of a read-only 
+device info property `IPropertyObject::setProtectedPropertyValue` must be used. The old setters can still be used as Before
+during info creation. Said behaviour only works locally - when done on a remote device, the setters will fail as before.
+
+Example required changes:
+```cpp
+// Manufacturer is a read-only device info property
+device.getInfo().asPtr<IDeviceInfoConfig>().setManufacturer("openDAQ"); // Fails
+device.getInfo().asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("manufacturer", "openDAQ"); // Works
+
+```
+
+The following still works:
+
+```cpp
+DeviceInfoPtr DeviceImpl::onGetInfo()
+{
+	auto info = DeviceInfo(connStr);
+	info.setManufacturer("openDAQ"); // The `info` object does not yet have an owner
+	return info;
+}
+
+```
 
 ### [#642](https://github.com/openDAQ/openDAQ/pull/642)
 
@@ -143,7 +182,22 @@ DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscovered
 
 ### [#630](https://github.com/openDAQ/openDAQ/pull/630)
 
-The `ongetLogFileInfos` function override must be renamed to `onGetLogFileInfos`. This change will cause all modules developed with an older version of openDAQ that override the aforementioned method to no longer compile.
+The `ongetLogFileInfos` function override must be renamed to `onGetLogFileInfos`. This change will cause all modules developed with an older version of openDAQ that override the aforementioned method to no longer compile
+
+### [#607](https://github.com/openDAQ/openDAQ/pull/607)
+
+The "location" and "userName" properties previously always appeared on devices, regardless of whether or not devices used them. A device must explicitly define the "location" and "userName" to be configurable when constructing its DeviceInfo object.
+
+```cpp
+
+DeviceInfoPtr MyDeviceImpl::onGetInfo()
+{
+    auto info = DeviceInfoWithChanegableFields({"userName", "location"});
+	
+	...
+}
+
+```
 
 ### [#606](https://github.com/openDAQ/openDAQ/pull/606)
 

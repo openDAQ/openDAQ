@@ -275,6 +275,10 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const List
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setName(IString* name)
 {
+    ComponentPtr ownerPtr = Super::getPropertyObjectParent();
+    if (ownerPtr.assigned())
+        return ownerPtr->setName(name);
+
     return setValueInternal(String("name"), name);
 }
 
@@ -989,6 +993,9 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getNetworkInterface(ISt
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setValueInternal(IString* propertyName, IBaseObject* value)
 {
+    if (Super::getPropertyObjectParent().assigned())
+        return Super::setPropertyValue(propertyName, value);
+
     return Super::setProtectedPropertyValue(propertyName, value);
 }
 

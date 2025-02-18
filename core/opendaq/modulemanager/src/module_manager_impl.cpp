@@ -404,12 +404,12 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
                         for (const auto & capability : deviceInfo.getServerCapabilities())
                             if (!value.hasServerCapability(capability.getProtocolId()))
                                 valueInternal.addServerCapability(capability);
-                        value.asPtr<IDeviceInfoConfig>().setConnectionString(id);
+                        value.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", id);
                         groupedDevices.set(id, value);
                     }
                     else
                     {
-                        deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(id);
+                        deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", id);
                         groupedDevices.set(id, deviceInfo);
                     }
                 }

@@ -241,7 +241,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         {
             OperationModeType modeType = OperationModeType::Operation;
             if (auto parentDevice = this->getParentDevice())
-                parentDevice.as<IDevice>(true)->getOperationMode(&modeType);
+                parentDevice.template as<IDevice>(true)->getOperationMode(&modeType);
 
             if (componentPrivate.assigned())
                 componentPrivate->updateOperationMode(modeType);

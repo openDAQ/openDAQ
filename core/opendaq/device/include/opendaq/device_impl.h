@@ -1098,7 +1098,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getRecursiveLockGuard(IList* l
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType modeType)
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /* modeType */)
 {
     return OPENDAQ_IGNORED;
 }
@@ -1106,7 +1106,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
 {
-    ListPtr<ILockGuard> lockGuardList;
+    auto lockGuardList = List<ILockGuard>();
     ErrCode errCode = this->getRecursiveLockGuard(lockGuardList);
     if (OPENDAQ_FAILED(errCode))
         return errCode;

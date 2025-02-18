@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
+#include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/user_factory.h>
 #include <opendaq/component_exceptions.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/device_private_ptr.h>
-#include <coreobjects/user_factory.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/device_info_factory.h>
@@ -14,7 +15,6 @@
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/gmock/function_block.h>
 #include <opendaq/device_type_factory.h>
-#include <coreobjects/authentication_provider_factory.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
@@ -537,4 +537,11 @@ TEST_F(DeviceTest, NetworkConfigDisabled)
     ASSERT_THROW(deviceNetworkConfig.submitNetworkConfiguration("eth0", daq::PropertyObject()), daq::NotImplementedException);
     ASSERT_THROW(deviceNetworkConfig.retrieveNetworkConfiguration("eth0"), daq::NotImplementedException);
     ASSERT_THROW(deviceNetworkConfig.getNetworkInterfaceNames(), daq::NotImplementedException);
+}
+
+TEST_F(DeviceTest, DeviceSetOperationModeSanity)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Idle));
+    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Operation, daq::True));
 }

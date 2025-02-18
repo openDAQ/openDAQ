@@ -69,7 +69,7 @@ protected:
     std::thread readThread;
     bool readThreadActive;
     std::chrono::milliseconds readThreadSleepTime;
-    std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
+    std::vector<std::tuple<SignalPtr, std::string, PacketReaderPtr>> signalReaders;
 
     std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
     std::thread transportThread;

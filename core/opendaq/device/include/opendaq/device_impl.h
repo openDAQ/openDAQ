@@ -1117,7 +1117,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationMode
     {
         for (const DevicePtr & dev: this->devices.getItems())
         {
-            const ErrCode errCode = dev->setOperationMode(modeType, includeSubDevices);
+            errCode = dev->setOperationMode(modeType, includeSubDevices);
             if (OPENDAQ_FAILED(errCode))
                 return errCode;
         }

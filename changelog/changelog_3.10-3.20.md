@@ -5,13 +5,13 @@
 - Enables status messages for connection statuses [#687](https://github.com/openDAQ/openDAQ/pull/687)
 - Fixed an mDNS issue where multiple devices broadcasting with the same IP address were present, but only one could be detected by the client [#689](https://github.com/openDAQ/openDAQ/pull/689)
 - Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices [#642](https://github.com/openDAQ/openDAQ/pull/642)
-- Introduce Changeable Device Info Properties with mDNS Synchronization and Customization [#607](https://github.com/openDAQ/openDAQ/pull/607)[#700](https://github.com/openDAQ/openDAQ/pull/700)
+- Introduce Changeable Device Info Properties with mDNS Synchronization and Customization [#607](https://github.com/openDAQ/openDAQ/pull/607) [#700](https://github.com/openDAQ/openDAQ/pull/700)
 - The "Name" attribute was not serialized when equal to the local ID, causing issues when the localID of a deserialized signal was overridden to be different than the original [#660](https://github.com/openDAQ/openDAQ/pull/660)
 - Fixing building openDAQ on android, by removing multiple coping of loaded library to the final vector in ModuleManager constructor [#569](https://github.com/openDAQ/openDAQ/pull/659)
 - Display time domain signal last value as time in Python GUI demo app [#657](https://github.com/openDAQ/openDAQ/pull/657)
 - Device info objects without server capabilities are no longer grouped by serial and manufacturer in the `getAvailableDevices` call [#653](https://github.com/openDAQ/openDAQ/pull/653)
 - Support for Python lists in MultiReader and how-to guides update [#651](https://github.com/openDAQ/openDAQ/pull/651)
-- Make attributes editable in Python GUI Demo Application [#637](https://github.com/openDAQ/openDAQ/pull/637) 
+- Make attributes editable in Python GUI Demo Application [#637](https://github.com/openDAQ/openDAQ/pull/637)
 - Before the openDAQ instance object is destroyed, it now calls `rootDevice.remove()` in its desctructor [#635](https://github.com/openDAQ/openDAQ/pull/635)
 - Support adding and removing nested function blocks in Python GUI [#634](https://github.com/openDAQ/openDAQ/pull/634)
 - Python bindings: `IEvent` interface implementation [#633](https://github.com/openDAQ/openDAQ/pull/633)
@@ -22,14 +22,15 @@
 - Add support for View Only client to the config protocol [#605](https://github.com/openDAQ/openDAQ/pull/605)
 
 ## Required application changes
+
 ### [#607](https://github.com/openDAQ/openDAQ/pull/607)
 
-The "location" and "userName" properties no longer appear on devices on which said properties are not changeable. Applications should first check whether those properties exist before accessing them, or access them through the  "DeviceInfo" object as is the case for other properties.
+The "location" and "userName" properties no longer appear on devices on which said properties are not changeable. Applications should first check whether those properties exist before accessing them, or access them through the "DeviceInfo" object as is the case for other properties.
 
 ```cpp
 if (device.hasProperty("location"))
 	device.setPropertyValue("location", "new_location");
-	
+
 // Option 2:
 auto locationProp = device.getInfo().getProperty("location");
 if (!location.getReadOnly())
@@ -50,16 +51,16 @@ However, user can opt to use the new mechanism instead to retrieve the native de
 EnumerationPtr status = instance.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus");
 ```
 
-
 ## Required module changes
 
-### [#700] https://github.com/openDAQ/openDAQ/pull/700
+### [#700](https://github.com/openDAQ/openDAQ/pull/700)
 
-`IDeviceInfoConfig` setters no longer have protected access once `DeviceInfo` has an owner. To change the value of a read-only 
+`IDeviceInfoConfig` setters no longer have protected access once `DeviceInfo` has an owner. To change the value of a read-only
 device info property `IPropertyObject::setProtectedPropertyValue` must be used. The old setters can still be used as Before
 during info creation. Said behaviour only works locally - when done on a remote device, the setters will fail as before.
 
 Example required changes:
+
 ```cpp
 // Manufacturer is a read-only device info property
 device.getInfo().asPtr<IDeviceInfoConfig>().setManufacturer("openDAQ"); // Fails
@@ -82,9 +83,10 @@ DeviceInfoPtr DeviceImpl::onGetInfo()
 ### [#642](https://github.com/openDAQ/openDAQ/pull/642)
 
 Updates the usage of the openDAQ discovery client, requiring the changes in the initialization of the discovery client
-and the implementation of `onGetAvailableDevices` in client modules: 
-* The discovery client does not anymore accept callbacks for build the `ServerCapability` as first parameter of its constructor. 
-* The return type of `DiscoveryClient::discoverMdnsDevices()` changed from `ListPtr<IDeviceInfo>` to `std::vector<MdnsDiscoveredDevice>`
+and the implementation of `onGetAvailableDevices` in client modules:
+
+- The discovery client does not anymore accept callbacks for build the `ServerCapability` as first parameter of its constructor.
+- The return type of `DiscoveryClient::discoverMdnsDevices()` changed from `ListPtr<IDeviceInfo>` to `std::vector<MdnsDiscoveredDevice>`
 
 So, the following module implementation snippet:
 
@@ -193,7 +195,7 @@ The "location" and "userName" properties previously always appeared on devices, 
 DeviceInfoPtr MyDeviceImpl::onGetInfo()
 {
     auto info = DeviceInfoWithChanegableFields({"userName", "location"});
-	
+
 	...
 }
 

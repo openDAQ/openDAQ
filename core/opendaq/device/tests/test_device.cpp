@@ -543,5 +543,7 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
 {
     const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
     ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Idle));
+    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Idle);
     ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Operation, daq::True));
+    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
 }

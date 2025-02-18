@@ -57,6 +57,7 @@ struct MockDevice : MockGenericSignalContainer<MockDevice, IDevice>
     MOCK_METHOD(ErrCode, getLog, (IString**, IString*, Int, Int), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getConnectionStatusContainer, (IComponentStatusContainer** statusContainer), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, setOperationMode, (OperationModeType, Bool), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, getOperationMode, (OperationModeType*), (override MOCK_CALL));
 };
 
 END_NAMESPACE_OPENDAQ

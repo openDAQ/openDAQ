@@ -177,6 +177,7 @@ protected:
     ComponentPtr findComponentInternal(const ComponentPtr& component, const std::string& id);
 
     PropertyObjectPtr getPropertyObjectParent() override;
+    ComponentPtr getParentDevice();
 
     static bool validateComponentId(const std::string& id);
 
@@ -353,7 +354,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getParent(IComponent** parent)
     else
         parentPtr = nullptr;
 
-    *parent = parentPtr.addRefAndReturn();
+    *parent = parentPtr.detach();
 
     return OPENDAQ_SUCCESS;
 }
@@ -1076,6 +1077,21 @@ PropertyObjectPtr ComponentImpl<Intf, Intfs...>::getPropertyObjectParent()
 {
     if (parent.assigned())
         return parent.getRef();
+
+    return nullptr;
+}
+
+template <class Intf, class ... Intfs>
+ComponentPtr ComponentImpl<Intf, Intfs...>::getParentDevice()
+{
+    ComponentPtr parentDevice = getPropertyObjectParent();
+    while (parentDevice.assigned())
+    {
+        if (parentDevice.supportsInterface<IDevice>())
+            return parentDevice;
+        
+        parentDevice = parentDevice.getParent();
+    }
 
     return nullptr;
 }

@@ -107,6 +107,7 @@ public:
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -233,6 +234,7 @@ private:
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
+    OperationModeType operationMode;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -253,6 +255,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
               if (!this->coreEventMuted)
                   this->triggerCoreEvent(args);
           }))
+    , operationMode(OperationModeType::Idle)
 
 {
     this->defaultComponents.insert("Dev");
@@ -326,6 +329,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock();
 
     this->isRootDevice = true;
+    this->setOperationMode(OperationModeType::Operation, false);
     return OPENDAQ_SUCCESS;
 }
 
@@ -1111,7 +1115,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationMode
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
-    Super::updateOperationMode(modeType);
+    this->operationMode = modeType;
+
+    errCode = Super::updateOperationMode(modeType);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
 
     if (includeSubDevices)
     {
@@ -1122,6 +1130,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationMode
                 return errCode;
         }
     }
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(OperationModeType* modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+    *modeType = this->operationMode;
     return OPENDAQ_SUCCESS;
 }
 
@@ -1525,6 +1541,7 @@ void GenericDevice<TInterface, Interfaces...>::addSubDevice(const DevicePtr& dev
     try
     {
         devices.addItem(device);
+        device->setOperationMode(OperationModeType::Operation, false);
     }
     catch (DuplicateItemException&)
     {

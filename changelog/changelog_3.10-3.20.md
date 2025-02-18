@@ -5,7 +5,7 @@
 - Enables status messages for connection statuses [#687](https://github.com/openDAQ/openDAQ/pull/687)
 - Fixed an mDNS issue where multiple devices broadcasting with the same IP address were present, but only one could be detected by the client [#689](https://github.com/openDAQ/openDAQ/pull/689)
 - Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices [#642](https://github.com/openDAQ/openDAQ/pull/642)
-- Introduce Changeable Device Info Properties with mDNS Synchronization and Customization [#607](https://github.com/openDAQ/openDAQ/pull/607)
+- Introduce Changeable Device Info Properties with mDNS Synchronization and Customization [#607](https://github.com/openDAQ/openDAQ/pull/607)[#700](https://github.com/openDAQ/openDAQ/pull/700)
 - The "Name" attribute was not serialized when equal to the local ID, causing issues when the localID of a deserialized signal was overridden to be different than the original [#660](https://github.com/openDAQ/openDAQ/pull/660)
 - Fixing building openDAQ on android, by removing multiple coping of loaded library to the final vector in ModuleManager constructor [#569](https://github.com/openDAQ/openDAQ/pull/659)
 - Display time domain signal last value as time in Python GUI demo app [#657](https://github.com/openDAQ/openDAQ/pull/657)
@@ -52,6 +52,32 @@ EnumerationPtr status = instance.getDevices()[0].getConnectionStatusContainer().
 
 
 ## Required module changes
+
+### [#700] https://github.com/openDAQ/openDAQ/pull/700
+
+`IDeviceInfoConfig` setters no longer have protected access once `DeviceInfo` has an owner. To change the value of a read-only 
+device info property `IPropertyObject::setProtectedPropertyValue` must be used. The old setters can still be used as Before
+during info creation. Said behaviour only works locally - when done on a remote device, the setters will fail as before.
+
+Example required changes:
+```cpp
+// Manufacturer is a read-only device info property
+device.getInfo().asPtr<IDeviceInfoConfig>().setManufacturer("openDAQ"); // Fails
+device.getInfo().asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("manufacturer", "openDAQ"); // Works
+
+```
+
+The following still works:
+
+```cpp
+DeviceInfoPtr DeviceImpl::onGetInfo()
+{
+	auto info = DeviceInfo(connStr);
+	info.setManufacturer("openDAQ"); // The `info` object does not yet have an owner
+	return info;
+}
+
+```
 
 ### [#642](https://github.com/openDAQ/openDAQ/pull/642)
 

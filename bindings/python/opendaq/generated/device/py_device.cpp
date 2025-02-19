@@ -376,4 +376,21 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::return_value_policy::take_ownership,
         "Gets the container holding the statuses of device configuration and streaming connections.");
+    cls.def("set_operation_mode",
+        [](daq::IDevice *object, daq::OperationModeType modeType, const bool includeSubDevices)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            objectPtr.setOperationMode(modeType, includeSubDevices);
+        },
+        py::arg("mode_type"), py::arg("include_sub_devices") = true,
+        "Sets the operation mode of the device and subtree.");
+    cls.def_property_readonly("operation_mode",
+        [](daq::IDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getOperationMode();
+        },
+        "Gets the operation mode of the device.");
 }

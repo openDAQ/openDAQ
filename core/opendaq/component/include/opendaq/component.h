@@ -39,6 +39,14 @@ BEGIN_NAMESPACE_OPENDAQ
  * [includeHeader("<coretypes/event_wrapper.h>")]
  */
 
+enum class OperationModeType: EnumType
+{
+    Unknown = 0,
+    Idle,
+    Operation,
+    SafeOperation
+};
+
 /*!
  * @brief Acts as a base interface for components, such as device, function block, channel and signal.
  *

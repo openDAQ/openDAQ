@@ -1084,13 +1084,13 @@ PropertyObjectPtr ComponentImpl<Intf, Intfs...>::getPropertyObjectParent()
 template <class Intf, class ... Intfs>
 ComponentPtr ComponentImpl<Intf, Intfs...>::getParentDevice()
 {
-    ComponentPtr parentDevice = getPropertyObjectParent();
-    while (parentDevice.assigned())
+    ComponentPtr parent;
+    this->getParent(&parent);
+    while (parent.assigned())
     {
-        if (parentDevice.supportsInterface<IDevice>())
-            return parentDevice;
-        
-        parentDevice = parentDevice.getParent();
+        if (parent.supportsInterface<IDevice>())
+            return parent;
+        parent = parent.getParent();
     }
 
     return nullptr;

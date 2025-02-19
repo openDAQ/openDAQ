@@ -240,7 +240,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         if (this->localId != "Dev")
         {
             OperationModeType modeType = OperationModeType::Operation;
-            if (auto parentDevice = this->getParentDevice())
+            if (auto parentDevice = this->getParentDevice(); parentDevice.assigned())
                 parentDevice.template as<IDevice>(true)->getOperationMode(&modeType);
 
             if (componentPrivate.assigned())

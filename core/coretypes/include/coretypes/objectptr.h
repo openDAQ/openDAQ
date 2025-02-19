@@ -1992,7 +1992,7 @@ template <class U, class Ptr>
 Ptr ObjectPtr<T>::asPtrOrNull(bool borrow) const
 {
     if (!object)
-        throw InvalidParameterException();
+        throw Ptr();
 
     U* intf;
     ErrCode res;

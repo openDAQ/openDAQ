@@ -237,14 +237,12 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         const auto component = ComponentPtr::Borrow(item);
         auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
 
-        if (this->localId != "Dev")
+        if (componentPrivate.assigned() && this->localId != "Dev")
         {
             OperationModeType modeType = OperationModeType::Operation;
             if (auto parentDevice = this->getParentDevice(); parentDevice.assigned())
                 parentDevice.template as<IDevice>(true)->getOperationMode(&modeType);
-
-            if (componentPrivate.assigned())
-                componentPrivate->updateOperationMode(modeType);
+            componentPrivate->updateOperationMode(modeType);
         }
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                 CoreEventId::ComponentAdded,

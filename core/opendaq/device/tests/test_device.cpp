@@ -102,7 +102,10 @@ public:
 class MockDevice final : public daq::Device
 {
 public:
-    MockDevice(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+    MockDevice(const daq::ContextPtr& ctx, 
+               const daq::ComponentPtr& parent, 
+               const daq::StringPtr& localId, 
+               bool addSubDevice = false)
         : daq::Device(ctx, parent, localId)
     {
         createAndAddSignal("sig_device");
@@ -116,8 +119,11 @@ public:
         const auto srv = daq::createWithImplementation<daq::IServer, MockSrvImpl>(ctx, this->template borrowPtr<daq::DevicePtr>());
         servers.addItem(srv);
 
-        const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>(ctx, devices, "subDev");
-        addSubDevice(device);
+        if (addSubDevice)
+        {
+            const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(ctx, devices, "subDev");
+            this->addSubDevice(device);
+        }
     }
 };
 
@@ -561,7 +567,7 @@ void checkDeviceOperationMode(const daq::DevicePtr& device, daq::OperationModeTy
 
 TEST_F(DeviceTest, DeviceSetOperationModeSanity)
 {
-    const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+    const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev", true);
     const auto subDevice = device.getDevices()[0];
 
     checkDeviceOperationMode(device, daq::OperationModeType::Operation);

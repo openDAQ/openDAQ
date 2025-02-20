@@ -1,7 +1,7 @@
-set(MODULE_NAME basic_recorder_module)
+set(MODULE_NAME basic_csv_recorder_module)
 set(TEST_APP test_${MODULE_NAME})
 
-set(TEST_SOURCES test_basic_recorder_module.cpp
+set(TEST_SOURCES test_basic_csv_recorder_module.cpp
                  test_app.cpp
 )
 

@@ -1,21 +1,21 @@
-set(LIB_NAME basic_recorder_module)
+set(LIB_NAME basic_csv_recorder_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 
 set(SRC_Include module_dll.h
                 common.h
-                basic_recorder_impl.h
-                basic_recorder_module_impl.h
+                basic_csv_recorder_impl.h
+                basic_csv_recorder_module_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
-             basic_recorder_impl.cpp
-             basic_recorder_module_impl.cpp
-             basic_recorder_signal.cpp
+             basic_csv_recorder_impl.cpp
+             basic_csv_recorder_module_impl.cpp
+             basic_csv_recorder_signal.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
-source_group("module" FILES ${MODULE_HEADERS_DIR}/basic_recorder_module_impl.h
+source_group("module" FILES ${MODULE_HEADERS_DIR}/basic_csv_recorder_module_impl.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             ${SRC_Srcs}
 )

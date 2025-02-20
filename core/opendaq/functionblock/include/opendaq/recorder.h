@@ -52,6 +52,14 @@ DECLARE_OPENDAQ_INTERFACE(IRecorder, IBaseObject)
      *     chooses to treat this scenario as an error.
      */
     virtual ErrCode INTERFACE_FUNC stopRecording() = 0;
+
+    /*!
+     * @brief Checks whether data from connected signals is currently being recorded to the
+     *     persistent storage medium.
+     * @param isRecording A pointer to a boolean which is populated with the recording state.
+     * @retval OPENDAQ_SUCCESS if the recording status was successfully returned.
+     */
+    virtual ErrCode INTERFACE_FUNC getIsRecording(Bool *isRecording) = 0;
 };
 /*!@}*/
 

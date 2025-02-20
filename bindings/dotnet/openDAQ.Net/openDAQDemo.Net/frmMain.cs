@@ -1250,11 +1250,11 @@ public partial class frmMain : Form
     {
         string relatedSignalIds = string.Join(", ", signal.RelatedSignals?.Select(sig => sig.GlobalId) ?? []);
 
-        attributeItems.Add(new(FREE,   "Public",               "Public",              signal.Public.ToString(),     CoreType.ctBool,      signal));
-        attributeItems.Add(new(LOCKED, "DomainSignalGlobalId", "Domain Signal ID",    signal.DomainSignal.GlobalId, CoreType.ctString,    signal));
-        attributeItems.Add(new(LOCKED, "RelatedSignalsIDs",    "Related Signals IDs", relatedSignalIds,             CoreType.ctList,      signal));
-        attributeItems.Add(new(LOCKED, "Streamed",             "Streamed",            signal.Streamed.ToString(),   CoreType.ctBool,      signal));
-        attributeItems.Add(new(LOCKED, "LastValue",            "Last Value",          GetValue(signal.LastValue),   CoreType.ctUndefined, signal));
+        attributeItems.Add(new(FREE,   "Public",               "Public",              signal.Public.ToString(),      CoreType.ctBool,      signal));
+        attributeItems.Add(new(LOCKED, "DomainSignalGlobalId", "Domain Signal ID",    signal.DomainSignal?.GlobalId, CoreType.ctString,    signal));
+        attributeItems.Add(new(LOCKED, "RelatedSignalsIDs",    "Related Signals IDs", relatedSignalIds,              CoreType.ctList,      signal));
+        attributeItems.Add(new(LOCKED, "Streamed",             "Streamed",            signal.Streamed.ToString(),    CoreType.ctBool,      signal));
+        attributeItems.Add(new(LOCKED, "LastValue",            "Last Value",          GetValue(signal.LastValue),    CoreType.ctUndefined, signal));
     }
 
     /// <summary>

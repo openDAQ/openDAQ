@@ -24,7 +24,7 @@ template <typename TInterface = IDataPacket, typename... TInterfaces>
 class GenericDataPacketImpl : public PacketImpl<TInterface, TInterfaces ...>
 {
 public:
-    explicit GenericDataPacketImpl(const DataPacketPtr& domainPacket);
+    explicit GenericDataPacketImpl(IDataPacket* domainPacket);
 
     ErrCode INTERFACE_FUNC getDomainPacket(IDataPacket** packet) override;
     ErrCode INTERFACE_FUNC getPacketId(Int* packetId) override;
@@ -37,7 +37,7 @@ protected:
 Int generatePacketId();
 
 template <typename TInterface, typename... TInterfaces>
-GenericDataPacketImpl<TInterface, TInterfaces...>::GenericDataPacketImpl(const DataPacketPtr& domainPacket)
+GenericDataPacketImpl<TInterface, TInterfaces...>::GenericDataPacketImpl(IDataPacket* domainPacket)
     : domainPacket(domainPacket)
     , packetId(generatePacketId())
 {

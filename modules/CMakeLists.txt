@@ -71,9 +71,9 @@ if (DAQMODULES_AUDIO_DEVICE_MODULE)
     add_subdirectory(audio_device_module)
 endif()
 
-if (DAQMODULES_BASIC_RECORDER_MODULE)
-    message(STATUS "Basic recorder module")
-    add_subdirectory(basic_recorder_module)
+if (DAQMODULES_BASIC_CSV_RECORDER_MODULE)
+    message(STATUS "Basic CSV recorder module")
+    add_subdirectory(basic_csv_recorder_module)
 endif()
 
 if (OPENDAQ_ENABLE_TESTS)

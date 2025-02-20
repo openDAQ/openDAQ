@@ -19,42 +19,40 @@
 #include <opendaq/module_impl.h>
 #include <opendaq/opendaq.h>
 
-#include <basic_recorder_module/common.h>
+#include <basic_csv_recorder_module/common.h>
 
-BEGIN_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE
+BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
-/**
- * An openDAQ module which exposes a single `FunctionBlock` object, BasicRecorderImpl.
+/*!
+ * @brief An openDAQ module which exposes a single `FunctionBlock` object, BasicCsvRecorderImpl.
  */
-class BasicRecorderModule final : public Module
+class BasicCsvRecorderModule final : public Module
 {
     public:
 
-        /**
-         * The name of this module.
+        /*!
+         * @brief The name of this module.
          */
-        static constexpr const char *MODULE_NAME = "BasicRecorderModule";
+        static constexpr const char *MODULE_NAME = "BasicCsvRecorderModule";
 
-        /**
-         * Constructs a new module.
-         *
+        /*!
+         * @brief Constructs a new module.
          * @param context The openDAQ context object.
          */
-        BasicRecorderModule(ContextPtr context);
+        BasicCsvRecorderModule(ContextPtr context);
 
-        /**
-         * Returns a dictionary of the function block types supported by this module.
+        /*!
+         * @brief Returns a dictionary of the function block types supported by this module.
+         * @returns A dictionary of the function block types supported by this module.
          */
         DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
 
-        /**
-         * Creates and returns a new function block.
-         *
+        /*!
+         * @brief Creates and returns a new function block.
          * @param id The identifier of the type of function block to create.
          * @param parent The component object which will contain the function block.
          * @param localId The local identifier of the function block.
          * @param config A property object containing configuration data for the function block.
-         *
          * @throws NotFoundException This module does not support the specified function block
          *     type.
          */
@@ -66,7 +64,7 @@ class BasicRecorderModule final : public Module
 
     private:
 
-        FunctionBlockTypePtr basicRecorderType;
+        FunctionBlockTypePtr basicCsvRecorderType;
 };
 
-END_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE
+END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

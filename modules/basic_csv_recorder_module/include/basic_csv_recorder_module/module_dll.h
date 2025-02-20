@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <coretypes/common.h>
+#include <opendaq/module_exports.h>
 
-#define BEGIN_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE BEGIN_NAMESPACE_OPENDAQ_MODULE(basic_recorder_module)
-#define END_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE END_NAMESPACE_OPENDAQ_MODULE
+DECLARE_MODULE_EXPORTS(BasicCsvRecorderModule)

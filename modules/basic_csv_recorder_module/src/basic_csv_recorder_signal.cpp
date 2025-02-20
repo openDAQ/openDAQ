@@ -1,19 +1,22 @@
+#include <algorithm>
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <sstream>
 #include <string>
 
 #include <boost/algorithm/string.hpp>
 
+#include <opendaq/event_packet_params.h>
 #include <opendaq/opendaq.h>
 
-#include <basic_recorder_module/basic_recorder_signal.h>
-#include <basic_recorder_module/common.h>
-#include <basic_recorder_module/csv_writer.h>
+#include <basic_csv_recorder_module/basic_csv_recorder_signal.h>
+#include <basic_csv_recorder_module/common.h>
+#include <basic_csv_recorder_module/csv_writer.h>
 
-BEGIN_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE
+BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
 /**
  * Generates a CSV filename (without path) for a signal to be recorded based on the signal's
@@ -62,33 +65,30 @@ static std::string getFilename(const std::filesystem::path& path, const SignalPt
  *
  * @return @p stream.
  */
-static std::ostream& appendUnitInfo(std::ostream& stream, const SignalPtr& signal)
+static std::ostream& appendUnitInfo(std::ostream& stream, const DataDescriptorPtr& descriptor)
 {
     bool parentheses = false;
 
-    if (auto descriptor = signal.getDescriptor(); descriptor.assigned())
+    if (auto unit = descriptor.getUnit(); unit.assigned())
     {
-        if (auto unit = descriptor.getUnit(); unit.assigned())
-        {
-            parentheses = true;
-            if (auto symbol = unit.getSymbol(); symbol.assigned())
-                stream << " (" << symbol;
-            else if (auto unitName = unit.getName(); unitName.assigned())
-                stream << " (" << unitName;
-            else
-                parentheses = false;
-        }
+        parentheses = true;
+        if (auto symbol = unit.getSymbol(); symbol.assigned())
+            stream << " (" << symbol;
+        else if (auto unitName = unit.getName(); unitName.assigned())
+            stream << " (" << unitName;
+        else
+            parentheses = false;
+    }
 
-        if (auto ratio = descriptor.getTickResolution(); ratio.assigned())
-        {
-            int numerator = ratio.getNumerator();
-            int denominator = ratio.getDenominator();
+    if (auto ratio = descriptor.getTickResolution(); ratio.assigned())
+    {
+        int numerator = ratio.getNumerator();
+        int denominator = ratio.getDenominator();
 
-            if (denominator != 1)
-                stream << " * " << denominator;
-            if (numerator != 1)
-                stream << " / " << numerator;
-        }
+        if (denominator != 1)
+            stream << " * " << denominator;
+        if (numerator != 1)
+            stream << " / " << numerator;
     }
 
     if (parentheses)
@@ -103,21 +103,19 @@ static std::ostream& appendUnitInfo(std::ostream& stream, const SignalPtr& signa
  * a Unit assigned to its descriptor, the unit's symbol (or name, if no symbol) is appended in
  * parentheses. Otherwise, "Domain" is returned.
  *
- * @param signal The value signal.
+ * @param descriptor The data descriptor of the domain signal.
  *
  * @return The name of the domain signal associated with @p signal, or if there is no associated
  *     domain signal, "Domain".
  */
-static std::string getDomainName(const SignalPtr& signal)
+static std::string getDomainName(const DataDescriptorPtr& descriptor)
 {
-    auto domainSignal = signal.getDomainSignal();
-
-    if (!domainSignal.assigned())
+    if (!descriptor.assigned())
         return "Domain";
 
     std::ostringstream stream;
-    stream << domainSignal.getName();
-    appendUnitInfo(stream, domainSignal);
+    stream << descriptor.getName();
+    appendUnitInfo(stream, descriptor);
     return stream.str();
 }
 
@@ -125,41 +123,40 @@ static std::string getDomainName(const SignalPtr& signal)
  * Gets the name of the signal, for use as a CSV header. If the signal has a Unit assigned to its
  * descriptor, the unit's symbol (or name, if no symbol) is appended in parentheses.
  *
- * @param signal The value signal.
+ * @param descriptor The data descriptor of the value signal.
  *
- * @return The name of the @p signal.
+ * @return The name of the signal.
  */
-static std::string getValueName(const SignalPtr& signal)
+static std::string getValueName(const DataDescriptorPtr& descriptor)
 {
+    if (!descriptor.assigned())
+        return "Value";
+
     std::ostringstream stream;
-    stream << signal.getName();
-    appendUnitInfo(stream, signal);
+    stream << descriptor.getName();
+    appendUnitInfo(stream, descriptor);
     return stream.str();
 }
 
-BasicRecorderSignal::BasicRecorderSignal(std::filesystem::path path, const SignalPtr& signal)
-    : writer(path / getFilename(path, signal))
+BasicCsvRecorderSignal::BasicCsvRecorderSignal(std::filesystem::path path, const SignalPtr& signal)
+    : writer(std::make_unique<CsvWriter>(path / getFilename(path, signal)))
 {
-    writer.headers(
-        getDomainName(signal).c_str(),
-        getValueName(signal).c_str());
 }
 
-void BasicRecorderSignal::onPacketReceived(const InputPortPtr& port)
+void BasicCsvRecorderSignal::onPacketReceived(const PacketPtr& packet)
 {
-    PacketPtr packet;
-
-    while ((packet = port.getConnection().dequeue()).assigned())
+    switch (packet.getType())
     {
-        switch (packet.getType())
-        {
-            case PacketType::Data:
-                onDataPacketReceived(packet);
-                break;
+        case PacketType::Event:
+            onEventPacketReceived(packet);
+            break;
 
-            default:
-                break;
-        }
+        case PacketType::Data:
+            onDataPacketReceived(packet);
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -228,26 +225,64 @@ void writeSamples(DataPacketPtr packet, CsvWriter& writer)
     }
 }
 
-void BasicRecorderSignal::onDataPacketReceived(DataPacketPtr packet)
+void BasicCsvRecorderSignal::onEventPacketReceived(EventPacketPtr packet)
+{
+    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    {
+        tryWriteHeaders(
+            packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR),
+            packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+    }
+}
+
+void BasicCsvRecorderSignal::onDataPacketReceived(DataPacketPtr packet)
 {
     auto descriptor = packet.getDataDescriptor();
     if (!descriptor.assigned())
         return;
 
+    if (!headersWritten)
+    {
+        auto domainPacket = packet.getDomainPacket();
+        tryWriteHeaders(
+            descriptor,
+            domainPacket.assigned() ? domainPacket.getDataDescriptor() : nullptr);
+    }
+
+    if (!writer)
+        return;
+
     switch (descriptor.getSampleType())
     {
-        case SampleType::Int8:      writeSamples<std::int8_t>(packet, writer); return;
-        case SampleType::Int16:     writeSamples<std::int16_t>(packet, writer); return;
-        case SampleType::Int32:     writeSamples<std::int32_t>(packet, writer); return;
-        case SampleType::Int64:     writeSamples<std::int64_t>(packet, writer); return;
-        case SampleType::UInt8:     writeSamples<std::uint8_t>(packet, writer); return;
-        case SampleType::UInt16:    writeSamples<std::uint16_t>(packet, writer); return;
-        case SampleType::UInt32:    writeSamples<std::uint32_t>(packet, writer); return;
-        case SampleType::UInt64:    writeSamples<std::uint64_t>(packet, writer); return;
-        case SampleType::Float32:   writeSamples<float>(packet, writer); return;
-        case SampleType::Float64:   writeSamples<double>(packet, writer); return;
+        case SampleType::Int8:      writeSamples<std::int8_t>(packet, *writer); return;
+        case SampleType::Int16:     writeSamples<std::int16_t>(packet, *writer); return;
+        case SampleType::Int32:     writeSamples<std::int32_t>(packet, *writer); return;
+        case SampleType::Int64:     writeSamples<std::int64_t>(packet, *writer); return;
+        case SampleType::UInt8:     writeSamples<std::uint8_t>(packet, *writer); return;
+        case SampleType::UInt16:    writeSamples<std::uint16_t>(packet, *writer); return;
+        case SampleType::UInt32:    writeSamples<std::uint32_t>(packet, *writer); return;
+        case SampleType::UInt64:    writeSamples<std::uint64_t>(packet, *writer); return;
+        case SampleType::Float32:   writeSamples<float>(packet, *writer); return;
+        case SampleType::Float64:   writeSamples<double>(packet, *writer); return;
         default: break;
     }
 }
 
-END_NAMESPACE_OPENDAQ_BASIC_RECORDER_MODULE
+void BasicCsvRecorderSignal::tryWriteHeaders(const DataDescriptorPtr& descriptor, const DataDescriptorPtr& domainDescriptor)
+{
+    if (headersWritten)
+    {
+        writer.reset();
+    }
+
+    else
+    {
+        writer->headers(
+            getDomainName(domainDescriptor).c_str(),
+            getValueName(descriptor).c_str());
+
+        headersWritten = true;
+    }
+}
+
+END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

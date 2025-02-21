@@ -689,12 +689,12 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(Operatio
     for (const auto& component : components)
     {
         auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
-        if (componentPrivate.assigned())
-        {
-            errCode = componentPrivate->updateOperationMode(modeType);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
-        }
+        if (!componentPrivate.assigned())
+            continue;
+
+        errCode = componentPrivate->updateOperationMode(modeType);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
     }
 
     return OPENDAQ_SUCCESS;

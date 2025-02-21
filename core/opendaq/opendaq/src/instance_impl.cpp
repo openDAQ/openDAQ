@@ -26,10 +26,14 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
     , rootDeviceSet(false)
 {
+    loggerComponent = this->context.getLogger().addComponent("Instance");
     auto instanceId = DefineLocalId(localId);
     rootDevice = Client(this->context, instanceId);
     rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-    loggerComponent = this->context.getLogger().addComponent("Instance");
+
+    const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
+    if (devicePrivate.assigned())
+        devicePrivate->setAsRoot();
 }
 
 InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
@@ -46,9 +50,6 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     if (connectionString.assigned() && connectionString.getLength())
     {
         rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, rootDeviceConfig);
-        const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
-        if (devicePrivate.assigned())
-            devicePrivate->setAsRoot();
         LOG_I("Root device set to {}", connectionString)
         rootDeviceSet = true;
     }
@@ -58,6 +59,10 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
         auto instanceId = DefineLocalId(localId);
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
     }
+
+    const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
+    if (devicePrivate.assigned())
+        devicePrivate->setAsRoot();
 
     for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
         discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);

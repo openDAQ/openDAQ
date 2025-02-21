@@ -552,17 +552,26 @@ void checkDeviceOperationMode(const daq::DevicePtr& device, daq::OperationModeTy
 {
     ASSERT_EQ(device.getOperationMode(), expected);
     bool active = expected != daq::OperationModeType::Idle;
+    size_t count = 0;
 
     for (const auto& fb: device.getFunctionBlocks())
     {
-        for (const auto& sig: fb.getSignalsRecursive())
-            ASSERT_EQ(sig.getActive(), active);
+        for (const auto& sig: fb.getSignals())
+        {
+            ASSERT_EQ(sig.getActive(), active) << "Checking fb signal " << sig.getGlobalId() << " for mode " << static_cast<int>(expected);
+            count++;
+        }
     }
-    for (const auto& ch: device.getChannelsRecursive())
+    for (const auto& ch: device.getChannels())
     {
-        for (const auto& sig: ch.getSignalsRecursive())
-            ASSERT_EQ(sig.getActive(), active);
+        for (const auto& sig: ch.getSignals())
+        {
+            ASSERT_EQ(sig.getActive(), active) << "Checking ch signal " << sig.getGlobalId() << " for mode " << static_cast<int>(expected);
+            count++;
+        }
     }
+
+    ASSERT_GT(count, 0u) << "No signals found for device " << device.getGlobalId();
 }
 
 TEST_F(DeviceTest, DeviceSetOperationModeSanity)

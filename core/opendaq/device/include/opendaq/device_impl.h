@@ -220,6 +220,8 @@ protected:
     virtual Bool onGetNetworkConfigurationEnabled();
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
+    void onOperationModeChanged(OperationModeType modeType) override;
+
     DevicePtr getParentDevice();
 
 private:
@@ -329,7 +331,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock();
 
     this->isRootDevice = true;
-    this->setOperationMode(OperationModeType::Operation, false);
+    this->updateOperationMode(OperationModeType::Operation);
     return OPENDAQ_SUCCESS;
 }
 
@@ -1087,24 +1089,30 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getRecursiveLockGuard(IList* l
     
     for (const auto& component : this->components)
     {
-        if (component.getLocalId() == "Dev")
+        if (component == this->devices)
             continue;
 
         auto objProtected = component.template asPtrOrNull<IPropertyObjectInternal>(true);
-        if (objProtected.assigned())
-        {
-            errCode = objProtected->getRecursiveLockGuard(lockGuardList);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
-        }
+        if (!objProtected.assigned())
+            continue;
+        
+        errCode = objProtected->getRecursiveLockGuard(lockGuardList);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
     }
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /* modeType */)
+void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
 {
-    return OPENDAQ_IGNORED;
+    this->operationMode = modeType;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType modeType)
+{
+    return wrapHandler(this, &Self::onOperationModeChanged, modeType);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1115,11 +1123,23 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationMode
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
-    this->operationMode = modeType;
-
-    errCode = Super::updateOperationMode(modeType);
+    errCode = updateOperationMode(modeType);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
+
+    for (const auto& component : this->components)
+    {
+        if (component == this->devices)
+            continue;
+
+        auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+        if (!componentPrivate.assigned())
+            continue;
+
+        errCode = componentPrivate->updateOperationMode(modeType);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
 
     if (includeSubDevices)
     {
@@ -1541,7 +1561,7 @@ void GenericDevice<TInterface, Interfaces...>::addSubDevice(const DevicePtr& dev
     try
     {
         devices.addItem(device);
-        device->setOperationMode(OperationModeType::Operation, false);
+        device.asPtr<IComponentPrivate>(true)->updateOperationMode(OperationModeType::Operation);
     }
     catch (DuplicateItemException&)
     {

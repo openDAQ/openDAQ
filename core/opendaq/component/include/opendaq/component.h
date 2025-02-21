@@ -39,7 +39,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [includeHeader("<coretypes/event_wrapper.h>")]
  */
 
-enum class OperationModeType: EnumType
+enum class OperationModeType: int32_t
 {
     Unknown = 0,
     Idle,

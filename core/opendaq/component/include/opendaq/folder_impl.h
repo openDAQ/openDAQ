@@ -237,7 +237,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         const auto component = ComponentPtr::Borrow(item);
         auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
 
-        if (componentPrivate.assigned() && this->localId != "Dev")
+        if (componentPrivate.assigned())
         {
             OperationModeType modeType = OperationModeType::Operation;
             if (auto parentDevice = this->getParentDevice(); parentDevice.assigned())

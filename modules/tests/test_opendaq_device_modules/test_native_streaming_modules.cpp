@@ -752,9 +752,14 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
     {
         auto client = CreateClientInstance("opendaq", "opendaq");
         auto clientSignals = client.getSignalsRecursive(search::Any());
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
         ASSERT_EQ(clientSignals.getCount(), 3u);
         ASSERT_EQ(clientSignals[0].getName(), "AI1");
         ASSERT_EQ(clientSignals[1].getName(), "AI1Time");
+#else
+        ASSERT_EQ(clientSignals.getCount(), 5u);
+#endif
     }
 }
 
@@ -776,7 +781,12 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeDenied)
     test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     auto reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     ASSERT_FALSE(test_helpers::waitForAcknowledgement(signalSubscribeFuture, std::chrono::seconds(1)));
+#else
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture, std::chrono::seconds(1)));
+#endif
 }
 
 
@@ -840,5 +850,10 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalUnsubscribeDenied)
     test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     reader.release();
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     ASSERT_FALSE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture, std::chrono::seconds(1)));
+#else
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture, std::chrono::seconds(1)));
+#endif
 }

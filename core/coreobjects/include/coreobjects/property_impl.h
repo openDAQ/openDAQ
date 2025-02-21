@@ -306,11 +306,15 @@ public:
 
     void initDefaultPermissionManager()
     {
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
         const auto defaultPermissions =
             PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
 
         defaultPermissionManager = PermissionManager();
         defaultPermissionManager.setPermissions(defaultPermissions);
+#else
+        defaultPermissionManager = DisabledPermissionManager();
+#endif
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override

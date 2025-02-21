@@ -63,6 +63,9 @@ public:
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
     ErrCode INTERFACE_FUNC forceUnlock() override;
 
+    ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -193,7 +196,7 @@ StringPtr GenericConfigClientDeviceImpl<TDeviceBase>::onGetLog(const StringPtr& 
 }
 
 template <class TDeviceBase>
-ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* user)
+ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* user)
 {
     if (user != nullptr)
     {
@@ -206,7 +209,7 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* u
 }
 
 template <class TDeviceBase>
-ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
+ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
 {
     if (user != nullptr)
     {
@@ -224,7 +227,7 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser*
 }
 
 template <class TDeviceBase>
-inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
 {
     auto lock = this->getRecursiveConfigLock();
 
@@ -234,6 +237,25 @@ inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::forceU
         return OPENDAQ_ERR_DEVICE_LOCKED;
 
     return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
+}
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
+{
+    return daqTry([this, modeType, includeSubDevices] 
+    { 
+        this->clientComm->setOperationMode(this->remoteGlobalId, modeType, includeSubDevices); 
+    });
+}
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(OperationModeType* modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+    return daqTry([this, modeType] 
+    { 
+        *modeType = this->clientComm->getOperationMode(this->remoteGlobalId); 
+    });
 }
 
 template <class TDeviceBase>

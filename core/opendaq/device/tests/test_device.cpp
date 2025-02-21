@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
+#include <coreobjects/authentication_provider_factory.h>
+#include <coreobjects/user_factory.h>
 #include <opendaq/component_exceptions.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/device_private_ptr.h>
-#include <coreobjects/user_factory.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/device_info_factory.h>
@@ -14,7 +15,6 @@
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/gmock/function_block.h>
 #include <opendaq/device_type_factory.h>
-#include <coreobjects/authentication_provider_factory.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
@@ -27,8 +27,8 @@ using DeviceTest = testing::Test;
 class TestDevice : public daq::Device
 {
 public:
-    TestDevice()
-        : daq::Device(daq::NullContext(), nullptr, "dev")
+    TestDevice(const daq::ContextPtr& ctx = daq::NullContext(), const daq::ComponentPtr& parent = nullptr, const daq::StringPtr& localId = "dev")
+        : daq::Device(ctx, parent, localId)
     {
         auto parentFolder = this->addFolder("Folder1");
         this->addFolder("Folder2", parentFolder);
@@ -102,7 +102,10 @@ public:
 class MockDevice final : public daq::Device
 {
 public:
-    MockDevice(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId)
+    MockDevice(const daq::ContextPtr& ctx, 
+               const daq::ComponentPtr& parent, 
+               const daq::StringPtr& localId, 
+               bool addSubDevice = false)
         : daq::Device(ctx, parent, localId)
     {
         createAndAddSignal("sig_device");
@@ -115,6 +118,12 @@ public:
 
         const auto srv = daq::createWithImplementation<daq::IServer, MockSrvImpl>(ctx, this->template borrowPtr<daq::DevicePtr>());
         servers.addItem(srv);
+
+        if (addSubDevice)
+        {
+            const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(ctx, devices, "subDev");
+            this->addSubDevice(device);
+        }
     }
 };
 
@@ -537,4 +546,55 @@ TEST_F(DeviceTest, NetworkConfigDisabled)
     ASSERT_THROW(deviceNetworkConfig.submitNetworkConfiguration("eth0", daq::PropertyObject()), daq::NotImplementedException);
     ASSERT_THROW(deviceNetworkConfig.retrieveNetworkConfiguration("eth0"), daq::NotImplementedException);
     ASSERT_THROW(deviceNetworkConfig.getNetworkInterfaceNames(), daq::NotImplementedException);
+}
+
+void checkDeviceOperationMode(const daq::DevicePtr& device, daq::OperationModeType expected)
+{
+    ASSERT_EQ(device.getOperationMode(), expected);
+    bool active = expected != daq::OperationModeType::Idle;
+    size_t count = 0;
+
+    for (const auto& fb: device.getFunctionBlocks())
+    {
+        for (const auto& sig: fb.getSignals())
+        {
+            ASSERT_EQ(sig.getActive(), active) << "Checking fb signal " << sig.getGlobalId() << " for mode " << static_cast<int>(expected);
+            count++;
+        }
+    }
+    for (const auto& ch: device.getChannels())
+    {
+        for (const auto& sig: ch.getSignals())
+        {
+            ASSERT_EQ(sig.getActive(), active) << "Checking ch signal " << sig.getGlobalId() << " for mode " << static_cast<int>(expected);
+            count++;
+        }
+    }
+
+    ASSERT_GT(count, 0u) << "No signals found for device " << device.getGlobalId();
+}
+
+TEST_F(DeviceTest, DeviceSetOperationModeSanity)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev", true);
+    const auto subDevice = device.getDevices()[0];
+
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Operation);
+
+    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Idle));
+    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
+
+    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Operation, false));
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
+
+    ASSERT_NO_THROW(subDevice.setOperationMode(daq::OperationModeType::SafeOperation));
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::SafeOperation);
+
+    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Idle));
+    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
 }

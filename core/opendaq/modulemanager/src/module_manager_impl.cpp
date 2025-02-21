@@ -53,6 +53,10 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     {
         paths.insert(paths.end(), pathList.begin(), pathList.end());
     }
+    else
+    {
+        throw InvalidParameterException();
+    }
 
     std::size_t numThreads = 2;
     pool.reserve(numThreads);

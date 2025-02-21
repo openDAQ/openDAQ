@@ -44,6 +44,9 @@ public:
 
     static BaseObjectPtr setPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+
+    static BaseObjectPtr setOperationMode(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr getOperationMode(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const RpcContext& context,
@@ -56,7 +59,9 @@ inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const Rp
     return fbTypes;
 }
 
-inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const RpcContext& context, 
+                                                          const DevicePtr& device, 
+                                                          const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(device);
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
@@ -92,7 +97,9 @@ inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const RpcContext& c
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerDevice::getInfo(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getInfo(const RpcContext& context,
+                                                 const DevicePtr& device,
+                                                 const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
 
@@ -108,7 +115,9 @@ inline BaseObjectPtr ConfigServerDevice::getTicksSinceOrigin(const RpcContext& c
     return device.getTicksSinceOrigin();
 }
 
-inline BaseObjectPtr ConfigServerDevice::lock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::lock(const RpcContext& context,
+                                              const DevicePtr& device, 
+                                              const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
@@ -117,7 +126,9 @@ inline BaseObjectPtr ConfigServerDevice::lock(const RpcContext& context, const D
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerDevice::unlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::unlock(const RpcContext& context,
+                                                const DevicePtr& device,
+                                                const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
@@ -126,7 +137,9 @@ inline BaseObjectPtr ConfigServerDevice::unlock(const RpcContext& context, const
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerDevice::forceUnlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::forceUnlock(const RpcContext& context,
+                                                     const DevicePtr& device,
+                                                     const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
@@ -135,13 +148,17 @@ inline BaseObjectPtr ConfigServerDevice::forceUnlock(const RpcContext& context, 
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerDevice::getLogFileInfos(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getLogFileInfos(const RpcContext& context,
+                                                         const DevicePtr& device,
+                                                         const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
     return device.getLogFileInfos();
 }
 
-inline BaseObjectPtr ConfigServerDevice::getLog(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getLog(const RpcContext& context,
+                                                const DevicePtr& device,
+                                                const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
 
@@ -153,8 +170,8 @@ inline BaseObjectPtr ConfigServerDevice::getLog(const RpcContext& context, const
 }
 
 inline BaseObjectPtr ConfigServerDevice::getAvailableDevices(const RpcContext& context,
-                                                   const DevicePtr& device,
-                                                   const ParamsDictPtr& params)
+                                                             const DevicePtr& device,
+                                                             const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
     return device.getAvailableDevices();
@@ -177,7 +194,9 @@ inline BaseObjectPtr ConfigServerDevice::addDevice(const RpcContext& context,
     return ComponentHolder(dev);
 }
 
-inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context,
+                                                      const DevicePtr& device,
+                                                      const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(device);
     ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
@@ -209,8 +228,8 @@ inline BaseObjectPtr ConfigServerDevice::getAvailableDeviceTypes(const RpcContex
 }
 
 inline BaseObjectPtr ConfigServerDevice::setPropertyValue(const RpcContext& context,
-                                                             const ComponentPtr& component,
-                                                             const ParamsDictPtr& params)
+                                                          const ComponentPtr& component,
+                                                          const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
@@ -227,8 +246,8 @@ inline BaseObjectPtr ConfigServerDevice::setPropertyValue(const RpcContext& cont
 }
 
 inline BaseObjectPtr ConfigServerDevice::setProtectedPropertyValue(const RpcContext& context,
-                                                                      const ComponentPtr& component,
-                                                                      const ParamsDictPtr& params)
+                                                                   const ComponentPtr& component,
+                                                                   const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
@@ -242,6 +261,25 @@ inline BaseObjectPtr ConfigServerDevice::setProtectedPropertyValue(const RpcCont
     component.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, propertyValue);
 
     return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::setOperationMode(const RpcContext& context, 
+                                                          const DevicePtr& device,
+                                                          const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    const auto modeType = static_cast<OperationModeType>(static_cast<Int>(params["ModeType"]));
+    const auto includeSubDevices = static_cast<bool>(params["IncludeSubDevices"]);
+    device.setOperationMode(modeType, includeSubDevices);
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::getOperationMode(const RpcContext& context,
+                                                          const DevicePtr& device,
+                                                          const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    return Integer(static_cast<Int>(device.getOperationMode()));
 }
 
 }

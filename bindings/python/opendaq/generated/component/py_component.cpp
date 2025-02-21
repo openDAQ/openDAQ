@@ -33,6 +33,12 @@
 
 PyDaqIntf<daq::IComponent, daq::IPropertyObject> declareIComponent(pybind11::module_ m)
 {
+    py::enum_<daq::OperationModeType>(m, "OperationModeType")
+        .value("Unknown", daq::OperationModeType::Unknown)
+        .value("Idle", daq::OperationModeType::Idle)
+        .value("Operation", daq::OperationModeType::Operation)
+        .value("SafeOperation", daq::OperationModeType::SafeOperation);
+
     return wrapInterface<daq::IComponent, daq::IPropertyObject>(m, "IComponent");
 }
 

@@ -101,6 +101,9 @@ public:
     ListPtr<ILogFileInfo> getLogFileInfos(const std::string& globalId);
     StringPtr getLog(const std::string& globalId, const StringPtr& id, Int size, Int offset);
 
+    void setOperationMode(const std::string& globalId, OperationModeType modeType, Bool includeSubDevices);
+    OperationModeType getOperationMode(const std::string& globalId);
+
     bool getConnected() const;
     ContextPtr getDaqContext();
 

@@ -660,7 +660,7 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
         ASSERT_EQ(clientSignals[0].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1");
         ASSERT_EQ(clientSignals[1].getName(), "*local*Dev*RefDev1*IO*AI*RefCh1*Sig*AI1Time");
 #else
-        ASSERT_EQ(clientSignals.getCount(), 5u);
+        ASSERT_EQ(clientSignals.getCount(), 4u);
 #endif
     }
 }

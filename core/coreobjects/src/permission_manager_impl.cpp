@@ -165,12 +165,12 @@ DisabledPermissionManagerImpl::DisabledPermissionManagerImpl()
 {
 }
 
-ErrCode DisabledPermissionManagerImpl::setPermissions(IPermissions* permissions)
+ErrCode DisabledPermissionManagerImpl::setPermissions(IPermissions* /*permissions*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::isAuthorized(IUser* user, Permission permission, Bool* authorizedOut)
+ErrCode DisabledPermissionManagerImpl::isAuthorized(IUser* /*user*/, Permission /*permission*/, Bool* authorizedOut)
 {
     OPENDAQ_PARAM_NOT_NULL(authorizedOut);
     *authorizedOut = true;
@@ -184,22 +184,22 @@ ErrCode DisabledPermissionManagerImpl::clone(IBaseObject** cloneOut)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::setParent(IPermissionManager* parentManager)
+ErrCode DisabledPermissionManagerImpl::setParent(IPermissionManager* /*parentManager*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::addChildManager(IPermissionManager* childManager)
+ErrCode DisabledPermissionManagerImpl::addChildManager(IPermissionManager* /*childManager*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::removeChildManager(IPermissionManager* childManager)
+ErrCode DisabledPermissionManagerImpl::removeChildManager(IPermissionManager* /*childManager*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::getPermissions(IPermissions** permisisonConfigOut)
+ErrCode DisabledPermissionManagerImpl::getPermissions(IPermissions** /*permisisonConfigOut*/)
 {
     return OPENDAQ_SUCCESS;
 }

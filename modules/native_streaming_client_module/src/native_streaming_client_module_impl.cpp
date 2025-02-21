@@ -439,11 +439,11 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
     auto transportLayerConfig = daq::PropertyObject();
 
     transportLayerConfig.addProperty(daq::BoolProperty("MonitoringEnabled", daq::True));
-    transportLayerConfig.addProperty(daq::IntProperty("HeartbeatPeriod", 1000000));
-    transportLayerConfig.addProperty(daq::IntProperty("InactivityTimeout", 1500000));
-    transportLayerConfig.addProperty(daq::IntProperty("ConnectionTimeout", 1000000));
-    transportLayerConfig.addProperty(daq::IntProperty("StreamingInitTimeout", 1000000));
-    transportLayerConfig.addProperty(daq::IntProperty("ReconnectionPeriod", 1000000));
+    transportLayerConfig.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
+    transportLayerConfig.addProperty(daq::IntProperty("InactivityTimeout", 1500));
+    transportLayerConfig.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
+    transportLayerConfig.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
+    transportLayerConfig.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));
 
     daq::ClientTypeTools::DefineConfigProperties(transportLayerConfig);
 

@@ -163,7 +163,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searc
     ListPtr<IComponent> childList = ListPtr<IComponent>::Adopt(list);
     for (const auto& [_, item] : this->items)
         if (item.getVisible())
-			childList.pushBack(item);
+            childList.pushBack(item);
 
     *items = childList.detach();
 

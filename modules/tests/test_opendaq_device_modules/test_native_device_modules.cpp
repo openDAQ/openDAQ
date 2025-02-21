@@ -2788,15 +2788,14 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
     checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
 
-    // BUG: deadlock
-    // // setting the operation mode for client device
-    // ASSERT_NO_THROW(client.setOperationMode(OperationModeType::Idle));
-    // checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
-    // checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
+    // setting the operation mode for client device
+    ASSERT_NO_THROW(client.setOperationMode(OperationModeType::Idle));
+    checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    // checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
-    // checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
-    // checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+    checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
+    checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 }
 
 TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)

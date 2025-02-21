@@ -1083,10 +1083,16 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getConnectionStatusContainer(I
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getRecursiveLockGuard(IList* lockGuardList)
 {
-    ErrCode errCode = Super::getRecursiveLockGuard(lockGuardList);
+    OPENDAQ_PARAM_NOT_NULL(lockGuardList);
+    
+    LockGuardPtr lockGuard;
+    ErrCode errCode = getLockGuard(&lockGuard);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
     
+    auto list = ListPtr<ILockGuard>::Borrow(lockGuardList);
+    list.pushBack(lockGuard);
+
     for (const auto& component : this->components)
     {
         if (component == this->devices)

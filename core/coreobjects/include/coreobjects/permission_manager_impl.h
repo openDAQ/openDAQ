@@ -25,6 +25,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// PermissionManagerImpl
+
 class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerInternal, ICloneable>
 {
 public:
@@ -50,6 +52,25 @@ private:
     std::unordered_set<IPermissionManager*> children;
     PermissionsPtr permissions;
     PermissionsPtr localPermissions;
+};
+
+// DisabledPermissionManagerImpl
+
+class DisabledPermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerInternal, ICloneable>
+{
+public:
+    explicit DisabledPermissionManagerImpl();
+
+    ErrCode INTERFACE_FUNC setPermissions(IPermissions* permissions) override;
+    ErrCode INTERFACE_FUNC isAuthorized(IUser* user, Permission permission, Bool* authorizedOut) override;
+    ErrCode INTERFACE_FUNC clone(IBaseObject** cloneOut) override;
+
+protected:
+    ErrCode INTERFACE_FUNC setParent(IPermissionManager* parentManager) override;
+    ErrCode INTERFACE_FUNC addChildManager(IPermissionManager* childManager) override;
+    ErrCode INTERFACE_FUNC removeChildManager(IPermissionManager* childManager) override;
+    ErrCode INTERFACE_FUNC getPermissions(IPermissions** permisisonConfigOut) override;
+    ErrCode INTERFACE_FUNC updateInheritedPermissions() override;
 };
 
 END_NAMESPACE_OPENDAQ

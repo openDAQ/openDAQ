@@ -40,6 +40,7 @@ set(SRC_Cpp version.cpp
             struct_builder_impl.cpp
             enumeration_impl.cpp
             enumeration_type_impl.cpp
+            explicit_inst.cpp
 )
 
 set(SRC_PublicHeaders

@@ -200,6 +200,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<IString>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

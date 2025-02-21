@@ -2465,6 +2465,8 @@ typename InterfaceToSmartPtr<Intf>::SmartPtr createWithImplementation(Params&&..
     return SmartPtr(intf);
 }
 
+extern template class ObjectPtr<IBaseObject>;
+
 END_NAMESPACE_OPENDAQ
 
 namespace std
@@ -2484,3 +2486,4 @@ namespace std
         }
     };
 }
+

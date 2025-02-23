@@ -35,6 +35,7 @@
 #include <opendaq/signal_errors.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/event_packet_utils.h>
+#include <opendaq/mem_pool_allocator.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -51,6 +52,10 @@ template <typename TInterface, typename... Interfaces>
 class SignalBase;
 
 using SignalImpl = SignalBase<ISignalConfig>;
+
+using TempConnectionsAllocator = detail::MemPoolAllocator<ConnectionPtr>;
+using TempConnectionsMemPool = detail::StaticMemPool<ConnectionPtr, 8>;
+using TempConnections = std::vector<ConnectionPtr, TempConnectionsAllocator>;
 
 template <typename TInterface, typename... Interfaces>
 class SignalBase : public ComponentImpl<TInterface, ISignalEvents, ISignalPrivate, Interfaces...>
@@ -153,12 +158,12 @@ private:
     void setKeepLastPacket();
     TypePtr addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
                                         const DataDescriptorPtr& descriptor) const;
-    void buildTempConnections(std::vector<ConnectionPtr>& tempConnections);
+    void buildTempConnections(TempConnections& tempConnections);
     void checkKeepLastPacket(const PacketPtr& packet);
-    void enqueuePacketToConnections(const PacketPtr& packet, const std::vector<ConnectionPtr>& tempConnections);
-    void enqueuePacketToConnections(PacketPtr&& packet, const std::vector<ConnectionPtr>& tempConnections);
-    void enqueuePacketsToConnections(const ListPtr<IPacket>& packets, const std::vector<ConnectionPtr>& tempConnections);
-    void enqueuePacketsToConnections(ListPtr<IPacket>&& packets, const std::vector<ConnectionPtr>& tempConnections);
+    void enqueuePacketToConnections(const PacketPtr& packet, const TempConnections& tempConnections);
+    void enqueuePacketToConnections(PacketPtr&& packet, const TempConnections& tempConnections);
+    void enqueuePacketsToConnections(const ListPtr<IPacket>& packets, const TempConnections& tempConnections);
+    void enqueuePacketsToConnections(ListPtr<IPacket>&& packets, const TempConnections& tempConnections);
 
     template <class Packet>
     bool keepLastPacketAndEnqueue(Packet&& packet);
@@ -638,7 +643,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getConnections(IList** connection
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::buildTempConnections(std::vector<ConnectionPtr>& tempConnections)
+void SignalBase<TInterface, Interfaces...>::buildTempConnections(TempConnections& tempConnections)
 {
     tempConnections.reserve(connections.size());
     for (const auto& connection : connections)
@@ -660,14 +665,14 @@ void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr&
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(const PacketPtr& packet, const std::vector<ConnectionPtr>& tempConnections)
+void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(const PacketPtr& packet, const TempConnections& tempConnections)
 {
     for (const auto& connection : tempConnections)
         connection.enqueue(packet);
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr&& packet, const std::vector<ConnectionPtr>& tempConnections)
+void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr&& packet, const TempConnections& tempConnections)
 {
     if (tempConnections.empty())
         return;
@@ -684,7 +689,7 @@ void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     const ListPtr<IPacket>& packets,
-    const std::vector<ConnectionPtr>& tempConnections)
+    const TempConnections& tempConnections)
 {
     for (const auto& connection : tempConnections)
         connection.enqueueMultiple(packets);
@@ -693,7 +698,7 @@ void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     ListPtr<IPacket>&& packets,
-    const std::vector<ConnectionPtr>& tempConnections)
+    const TempConnections& tempConnections)
 {
     if (tempConnections.empty())
         return;
@@ -711,7 +716,8 @@ template <typename TInterface, typename... Interfaces>
 template <class Packet>
 bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueue(Packet&& packet)
 {
-    std::vector<ConnectionPtr> tempConnections;
+    TempConnectionsMemPool memPool;
+    TempConnections tempConnections{TempConnectionsAllocator(memPool)};
 
     {
         auto lock = this->getAcquisitionLock();
@@ -732,7 +738,8 @@ template <typename TInterface, typename... Interfaces>
 template <class ListOfPackets>
 bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueueMultiple(ListOfPackets&& packets)
 {
-    std::vector<ConnectionPtr> tempConnections;
+    TempConnectionsMemPool memPool;
+    TempConnections tempConnections{TempConnectionsAllocator(memPool)};
 
     {
         size_t cnt = packets.getCount();

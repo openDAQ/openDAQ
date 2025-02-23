@@ -261,7 +261,10 @@ TEST(SignalConverter, subscribedDataSignal)
     signalParams[bsp::META_DEFINITION][bsp::META_POSTSCALING][bsp::META_SCALE] = 2.0;
     signalParams[bsp::META_DEFINITION][bsp::META_POSTSCALING][bsp::META_POFFSET] = 3.0;
 
-    result = subscribedSignal.processSignalMetaInformation(method, signalParams);
+    std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(signalParams);
+    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+
+    result = subscribedSignal.processSignalMetaInformation(method, signalParamsToParse);
     ASSERT_EQ(result, 0);
 
     subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
@@ -313,7 +316,10 @@ TEST(SignalConverter, subscribedBitfieldSignal)
         bsp::DATA_TYPE_UINT64;
     signalParams[bsp::META_DEFINITION][bsp::META_RULE] = bsp::META_RULETYPE_CONSTANT;
 
-    result = subscribedSignal.processSignalMetaInformation(method, signalParams);
+    std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(signalParams);
+    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+
+    result = subscribedSignal.processSignalMetaInformation(method, signalParamsToParse);
     ASSERT_EQ(result, 0);
     ASSERT_FALSE(subscribedSignal.isTimeSignal());
     auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
@@ -375,7 +381,11 @@ TEST(SignalConverter, subscribedTimeSignal)
     timeSignalParams[bsp::META_DEFINITION][bsp::META_ABSOLUTE_REFERENCE] = bsp::UNIX_EPOCH;
     timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_NUMERATOR] = 1;
     timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_DENOMINATOR] = ticksPerSecond;
-    result = subscribedSignal.processSignalMetaInformation(method, timeSignalParams);
+
+    std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(timeSignalParams);
+    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+
+    result = subscribedSignal.processSignalMetaInformation(method, timeSignalParamsToParse);
     ASSERT_EQ(result, 0);
     ASSERT_TRUE(subscribedSignal.isTimeSignal());
 
@@ -396,6 +406,81 @@ TEST(SignalConverter, subscribedTimeSignal)
     DictPtr<IString, IBaseObject> params = rule.getParameters();
     ASSERT_EQ(params.getCount(), 2u);
     uint64_t resultDelta = params.get("delta");
+    uint64_t resultStart = params.get("start");
+    ASSERT_EQ(resultDelta, linearDelta);
+    ASSERT_EQ(resultStart, 0);
+}
+
+TEST(SignalConverter, FloatDeltaOfLinearSignal)
+{
+    std::string method;
+    int result;
+    unsigned int signalNumber = 3;
+    std::string tableId = "table id";
+    std::string signalId = "signal id";
+    std::string memberName = "This is the time";
+
+    uint64_t ticksPerSecond = 10000000;
+    float linearDelta = 4194304.0f;
+    int32_t unitId = bsp::Unit::UNIT_ID_SECONDS;
+    std::string unitDisplayName = "s";
+
+    bsp::SubscribedSignal subscribedSignal(signalNumber, bsp::Logging::logCallback());
+
+    // some meta information is to be processed to have the signal described:
+    // -subscribe
+    // -signal
+    // -set the time
+    nlohmann::json subscribeParams;
+    method = bsp::META_METHOD_SUBSCRIBE;
+
+    subscribeParams[bsp::META_SIGNALID] = signalId;
+    result = subscribedSignal.processSignalMetaInformation(method, subscribeParams);
+    ASSERT_EQ(result, 0);
+
+    nlohmann::json timeSignalParams;
+    method = bsp::META_METHOD_SIGNAL;
+
+    timeSignalParams[bsp::META_TABLEID] = tableId;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_NAME] = memberName;
+
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_RULE] = bsp::META_RULETYPE_LINEAR;
+
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_RULETYPE_LINEAR][bsp::META_DELTA] = linearDelta;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_DATATYPE] = bsp::DATA_TYPE_REAL32;
+
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_UNIT][bsp::META_UNIT_ID] = unitId;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_UNIT][bsp::META_DISPLAY_NAME] = unitDisplayName;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_UNIT][bsp::META_QUANTITY] = bsp::META_TIME;
+
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_ABSOLUTE_REFERENCE] = bsp::UNIX_EPOCH;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_NUMERATOR] = 1;
+    timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_DENOMINATOR] = ticksPerSecond;
+
+    std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(timeSignalParams);
+    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+
+    result = subscribedSignal.processSignalMetaInformation(method, timeSignalParamsToParse);
+    ASSERT_EQ(result, 0);
+    ASSERT_TRUE(subscribedSignal.isTimeSignal());
+
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
+    ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
+
+    ASSERT_EQ(dataDescriptor.getSampleType(), daq::SampleType::Float32);
+
+    auto unit = dataDescriptor.getUnit();
+    ASSERT_TRUE(unit.assigned());
+    ASSERT_EQ(unit.getId(), unitId);
+    ASSERT_EQ(unit.getSymbol(), unitDisplayName);
+
+    auto rule = dataDescriptor.getRule();
+    ASSERT_TRUE(rule.assigned());
+    ASSERT_EQ(daq::DataRuleType::Linear, rule.getType());
+    DictPtr<IString, IBaseObject> params = rule.getParameters();
+    ASSERT_EQ(params.getCount(), 2u);
+    float resultDelta = params.get("delta");
     uint64_t resultStart = params.get("start");
     ASSERT_EQ(resultDelta, linearDelta);
     ASSERT_EQ(resultStart, 0);

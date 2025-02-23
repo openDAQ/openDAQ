@@ -535,37 +535,60 @@ BaseConstantSignalPtr OutputConstValueSignal::createSignalStream(
 
     const auto signalId = signal.getGlobalId();
 
+    const auto lastValue = signal.getLastValue();
+    nlohmann::json defaultStartValue(nullptr);
+
     switch (sampleType)
     {
         case daq::SampleType::Int8:
-            constStream = std::make_shared<ConstantSignal<int8_t>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<int8_t>(lastValue.asPtr<IInteger>());
+            constStream = std::make_shared<ConstantSignal<int8_t>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::UInt8:
-            constStream = std::make_shared<ConstantSignal<uint8_t>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<uint8_t>(lastValue.asPtr<IInteger>());
+            constStream = std::make_shared<ConstantSignal<uint8_t>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::Int16:
-            constStream = std::make_shared<ConstantSignal<int16_t>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<int16_t>(lastValue.asPtr<IInteger>());
+            constStream = std::make_shared<ConstantSignal<int16_t>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::UInt16:
-            constStream = std::make_shared<ConstantSignal<uint16_t>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<uint16_t>(lastValue.asPtr<IInteger>());
+            constStream = std::make_shared<ConstantSignal<uint16_t>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::Int32:
-            constStream = std::make_shared<ConstantSignal<int32_t>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<int32_t>(lastValue.asPtr<IInteger>());
+            constStream = std::make_shared<ConstantSignal<int32_t>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::UInt32:
-            constStream = std::make_shared<ConstantSignal<uint32_t>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<uint32_t>(lastValue.asPtr<IInteger>());
+            constStream = std::make_shared<ConstantSignal<uint32_t>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::Int64:
-            constStream = std::make_shared<ConstantSignal<int64_t>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<int64_t>(lastValue.asPtr<IInteger>());
+            constStream = std::make_shared<ConstantSignal<int64_t>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::UInt64:
-            constStream = std::make_shared<ConstantSignal<uint64_t>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<uint64_t>(lastValue.asPtr<IInteger>());
+            constStream = std::make_shared<ConstantSignal<uint64_t>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::Float32:
-            constStream = std::make_shared<ConstantSignal<float>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<float>(lastValue.asPtr<IFloat>());
+            constStream = std::make_shared<ConstantSignal<float>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::Float64:
-            constStream = std::make_shared<ConstantSignal<double>>(signalId, tableId, *writer, logCb);
+            if (lastValue.assigned())
+                defaultStartValue = static_cast<double>(lastValue.asPtr<IFloat>());
+            constStream = std::make_shared<ConstantSignal<double>>(signalId, tableId, *writer, defaultStartValue, logCb);
             break;
         case daq::SampleType::ComplexFloat32:
         case daq::SampleType::ComplexFloat64:

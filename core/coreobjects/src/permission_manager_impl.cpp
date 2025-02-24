@@ -16,6 +16,13 @@ PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
     setParent(parent);
 }
 
+PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent, const PermissionsPtr& defaultPermissions)
+{
+    localPermissions = defaultPermissions;
+    if (parent.assigned())
+        setParent(parent);
+}
+
 PermissionManagerImpl::~PermissionManagerImpl()
 {
     if (const auto parent = getParentManager(); parent.assigned())
@@ -28,19 +35,23 @@ PermissionManagerImpl::~PermissionManagerImpl()
 ErrCode INTERFACE_FUNC PermissionManagerImpl::setPermissions(IPermissions* permissions)
 {
     localPermissions = permissions;
-    auto builder = PermissionsBuilder();
 
     if (localPermissions.getInherited())
     {
+        auto builder = PermissionsBuilder();
         if (const auto parent = getParentManager(); parent.assigned())
         {
             const auto parentConfig = parent.getPermissions();
             builder.inherit(true).extend(parentConfig);
         }
-    }
 
-    builder.extend(localPermissions);
-    this->permissions = builder.build();
+        builder.extend(localPermissions);
+        this->permissions = builder.build();
+    }
+    else
+    {
+        this->permissions = localPermissions;
+    }
 
     updateChildPermissions();
     return OPENDAQ_SUCCESS;

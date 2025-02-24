@@ -39,8 +39,10 @@
 #include <coreobjects/errors.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+// TODO: Add factory instead of impl include
+#include "permission_manager_impl.h"
 
+BEGIN_NAMESPACE_OPENDAQ
 namespace details
 {
     static const std::unordered_map<IntfID, CoreType> intfIdToCoreTypeMap = {
@@ -67,6 +69,9 @@ namespace details
 
         return intfIdToCoreTypeMap.at(intfID);
     }
+
+    static const auto defaultPermissions =
+        PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
 }
 
 class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
@@ -306,11 +311,7 @@ public:
 
     void initDefaultPermissionManager()
     {
-        const auto defaultPermissions =
-            PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-
-        defaultPermissionManager = PermissionManager();
-        defaultPermissionManager.setPermissions(defaultPermissions);
+        defaultPermissionManager = createWithImplementation<IPermissionManager, PermissionManagerImpl>(nullptr, details::defaultPermissions);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override

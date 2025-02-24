@@ -2,7 +2,6 @@
 #include <coretypes/validation.h>
 #include <coreobjects/permissions_impl.h>
 #include <coreobjects/permission_mask_builder_ptr.h>
-#include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/permissions_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -24,7 +23,9 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::assign(IString* groupId, IPermiss
     OPENDAQ_PARAM_NOT_NULL(groupId);
 
     Int permissionFlags;
-    permissions->build(&permissionFlags);
+    ErrCode err = permissions->build(&permissionFlags);
+    if (OPENDAQ_FAILED(err))
+        return err;
 
     assign(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;
@@ -36,7 +37,9 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::allow(IString* groupId, IPermissi
     OPENDAQ_PARAM_NOT_NULL(groupId);
 
     Int permissionFlags;
-    permissions->build(&permissionFlags);
+    ErrCode err = permissions->build(&permissionFlags);
+    if (OPENDAQ_FAILED(err))
+        return err;
 
     allow(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;
@@ -48,7 +51,9 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::deny(IString* groupId, IPermissio
     OPENDAQ_PARAM_NOT_NULL(groupId);
 
     Int permissionFlags;
-    permissions->build(&permissionFlags);
+    ErrCode err = permissions->build(&permissionFlags);
+    if (OPENDAQ_FAILED(err))
+        return err;
 
     deny(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;

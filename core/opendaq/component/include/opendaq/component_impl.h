@@ -58,7 +58,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
 
-namespace detail
+namespace permissions
 {
     static const auto DefaultComponentPermissions = PermissionsBuilder().inherit(true).build();
 }
@@ -253,7 +253,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 
     if (parent.assigned())
     {
-        this->permissionManager.setPermissions(detail::DefaultComponentPermissions);
+        this->permissionManager.setPermissions(permissions::DefaultComponentPermissions);
         const auto parentManager = parent.getPermissionManager();
         this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
     }

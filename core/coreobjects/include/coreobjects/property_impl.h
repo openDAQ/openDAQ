@@ -67,7 +67,10 @@ namespace details
 
         return intfIdToCoreTypeMap.at(intfID);
     }
+}
 
+namespace permissions
+{
     static const auto DefaultPermissions =
         PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
 }
@@ -82,8 +85,6 @@ protected:
         , readOnly(false)
     {
         propPtr = this->borrowPtr<PropertyPtr>();
-
-        initDefaultPermissionManager();
     }
 
 public:
@@ -117,7 +118,8 @@ public:
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 
-        initDefaultPermissionManager();
+        if (this->defaultValue.assigned() && this->defaultValue.supportsInterface<IPropertyObject>())
+            initDefaultPermissionManager();
         checkErrorInfo(validateDuringConstruction());
     }
 
@@ -220,6 +222,7 @@ public:
 
         if (this->defaultValue.assigned())
         {
+            initDefaultPermissionManager();
             auto defaultValueObj = this->defaultValue.asPtr<IPropertyObject>();
             defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(this->defaultPermissionManager);
         }
@@ -310,7 +313,7 @@ public:
     void initDefaultPermissionManager()
     {
         defaultPermissionManager = PermissionManager();
-        defaultPermissionManager.setPermissions(details::DefaultPermissions);
+        defaultPermissionManager.setPermissions(permissions::DefaultPermissions);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override

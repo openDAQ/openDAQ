@@ -11,14 +11,17 @@ PermissionsImpl::PermissionsImpl()
 }
 
 PermissionsImpl::PermissionsImpl(Bool inherited,
-                                 const DictPtr<IString, Int>& allowed,
-                                 const DictPtr<IString, Int>& denied,
-                                 const DictPtr<IString, Int>& assigned)
+                                 const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& allowed,
+                                 const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& denied,
+                                 const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& assigned)
     : inherited(inherited)
-    , allowed(cloneDict(allowed))
-    , denied(cloneDict(denied))
-    , assigned(cloneDict(assigned))
+    , allowed(Dict<IString, Int>())
+    , denied(Dict<IString, Int>())
+    , assigned(Dict<IString, Int>())
 {
+    CopyToTarget(allowed, this->allowed);
+    CopyToTarget(denied, this->denied);
+    CopyToTarget(assigned, this->assigned);
 }
 
 ErrCode INTERFACE_FUNC PermissionsImpl::getInherited(Bool* inherited)
@@ -53,14 +56,10 @@ ErrCode INTERFACE_FUNC PermissionsImpl::getAssigned(IDict** permissions)
     return OPENDAQ_SUCCESS;
 }
 
-DictPtr<IString, Int> PermissionsImpl::cloneDict(const DictPtr<IString, Int>& dict)
+void PermissionsImpl::CopyToTarget(const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& dict, DictPtr<IString, Int>& target)
 {
-    auto clone = Dict<IString, Int>();
-
     for (const auto& [key, val] : dict)
-        clone.set(key, val);
-
-    return clone;
+        target.set(key, val);
 }
 
 END_NAMESPACE_OPENDAQ

@@ -9,11 +9,17 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
-    : permissions(PermissionsBuilder().inherit(true).build())
-    , localPermissions(PermissionsBuilder().inherit(true).build())
+namespace detail
 {
-    setParent(parent);
+    static const auto DefaultPermissions = PermissionsBuilder().inherit(true).build();
+}
+
+PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
+    : permissions(detail::DefaultPermissions)
+    , localPermissions(detail::DefaultPermissions)
+{
+    if (parent.assigned())
+        setParent(parent);
 }
 
 PermissionManagerImpl::~PermissionManagerImpl()
@@ -28,19 +34,23 @@ PermissionManagerImpl::~PermissionManagerImpl()
 ErrCode INTERFACE_FUNC PermissionManagerImpl::setPermissions(IPermissions* permissions)
 {
     localPermissions = permissions;
-    auto builder = PermissionsBuilder();
 
     if (localPermissions.getInherited())
     {
+        auto builder = PermissionsBuilder();
         if (const auto parent = getParentManager(); parent.assigned())
         {
             const auto parentConfig = parent.getPermissions();
             builder.inherit(true).extend(parentConfig);
         }
-    }
 
-    builder.extend(localPermissions);
-    this->permissions = builder.build();
+        builder.extend(localPermissions);
+        this->permissions = builder.build();
+    }
+    else
+    {
+        this->permissions = localPermissions;
+    }
 
     updateChildPermissions();
     return OPENDAQ_SUCCESS;
@@ -85,7 +95,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::clone(IBaseObject** cloneOut)
 {
     PermissionManagerPtr cloneParent = getParentManager();
     auto manager = PermissionManager(cloneParent);
-    manager.setPermissions(PermissionsBuilder().inherit(localPermissions.getInherited()).extend(localPermissions).build());
+    manager.setPermissions(localPermissions);
     *cloneOut = manager.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }

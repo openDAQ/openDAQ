@@ -88,9 +88,10 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::build(IPermissions** configOut)
 void PermissionsBuilderImpl::assign(IString* groupId, Int permissionFlags)
 {
     StringPtr groupIdPtr = groupId;
-    assigned.insert(std::make_pair(groupIdPtr, permissionFlags));
-    allowed.insert(std::make_pair(groupIdPtr, permissionFlags));
-    denied.insert(std::make_pair(groupIdPtr, permissionFlags));
+
+    InsertOrReplace(groupIdPtr, permissionFlags, assigned);
+    InsertOrReplace(groupIdPtr, permissionFlags, allowed);
+    InsertOrReplace(groupIdPtr, 0, denied);
 }
 
 void PermissionsBuilderImpl::allow(IString* groupId, Int permissionFlags)
@@ -101,9 +102,9 @@ void PermissionsBuilderImpl::allow(IString* groupId, Int permissionFlags)
 
     allowMask |= permissionFlags;
     denyMask &= ~permissionFlags;
-
-    allowed.insert(std::make_pair(groupIdPtr, allowMask));
-    denied.insert(std::make_pair(groupIdPtr, denyMask));
+    
+    InsertOrReplace(groupIdPtr, denyMask, denied);
+    InsertOrReplace(groupIdPtr, allowMask, allowed);
 }
 
 void PermissionsBuilderImpl::deny(IString* groupId, Int permissionFlags)
@@ -114,9 +115,19 @@ void PermissionsBuilderImpl::deny(IString* groupId, Int permissionFlags)
 
     denyMask |= permissionFlags;
     allowMask &= ~permissionFlags;
-    
-    denied.insert(std::make_pair(groupIdPtr, denyMask));
-    allowed.insert(std::make_pair(groupIdPtr, allowMask));
+
+    InsertOrReplace(groupIdPtr, denyMask, denied);
+    InsertOrReplace(groupIdPtr, allowMask, allowed);
+}
+
+void PermissionsBuilderImpl::InsertOrReplace(const StringPtr& groupId,
+                                             Int permissionFlag,
+                                             std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& map)
+{
+    if (map.count(groupId))
+        map[groupId] = permissionFlag;
+    else
+        map.insert(std::make_pair(groupId, permissionFlag));
 }
 
 // Factory

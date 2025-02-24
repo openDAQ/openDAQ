@@ -39,6 +39,8 @@ private:
     void allow(IString* groupId, Int permissionFlags);
     void deny(IString* groupId, Int permissionFlags);
 
+    static void InsertOrReplace(const StringPtr& groupId, Int permissionFlag, std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& map);
+
     Bool inherited;
     
     std::unordered_map<StringPtr, Int, StringHash, StringEqualTo> allowed;

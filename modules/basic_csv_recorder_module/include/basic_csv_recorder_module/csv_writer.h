@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 
 #include <opendaq/opendaq.h>
 
@@ -75,7 +76,7 @@ class CsvWriter
          */
         void headers(const char *domainName, const char *valueName)
         {
-            file << domainName << ',' << valueName << '\n';
+            file << quoteHeader(domainName) << ',' << quoteHeader(valueName) << '\n';
         }
 
         /*!
@@ -102,6 +103,28 @@ class CsvWriter
         }
 
     private:
+
+        /*!
+         * @brief Quotes a header string by enclosing it in double-quotes.
+         *
+         * Double-quotes within the @p header itself are escaped by replacing them with two
+         * double-quotes.
+         *
+         * @param header The string to quote.
+         * @return The quoted string.
+         */
+        std::string quoteHeader(const std::string& header)
+        {
+            std::ostringstream quoted;
+            quoted << '"';
+            for (const auto& ch : header)
+                if (ch == '"')
+                    quoted << "\"\"";
+                else
+                    quoted << ch;
+            quoted << '"';
+            return quoted.str();
+        }
 
         std::ofstream file;
 };

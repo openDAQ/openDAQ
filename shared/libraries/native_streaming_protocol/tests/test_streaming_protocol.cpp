@@ -739,6 +739,92 @@ TEST_P(StreamingProtocolTest, SendDataPacket)
     }
 }
 
+TEST_P(StreamingProtocolTest, SendMultiplePackets)
+{
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor());
+    auto serverDataPackets = List<IPacket>(DataPacket(valueDescriptor, 100, 100),
+                                           DataPacket(valueDescriptor, 100, 200),
+                                           DataPacket(valueDescriptor, 100, 300),
+                                           DataPacket(valueDescriptor, 100, 400));
+    auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
+
+    auto sentDataPackets = List<IPacket>();
+    using ClientReceivedPackets = std::tuple<StringPtr, ListPtr<IPacket>>;
+    using ClientReceivedPacketsPromise = std::promise<ClientReceivedPackets>;
+    using ClientReceivedPacketsFuture = std::future<ClientReceivedPackets>;
+    std::vector<std::shared_ptr<ClientReceivedPacketsPromise>> receivedPacketPromises;
+    std::vector<std::shared_ptr<ClientReceivedPacketsFuture>> receivedPacketFutures;
+
+    startServer(List<ISignal>(serverSignal), serverEventPacket);
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+        auto clientSignalStringId = std::get<0>(client.signalAvailableFuture.get());
+
+        client.clientHandler->subscribeSignal(clientSignalStringId);
+        ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+    }
+
+    ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
+
+    for (auto& client : clients)
+    {
+        // wait for event packet
+        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+        auto [signalId, packet] = client.packetReceivedFuture.get();
+        ASSERT_EQ(signalId, serverSignal.getGlobalId());
+        ASSERT_EQ(packet, serverEventPacket);
+
+        ListPtr<IPacket> receivedDataPackets = List<IPacket>();
+        // create received packets future / promise
+        auto packetsReceivedPromise = std::make_shared< ClientReceivedPacketsPromise >();
+        auto packetsReceivedFuture = std::make_shared< ClientReceivedPacketsFuture >(packetsReceivedPromise->get_future());
+        receivedPacketFutures.push_back(packetsReceivedFuture);
+
+        client.packetHandler =
+            [packetsReceivedPromise = packetsReceivedPromise, receivedDataPackets = receivedDataPackets]
+            (const StringPtr& signalStringId, const PacketPtr& packet) mutable
+        {
+            receivedDataPackets.pushBack(packet);
+            if (receivedDataPackets.getCount() == 4)
+                packetsReceivedPromise->set_value({signalStringId, receivedDataPackets});
+        };
+
+        client.clientHandler->setStreamingHandlers(
+            client.signalAvailableHandler,
+            client.signalUnavailableHandler,
+            client.packetHandler,
+            client.signalSubscriptionAckHandler,
+            client.connectionStatusChangedHandler,
+            client.streamingInitDoneHandler
+        );
+    }
+
+    // process and then send all data packets within a signle transport operation
+    for (auto&& serverDataPacket : serverDataPackets)
+    {
+        sentDataPackets.pushBack(serverDataPacket);
+        serverHandler->processStreamingPacket(serverSignal.getGlobalId().toStdString(), std::move(serverDataPacket));
+    }
+    serverHandler->scheduleStreamingWriteTasks();
+
+    for (size_t i = 0; i < clients.size(); ++i)
+    {
+        // wait for all data packets received
+        ASSERT_EQ(receivedPacketFutures[i]->wait_for(timeout), std::future_status::ready);
+        auto [signalId, packets] = receivedPacketFutures[i]->get();
+        ASSERT_EQ(signalId, serverSignal.getGlobalId());
+        ASSERT_EQ(sentDataPackets, packets);
+    }
+}
+
 TEST_P(StreamingProtocolTest, AddNotPublicSignal)
 {
     startServer(List<ISignal>());

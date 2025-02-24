@@ -91,6 +91,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<INumber>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

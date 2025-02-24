@@ -1309,18 +1309,41 @@ ObjectPtr<T>::ObjectPtr(const TComPtr& unknown)
     checkErrorInfo(err);
 }
 
+template<typename U,
+         std::enable_if_t<std::is_same_v<U, IString>, int> = 0>
+static constexpr inline IString* createObjectFromString(ConstCharPtr value)
+{
+    return String_Create(value);
+}
+
+template<typename U,
+         std::enable_if_t<std::is_same_v<U, IString>, int> = 0>
+static constexpr inline IString* createObjectFromString(const wchar_t* value)
+{
+    return String_Create(CoreTypeHelper<std::wstring>::wstringToString(value).c_str());
+}
+
+template<typename U,
+         std::enable_if_t<!std::is_same_v<U, IString>, int> = 0>
+static constexpr inline U* createObjectFromString(const void* value)
+{
+    return nullptr;
+}
+
 template <class T>
 ObjectPtr<T>::ObjectPtr(const wchar_t* value)
     : borrowed(false)
 {
-    object = String_Create(CoreTypeHelper<std::wstring>::wstringToString(value).c_str());
+//    object = String_Create(CoreTypeHelper<std::wstring>::wstringToString(value).c_str());
+    object = createObjectFromString<T>(value);
 }
 
 template <class T>
 ObjectPtr<T>::ObjectPtr(ConstCharPtr value)
     : borrowed(false)
 {
-    object = String_Create(value);
+//    object = String_Create(value);
+    object = createObjectFromString<T>(value);
 }
 
 template <class T>
@@ -1565,7 +1588,8 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(const wchar_t* value)
 {
     if (object && !borrowed)
         object->releaseRef();
-    object = String_Create(CoreTypeHelper<std::wstring>::wstringToString(value).c_str());
+    //object = String_Create(CoreTypeHelper<std::wstring>::wstringToString(value).c_str());
+    object = createObjectFromString<T>(value);
     borrowed = false;
     return *this;
 }
@@ -1575,7 +1599,8 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(const char* value)
 {
     if (object && !borrowed)
         object->releaseRef();
-    object = String_Create(value);
+    //object = String_Create(value);
+    object = createObjectFromString<T>(value);
     borrowed = false;
     return *this;
 }

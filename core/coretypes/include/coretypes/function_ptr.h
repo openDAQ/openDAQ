@@ -175,4 +175,6 @@ ErrCode wrapHandlerReturn(FunctionPtr handler, TReturn& output, Params... params
     }
 }
 
+extern template class ObjectPtr<IFunction>;
+
 END_NAMESPACE_OPENDAQ

@@ -199,6 +199,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<IEvent>;
+
 /*!
  * @}
  */

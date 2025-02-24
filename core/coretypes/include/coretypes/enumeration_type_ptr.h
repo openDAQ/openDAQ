@@ -176,6 +176,8 @@ public:
     }
 };
 
+extern template class GenericTypePtr<IEnumerationType>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

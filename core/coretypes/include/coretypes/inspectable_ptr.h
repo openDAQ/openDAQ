@@ -83,6 +83,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<IInspectable>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

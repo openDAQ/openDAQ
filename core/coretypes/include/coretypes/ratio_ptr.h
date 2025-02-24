@@ -217,6 +217,8 @@ protected:
     }
 };
 
+extern template class ObjectPtr<IRatio>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

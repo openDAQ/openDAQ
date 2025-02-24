@@ -97,6 +97,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<IEventHandler>;
+
 /*!
  * @}
  */

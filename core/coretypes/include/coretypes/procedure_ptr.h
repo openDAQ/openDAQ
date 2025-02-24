@@ -117,6 +117,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<IProcedure>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

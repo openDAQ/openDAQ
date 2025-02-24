@@ -69,6 +69,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<IDeserializer>;
+
 /*!
  * @}
  */

@@ -80,6 +80,8 @@ public:
 protected:
 };
 
+extern template class ObjectPtr<IIterable>;
+
 /*!@}*/
 
 template <class U, class TValuePtr>

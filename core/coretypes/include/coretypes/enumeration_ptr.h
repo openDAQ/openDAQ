@@ -203,6 +203,8 @@ private:
     }
 };
 
+extern template class ObjectPtr<IEnumeration>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

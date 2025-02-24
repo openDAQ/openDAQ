@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <coretypes/objectptr.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/complex_number.h>
 
@@ -46,33 +47,33 @@ struct InterfaceToSmartPtr<IComplexNumber>
  * ComplexNumberPtr ComplexNumber(ComplexFloat64* value)
  * @endcode
  */
-class ComplexNumberPtr : public daq::ObjectPtr<IComplexNumber>
+class ComplexNumberPtr : public ObjectPtr<IComplexNumber>
 {
 public:
-    using daq::ObjectPtr<IComplexNumber>::ObjectPtr;
+    using ObjectPtr<IComplexNumber>::ObjectPtr;
 
     ComplexNumberPtr()
-        : daq::ObjectPtr<IComplexNumber>()
+        : ObjectPtr<IComplexNumber>()
     {
     }
 
-    ComplexNumberPtr(daq::ObjectPtr<IComplexNumber>&& ptr)
-        : daq::ObjectPtr<IComplexNumber>(std::move(ptr))
+    ComplexNumberPtr(ObjectPtr<IComplexNumber>&& ptr)
+        : ObjectPtr<IComplexNumber>(std::move(ptr))
     {
     }
 
-    ComplexNumberPtr(const daq::ObjectPtr<IComplexNumber>& ptr)
-        : daq::ObjectPtr<IComplexNumber>(ptr)
+    ComplexNumberPtr(const ObjectPtr<IComplexNumber>& ptr)
+        : ObjectPtr<IComplexNumber>(ptr)
     {
     }
 
     ComplexNumberPtr(const ComplexNumberPtr& other)
-        : daq::ObjectPtr<IComplexNumber>(other)
+        : ObjectPtr<IComplexNumber>(other)
     {
     }
 
     ComplexNumberPtr(ComplexNumberPtr&& other) noexcept
-        : daq::ObjectPtr<IComplexNumber>(std::move(other))
+        : ObjectPtr<IComplexNumber>(std::move(other))
     {
     }
 
@@ -81,7 +82,7 @@ public:
         if (this == &other)
             return *this;
 
-        daq::ObjectPtr<IComplexNumber>::operator=(other);
+        ObjectPtr<IComplexNumber>::operator=(other);
         return *this;
     }
 
@@ -90,7 +91,7 @@ public:
         if (this == std::addressof(other))
             return *this;
 
-        daq::ObjectPtr<IComplexNumber>::operator=(std::move(other));
+        ObjectPtr<IComplexNumber>::operator=(std::move(other));
         return *this;
     }
 
@@ -139,10 +140,12 @@ private:
     void validateHasObject() const
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            throw InvalidParameterException();
     }
 
 };
+
+extern template class ObjectPtr<IComplexNumber>;
 
 /*!@}*/
 

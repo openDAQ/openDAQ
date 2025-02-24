@@ -739,7 +739,7 @@ TEST_P(StreamingProtocolTest, SendDataPacket)
     }
 }
 
-TEST_P(StreamingProtocolTest, SendMultiplePackets)
+TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor());

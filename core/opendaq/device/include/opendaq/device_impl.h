@@ -1086,7 +1086,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getRecursiveLockGuard(IList* l
     OPENDAQ_PARAM_NOT_NULL(lockGuardList);
     
     LockGuardPtr lockGuard;
-    ErrCode errCode = getLockGuard(&lockGuard);
+    ErrCode errCode = this->getLockGuard(&lockGuard);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
     

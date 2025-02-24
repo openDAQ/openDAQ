@@ -40,7 +40,7 @@ public:
     ErrCode INTERFACE_FUNC getAssigned(IDict** permissions) override;
 
 private:
-    static void cloneDict(const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& dict, DictPtr<IString, Int>& target);
+    static void CopyToTarget(const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& dict, DictPtr<IString, Int>& target);
 
     Bool inherited;
     DictPtr<IString, Int> allowed;

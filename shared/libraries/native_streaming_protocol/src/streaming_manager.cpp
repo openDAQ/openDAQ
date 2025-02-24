@@ -107,7 +107,7 @@ void StreamingManager::consumeAllPacketBuffers(const std::string& clientId,
     if (const auto it = streamingClientsIds.find(clientId); it != streamingClientsIds.end())
     {
         auto& packetStreamingServerPtr = packetStreamingServers.at(clientId);
-        tasks.reserve(3 * packetStreamingServerPtr->getAvailableBuffersCount());
+        tasks.reserve(2 * packetStreamingServerPtr->getAvailableBuffersCount());
 
         while (auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
         {

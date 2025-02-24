@@ -11,12 +11,12 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace detail
 {
-    static const auto defaultPermissions = PermissionsBuilder().inherit(true).build();
+    static const auto DefaultPermissions = PermissionsBuilder().inherit(true).build();
 }
 
 PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
-    : permissions(detail::defaultPermissions)
-    , localPermissions(detail::defaultPermissions)
+    : permissions(detail::DefaultPermissions)
+    , localPermissions(detail::DefaultPermissions)
 {
     if (parent.assigned())
         setParent(parent);
@@ -95,7 +95,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::clone(IBaseObject** cloneOut)
 {
     PermissionManagerPtr cloneParent = getParentManager();
     auto manager = PermissionManager(cloneParent);
-    manager.setPermissions(PermissionsBuilder().inherit(localPermissions.getInherited()).extend(localPermissions).build());
+    manager.setPermissions(localPermissions);
     *cloneOut = manager.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }

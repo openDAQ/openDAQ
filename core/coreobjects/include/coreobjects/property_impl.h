@@ -68,7 +68,7 @@ namespace details
         return intfIdToCoreTypeMap.at(intfID);
     }
 
-    static const auto defaultPermissions =
+    static const auto DefaultPermissions =
         PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
 }
 
@@ -310,7 +310,7 @@ public:
     void initDefaultPermissionManager()
     {
         defaultPermissionManager = PermissionManager();
-        defaultPermissionManager.setPermissions(details::defaultPermissions);
+        defaultPermissionManager.setPermissions(details::DefaultPermissions);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override

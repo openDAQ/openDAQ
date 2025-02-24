@@ -465,7 +465,6 @@ void NativeStreamingServerImpl::startReadThread()
         {
             std::scoped_lock lock(readersSync);
 
-#if 1
             bool hasPacketsToSend = false;
             for (const auto& [_, signalGlobalId, reader] : signalReaders)
             {
@@ -479,19 +478,6 @@ void NativeStreamingServerImpl::startReadThread()
             }
             if (hasPacketsToSend)
                 serverHandler->scheduleStreamingWriteTasks();
-#else
-            for (const auto& [_, signalGlobalId, reader] : signalReaders)
-            {
-                {
-                    PacketPtr packet = reader.read();
-                    while (packet.assigned())
-                    {
-                        serverHandler->sendPacket(signalGlobalId, std::move(packet));
-                        packet = reader.read();
-                    }
-                }
-            }
-#endif
         }
 
         std::this_thread::sleep_for(readThreadSleepTime);

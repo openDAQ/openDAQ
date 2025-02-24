@@ -9,9 +9,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 PermissionsBuilderImpl::PermissionsBuilderImpl()
     : inherited(false)
-    , allowed(Dict<IString, Int>())
-    , denied(Dict<IString, Int>())
-    , assigned(Dict<IString, Int>())
 {
 }
 
@@ -23,8 +20,11 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::inherit(Bool inherit)
 
 ErrCode INTERFACE_FUNC PermissionsBuilderImpl::assign(IString* groupId, IPermissionMaskBuilder* permissions)
 {
-    PermissionMaskBuilderPtr permissionsPtr = permissions;
-    const Int permissionFlags = permissionsPtr.build();
+    OPENDAQ_PARAM_NOT_NULL(permissions);
+    OPENDAQ_PARAM_NOT_NULL(groupId);
+
+    Int permissionFlags;
+    permissions->build(&permissionFlags);
 
     assign(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;
@@ -32,8 +32,11 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::assign(IString* groupId, IPermiss
 
 ErrCode INTERFACE_FUNC PermissionsBuilderImpl::allow(IString* groupId, IPermissionMaskBuilder* permissions)
 {
-    PermissionMaskBuilderPtr permissionsPtr = permissions;
-    const Int permissionFlags = permissionsPtr.build();
+    OPENDAQ_PARAM_NOT_NULL(permissions);
+    OPENDAQ_PARAM_NOT_NULL(groupId);
+
+    Int permissionFlags;
+    permissions->build(&permissionFlags);
 
     allow(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;
@@ -41,8 +44,11 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::allow(IString* groupId, IPermissi
 
 ErrCode INTERFACE_FUNC PermissionsBuilderImpl::deny(IString* groupId, IPermissionMaskBuilder* permissions)
 {
-    PermissionMaskBuilderPtr permissionsPtr = permissions;
-    const Int permissionFlags = permissionsPtr.build();
+    OPENDAQ_PARAM_NOT_NULL(permissions);
+    OPENDAQ_PARAM_NOT_NULL(groupId);
+
+    Int permissionFlags;
+    permissions->build(&permissionFlags);
 
     deny(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;
@@ -50,10 +56,10 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::deny(IString* groupId, IPermissio
 
 ErrCode INTERFACE_FUNC PermissionsBuilderImpl::extend(IPermissions* config)
 {
+    OPENDAQ_PARAM_NOT_NULL(config);
     const PermissionsPtr configPtr = config;
-    const auto assigned = configPtr.asPtr<IPermissionsInternal>().getAssigned();
 
-    for (const auto& [groupId, permissionMask] : assigned)
+    for (const auto& [groupId, permissionMask] : configPtr.asPtr<IPermissionsInternal>().getAssigned())
         assign(groupId, permissionMask);
 
     for (const auto& [groupId, permissionMask] : configPtr.getAllowed())
@@ -76,33 +82,36 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::build(IPermissions** configOut)
 
 void PermissionsBuilderImpl::assign(IString* groupId, Int permissionFlags)
 {
-    assigned.set(groupId, permissionFlags);
-    allowed.set(groupId, permissionFlags);
-    denied.set(groupId, 0);
+    StringPtr groupIdPtr = groupId;
+    assigned.insert(std::make_pair(groupIdPtr, permissionFlags));
+    allowed.insert(std::make_pair(groupIdPtr, permissionFlags));
+    denied.insert(std::make_pair(groupIdPtr, permissionFlags));
 }
 
 void PermissionsBuilderImpl::allow(IString* groupId, Int permissionFlags)
 {
-    Int allowMask = allowed.hasKey(groupId) ? (Int) allowed.get(groupId) : 0;
-    Int denyMask = denied.hasKey(groupId) ? (Int) denied.get(groupId) : 0;
+    StringPtr groupIdPtr = groupId;
+    Int allowMask = allowed.count(groupId) ? allowed.at(groupId) : 0;
+    Int denyMask = denied.count(groupId) ? denied.at(groupId) : 0;
 
     allowMask |= permissionFlags;
     denyMask &= ~permissionFlags;
 
-    allowed.set(groupId, allowMask);
-    denied.set(groupId, denyMask);
+    allowed.insert(std::make_pair(groupIdPtr, allowMask));
+    denied.insert(std::make_pair(groupIdPtr, denyMask));
 }
 
 void PermissionsBuilderImpl::deny(IString* groupId, Int permissionFlags)
 {
-    Int denyMask = denied.hasKey(groupId) ? (Int) denied.get(groupId) : 0;
-    Int allowMask = allowed.hasKey(groupId) ? (Int) allowed.get(groupId) : 0;
+    StringPtr groupIdPtr = groupId;
+    Int denyMask = denied.count(groupId) ? denied.at(groupId) : 0;
+    Int allowMask = allowed.count(groupId) ? allowed.at(groupId) : 0;
 
     denyMask |= permissionFlags;
     allowMask &= ~permissionFlags;
-
-    denied.set(groupId, denyMask);
-    allowed.set(groupId, allowMask);
+    
+    denied.insert(std::make_pair(groupIdPtr, denyMask));
+    allowed.insert(std::make_pair(groupIdPtr, allowMask));
 }
 
 // Factory

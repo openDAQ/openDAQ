@@ -29,7 +29,6 @@ class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IP
 {
 public:
     explicit PermissionManagerImpl(const PermissionManagerPtr& parent);
-    explicit PermissionManagerImpl(const PermissionManagerPtr& parent, const PermissionsPtr& defaultPermissions);
     ~PermissionManagerImpl();
 
     ErrCode INTERFACE_FUNC setPermissions(IPermissions* permissions) override;

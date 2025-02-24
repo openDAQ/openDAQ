@@ -9,16 +9,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
-    : permissions(PermissionsBuilder().inherit(true).build())
-    , localPermissions(PermissionsBuilder().inherit(true).build())
+namespace detail
 {
-    setParent(parent);
+    static const auto defaultPermissions = PermissionsBuilder().inherit(true).build();
 }
 
-PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent, const PermissionsPtr& defaultPermissions)
+PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
+    : permissions(detail::defaultPermissions)
+    , localPermissions(detail::defaultPermissions)
 {
-    localPermissions = defaultPermissions;
     if (parent.assigned())
         setParent(parent);
 }

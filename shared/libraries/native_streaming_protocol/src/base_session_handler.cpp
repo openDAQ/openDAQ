@@ -341,7 +341,7 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
 void BaseSessionHandler::sendPacketBuffer(PacketBufferPtr&& packetBuffer)
 {
     std::vector<WriteTask> tasks;
-    tasks.reserve(3);
+    tasks.reserve(2);
 
     auto deadlineTime =
         packetBuffer->timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
@@ -367,14 +367,21 @@ void BaseSessionHandler::schedulePacketBufferWriteTasks(std::vector<native_strea
 void BaseSessionHandler::createAndPushPacketBufferTasks(packet_streaming::PacketBufferPtr&& packetBuffer,
                                                         std::vector<native_streaming::WriteTask>& tasks)
 {
-    // create write task for packet buffer header
-    boost::asio::const_buffer packetBufferHeader(packetBuffer->packetHeader,
-                                                 packetBuffer->packetHeader->size);
-    WriteHandler packetBufferHeaderHandler = [packetBuffer]() {};
-    tasks.push_back(WriteTask(packetBufferHeader, packetBufferHeaderHandler));
+    size_t payloadSize = packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
+    if (payloadSize > TransportHeader::MAX_PAYLOAD_SIZE)
+    {
+        throw NativeStreamingProtocolException("Size of message payload exceeds limit");
+    }
 
-    size_t tasksAdded = 1;
-    size_t payloadSize = tasks.back().getBuffer().size();
+    auto transportHeader = TransportHeader(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
+    auto headersBuffer = std::make_shared<std::vector<char>>(TransportHeader::PACKED_HEADER_SIZE + packetBuffer->packetHeader->size);
+
+    // Copy each header into the contiguous buffer
+    std::memcpy(headersBuffer->data(), transportHeader.getPackedHeaderPtr(), TransportHeader::PACKED_HEADER_SIZE);
+    std::memcpy(headersBuffer->data() + TransportHeader::PACKED_HEADER_SIZE, packetBuffer->packetHeader, packetBuffer->packetHeader->size);
+    boost::asio::const_buffer headersTaskBuffer(headersBuffer->data(), headersBuffer->size());
+    WriteHandler headersHandler = [headersBuffer]() {};
+    tasks.push_back(WriteTask(headersTaskBuffer, headersHandler));
 
     if (packetBuffer->packetHeader->payloadSize > 0)
     {
@@ -383,18 +390,7 @@ void BaseSessionHandler::createAndPushPacketBufferTasks(packet_streaming::Packet
                                                       packetBuffer->packetHeader->payloadSize);
         WriteHandler packetBufferPayloadHandler = [packetBuffer]() {};
         tasks.push_back(WriteTask(packetBufferPayload, packetBufferPayloadHandler));
-
-        ++tasksAdded;
-        payloadSize += tasks.back().getBuffer().size();
     }
-
-    if (payloadSize > TransportHeader::MAX_PAYLOAD_SIZE)
-    {
-        throw NativeStreamingProtocolException("Size of message payload exceeds limit");
-    }
-
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
-    tasks.insert(tasks.end() - tasksAdded, writeHeaderTask);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

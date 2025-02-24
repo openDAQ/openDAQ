@@ -9,10 +9,13 @@ set(TEST_SOURCES test_factories.cpp
                  test_instance.cpp
                  test_core_events.cpp
                  test_config_provider.cpp
-                 test_access_control.cpp
                  test_module_callbacks.cpp
                  ${TEST_HEADERS}
 )
+
+if (OPENDAQ_ENABLE_ACCESS_CONTROL)
+    list(APPEND TEST_SOURCES test_access_control.cpp)
+endif()
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                        SOURCES

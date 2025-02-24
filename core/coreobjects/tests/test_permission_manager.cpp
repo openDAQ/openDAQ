@@ -279,3 +279,18 @@ TEST_F(PermissionManagerTest, AssignAddPermission)
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Execute));
 }
 
+TEST_F(PermissionManagerTest, CreateDisabledPermissionManager)
+{
+    auto admin = User("admin", "password", List<IString>("admin"));
+
+    auto permissionManager = DisabledPermissionManager();
+    permissionManager.setPermissions(nullptr);
+
+    ASSERT_TRUE(permissionManager.isAuthorized(admin, Permission::Read));
+    ASSERT_TRUE(permissionManager.isAuthorized(admin, Permission::Write));
+    ASSERT_TRUE(permissionManager.isAuthorized(admin, Permission::Execute));
+
+    ASSERT_TRUE(permissionManager.isAuthorized(nullptr, Permission::Read));
+    ASSERT_TRUE(permissionManager.isAuthorized(nullptr, Permission::Write));
+    ASSERT_TRUE(permissionManager.isAuthorized(nullptr, Permission::Execute));
+}

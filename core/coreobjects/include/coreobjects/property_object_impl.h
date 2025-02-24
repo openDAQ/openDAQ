@@ -408,7 +408,7 @@ private:
 
     StringPtr className;
     PropertyObjectClassPtr objectClass;
-    
+
     const std::string AnyReadEventName = "DAQ_AnyReadEvent";
     const std::string AnyWriteEventName = "DAQ_AnyWriteEvent";
 
@@ -501,15 +501,19 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     , updateCount(0)
     , coreEventMuted(true)
     , path("")
-    , permissionManager(PermissionManager())
     , className(nullptr)
     , objectClass(nullptr)
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+    this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(
         PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
+#else
+    this->permissionManager = DisabledPermissionManager();
+#endif
 
     PropertyValueEventEmitter readEmitter;
     PropertyValueEventEmitter writeEmitter;
@@ -2261,7 +2265,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnAnyProp
 {
     if (event == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
+
     *event = valueWriteEvents[AnyWriteEventName].addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -2271,7 +2275,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnAnyProp
 {
     if (event == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
-    
+
     *event = valueReadEvents[AnyReadEventName].addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }

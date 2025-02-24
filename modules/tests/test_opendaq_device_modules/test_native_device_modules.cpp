@@ -534,7 +534,12 @@ TEST_F(NativeDeviceModulesTest, PartialSerialization)
     ASSERT_TRUE(device.assigned());
 
     auto clientChannels = device.getChannelsRecursive();
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     ASSERT_EQ(clientChannels.getCount(), 1u);
+#else
+    ASSERT_EQ(clientChannels.getCount(), 2u);
+#endif
 }
 
 TEST_F(NativeDeviceModulesTest, PartialSerializationPropertyObjectClass)

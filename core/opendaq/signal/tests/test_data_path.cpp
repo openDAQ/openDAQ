@@ -10,6 +10,8 @@
 #include <opendaq/packet_factory.h>
 #include <thread>
 
+#include "opendaq/reader_factory.h"
+
 using namespace daq;
 using namespace testing;
 
@@ -159,6 +161,31 @@ TEST_F(DataPathTest, SendPacketPerformance)
     {
         signal.sendPacket(packet);
         connection.dequeue();
+    }
+} 
+
+TEST_F(DataPathTest, SendPacketAndPacketReaderPerformance)
+{
+    const auto ctx = NullContext();
+
+    const auto descriptor = DataDescriptorBuilder()
+                                .setSampleType(SampleType::Int64)
+                                .setRule(LinearDataRule(2, 6))
+                                .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
+                                .build();
+    const auto signal = SignalWithDescriptor(ctx, descriptor, nullptr, "sig");
+    signal.asPtr<ISignalPrivate>(true)->enableKeepLastValue(False);
+
+
+    const auto packetReader = PacketReader(signal);
+    const auto packet = DataPacket(descriptor, 100, 0).asPtr<IPacket>();
+
+    packetReader.read();
+
+    for (size_t i = 0; i < 10000000; ++i)
+    {
+        signal.sendPacket(packet);
+        packetReader.read();
     }
 }
 */

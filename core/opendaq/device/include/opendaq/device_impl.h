@@ -100,12 +100,19 @@ public:
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+
     ErrCode INTERFACE_FUNC lock() override;
     ErrCode INTERFACE_FUNC unlock() override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
+
     ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) override;
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
+
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
+
+    ErrCode INTERFACE_FUNC getAvailableOperationModes(IDict** availableOpModes) override;
+    ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -149,6 +156,11 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+
+    // IPropertyObjectInternal
+    ErrCode INTERFACE_FUNC getRecursiveLockGuard(IList* lockGuardList) override;
 protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
@@ -213,6 +225,8 @@ protected:
     virtual Bool onGetNetworkConfigurationEnabled();
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
+    virtual std::set<OperationModeType> onGetAvailableOperationModes();
+
     DevicePtr getParentDevice();
 
 private:
@@ -227,6 +241,7 @@ private:
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
+    OperationModeType operationMode;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -247,6 +262,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
               if (!this->coreEventMuted)
                   this->triggerCoreEvent(args);
           }))
+    , operationMode(OperationModeType::Operation)
 
 {
     this->defaultComponents.insert("Dev");
@@ -320,6 +336,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock();
 
     this->isRootDevice = true;
+    this->updateOperationMode(OperationModeType::Operation);
     return OPENDAQ_SUCCESS;
 }
 
@@ -1069,6 +1086,131 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getConnectionStatusContainer(I
 }
 
 template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getRecursiveLockGuard(IList* lockGuardList)
+{
+    OPENDAQ_PARAM_NOT_NULL(lockGuardList);
+    
+    LockGuardPtr lockGuard;
+    ErrCode errCode = this->getLockGuard(&lockGuard);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    
+    auto list = ListPtr<ILockGuard>::Borrow(lockGuardList);
+    list.pushBack(lockGuard);
+
+    for (const auto& component : this->components)
+    {
+        if (component == this->devices)
+            continue;
+
+        auto objProtected = component.template asPtrOrNull<IPropertyObjectInternal>(true);
+        if (!objProtected.assigned())
+            continue;
+        
+        errCode = objProtected->getRecursiveLockGuard(lockGuardList);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvailableOperationModes()
+{
+    return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
+}
+
+static std::string OperationModeTypeToString(OperationModeType mode)
+{
+    switch (mode)
+    {
+        case OperationModeType::Idle:
+            return "Idle";
+        case OperationModeType::Operation:
+            return "Operation";
+        case OperationModeType::SafeOperation:
+            return "SafeOperation";
+        default:
+            return "Unknown";
+    };
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(IDict** availableOpModes)
+{
+    OPENDAQ_PARAM_NOT_NULL(availableOpModes);
+
+    std::set<OperationModeType> modes;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
+    
+    auto modesDict = Dict<IString, IInteger>();
+    for (const auto& mode : modes)
+        modesDict.set(OperationModeTypeToString(mode), static_cast<Int>(mode));
+
+    *availableOpModes = modesDict.detach();
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType modeType)
+{
+    const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
+    if (OPENDAQ_SUCCEEDED(errCode))
+        this->operationMode = modeType;
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
+{
+    if (this->onGetAvailableOperationModes().count(modeType) == 0)
+        return OPENDAQ_IGNORED;
+
+    auto lockGuardList = List<ILockGuard>();
+    ErrCode errCode = this->getRecursiveLockGuard(lockGuardList);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    errCode = this->updateOperationMode(modeType);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    for (const auto& component : this->components)
+    {
+        if (component == this->devices)
+            continue;
+
+        auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+        if (!componentPrivate.assigned())
+            continue;
+
+        errCode = componentPrivate->updateOperationMode(modeType);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    if (includeSubDevices)
+    {
+        for (const DevicePtr & dev: this->devices.getItems())
+        {
+            errCode = dev->setOperationMode(modeType, includeSubDevices);
+            if (OPENDAQ_FAILED(errCode))
+                return errCode;
+        }
+    }
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(OperationModeType* modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+    *modeType = this->operationMode;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels)
 {
     for (const auto& item : folder.getItems(search::Any()))
@@ -1402,18 +1544,18 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
 
-    return daqTry(
-        [this, &configuration]() {
-            auto serializer = JsonSerializer(True);
+    return daqTry([this, &configuration]
+    {
+        auto serializer = JsonSerializer(True);
 
-            checkErrorInfo(this->serialize(serializer));
+        checkErrorInfo(this->serialize(serializer));
 
-            auto str = serializer.getOutput();
+        auto str = serializer.getOutput();
 
-            *configuration = str.detach();
+        *configuration = str.detach();
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <typename TInterface, typename ... Interfaces>

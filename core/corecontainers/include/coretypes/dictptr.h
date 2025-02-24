@@ -165,6 +165,16 @@ public:
      */
     ValuePtr get(const KeyPtr& key) const;
 
+
+    /*!
+     * @brief Gets the element with the specified key.
+     * @param key The key of the element to get.
+     * @return The element with the specified key.
+     *
+     * Returns the default value if the key does not exist.
+     */
+    ValuePtr getOrDefault(const KeyPtr& key, const ValuePtr& defaultValue = nullptr) const;
+
     /*!
      * @brief Gets the element with the specified key.
      * @param key The key of the element to get.
@@ -300,6 +310,23 @@ ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::get(const KeyPtr& key
 }
 
 template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
+ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getOrDefault(const KeyPtr& key, const ValuePtr& defaultValue) const
+{
+    if (!ObjectPtr<T>::object)
+        throw InvalidParameterException();
+
+    IBaseObject* obj;
+    ErrCode errCode = this->object->get(key, &obj);
+
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+        return defaultValue;
+
+    checkErrorInfo(errCode);
+
+    return ValuePtr(std::move(obj));
+}
+
+template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryGet(const KeyPtr& key, ValuePtr& value) const
 {
     if (!this->object)
@@ -314,8 +341,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryGet(const KeyPtr& key,
         return false;
     }
 
-    if (OPENDAQ_FAILED(errCode))
-        checkErrorInfo(errCode);
+    checkErrorInfo(errCode);
 
     return true;
 }
@@ -357,8 +383,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryRemove(const KeyPtr& k
         return false;
     }
 
-    if (OPENDAQ_FAILED(errCode))
-        checkErrorInfo(errCode);
+    checkErrorInfo(errCode);
 
     return true;
 }

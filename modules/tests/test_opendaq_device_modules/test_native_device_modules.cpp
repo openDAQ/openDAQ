@@ -136,7 +136,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 8);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 9);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -2582,7 +2582,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreClientConnectedToServer)
     ASSERT_EQ(signal.getGlobalId(), clientRoot.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
 }
 
-TEST_F(NativeDeviceModulesTest, DISABLED_lientSaveLoadRestoreServerConnectedToClient)
+TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToClient)
 {
     StringPtr config;
     {
@@ -2726,6 +2726,81 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
             }
         }
     }
+}
+
+void checkDeviceOperationMode(const daq::DevicePtr& device, daq::OperationModeType expected, bool isServer = false)
+{
+    ASSERT_EQ(device.getOperationMode(), expected);
+    bool active = expected != daq::OperationModeType::Idle;
+    std::string messagePrefix = isServer ? "Server: " : "Client: ";
+
+    for (const auto& fb: device.getFunctionBlocks())
+    {
+        for (const auto& sig: fb.getSignals())
+            ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking fb signal " << sig.getGlobalId() << " for mode " << static_cast<int>(expected);
+    }
+    for (const auto& ch: device.getChannels())
+    {
+        for (const auto& sig: ch.getSignals())
+            ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking ch signal " << sig.getGlobalId() << " for mode " << static_cast<int>(expected);
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, SettingOperationMode)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    checkDeviceOperationMode(server, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
+    checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+
+    ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
+    ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
+
+    // setting the operation mode for server root device
+    ASSERT_NO_THROW(server.setOperationMode(OperationModeType::Idle));
+    checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
+
+    checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+
+    // setting the operation mode for server sub device
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationMode(OperationModeType::SafeOperation));
+    checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+
+    // setting the operation mode for client sub device
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationMode(OperationModeType::Operation));
+    checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
+
+    checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
+
+    // setting the operation mode for client device not recursively
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(OperationModeType::SafeOperation, false));
+    checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
+    checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
+
+    checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
+    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
+
+    // setting the operation mode for client device
+    ASSERT_NO_THROW(client.setOperationMode(OperationModeType::Idle));
+    checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
+
+    checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
+    checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 }
 
 TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)

@@ -47,6 +47,11 @@ public:
 
         return deviceInfo;
     }
+        
+    std::set<daq::OperationModeType> onGetAvailableOperationModes() override 
+    { 
+        return {daq::OperationModeType::Idle, daq::OperationModeType::Operation}; 
+    }
 
 protected:
     void onSubmitNetworkConfiguration(const daq::StringPtr& ifaceName, const daq::PropertyObjectPtr& config) override {}
@@ -579,6 +584,15 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
     const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev", true);
     const auto subDevice = device.getDevices()[0];
 
+    auto expectedDeviceModes = daq::Dict<daq::IString, daq::IInteger>({
+        {"Idle", 1},
+        {"Operation", 2},
+        {"SafeOperation", 3}
+    });
+
+    ASSERT_EQ(device.getAvailableOperationModes(), expectedDeviceModes);
+    ASSERT_EQ(subDevice.getAvailableOperationModes(), expectedDeviceModes);
+
     checkDeviceOperationMode(device, daq::OperationModeType::Operation);
     checkDeviceOperationMode(subDevice, daq::OperationModeType::Operation);
 
@@ -597,4 +611,20 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
     ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Idle));
     checkDeviceOperationMode(device, daq::OperationModeType::Idle);
     checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
+}
+
+TEST_F(DeviceTest, CheckNotSupportedOpMode)
+{
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+
+    auto expectedDeviceModes = daq::Dict<daq::IString, daq::IInteger>({
+        {"Idle", 1},
+        {"Operation", 2}
+    });
+
+    ASSERT_EQ(device.getAvailableOperationModes(), expectedDeviceModes);
+    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
+
+    ASSERT_EQ(device->setOperationMode(daq::OperationModeType::SafeOperation), OPENDAQ_IGNORED);
+    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
 }

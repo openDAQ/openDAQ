@@ -157,6 +157,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
     addHandler<DevicePtr>("SetPropertyValue", &ConfigServerDevice::setPropertyValue);
     addHandler<DevicePtr>("SetProtectedPropertyValue", &ConfigServerDevice::setProtectedPropertyValue);
+    addHandler<DevicePtr>("GetAvailableOperationModes", &ConfigServerDevice::getAvailableOperationModes);
     addHandler<DevicePtr>("SetOperationMode", &ConfigServerDevice::setOperationMode);
     addHandler<DevicePtr>("GetOperationMode", &ConfigServerDevice::getOperationMode);
 

@@ -63,6 +63,7 @@ public:
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
     ErrCode INTERFACE_FUNC forceUnlock() override;
 
+    ErrCode INTERFACE_FUNC getAvailableOperationModes(IDict** availableOpModes) override;
     ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
@@ -237,6 +238,16 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
         return OPENDAQ_ERR_DEVICE_LOCKED;
 
     return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
+}
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperationModes(IDict** availableOpModes)
+{
+    OPENDAQ_PARAM_NOT_NULL(availableOpModes);
+    return daqTry([this, availableOpModes] 
+    { 
+        *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
+    });
 }
 
 template <class TDeviceBase>

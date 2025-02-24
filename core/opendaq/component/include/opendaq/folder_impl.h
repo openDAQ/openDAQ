@@ -240,8 +240,13 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         if (componentPrivate.assigned())
         {
             OperationModeType modeType = OperationModeType::Operation;
-            if (auto parentDevice = this->getParentDevice(); parentDevice.assigned())
-                parentDevice.template as<IDevice>(true)->getOperationMode(&modeType);
+            if (!componentPrivate.supportsInterface<IDevice>())
+            {
+                auto parentDevice = this->getParentDevice();
+                if (parentDevice.assigned())
+                    parentDevice.template as<IDevice>(true)->getOperationMode(&modeType);
+            }
+
             componentPrivate->updateOperationMode(modeType);
         }
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(

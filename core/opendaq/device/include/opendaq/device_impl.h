@@ -100,12 +100,17 @@ public:
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+
     ErrCode INTERFACE_FUNC lock() override;
     ErrCode INTERFACE_FUNC unlock() override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
+
     ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) override;
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
+
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
+
+    ErrCode INTERFACE_FUNC getAvailableOperationModes(IDict** availableOpModes) override;
     ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
@@ -220,7 +225,7 @@ protected:
     virtual Bool onGetNetworkConfigurationEnabled();
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
-    void onOperationModeChanged(OperationModeType modeType) override;
+    virtual std::set<OperationModeType> onGetAvailableOperationModes();
 
     DevicePtr getParentDevice();
 
@@ -1110,26 +1115,64 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getRecursiveLockGuard(IList* l
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
+std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvailableOperationModes()
 {
-    this->operationMode = modeType;
+    return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
+}
+
+static std::string OperationModeTypeToString(OperationModeType mode)
+{
+    switch (mode)
+    {
+        case OperationModeType::Idle:
+            return "Idle";
+        case OperationModeType::Operation:
+            return "Operation";
+        case OperationModeType::SafeOperation:
+            return "SafeOperation";
+        default:
+            return "Unknown";
+    };
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(IDict** availableOpModes)
+{
+    OPENDAQ_PARAM_NOT_NULL(availableOpModes);
+
+    std::set<OperationModeType> modes;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
+    
+    auto modesDict = Dict<IString, IInteger>();
+    for (const auto& mode : modes)
+        modesDict.set(OperationModeTypeToString(mode), static_cast<Int>(mode));
+
+    *availableOpModes = modesDict.detach();
+
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType modeType)
 {
-    return wrapHandler(this, &Self::onOperationModeChanged, modeType);
+    const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
+    if (OPENDAQ_SUCCEEDED(errCode))
+        this->operationMode = modeType;
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
 {
+    if (this->onGetAvailableOperationModes().count(modeType) == 0)
+        return OPENDAQ_IGNORED;
+
     auto lockGuardList = List<ILockGuard>();
     ErrCode errCode = this->getRecursiveLockGuard(lockGuardList);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
-    errCode = updateOperationMode(modeType);
+    errCode = this->updateOperationMode(modeType);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
@@ -1567,7 +1610,6 @@ void GenericDevice<TInterface, Interfaces...>::addSubDevice(const DevicePtr& dev
     try
     {
         devices.addItem(device);
-        device.asPtr<IComponentPrivate>(true)->updateOperationMode(OperationModeType::Operation);
     }
     catch (DuplicateItemException&)
     {

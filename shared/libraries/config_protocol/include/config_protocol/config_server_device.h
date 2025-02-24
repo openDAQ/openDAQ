@@ -45,6 +45,7 @@ public:
     static BaseObjectPtr setPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
 
+    static BaseObjectPtr getAvailableOperationModes(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr setOperationMode(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getOperationMode(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
@@ -261,6 +262,14 @@ inline BaseObjectPtr ConfigServerDevice::setProtectedPropertyValue(const RpcCont
     component.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, propertyValue);
 
     return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::getAvailableOperationModes(const RpcContext& context,
+                                                                    const DevicePtr& device,
+                                                                    const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    return device.getAvailableOperationModes();
 }
 
 inline BaseObjectPtr ConfigServerDevice::setOperationMode(const RpcContext& context, 

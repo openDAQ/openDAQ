@@ -37,6 +37,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IDevice, GenericDevicePtr)]
  * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object.h>")]
  * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user.h>")]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -353,6 +354,13 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param[out] statusContainer The container for the device connection statuses.
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) = 0;
+
+    // [templateType(availableOpModes, IString, IInteger)]
+    /*!
+     * @brief Gets a list of available operation modes for the device.
+     * @param[out] availableOpModes The list of available operation modes.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableOperationModes(IDict** availableOpModes) = 0;
 
     /*!
      * @brief Sets the operation mode of the device and subtree.

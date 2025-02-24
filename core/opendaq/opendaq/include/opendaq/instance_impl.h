@@ -78,6 +78,7 @@ public:
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+
     ErrCode INTERFACE_FUNC lock() override;
     ErrCode INTERFACE_FUNC unlock() override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
@@ -86,6 +87,8 @@ public:
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
 
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
+    
+    ErrCode INTERFACE_FUNC getAvailableOperationModes(IDict** availableOpModes) override;
     ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 

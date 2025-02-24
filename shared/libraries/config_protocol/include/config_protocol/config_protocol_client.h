@@ -101,6 +101,7 @@ public:
     ListPtr<ILogFileInfo> getLogFileInfos(const std::string& globalId);
     StringPtr getLog(const std::string& globalId, const StringPtr& id, Int size, Int offset);
 
+    DictPtr<IString, IInteger> getAvailableOperationModes(const std::string& globalId);
     void setOperationMode(const std::string& globalId, OperationModeType modeType, Bool includeSubDevices);
     OperationModeType getOperationMode(const std::string& globalId);
 

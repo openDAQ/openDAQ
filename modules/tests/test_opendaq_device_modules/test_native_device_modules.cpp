@@ -2750,7 +2750,12 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
+    checkDeviceOperationMode(server, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
     checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+
+    ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
+    ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
 
     // setting the operation mode for server root device
     ASSERT_NO_THROW(server.setOperationMode(OperationModeType::Idle));

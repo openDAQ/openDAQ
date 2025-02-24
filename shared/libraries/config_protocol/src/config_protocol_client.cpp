@@ -279,6 +279,11 @@ StringPtr ConfigProtocolClientComm::getLog(const std::string& globalId, const St
     return sendComponentCommand(globalId, ClientCommand("GetLog", 5), params);
 }
 
+DictPtr<IString, IInteger> ConfigProtocolClientComm::getAvailableOperationModes(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetAvailableOperationModes", 9));
+}
+
 void ConfigProtocolClientComm::setOperationMode(const std::string& globalId, OperationModeType modeType, Bool includeSubDevices)
 {
     auto params = Dict<IString, IBaseObject>();

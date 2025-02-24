@@ -55,7 +55,9 @@ public:
     void addSignal(const SignalPtr& signal);
     void removeComponentSignals(const StringPtr& componentId);
 
-    void sendPacket(const SignalPtr& signal, PacketPtr&& packet);
+    void sendPacket(const std::string& signalId, PacketPtr&& packet);
+    void processStreamingPacket(const std::string& signalId, PacketPtr&& packet);
+    void scheduleStreamingWriteTasks();
 
 protected:
     void initSessionHandler(SessionPtr session);

@@ -341,13 +341,47 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
 void BaseSessionHandler::sendPacketBuffer(PacketBufferPtr&& packetBuffer)
 {
     std::vector<WriteTask> tasks;
-    tasks.reserve(3);
+    tasks.reserve(2);
 
-    // create write task for packet buffer header
-    boost::asio::const_buffer packetBufferHeader(packetBuffer->packetHeader,
-                                                 packetBuffer->packetHeader->size);
-    WriteHandler packetBufferHeaderHandler = [packetBuffer]() {};
-    tasks.push_back(WriteTask(packetBufferHeader, packetBufferHeaderHandler));
+    auto deadlineTime =
+        packetBuffer->timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
+            ? std::optional(packetBuffer->timeStamp.value() + streamingPacketSendTimeout)
+            : std::nullopt;
+
+    createAndPushPacketBufferTasks(std::move(packetBuffer), tasks);
+
+    session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
+}
+
+void BaseSessionHandler::schedulePacketBufferWriteTasks(std::vector<native_streaming::WriteTask>&& tasks,
+                                                        std::optional<std::chrono::steady_clock::time_point>&& timeStamp)
+{
+    auto deadlineTime =
+        timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
+            ? std::optional(timeStamp.value() + streamingPacketSendTimeout)
+            : std::nullopt;
+
+    session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
+}
+
+void BaseSessionHandler::createAndPushPacketBufferTasks(packet_streaming::PacketBufferPtr&& packetBuffer,
+                                                        std::vector<native_streaming::WriteTask>& tasks)
+{
+    size_t payloadSize = packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
+    if (payloadSize > TransportHeader::MAX_PAYLOAD_SIZE)
+    {
+        throw NativeStreamingProtocolException("Size of message payload exceeds limit");
+    }
+
+    auto transportHeader = TransportHeader(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
+    auto headersBuffer = std::make_shared<std::vector<char>>(TransportHeader::PACKED_HEADER_SIZE + packetBuffer->packetHeader->size);
+
+    // Copy each header into the contiguous buffer
+    std::memcpy(headersBuffer->data(), transportHeader.getPackedHeaderPtr(), TransportHeader::PACKED_HEADER_SIZE);
+    std::memcpy(headersBuffer->data() + TransportHeader::PACKED_HEADER_SIZE, packetBuffer->packetHeader, packetBuffer->packetHeader->size);
+    boost::asio::const_buffer headersTaskBuffer(headersBuffer->data(), headersBuffer->size());
+    WriteHandler headersHandler = [headersBuffer]() {};
+    tasks.push_back(WriteTask(headersTaskBuffer, headersHandler));
 
     if (packetBuffer->packetHeader->payloadSize > 0)
     {
@@ -357,18 +391,6 @@ void BaseSessionHandler::sendPacketBuffer(PacketBufferPtr&& packetBuffer)
         WriteHandler packetBufferPayloadHandler = [packetBuffer]() {};
         tasks.push_back(WriteTask(packetBufferPayload, packetBufferPayloadHandler));
     }
-
-    // create write task for transport header
-    size_t payloadSize = calculatePayloadSize(tasks);
-    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
-    tasks.insert(tasks.begin(), writeHeaderTask);
-
-    auto deadlineTime =
-        packetBuffer->timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
-            ? std::optional(packetBuffer->timeStamp.value() + streamingPacketSendTimeout)
-            : std::nullopt;
-
-    session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

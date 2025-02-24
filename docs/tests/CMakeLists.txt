@@ -17,9 +17,12 @@ set(TEST_SOURCES docs_test_helpers.h
                  test_config_provider.cpp
                  test_get_last_value.cpp
                  test_howto_configure_instance.cpp
-                 test_howto_access_control.cpp
                  test_streaming_config.cpp
 )
+
+if (OPENDAQ_ENABLE_ACCESS_CONTROL)
+    list(APPEND TEST_SOURCES test_howto_access_control.cpp)
+endif()
 
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )

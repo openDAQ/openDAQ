@@ -122,6 +122,7 @@ option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" 
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
 option(OPENDAQ_ALWAYS_FETCH_DEPENDENCIES "Ignore any installed libraries and always build all dependencies from source" ON)
+option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 cmake_dependent_option(OPCUA_ENABLE_ENCRYPTION "Enable OpcUa encryption" OFF "OPENDAQ_ENABLE_OPCUA" OFF)

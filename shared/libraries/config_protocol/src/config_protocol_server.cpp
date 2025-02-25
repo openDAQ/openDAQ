@@ -159,6 +159,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("SetProtectedPropertyValue", &ConfigServerDevice::setProtectedPropertyValue);
     addHandler<DevicePtr>("GetAvailableOperationModes", &ConfigServerDevice::getAvailableOperationModes);
     addHandler<DevicePtr>("SetOperationMode", &ConfigServerDevice::setOperationMode);
+    addHandler<DevicePtr>("SetOperationModeRecursive", &ConfigServerDevice::setOperationModeRecursive);
     addHandler<DevicePtr>("GetOperationMode", &ConfigServerDevice::getOperationMode);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);

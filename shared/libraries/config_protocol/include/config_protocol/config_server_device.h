@@ -47,6 +47,7 @@ public:
 
     static BaseObjectPtr getAvailableOperationModes(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr setOperationMode(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr setOperationModeRecursive(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getOperationMode(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
@@ -278,8 +279,17 @@ inline BaseObjectPtr ConfigServerDevice::setOperationMode(const RpcContext& cont
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
     const auto modeType = static_cast<std::string>(params["ModeType"]);
-    const auto includeSubDevices = static_cast<bool>(params["IncludeSubDevices"]);
-    device.setOperationMode(modeType, includeSubDevices);
+    device.setOperationMode(modeType);
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerDevice::setOperationModeRecursive(const RpcContext& context,
+                                                                   const DevicePtr& device,
+                                                                   const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    const auto modeType = static_cast<std::string>(params["ModeType"]);
+    device.setOperationModeRecursive(modeType);
     return nullptr;
 }
 

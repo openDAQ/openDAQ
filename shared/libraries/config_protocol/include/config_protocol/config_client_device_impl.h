@@ -64,7 +64,8 @@ public:
     ErrCode INTERFACE_FUNC forceUnlock() override;
 
     ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
-    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType, Bool includeSubDevices = true) override;
+    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
+    ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -251,11 +252,21 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(IString* modeType, Bool includeSubDevices)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(IString* modeType)
 {
-    return daqTry([this, modeType = StringPtr::Borrow(modeType), includeSubDevices] 
+    return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
     { 
-        this->clientComm->setOperationMode(this->remoteGlobalId, modeType, includeSubDevices); 
+        this->clientComm->setOperationMode(this->remoteGlobalId, modeType); 
+    });
+}
+
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecursive(IString* modeType)
+{
+    return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
+    { 
+        this->clientComm->setOperationModeRecursive(this->remoteGlobalId, modeType); 
     });
 }
 

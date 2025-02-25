@@ -592,19 +592,19 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
     checkDeviceOperationMode(device, "Operation");
     checkDeviceOperationMode(subDevice, "Operation");
 
-    ASSERT_NO_THROW(device.setOperationMode("Idle"));
+    ASSERT_NO_THROW(device.setOperationModeRecursive("Idle"));
     checkDeviceOperationMode(device, "Idle");
     checkDeviceOperationMode(subDevice, "Idle");
 
-    ASSERT_NO_THROW(device.setOperationMode("Operation", false));
+    ASSERT_NO_THROW(device.setOperationMode("Operation"));
     checkDeviceOperationMode(device, "Operation");
     checkDeviceOperationMode(subDevice, "Idle");
 
-    ASSERT_NO_THROW(subDevice.setOperationMode("SafeOperation"));
+    ASSERT_NO_THROW(subDevice.setOperationModeRecursive("SafeOperation"));
     checkDeviceOperationMode(device, "Operation");
     checkDeviceOperationMode(subDevice, "SafeOperation");
 
-    ASSERT_NO_THROW(device.setOperationMode("Idle"));
+    ASSERT_NO_THROW(device.setOperationModeRecursive("Idle"));
     checkDeviceOperationMode(device, "Idle");
     checkDeviceOperationMode(subDevice, "Idle");
 }

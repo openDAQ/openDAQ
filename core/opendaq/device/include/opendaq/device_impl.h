@@ -111,7 +111,8 @@ public:
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
 
     ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
-    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType, Bool includeSubDevices = true) override;
+    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
+    ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
 
     // IDevicePrivate
@@ -1173,7 +1174,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* modeType, Bool includeSubDevices)
+ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
     OperationModeType mode = OperationModeTypeFromString(StringPtr::Borrow(modeType));
@@ -1203,14 +1204,21 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* mode
             return errCode;
     }
 
-    if (includeSubDevices)
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(IString* modeType)
+{
+    ErrCode errCode = setOperationMode(modeType);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    
+    for (const DevicePtr & dev: this->devices.getItems())
     {
-        for (const DevicePtr & dev: this->devices.getItems())
-        {
-            errCode = dev->setOperationMode(modeType, includeSubDevices);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
-        }
+        errCode = dev->setOperationModeRecursive(modeType);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
     }
     return OPENDAQ_SUCCESS;
 }

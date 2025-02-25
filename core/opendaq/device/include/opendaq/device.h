@@ -363,11 +363,16 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
     virtual ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) = 0;
 
     /*!
-     * @brief Sets the operation mode of the device and subtree.
+     * @brief Sets the operation mode of the device subtree excluding the sub-devices.
      * @param modeType The operation mode to set.
-     * @param includeSubDevices If true, the operation mode will be set for all sub-devices as well.
      */
-    virtual ErrCode INTERFACE_FUNC setOperationMode(IString* modeType, Bool includeSubDevices = true) = 0;
+    virtual ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) = 0;
+
+    /*!
+     * @brief Sets the operation mode of the device subtree including the sub-devices.
+     * @param modeType The operation mode to set.
+     */
+    virtual ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) = 0;
 
     /*!
      * @brief Gets the operation mode of the device.

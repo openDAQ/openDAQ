@@ -289,15 +289,11 @@ void TmsServerDevice::populateDeviceInfo()
 
         this->addWriteCallback(tmsOpMode->getNodeId(), [this](const OpcUaVariant& variant)
         {
-            auto strValue = VariantConverter<IBaseObject>::ToDaqObject(variant).asPtr<IString>().toStdString();
-            bool recursive = false;
+            const auto strValue = VariantConverter<IBaseObject>::ToDaqObject(variant).asPtr<IString>().toStdString();
             if (strValue.find("Recursive") == 0)
-            {
-                recursive = true;
-                strValue = strValue.substr(9);
-            }
-
-            this->object.setOperationMode(strValue, recursive);
+                this->object.setOperationModeRecursive(strValue.substr(9));
+            else
+                this->object.setOperationMode(strValue);
             return UA_STATUSCODE_GOOD;
         });
     }

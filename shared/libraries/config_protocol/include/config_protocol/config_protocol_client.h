@@ -102,7 +102,8 @@ public:
     StringPtr getLog(const std::string& globalId, const StringPtr& id, Int size, Int offset);
 
     ListPtr<IString> getAvailableOperationModes(const std::string& globalId);
-    void setOperationMode(const std::string& globalId, const StringPtr& modeType, Bool includeSubDevices);
+    void setOperationMode(const std::string& globalId, const StringPtr& modeType);
+    void setOperationModeRecursive(const std::string& globalId, const StringPtr& modeType);
     StringPtr getOperationMode(const std::string& globalId);
 
     bool getConnected() const;

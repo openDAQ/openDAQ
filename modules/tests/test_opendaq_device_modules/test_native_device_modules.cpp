@@ -2758,7 +2758,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
 
     // setting the operation mode for server root device
-    ASSERT_NO_THROW(server.setOperationMode("Idle"));
+    ASSERT_NO_THROW(server.setOperationModeRecursive("Idle"));
     checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
     checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
 
@@ -2767,7 +2767,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
 
     // setting the operation mode for server sub device
-    ASSERT_NO_THROW(server.getDevices()[0].setOperationMode("SafeOperation"));
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive("SafeOperation"));
     checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
     checkDeviceOperationMode(server.getDevices()[0], "SafeOperation", true);
 
@@ -2776,7 +2776,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "SafeOperation");
 
     // setting the operation mode for client sub device
-    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationMode("Operation"));
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive("Operation"));
     checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
     checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
 
@@ -2785,7 +2785,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
 
     // setting the operation mode for client device not recursively
-    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode("SafeOperation", false));
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode("SafeOperation"));
     checkDeviceOperationMode(server.getRootDevice(), "SafeOperation", true);
     checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
 
@@ -2794,7 +2794,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
 
     // setting the operation mode for client device
-    ASSERT_NO_THROW(client.setOperationMode("Idle"));
+    ASSERT_NO_THROW(client.setOperationModeRecursive("Idle"));
     checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
     checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
 

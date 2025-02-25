@@ -284,13 +284,16 @@ ListPtr<IString> ConfigProtocolClientComm::getAvailableOperationModes(const std:
     return sendComponentCommand(globalId, ClientCommand("GetAvailableOperationModes", 9));
 }
 
-void ConfigProtocolClientComm::setOperationMode(const std::string& globalId, const StringPtr& modeType, Bool includeSubDevices)
+void ConfigProtocolClientComm::setOperationMode(const std::string& globalId, const StringPtr& modeType)
 {
-    auto params = Dict<IString, IBaseObject>();
-    params.set("ModeType", modeType);
-    params.set("IncludeSubDevices", Boolean(includeSubDevices));
-
+    auto params = Dict<IString, IBaseObject>({{"ModeType", modeType}});
     sendComponentCommand(globalId, ClientCommand("SetOperationMode", 9), params);
+}
+
+void ConfigProtocolClientComm::setOperationModeRecursive(const std::string& globalId, const StringPtr& modeType)
+{
+    auto params = Dict<IString, IBaseObject>({{"ModeType", modeType}});
+    sendComponentCommand(globalId, ClientCommand("SetOperationModeRecursive", 9), params);
 }
 
 StringPtr ConfigProtocolClientComm::getOperationMode(const std::string& globalId)

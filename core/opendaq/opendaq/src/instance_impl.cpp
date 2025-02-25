@@ -319,9 +319,14 @@ ErrCode InstanceImpl::getAvailableOperationModes(IList** availableOpModes)
     return rootDevice->getAvailableOperationModes(availableOpModes);
 }
 
-ErrCode InstanceImpl::setOperationMode(IString* modeType, Bool includeSubDevices)
+ErrCode InstanceImpl::setOperationMode(IString* modeType)
 {
-    return rootDevice->setOperationMode(modeType, includeSubDevices);
+    return rootDevice->setOperationMode(modeType);
+}
+
+ErrCode InstanceImpl::setOperationModeRecursive(IString* modeType)
+{
+    return rootDevice->setOperationModeRecursive(modeType);
 }
 
 ErrCode INTERFACE_FUNC InstanceImpl::getOperationMode(IString** modeType)

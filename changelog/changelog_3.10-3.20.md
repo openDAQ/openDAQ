@@ -1,4 +1,4 @@
-# Changes since 3.10
+# Changes from 3.10 to 3.20
 
 ## Features
 

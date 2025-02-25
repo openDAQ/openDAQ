@@ -110,9 +110,9 @@ public:
 
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
 
-    ErrCode INTERFACE_FUNC getAvailableOperationModes(IDict** availableOpModes) override;
-    ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) override;
-    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
+    ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
+    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType, Bool includeSubDevices = true) override;
+    ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -1135,19 +1135,30 @@ static std::string OperationModeTypeToString(OperationModeType mode)
     };
 }
 
+static OperationModeType OperationModeTypeFromString(const std::string& mode)
+{
+    if (mode == "Idle")
+        return OperationModeType::Idle;
+    if (mode == "Operation")
+        return OperationModeType::Operation;
+    if (mode == "SafeOperation")
+        return OperationModeType::SafeOperation;
+    return OperationModeType::Unknown;
+}
+
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(IDict** availableOpModes)
+ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(IList** availableOpModes)
 {
     OPENDAQ_PARAM_NOT_NULL(availableOpModes);
 
     std::set<OperationModeType> modes;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
     
-    auto modesDict = Dict<IString, IInteger>();
+    auto modesList = List<IString>();
     for (const auto& mode : modes)
-        modesDict.set(OperationModeTypeToString(mode), static_cast<Int>(mode));
+        modesList.pushBack(OperationModeTypeToString(mode));
 
-    *availableOpModes = modesDict.detach();
+    *availableOpModes = modesList.detach();
 
     return errCode;
 }
@@ -1162,9 +1173,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
+ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* modeType, Bool includeSubDevices)
 {
-    if (this->onGetAvailableOperationModes().count(modeType) == 0)
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+    OperationModeType mode = OperationModeTypeFromString(StringPtr::Borrow(modeType));
+    if (this->onGetAvailableOperationModes().count(mode) == 0)
         return OPENDAQ_IGNORED;
 
     auto lockGuardList = List<ILockGuard>();
@@ -1172,7 +1185,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationMode
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
-    errCode = this->updateOperationMode(modeType);
+    errCode = this->updateOperationMode(mode);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
@@ -1185,7 +1198,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationMode
         if (!componentPrivate.assigned())
             continue;
 
-        errCode = componentPrivate->updateOperationMode(modeType);
+        errCode = componentPrivate->updateOperationMode(mode);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
     }
@@ -1203,10 +1216,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationMode
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(OperationModeType* modeType)
+ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(IString** modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
-    *modeType = this->operationMode;
+    *modeType = String(OperationModeTypeToString(this->operationMode)).detach();
     return OPENDAQ_SUCCESS;
 }
 

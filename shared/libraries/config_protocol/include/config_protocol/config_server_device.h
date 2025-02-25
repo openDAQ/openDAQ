@@ -277,7 +277,7 @@ inline BaseObjectPtr ConfigServerDevice::setOperationMode(const RpcContext& cont
                                                           const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
-    const auto modeType = static_cast<OperationModeType>(static_cast<Int>(params["ModeType"]));
+    const auto modeType = static_cast<std::string>(params["ModeType"]);
     const auto includeSubDevices = static_cast<bool>(params["IncludeSubDevices"]);
     device.setOperationMode(modeType, includeSubDevices);
     return nullptr;
@@ -288,7 +288,7 @@ inline BaseObjectPtr ConfigServerDevice::getOperationMode(const RpcContext& cont
                                                           const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
-    return Integer(static_cast<Int>(device.getOperationMode()));
+    return device.getOperationMode();
 }
 
 }

@@ -314,17 +314,17 @@ ErrCode InstanceImpl::getConnectionStatusContainer(IComponentStatusContainer** s
     return rootDevice->getConnectionStatusContainer(statusContainer);
 }
 
-ErrCode InstanceImpl::getAvailableOperationModes(IDict** availableOpModes)
+ErrCode InstanceImpl::getAvailableOperationModes(IList** availableOpModes)
 {
     return rootDevice->getAvailableOperationModes(availableOpModes);
 }
 
-ErrCode InstanceImpl::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
+ErrCode InstanceImpl::setOperationMode(IString* modeType, Bool includeSubDevices)
 {
     return rootDevice->setOperationMode(modeType, includeSubDevices);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getOperationMode(OperationModeType* modeType)
+ErrCode INTERFACE_FUNC InstanceImpl::getOperationMode(IString** modeType)
 {
     return rootDevice->getOperationMode(modeType);
 }

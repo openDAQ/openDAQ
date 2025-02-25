@@ -63,9 +63,9 @@ public:
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
     ErrCode INTERFACE_FUNC forceUnlock() override;
 
-    ErrCode INTERFACE_FUNC getAvailableOperationModes(IDict** availableOpModes) override;
-    ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) override;
-    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
+    ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
+    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType, Bool includeSubDevices = true) override;
+    ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -241,7 +241,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperationModes(IDict** availableOpModes)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperationModes(IList** availableOpModes)
 {
     OPENDAQ_PARAM_NOT_NULL(availableOpModes);
     return daqTry([this, availableOpModes] 
@@ -251,21 +251,21 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType, Bool includeSubDevices)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(IString* modeType, Bool includeSubDevices)
 {
-    return daqTry([this, modeType, includeSubDevices] 
+    return daqTry([this, modeType = StringPtr::Borrow(modeType), includeSubDevices] 
     { 
         this->clientComm->setOperationMode(this->remoteGlobalId, modeType, includeSubDevices); 
     });
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(OperationModeType* modeType)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(IString** modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
     return daqTry([this, modeType] 
     { 
-        *modeType = this->clientComm->getOperationMode(this->remoteGlobalId); 
+        *modeType = this->clientComm->getOperationMode(this->remoteGlobalId).detach(); 
     });
 }
 

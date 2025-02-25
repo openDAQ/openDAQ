@@ -355,25 +355,25 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) = 0;
 
-    // [templateType(availableOpModes, IString, IInteger)]
+    // [elementType(availableOpModes, IString)]
     /*!
      * @brief Gets a list of available operation modes for the device.
      * @param[out] availableOpModes The list of available operation modes.
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableOperationModes(IDict** availableOpModes) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) = 0;
 
     /*!
      * @brief Sets the operation mode of the device and subtree.
      * @param modeType The operation mode to set.
      * @param includeSubDevices If true, the operation mode will be set for all sub-devices as well.
      */
-    virtual ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType, Bool includeSubDevices = true) = 0;
+    virtual ErrCode INTERFACE_FUNC setOperationMode(IString* modeType, Bool includeSubDevices = true) = 0;
 
     /*!
      * @brief Gets the operation mode of the device.
      * @param[out] modeType The current operation mode.
      */
-    virtual ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) = 0;
+    virtual ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) = 0;
 };
 /*!@}*/
 

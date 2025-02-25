@@ -27,7 +27,7 @@
 ## Bug fixes
 
 - [#703](https://github.com/openDAQ/openDAQ/pull/703) Fixes invalid response of openDAQ mDNS wrapper for unicast queries.
-- [#696](https://github.com/openDAQ/openDAQ/pull/696) Set of LT bugfixes. Keeping sessions alive, raw json values for linear rules, default start value for constant signals, fix IPv4/6 controll connection address handling. 
+- [#696](https://github.com/openDAQ/openDAQ/pull/696) Set of LT bugfixes. Keeping sessions alive, raw json values for linear rules, default start value for constant signals, fix IPv4/6 control connection address handling. 
 - [#693](https://github.com/openDAQ/openDAQ/pull/693) Standard example openDAQ modules make use of non-installed openDAQ cmake utilities. Adds said utilities openDAQ packages.
 - [#689](https://github.com/openDAQ/openDAQ/pull/689) Fixed an mDNS issue where multiple devices broadcasting with the same IP address were present, but only one could be detected by the client.
 - [#685](https://github.com/openDAQ/openDAQ/pull/685) Fixes reconnection when an exclusive connection is established via the openDAQ Native protocol.

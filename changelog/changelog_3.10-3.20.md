@@ -30,7 +30,7 @@
 - [#696](https://github.com/openDAQ/openDAQ/pull/696) Set of LT bugfixes. Keeping sessions alive, raw json values for linear rules, default start value for constant signals, fix IPv4/6 control connection address handling. 
 - [#693](https://github.com/openDAQ/openDAQ/pull/693) Standard example openDAQ modules make use of non-installed openDAQ cmake utilities. Adds said utilities openDAQ packages.
 - [#689](https://github.com/openDAQ/openDAQ/pull/689) Fixed an mDNS issue where multiple devices broadcasting with the same IP address were present, but only one could be detected by the client.
-- [#685](https://github.com/openDAQ/openDAQ/pull/685) Fixes reconnection when an exclusive connection is established via the openDAQ Native protocol.
+- [#685](https://github.com/openDAQ/openDAQ/pull/685) Fixes reconnection when an exclusive connection is established via the openDAQ Native protocol. Enables the native connection activity monitoring by default.
 - [#682](https://github.com/openDAQ/openDAQ/pull/682) `IBlockReader::getAvailableCount` returns `count==1` when remaining sample count is smaller than the block size and the remaining samples are followed by an event.
 - [#674](https://github.com/openDAQ/openDAQ/pull/674) System clock is no longer considered when calculating maximum resolution of signals read by the `MultiReader`.
 - [#660](https://github.com/openDAQ/openDAQ/pull/660) The "Name" attribute was not serialized when equal to the local ID, causing issues when the localID of a deserialized signal was overridden to be different than the original.

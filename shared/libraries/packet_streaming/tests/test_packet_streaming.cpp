@@ -18,7 +18,7 @@ public:
     }
 
 protected:
-    PacketStreamingServer server {10};
+    PacketStreamingServer server {0, 10};
     PacketStreamingClient client;
     PacketTransmission transmission;
 
@@ -46,13 +46,13 @@ TEST_F(PacketStreamingTest, PacketTimeStamp)
     const auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, domainDescriptor);
 
     {
-        PacketStreamingServer serverEnabledTimeStamps {1, true};
+        PacketStreamingServer serverEnabledTimeStamps {0, 1, true};
         serverEnabledTimeStamps.addDaqPacket(1, serverEventPacket);
         const auto serverPacketBuffer = serverEnabledTimeStamps.getNextPacketBuffer();
         ASSERT_TRUE(serverPacketBuffer->timeStamp.has_value());
     }
     {
-        PacketStreamingServer serverDisabledTimeStamps {1, false};
+        PacketStreamingServer serverDisabledTimeStamps {0, 1, false};
         serverDisabledTimeStamps.addDaqPacket(1, serverEventPacket);
         const auto serverPacketBuffer = serverDisabledTimeStamps.getNextPacketBuffer();
         ASSERT_FALSE(serverPacketBuffer->timeStamp.has_value());

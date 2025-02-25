@@ -49,9 +49,9 @@ public:
 
     void processPacket(const std::string& signalStringId, PacketPtr&& packet);
 
-    void consumeAllPacketBuffers(const std::string& clientId,
-                                 std::vector<daq::native_streaming::WriteTask>& tasks,
-                                 const ConsumePacketBufferCallback& consumePacketBufferCb);
+    std::vector<native_streaming::WriteTask> consumeAllPacketBuffers(
+        const std::string& clientId,
+        const ConsumePacketBufferCallback& consumePacketBufferCb);
 
     /// Registers a signal using its global ID as a unique key
     /// and assigns a numeric ID to it.

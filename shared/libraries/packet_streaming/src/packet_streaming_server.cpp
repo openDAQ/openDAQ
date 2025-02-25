@@ -7,11 +7,14 @@
 namespace daq::packet_streaming
 {
 
-PacketStreamingServer::PacketStreamingServer(size_t releaseThreshold, bool attachTimestampToPacketBuffer)
+PacketStreamingServer::PacketStreamingServer(size_t payloadSizeThreshold, size_t releaseThreshold, bool attachTimestampToPacketBuffer)
     : jsonSerializer(JsonSerializer())
+    , countOfNonMergeableBuffers(0)
+    , sizeOfMergeableBuffers(0)
     , packetCollection(std::make_shared<PacketCollection>())
     , releaseThreshold(releaseThreshold)
     , attachTimestampToPacketBuffer(attachTimestampToPacketBuffer)
+    , payloadSizeThreshold(payloadSizeThreshold)
 {
 }
 
@@ -58,6 +61,18 @@ PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
     {
         auto packetBuffer = queue.front();
         queue.pop();
+
+        if (isMergeableBuffer(packetBuffer))
+        {
+            assert(sizeOfMergeableBuffers >= (packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize));
+            sizeOfMergeableBuffers -= packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
+        }
+        else
+        {
+            assert(countOfNonMergeableBuffers > 0);
+            --countOfNonMergeableBuffers;
+        }
+
         return packetBuffer;
     }
 
@@ -67,6 +82,16 @@ PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
 size_t PacketStreamingServer::getAvailableBuffersCount()
 {
     return queue.size();
+}
+
+size_t PacketStreamingServer::getNonMergeableBuffersCount()
+{
+    return countOfNonMergeableBuffers;
+}
+
+size_t PacketStreamingServer::getSizeOfMergeableBuffers()
+{
+    return sizeOfMergeableBuffers;
 }
 
 void PacketStreamingServer::addEventPacket(const uint32_t signalId, const EventPacketPtr& packet)
@@ -182,6 +207,10 @@ Int PacketStreamingServer::getDomainPacketId(const DataPacketPtr& packet)
 
 void PacketStreamingServer::queuePacketBuffer(const PacketBufferPtr& packetBuffer)
 {
+    if (isMergeableBuffer(packetBuffer))
+        sizeOfMergeableBuffers += packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
+    else
+        ++countOfNonMergeableBuffers;
     queue.push(packetBuffer);
 }
 
@@ -292,6 +321,11 @@ void PacketStreamingServer::addAlreadySentPacket(uint32_t signalId, Int packetId
                                                              attachTimestampToPacketBuffer);
 
     queuePacketBuffer(packetBuffer);
+}
+
+bool PacketStreamingServer::isMergeableBuffer(const PacketBufferPtr& packetBuffer)
+{
+    return packetBuffer->packetHeader->payloadSize <= payloadSizeThreshold;
 }
 
 }

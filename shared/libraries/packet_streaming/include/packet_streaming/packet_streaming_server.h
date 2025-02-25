@@ -38,23 +38,30 @@ enum class ReleaseAction { markForRelease, subscribe, alreadySent };
 class PacketStreamingServer
 {
 public:
-    PacketStreamingServer(size_t releaseThreshold = 1, bool attachTimestampToPacketBuffer = false);
+    PacketStreamingServer(size_t payloadSizeThreshold = 0, size_t releaseThreshold = 1, bool attachTimestampToPacketBuffer = false);
 
     void addDaqPacket(const uint32_t signalId, const PacketPtr& packet);
     void addDaqPacket(const uint32_t signalId, PacketPtr&& packet);
     PacketBufferPtr getNextPacketBuffer();
     size_t getAvailableBuffersCount();
+    size_t getNonMergeableBuffersCount();
+    size_t getSizeOfMergeableBuffers();
 
     void checkAndSendReleasePacket(bool force);
     void addAlreadySentPacket(uint32_t signalId, Int packetId, Int domainPacketId, bool markForRelease);
 
+    bool isMergeableBuffer(const PacketBufferPtr& packet);
+
 private:
     SerializerPtr jsonSerializer;
     std::queue<PacketBufferPtr> queue;
+    size_t countOfNonMergeableBuffers;
+    size_t sizeOfMergeableBuffers;
     std::unordered_map<uint32_t, DataDescriptorPtr> dataDescriptors;
     PacketCollectionPtr packetCollection;
     size_t releaseThreshold;
     const bool attachTimestampToPacketBuffer;
+    size_t payloadSizeThreshold;
 
     void addEventPacket(const uint32_t signalId, const EventPacketPtr& packet);
     template <bool CheckRefCount>

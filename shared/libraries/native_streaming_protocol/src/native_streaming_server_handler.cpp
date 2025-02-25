@@ -249,16 +249,14 @@ void NativeStreamingServerHandler::scheduleStreamingWriteTasks()
     for (const auto& [clientId, sessionHandler] : sessionHandlers)
     {
         std::optional<std::chrono::steady_clock::time_point> timeStamp(std::nullopt);
-        std::vector<daq::native_streaming::WriteTask> tasks;
 
-        auto consumeBufferCallback = [&tasks, &timeStamp](const std::string&, packet_streaming::PacketBufferPtr&& packetBuffer)
+        auto consumeBufferCallback = [&timeStamp](const std::string&, packet_streaming::PacketBufferPtr&& packetBuffer)
         {
             if (!timeStamp.has_value() && packetBuffer->timeStamp.has_value())
                 timeStamp = packetBuffer->timeStamp.value();
-            BaseSessionHandler::createAndPushPacketBufferTasks(std::move(packetBuffer), tasks);
         };
 
-        streamingManager.consumeAllPacketBuffers(clientId, tasks, consumeBufferCallback);
+        auto tasks = streamingManager.consumeAllPacketBuffers(clientId, consumeBufferCallback);
         if (!tasks.empty())
             sessionHandler->schedulePacketBufferWriteTasks(std::move(tasks), std::move(timeStamp));
     }

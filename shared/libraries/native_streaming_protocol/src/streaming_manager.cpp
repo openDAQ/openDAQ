@@ -98,22 +98,68 @@ void StreamingManager::processPacket(const std::string& signalStringId, PacketPt
     }
 }
 
-void StreamingManager::consumeAllPacketBuffers(const std::string& clientId,
-                                               std::vector<daq::native_streaming::WriteTask>& tasks,
-                                               const ConsumePacketBufferCallback& consumePacketBufferCb)
+std::vector<daq::native_streaming::WriteTask> StreamingManager::consumeAllPacketBuffers(
+    const std::string& clientId,
+    const ConsumePacketBufferCallback& consumePacketBufferCb)
 {
     std::scoped_lock lock(sync);
 
     if (const auto it = streamingClientsIds.find(clientId); it != streamingClientsIds.end())
     {
         auto& packetStreamingServerPtr = packetStreamingServers.at(clientId);
-        tasks.reserve(2 * packetStreamingServerPtr->getAvailableBuffersCount());
 
-        while (auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
+        auto nonMergeableBuffersCount = packetStreamingServerPtr->getNonMergeableBuffersCount();
+        auto mergeableBuffersCount = packetStreamingServerPtr->getAvailableBuffersCount() - nonMergeableBuffersCount;
+
+        size_t linearBufferCurPos = 0;
+        std::shared_ptr<std::vector<char>> linearBuffer;
+        if (mergeableBuffersCount > 0)
         {
-            consumePacketBufferCb(clientId, std::move(packetBuffer));
+            linearBuffer =
+                std::make_shared<std::vector<char>>(TransportHeader::PACKED_HEADER_SIZE * mergeableBuffersCount +
+                                                    packetStreamingServerPtr->getSizeOfMergeableBuffers());
         }
+
+
+        // header and payload separate write tasks for each non-mergeable buffer
+        // plus one task for all mergeable buffers
+        std::vector<daq::native_streaming::WriteTask> tasks;
+        tasks.reserve(2 * nonMergeableBuffersCount + 1);
+
+        while (auto packetBufferPtr = packetStreamingServerPtr->getNextPacketBuffer())
+        {
+            if (packetStreamingServerPtr->isMergeableBuffer(packetBufferPtr) && linearBuffer)
+            {
+                BaseSessionHandler::copyHeadersToBuffer(packetBufferPtr, linearBuffer->data() + linearBufferCurPos);
+                linearBufferCurPos += TransportHeader::PACKED_HEADER_SIZE + packetBufferPtr->packetHeader->size;
+
+                if (packetBufferPtr->packetHeader->payloadSize > 0)
+                {
+                    std::memcpy(linearBuffer->data() + linearBufferCurPos,
+                                packetBufferPtr->payload,
+                                packetBufferPtr->packetHeader->payloadSize);
+                    linearBufferCurPos += packetBufferPtr->packetHeader->payloadSize;
+                }
+            }
+            else
+            {
+                BaseSessionHandler::createAndPushPacketBufferTasks(std::move(packetBufferPtr), tasks);
+            }
+            consumePacketBufferCb(clientId, std::move(packetBufferPtr));
+        }
+
+        if (linearBuffer)
+        {
+            boost::asio::const_buffer linearTaskBuffer(linearBuffer->data(), linearBuffer->size());
+            WriteHandler linearBufferHandler = [linearBuffer]() {};
+            tasks.push_back(WriteTask(linearTaskBuffer, linearBufferHandler));
+        }
+
+        return tasks;
     }
+
+    // return empty vector
+    return std::vector<daq::native_streaming::WriteTask>();
 }
 
 void StreamingManager::sendDaqPacket(const ConsumePacketBufferCallback& sendPacketBufferCb,
@@ -189,7 +235,7 @@ void StreamingManager::registerClient(const std::string& clientId, bool reconnec
 
     // create new associated packet server if required
     if (auto it = packetStreamingServers.find(clientId); it == packetStreamingServers.end())
-        packetStreamingServers.insert({clientId, std::make_shared<packet_streaming::PacketStreamingServer>(10, enablePacketBufferTimestamps)});
+        packetStreamingServers.insert({clientId, std::make_shared<packet_streaming::PacketStreamingServer>(10, 10, enablePacketBufferTimestamps)});
 }
 
 ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)

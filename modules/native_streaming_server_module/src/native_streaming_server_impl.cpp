@@ -14,6 +14,7 @@
 #include <config_protocol/config_protocol_server.h>
 
 #include <boost/asio/dispatch.hpp>
+#include <opendaq/input_port_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
@@ -510,7 +511,16 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
         return;
 
     LOG_I("Add reader for signal {}", signalToRead.getGlobalId());
+
+#if 1
+    auto port = InputPort(signalToRead.getContext(), nullptr, "readsig");
+    auto reader = PacketReaderFromPort(port);
+    port.connect(signalToRead);
+    port.setNotificationMethod(PacketReadyNotification::None);
+#else
     auto reader = PacketReader(signalToRead);
+#endif
+
     signalReaders.push_back(std::tuple<SignalPtr, std::string, PacketReaderPtr>({signalToRead, signalToRead.getGlobalId().toStdString(), reader}));
 }
 

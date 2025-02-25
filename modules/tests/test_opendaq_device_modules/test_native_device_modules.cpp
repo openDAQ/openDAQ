@@ -2728,79 +2728,61 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
     }
 }
 
-void checkDeviceOperationMode(const daq::DevicePtr& device, const std::string& expected, bool isServer = false)
-{
-    ASSERT_EQ(device.getOperationMode(), expected);
-    bool active = expected != "Idle";
-    std::string messagePrefix = isServer ? "Server: " : "Client: ";
-
-    for (const auto& fb: device.getFunctionBlocks())
-    {
-        for (const auto& sig: fb.getSignals())
-            ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking fb signal " << sig.getGlobalId() << " for mode " << expected;
-    }
-    for (const auto& ch: device.getChannels())
-    {
-        for (const auto& sig: ch.getSignals())
-            ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking ch signal " << sig.getGlobalId() << " for mode " << expected;
-    }
-}
-
 TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    checkDeviceOperationMode(server, "Operation");
-    checkDeviceOperationMode(server.getDevices()[0], "Operation");
-    checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(server, "Operation");
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
 
     ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
     ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
 
     // setting the operation mode for server root device
     ASSERT_NO_THROW(server.setOperationModeRecursive("Idle"));
-    checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
 
-    checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
 
     // setting the operation mode for server sub device
     ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive("SafeOperation"));
-    checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    checkDeviceOperationMode(server.getDevices()[0], "SafeOperation", true);
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "SafeOperation", true);
 
-    checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "SafeOperation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "SafeOperation");
 
     // setting the operation mode for client sub device
     ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive("Operation"));
-    checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
 
-    checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
 
     // setting the operation mode for client device not recursively
     ASSERT_NO_THROW(client.getDevices()[0].setOperationMode("SafeOperation"));
-    checkDeviceOperationMode(server.getRootDevice(), "SafeOperation", true);
-    checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "SafeOperation", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
 
-    checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    checkDeviceOperationMode(client.getDevices()[0], "SafeOperation");
-    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "SafeOperation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
 
     // setting the operation mode for client device
     ASSERT_NO_THROW(client.setOperationModeRecursive("Idle"));
-    checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
 
-    checkDeviceOperationMode(client.getRootDevice(), "Idle");
-    checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
 }
 
 TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)

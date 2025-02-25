@@ -21,46 +21,47 @@
 #include <coretypes/struct_ptr.h>
 #include <coretypes/type_manager_ptr.h>
 #include <coretypes/updatable_ptr.h>
-#include <coretypes/version_info_ptr.>
+#include <coretypes/version_info_ptr.h>
 
 #include <coretypes/struct_type_ptr.h>
 #include <coretypes/enumeration_type_ptr.h>
 
-#include <coretypes/>
+#include <coretypes/common.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template class ObjectPtr<IBaseObject>;
-template class ObjectPtr<IInteger>;
-template class ObjectPtr<IBoolean>;
-template class ObjectPtr<IFloat>;
-template class ObjectPtr<IString>;
-template class ObjectPtr<IEnumeration>;
-template class ObjectPtr<IComplexNumber>;
-template class ObjectPtr<IDeserializer>;
-template class ObjectPtr<IEventHandler>;
-template class ObjectPtr<IEvent>;
-template class ObjectPtr<IFunction>;
-template class ObjectPtr<IInspectable>;
-template class ObjectPtr<IIterable>;
-template class ObjectPtr<INumber>;
-template class ObjectPtr<IProcedure>;
-template class ObjectPtr<IRatio>;
-template class ObjectPtr<ISerializable>;
-template class ObjectPtr<ISerializedList>;
-template class ObjectPtr<ISerializedObject>;
-template class ObjectPtr<ISerializer>;
-template class ObjectPtr<IStructBuilder>;
-template class ObjectPtr<IStruct>;
-template class ObjectPtr<IType>;
-template class ObjectPtr<ITypeManager>;
-template class ObjectPtr<IUpdatable>;
-template class ObjectPtr<IVersionInfo>;
+template class PUBLIC_EXPORT ObjectPtr<IBaseObject>;
+template class PUBLIC_EXPORT ObjectPtr<IInteger>;
+template class PUBLIC_EXPORT ObjectPtr<IBoolean>;
+template class PUBLIC_EXPORT ObjectPtr<IFloat>;
+template class PUBLIC_EXPORT ObjectPtr<IString>;
+template class PUBLIC_EXPORT ObjectPtr<IEnumeration>;
+template class PUBLIC_EXPORT ObjectPtr<IComplexNumber>;
+template class PUBLIC_EXPORT ObjectPtr<IDeserializer>;
+template class PUBLIC_EXPORT ObjectPtr<IEventHandler>;
+template class PUBLIC_EXPORT ObjectPtr<IEvent>;
+template class PUBLIC_EXPORT ObjectPtr<IFunction>;
+template class PUBLIC_EXPORT ObjectPtr<IInspectable>;
+template class PUBLIC_EXPORT ObjectPtr<IIterable>;
+template class PUBLIC_EXPORT ObjectPtr<INumber>;
+template class PUBLIC_EXPORT ObjectPtr<IProcedure>;
+template class PUBLIC_EXPORT ObjectPtr<IRatio>;
+template class PUBLIC_EXPORT ObjectPtr<ISerializable>;
+template class PUBLIC_EXPORT ObjectPtr<ISerializedList>;
+template class PUBLIC_EXPORT ObjectPtr<ISerializedObject>;
+template class PUBLIC_EXPORT ObjectPtr<ISerializer>;
+template class PUBLIC_EXPORT ObjectPtr<IStructBuilder>;
+template class PUBLIC_EXPORT ObjectPtr<IStruct>;
+template class PUBLIC_EXPORT ObjectPtr<IType>;
+template class PUBLIC_EXPORT ObjectPtr<ITypeManager>;
+template class PUBLIC_EXPORT ObjectPtr<IUpdatable>;
+template class PUBLIC_EXPORT ObjectPtr<IVersionInfo>;
+template class PUBLIC_EXPORT ObjectPtr<IWeakRef>;
 
-template class GenericTypePtr<IType>;
-template class GenericTypePtr<IEnumerationType>;
-template class GenericTypePtr<IStructType>;
+template class PUBLIC_EXPORT GenericTypePtr<IType>;
+template class PUBLIC_EXPORT GenericTypePtr<IEnumerationType>;
+template class PUBLIC_EXPORT GenericTypePtr<IStructType>;
 
-template class GenericStructPtr<IStruct>;
+template class PUBLIC_EXPORT GenericStructPtr<IStruct>;
 
 END_NAMESPACE_OPENDAQ

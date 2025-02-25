@@ -1325,7 +1325,7 @@ static constexpr inline IString* createObjectFromString(const wchar_t* value)
 
 template<typename U,
          std::enable_if_t<!std::is_same_v<U, IString>, int> = 0>
-static constexpr inline U* createObjectFromString(const void* value)
+static constexpr inline U* createObjectFromString([[maybe_unused]] const void* value )
 {
     return nullptr;
 }

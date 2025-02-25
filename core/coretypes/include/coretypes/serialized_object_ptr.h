@@ -216,6 +216,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<ISerializedObject>;
+
 /*!
  * @}
  */

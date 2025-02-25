@@ -164,6 +164,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<ISerializedList>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

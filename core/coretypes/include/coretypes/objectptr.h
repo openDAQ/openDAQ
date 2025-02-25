@@ -2491,6 +2491,9 @@ typename InterfaceToSmartPtr<Intf>::SmartPtr createWithImplementation(Params&&..
 }
 
 extern template class ObjectPtr<IBaseObject>;
+extern template class ObjectPtr<IInteger>;
+extern template class ObjectPtr<IBoolean>;
+extern template class ObjectPtr<IFloat>;
 
 END_NAMESPACE_OPENDAQ
 

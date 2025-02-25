@@ -122,6 +122,8 @@ public:
 
 };
 
+extern template class ObjectPtr<IVersionInfo>;
+
 /*!
  * @}
  */

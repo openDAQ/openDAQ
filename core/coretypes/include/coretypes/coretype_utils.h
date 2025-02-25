@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/common.h>
 #include <coretypes/serialized_object.h>
+#include <coretypes/serialized_object_ptr.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/complex_number_factory.h>
 

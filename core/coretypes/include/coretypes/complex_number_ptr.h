@@ -16,7 +16,6 @@
 
 #pragma once
 #include <coretypes/objectptr.h>
-#include <coretypes/coretypes.h>
 #include <coretypes/complex_number.h>
 
 BEGIN_NAMESPACE_OPENDAQ

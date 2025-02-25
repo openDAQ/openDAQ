@@ -187,4 +187,6 @@ public:
     }
 };
 
+extern template class ObjectPtr<ITypeManager>;
+
 END_NAMESPACE_OPENDAQ

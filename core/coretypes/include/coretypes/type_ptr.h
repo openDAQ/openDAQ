@@ -82,7 +82,7 @@ public:
         
     GenericTypePtr& operator=(const TypePtr& other)
     {
-        if (this == &other)
+        if (reinterpret_cast<const void *>(this) == reinterpret_cast<const void *>(&other))
             return *this;
 
         daq::ObjectPtr<InterfaceType>::operator =(other);
@@ -91,10 +91,8 @@ public:
 
     GenericTypePtr& operator=(TypePtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
+        if (reinterpret_cast<const void *>(this) == reinterpret_cast<const void *>(std::addressof(other)))
             return *this;
-        }
 
         daq::ObjectPtr<InterfaceType>::operator =(std::move(other));
         return *this;
@@ -116,6 +114,9 @@ public:
         return typeName;
     }
 };
+
+extern template class ObjectPtr<IType>;
+extern template class GenericTypePtr<IType>;
 
 /*!@}*/
 

@@ -162,4 +162,6 @@ TSmartPtr WeakRefPtr<TInterface, TSmartPtr>::getRef() const
     return TSmartPtr(std::move(intf));
 }
 
+extern template class ObjectPtr<IWeakRef>;
+
 END_NAMESPACE_OPENDAQ

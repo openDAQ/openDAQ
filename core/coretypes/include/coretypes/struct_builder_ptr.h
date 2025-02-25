@@ -260,6 +260,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<IStructBuilder>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

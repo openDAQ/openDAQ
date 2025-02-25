@@ -252,6 +252,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<ISerializer>;
+
 /*!
  * @}
  */

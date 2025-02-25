@@ -151,6 +151,8 @@ public:
     }
 };
 
+extern template class GenericTypePtr<IStructType>;
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

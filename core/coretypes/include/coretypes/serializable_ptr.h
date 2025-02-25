@@ -65,6 +65,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<ISerializable>;
+
 /*!
  * @}
  */

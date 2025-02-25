@@ -120,6 +120,8 @@ public:
     }
 };
 
+extern template class ObjectPtr<IUpdatable>;
+
 /*!
  * @}
  */

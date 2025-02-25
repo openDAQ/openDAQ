@@ -40,7 +40,7 @@
 - [#636](https://github.com/openDAQ/openDAQ/pull/636) Fixes Native reconnection issues.
 - [#615](https://github.com/openDAQ/openDAQ/pull/615) Add missing component `active` flag serialization.
 - [#590](https://github.com/openDAQ/openDAQ/pull/590) [#593](https://github.com/openDAQ/openDAQ/pull/593) Adds missing bcrypt installation and export rules.
-- [#569](https://github.com/openDAQ/openDAQ/pull/659) Fix building openDAQ on android, by removing multiple coping of loaded library to the final vector in ModuleManager constructor.
+- [#669](https://github.com/openDAQ/openDAQ/pull/659) Fix building openDAQ on android, by removing multiple coping of loaded library to the final vector in ModuleManager constructor.
 
 ## Misc
 

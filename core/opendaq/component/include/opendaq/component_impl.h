@@ -686,6 +686,7 @@ void ComponentImpl<Intf, Intfs...>::onOperationModeChanged(OperationModeType /* 
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
 {
+    auto lock = this->getRecursiveConfigLock();
     return wrapHandler(this, &Self::onOperationModeChanged, modeType);
 }
 

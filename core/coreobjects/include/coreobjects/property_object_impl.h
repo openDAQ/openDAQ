@@ -103,14 +103,28 @@ private:
     std::lock_guard<TMutex> lock;
 };
 
-template <typename TMutex>
 struct LockGuardImpl : public ImplementationOf<ILockGuard>
 {
-    LockGuardImpl(const PropertyObjectPtr& owner, TMutex* lock, std::thread::id* threadId, int* depth)
+    LockGuardImpl(const PropertyObjectPtr& owner, std::mutex& lock)
+        : owner(owner)
+        , lock(std::lock_guard(lock))
+    {
+    }
+
+private:
+    // to insure that owner is destroyed after lock
+    PropertyObjectPtr owner;
+    std::lock_guard<std::mutex> lock;
+};
+
+template <typename TMutex>
+struct RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
+{
+    RecursiveLockGuardImpl(const PropertyObjectPtr& owner, TMutex& lock, std::thread::id* threadId, int* depth)
         : owner(owner) 
         , id(threadId)
         , depth(depth)
-        , lock(std::lock_guard(*lock))
+        , lock(std::lock_guard(lock))
     {
         assert(this->id != nullptr);
         assert(this->depth != nullptr);
@@ -119,7 +133,7 @@ struct LockGuardImpl : public ImplementationOf<ILockGuard>
         ++(*this->depth);
     }
 
-    ~LockGuardImpl() override
+    ~RecursiveLockGuardImpl() override
     {
         --(*depth);
         if (*depth == 0)
@@ -288,7 +302,7 @@ public:
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) override;
     virtual ErrCode INTERFACE_FUNC hasUserReadAccess(IBaseObject* userContext, Bool* hasAccessOut) override;
     virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) override;
-    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(IList* lockGuardList) override;
+    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) override;
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
@@ -2723,26 +2737,19 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
     OPENDAQ_PARAM_NOT_NULL(lockGuard);
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        *lockGuard = createWithImplementation<ILockGuard, LockGuardImpl<object_utils::NullMutex>>(this->objPtr, &nullSync, &externalCallThreadId, &externalCallDepth).detach();
-    else
-        *lockGuard = createWithImplementation<ILockGuard, LockGuardImpl<std::mutex>>(this->objPtr, &sync, &externalCallThreadId, &externalCallDepth).detach();
+    *lockGuard = createWithImplementation<ILockGuard, LockGuardImpl>(this->objPtr, sync).detach();
     return OPENDAQ_SUCCESS;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveLockGuard(IList* lockGuardList)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveLockGuard(ILockGuard** lockGuard)
 {
-    OPENDAQ_PARAM_NOT_NULL(lockGuardList);
-    
-    LockGuardPtr lockGuard;
-    const ErrCode err = getLockGuard(&lockGuard);
-    if (OPENDAQ_FAILED(err))
-        return err;
-    
-    auto list = ListPtr<ILockGuard>::Borrow(lockGuardList);
-    list.pushBack(lockGuard);
-    return err;
+    OPENDAQ_PARAM_NOT_NULL(lockGuard);
+    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
+        *lockGuard = createWithImplementation<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>>(this->objPtr, nullSync, &externalCallThreadId, &externalCallDepth).detach();
+    else
+        *lockGuard = createWithImplementation<ILockGuard, RecursiveLockGuardImpl<std::mutex>>(this->objPtr, sync, &externalCallThreadId, &externalCallDepth).detach();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class PropObjInterface, class... Interfaces>

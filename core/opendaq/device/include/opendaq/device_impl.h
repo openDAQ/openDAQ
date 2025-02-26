@@ -161,8 +161,6 @@ public:
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
 
-    // IPropertyObjectInternal
-    ErrCode INTERFACE_FUNC getRecursiveLockGuard(IList* lockGuardList) override;
 protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
@@ -228,6 +226,7 @@ protected:
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
     virtual std::set<OperationModeType> onGetAvailableOperationModes();
+    ListPtr<ILockGuard> getTreeLockGuard();
 
     DevicePtr getParentDevice();
 
@@ -1086,34 +1085,28 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getConnectionStatusContainer(I
 
     return OPENDAQ_SUCCESS;
 }
-
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getRecursiveLockGuard(IList* lockGuardList)
+ListPtr<ILockGuard> GenericDevice<TInterface, Interfaces...>::getTreeLockGuard()
 {
-    OPENDAQ_PARAM_NOT_NULL(lockGuardList);
-    
+    auto lockGuardList = List<ILockGuard>();
+
     LockGuardPtr lockGuard;
-    ErrCode errCode = this->getLockGuard(&lockGuard);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-    
-    auto list = ListPtr<ILockGuard>::Borrow(lockGuardList);
-    list.pushBack(lockGuard);
+    this->getRecursiveLockGuard(&lockGuard);
+    lockGuardList.pushBack(lockGuard);
 
-    for (const auto& component : this->components)
+    ListPtr<IComponent> items;
+    this->getItems(&items, search::Recursive(search::Not(search::InterfaceId(IDevice::Id))));
+    if (!items.assigned())
+        return lockGuardList;
+
+    for (const auto& item : items)
     {
-        if (component == this->devices)
-            continue;
-
-        auto objProtected = component.template asPtrOrNull<IPropertyObjectInternal>(true);
-        if (!objProtected.assigned())
-            continue;
-        
-        errCode = objProtected->getRecursiveLockGuard(lockGuardList);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        auto objProtected = item.template asPtrOrNull<IPropertyObjectInternal>(true);
+        if (objProtected.assigned())
+            lockGuardList.pushBack(objProtected.getRecursiveLockGuard());
     }
-    return OPENDAQ_SUCCESS;
+
+    return lockGuardList;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1167,12 +1160,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* mode
     if (this->onGetAvailableOperationModes().count(mode) == 0)
         return OPENDAQ_IGNORED;
 
-    auto lockGuardList = List<ILockGuard>();
-    ErrCode errCode = this->getRecursiveLockGuard(lockGuardList);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    auto lockGuardList = this->getTreeLockGuard();
 
-    errCode = this->updateOperationMode(mode);
+    ErrCode errCode = this->updateOperationMode(mode);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 

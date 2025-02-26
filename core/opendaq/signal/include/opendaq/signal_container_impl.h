@@ -43,7 +43,6 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
-    ErrCode INTERFACE_FUNC getRecursiveLockGuard(IList* lockGuardList) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
@@ -191,27 +190,6 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::disableCoreEventTrigger()
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
-}
-
-template <class Intf, class ... Intfs>
-ErrCode GenericSignalContainerImpl<Intf, Intfs...>::getRecursiveLockGuard(IList* lockGuardList)
-{
-    ErrCode errCode = Super::getRecursiveLockGuard(lockGuardList);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
-    for (const auto& component : this->components)
-    {
-        const auto objPrivate = component.template asPtrOrNull<IPropertyObjectInternal>(true);
-        if (objPrivate.assigned())
-        {
-            errCode = objPrivate->getRecursiveLockGuard(lockGuardList);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
-        }
-    }
-
-    return OPENDAQ_SUCCESS;
 }
 
 

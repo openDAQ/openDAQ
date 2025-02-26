@@ -51,8 +51,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* name) = 0;
 
     virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) = 0;
-    // [templateType(lockGuard, ILockGuard)]
-    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(IList* lockGuard) = 0;
+    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) = 0;
 };
 
 /*!@}*/

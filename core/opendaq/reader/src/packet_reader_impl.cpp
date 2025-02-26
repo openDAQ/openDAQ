@@ -2,6 +2,7 @@
 #include <coretypes/list_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
+#include <opendaq/connection_internal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

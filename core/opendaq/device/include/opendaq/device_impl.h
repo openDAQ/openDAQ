@@ -114,6 +114,7 @@ public:
     ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
     ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
+    ErrCode INTERFACE_FUNC syncOperationMode() override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -337,7 +338,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock();
 
     this->isRootDevice = true;
-    this->updateOperationMode(OperationModeType::Operation);
+    this->syncOperationMode();
     return OPENDAQ_SUCCESS;
 }
 
@@ -1121,32 +1122,6 @@ std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvail
     return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
 }
 
-static std::string OperationModeTypeToString(OperationModeType mode)
-{
-    switch (mode)
-    {
-        case OperationModeType::Idle:
-            return "Idle";
-        case OperationModeType::Operation:
-            return "Operation";
-        case OperationModeType::SafeOperation:
-            return "SafeOperation";
-        default:
-            return "Unknown";
-    };
-}
-
-static OperationModeType OperationModeTypeFromString(const std::string& mode)
-{
-    if (mode == "Idle")
-        return OperationModeType::Idle;
-    if (mode == "Operation")
-        return OperationModeType::Operation;
-    if (mode == "SafeOperation")
-        return OperationModeType::SafeOperation;
-    return OperationModeType::Unknown;
-}
-
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(IList** availableOpModes)
 {
@@ -1169,8 +1144,19 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 {
     const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
     if (OPENDAQ_SUCCEEDED(errCode))
+    {
         this->operationMode = modeType;
+
+        if (!this->coreEventMuted && this->coreEvent.assigned())
+            triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
+    }
     return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::syncOperationMode()
+{
+    return updateOperationMode(OperationModeType::Operation);
 }
 
 template <typename TInterface, typename... Interfaces>

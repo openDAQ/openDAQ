@@ -235,26 +235,16 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto component = ComponentPtr::Borrow(item);
-        auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
 
-        if (componentPrivate.assigned())
-        {
-            OperationModeType modeType = OperationModeType::Operation;
-            // if (!componentPrivate.supportsInterface<IDevice>())
-            // {
-            //     auto parentDevice = this->getParentDevice();
-            //     if (parentDevice.assigned())
-            //         parentDevice.template as<IDevice>(true)->getOperationMode(&modeType);
-            // }
-
-            componentPrivate->updateOperationMode(modeType);
-        }
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                CoreEventId::ComponentAdded,
-                Dict<IString, IBaseObject>({{"Component", component}}));
+            CoreEventId::ComponentAdded,
+            Dict<IString, IBaseObject>({{"Component", component}}));
 
         this->triggerCoreEvent(args);
         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
+
+        if (auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+            componentPrivate->syncOperationMode();
     }
 
     return OPENDAQ_SUCCESS;

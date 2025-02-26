@@ -65,6 +65,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
 
 
     virtual ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) = 0;
+
+    virtual ErrCode INTERFACE_FUNC syncOperationMode() = 0;
 };
 
 END_NAMESPACE_OPENDAQ

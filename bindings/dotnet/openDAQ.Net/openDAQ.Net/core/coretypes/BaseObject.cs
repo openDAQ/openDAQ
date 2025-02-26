@@ -80,6 +80,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     //for debugging purposes only
     private static ulong __instanceCounter = 0ul;
     private readonly string _name;
+    private bool _noAddRemoveReferenceDebugPrint;
 #endif
 
     #region Constructors
@@ -120,7 +121,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     }
 
     /// <summary>
-    /// Creates an instance of the given type using the given parameters.
+    /// Creates an instance of the <typeparamref name="TObject"/> using the given parameters.
     /// </summary>
     /// <typeparam name="TObject">The type of the object.</typeparam>
     /// <param name="nativePointer">The native object pointer.</param>
@@ -223,28 +224,12 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     int IUnknown.AddReference()
     {
 #if DEBUG && DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
-        System.Diagnostics.Debug.WriteLine($"----- AddReference() for '{_name}'");
+        if (!_noAddRemoveReferenceDebugPrint)
+            System.Diagnostics.Debug.WriteLine($"----- AddReference() for '{_name}'");
 #endif
 
-#if USE_SDK_NOT_MARSHALER_FOR_IUNKNOWN
-        unsafe //use native method pointer
-        {
-            //call native method
-            return (int)_virtualTable.AddRef(this.NativePointer);
-        }
-#else
-        int newRefCount = Marshal.AddRef(this.NativePointer); //internally using native RawIUnknown.AddRef()
-        return newRefCount;
-#endif
-    }
-
-    /// <summary>Decrements the reference count for an interface on an object.</summary>
-    /// <remarks>Call this method when you no longer need to use an interface pointer.</remarks>
-    int IUnknown.ReleaseReference()
-    {
-#if DEBUG && DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
-        System.Diagnostics.Debug.WriteLine($"----- ReleaseReference() for '{_name}'");
-#endif
+        //get the native pointer here due to possible OpenDaqException thrown by this.NativePointer
+        IntPtr nativePointer = this.NativePointer;
 
         try
         {
@@ -252,16 +237,47 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             unsafe //use native method pointer
             {
                 //call native method
-                return (int)_virtualTable.ReleaseRef(this.NativePointer);
+                return (int)_virtualTable.AddRef(nativePointer);
             }
 #else
-            int newRefCount = Marshal.Release(this.NativePointer); //internally using RawIUnknown.Release()
+            int newRefCount = Marshal.AddRef(nativePointer); //internally using native RawIUnknown.AddRef()
             return newRefCount;
 #endif
         }
         catch (Exception ex)
         {
-            throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_CALLFAILED, $"IUnknown.ReleaseReference() threw {ex.GetType().Name} - {ex.Message}");
+            throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_CALLFAILED, $"IUnknown.AddReference() threw {ex.GetType().Name} - {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>Decrements the reference count for an interface on an object.</summary>
+    /// <remarks>Call this method when you no longer need to use an interface pointer.</remarks>
+    int IUnknown.ReleaseReference()
+    {
+#if DEBUG && DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
+        if (!_noAddRemoveReferenceDebugPrint)
+            System.Diagnostics.Debug.WriteLine($"----- ReleaseReference() for '{_name}'");
+#endif
+
+        //get the native pointer here due to possible OpenDaqException thrown by this.NativePointer
+        IntPtr nativePointer = this.NativePointer;
+
+        try
+        {
+#if USE_SDK_NOT_MARSHALER_FOR_IUNKNOWN
+            unsafe //use native method pointer
+            {
+                //call native method
+                return (int)_virtualTable.ReleaseRef(nativePointer);
+            }
+#else
+            int newRefCount = Marshal.Release(nativePointer); //internally using RawIUnknown.Release()
+            return newRefCount;
+#endif
+        }
+        catch (Exception ex)
+        {
+            throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_CALLFAILED, $"IUnknown.ReleaseReference() threw {ex.GetType().Name} - {ex.Message}", ex);
         }
     }
 
@@ -345,41 +361,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         return BaseObject.CreateInstance<TObject>(objPtr, false);
     }
 
-    /// <summary>Returns another interface which is supported by the object without incrementing the reference count.</summary>
-    /// <remarks>
-    ///  This method is similar to `queryInterface`, however, it does not increment the reference count.
-    ///  Use this method if you need to get another interface to the object and the lifetime of the new interface
-    ///  is shorter than the lifetime of the original interface.
-    /// </remarks>
-    /// <returns>The instance of the type given in <typeparamref name="TObject"/>.</returns>
-    public TObject BorrowInterface<TObject>()
-        where TObject : BaseObject
-    {
-        Type genericType = typeof(TObject);
-
-        if (genericType == typeof(BaseObject))
-        {
-            return (TObject)this;
-        }
-
-        var intfID = genericType.GUID;
-
-        //native output argument
-        IntPtr objPtr;
-
-        unsafe //use native function pointer
-        {
-            //call native function
-            ErrorCode errorCode = (ErrorCode)_virtualTable.BorrowInterface(this.NativePointer, ref intfID, out objPtr);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode, $"BorrowInterface({genericType.Name}) failed.");
-            }
-        }
-
-        return BaseObject.CreateInstance<TObject>(objPtr, false);
-    }
+    //no BorrowInterface() implementation here since it is not needed for managed objects (even dangerous to use it)
 
     /// <summary>
     /// Determines whether this instance can be cast to <typeparamref name="TObject"/>.
@@ -390,10 +372,6 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         where TObject : BaseObject
     {
         Type genericType = typeof(TObject);
-        if (genericType == typeof(BaseObject))
-        {
-            return true;
-        }
 
         var intfID = genericType.GUID;
 
@@ -402,11 +380,13 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             //call native function
             ErrorCode errorCode = (ErrorCode)_virtualTable.BorrowInterface(this.NativePointer, ref intfID, out _);
 
+            //although BorrowInterface() does not incrementing the reference counter, we can use it as long as we don't create a managed object from the returned pointer (ignored)
+            //this way we can check if the interface is available using the error code returned
+
             return Result.Succeeded(errorCode);
         }
     }
 
-    //ToDo: perhaps this should be removed and Query-/BorrowInterface() has to be used directly
     /// <summary>Casts this instance to the possibly derived type <typeparamref name="TObject"/>.</summary>
     /// <remarks>Primary use would be to cast a returned instance of type <see cref="BaseObject"/> or an item of a <see cref="ListObject{BaseObject}"/> to its underlying type.</remarks>
     /// <typeparam name="TObject">The type of the object.</typeparam>
@@ -415,11 +395,6 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         where TObject : BaseObject
     {
         Type genericType = typeof(TObject);
-
-        if (genericType == typeof(BaseObject))
-        {
-            return (TObject)this;
-        }
 
         var intfID = genericType.GUID;
 
@@ -436,10 +411,11 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <summary>Casts this instance to <c>ListObject&lt;<typeparamref name="TValue"/>&gt;</c>.</summary>
     /// <typeparam name="TValue">The value type.</typeparam>
     /// <returns>The cast instance when casting to <c>ListObject&lt;<typeparamref name="TValue"/>&gt;</c> is possible; otherwise <c>null</c>.</returns>
+    /// <remarks>Currently the list-items are not checked whether they can be cast to <typeparamref name="TValue"/>.</remarks>
     public IListObject<TValue> CastList<TValue>()
         where TValue : BaseObject
     {
-        if (this.GetType().Name.StartsWith(nameof(ListObject<BaseObject>)))
+        if (this.GetType().Name.StartsWith(nameof(ListObject<BaseObject>))) //ToDo: perhaps also check item type being cast-able to TValue?
             return new ListObject<TValue>(this.NativePointer, true);
 
         return this.Cast<ListObject<TValue>>();
@@ -449,11 +425,12 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// <typeparam name="TKey">The key value type.</typeparam>
     /// <typeparam name="TValue">The value type.</typeparam>
     /// <returns>The cast instance when casting to <c>DictObject&lt;<typeparamref name="TKey"/>, <typeparamref name="TValue"/>&gt;</c> is possible; otherwise <c>null</c>.</returns>
+    /// <remarks>Currently the dictionary-keys and -items are not checked whether they can be cast to <typeparamref name="TKey"/> and <typeparamref name="TValue"/>.</remarks>
     public IDictObject<TKey, TValue> CastDict<TKey, TValue>()
         where TKey : BaseObject
         where TValue : BaseObject
     {
-        if (this.GetType().Name.StartsWith(nameof(DictObject<BaseObject, BaseObject>)))
+        if (this.GetType().Name.StartsWith(nameof(DictObject<BaseObject, BaseObject>))) //ToDo: perhaps also check key and item type being cast-able to TKey,TValue?
             return new DictObject<TKey, TValue>(this.NativePointer, true);
 
         return this.Cast<DictObject<TKey, TValue>>();
@@ -490,7 +467,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             }
             catch (Exception ex)
             {
-                throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALID_OPERATION, ex.Message);
+                throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALID_OPERATION, ex.Message, ex);
             }
         }
     }
@@ -663,6 +640,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 
         if (_handleRef.Handle == IntPtr.Zero)
         {
+            //already disposed or 'stolen' through stealRef
             return;
         }
 
@@ -730,10 +708,18 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         else
         {
             //add and release reference to get the current reference count value
-            ((IUnknown)this).AddReference();
-            int referenceCount = ((IUnknown)this).ReleaseReference();
+            try
+            {
+                _noAddRemoveReferenceDebugPrint = true;
+                ((IUnknown)this).AddReference();
+                int referenceCount = ((IUnknown)this).ReleaseReference();
 
-            message = $"{referenceCount} references exist to '{_name}'";
+                message = $"{referenceCount} references exist to '{_name}'";
+            }
+            finally
+            {
+                _noAddRemoveReferenceDebugPrint = false;
+            }
         }
 
         if (!debugPrintOnly)

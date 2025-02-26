@@ -5,6 +5,7 @@
 
 #include "mock/mock_module.h"
 
+#include <chrono>
 #include <thread>
 
 using namespace daq;

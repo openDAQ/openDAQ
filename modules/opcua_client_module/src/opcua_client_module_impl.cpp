@@ -13,6 +13,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_protected_ptr.h>
 #include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
@@ -90,8 +91,8 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     completeServerCapabilities(device, host);
 
     // Set the connection info for the device
-    DeviceInfoConfigPtr deviceInfo = device.getInfo();
-    deviceInfo.setConnectionString(connectionString);
+    DeviceInfoPtr deviceInfo = device.getInfo();
+    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", connectionString);
     ServerCapabilityConfigPtr connectionInfo = deviceInfo.getConfigurationConnectionInfo();
     
     const auto addressInfo = AddressInfoBuilder().setAddress(host)
@@ -187,7 +188,7 @@ DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDe
         cap.setPort(discoveredDevice.servicePort);
 
     deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(cap.getConnectionString());
+    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
     deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
 
     return deviceInfo;

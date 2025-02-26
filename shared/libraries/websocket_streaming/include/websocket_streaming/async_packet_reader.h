@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <chrono>
 #include <thread>
 #include "websocket_streaming/websocket_streaming.h"
 #include <opendaq/device_ptr.h>

@@ -226,19 +226,42 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
     return false;
 }
 
-void NativeStreamingServerHandler::sendPacket(const SignalPtr& signal, PacketPtr&& packet)
+void NativeStreamingServerHandler::sendPacket(const std::string& signalId, PacketPtr&& packet)
 {
-    const auto signalStringId = signal.getGlobalId().toStdString();
-
     // The lambda passed as a parameter will be invoked immediately, making it safe to directly capture this
     streamingManager.sendPacketToSubscribers(
-        signalStringId,
+        signalId,
         std::move(packet),
         [this](const std::string& subscribedClientId, packet_streaming::PacketBufferPtr&& packetBuffer)
         {
             sessionHandlers.at(subscribedClientId)->sendPacketBuffer(std::move(packetBuffer));
         }
     );
+}
+
+void NativeStreamingServerHandler::processStreamingPacket(const std::string& signalId, PacketPtr&& packet)
+{
+    streamingManager.processPacket(signalId, std::move(packet));
+}
+
+void NativeStreamingServerHandler::scheduleStreamingWriteTasks()
+{
+    for (const auto& [clientId, sessionHandler] : sessionHandlers)
+    {
+        std::optional<std::chrono::steady_clock::time_point> timeStamp(std::nullopt);
+        std::vector<daq::native_streaming::WriteTask> tasks;
+
+        auto consumeBufferCallback = [&tasks, &timeStamp](const std::string&, packet_streaming::PacketBufferPtr&& packetBuffer)
+        {
+            if (!timeStamp.has_value() && packetBuffer->timeStamp.has_value())
+                timeStamp = packetBuffer->timeStamp.value();
+            BaseSessionHandler::createAndPushPacketBufferTasks(std::move(packetBuffer), tasks);
+        };
+
+        streamingManager.consumeAllPacketBuffers(clientId, tasks, consumeBufferCallback);
+        if (!tasks.empty())
+            sessionHandler->schedulePacketBufferWriteTasks(std::move(tasks), std::move(timeStamp));
+    }
 }
 
 void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)

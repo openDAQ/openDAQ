@@ -217,3 +217,29 @@ TEST_F(IntegerTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IInteger>(), "{B5C52F78-45F9-5C54-9BC1-CA65A46472CB}");
 }
+
+TEST_F(IntegerTest, QueryInterface)
+{
+    const auto obj = Integer(1);
+    const auto coreType = obj.asPtr<ICoreType>();
+    ASSERT_EQ(coreType, CoreType::ctInt);
+
+    const auto convertible = obj.asPtr<IConvertible>();
+    ASSERT_EQ(1, obj.convertTo(CoreType::ctInt));
+
+    const auto obj1 = obj.asPtr<IInteger>();
+    ASSERT_EQ(1, obj1);
+}
+
+TEST_F(IntegerTest, BorrowInterface)
+{
+    const auto obj = Integer(1);
+    const auto coreType = obj.asPtr<ICoreType>(true);
+    ASSERT_EQ(coreType, CoreType::ctInt);
+
+    const auto convertible = obj.asPtr<IConvertible>(true);
+    ASSERT_EQ(1, obj.convertTo(CoreType::ctInt));
+
+    const auto obj1 = obj.asPtr<IInteger>(true);
+    ASSERT_EQ(1, obj1);
+}

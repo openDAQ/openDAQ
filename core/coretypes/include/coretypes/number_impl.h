@@ -69,14 +69,6 @@ ErrCode NumberImpl<V, Intf>::queryInterface(const IntfID& id, void** intf)
 {
     OPENDAQ_PARAM_NOT_NULL(intf);
 
-    if (id == Intf::Id)
-    {
-        *intf = static_cast<Intf*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
     if (id == INumber::Id)
     {
         *intf = static_cast<INumber*>(this);
@@ -92,13 +84,6 @@ template <class V, class Intf>
 ErrCode NumberImpl<V, Intf>::borrowInterface(const IntfID& id, void** intf) const
 {
     OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == Intf::Id)
-    {
-        *intf = const_cast<Intf*>(static_cast<const Intf*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
 
     if (id == INumber::Id)
     {

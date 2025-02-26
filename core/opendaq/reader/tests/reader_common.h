@@ -27,6 +27,7 @@
 #include <opendaq/signal_factory.h>
 #include <testutils/testutils.h>
 
+#include <chrono>
 #include <thread>
 
 using namespace daq;

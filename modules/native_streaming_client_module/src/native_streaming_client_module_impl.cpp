@@ -869,7 +869,7 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
 
     deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(cap.getConnectionString());
+    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
     deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
 
     return deviceInfo;
@@ -887,7 +887,7 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(con
         cap.setPort(discoveredDevice.servicePort);
 
     deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(cap.getConnectionString());
+    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
     deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
 
     return deviceInfo;

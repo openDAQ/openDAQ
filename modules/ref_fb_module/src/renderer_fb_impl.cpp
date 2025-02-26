@@ -94,7 +94,8 @@ void RendererFbImpl::initProperties()
     objPtr.addProperty(freezeProp);
     objPtr.getOnPropertyValueWrite("Freeze") += onPropertyValueWrite;
 
-    const auto resolutionProp = SelectionProperty("Resolution", List<IString>("640x480", "800x600", "1024x768", "1280x720"), 1);
+    const auto resolutionProp =
+        SelectionProperty("Resolution", List<IString>("640x480", "800x600", "1024x768", "1280x720", "1920x1080", "2560x1440"), 1);
     objPtr.addProperty(resolutionProp);
     objPtr.getOnPropertyValueWrite("Resolution") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& /*args*/)
     {
@@ -704,6 +705,14 @@ void RendererFbImpl::getWidthAndHeight(unsigned int& width, unsigned int& height
         case 3:
             width = 1280;
             height = 720;
+            break;
+        case 4:
+            width = 1920;
+            height = 1080;
+            break;
+        case 5:
+            width = 2560;
+            height = 1440;
             break;
     }
 }

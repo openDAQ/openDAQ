@@ -1148,7 +1148,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
         this->operationMode = modeType;
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
-            triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
+            this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
     }
     return errCode;
 }

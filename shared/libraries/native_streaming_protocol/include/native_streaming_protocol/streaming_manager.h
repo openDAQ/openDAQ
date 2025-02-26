@@ -71,7 +71,11 @@ public:
     /// @param reconnected true if the client was reconnected, false otherwise.
     /// @param enablePacketBufferTimestamps enables timestamp creation for PacketBuffers
     /// @throw NativeStreamingProtocolException if the client is already registered.
-    void registerClient(const std::string& clientId, bool reconnected, bool enablePacketBufferTimestamps);
+    void registerClient(const std::string& clientId,
+                        bool reconnected,
+                        bool enablePacketBufferTimestamps,
+                        size_t packetStreamingReleaseThreshold,
+                        size_t cacheablePacketPayloadSizeMax);
 
     /// Removes a registered client on disconnection.
     /// @param clientId The unique string ID provided by the client or automatically assigned by the server.

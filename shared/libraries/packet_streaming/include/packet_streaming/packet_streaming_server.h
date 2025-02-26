@@ -24,6 +24,9 @@
 namespace daq::packet_streaming
 {
 
+static const size_t PACKET_ZERO_PAYLOAD_SIZE = 0;
+static const size_t PACKET_RELEASE_THRESHOLD_DEFAULT = 10;
+
 struct PacketCollection
 {
     std::mutex sync;
@@ -38,30 +41,32 @@ enum class ReleaseAction { markForRelease, subscribe, alreadySent };
 class PacketStreamingServer
 {
 public:
-    PacketStreamingServer(size_t payloadSizeThreshold, size_t releaseThreshold, bool attachTimestampToPacketBuffer);
+    PacketStreamingServer(size_t cacheablePacketPayloadSizeMax,
+                          size_t releaseThreshold,
+                          bool attachTimestampToPacketBuffer);
 
     void addDaqPacket(const uint32_t signalId, const PacketPtr& packet);
     void addDaqPacket(const uint32_t signalId, PacketPtr&& packet);
     PacketBufferPtr getNextPacketBuffer();
     size_t getAvailableBuffersCount();
-    size_t getNonMergeableBuffersCount();
-    size_t getSizeOfMergeableBuffers();
+    size_t getNonCacheableBuffersCount();
+    size_t getSizeOfCacheableBuffers();
 
     void checkAndSendReleasePacket(bool force);
     void addAlreadySentPacket(uint32_t signalId, Int packetId, Int domainPacketId, bool markForRelease);
 
-    bool isMergeableBuffer(const PacketBufferPtr& packet);
+    bool isCacheablePacketBuffer(const PacketBufferPtr& packet);
 
 private:
     SerializerPtr jsonSerializer;
     std::queue<PacketBufferPtr> queue;
-    size_t countOfNonMergeableBuffers;
-    size_t sizeOfMergeableBuffers;
+    size_t countOfNonCacheableBuffers;
+    size_t sizeOfCacheableBuffers;
     std::unordered_map<uint32_t, DataDescriptorPtr> dataDescriptors;
     PacketCollectionPtr packetCollection;
     size_t releaseThreshold;
     const bool attachTimestampToPacketBuffer;
-    size_t payloadSizeThreshold;
+    size_t cacheablePacketPayloadSizeMax;
 
     void addEventPacket(const uint32_t signalId, const EventPacketPtr& packet);
     template <bool CheckRefCount>

@@ -7,14 +7,16 @@
 namespace daq::packet_streaming
 {
 
-PacketStreamingServer::PacketStreamingServer(size_t payloadSizeThreshold, size_t releaseThreshold, bool attachTimestampToPacketBuffer)
+PacketStreamingServer::PacketStreamingServer(size_t cacheablePacketPayloadSizeMax,
+                                             size_t releaseThreshold,
+                                             bool attachTimestampToPacketBuffer)
     : jsonSerializer(JsonSerializer())
-    , countOfNonMergeableBuffers(0)
-    , sizeOfMergeableBuffers(0)
+    , countOfNonCacheableBuffers(0)
+    , sizeOfCacheableBuffers(0)
     , packetCollection(std::make_shared<PacketCollection>())
     , releaseThreshold(releaseThreshold)
     , attachTimestampToPacketBuffer(attachTimestampToPacketBuffer)
-    , payloadSizeThreshold(payloadSizeThreshold)
+    , cacheablePacketPayloadSizeMax(cacheablePacketPayloadSizeMax)
 {
 }
 
@@ -62,15 +64,15 @@ PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
         auto packetBuffer = queue.front();
         queue.pop();
 
-        if (isMergeableBuffer(packetBuffer))
+        if (isCacheablePacketBuffer(packetBuffer))
         {
-            assert(sizeOfMergeableBuffers >= (packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize));
-            sizeOfMergeableBuffers -= packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
+            assert(sizeOfCacheableBuffers >= (packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize));
+            sizeOfCacheableBuffers -= packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
         }
         else
         {
-            assert(countOfNonMergeableBuffers > 0);
-            --countOfNonMergeableBuffers;
+            assert(countOfNonCacheableBuffers > 0);
+            --countOfNonCacheableBuffers;
         }
 
         return packetBuffer;
@@ -84,14 +86,14 @@ size_t PacketStreamingServer::getAvailableBuffersCount()
     return queue.size();
 }
 
-size_t PacketStreamingServer::getNonMergeableBuffersCount()
+size_t PacketStreamingServer::getNonCacheableBuffersCount()
 {
-    return countOfNonMergeableBuffers;
+    return countOfNonCacheableBuffers;
 }
 
-size_t PacketStreamingServer::getSizeOfMergeableBuffers()
+size_t PacketStreamingServer::getSizeOfCacheableBuffers()
 {
-    return sizeOfMergeableBuffers;
+    return sizeOfCacheableBuffers;
 }
 
 void PacketStreamingServer::addEventPacket(const uint32_t signalId, const EventPacketPtr& packet)
@@ -207,10 +209,10 @@ Int PacketStreamingServer::getDomainPacketId(const DataPacketPtr& packet)
 
 void PacketStreamingServer::queuePacketBuffer(const PacketBufferPtr& packetBuffer)
 {
-    if (isMergeableBuffer(packetBuffer))
-        sizeOfMergeableBuffers += packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
+    if (isCacheablePacketBuffer(packetBuffer))
+        sizeOfCacheableBuffers += packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
     else
-        ++countOfNonMergeableBuffers;
+        ++countOfNonCacheableBuffers;
     queue.push(packetBuffer);
 }
 
@@ -323,9 +325,9 @@ void PacketStreamingServer::addAlreadySentPacket(uint32_t signalId, Int packetId
     queuePacketBuffer(packetBuffer);
 }
 
-bool PacketStreamingServer::isMergeableBuffer(const PacketBufferPtr& packetBuffer)
+bool PacketStreamingServer::isCacheablePacketBuffer(const PacketBufferPtr& packetBuffer)
 {
-    return packetBuffer->packetHeader->payloadSize <= payloadSizeThreshold;
+    return packetBuffer->packetHeader->payloadSize <= cacheablePacketPayloadSizeMax;
 }
 
 }

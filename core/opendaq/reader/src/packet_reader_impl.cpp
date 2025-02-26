@@ -2,6 +2,7 @@
 #include <coretypes/list_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
+#include <opendaq/connection_internal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -121,6 +122,22 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
     }
 
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketReaderImpl::readUpTo(IPacket** packetPtr, SizeT* count)
+{
+    OPENDAQ_PARAM_NOT_NULL(packetPtr);
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    std::scoped_lock lock(mutex);
+
+    if (!connection.assigned())
+    {
+        *count = 0;
+        return OPENDAQ_SUCCESS;
+    }
+
+    return connection.asPtr<IConnectionInternal>()->dequeueUpTo(packetPtr, count);
 }
 
 ErrCode PacketReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)

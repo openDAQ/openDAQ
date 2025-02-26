@@ -31,6 +31,7 @@ public:
 
     ErrCode INTERFACE_FUNC read(IPacket** packet) override;
     ErrCode INTERFACE_FUNC readAll(IList** allPackets) override;
+    ErrCode INTERFACE_FUNC readUpTo(IPacket** packetPtr, SizeT* count) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;

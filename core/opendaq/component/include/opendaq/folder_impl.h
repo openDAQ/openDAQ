@@ -241,10 +241,11 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
             Dict<IString, IBaseObject>({{"Component", component}}));
 
         this->triggerCoreEvent(args);
-        component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
-
+        
         if (auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
             componentPrivate->syncOperationMode();
+
+        component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
     }
 
     return OPENDAQ_SUCCESS;

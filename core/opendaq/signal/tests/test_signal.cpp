@@ -781,6 +781,13 @@ TEST_F(SignalTest, NoLastValue)
     ASSERT_FALSE(signal.getLastValue().assigned());
 }
 
+TEST_F(SignalTest, SetLastValue)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    signal.setLastValue(4);
+    ASSERT_EQ(signal.getLastValue(), 4);
+}
+
 TEST_F(SignalTest, GetLastValue)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");

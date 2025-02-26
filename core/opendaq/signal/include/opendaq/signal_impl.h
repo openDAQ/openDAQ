@@ -94,6 +94,8 @@ public:
     ErrCode INTERFACE_FUNC sendPackets(IList* packets) override;
     ErrCode INTERFACE_FUNC sendPacketAndStealRef(IPacket* packet) override;
     ErrCode INTERFACE_FUNC sendPacketsAndStealRef(IList* packet) override;
+    ErrCode INTERFACE_FUNC setLastValue(IBaseObject* lastValue) override;
+
 
     // ISignalEvents
     ErrCode INTERFACE_FUNC listenerConnected(IConnection* connection) override;
@@ -823,6 +825,16 @@ ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendPacketsAndStea
 
             return OPENDAQ_SUCCESS;
         });
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastValue)
+{
+    auto lock = this->getAcquisitionLock();
+
+    this->lastDataValue = lastValue;
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

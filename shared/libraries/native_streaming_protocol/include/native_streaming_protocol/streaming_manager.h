@@ -48,6 +48,7 @@ public:
                                  const ConsumePacketBufferCallback& consumePacketBufferCb);
 
     void processPacket(const std::string& signalStringId, PacketPtr&& packet);
+    void processPackets(std::unordered_map<std::string, packet_streaming::PacketBufferData>& packetIndices, std::vector<IPacket*>& packets);
 
     std::vector<native_streaming::WriteTask> consumeAllPacketBuffers(
         const std::string& clientId,

@@ -18,6 +18,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
+constexpr size_t MAX_PACKET_READ_COUNT = 10000;
+
 using namespace daq;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
@@ -67,6 +69,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
 
     const uint16_t pollingPeriod = config.getPropertyValue("StreamingDataPollingPeriod");
     readThreadSleepTime = std::chrono::milliseconds(pollingPeriod);
+    packetBuf.resize(MAX_PACKET_READ_COUNT);
     startReading();
 }
 
@@ -467,19 +470,22 @@ void NativeStreamingServerImpl::startReadThread()
             std::scoped_lock lock(readersSync);
 
 #if 1
-            bool hasPacketsToSend = false;
+            SizeT count = MAX_PACKET_READ_COUNT;
+            SizeT read = 0;
             for (const auto& [_, signalGlobalId, reader] : signalReaders)
             {
-                PacketPtr packet = reader.read();
-                while (packet.assigned())
-                {
-                    hasPacketsToSend = true;
-                    serverHandler->processStreamingPacket(signalGlobalId, std::move(packet));
-                    packet = reader.read();
-                }
+                reader->readUpTo(packetBuf.data() + read, &count);
+                packetIndices[signalGlobalId] = packet_streaming::PacketBufferData(read, count);
+                read += count;
             }
-            if (hasPacketsToSend)
+
+            if (read > 0)
+            {
+                serverHandler->processStreamingPackets(packetIndices, packetBuf);
                 serverHandler->scheduleStreamingWriteTasks();
+            }
+                
+            clearBuffer();
 #else
             for (const auto& [_, signalGlobalId, reader] : signalReaders)
             {
@@ -522,6 +528,7 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 #endif
 
     signalReaders.push_back(std::tuple<SignalPtr, std::string, PacketReaderPtr>({signalToRead, signalToRead.getGlobalId().toStdString(), reader}));
+    packetIndices.insert(std::make_pair(signalToRead.getGlobalId().toStdString(), packet_streaming::PacketBufferData(-1, -1)));
 }
 
 void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
@@ -537,6 +544,20 @@ void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 
     LOG_I("Remove reader for signal {}", signalToRead.getGlobalId());
     signalReaders.erase(it);
+    packetIndices.erase(signalToRead.getGlobalId().toStdString());
+}
+
+void NativeStreamingServerImpl::clearBuffer()
+{
+    for (auto& [_, data] : packetIndices)
+    {
+        for (auto i = data.index; i < data.index + data.count; ++i)
+        {
+            packetBuf[i]->releaseRef();
+        }
+
+        data.reset();
+    }
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

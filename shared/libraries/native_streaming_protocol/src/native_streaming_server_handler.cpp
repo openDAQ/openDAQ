@@ -244,6 +244,12 @@ void NativeStreamingServerHandler::processStreamingPacket(const std::string& sig
     streamingManager.processPacket(signalId, std::move(packet));
 }
 
+void NativeStreamingServerHandler::processStreamingPackets(std::unordered_map<std::string, packet_streaming::PacketBufferData>& packetIndices,
+                                                           std::vector<IPacket*>& packets)
+{
+    streamingManager.processPackets(packetIndices, packets);
+}
+
 void NativeStreamingServerHandler::scheduleStreamingWriteTasks()
 {
     for (const auto& [clientId, sessionHandler] : sessionHandlers)

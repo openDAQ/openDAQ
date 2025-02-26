@@ -49,6 +49,7 @@ protected:
     void startReadThread();
     void addReader(SignalPtr signalToRead);
     void removeReader(SignalPtr signalToRead);
+    void clearBuffer();
 
     void startTransportOperations();
     void stopTransportOperations();
@@ -70,6 +71,8 @@ protected:
     bool readThreadActive;
     std::chrono::milliseconds readThreadSleepTime;
     std::vector<std::tuple<SignalPtr, std::string, PacketReaderPtr>> signalReaders;
+    std::vector<IPacket*> packetBuf;
+    std::unordered_map<std::string, packet_streaming::PacketBufferData> packetIndices;
 
     std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
     std::thread transportThread;
@@ -88,10 +91,15 @@ protected:
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, NativeStreamingServer, daq::IServer,
-    DevicePtr, rootDevice,
-    PropertyObjectPtr, config,
-    const ContextPtr&, context
-)
+    INTERNAL_FACTORY,
+    NativeStreamingServer,
+    daq::IServer,
+    DevicePtr,
+    rootDevice,
+    PropertyObjectPtr,
+    config,
+    const ContextPtr&,
+    context
+    )
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE

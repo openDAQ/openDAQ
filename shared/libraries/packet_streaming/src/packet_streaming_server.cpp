@@ -55,6 +55,24 @@ void PacketStreamingServer::addDaqPacket(const uint32_t signalId, PacketPtr&& pa
     checkAndSendReleasePacket(false);
 }
 
+void PacketStreamingServer::addDaqPackets(std::unordered_map<std::string, PacketBufferData>& packetIndices,
+                                          std::vector<IPacket*>& packets,
+                                          const std::string& clientId)
+{
+    for (auto& [_, packetData] : packetIndices)
+    {
+        for (int i = packetData.index; i < packetData.index + packetData.count; ++i)
+        {
+            if (!packetData.clients->count(clientId))
+                continue;
+            auto packet = PacketPtr::Borrow(packets[i]);
+            addDaqPacket(packetData.signalId, packet);
+            if (packet.getType() == daq::PacketType::Event)
+                packetData.lastEventPacket = packet;
+        }
+    }
+}
+
 PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
 {
     if (!queue.empty())

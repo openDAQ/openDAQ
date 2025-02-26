@@ -98,6 +98,48 @@ void StreamingManager::processPacket(const std::string& signalStringId, PacketPt
     }
 }
 
+void StreamingManager::processPackets(std::unordered_map<std::string, packet_streaming::PacketBufferData>& packetIndices, std::vector<IPacket*>& packets)
+{
+    std::scoped_lock lock(sync);
+    for (auto& [signalStringId, packetData] : packetIndices)
+    {
+        if (auto it = registeredSignals.find(signalStringId); it != registeredSignals.end())
+        {
+            auto& registeredSignal = it->second;
+            packetData.signalId = registeredSignal.numericId;
+            packetData.clients = std::make_shared<std::unordered_set<std::string>>(registeredSignal.subscribedClientsIds);
+        }
+        else
+        {
+            throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+        }
+    }
+
+    for (const auto& srv : packetStreamingServers)
+    {
+        srv.second->addDaqPackets(packetIndices, packets, srv.first);
+    }
+
+    // TODO: Remove need for additional loop
+    for (auto& [signalStringId, packetData] : packetIndices)
+    {
+        auto it = registeredSignals.find(signalStringId);
+        auto& registeredSignal = it->second;
+
+        if (packetData.lastEventPacket.assigned())
+        {
+            const DataDescriptorPtr dataDescriptorParam =
+                packetData.lastEventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+            const DataDescriptorPtr domainDescriptorParam =
+                packetData.lastEventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+            if (dataDescriptorParam.assigned())
+                registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
+            if (domainDescriptorParam.assigned())
+                registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
+        }
+    }
+}
+
 std::vector<daq::native_streaming::WriteTask> StreamingManager::consumeAllPacketBuffers(
     const std::string& clientId,
     const ConsumePacketBufferCallback& consumePacketBufferCb)

@@ -472,10 +472,10 @@ void NativeStreamingServerImpl::startReadThread()
 #if 1
             SizeT count = MAX_PACKET_READ_COUNT;
             SizeT read = 0;
-            for (const auto& [_, signalGlobalId, reader] : signalReaders)
+            for (const auto& [_, signalGlobalId, port, connection] : signalReaders)
             {
-                reader->readUpTo(packetBuf.data() + read, &count);
-                packetIndices[signalGlobalId] = packet_streaming::PacketBufferData(read, count);
+                connection->dequeueUpTo(packetBuf.data() + read, &count);
+                packetIndices[signalGlobalId] = packet_streaming::PacketBufferData(static_cast<int>(read), static_cast<int>(count));
                 read += count;
             }
 
@@ -509,7 +509,7 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnectionInternal>>& element)
                            {
                                return std::get<0>(element) == signalToRead;
                            });
@@ -520,14 +520,15 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 
 #if 1
     auto port = InputPort(signalToRead.getContext(), nullptr, "readsig");
-    auto reader = PacketReaderFromPort(port);
     port.connect(signalToRead);
     port.setNotificationMethod(PacketReadyNotification::None);
+    auto connection = port.getConnection().asPtr<IConnectionInternal>();
 #else
     auto reader = PacketReader(signalToRead);
 #endif
 
-    signalReaders.push_back(std::tuple<SignalPtr, std::string, PacketReaderPtr>({signalToRead, signalToRead.getGlobalId().toStdString(), reader}));
+    signalReaders.push_back(std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnectionInternal>>(
+        {signalToRead, signalToRead.getGlobalId().toStdString(), port, connection}));
     packetIndices.insert(std::make_pair(signalToRead.getGlobalId().toStdString(), packet_streaming::PacketBufferData(-1, -1)));
 }
 
@@ -535,7 +536,7 @@ void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnection>>& element)
                            {
                                return std::get<0>(element) == signalToRead;
                            });
@@ -551,6 +552,9 @@ void NativeStreamingServerImpl::clearBuffer()
 {
     for (auto& [_, data] : packetIndices)
     {
+        if (data.count == 0)
+            continue;
+
         for (auto i = data.index; i < data.index + data.count; ++i)
         {
             packetBuf[i]->releaseRef();

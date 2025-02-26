@@ -43,14 +43,14 @@ struct PacketBufferData
     void reset()
     {
         index = -1;
-        count = -1;
+        count = 0;
         signalId = 0;
         lastEventPacket = nullptr;
         clients.reset();
     }
 
     int index = -1;
-    int count = -1;
+    int count = 0;
     uint32_t signalId = 0;
     std::shared_ptr<std::unordered_set<std::string>> clients;
     EventPacketPtr lastEventPacket;

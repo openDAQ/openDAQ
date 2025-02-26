@@ -61,6 +61,9 @@ void PacketStreamingServer::addDaqPackets(std::unordered_map<std::string, Packet
 {
     for (auto& [_, packetData] : packetIndices)
     {
+        if (packetData.count == 0)
+            continue;
+
         for (int i = packetData.index; i < packetData.index + packetData.count; ++i)
         {
             if (!packetData.clients->count(clientId))

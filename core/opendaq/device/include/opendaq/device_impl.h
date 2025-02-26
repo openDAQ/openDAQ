@@ -1132,7 +1132,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(ILi
     
     auto modesList = List<IString>();
     for (const auto& mode : modes)
-        modesList.pushBack(OperationModeTypeToString(mode));
+        modesList.pushBack(this->OperationModeTypeToString(mode));
 
     *availableOpModes = modesList.detach();
 
@@ -1163,7 +1163,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
-    OperationModeType mode = OperationModeTypeFromString(StringPtr::Borrow(modeType));
+    OperationModeType mode = this->OperationModeTypeFromString(StringPtr::Borrow(modeType));
     if (this->onGetAvailableOperationModes().count(mode) == 0)
         return OPENDAQ_IGNORED;
 
@@ -1213,7 +1213,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(IString** modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
-    *modeType = String(OperationModeTypeToString(this->operationMode)).detach();
+    *modeType = String(this->OperationModeTypeToString(this->operationMode)).detach();
     return OPENDAQ_SUCCESS;
 }
 

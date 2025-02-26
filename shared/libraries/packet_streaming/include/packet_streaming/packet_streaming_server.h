@@ -38,7 +38,7 @@ enum class ReleaseAction { markForRelease, subscribe, alreadySent };
 class PacketStreamingServer
 {
 public:
-    PacketStreamingServer(size_t payloadSizeThreshold = 0, size_t releaseThreshold = 1, bool attachTimestampToPacketBuffer = false);
+    PacketStreamingServer(size_t payloadSizeThreshold, size_t releaseThreshold, bool attachTimestampToPacketBuffer);
 
     void addDaqPacket(const uint32_t signalId, const PacketPtr& packet);
     void addDaqPacket(const uint32_t signalId, PacketPtr&& packet);

@@ -340,7 +340,7 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
     sessionHandler->setPacketBufferReceivedHandler(packetBufferReceivedHandler);
 
     // FIXME keep and reuse packet server when packet retransmission feature will be enabled
-    packetStreamingServerPtr = std::make_shared<packet_streaming::PacketStreamingServer>();
+    packetStreamingServerPtr = std::make_shared<packet_streaming::PacketStreamingServer>(0, 1, false);
 
     sessionHandler->sendTransportLayerProperties(transportLayerProperties);
     if (connectionMonitoringEnabled)

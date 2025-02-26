@@ -18,7 +18,7 @@ public:
     }
 
 protected:
-    PacketStreamingServer server {0, 10};
+    PacketStreamingServer server {0, 10, false};
     PacketStreamingClient client;
     PacketTransmission transmission;
 

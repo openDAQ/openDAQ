@@ -363,6 +363,13 @@ target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
                                               $<INSTALL_INTERFACE:include>
 )
 
+if (OPENDAQ_ENABLE_ACCESS_CONTROL)
+    message(STATUS "Access control enabled")
+    target_compile_definitions(${LIB_NAME} PUBLIC OPENDAQ_ENABLE_ACCESS_CONTROL)
+else()
+    message(STATUS "Access control disabled")
+endif()
+
 target_compile_definitions(${LIB_NAME} PRIVATE BUILDING_SHARED_LIBRARY
                                        INTERFACE OPENDAQ_LINKS_CORE_OBJECTS
 )

@@ -661,13 +661,6 @@ else()
     message(STATUS "Native streaming disabled")
 endif()
 
-if (OPENDAQ_ENABLE_ACCESS_CONTROL)
-    message(STATUS "Access control enabled")
-    add_compile_definitions(OPENDAQ_ENABLE_ACCESS_CONTROL)
-else()
-    message(STATUS "Access control disabled")
-endif()
-
 use_compiler_cache()
 
 if (WIN32)

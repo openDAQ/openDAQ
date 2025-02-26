@@ -21,6 +21,7 @@
 #include <opendaq/config_provider_factory.h>
 
 #include <opendaq/channel_ptr.h>
+#include <opendaq/recorder_ptr.h>
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/function_block_type_factory.h>
 

@@ -37,6 +37,11 @@ bool ClientImpl::allowAddFunctionBlocksFromModules()
     return true;
 }
 
+std::set<daq::OperationModeType> ClientImpl::onGetAvailableOperationModes() 
+{ 
+    return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation}; 
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC (
     LIBRARY_FACTORY, Client, IDevice, createClient,
     IContext*, ctx,

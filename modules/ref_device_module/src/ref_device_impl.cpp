@@ -1,23 +1,23 @@
-#include <ref_device_module/ref_device_impl.h>
-#include <opendaq/device_info_factory.h>
-#include <coreobjects/unit_factory.h>
-#include <ref_device_module/ref_channel_impl.h>
-#include <ref_device_module/ref_can_channel_impl.h>
-#include <fmt/format.h>
-#include <opendaq/custom_log.h>
-#include <opendaq/device_type_factory.h>
-#include <opendaq/device_domain_factory.h>
-#include <utility>
-#include <opendaq/sync_component_private_ptr.h>
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
-#include <opendaq/log_file_info_factory.h>
+#include <coreobjects/unit_factory.h>
 #include <coretypes/filesystem.h>
-#include <fstream>
-#include <sstream>
-#include <chrono>
-#include <iomanip>
+#include <fmt/format.h>
+#include <opendaq/custom_log.h>
+#include <opendaq/device_domain_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_type_factory.h>
+#include <opendaq/log_file_info_factory.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/sync_component_private_ptr.h>
+#include <ref_device_module/ref_can_channel_impl.h>
+#include <ref_device_module/ref_channel_impl.h>
+#include <ref_device_module/ref_device_impl.h>
+#include <chrono>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <utility>
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
 #ifdef __linux__
@@ -30,7 +30,12 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
-RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
+RefDeviceImpl::RefDeviceImpl(size_t id,
+                             const PropertyObjectPtr& config,
+                             const ContextPtr& ctx,
+                             const ComponentPtr& parent,
+                             const StringPtr& localId,
+                             const StringPtr& name)
     : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
     , serialNumber(fmt::format("DevSer{}", id))
@@ -210,7 +215,7 @@ void RefDeviceImpl::initSyncComponent()
 void RefDeviceImpl::acqLoop()
 {
     using namespace std::chrono_literals;
-    using  milli = std::chrono::milliseconds;
+    using milli = std::chrono::milliseconds;
 
     auto startLoopTime = std::chrono::high_resolution_clock::now();
     const auto loopTime = milli(acqLoopTime);
@@ -225,7 +230,6 @@ void RefDeviceImpl::acqLoop()
         startLoopTime = time;
 
         cv.wait_for(lock, waitTime);
-        if (!stopAcq)
         if (!stopAcq)
         {
             const auto curTime = getMicroSecondsSinceDeviceStart();
@@ -271,14 +275,14 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 
         if (config.hasProperty("EnableProtectedChannel"))
             enableProtectedChannel = config.getPropertyValue("EnableProtectedChannel");
-        
+
         if (config.hasProperty("EnableLogging"))
             loggingEnabled = config.getPropertyValue("EnableLogging");
 
         if (config.hasProperty("LoggingPath"))
             loggingPath = config.getPropertyValue("LoggingPath");
-    } 
-    
+    }
+
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     if (options.assigned())
     {
@@ -312,9 +316,8 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
         IntPropertyBuilder("AcquisitionLoopTime", 20).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
 
     objPtr.addProperty(acqLoopTimePropInfo);
-    objPtr.getOnPropertyValueWrite("AcquisitionLoopTime") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) {
-        updateAcqLoopTime();
-    };
+    objPtr.getOnPropertyValueWrite("AcquisitionLoopTime") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateAcqLoopTime(); };
 
     objPtr.addProperty(BoolProperty("EnableCANChannel", enableCANChannel));
     objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
@@ -477,7 +480,7 @@ void RefDeviceImpl::enableLogging()
     loggingEnabled = objPtr.getPropertyValue("EnableLogging");
 }
 
-StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint) 
+StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint)
 {
     std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
     std::tm tm = *std::gmtime(&time);  // Use gmtime for UTC
@@ -488,7 +491,7 @@ StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint)
 }
 
 ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
-{    
+{
     {
         auto lock = getAcquisitionLock();
         if (!loggingEnabled)
@@ -535,7 +538,7 @@ StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
         if (id != loggingPath)
             return "";
     }
-    
+
     std::ifstream file(loggingPath.toStdString(), std::ios::binary);
     if (!file.is_open())
         return "";
@@ -557,6 +560,11 @@ StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
     file.close();
 
     return String(buffer.data(), size);
+}
+
+std::set<OperationModeType> RefDeviceImpl::onGetAvailableOperationModes()
+{
+    return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
 }
 
 void RefDeviceImpl::createSignals()

@@ -130,6 +130,11 @@ public:
             this->addSubDevice(device);
         }
     }
+
+    std::set<daq::OperationModeType> onGetAvailableOperationModes() override 
+    { 
+        return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation}; 
+    }
 };
 
 

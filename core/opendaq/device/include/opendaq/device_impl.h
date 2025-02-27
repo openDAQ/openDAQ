@@ -1112,7 +1112,7 @@ ListPtr<ILockGuard> GenericDevice<TInterface, Interfaces...>::getTreeLockGuard()
 template <typename TInterface, typename... Interfaces>
 std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvailableOperationModes()
 {
-    return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
+    return {OperationModeType::Operation};
 }
 
 template <typename TInterface, typename... Interfaces>

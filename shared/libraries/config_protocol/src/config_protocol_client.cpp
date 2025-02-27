@@ -192,24 +192,28 @@ void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std:
     parseRpcOrRejectReply(setPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
-DictPtr<IString, IFunctionBlockType> ConfigProtocolClientComm::getAvailableFunctionBlockTypes(const std::string& globalId)
+DictPtr<IString, IFunctionBlockType> ConfigProtocolClientComm::getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb)
 {
-    return sendComponentCommand(globalId, ClientCommand("GetAvailableFunctionBlockTypes"));
+    auto command = isFb ? ClientCommand("GetAvailableFunctionBlockTypes", 9) : ClientCommand("GetAvailableFunctionBlockTypes");
+    return sendComponentCommand(globalId, command);
 }
 
 ComponentHolderPtr ConfigProtocolClientComm::addFunctionBlock(const std::string& globalId,
                                                               const StringPtr& typeId,
                                                               const PropertyObjectPtr& config,
-                                                              const ComponentPtr& parentComponent)
+                                                              const ComponentPtr& parentComponent,
+                                                              bool isFb)
 {
+    auto command = isFb ? ClientCommand("AddFunctionBlock", 9) : ClientCommand("AddFunctionBlock");
     auto params = Dict<IString, IBaseObject>({{"TypeId", typeId}, {"Config", config}});
-    return sendComponentCommand(globalId, ClientCommand("AddFunctionBlock"), params, parentComponent);
+    return sendComponentCommand(globalId, command, params, parentComponent);
 }
 
-void ConfigProtocolClientComm::removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId)
+void ConfigProtocolClientComm::removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId, bool isFb)
 {
+    auto command = isFb ? ClientCommand("RemoveFunctionBlock", 9) : ClientCommand("RemoveFunctionBlock");
     auto params = Dict<IString, IBaseObject>({{"LocalId", functionBlockLocalId}});
-    sendComponentCommand(globalId, ClientCommand("RemoveFunctionBlock"), params);
+    sendComponentCommand(globalId, command, params);
 }
 
 uint64_t ConfigProtocolClientComm::getTicksSinceOrigin(const std::string& globalId)

@@ -27,9 +27,6 @@ namespace daq::config_protocol
 class ConfigServerDevice
 {
 public:
-    static BaseObjectPtr getAvailableFunctionBlockTypes(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr addFunctionBlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
-    static BaseObjectPtr removeFunctionBlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getInfo(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getTicksSinceOrigin(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr lock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
@@ -45,52 +42,6 @@ public:
     static BaseObjectPtr setPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
 };
-
-inline BaseObjectPtr ConfigServerDevice::getAvailableFunctionBlockTypes(const RpcContext& context,
-                                                                        const DevicePtr& device,
-                                                                        const ParamsDictPtr& params)
-{
-    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
-
-    const auto fbTypes = device.getAvailableFunctionBlockTypes();
-    return fbTypes;
-}
-
-inline BaseObjectPtr ConfigServerDevice::addFunctionBlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
-{
-    ConfigServerAccessControl::protectLockedComponent(device);
-    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
-    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
-
-    const auto fbTypeId = params.get("TypeId");
-    PropertyObjectPtr config;
-    if (params.hasKey("Config"))
-        config = params.get("Config");
-
-    const auto fb = device.addFunctionBlock(fbTypeId, config);
-    return ComponentHolder(fb);
-}
-
-inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const RpcContext& context,
-                                                             const DevicePtr& device,
-                                                             const ParamsDictPtr& params)
-{
-    ConfigServerAccessControl::protectLockedComponent(device);
-    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
-    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
-
-    const auto localId = params.get("LocalId");
-
-    const auto fbs = device.getFunctionBlocks(search::LocalId(localId));
-    if (fbs.getCount() == 0)
-        throw NotFoundException("Function block not found");
-
-    if (fbs.getCount() > 1)
-        throw InvalidStateException("Duplicate function block");
-
-    device.removeFunctionBlock(fbs[0]);
-    return nullptr;
-}
 
 inline BaseObjectPtr ConfigServerDevice::getInfo(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {

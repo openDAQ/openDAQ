@@ -33,7 +33,7 @@ public:
     bool allowAddFunctionBlocksFromModules() override;
 
 protected:
-    std::set<daq::OperationModeType> onGetAvailableOperationModes();
+    std::set<daq::OperationModeType> onGetAvailableOperationModes() override;
 
 private:
     ModuleManagerPtr manager;

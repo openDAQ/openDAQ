@@ -146,6 +146,7 @@ static PropertyObjectPtr createMockNestedPropertyObject()
         });
 
     child1_2_1.addProperty(StringProperty("String", "String"));
+    child1_2_1.addProperty(SelectionProperty("Selection", List<IString>("a", "b"), 0));
     child1_2_1.addProperty(StringPropertyBuilder("ReadOnlyString", "String").setReadOnly(true).build());
     child1_2_1.addProperty(functionProp);
     child1_2_1.addProperty(procedureProp);

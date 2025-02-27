@@ -21,8 +21,8 @@
 #include <opendaq/server.h>
 #include <opendaq/server_impl.h>
 #include <coretypes/intfs.h>
-
 #include <native_streaming_protocol/native_streaming_server_handler.h>
+#include <opendaq/connection_internal.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
@@ -49,6 +49,7 @@ protected:
     void startReadThread();
     void addReader(SignalPtr signalToRead);
     void removeReader(SignalPtr signalToRead);
+    void clearIndices();
 
     void startTransportOperations();
     void stopTransportOperations();
@@ -69,7 +70,9 @@ protected:
     std::thread readThread;
     bool readThreadActive;
     std::chrono::milliseconds readThreadSleepTime;
-    std::vector<std::tuple<SignalPtr, std::string, PacketReaderPtr>> signalReaders;
+    std::vector<std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnectionInternal>>> signalReaders;
+    std::vector<IPacket*> packetBuf;
+    std::unordered_map<std::string, opendaq_native_streaming_protocol::PacketBufferData> packetIndices;
 
     std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
     std::thread transportThread;
@@ -88,10 +91,15 @@ protected:
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, NativeStreamingServer, daq::IServer,
-    DevicePtr, rootDevice,
-    PropertyObjectPtr, config,
-    const ContextPtr&, context
-)
+    INTERNAL_FACTORY,
+    NativeStreamingServer,
+    daq::IServer,
+    DevicePtr,
+    rootDevice,
+    PropertyObjectPtr,
+    config,
+    const ContextPtr&,
+    context
+    )
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE

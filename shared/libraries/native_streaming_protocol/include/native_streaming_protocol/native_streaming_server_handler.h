@@ -57,6 +57,7 @@ public:
 
     void sendPacket(const std::string& signalId, PacketPtr&& packet);
     void processStreamingPacket(const std::string& signalId, PacketPtr&& packet);
+    void processStreamingPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices, const std::vector<IPacket*>& packets);
     void scheduleStreamingWriteTasks();
 
 protected:

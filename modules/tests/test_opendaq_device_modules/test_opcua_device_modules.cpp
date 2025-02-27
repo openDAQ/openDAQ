@@ -1308,3 +1308,61 @@ TEST_F(OpcuaDeviceModulesTest, GetSetNonCheangableUserNameLocation)
         ASSERT_EQ(serverDeviceInfo.getPropertyValue(propertyName), "serverValue");      
     }
 }
+
+TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    test_helpers::checkDeviceOperationMode(server, "Operation");
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+
+    ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
+    ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
+
+    // setting the operation mode for server root device
+    ASSERT_NO_THROW(server.setOperationModeRecursive("Idle"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+
+    // setting the operation mode for server sub device
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive("SafeOperation"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "SafeOperation", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "SafeOperation");
+
+    // setting the operation mode for client sub device
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive("Operation"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+
+    // setting the operation mode for client device not recursively
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode("SafeOperation"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "SafeOperation", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "SafeOperation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+
+    // setting the operation mode for client device
+    ASSERT_NO_THROW(client.setOperationModeRecursive("Idle"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+}

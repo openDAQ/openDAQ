@@ -45,6 +45,7 @@ public:
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
+    ErrCode INTERFACE_FUNC syncOperationMode() override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
@@ -125,6 +126,12 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Description", description); 
     });
+}
+
+template <class Impl>
+ErrCode ConfigClientComponentBaseImpl<Impl>::syncOperationMode()
+{
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>

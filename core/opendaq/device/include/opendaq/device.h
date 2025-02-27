@@ -37,6 +37,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IDevice, GenericDevicePtr)]
  * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object.h>")]
  * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user.h>")]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -353,6 +354,31 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param[out] statusContainer The container for the device connection statuses.
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) = 0;
+
+    // [elementType(availableOpModes, IString)]
+    /*!
+     * @brief Gets a list of available operation modes for the device.
+     * @param[out] availableOpModes The list of available operation modes.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) = 0;
+
+    /*!
+     * @brief Sets the operation mode of the device subtree excluding the sub-devices.
+     * @param modeType The operation mode to set.
+     */
+    virtual ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) = 0;
+
+    /*!
+     * @brief Sets the operation mode of the device subtree including the sub-devices.
+     * @param modeType The operation mode to set.
+     */
+    virtual ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) = 0;
+
+    /*!
+     * @brief Gets the operation mode of the device.
+     * @param[out] modeType The current operation mode.
+     */
+    virtual ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) = 0;
 };
 /*!@}*/
 

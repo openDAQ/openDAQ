@@ -78,6 +78,7 @@ public:
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+
     ErrCode INTERFACE_FUNC lock() override;
     ErrCode INTERFACE_FUNC unlock() override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
@@ -86,12 +87,16 @@ public:
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
 
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
+    
+    ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
+    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
+    ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
+    ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
 
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 
     // IComponent
-
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
@@ -110,7 +115,6 @@ public:
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
 
     // IFolder
-
     ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
     ErrCode INTERFACE_FUNC isEmpty(Bool* empty) override;

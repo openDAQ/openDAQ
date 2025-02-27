@@ -31,31 +31,6 @@ struct PacketCollection
     std::vector<Int> readyForRelease;
 };
 
-struct PacketBufferData
-{
-    PacketBufferData() = default;   
-    PacketBufferData(int index, int count)
-        : index(index)
-        , count(count)
-    {
-    }
-
-    void reset()
-    {
-        index = -1;
-        count = 0;
-        signalId = 0;
-        lastEventPacket = nullptr;
-        clients.reset();
-    }
-
-    int index = -1;
-    int count = 0;
-    uint32_t signalId = 0;
-    std::shared_ptr<std::unordered_set<std::string>> clients;
-    EventPacketPtr lastEventPacket;
-};
-
 using PacketCollectionPtr = std::shared_ptr<PacketCollection>;
     
 enum class ReleaseAction { markForRelease, subscribe, alreadySent };
@@ -67,7 +42,6 @@ public:
 
     void addDaqPacket(const uint32_t signalId, const PacketPtr& packet);
     void addDaqPacket(const uint32_t signalId, PacketPtr&& packet);
-    void addDaqPackets(std::unordered_map<std::string, PacketBufferData>& packetIndices, std::vector<IPacket*>& packets, const std::string& clientId);
     PacketBufferPtr getNextPacketBuffer();
     size_t getAvailableBuffersCount();
     size_t getNonMergeableBuffersCount();

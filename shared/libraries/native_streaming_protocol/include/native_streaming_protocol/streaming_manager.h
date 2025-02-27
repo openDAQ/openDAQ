@@ -28,6 +28,20 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
+struct PacketBufferData
+{
+    PacketBufferData() = default;   
+
+    void reset()
+    {
+        index = -1;
+        count = 0;
+    }
+
+    int index = -1;
+    int count = 0;
+};
+
 using ConsumePacketBufferCallback = std::function<void(const std::string& subscribedClientId,
                                                        packet_streaming::PacketBufferPtr&& packetBuffer)>;
 
@@ -48,7 +62,7 @@ public:
                                  const ConsumePacketBufferCallback& consumePacketBufferCb);
 
     void processPacket(const std::string& signalStringId, PacketPtr&& packet);
-    void processPackets(std::unordered_map<std::string, packet_streaming::PacketBufferData>& packetIndices, std::vector<IPacket*>& packets);
+    void processPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices, const std::vector<IPacket*>& packets);
 
     std::vector<native_streaming::WriteTask> consumeAllPacketBuffers(
         const std::string& clientId,

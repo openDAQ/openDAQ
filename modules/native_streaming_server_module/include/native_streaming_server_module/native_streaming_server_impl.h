@@ -49,7 +49,7 @@ protected:
     void startReadThread();
     void addReader(SignalPtr signalToRead);
     void removeReader(SignalPtr signalToRead);
-    void clearBuffer();
+    void clearIndices();
 
     void startTransportOperations();
     void stopTransportOperations();
@@ -72,7 +72,7 @@ protected:
     std::chrono::milliseconds readThreadSleepTime;
     std::vector<std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnectionInternal>>> signalReaders;
     std::vector<IPacket*> packetBuf;
-    std::unordered_map<std::string, packet_streaming::PacketBufferData> packetIndices;
+    std::unordered_map<std::string, opendaq_native_streaming_protocol::PacketBufferData> packetIndices;
 
     std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
     std::thread transportThread;

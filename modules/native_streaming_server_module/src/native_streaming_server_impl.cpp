@@ -475,8 +475,11 @@ void NativeStreamingServerImpl::startReadThread()
             for (const auto& [_, signalGlobalId, port, connection] : signalReaders)
             {
                 connection->dequeueUpTo(packetBuf.data() + read, &count);
-                packetIndices[signalGlobalId] = packet_streaming::PacketBufferData(static_cast<int>(read), static_cast<int>(count));
+                auto& packetData = packetIndices[signalGlobalId];
+                packetData.index = static_cast<int>(read);
+                packetData.count = static_cast<int>(count);
                 read += count;
+                count = MAX_PACKET_READ_COUNT - read;
             }
 
             if (read > 0)
@@ -485,7 +488,8 @@ void NativeStreamingServerImpl::startReadThread()
                 serverHandler->scheduleStreamingWriteTasks();
             }
                 
-            clearBuffer();
+            clearIndices();
+
 #else
             for (const auto& [_, signalGlobalId, reader] : signalReaders)
             {
@@ -529,7 +533,7 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 
     signalReaders.push_back(std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnectionInternal>>(
         {signalToRead, signalToRead.getGlobalId().toStdString(), port, connection}));
-    packetIndices.insert(std::make_pair(signalToRead.getGlobalId().toStdString(), packet_streaming::PacketBufferData(-1, -1)));
+    packetIndices.insert(std::make_pair(signalToRead.getGlobalId().toStdString(), PacketBufferData()));
 }
 
 void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
@@ -548,18 +552,10 @@ void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
     packetIndices.erase(signalToRead.getGlobalId().toStdString());
 }
 
-void NativeStreamingServerImpl::clearBuffer()
+void NativeStreamingServerImpl::clearIndices()
 {
     for (auto& [_, data] : packetIndices)
     {
-        if (data.count == 0)
-            continue;
-
-        for (auto i = data.index; i < data.index + data.count; ++i)
-        {
-            packetBuf[i]->releaseRef();
-        }
-
         data.reset();
     }
 }

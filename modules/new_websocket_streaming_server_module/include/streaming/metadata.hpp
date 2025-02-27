@@ -20,7 +20,7 @@ namespace daq::ws_streaming
      */
     nlohmann::json to_metadata(
         std::string id,
-        daq::DataDescriptorPtr descriptor,
+        const daq::DataDescriptorPtr& descriptor,
         std::string description,
         std::string domain_signal_id);
 }

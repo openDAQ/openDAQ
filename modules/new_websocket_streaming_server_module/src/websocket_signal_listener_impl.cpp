@@ -94,7 +94,8 @@ daq::ErrCode daq::ws_streaming::WebSocketSignalListenerImpl::packetReceived(daq:
                             daq::ws_streaming::websocket_protocol::constant_value_packet data { .index = 0, .value = it->domain_value.value() };
                             if (!client->send_data(domain_listener->signo, &data, sizeof(data)))
                             {
-                                client->get_socket().shutdown(boost::asio::socket_base::shutdown_both);
+                                boost::system::error_code ec;
+                                client->get_socket().shutdown(boost::asio::socket_base::shutdown_both, ec);
                                 auto jt = it++;
                                 clients.erase(jt);
                                 continue;
@@ -104,7 +105,8 @@ daq::ErrCode daq::ws_streaming::WebSocketSignalListenerImpl::packetReceived(daq:
 
                     if (!it->writer->write(data))
                     {
-                        client->get_socket().shutdown(boost::asio::socket_base::shutdown_both);
+                        boost::system::error_code ec;
+                        client->get_socket().shutdown(boost::asio::socket_base::shutdown_both, ec);
                         auto jt = it++;
                         clients.erase(jt);
                         continue;
@@ -131,20 +133,39 @@ daq::ErrCode daq::ws_streaming::WebSocketSignalListenerImpl::packetReceived(daq:
                 {
                     auto client = it->client.lock();
 
-                    if (!client || !client->send_metadata(signo, {
+                    nlohmann::json metadata;
+                    bool success = false;
+
+                    try
+                    {
+                        metadata = to_metadata(it->id, descriptor, it->description, it->domain_signal_id);
+                        success = true;
+                    }
+
+                    catch (const std::exception& ex)
+                    {
+                        std::cerr << "[ws-streaming] failed to generate metadata for modified signal " << it->id << ": " << ex.what() << std::endl;
+                    }
+
+                    if (!success || !client || !client->send_metadata(signo, {
                         { "method", "signal" },
-                        { "params", to_metadata(it->id, descriptor, it->description, it->domain_signal_id) }
+                        { "params", metadata }
                     }))
                     {
                         if (client)
-                            client->get_socket().shutdown(boost::asio::socket_base::shutdown_both);
+                        {
+                            boost::system::error_code ec;
+                            client->get_socket().shutdown(boost::asio::socket_base::shutdown_both, ec);
+                        }
                         auto jt = it++;
                         clients.erase(jt);
                     }
 
-                    it->samples_since_signal_update = 0;
-
-                    ++it;
+                    else
+                    {
+                        it->samples_since_signal_update = 0;
+                        ++it;
+                    }
                 }
             }
         }
@@ -182,9 +203,23 @@ bool daq::ws_streaming::WebSocketSignalListenerImpl::addClient(
     std::string description = signal.getDescription();
     std::string domain_signal_id = signal.getDomainSignal().assigned() ? signal.getDomainSignal().getGlobalId() : "";
 
+    nlohmann::json metadata;
+
+    try
+    {
+        std::cout << "generating metadata..." << std::endl;
+        metadata = to_metadata(id, signal.getDescriptor(), description, domain_signal_id);
+    }
+
+    catch (const std::exception& ex)
+    {
+        std::cerr << "[ws-streaming] failed to generate metadata for requested signal " << id << ": " << ex.what() << std::endl;
+        return false;
+    }
+
     if (!client->send_metadata(signo, {
         { "method", "signal" },
-        { "params", to_metadata(id, signal.getDescriptor(), description, domain_signal_id) }
+        { "params", metadata }
     })) return false;
 
     auto writer = writer_factory(signo, *client);

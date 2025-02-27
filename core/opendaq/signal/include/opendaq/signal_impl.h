@@ -107,6 +107,7 @@ public:
     ErrCode INTERFACE_FUNC clearDomainSignalWithoutNotification() override;
     ErrCode INTERFACE_FUNC enableKeepLastValue(Bool enabled) override;
     ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
+    ErrCode INTERFACE_FUNC getKeepLastValue(Bool* keepLastValue) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -1222,6 +1223,17 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::getSignalSerializeId(IString** serializeId)
 {
     return this->getGlobalId(serializeId);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getKeepLastValue(Bool* keepLastValue)
+{
+    OPENDAQ_PARAM_NOT_NULL(keepLastValue);
+
+    auto lock = this->getRecursiveConfigLock();
+
+    *keepLastValue = this->keepLastValue ? True : False;
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -42,6 +42,11 @@ public:
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+    FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
+    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
+
+
 protected:
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 };
@@ -95,6 +100,42 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
                        })
                        .detach();
         });
+}
+
+template <class Impl>
+DictPtr<IString, IFunctionBlockType> ConfigClientBaseFunctionBlockImpl<Impl>::onGetAvailableFunctionBlockTypes()
+{
+    return this->clientComm->getAvailableFunctionBlockTypes(this->remoteGlobalId, true);
+}
+
+template <class Impl>
+FunctionBlockPtr ConfigClientBaseFunctionBlockImpl<Impl>::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    const ComponentHolderPtr fbHolder = this->clientComm->addFunctionBlock(this->remoteGlobalId, typeId, config, this->functionBlocks, true);
+
+    FunctionBlockPtr fb = fbHolder.getComponent();
+    if (!this->functionBlocks.hasItem(fb.getLocalId()))
+    {
+        this->clientComm->connectDomainSignals(fb);
+        this->addNestedFunctionBlock(fb);
+        this->clientComm->connectInputPorts(fb);
+        return fb;
+    }
+
+    return this->functionBlocks.getItem(fb.getLocalId());
+}
+
+template <class Impl>
+void ConfigClientBaseFunctionBlockImpl<Impl>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    if (!functionBlock.assigned())
+        throw InvalidParameterException();
+    this->clientComm->removeFunctionBlock(this->remoteGlobalId, functionBlock.getLocalId(), true);
+
+    if (this->functionBlocks.hasItem(functionBlock.getLocalId()))
+    {
+        this->removeNestedFunctionBlock(functionBlock);
+    }
 }
 
 template <class Impl>

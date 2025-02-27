@@ -140,11 +140,12 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
     addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
     addHandler<ComponentPtr>("Update", &ConfigServerComponent::update);
+    
+    addHandler<ComponentPtr>("GetAvailableFunctionBlockTypes", &ConfigServerComponent::getAvailableFunctionBlockTypes);
+    addHandler<ComponentPtr>("AddFunctionBlock", &ConfigServerComponent::addFunctionBlock);
+    addHandler<ComponentPtr>("RemoveFunctionBlock", &ConfigServerComponent::removeFunctionBlock);
 
     addHandler<DevicePtr>("GetInfo", &ConfigServerDevice::getInfo);
-    addHandler<DevicePtr>("GetAvailableFunctionBlockTypes", &ConfigServerDevice::getAvailableFunctionBlockTypes);
-    addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
-    addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock);
     addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
     addHandler<DevicePtr>("Lock", &ConfigServerDevice::lock);
     addHandler<DevicePtr>("Unlock", &ConfigServerDevice::unlock);

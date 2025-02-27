@@ -21,7 +21,7 @@ StreamingManager::StreamingManager(const ContextPtr& context)
 
 void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId,
                                                PacketPtr&& packet,
-                                               const ConsumePacketBufferCallback& consumePacketBufferCb)
+                                               const SendPacketBufferCallback& sendPacketBufferCb)
 {
     std::scoped_lock lock(sync);
 
@@ -47,11 +47,11 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
         {
             while (std::next(it) != registeredSignal.subscribedClientsIds.end())
             {
-                sendDaqPacket(consumePacketBufferCb, packetStreamingServers.at(*it), PacketPtr(packet), *it, registeredSignal.numericId);  // copy packet ptr
+                sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), PacketPtr(packet), *it, registeredSignal.numericId);  // copy packet ptr
                 ++it;
             }
 
-            sendDaqPacket(consumePacketBufferCb, packetStreamingServers.at(*it), std::move(packet), *it, registeredSignal.numericId); // move packet ptr
+            sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), std::move(packet), *it, registeredSignal.numericId); // move packet ptr
         }
     }
     else
@@ -89,7 +89,7 @@ void StreamingManager::processPacket(const std::string& signalStringId, PacketPt
                 packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, PacketPtr(packet));
                 ++it;
             }
-            packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, std::move(packet));
+            pushToPacketStreamingServer(packetStreamingServers.at(*it), std::move(packet), registeredSignal.numericId);
         }
     }
     else
@@ -98,79 +98,23 @@ void StreamingManager::processPacket(const std::string& signalStringId, PacketPt
     }
 }
 
-std::vector<daq::native_streaming::WriteTask> StreamingManager::consumeAllPacketBuffers(
-    const std::string& clientId,
-    const ConsumePacketBufferCallback& consumePacketBufferCb)
+PacketStreamingServerPtr StreamingManager::getPacketServerIfRegistered(const std::string& clientId)
 {
     std::scoped_lock lock(sync);
 
     if (const auto it = streamingClientsIds.find(clientId); it != streamingClientsIds.end())
-    {
-        auto& packetStreamingServerPtr = packetStreamingServers.at(clientId);
+        return packetStreamingServers.at(clientId);
 
-        auto nonCacheableBuffersCount = packetStreamingServerPtr->getNonCacheableBuffersCount();
-        auto cacheableBuffersCount = packetStreamingServerPtr->getAvailableBuffersCount() - nonCacheableBuffersCount;
-
-        size_t linearBufferCurPos = 0;
-        std::shared_ptr<std::vector<char>> linearCacheBuffer;
-        if (cacheableBuffersCount > 0)
-        {
-            linearCacheBuffer =
-                std::make_shared<std::vector<char>>(TransportHeader::PACKED_HEADER_SIZE * cacheableBuffersCount +
-                                                    packetStreamingServerPtr->getSizeOfCacheableBuffers());
-        }
-
-
-        // header and payload separate write tasks for each non-mergeable buffer
-        // plus one task for all mergeable buffers
-        std::vector<daq::native_streaming::WriteTask> tasks;
-        tasks.reserve(2 * nonCacheableBuffersCount + 1);
-
-        while (auto packetBufferPtr = packetStreamingServerPtr->getNextPacketBuffer())
-        {
-            if (packetStreamingServerPtr->isCacheablePacketBuffer(packetBufferPtr) && linearCacheBuffer)
-            {
-                BaseSessionHandler::copyHeadersToBuffer(packetBufferPtr, linearCacheBuffer->data() + linearBufferCurPos);
-                linearBufferCurPos += TransportHeader::PACKED_HEADER_SIZE + packetBufferPtr->packetHeader->size;
-
-                if (packetBufferPtr->packetHeader->payloadSize > 0)
-                {
-                    std::memcpy(linearCacheBuffer->data() + linearBufferCurPos,
-                                packetBufferPtr->payload,
-                                packetBufferPtr->packetHeader->payloadSize);
-                    linearBufferCurPos += packetBufferPtr->packetHeader->payloadSize;
-                }
-            }
-            else
-            {
-                BaseSessionHandler::createAndPushPacketBufferTasks(std::move(packetBufferPtr), tasks);
-            }
-            consumePacketBufferCb(clientId, std::move(packetBufferPtr));
-        }
-
-        if (linearCacheBuffer)
-        {
-            WriteHandler linearBufferHandler = [linearCacheBuffer]() {};
-            tasks.push_back(
-                WriteTask(boost::asio::const_buffer(linearCacheBuffer->data(), linearCacheBuffer->size()),
-                          linearBufferHandler)
-            );
-        }
-
-        return tasks;
-    }
-
-    // return empty vector
-    return std::vector<daq::native_streaming::WriteTask>();
+    return nullptr;
 }
 
-void StreamingManager::sendDaqPacket(const ConsumePacketBufferCallback& sendPacketBufferCb,
+void StreamingManager::sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
                                      const PacketStreamingServerPtr& packetStreamingServerPtr,
                                      PacketPtr&& packet,
                                      const std::string& clientId,
                                      SignalNumericIdType singalNumericId)
 {
-    packetStreamingServerPtr->addDaqPacket(singalNumericId, std::move(packet));
+    pushToPacketStreamingServer(packetStreamingServerPtr,  std::move(packet), singalNumericId);
     while (auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
     {
         sendPacketBufferCb(clientId, std::move(packetBuffer));
@@ -292,7 +236,7 @@ ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)
 
 bool StreamingManager::registerSignalSubscriber(const std::string& signalStringId,
                                                 const std::string& subscribedClientId,
-                                                const ConsumePacketBufferCallback& sendPacketBufferCb)
+                                                const SendPacketBufferCallback& sendPacketBufferCb)
 {
     bool doSignalSubscribe = false;
 
@@ -412,6 +356,69 @@ std::vector<std::string> StreamingManager::getRegisteredClientsIds()
     std::scoped_lock lock(sync);
 
     return std::vector<std::string>(streamingClientsIds.begin(), streamingClientsIds.end());
+}
+
+void StreamingManager::pushToPacketStreamingServer(const PacketStreamingServerPtr& packetStreamingServer,
+                                                   PacketPtr&& packet,
+                                                   SignalNumericIdType singalNumericId)
+{
+    packetStreamingServer->addDaqPacket(singalNumericId, std::move(packet));
+}
+
+StreamingWriteTasks StreamingManager::getStreamingWriteTasks(const PacketStreamingServerPtr& packetStreamingServerPtr)
+{
+    std::optional<std::chrono::steady_clock::time_point> timeStamp(std::nullopt);
+    auto nonCacheableBuffersCount = packetStreamingServerPtr->getNonCacheableBuffersCount();
+    auto cacheableBuffersCount = packetStreamingServerPtr->getAvailableBuffersCount() - nonCacheableBuffersCount;
+
+    size_t linearBufferCurPos = 0;
+    std::shared_ptr<std::vector<char>> linearCacheBuffer;
+    if (cacheableBuffersCount > 0)
+    {
+        linearCacheBuffer =
+            std::make_shared<std::vector<char>>(TransportHeader::PACKED_HEADER_SIZE * cacheableBuffersCount +
+                                                packetStreamingServerPtr->getSizeOfCacheableBuffers());
+    }
+
+    // header and payload separate write tasks for each non-mergeable buffer
+    // plus one task for all mergeable buffers
+    std::vector<daq::native_streaming::WriteTask> tasks;
+    tasks.reserve(2 * nonCacheableBuffersCount + 1);
+
+    while (auto packetBufferPtr = packetStreamingServerPtr->getNextPacketBuffer())
+    {
+        if (packetStreamingServerPtr->isCacheablePacketBuffer(packetBufferPtr) && linearCacheBuffer)
+        {
+            BaseSessionHandler::copyHeadersToBuffer(packetBufferPtr, linearCacheBuffer->data() + linearBufferCurPos);
+            linearBufferCurPos += TransportHeader::PACKED_HEADER_SIZE + packetBufferPtr->packetHeader->size;
+
+            if (packetBufferPtr->packetHeader->payloadSize > 0)
+            {
+                std::memcpy(linearCacheBuffer->data() + linearBufferCurPos,
+                            packetBufferPtr->payload,
+                            packetBufferPtr->packetHeader->payloadSize);
+                linearBufferCurPos += packetBufferPtr->packetHeader->payloadSize;
+            }
+        }
+        else
+        {
+            BaseSessionHandler::createAndPushPacketBufferTasks(std::move(packetBufferPtr), tasks);
+        }
+
+        if (!timeStamp.has_value() && packetBufferPtr->timeStamp.has_value())
+            timeStamp = packetBufferPtr->timeStamp.value();
+    }
+
+    if (linearCacheBuffer)
+    {
+        WriteHandler linearBufferHandler = [linearCacheBuffer]() {};
+        tasks.push_back(
+            WriteTask(boost::asio::const_buffer(linearCacheBuffer->data(), linearCacheBuffer->size()),
+                      linearBufferHandler)
+            );
+    }
+
+    return {tasks, timeStamp};
 }
 
 StreamingManager::RegisteredSignal::RegisteredSignal(SignalPtr daqSignal, SignalNumericIdType numericId)

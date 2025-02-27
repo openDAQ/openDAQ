@@ -822,7 +822,7 @@ TEST_P(StreamingProtocolTest, SendMultiplePackets)
         sentDataPackets.pushBack(serverDataPacket);
         serverHandler->processStreamingPacket(serverSignal.getGlobalId().toStdString(), std::move(serverDataPacket));
     }
-    serverHandler->scheduleStreamingWriteTasks();
+    serverHandler->sendAvailableStreamingPackets();
 
     for (size_t i = 0; i < clients.size(); ++i)
     {

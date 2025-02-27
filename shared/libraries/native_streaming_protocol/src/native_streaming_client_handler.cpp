@@ -1,5 +1,6 @@
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <native_streaming/client.hpp>
+#include "native_streaming_protocol/streaming_manager.h"
 
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
@@ -235,17 +236,41 @@ void NativeStreamingClientImpl::sendStreamingRequest()
         sessionHandlerTemp->sendStreamingRequest();
 }
 
-void NativeStreamingClientImpl::sendStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
+void NativeStreamingClientImpl::sendOneStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
 {
     if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
     {
         if (auto packetStreamingServerTemp = this->packetStreamingServerPtr; packetStreamingServerTemp)
         {
-            packetStreamingServerTemp->addDaqPacket(signalNumericId, std::move(packet));
+            StreamingManager::pushToPacketStreamingServer(packetStreamingServerTemp, std::move(packet), signalNumericId);
             while (auto packetBuffer = packetStreamingServerTemp->getNextPacketBuffer())
             {
                 sessionHandlerTemp->sendPacketBuffer(std::move(packetBuffer));
             }
+        }
+    }
+}
+
+void NativeStreamingClientImpl::pushOneStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
+{
+    if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+    {
+        if (auto packetStreamingServerTemp = this->packetStreamingServerPtr; packetStreamingServerTemp)
+        {
+            StreamingManager::pushToPacketStreamingServer(packetStreamingServerTemp, std::move(packet), signalNumericId);
+        }
+    }
+}
+
+void NativeStreamingClientImpl::sendAvailableStreamingPackets()
+{
+    if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+    {
+        if (auto packetStreamingServerTemp = this->packetStreamingServerPtr; packetStreamingServerTemp)
+        {
+            auto [tasks,_] = StreamingManager::getStreamingWriteTasks(packetStreamingServerTemp);
+            if (!tasks.empty())
+                sessionHandler->schedulePacketBufferWriteTasks(std::move(tasks), std::nullopt);
         }
     }
 }
@@ -508,7 +533,7 @@ void NativeStreamingClientHandler::sendStreamingRequest()
 
 void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
 {
-    clientHandlerPtr->sendStreamingPacket(signalNumericId, std::move(packet));
+    clientHandlerPtr->sendOneStreamingPacket(signalNumericId, std::move(packet));
 }
 
 std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()

@@ -323,17 +323,13 @@ void NativeStreamingServerImpl::prepareServerHandler()
     if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         rootDeviceSignals = rootDevice.getSignals(search::Recursive(search::Any()));
 
-    const SizeT maxAllowedConfigConnections = this->config.getPropertyValue("MaxAllowedConfigConnections");
-    const SizeT streamingPacketSendTimeout = this->config.getPropertyValue("StreamingPacketSendTimeout");
-
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
                                                                    transportIOContextPtr,
                                                                    rootDeviceSignals,
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler,
                                                                    createConfigServerCb,
-                                                                   maxAllowedConfigConnections,
-                                                                   streamingPacketSendTimeout);
+                                                                   config);
 }
 
 void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)
@@ -355,23 +351,7 @@ void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextP
 
 PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPtr& context)
 {
-    constexpr Int minPortValue = 0;
-    constexpr Int maxPortValue = 65535;
-
-    auto defaultConfig = PropertyObject();
-
-    const auto portProp = IntPropertyBuilder("NativeStreamingPort", 7420)
-        .setMinValue(minPortValue)
-        .setMaxValue(maxPortValue)
-        .build();
-    defaultConfig.addProperty(portProp);
-    defaultConfig.addProperty(StringProperty("Path", "/"));
-
-    // default value "UNLIMITED_CONFIGURATION_CONNECTIONS = 0" stands for unlimited count of concurrent connections
-    const auto configConnectionsLimitProp = IntPropertyBuilder("MaxAllowedConfigConnections", UNLIMITED_CONFIGURATION_CONNECTIONS)
-                                                .setMinValue(0)
-                                                .build();
-    defaultConfig.addProperty(configConnectionsLimitProp);
+    auto defaultConfig = NativeStreamingServerHandler::createDefaultConfig();
 
     const auto pollingPeriodProp = IntPropertyBuilder("StreamingDataPollingPeriod", 20)
                                        .setMinValue(1)
@@ -381,19 +361,6 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
                                                        "subscribed signals' data to clients")
                                        .build();
     defaultConfig.addProperty(pollingPeriodProp);
-
-    const auto streamingPacketSendTimeoutPropDescription =
-        "Defines the timeout for sending streaming packets, measured in milliseconds. "
-        "If a timeout is set with this property, and the lifetime of the queued PacketBuffer awaiting transmission exceeds "
-        "the specified limit since the buffer's creation before starting the low-level write operation, the server will reset "
-        "the connection for the corresponding client that owns the queue, effectively clearing it. "
-        "The default value '0' signifies that the streaming server time to send out the packets is not limited, "
-        "i.e. the lifetime of PacketBuffers awaiting for transmission, along with the memory allocated for the queue, are both unlimited.";
-    const auto streamingPacketSendTimeoutProp = IntPropertyBuilder("StreamingPacketSendTimeout", UNLIMITED_PACKET_SEND_TIME)
-                                                    .setMinValue(0)
-                                                    .setDescription(streamingPacketSendTimeoutPropDescription)
-                                                    .build();
-    defaultConfig.addProperty(streamingPacketSendTimeoutProp);
 
     populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
@@ -466,7 +433,6 @@ void NativeStreamingServerImpl::startReadThread()
         {
             std::scoped_lock lock(readersSync);
 
-#if 1
             bool hasPacketsToSend = false;
             for (const auto& [_, signalGlobalId, reader] : signalReaders)
             {
@@ -479,20 +445,7 @@ void NativeStreamingServerImpl::startReadThread()
                 }
             }
             if (hasPacketsToSend)
-                serverHandler->scheduleStreamingWriteTasks();
-#else
-            for (const auto& [_, signalGlobalId, reader] : signalReaders)
-            {
-                {
-                    PacketPtr packet = reader.read();
-                    while (packet.assigned())
-                    {
-                        serverHandler->sendPacket(signalGlobalId, std::move(packet));
-                        packet = reader.read();
-                    }
-                }
-            }
-#endif
+                serverHandler->sendAvailableStreamingPackets();
         }
 
         std::this_thread::sleep_for(readThreadSleepTime);

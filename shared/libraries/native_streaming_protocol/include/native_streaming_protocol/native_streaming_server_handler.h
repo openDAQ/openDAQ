@@ -56,7 +56,7 @@ public:
 
     void sendPacket(const std::string& signalId, PacketPtr&& packet);
     void processStreamingPacket(const std::string& signalId, PacketPtr&& packet);
-    void scheduleStreamingWriteTasks();
+    void sendAvailableStreamingPackets();
 
     static PropertyObjectPtr createDefaultConfig();
 

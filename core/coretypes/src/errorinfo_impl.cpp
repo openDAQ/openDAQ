@@ -83,6 +83,49 @@ ErrCode ErrorInfoImpl::getSource(IString** source)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ErrorInfoImpl::setFileName(IString* fileName)
+{
+    if (frozen)
+        return OPENDAQ_ERR_FROZEN;
+
+    releaseRefIfNotNull(this->fileName);
+    this->fileName = fileName;
+    addRefIfNotNull(this->fileName);
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ErrorInfoImpl::getFileName(IString** fileName)
+{
+    if (fileName == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *fileName = this->fileName;
+    addRefIfNotNull(*fileName);
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ErrorInfoImpl::setFileLine(Int line)
+{
+    if (frozen)
+        return OPENDAQ_ERR_FROZEN;
+
+    this->line = line;
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ErrorInfoImpl::getFileLine(Int* line)
+{
+    if (line == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *line = this->line;
+
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode ErrorInfoImpl::setSource(IString* source)
 {
     if (frozen)

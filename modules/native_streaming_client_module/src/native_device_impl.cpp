@@ -324,7 +324,7 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
     {
         this->doConfigNoReplyRequest(packet);
     };
-    SendDaqPacketCallback sendDaqPacketCallback =
+    HandleDaqPacketCallback handleDaqPacketCallback =
         [this](const PacketPtr& packet, uint32_t signalNumericId)
     {
         transportClientHandler->sendStreamingPacket(signalNumericId, packet);
@@ -334,7 +334,8 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
             context,
             sendRequestCallback,
             sendNoReplyRequestCallback,
-            sendDaqPacketCallback,
+            handleDaqPacketCallback,
+            nullptr,
             nullptr
         );
 

@@ -44,6 +44,7 @@ public:
                 std::bind(&ConfigNestedPropertyObjectTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigNestedPropertyObjectTest::sendNoReplyRequest, this, std::placeholders::_1),
                 nullptr,
+                nullptr,
                 nullptr
             );
         clientDevice = client->connect();

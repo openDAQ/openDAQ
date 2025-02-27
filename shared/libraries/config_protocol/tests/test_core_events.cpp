@@ -42,6 +42,7 @@ public:
                 std::bind(&ConfigCoreEventTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigCoreEventTest::sendNoReplyRequest, this, std::placeholders::_1),
                 nullptr,
+                nullptr,
                 nullptr
             );
 

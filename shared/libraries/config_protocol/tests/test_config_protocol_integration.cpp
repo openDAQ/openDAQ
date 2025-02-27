@@ -39,6 +39,7 @@ public:
                 std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
                 nullptr,
+                nullptr,
                 nullptr
             );
         clientDevice = client->connect();
@@ -151,6 +152,7 @@ TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
         clientContext,
         std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
         std::bind(&ConfigProtocolIntegrationTest::sendNoReplyRequest, this, std::placeholders::_1),
+        nullptr,
         nullptr,
         nullptr
     );

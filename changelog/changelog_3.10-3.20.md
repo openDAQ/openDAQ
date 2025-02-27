@@ -20,6 +20,7 @@
 - Introduce Component statuses ( `OK`, `Warning`, and `Error`) with messages [#625](https://github.com/openDAQ/openDAQ/pull/625) [#650](https://github.com/openDAQ/openDAQ/pull/650) [#673](https://github.com/openDAQ/openDAQ/pull/673)
 - Introduces new mechanism for retrieving and monitoring the device's connection statuses, which enables tracking of streaming connections, in comparison with previous one limited to configuration-type of connections [#606](https://github.com/openDAQ/openDAQ/pull/606)
 - Add support for View Only client to the config protocol [#605](https://github.com/openDAQ/openDAQ/pull/605)
+- Support setting operation mode for the device which notifies all sub components [#704](https://github.com/openDAQ/openDAQ/pull/704)
 
 ## Required application changes
 

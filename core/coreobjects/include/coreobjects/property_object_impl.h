@@ -105,9 +105,9 @@ private:
 
 struct LockGuardImpl : public ImplementationOf<ILockGuard>
 {
-    LockGuardImpl(const PropertyObjectPtr& owner, std::mutex& lock)
+    LockGuardImpl(IPropertyObject* owner, std::mutex* lock)
         : owner(owner)
-        , lock(std::lock_guard(lock))
+        , lock(std::lock_guard(*lock))
     {
     }
 
@@ -118,13 +118,14 @@ private:
 };
 
 template <typename TMutex>
-struct RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
+class RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
 {
-    RecursiveLockGuardImpl(const PropertyObjectPtr& owner, TMutex& lock, std::thread::id* threadId, int* depth)
+public:
+    RecursiveLockGuardImpl(IPropertyObject* owner, TMutex* lock, std::thread::id* threadId, int* depth)
         : owner(owner) 
         , id(threadId)
         , depth(depth)
-        , lock(std::lock_guard(lock))
+        , lock(std::lock_guard(*lock))
     {
         assert(this->id != nullptr);
         assert(this->depth != nullptr);
@@ -2737,7 +2738,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
     OPENDAQ_PARAM_NOT_NULL(lockGuard);
-    *lockGuard = createWithImplementation<ILockGuard, LockGuardImpl>(this->objPtr, sync).detach();
+    *lockGuard = createWithImplementation<ILockGuard, LockGuardImpl>(this->objPtr, &sync).detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -2746,9 +2747,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursive
 {
     OPENDAQ_PARAM_NOT_NULL(lockGuard);
     if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        *lockGuard = createWithImplementation<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>>(this->objPtr, nullSync, &externalCallThreadId, &externalCallDepth).detach();
+        *lockGuard = createWithImplementation<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>>(this->objPtr, &nullSync, &externalCallThreadId, &externalCallDepth).detach();
     else
-        *lockGuard = createWithImplementation<ILockGuard, RecursiveLockGuardImpl<std::mutex>>(this->objPtr, sync, &externalCallThreadId, &externalCallDepth).detach();
+        *lockGuard = createWithImplementation<ILockGuard, RecursiveLockGuardImpl<std::mutex>>(this->objPtr, &sync, &externalCallThreadId, &externalCallDepth).detach();
     return OPENDAQ_SUCCESS;
 }
 

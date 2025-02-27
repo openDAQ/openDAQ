@@ -17,5 +17,4 @@ template class GenericRecursiveConfigLockGuard<object_utils::NullMutex>;
 template class RecursiveLockGuardImpl<std::mutex>;
 template class RecursiveLockGuardImpl<object_utils::NullMutex>;
 
-
 END_NAMESPACE_OPENDAQ

@@ -29,15 +29,21 @@ public:
 
     ErrCode INTERFACE_FUNC setMessage(IString* message) override;
     ErrCode INTERFACE_FUNC getMessage(IString** message) override;
-    ErrCode INTERFACE_FUNC getSource(IString** source) override;
     ErrCode INTERFACE_FUNC setSource(IString* source) override;
-
+    ErrCode INTERFACE_FUNC getSource(IString** source) override;
+    ErrCode INTERFACE_FUNC setFileName(IString* fileName) override;
+    ErrCode INTERFACE_FUNC getFileName(IString** fileName) override;
+    ErrCode INTERFACE_FUNC setFileLine(Int line) override;
+    ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
+    
     ErrCode INTERFACE_FUNC freeze() override;
     ErrCode INTERFACE_FUNC isFrozen(Bool* frozen) const override;
 
 private:
     IString* message;
     IString* source;
+    IString* fileName;
+    Int line;
     Bool frozen;
 };
 

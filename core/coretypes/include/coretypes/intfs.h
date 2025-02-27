@@ -377,6 +377,25 @@ protected:
         return errCode;
     }
 
+#ifdef NDEBUG
+
+    #define MakeErrorInfo(errCode, message, ...) makeErrorInfo(errCode, message, ##__VA_ARGS__);
+#else
+    template <typename... Params>
+    ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, Params... params)
+    {
+        IBaseObject* thisBaseObject;
+        ErrCode err = this->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&thisBaseObject));
+        if (OPENDAQ_FAILED(err))
+            return err;
+
+        setErrorInfoWithSource(thisBaseObject, fileName, fileLine, message, params...);
+        return errCode;
+    }
+
+    #define MakeErrorInfo(errCode, message, ...) makeErrorInfo(__FILE__, __LINE__, errCode, message, ##__VA_ARGS__);
+#endif
+
     void clearErrorInfo() const
     {
         daqClearErrorInfo();

@@ -139,6 +139,18 @@ inline ErrCode errorFromException(const std::exception& e, IBaseObject* source =
 }
 
 template <typename... Params>
+void setErrorInfoWithSource(IBaseObject* source, ConstCharPtr fileName, Int fileLine, const std::string& message, Params... params)
+{
+    IErrorInfo* errorInfo;
+    auto err = createErrorInfoObjectWithSource(&errorInfo, source, fileName, fileLine, message, params...);
+    if (OPENDAQ_FAILED(err))
+        return;
+
+    daqSetErrorInfo(errorInfo);
+    errorInfo->releaseRef();
+}
+
+template <typename... Params>
 void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
 {
     IErrorInfo* errorInfo;
@@ -218,6 +230,37 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
 #if defined(__GNUC__)
     #pragma GCC diagnostic pop
 #endif
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Params>
+ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObject* sourceObj, ConstCharPtr fileName, Int fileLine, const std::string& message, Params... params)
+{
+    ErrCode errCode = createErrorInfoObjectWithSource(errorInfo, sourceObj, message, params...);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    IErrorInfo* errorInfo_ = *errorInfo;
+
+    IString* fileName_ = nullptr;
+    Finally final([&fileName_]
+    {
+        if (fileName_ != nullptr)
+            fileName_->releaseRef();
+    });
+
+    errCode = createString(&fileName_, fileName);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    errCode = errorInfo_->setFileName(fileName_);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    errCode = errorInfo_->setFileLine(fileLine);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
 
     return OPENDAQ_SUCCESS;
 }

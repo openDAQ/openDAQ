@@ -75,6 +75,30 @@ DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
      * @param source Error source.
      */
     virtual ErrCode INTERFACE_FUNC getSource(IString** source) = 0;
+
+    /*!
+     * @brief Sets the file name where the error occurred.
+     * @param fileName File name.
+     */
+    virtual ErrCode INTERFACE_FUNC setFileName(IString* fileName) = 0;
+
+    /*!
+     * @brief Gets the file name where the error occurred.
+     * @param fileName File name.
+     */
+    virtual ErrCode INTERFACE_FUNC getFileName(IString** fileName) = 0;
+
+    /*!
+     * @brief Sets the line number in the file where the error occurred.
+     * @param fileLine Line number.
+     */
+    virtual ErrCode INTERFACE_FUNC setFileLine(Int fileLine) = 0;
+
+    /*!
+     * @brief Gets the line number in the file where the error occurred.
+     * @param fileLine Line number.
+     */
+    virtual ErrCode INTERFACE_FUNC getFileLine(Int* fileLine) = 0;
 };
 
 /*!@}*/

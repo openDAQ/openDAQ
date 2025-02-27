@@ -1896,8 +1896,27 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         const auto propName = StringPtr::Borrow(propertyName);
         BaseObjectPtr valuePtr;
         PropertyPtr prop;
+        ErrCode err;
 
-        getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+        StringPtr childName;
+        StringPtr subName;
+
+        if (isChildProperty(propName, childName, subName))
+        {
+            err = getProperty(propertyName, &prop);
+            if (OPENDAQ_FAILED(err))
+                return err;
+            prop->getValue(&valuePtr);
+            if (OPENDAQ_FAILED(err))
+                return err;
+        }
+        else
+        {
+            err = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+        }
+
+        if (OPENDAQ_FAILED(err))
+            return err;
 
         if (!prop.assigned())
             throw NotFoundException(R"(Selection property "{}" not found)", propName);

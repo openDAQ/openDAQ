@@ -48,9 +48,9 @@ public:
     void addDaqPacket(const uint32_t signalId, const PacketPtr& packet);
     void addDaqPacket(const uint32_t signalId, PacketPtr&& packet);
     PacketBufferPtr getNextPacketBuffer();
-    size_t getAvailableBuffersCount();
-    size_t getNonCacheableBuffersCount();
-    size_t getSizeOfCacheableBuffers();
+    size_t getAvailableBuffersCount() const;
+    size_t getNonCacheableBuffersCount() const;
+    size_t getSizeOfCacheableBuffers() const;
 
     void checkAndSendReleasePacket(bool force);
     void addAlreadySentPacket(uint32_t signalId, Int packetId, Int domainPacketId, bool markForRelease);

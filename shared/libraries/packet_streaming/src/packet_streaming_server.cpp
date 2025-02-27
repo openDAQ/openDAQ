@@ -81,17 +81,17 @@ PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
     return nullptr;
 }
 
-size_t PacketStreamingServer::getAvailableBuffersCount()
+size_t PacketStreamingServer::getAvailableBuffersCount() const
 {
     return queue.size();
 }
 
-size_t PacketStreamingServer::getNonCacheableBuffersCount()
+size_t PacketStreamingServer::getNonCacheableBuffersCount() const
 {
     return countOfNonCacheableBuffers;
 }
 
-size_t PacketStreamingServer::getSizeOfCacheableBuffers()
+size_t PacketStreamingServer::getSizeOfCacheableBuffers() const
 {
     return sizeOfCacheableBuffers;
 }

@@ -7,7 +7,9 @@
 
 #include "metadata.hpp"
 
-static nlohmann::json define(daq::RangePtr range)
+using namespace daq;
+
+static nlohmann::json define(const RangePtr& range)
 {
     return {
         { "high", range.getHighValue().getFloatValue() },
@@ -15,7 +17,7 @@ static nlohmann::json define(daq::RangePtr range)
     };
 }
 
-static nlohmann::json interpret(daq::RangePtr range)
+static nlohmann::json interpret(const RangePtr& range)
 {
     return {
         { "high", std::to_string(range.getHighValue().getFloatValue()) },
@@ -23,66 +25,109 @@ static nlohmann::json interpret(daq::RangePtr range)
     };
 }
 
-static nlohmann::json describe(daq::DataRuleType type)
+static const char *to_string(DataRuleType type)
 {
     switch (type)
     {
-        case daq::DataRuleType::Constant:
+        case DataRuleType::Constant:
             return "constant";
 
-        case daq::DataRuleType::Explicit:
+        case DataRuleType::Explicit:
             return "explicit";
 
-        case daq::DataRuleType::Linear:
+        case DataRuleType::Linear:
             return "linear";
 
         default:
-            throw new daq::NotSupportedException("unsupported data rule");
+            throw NotSupportedException("unsupported data rule " + std::to_string(static_cast<unsigned>(type)));
     }
 }
 
-static nlohmann::json describe(daq::SampleType type)
+static nlohmann::json to_string_and_params(const DataRulePtr& rule)
+{
+    nlohmann::json result = { { "rule", to_string(rule.getType()) } };
+
+    if (rule.getType() == DataRuleType::Linear)
+        result["linear"] = { { "delta", static_cast<std::uint64_t>(rule.getParameters()["delta"]) } };
+
+    return result;
+}
+
+static const char *to_string(DimensionRuleType type)
 {
     switch (type)
     {
-        case daq::SampleType::Int8: return "int8";
-        case daq::SampleType::Int16: return "int16";
-        case daq::SampleType::Int32: return "int32";
-        case daq::SampleType::Int64: return "int64";
-        case daq::SampleType::UInt8: return "uint8";
-        case daq::SampleType::UInt16: return "uint16";
-        case daq::SampleType::UInt32: return "uint32";
-        case daq::SampleType::UInt64: return "uint64";
-        case daq::SampleType::Float32: return "real32";
-        case daq::SampleType::Float64: return "real64";
+        case DimensionRuleType::Linear:
+            return "linear";
+
+        case DimensionRuleType::List:
+            return "list";
+
+        case DimensionRuleType::Logarithmic:
+            return "logarithmic";
 
         default:
-            throw new daq::NotSupportedException("unsupported sample type");
+            throw NotSupportedException("unsupported dimension rule " + std::to_string(static_cast<unsigned>(type)));
     }
 }
 
-static nlohmann::json describe(daq::BaseObjectPtr obj)
+static nlohmann::json to_string_and_params(const DimensionRulePtr& rule)
+{
+    nlohmann::json result = { { "rule", to_string(rule.getType()) } };
+
+    if (rule.getType() == DimensionRuleType::Linear)
+        result["linear"] = {
+            { "start", static_cast<std::uint64_t>(rule.getParameters()["start"]) },
+            { "delta", static_cast<std::uint64_t>(rule.getParameters()["delta"]) },
+            { "size", static_cast<std::uint64_t>(rule.getParameters()["size"]) },
+        };
+
+    return result;
+}
+
+static nlohmann::json describe(SampleType type)
+{
+    switch (type)
+    {
+        case SampleType::Int8: return "int8";
+        case SampleType::Int16: return "int16";
+        case SampleType::Int32: return "int32";
+        case SampleType::Int64: return "int64";
+        case SampleType::UInt8: return "uint8";
+        case SampleType::UInt16: return "uint16";
+        case SampleType::UInt32: return "uint32";
+        case SampleType::UInt64: return "uint64";
+        case SampleType::Float32: return "real32";
+        case SampleType::Float64: return "real64";
+        case SampleType::Struct: return "struct";
+
+        default:
+            throw NotSupportedException("unsupported sample type " + std::to_string(static_cast<unsigned>(type)));
+    }
+}
+
+static nlohmann::json describe(const BaseObjectPtr& obj)
 {
     if (!obj.assigned())
         return nullptr;
 
     switch (obj.getCoreType())
     {
-        case daq::CoreType::ctInt:
-        case daq::CoreType::ctFloat:
+        case CoreType::ctInt:
+        case CoreType::ctFloat:
             return static_cast<double>(obj);
 
-        case daq::CoreType::ctString:
+        case CoreType::ctString:
             return static_cast<std::string>(obj);
 
         default:
             break;
     }
 
-    throw new daq::NotSupportedException("unsupported raw BaseObject type");
+    throw NotSupportedException("unsupported raw BaseObject type " + std::to_string(static_cast<unsigned>(obj.getCoreType())));
 }
 
-static nlohmann::json describe(daq::DataRulePtr rule)
+static nlohmann::json describe(const DataRulePtr& rule)
 {
     nlohmann::json parameters = nullptr;
 
@@ -99,7 +144,7 @@ static nlohmann::json describe(daq::DataRulePtr rule)
     };
 }
 
-static nlohmann::json define(daq::UnitPtr unit)
+static nlohmann::json define(const UnitPtr& unit)
 {
     return {
         { "displayName", unit.getSymbol() },
@@ -108,7 +153,7 @@ static nlohmann::json define(daq::UnitPtr unit)
     };
 }
 
-static nlohmann::json interpret(daq::UnitPtr unit)
+static nlohmann::json interpret(const UnitPtr& unit)
 {
     return {
         { "id", unit.getId() },
@@ -118,7 +163,7 @@ static nlohmann::json interpret(daq::UnitPtr unit)
     };
 }
 
-static nlohmann::json describe(daq::RatioPtr ratio)
+static nlohmann::json describe(const RatioPtr& ratio)
 {
     return {
         { "num", ratio.getNumerator() },
@@ -126,19 +171,56 @@ static nlohmann::json describe(daq::RatioPtr ratio)
     };
 }
 
+static nlohmann::json to_dimension(const DimensionPtr& dimension)
+{
+    nlohmann::json result = { { "name", dimension.getName() } };
+    result.update(to_string_and_params(dimension.getRule()));
+    return result;
+}
+
+static nlohmann::json to_definition(const DataDescriptorPtr& descriptor)
+{
+    nlohmann::json definition = {
+        { "dataType", describe(descriptor.getSampleType()) },
+        { "name", descriptor.getName() },
+    };
+
+    definition.update(to_string_and_params(descriptor.getRule()));
+
+    if (descriptor.getSampleType() == SampleType::Struct)
+    {
+        nlohmann::json fields;
+
+        if (descriptor.getStructFields().assigned())
+            for (const auto& field : descriptor.getStructFields())
+                fields.push_back(to_definition(field));
+
+        definition["struct"] = fields;
+    }
+
+    if (descriptor.getDimensions().assigned())
+    {
+        nlohmann::json dimensions;
+
+        for (const auto& dimension : descriptor.getDimensions())
+            dimensions.push_back(to_dimension(dimension));
+
+        if (!dimensions.empty())
+            definition["dimensions"] = dimensions;
+    }
+
+    return definition;
+}
+
 nlohmann::json daq::ws_streaming::to_metadata(
     std::string id,
-    daq::DataDescriptorPtr descriptor,
+    const DataDescriptorPtr& descriptor,
     std::string description,
     std::string domain_signal_id)
 {
     nlohmann::json result =
     {
-        { "definition", {
-            { "dataType", describe(descriptor.getSampleType()) },
-            { "name", descriptor.getName() },
-            { "rule", describe(descriptor.getRule().getType()) },
-        } },
+        { "definition", to_definition(descriptor) },
         { "interpretation", {
             { "desc_name", descriptor.getName() },
             { "metadata", nullptr },
@@ -149,9 +231,6 @@ nlohmann::json daq::ws_streaming::to_metadata(
         } },
         { "tableId", domain_signal_id.empty() ? id : domain_signal_id }
     };
-
-    if (descriptor.getRule().getType() == daq::DataRuleType::Linear)
-        result["definition"]["linear"] = { { "delta", static_cast<std::uint64_t>(descriptor.getRule().getParameters()["delta"]) } };
 
     if (descriptor.getUnit().assigned())
     {
@@ -165,7 +244,7 @@ nlohmann::json daq::ws_streaming::to_metadata(
         result["interpretation"]["range"] = interpret(descriptor.getValueRange());
     }
 
-    if (descriptor.getRule().getType() != daq::DataRuleType::Constant)
+    if (descriptor.getRule().getType() != DataRuleType::Constant)
         result["valueIndex"] = 0;
 
     if (descriptor.getTickResolution().assigned())

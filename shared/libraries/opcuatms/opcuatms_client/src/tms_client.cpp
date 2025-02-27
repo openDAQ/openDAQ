@@ -66,7 +66,7 @@ daq::DevicePtr TmsClient::connect()
     auto device = TmsClientRootDevice(context, parent, rootDeviceBrowseName, tmsClientContext, rootDeviceNodeId);
 
     const auto deviceInfo = device.getInfo();
-    deviceInfo.asPtr<IDeviceInfoConfig>(true).setConnectionString(endpoint.getUrl());
+    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", endpoint.getUrl());
 
     const std::string packageVersion = deviceInfo.getSdkVersion();
     if (!packageVersion.empty() && packageVersion != OPENDAQ_PACKAGE_VERSION)

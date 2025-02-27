@@ -22,7 +22,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CSharpGenerator v1.0.0) on 04.09.2024 17:45:14.
+//     RTGen (CSharpGenerator v1.0.0) on 13.02.2025 13:59:15.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -184,46 +184,6 @@ public class ListObject<TValue> : BaseObject, IListObject<TValue>
         {
             //call native method
             ErrorCode errorCode = (ErrorCode)_rawListObject.PushFront(base.NativePointer, obj);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-    }
-
-    /// <summary>Inserts the element at the end of the list without incrementing the reference count.</summary>
-    /// <remarks>
-    /// The reference count of the element is not incremented. The client can use this method when it no
-    /// longer needs to access the element after calling the method.
-    /// </remarks>
-    /// <param name="obj">The element to insert.</param>
-    public void MoveBack(TValue obj)
-    {
-        unsafe //use native method pointer
-        {
-            //call native method
-            ErrorCode errorCode = (ErrorCode)_rawListObject.MoveBack(base.NativePointer, obj);
-
-            if (Result.Failed(errorCode))
-            {
-                throw new OpenDaqException(errorCode);
-            }
-        }
-    }
-
-    /// <summary>Inserts the element at the start of the list without incrementing the reference count.</summary>
-    /// <remarks>
-    /// The reference count of the element is not incremented. The client can use this method when it no
-    /// longer needs to access the element after calling the method.
-    /// </remarks>
-    /// <param name="obj">The element to insert.</param>
-    public void MoveFront(TValue obj)
-    {
-        unsafe //use native method pointer
-        {
-            //call native method
-            ErrorCode errorCode = (ErrorCode)_rawListObject.MoveFront(base.NativePointer, obj);
 
             if (Result.Failed(errorCode))
             {

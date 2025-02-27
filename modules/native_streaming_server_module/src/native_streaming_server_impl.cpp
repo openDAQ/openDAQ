@@ -64,6 +64,8 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
 
+    const uint16_t pollingPeriod = config.getPropertyValue("StreamingDataPollingPeriod");
+    readThreadSleepTime = std::chrono::milliseconds(pollingPeriod);
     startReading();
 }
 
@@ -370,6 +372,15 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
                                                 .build();
     defaultConfig.addProperty(configConnectionsLimitProp);
 
+    const auto pollingPeriodProp = IntPropertyBuilder("StreamingDataPollingPeriod", 20)
+                                       .setMinValue(1)
+                                       .setMaxValue(65535)
+                                       .setDescription("Polling period in milliseconds "
+                                                       "which specifies how often the server collects and sends "
+                                                       "subscribed signals' data to clients")
+                                       .build();
+    defaultConfig.addProperty(pollingPeriodProp);
+
     const auto streamingPacketSendTimeoutPropDescription =
         "Defines the timeout for sending streaming packets, measured in milliseconds. "
         "If a timeout is set with this property, and the lifetime of the queued PacketBuffer awaiting transmission exceeds "
@@ -453,15 +464,20 @@ void NativeStreamingServerImpl::startReadThread()
     {
         {
             std::scoped_lock lock(readersSync);
-            for (const auto& [signal, reader] : signalReaders)
+
+            bool hasPacketsToSend = false;
+            for (const auto& [_, signalGlobalId, reader] : signalReaders)
             {
                 PacketPtr packet = reader.read();
                 while (packet.assigned())
                 {
-                    serverHandler->sendPacket(signal, std::move(packet));
+                    hasPacketsToSend = true;
+                    serverHandler->processStreamingPacket(signalGlobalId, std::move(packet));
                     packet = reader.read();
                 }
             }
+            if (hasPacketsToSend)
+                serverHandler->scheduleStreamingWriteTasks();
         }
 
         std::this_thread::sleep_for(readThreadSleepTime);
@@ -472,25 +488,25 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
                            {
-                               return element.first == signalToRead;
+                               return std::get<0>(element) == signalToRead;
                            });
     if (it != signalReaders.end())
         return;
 
     LOG_I("Add reader for signal {}", signalToRead.getGlobalId());
     auto reader = PacketReader(signalToRead);
-    signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signalToRead, reader}));
+    signalReaders.push_back(std::tuple<SignalPtr, std::string, PacketReaderPtr>({signalToRead, signalToRead.getGlobalId().toStdString(), reader}));
 }
 
 void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
                            {
-                               return element.first == signalToRead;
+                               return std::get<0>(element) == signalToRead;
                            });
     if (it == signalReaders.end())
         return;

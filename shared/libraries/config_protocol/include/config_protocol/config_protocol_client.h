@@ -196,7 +196,8 @@ public:
     explicit ConfigProtocolClient(const ContextPtr& daqContext,
                                   const SendRequestCallback& sendRequestCallback,
                                   const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
-                                  const SendDaqPacketCallback& sendDaqPacketCallback,
+                                  const HandleDaqPacketCallback& handleDaqPacketCallback,
+                                  const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb,
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
@@ -216,7 +217,6 @@ private:
     ContextPtr daqContext;
     SendRequestCallback sendRequestCallback;
     SendNoReplyRequestCallback sendNoReplyRequestCallback;
-    SendDaqPacketCallback sendDaqPacketCallback;
     ServerNotificationReceivedCallback serverNotificationReceivedCallback;
     DeserializerPtr deserializer;
     ConfigProtocolStreamingProducerPtr streamingProducer;
@@ -238,14 +238,14 @@ template<class TRootDeviceImpl>
 ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& daqContext,
                                                             const SendRequestCallback& sendRequestCallback,
                                                             const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
-                                                            const SendDaqPacketCallback& sendDaqPacketCallback,
+                                                            const HandleDaqPacketCallback& handleDaqPacketCallback,
+                                                            const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb,
                                                             const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
     : daqContext(daqContext)
     , sendRequestCallback(sendRequestCallback)
-    , sendDaqPacketCallback(sendDaqPacketCallback)
     , serverNotificationReceivedCallback(serverNotificationReceivedCallback)
     , deserializer(JsonDeserializer())
-    , streamingProducer(std::make_shared<ConfigProtocolStreamingProducer>(daqContext, sendDaqPacketCallback))
+    , streamingProducer(std::make_shared<ConfigProtocolStreamingProducer>(daqContext, handleDaqPacketCallback, sendPreprocessedPacketsCb))
     , clientComm(
           std::make_shared<ConfigProtocolClientComm>(
               daqContext,

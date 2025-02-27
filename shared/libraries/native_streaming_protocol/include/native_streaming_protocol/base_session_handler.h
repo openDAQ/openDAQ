@@ -49,6 +49,7 @@ public:
                                         std::optional<std::chrono::steady_clock::time_point>&& timeStamp);
     static void createAndPushPacketBufferTasks(packet_streaming::PacketBufferPtr&& packetBuffer,
                                                std::vector<daq::native_streaming::WriteTask>& tasks);
+    static void copyHeadersToBuffer(const packet_streaming::PacketBufferPtr& packetBuffer, char* bufferDestPtr);
 
     void setConfigPacketReceivedHandler(const ProcessConfigProtocolPacketCb& configPacketReceivedHandler);
     void setPacketBufferReceivedHandler(const OnPacketBufferReceivedCallback& packetBufferReceivedHandler);

@@ -238,14 +238,17 @@ protected:
 
 TEST_P(StreamingProtocolTest, CreateServerNoSignals)
 {
+    auto config = NativeStreamingServerHandler::createDefaultConfig();
+
     // maxAllowedConfigConnections = 1 is used here to verify that the limit does not impact streaming connections
+    config.setPropertyValue("MaxAllowedConfigConnections", 1);
     serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
                                                                    ioContextPtrServer,
                                                                    List<ISignal>(),
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler,
                                                                    setUpConfigProtocolServerCb,
-                                                                   1);
+                                                                   config);
 }
 
 TEST_P(StreamingProtocolTest, CreateClient)
@@ -813,7 +816,7 @@ TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
         sentDataPackets.pushBack(serverDataPacket);
         serverHandler->processStreamingPacket(serverSignal.getGlobalId().toStdString(), std::move(serverDataPacket));
     }
-    serverHandler->scheduleStreamingWriteTasks();
+    serverHandler->sendAvailableStreamingPackets();
 
     for (size_t i = 0; i < clients.size(); ++i)
     {

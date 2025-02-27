@@ -51,9 +51,6 @@ DECLARE_OPENDAQ_INTERFACE(IPacketReader, IReader)
      * @param[out] packets The currently available packets or an empty list.
      */
     virtual ErrCode INTERFACE_FUNC readAll(IList** packets) = 0;
-    
-    // [ignore(Wrapper)]
-    virtual ErrCode INTERFACE_FUNC readUpTo(IPacket** packetPtr, SizeT* count) = 0;
 };
 /*!@}*/
 

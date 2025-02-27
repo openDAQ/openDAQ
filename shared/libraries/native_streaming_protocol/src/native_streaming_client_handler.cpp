@@ -235,13 +235,13 @@ void NativeStreamingClientImpl::sendStreamingRequest()
         sessionHandlerTemp->sendStreamingRequest();
 }
 
-void NativeStreamingClientImpl::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
+void NativeStreamingClientImpl::sendStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
 {
     if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
     {
         if (auto packetStreamingServerTemp = this->packetStreamingServerPtr; packetStreamingServerTemp)
         {
-            packetStreamingServerTemp->addDaqPacket(signalNumericId, packet);
+            packetStreamingServerTemp->addDaqPacket(signalNumericId, std::move(packet));
             while (auto packetBuffer = packetStreamingServerTemp->getNextPacketBuffer())
             {
                 sessionHandlerTemp->sendPacketBuffer(std::move(packetBuffer));
@@ -506,9 +506,9 @@ void NativeStreamingClientHandler::sendStreamingRequest()
     clientHandlerPtr->sendStreamingRequest();
 }
 
-void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
+void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
 {
-    clientHandlerPtr->sendStreamingPacket(signalNumericId, packet);
+    clientHandlerPtr->sendStreamingPacket(signalNumericId, std::move(packet));
 }
 
 std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()

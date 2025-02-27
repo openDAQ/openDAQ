@@ -159,7 +159,7 @@ void ConfigProtocolStreamingProducer::readerThreadFunc()
                         {
                             hasPacketsToSend = true;
                             if (handleDaqPacketCb)
-                                handleDaqPacketCb(packet, streamedSignal.signalNumericId);
+                                handleDaqPacketCb(std::move(packet), streamedSignal.signalNumericId);
                             packet = reader.read();
                         }
                     }

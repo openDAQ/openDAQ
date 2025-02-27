@@ -325,9 +325,9 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
         this->doConfigNoReplyRequest(packet);
     };
     HandleDaqPacketCallback handleDaqPacketCallback =
-        [this](const PacketPtr& packet, uint32_t signalNumericId)
+        [this](PacketPtr&& packet, uint32_t signalNumericId)
     {
-        transportClientHandler->sendStreamingPacket(signalNumericId, packet);
+        transportClientHandler->sendStreamingPacket(signalNumericId, std::move(packet));
     };
     configProtocolClient =
         std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(

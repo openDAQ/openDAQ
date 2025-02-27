@@ -25,7 +25,7 @@
 namespace daq::config_protocol
 {
 
-using HandleDaqPacketCallback = std::function<void(const PacketPtr& /*packet*/, SignalNumericIdType /*signalNumericId*/)>;
+using HandleDaqPacketCallback = std::function<void(PacketPtr&& /*packet*/, SignalNumericIdType /*signalNumericId*/)>;
 using SendPreprocessedPacketsCallback = std::function<void()>;
 
 class ConfigProtocolStreamingProducer

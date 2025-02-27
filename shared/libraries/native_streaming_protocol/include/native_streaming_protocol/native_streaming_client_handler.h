@@ -84,7 +84,7 @@ public:
 
     void sendConfigRequest(const config_protocol::PacketBuffer& packet);
     void sendStreamingRequest();
-    void sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet);
+    void sendStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet);
 
     void resetStreamingHandlers();
     void setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
@@ -188,7 +188,7 @@ public:
 
     void sendConfigRequest(const config_protocol::PacketBuffer& packet);
     void sendStreamingRequest();
-    void sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet);
+    void sendStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet);
 
     void resetStreamingHandlers();
     void setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,

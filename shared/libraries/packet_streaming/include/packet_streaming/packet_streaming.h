@@ -68,7 +68,11 @@ struct PacketBuffer
 {
     PacketBuffer(const PacketBuffer&) = delete;
     PacketBuffer(PacketBuffer&& packetBuffer) noexcept;
-    PacketBuffer(GenericPacketHeader* packetHeader, const void* payload, std::function<void()> onDestroy, bool enableTimeStamp);
+    PacketBuffer(GenericPacketHeader* packetHeader,
+                 const void* payload,
+                 std::function<void()> onDestroy,
+                 bool enableTimeStamp,
+                 size_t cacheableGroupId = INVALID_CACHEABLE_GROUP_ID);
 
     GenericPacketHeader* packetHeader;
     const void* payload;
@@ -78,7 +82,12 @@ struct PacketBuffer
 
     ~PacketBuffer();
 
+    // time point of packet buffer creation (used only on server side)
     std::optional<std::chrono::steady_clock::time_point> timeStamp;
+
+    size_t cacheableGroupId;
+    static constexpr size_t INVALID_CACHEABLE_GROUP_ID = 0;
+    bool isCacheable();
 };
 
 using PacketBufferPtr = std::shared_ptr<PacketBuffer>;

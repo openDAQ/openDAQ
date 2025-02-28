@@ -899,13 +899,13 @@ TEST_F(PacketStreamingTest, CacheablePacketsOnlyImplicit)
     server.addDaqPacket(implicitSignalId, implicitDataPacket);
     testCacheablePacketBuffers(server, 4u, 3u, sizeof(DataPacketHeader));
 
-    ASSERT_FALSE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // eventPacketExplicit
+    ASSERT_FALSE(server.getNextPacketBuffer()->isCacheable()); // eventPacketExplicit
     testCacheablePacketBuffers(server, 3u, 2u, sizeof(DataPacketHeader));
-    ASSERT_FALSE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // explicitDataPacket
+    ASSERT_FALSE(server.getNextPacketBuffer()->isCacheable()); // explicitDataPacket
     testCacheablePacketBuffers(server, 2u, 1u, sizeof(DataPacketHeader));
-    ASSERT_FALSE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // eventPacketImplicit
+    ASSERT_FALSE(server.getNextPacketBuffer()->isCacheable()); // eventPacketImplicit
     testCacheablePacketBuffers(server, 1u, 0u, sizeof(DataPacketHeader));
-    ASSERT_TRUE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // implicitDataPacket
+    ASSERT_TRUE(server.getNextPacketBuffer()->isCacheable()); // implicitDataPacket
     testCacheablePacketBuffers(server, 0u, 0u, 0u);
 }
 
@@ -938,13 +938,13 @@ TEST_F(PacketStreamingTest, CacheablePacketsOnlyData)
     server.addDaqPacket(implicitSignalId, implicitDataPacket);
     testCacheablePacketBuffers(server, 4u, 2u, 2 * sizeof(DataPacketHeader) + payloadSize);
 
-    ASSERT_FALSE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // eventPacketExplicit
+    ASSERT_FALSE(server.getNextPacketBuffer()->isCacheable()); // eventPacketExplicit
     testCacheablePacketBuffers(server, 3u, 1u, 2 * sizeof(DataPacketHeader) + payloadSize);
-    ASSERT_TRUE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // explicitDataPacket
+    ASSERT_TRUE(server.getNextPacketBuffer()->isCacheable()); // explicitDataPacket
     testCacheablePacketBuffers(server, 2u, 1u, sizeof(DataPacketHeader));
-    ASSERT_FALSE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // eventPacketImplicit
+    ASSERT_FALSE(server.getNextPacketBuffer()->isCacheable()); // eventPacketImplicit
     testCacheablePacketBuffers(server, 1u, 0u, sizeof(DataPacketHeader));
-    ASSERT_TRUE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // implicitDataPacket
+    ASSERT_TRUE(server.getNextPacketBuffer()->isCacheable()); // implicitDataPacket
     testCacheablePacketBuffers(server, 0u, 0u, 0u);
 }
 
@@ -988,19 +988,19 @@ TEST_F(PacketStreamingTest, CacheablePacketsAny)
     testCacheablePacketBuffers(server, 4u, 0u, sizeOfCacheableBuffersOld + sizeof(DataPacketHeader));
 
     sizeOfCacheableBuffersOld = server.getSizeOfCacheableBuffers();
-    ASSERT_TRUE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // eventPacketExplicit
+    ASSERT_TRUE(server.getNextPacketBuffer()->isCacheable()); // eventPacketExplicit
     ASSERT_LT(server.getSizeOfCacheableBuffers(), sizeOfCacheableBuffersOld - sizeof(GenericPacketHeader));
     ASSERT_EQ(server.getNonCacheableBuffersCount(), 0u);
     ASSERT_EQ(server.getAvailableBuffersCount(), 3u);
 
     sizeOfCacheableBuffersOld = server.getSizeOfCacheableBuffers();
-    ASSERT_TRUE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // explicitDataPacket
+    ASSERT_TRUE(server.getNextPacketBuffer()->isCacheable()); // explicitDataPacket
     testCacheablePacketBuffers(server, 2u, 0u, sizeOfCacheableBuffersOld - sizeof(DataPacketHeader) - payloadSize);
 
-    ASSERT_TRUE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // eventPacketImplicit
+    ASSERT_TRUE(server.getNextPacketBuffer()->isCacheable()); // eventPacketImplicit
     testCacheablePacketBuffers(server, 1u, 0u, sizeof(DataPacketHeader));
 
-    ASSERT_TRUE(server.isCacheablePacketBuffer(server.getNextPacketBuffer())); // implicitDataPacket
+    ASSERT_TRUE(server.getNextPacketBuffer()->isCacheable()); // implicitDataPacket
     testCacheablePacketBuffers(server, 0u, 0u, 0u);
 }
 

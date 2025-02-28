@@ -169,6 +169,8 @@ private:
                               const std::string& clientId,
                               SignalNumericIdType singalNumericId);
 
+    static void copyToLinearBuffer(const packet_streaming::PacketBufferPtr& packetBufferPtr, char* linearBufferDataPtr);
+
     bool removeSignalSubscriberNoLock(const std::string& signalStringId, const std::string& subscribedClientId);
 
     ContextPtr context;

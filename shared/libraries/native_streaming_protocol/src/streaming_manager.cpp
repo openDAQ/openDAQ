@@ -121,6 +121,17 @@ void StreamingManager::sendDaqPacket(const SendPacketBufferCallback& sendPacketB
     }
 }
 
+void StreamingManager::copyToLinearBuffer(const packet_streaming::PacketBufferPtr& packetBufferPtr, char* linearBufferDataPtr)
+{
+    BaseSessionHandler::copyHeadersToBuffer(packetBufferPtr, linearBufferDataPtr);
+    if (packetBufferPtr->packetHeader->payloadSize > 0)
+    {
+        std::memcpy(linearBufferDataPtr + TransportHeader::PACKED_HEADER_SIZE + packetBufferPtr->packetHeader->size,
+                    packetBufferPtr->payload,
+                    packetBufferPtr->packetHeader->payloadSize);
+    }
+}
+
 SignalNumericIdType StreamingManager::registerSignal(const SignalPtr& signal)
 {
     auto signalStringId = signal.getGlobalId().toStdString();
@@ -367,41 +378,57 @@ void StreamingManager::pushToPacketStreamingServer(const PacketStreamingServerPt
 
 StreamingWriteTasks StreamingManager::getStreamingWriteTasks(const PacketStreamingServerPtr& packetStreamingServerPtr)
 {
+    std::vector<daq::native_streaming::WriteTask> tasks;
     std::optional<std::chrono::steady_clock::time_point> timeStamp(std::nullopt);
-    auto nonCacheableBuffersCount = packetStreamingServerPtr->getNonCacheableBuffersCount();
-    auto cacheableBuffersCount = packetStreamingServerPtr->getAvailableBuffersCount() - nonCacheableBuffersCount;
 
+    const auto nonCacheableBuffersCount = packetStreamingServerPtr->getNonCacheableBuffersCount();
+    const auto cacheableGroupsCount = packetStreamingServerPtr->getCountOfCacheableGroups();
+    // header and payload separate write tasks for each non-cacheable buffer
+    // plus one task for each group of cacheable buffers
+    tasks.reserve(2 * nonCacheableBuffersCount + cacheableGroupsCount);
+
+    size_t currentCacheableGroupId = packet_streaming::PacketBuffer::INVALID_CACHEABLE_GROUP_ID;
     size_t linearBufferCurPos = 0;
     std::shared_ptr<std::vector<char>> linearCacheBuffer;
-    if (cacheableBuffersCount > 0)
-    {
-        linearCacheBuffer =
-            std::make_shared<std::vector<char>>(TransportHeader::PACKED_HEADER_SIZE * cacheableBuffersCount +
-                                                packetStreamingServerPtr->getSizeOfCacheableBuffers());
-    }
 
-    // header and payload separate write tasks for each non-mergeable buffer
-    // plus one task for all mergeable buffers
-    std::vector<daq::native_streaming::WriteTask> tasks;
-    tasks.reserve(2 * nonCacheableBuffersCount + 1);
+    const auto pushLinearBufferTaskAndReset = [&]()
+    {
+        WriteHandler linearBufferHandler = [linearCacheBuffer = linearCacheBuffer]() {};
+        tasks.push_back(
+            WriteTask(boost::asio::const_buffer(linearCacheBuffer->data(), linearCacheBuffer->size()),
+                      linearBufferHandler)
+            );
+        linearBufferCurPos = 0;
+        linearCacheBuffer = nullptr;
+        currentCacheableGroupId = packet_streaming::PacketBuffer::INVALID_CACHEABLE_GROUP_ID;
+    };
 
     while (auto packetBufferPtr = packetStreamingServerPtr->getNextPacketBuffer())
     {
-        if (packetStreamingServerPtr->isCacheablePacketBuffer(packetBufferPtr) && linearCacheBuffer)
+        if (packetBufferPtr->isCacheable())
         {
-            BaseSessionHandler::copyHeadersToBuffer(packetBufferPtr, linearCacheBuffer->data() + linearBufferCurPos);
-            linearBufferCurPos += TransportHeader::PACKED_HEADER_SIZE + packetBufferPtr->packetHeader->size;
-
-            if (packetBufferPtr->packetHeader->payloadSize > 0)
+            // proceed to next group of cacheable packets
+            if (currentCacheableGroupId != packetBufferPtr->cacheableGroupId)
             {
-                std::memcpy(linearCacheBuffer->data() + linearBufferCurPos,
-                            packetBufferPtr->payload,
-                            packetBufferPtr->packetHeader->payloadSize);
-                linearBufferCurPos += packetBufferPtr->packetHeader->payloadSize;
+                if (linearCacheBuffer)
+                    pushLinearBufferTaskAndReset();
+                currentCacheableGroupId = packetBufferPtr->cacheableGroupId;
+                const size_t linearCacheBufferSize =
+                    TransportHeader::PACKED_HEADER_SIZE * packetStreamingServerPtr->getCountOfCacheableBuffers(currentCacheableGroupId) +
+                    packetStreamingServerPtr->getSizeOfCacheableBuffers(currentCacheableGroupId) +
+                    TransportHeader::PACKED_HEADER_SIZE + packetBufferPtr->packetHeader->size + packetBufferPtr->packetHeader->payloadSize;
+
+                linearCacheBuffer = std::make_shared<std::vector<char>>(linearCacheBufferSize);
             }
+            copyToLinearBuffer(packetBufferPtr, linearCacheBuffer->data() + linearBufferCurPos);
+            linearBufferCurPos += TransportHeader::PACKED_HEADER_SIZE +
+                                  packetBufferPtr->packetHeader->size +
+                                  packetBufferPtr->packetHeader->payloadSize;
         }
         else
         {
+            if (linearCacheBuffer)
+                pushLinearBufferTaskAndReset();
             BaseSessionHandler::createAndPushPacketBufferTasks(std::move(packetBufferPtr), tasks);
         }
 
@@ -410,13 +437,7 @@ StreamingWriteTasks StreamingManager::getStreamingWriteTasks(const PacketStreami
     }
 
     if (linearCacheBuffer)
-    {
-        WriteHandler linearBufferHandler = [linearCacheBuffer]() {};
-        tasks.push_back(
-            WriteTask(boost::asio::const_buffer(linearCacheBuffer->data(), linearCacheBuffer->size()),
-                      linearBufferHandler)
-            );
-    }
+        pushLinearBufferTaskAndReset();
 
     return {tasks, timeStamp};
 }

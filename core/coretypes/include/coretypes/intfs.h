@@ -377,9 +377,9 @@ protected:
         return errCode;
     }
 
-#ifdef NDEBUG
-    #define MakeErrorInfo(errCode, message, ...) makeErrorInfo(errCode, message, ##__VA_ARGS__);
-#else
+// #ifdef NDEBUG
+//     #define MakeErrorInfo(errCode, message, ...) makeErrorInfo(errCode, message, ##__VA_ARGS__);
+// #else
     template <typename... Params>
     ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, Params... params)
     {
@@ -393,7 +393,7 @@ protected:
     }
 
     #define MakeErrorInfo(errCode, message, ...) makeErrorInfo(__FILE__, __LINE__, errCode, message, ##__VA_ARGS__);
-#endif
+// #endif
 
     void clearErrorInfo() const
     {

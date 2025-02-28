@@ -81,13 +81,13 @@ DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
      * @brief Sets the file name where the error occurred.
      * @param fileName File name.
      */
-    virtual ErrCode INTERFACE_FUNC setFileName(IString* fileName) = 0;
+    virtual ErrCode INTERFACE_FUNC setFileName(ConstCharPtr fileName) = 0;
 
     /*!
      * @brief Gets the file name where the error occurred.
      * @param fileName File name.
      */
-    virtual ErrCode INTERFACE_FUNC getFileName(IString** fileName) = 0;
+    virtual ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) = 0;
 
     /*!
      * @brief Sets the line number in the file where the error occurred.

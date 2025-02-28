@@ -89,32 +89,79 @@ inline std::string objectToString(IBaseObject* object)
     return stream.str();
 }
 
+static std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* errorInfo)
+{
+    if (errorInfo == nullptr)
+        return ss;
+
+    IString* message;
+    ConstCharPtr msgCharPtr;
+    ConstCharPtr fileNameCharPtr;
+    Int fileLine = -1;
+
+    Finally final([&message]
+    {
+        if (message != nullptr)
+            message->releaseRef();
+    });
+
+    errorInfo->getMessage(&message);
+    errorInfo->getFileName(&fileNameCharPtr);
+    errorInfo->getFileLine(&fileLine);
+
+    if (message != nullptr)
+        message->getCharPtr(&msgCharPtr);
+
+    if (fileNameCharPtr != nullptr)
+    {
+        ss << "[ " << fileNameCharPtr;
+        if (fileLine != -1)
+            ss << ":" << fileLine;
+        ss << " ] : ";
+    }
+
+    if (msgCharPtr != nullptr)
+        ss << msgCharPtr;
+    
+    return ss;
+} 
+
+
 inline void checkErrorInfo(ErrCode errCode)
 {
     if (OPENDAQ_FAILED(errCode))
     {
-        IString* message = nullptr;
-        ConstCharPtr msgCharPtr = nullptr;
-        Finally final([&message]
+        IList* errorInfoList;
+        daqGetErrorInfoList(&errorInfoList);
+
+        std::ostringstream ss;
+        if (errorInfoList != nullptr)
         {
-            if (message != nullptr)
-                message->releaseRef();
-        });
+            SizeT count = 0;
+            errorInfoList->getCount(&count);
+            for (SizeT i = 0; i < count; ++i)
+            {
+                IBaseObject* errorInfoObj;
+                errorInfoList->getItemAt(i, &errorInfoObj);
 
-        IErrorInfo* errorInfo;
-        daqGetErrorInfo(&errorInfo);
-        if (errorInfo != nullptr)
-        {
-            errorInfo->getMessage(&message);
-            errorInfo->releaseRef();
-
-            if (message != nullptr)
-                message->getCharPtr(&msgCharPtr);
-
-            daqClearErrorInfo();
+                IErrorInfo* errorInfo;
+                errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+            
+                if (errorInfo != nullptr)
+                {
+                    if (i != 0)
+                        ss << "\n";
+                    ErrorFormat(ss, errorInfo);
+                }
+                if (errorInfoObj != nullptr)
+                    errorInfoObj->releaseRef();
+            }
         }
 
-        throwExceptionFromErrorCode(errCode, msgCharPtr ? msgCharPtr : "");
+        if (errorInfoList != nullptr)
+            errorInfoList->releaseRef();
+
+        throwExceptionFromErrorCode(errCode, ss.str());
     }
 }
 
@@ -125,9 +172,9 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
     return errCode;
 }
 
-#ifdef NDEBUG
-    #define MakeErrorInfoForSource(errCode, source, message, ...) makeErrorInfo(errCode, message, source, ##__VA_ARGS__);
-#else
+// #ifdef NDEBUG
+//     #define MakeErrorInfoForSource(errCode, source, message, ...) makeErrorInfo(errCode, message, source, ##__VA_ARGS__);
+// #else
     template <typename... Params>
     ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, IBaseObject* source, Params... params)
     {
@@ -135,7 +182,7 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
         return errCode;
     }
     #define MakeErrorInfoForSource(errCode, source, message, ...) makeErrorInfo(__FILE__, __LINE__, errCode, message, source, ##__VA_ARGS__);
-#endif
+// #endif
 
 inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = nullptr)
 {
@@ -145,9 +192,9 @@ inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = n
     return makeErrorInfo(e.getErrCode(), e.what(), source);
 }
 
-#ifdef NDEBUG
-    #define ErrorFromDaqException(e, source) errorFromException(e, source)
-#else
+// #ifdef NDEBUG
+//     #define ErrorFromDaqException(e, source) errorFromException(e, source)
+// #else
     inline ErrCode errorFromException(ConstCharPtr fileName, Int fileLine, const DaqException& e, IBaseObject* source = nullptr)
     {
         if (e.getDefaultMsg())
@@ -156,22 +203,22 @@ inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = n
         return makeErrorInfo(fileName, fileLine, e.getErrCode(), e.what(), source);
     }
     #define ErrorFromDaqException(e, source) errorFromException(__FILE__, __LINE__, e, source)
-#endif
+// #endif
 
 inline ErrCode errorFromException(const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)
 {
     return makeErrorInfo(errCode, e.what(), source);
 }
 
-#ifdef NDEBUG
-    #define ErrorFromStdException(e, source, errCode) errorFromException(e, source, errCode)
-#else
+// #ifdef NDEBUG
+//     #define ErrorFromStdException(e, source, errCode) errorFromException(e, source, errCode)
+// #else
     inline ErrCode errorFromException(ConstCharPtr fileName, Int fileLine, const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)
     {
         return makeErrorInfo(fileName, fileLine, errCode, e.what(), source);
     }
     #define ErrorFromStdException(e, source, errCode) errorFromException(__FILE__, __LINE__, e, source, errCode)
-#endif
+// #endif
 
 template <typename... Params>
 void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
@@ -185,7 +232,7 @@ void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Par
     errorInfo->releaseRef();
 }
 
-#ifndef NDEBUG
+// #ifndef NDEBUG
 template <typename... Params>
 void setErrorInfoWithSource(ConstCharPtr fileName, Int fileLine, IBaseObject* source, const std::string& message, Params... params)
 {
@@ -197,7 +244,7 @@ void setErrorInfoWithSource(ConstCharPtr fileName, Int fileLine, IBaseObject* so
     daqSetErrorInfo(errorInfo);
     errorInfo->releaseRef();
 }
-#endif
+// #endif
 
 template <typename... Params>
 ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObject* sourceObj, const std::string& message, Params... params)
@@ -271,7 +318,7 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     return OPENDAQ_SUCCESS;
 }
 
-#ifndef NDEBUG
+// #ifndef NDEBUG
 template <typename... Params>
 ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, ConstCharPtr fileName, Int fileLine, IBaseObject* sourceObj, const std::string& message, Params... params)
 {
@@ -281,18 +328,7 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, ConstChar
 
     IErrorInfo* errorInfo_ = *errorInfo;
 
-    IString* fileName_ = nullptr;
-    Finally final([&fileName_]
-    {
-        if (fileName_ != nullptr)
-            fileName_->releaseRef();
-    });
-
-    errCode = createString(&fileName_, fileName);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-
-    errCode = errorInfo_->setFileName(fileName_);
+    errCode = errorInfo_->setFileName(fileName);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
@@ -302,7 +338,7 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, ConstChar
 
     return OPENDAQ_SUCCESS;
 }
-#endif
+// #endif
 
 inline std::string toStdString(IString* rtStr)
 {

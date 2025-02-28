@@ -32,8 +32,8 @@ public:
     ErrCode INTERFACE_FUNC getMessage(IString** message) override;
     ErrCode INTERFACE_FUNC setSource(IString* source) override;
     ErrCode INTERFACE_FUNC getSource(IString** source) override;
-    ErrCode INTERFACE_FUNC setFileName(IString* fileName) override;
-    ErrCode INTERFACE_FUNC getFileName(IString** fileName) override;
+    ErrCode INTERFACE_FUNC setFileName(ConstCharPtr fileName) override;
+    ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) override;
     ErrCode INTERFACE_FUNC setFileLine(Int line) override;
     ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
     
@@ -43,7 +43,7 @@ public:
 private:
     IString* message;
     IString* source;
-    IString* fileName;
+    ConstCharPtr fileName;
     Int line;
     Bool frozen;
 };

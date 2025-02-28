@@ -78,7 +78,6 @@ ErrorInfoImpl::~ErrorInfoImpl()
 {
     releaseRefIfNotNull(message);
     releaseRefIfNotNull(source);
-    releaseRefIfNotNull(fileName);
 }
 
 ErrCode ErrorInfoImpl::getMessage(IString** message)
@@ -115,25 +114,22 @@ ErrCode ErrorInfoImpl::getSource(IString** source)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorInfoImpl::setFileName(IString* fileName)
+ErrCode ErrorInfoImpl::setFileName(ConstCharPtr fileName)
 {
     if (frozen)
         return OPENDAQ_ERR_FROZEN;
 
-    releaseRefIfNotNull(this->fileName);
     this->fileName = fileName;
-    addRefIfNotNull(this->fileName);
 
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorInfoImpl::getFileName(IString** fileName)
+ErrCode ErrorInfoImpl::getFileName(ConstCharPtr* fileName)
 {
     if (fileName == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     *fileName = this->fileName;
-    addRefIfNotNull(*fileName);
 
     return OPENDAQ_SUCCESS;
 }

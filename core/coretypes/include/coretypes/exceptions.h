@@ -74,7 +74,7 @@ BEGIN_NAMESPACE_OPENDAQ
     }                                                                   \
     catch (const std::exception& e)                                     \
     {                                                                   \
-        return ErrorFromException(e, nullptr, OPENDAQ_ERR_GENERALERROR);\
+        return ErrorFromStdException(e, nullptr, OPENDAQ_ERR_GENERALERROR);\
     }                                                                   \
     catch (...)                                                         \
     {                                                                   \

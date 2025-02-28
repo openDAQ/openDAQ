@@ -540,7 +540,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     }
     catch (const std::exception& e)
     {
-        return ErrorFromException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+        return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {

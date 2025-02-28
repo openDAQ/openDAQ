@@ -790,7 +790,7 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
         }
         catch (const std::exception& e)
         {
-            return ErrorFromException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+            return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
         }
         catch (...)
         {

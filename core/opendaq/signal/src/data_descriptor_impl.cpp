@@ -290,7 +290,7 @@ ErrCode DataDescriptorImpl::validate()
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return ErrorFromDaqException(e, this->getThisAsBaseObject());
     }
     
     return OPENDAQ_SUCCESS;

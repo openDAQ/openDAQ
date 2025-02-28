@@ -786,11 +786,11 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
         }
         catch (const DaqException& e)
         {
-            return errorFromException(e, nullptr);
+            return ErrorFromDaqException(e, this->getThisAsBaseObject());
         }
         catch (const std::exception& e)
         {
-            return errorFromException(e);
+            return ErrorFromException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
         }
         catch (...)
         {

@@ -63,21 +63,11 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) = 0;
 
-
     /*!
      * @brief Notifies component about the change of the operation mode.
      * @param modeType The new operation mode.
      */
     virtual ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) = 0;
-
-    /*!
-     * @brief Synchronizes the operation mode of the component.
-     *
-     * This method is used to synchronize the operation mode of the component with the operation mode of the device.
-     * The default implementation of the component is to get operation mode of the parent device and update its own operation mode.
-     * For the devices, the operation mode is updated to Operation mode (can be overriden with custom implementation).
-     */
-    virtual ErrCode INTERFACE_FUNC syncOperationMode() = 0;
 };
 
 END_NAMESPACE_OPENDAQ

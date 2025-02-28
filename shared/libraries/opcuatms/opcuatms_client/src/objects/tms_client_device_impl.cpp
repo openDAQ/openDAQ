@@ -164,19 +164,9 @@ ErrCode TmsClientDeviceImpl::setOperationMode(IString* modeType)
 ErrCode TmsClientDeviceImpl::setOperationModeRecursive(IString* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
-
-    if (!this->hasReference("OperationMode"))
-        return this->makeErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
-    
-    const auto nodeId = getNodeId("OperationMode");
     const auto modeTypeStr = "Recursive" +  StringPtr::Borrow(modeType).toStdString();
-
-    const auto variant = VariantConverter<IString>::ToVariant(String(modeTypeStr), nullptr, daqContext);
-    client->writeValue(nodeId, variant);   
-           
-    return OPENDAQ_SUCCESS;
+    return this->setOperationMode(String(modeTypeStr));
 }
-
 
 ErrCode TmsClientDeviceImpl::getOperationMode(IString** modeType)
 {

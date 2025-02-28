@@ -61,6 +61,7 @@ private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override; 
+    void syncComponentOperationMode(const ComponentPtr& component) override;
 };
 
 template <class Impl>
@@ -268,4 +269,10 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
             this->removeItem(item);
     }
 }
+
+template <class Impl>
+void ConfigClientBaseFolderImpl<Impl>::syncComponentOperationMode(const ComponentPtr& /* component */)
+{
+}
+
 }

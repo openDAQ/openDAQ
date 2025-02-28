@@ -92,12 +92,4 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
         },
         py::arg("mode_type"),
         "Notifies component about the change of the operation mode.");
-    cls.def("sync_operation_mode",
-        [](daq::IComponentPrivate *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
-            objectPtr.syncOperationMode();
-        },
-        "Synchronizes the operation mode of the component.");
 }

@@ -90,6 +90,8 @@ protected:
     void callEndUpdateOnChildren() override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
+    virtual void syncComponentOperationMode(const ComponentPtr& component);
+
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
     void clearInternal();
@@ -212,6 +214,26 @@ ErrCode FolderImpl<Intf, Intfs...>::hasItem(IString* localId, Bool* value)
 }
 
 template <class Intf, class... Intfs>
+void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& component)
+{
+    auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+    if (!componentPrivate.assigned())
+        return;
+
+    auto parentDevice = this->getParentDevice();
+    if (!parentDevice.assigned())
+        return;
+    
+    StringPtr opModeStr;
+    parentDevice.template as<IDevice>(true)->getOperationMode(&opModeStr);
+    if (!opModeStr.assigned())
+        return;
+
+    OperationModeType modeType = this->OperationModeTypeFromString(opModeStr);
+    componentPrivate->updateOperationMode(modeType);
+}
+
+template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 {
     OPENDAQ_PARAM_NOT_NULL(item);
@@ -240,11 +262,9 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
             Dict<IString, IBaseObject>({{"Component", component}}));
 
         this->triggerCoreEvent(args);
-        
-        if (auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-            componentPrivate->syncOperationMode();
 
         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
+        syncComponentOperationMode(component);
     }
 
     return OPENDAQ_SUCCESS;

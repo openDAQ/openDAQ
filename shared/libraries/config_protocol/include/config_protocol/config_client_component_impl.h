@@ -45,7 +45,7 @@ public:
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
-    ErrCode INTERFACE_FUNC syncOperationMode() override;
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
@@ -129,7 +129,7 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description
 }
 
 template <class Impl>
-ErrCode ConfigClientComponentBaseImpl<Impl>::syncOperationMode()
+ErrCode ConfigClientComponentBaseImpl<Impl>::updateOperationMode(OperationModeType)
 {
     return OPENDAQ_IGNORED;
 }

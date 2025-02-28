@@ -126,7 +126,7 @@ public:
 
         if (addSubDevice)
         {
-            const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(ctx, devices, "subDev");
+            const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(ctx, devices, "subDev", false);
             this->addSubDevice(device);
         }
     }

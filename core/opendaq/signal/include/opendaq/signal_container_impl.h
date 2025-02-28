@@ -192,7 +192,6 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::disableCoreEventTrigger()
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
 }
 
-
 template <class Intf, class ... Intfs>
 SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& context,
                                                          const ComponentPtr& parent,

@@ -114,7 +114,6 @@ public:
     ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
     ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
-    ErrCode INTERFACE_FUNC syncOperationMode() override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -226,7 +225,10 @@ protected:
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
     virtual std::set<OperationModeType> onGetAvailableOperationModes();
+    void onOperationModeChanged(OperationModeType modeType) override;
+
     ListPtr<ILockGuard> getTreeLockGuard();
+    ErrCode updateOperationModeInternal(OperationModeType modeType);
 
     DevicePtr getParentDevice();
 
@@ -263,7 +265,6 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
               if (!this->coreEventMuted)
                   this->triggerCoreEvent(args);
           }))
-    , operationMode(OperationModeType::Operation)
 
 {
     this->defaultComponents.insert("Dev");
@@ -337,7 +338,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock();
 
     this->isRootDevice = true;
-    this->syncOperationMode();
+    this->updateOperationMode(OperationModeType::Unknown);
     return OPENDAQ_SUCCESS;
 }
 
@@ -1133,7 +1134,15 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(ILi
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType modeType)
+void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
+{
+    bool active = modeType != OperationModeType::Idle;
+    for (const auto& signal : this->signals.getItems(search::InterfaceId(ISignal::Id)))
+        signal.setActive(active);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(OperationModeType modeType)
 {
     const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
     if (OPENDAQ_SUCCEEDED(errCode))
@@ -1147,9 +1156,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::syncOperationMode()
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /* modeType */)
 {
-    return updateOperationMode(OperationModeType::Operation);
+    return this->updateOperationModeInternal(OperationModeType::Operation);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1162,7 +1171,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* mode
 
     auto lockGuardList = this->getTreeLockGuard();
 
-    ErrCode errCode = this->updateOperationMode(mode);
+    ErrCode errCode = this->updateOperationModeInternal(mode);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 

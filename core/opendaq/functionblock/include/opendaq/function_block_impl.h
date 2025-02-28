@@ -666,11 +666,8 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onOperationModeChanged(Operat
 {
     bool active = modeType != OperationModeType::Idle;
     for (const auto& signal : this->signals.getItems())
-    {
         signal.setActive(active);
-    }
 }
-
 
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,

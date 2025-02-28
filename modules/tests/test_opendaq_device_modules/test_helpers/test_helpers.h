@@ -298,8 +298,6 @@ namespace test_helpers
                 ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking ch signal " << sig.getGlobalId() << " for mode " << expected;
         }
     }
-
-
 }
 
 inline void removeDeviceDomainSignal(ListPtr<ISignal>& list)

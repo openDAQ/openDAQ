@@ -2743,8 +2743,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
     OPENDAQ_PARAM_NOT_NULL(lockGuard);
-    *lockGuard = createWithImplementation<ILockGuard, LockGuardImpl>(this->objPtr, &sync).detach();
-    return OPENDAQ_SUCCESS;
+    return createObject<ILockGuard, LockGuardImpl, IPropertyObject*, std::mutex*>(lockGuard, this->objPtr, &sync);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2752,10 +2751,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursive
 {
     OPENDAQ_PARAM_NOT_NULL(lockGuard);
     if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        *lockGuard = createWithImplementation<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>>(this->objPtr, &nullSync, &externalCallThreadId, &externalCallDepth).detach();
-    else
-        *lockGuard = createWithImplementation<ILockGuard, RecursiveLockGuardImpl<std::mutex>>(this->objPtr, &sync, &externalCallThreadId, &externalCallDepth).detach();
-    return OPENDAQ_SUCCESS;
+        return createObject<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>, IPropertyObject*, object_utils::NullMutex*, std::thread::id*, int*>
+            (lockGuard, this->objPtr, &nullSync, &externalCallThreadId, &externalCallDepth);
+    return createObject<ILockGuard, RecursiveLockGuardImpl<std::mutex>, IPropertyObject*, std::mutex*, std::thread::id*, int*>
+        (lockGuard, this->objPtr, &sync, &externalCallThreadId, &externalCallDepth);
 }
 
 template <class PropObjInterface, class... Interfaces>

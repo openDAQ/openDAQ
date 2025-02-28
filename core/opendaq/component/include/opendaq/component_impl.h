@@ -109,7 +109,6 @@ public:
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
-    ErrCode INTERFACE_FUNC syncOperationMode() override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -693,22 +692,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType mod
 {
     auto lock = this->getRecursiveConfigLock();
     return wrapHandler(this, &Self::onOperationModeChanged, modeType);
-}
-
-template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::syncOperationMode()
-{
-    auto parentDevice = this->getParentDevice();
-    if (!parentDevice.assigned())
-        return OPENDAQ_IGNORED;
-    
-    StringPtr opModeStr;
-    parentDevice.template as<IDevice>(true)->getOperationMode(&opModeStr);
-    if (!opModeStr.assigned())
-        return OPENDAQ_IGNORED;
-
-    OperationModeType modeType = OperationModeTypeFromString(opModeStr);
-    return this->updateOperationMode(modeType);
 }
 
 template <class Intf, class ... Intfs>

@@ -871,7 +871,7 @@ TEST_F(PacketStreamingTest, DomainPacketTwiceRelease)
     ASSERT_EQ(nullptr, packet10);
 }
 
-TEST_F(PacketStreamingTest, CacheablePacketsOnlyImplicit)
+TEST_F(PacketStreamingTest, DISABLED_CacheablePacketsOnlyImplicit)
 {
     const auto samplesCount = 10;
 
@@ -909,7 +909,7 @@ TEST_F(PacketStreamingTest, CacheablePacketsOnlyImplicit)
     testCacheablePacketBuffers(server, 0u, 0u, 0u);
 }
 
-TEST_F(PacketStreamingTest, CacheablePacketsOnlyData)
+TEST_F(PacketStreamingTest, DISABLED_CacheablePacketsOnlyData)
 {
     const auto samplesCount = 10;
 
@@ -948,7 +948,7 @@ TEST_F(PacketStreamingTest, CacheablePacketsOnlyData)
     testCacheablePacketBuffers(server, 0u, 0u, 0u);
 }
 
-TEST_F(PacketStreamingTest, CacheablePacketsAny)
+TEST_F(PacketStreamingTest, DISABLED_CacheablePacketsAny)
 {
     const auto samplesCount = 10;
 

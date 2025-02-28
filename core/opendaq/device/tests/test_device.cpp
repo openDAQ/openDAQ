@@ -19,6 +19,7 @@
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
 #include <opendaq/device_network_config_ptr.h>
+#include <opendaq/component_private_ptr.h>
 #include "testutils/testutils.h"
 
 using DeviceTest = testing::Test;
@@ -588,6 +589,8 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
 {
     const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev", true);
     const auto subDevice = device.getDevices()[0];
+    device.asPtr<daq::IComponentPrivate>(true).updateOperationMode(daq::OperationModeType::Unknown);
+    subDevice.asPtr<daq::IComponentPrivate>(true).updateOperationMode(daq::OperationModeType::Unknown);
 
     auto expectedDeviceModes = daq::List<daq::IString>("Idle", "Operation", "SafeOperation");
 
@@ -617,6 +620,7 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
 TEST_F(DeviceTest, CheckNotSupportedOpMode)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    device.asPtr<daq::IComponentPrivate>(true).updateOperationMode(daq::OperationModeType::Unknown);
 
     auto expectedDeviceModes = daq::List<daq::IString>("Idle", "Operation");
 

@@ -12,7 +12,7 @@ using namespace daq;
 
 TEST_F(TaskInternalsTest, TaskFlowFutureDestructorDoesNotBlock)
 {
-    using namespace std::literals;
+    using namespace std::literals::chrono_literals;
 
     bool finished{false};
     tf::Executor e;

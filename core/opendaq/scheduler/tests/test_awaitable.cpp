@@ -40,7 +40,7 @@ TEST_F(AwaitableTest, GetResultBlocks)
 
     auto awaitable = scheduler.scheduleFunction([returnValue, &executed]()
     {
-        using namespace std::literals;
+        using namespace std::literals::chrono_literals;
 
         std::this_thread::sleep_for(2s);
         executed = true;
@@ -61,7 +61,7 @@ TEST_F(AwaitableTest, GetResultBlocks)
 TEST_F(AwaitableTest, CancelNotYetExecuted)
 {
     auto blocker = scheduler.scheduleFunction([]() {
-        using namespace std::literals;
+        using namespace std::literals::chrono_literals;
 
         std::this_thread::sleep_for(2s);
         return 1;

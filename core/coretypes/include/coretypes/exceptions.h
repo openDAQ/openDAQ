@@ -63,22 +63,22 @@ BEGIN_NAMESPACE_OPENDAQ
 
 #define DEFINE_EXCEPTION(excName, errCode, excMsg) DEFINE_EXCEPTION_BASE(daq::DaqException, excName, errCode, excMsg)
 
-#define OPENDAQ_TRY(expression)            \
-    try                                    \
-    {                                      \
-        expression                         \
-    }                                      \
-    catch (const DaqException& e)          \
-    {                                      \
-        return errorFromException(e);      \
-    }                                      \
-    catch (const std::exception& e)        \
-    {                                      \
-        return errorFromException(e);      \
-    }                                      \
-    catch (...)                            \
-    {                                      \
-        return OPENDAQ_ERR_GENERALERROR;   \
+#define OPENDAQ_TRY(expression)                                         \
+    try                                                                 \
+    {                                                                   \
+        expression                                                      \
+    }                                                                   \
+    catch (const DaqException& e)                                       \
+    {                                                                   \
+        return ErrorFromDaqException(e, nullptr);                       \
+    }                                                                   \
+    catch (const std::exception& e)                                     \
+    {                                                                   \
+        return ErrorFromException(e, nullptr, OPENDAQ_ERR_GENERALERROR);\
+    }                                                                   \
+    catch (...)                                                         \
+    {                                                                   \
+        return OPENDAQ_ERR_GENERALERROR;                                \
     }
 
 /*

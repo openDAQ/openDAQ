@@ -77,7 +77,7 @@ ErrCode CustomProcedureImpl<F>::dispatch(IBaseObject* params)
         }
         catch (const DaqException& e)
         {
-            return errorFromException(e);
+            return ErrorFromDaqException(e, this->getThisAsBaseObject());
         }
         catch (...)
         {

@@ -378,7 +378,6 @@ protected:
     }
 
 #ifdef NDEBUG
-
     #define MakeErrorInfo(errCode, message, ...) makeErrorInfo(errCode, message, ##__VA_ARGS__);
 #else
     template <typename... Params>
@@ -389,7 +388,7 @@ protected:
         if (OPENDAQ_FAILED(err))
             return err;
 
-        setErrorInfoWithSource(thisBaseObject, fileName, fileLine, message, params...);
+        setErrorInfoWithSource(fileName, fileLine, thisBaseObject, message, params...);
         return errCode;
     }
 

@@ -18,6 +18,7 @@
 #include <coretypes/common.h>
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
+#include <coretypes/listobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -109,4 +110,5 @@ END_NAMESPACE_OPENDAQ
 
 extern "C" void PUBLIC_EXPORT daqSetErrorInfo(daq::IErrorInfo* errorInfo);
 extern "C" void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo);
+extern "C" void PUBLIC_EXPORT daqGetErrorInfoList(daq::IList** errorInfoList);
 extern "C" void PUBLIC_EXPORT daqClearErrorInfo();

@@ -125,6 +125,18 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
     return errCode;
 }
 
+#ifdef NDEBUG
+    #define MakeErrorInfoForSource(errCode, source, message, ...) makeErrorInfo(errCode, message, source, ##__VA_ARGS__);
+#else
+    template <typename... Params>
+    ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, IBaseObject* source, Params... params)
+    {
+        setErrorInfoWithSource(fileName, fileLine, source, message, params...);
+        return errCode;
+    }
+    #define MakeErrorInfoForSource(errCode, source, message, ...) makeErrorInfo(__FILE__, __LINE__, errCode, message, source, ##__VA_ARGS__);
+#endif
+
 inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = nullptr)
 {
     if (e.getDefaultMsg())
@@ -133,22 +145,33 @@ inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = n
     return makeErrorInfo(e.getErrCode(), e.what(), source);
 }
 
+#ifdef NDEBUG
+    #define ErrorFromDaqException(e, source) errorFromException(e, source)
+#else
+    inline ErrCode errorFromException(ConstCharPtr fileName, Int fileLine, const DaqException& e, IBaseObject* source = nullptr)
+    {
+        if (e.getDefaultMsg())
+            return e.getErrCode();
+
+        return makeErrorInfo(fileName, fileLine, e.getErrCode(), e.what(), source);
+    }
+    #define ErrorFromDaqException(e, source) errorFromException(__FILE__, __LINE__, e, source)
+#endif
+
 inline ErrCode errorFromException(const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)
 {
     return makeErrorInfo(errCode, e.what(), source);
 }
 
-template <typename... Params>
-void setErrorInfoWithSource(IBaseObject* source, ConstCharPtr fileName, Int fileLine, const std::string& message, Params... params)
-{
-    IErrorInfo* errorInfo;
-    auto err = createErrorInfoObjectWithSource(&errorInfo, source, fileName, fileLine, message, params...);
-    if (OPENDAQ_FAILED(err))
-        return;
-
-    daqSetErrorInfo(errorInfo);
-    errorInfo->releaseRef();
-}
+#ifdef NDEBUG
+    #define ErrorFromException(e, source, errCode) errorFromException(e, source, errCode)
+#else
+    inline ErrCode errorFromException(ConstCharPtr fileName, Int fileLine, const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)
+    {
+        return makeErrorInfo(fileName, fileLine, errCode, e.what(), source);
+    }
+    #define ErrorFromException(e, source, errCode) errorFromException(__FILE__, __LINE__, e, source, errCode)
+#endif
 
 template <typename... Params>
 void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
@@ -161,6 +184,20 @@ void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Par
     daqSetErrorInfo(errorInfo);
     errorInfo->releaseRef();
 }
+
+#ifndef NDEBUG
+template <typename... Params>
+void setErrorInfoWithSource(ConstCharPtr fileName, Int fileLine, IBaseObject* source, const std::string& message, Params... params)
+{
+    IErrorInfo* errorInfo;
+    auto err = createErrorInfoObjectWithSource(&errorInfo, fileName, fileLine, source, message, params...);
+    if (OPENDAQ_FAILED(err))
+        return;
+
+    daqSetErrorInfo(errorInfo);
+    errorInfo->releaseRef();
+}
+#endif
 
 template <typename... Params>
 ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObject* sourceObj, const std::string& message, Params... params)
@@ -234,8 +271,9 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     return OPENDAQ_SUCCESS;
 }
 
+#ifndef NDEBUG
 template <typename... Params>
-ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObject* sourceObj, ConstCharPtr fileName, Int fileLine, const std::string& message, Params... params)
+ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, ConstCharPtr fileName, Int fileLine, IBaseObject* sourceObj, const std::string& message, Params... params)
 {
     ErrCode errCode = createErrorInfoObjectWithSource(errorInfo, sourceObj, message, params...);
     if (OPENDAQ_FAILED(errCode))
@@ -264,6 +302,7 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
 
     return OPENDAQ_SUCCESS;
 }
+#endif
 
 inline std::string toStdString(IString* rtStr)
 {
@@ -334,11 +373,11 @@ ErrCode wrapHandler(Handler handler, Params... params)
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return ErrorFromDaqException(e, nullptr);
     }
     catch (const std::exception& e)
     {
-        return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what(), nullptr);
+        return ErrorFromException(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -356,11 +395,11 @@ ErrCode wrapHandlerReturn(Handler handler, TReturn& output, Params... params)
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return ErrorFromDaqException(e, nullptr);
     }
     catch (const std::exception& e)
     {
-        return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what(), nullptr);
+        return ErrorFromException(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -388,14 +427,15 @@ ErrCode wrapHandler(Object* object, Handler handler, Params... params)
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        IBaseObject* baseObject;
+        object->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
+        return ErrorFromDaqException(e, baseObject);
     }
     catch (const std::exception& e)
     {
         IBaseObject* baseObject;
         object->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
-
-        return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what(), baseObject);
+        return ErrorFromException(e, baseObject, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -413,14 +453,15 @@ ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Para
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        IBaseObject* baseObject;
+        object->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
+        return ErrorFromDaqException(e, baseObject);
     }
     catch (const std::exception& e)
     {
         IBaseObject* baseObject;
         object->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
-
-        return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what(), baseObject);
+        return ErrorFromException(e, baseObject, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -449,14 +490,17 @@ ErrCode daqTry(const IBaseObject* context, F&& func)
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        IBaseObject* baseObject = nullptr;
+        if (context)
+            context->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
+        return ErrorFromDaqException(e, baseObject);
     }
     catch (const std::exception& e)
     {
         IBaseObject* baseObject = nullptr;
         if (context)
             context->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
-        return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what(), baseObject);
+        return ErrorFromException(e, baseObject, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {

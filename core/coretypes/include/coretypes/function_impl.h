@@ -102,21 +102,21 @@ protected:
              typename... TArgs>
    ErrCode dispatchInternal(IBaseObject** result, TArgs&&... args)
    {
-       try
-       {
-           BaseObjectPtr ret = this->functor(std::forward<decltype(args)>(args)...);
-           *result = ret.detach();
-       }
-       catch (const DaqException& e)
-       {
-           return errorFromException(e);
-       }
-       catch (...)
-       {
-           return OPENDAQ_ERR_CALLFAILED;
-       }
+        try
+        {
+            BaseObjectPtr ret = this->functor(std::forward<decltype(args)>(args)...);
+            *result = ret.detach();
+        }
+        catch (const DaqException& e)
+        {
+            return ErrorFromDaqException(e, this->getThisAsBaseObject());
+        }
+        catch (...)
+        {
+            return OPENDAQ_ERR_CALLFAILED;
+        }
 
-       return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;
    }
 };
 
@@ -149,7 +149,7 @@ public:
            }
            catch (const DaqException& e)
            {
-               return errorFromException(e);
+               return ErrorFromDaqException(e, this->getThisAsBaseObject());
            }
            catch (...)
            {

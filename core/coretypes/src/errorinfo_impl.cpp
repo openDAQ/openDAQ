@@ -8,38 +8,69 @@ thread_local ErrorInfoHolder errorInfoHolder;
 
 // ErrorInfoHolder
 
-ErrorInfoHolder::ErrorInfoHolder()
-    : errorInfo(nullptr)
-{
-}
-
 // mingw has a bug which causes segmentation fault on thread_local destructor
 // disabling produces memory leak on mingw on thread exit if errorInfo object is assigned
 #ifndef __MINGW32__
 ErrorInfoHolder::~ErrorInfoHolder()
 {
-    releaseRefIfNotNull(errorInfo);
+    releaseRefIfNotNull(errorInfoList);
 }
 #endif
 
 void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
 {
-    releaseRefIfNotNull(this->errorInfo);
-    this->errorInfo = errorInfo;
-    addRefIfNotNull(this->errorInfo);
+    if (errorInfo == nullptr)
+    {
+        releaseRefIfNotNull(errorInfoList);
+        errorInfoList = nullptr;
+        return;
+    }
+
+    if (errorInfoList == nullptr)
+        errorInfoList = ListWithElementType_Create(IErrorInfo::Id);
+    errorInfoList->pushBack(errorInfo);
 }
 
 IErrorInfo* ErrorInfoHolder::getErrorInfo() const
 {
-    addRefIfNotNull(errorInfo);
+    if (errorInfoList == nullptr)
+        return nullptr;
+    
+    SizeT count = 0;
+    errorInfoList->getCount(&count);
+    if (count == 0)
+        return nullptr;
+    
+    IBaseObject* errorInfoObject;
+    errorInfoList->getItemAt(count - 1, &errorInfoObject);
+
+    if (errorInfoObject == nullptr)
+        return nullptr;
+
+    IErrorInfo* errorInfo;
+    errorInfoObject->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+
+    if (errorInfo == nullptr)
+        errorInfoObject->releaseRef();
 
     return errorInfo;
+}
+
+IList* ErrorInfoHolder::getErrorInfoList()
+{
+    IList* tmp = errorInfoList;
+    errorInfoList = nullptr;
+    return tmp;
 }
 
 // ErrorInfoImpl
 
 ErrorInfoImpl::ErrorInfoImpl()
-    : message(nullptr), source(nullptr), frozen(False)
+    : message(nullptr)
+    , source(nullptr)
+    , fileName(nullptr)
+    , line(-1)
+    , frozen(False)
 {
 }
 
@@ -47,6 +78,7 @@ ErrorInfoImpl::~ErrorInfoImpl()
 {
     releaseRefIfNotNull(message);
     releaseRefIfNotNull(source);
+    releaseRefIfNotNull(fileName);
 }
 
 ErrCode ErrorInfoImpl::getMessage(IString** message)
@@ -181,6 +213,15 @@ void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo)
         return;
 
     *errorInfo = daq::errorInfoHolder.getErrorInfo();
+}
+
+extern "C" 
+void PUBLIC_EXPORT daqGetErrorInfoList(daq::IList** errorInfoList)
+{
+    if (errorInfoList == nullptr)
+        return;
+
+    *errorInfoList = daq::errorInfoHolder.getErrorInfoList();
 }
 
 extern "C"

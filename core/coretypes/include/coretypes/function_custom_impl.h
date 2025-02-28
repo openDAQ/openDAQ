@@ -59,7 +59,7 @@ ErrCode CustomFunctionImpl<TFunctor>::call(IBaseObject* params, IBaseObject** re
     }
     catch (const std::exception& e)
     {
-        return errorFromException(e, nullptr,  OPENDAQ_ERR_CALLFAILED);
+        return errorFromException(e, nullptr, OPENDAQ_ERR_CALLFAILED);
     }
     catch (...)
     {

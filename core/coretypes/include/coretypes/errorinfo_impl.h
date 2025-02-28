@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/errorinfo.h>
 #include <coretypes/freezable.h>
+#include <coretypes/listobject.h>
 #include <coretypes/intfs.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -50,15 +51,16 @@ private:
 class ErrorInfoHolder
 {
 public:
-    ErrorInfoHolder();
+    ErrorInfoHolder() = default;
 #ifndef __MINGW32__
     ~ErrorInfoHolder();
 #endif
 
     void setErrorInfo(IErrorInfo* errorInfo);
     IErrorInfo* getErrorInfo() const;
+    IList* getErrorInfoList();
 private:
-    IErrorInfo* errorInfo;
+    IList* errorInfoList;
 };
 
 END_NAMESPACE_OPENDAQ

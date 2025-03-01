@@ -303,7 +303,7 @@ PropertyObjectPtr NativeStreamingServerHandler::createDefaultConfig()
             "cautiously on memory-constrained devices. A default value of '0' means these optimizations are applied only to packets without "
             "raw data, such as ones of signal following implicit rules, e.g., the linear rule for domain signals.";
         const auto cacheablePayloadSizeMaxProp =
-            IntPropertyBuilder("StreamingCacheablePayloadSizeMax", /*packet_streaming::PACKET_ZERO_PAYLOAD_SIZE*/10)
+            IntPropertyBuilder("StreamingCacheablePayloadSizeMax", 10)
                 .setMinValue(0)
                 .setDescription(cacheablePayloadSizeMaxPropDescription)
                 .build();

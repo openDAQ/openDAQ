@@ -50,8 +50,8 @@ public:
     PacketBufferPtr getNextPacketBuffer();
     size_t getAvailableBuffersCount() const;
     size_t getNonCacheableBuffersCount() const;
-    size_t getSizeOfCacheableBuffers(size_t cacheableGroupId = PacketBuffer::INVALID_CACHEABLE_GROUP_ID) const;
-    size_t getCountOfCacheableBuffers(size_t cacheableGroupId = PacketBuffer::INVALID_CACHEABLE_GROUP_ID) const;
+    size_t getSizeOfCacheableBuffers(size_t cacheableGroupId) const;
+    size_t getCountOfCacheableBuffers(size_t cacheableGroupId) const;
     size_t getCountOfCacheableGroups() const;
 
     void checkAndSendReleasePacket(bool force);

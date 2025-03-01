@@ -88,6 +88,9 @@ PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
             --countOfNonCacheableBuffers;
         }
 
+        if (queue.empty())
+            ++currentCacheablePacketGroupId;
+
         return packetBuffer;
     }
 
@@ -244,11 +247,12 @@ void PacketStreamingServer::queuePacketBuffer(const PacketBufferPtr& packetBuffe
         const auto [it,_] = cacheableBuffersGroups.emplace(packetBuffer->cacheableGroupId, CacheableBuffersGroup{});
         it->second.countOfPacketBuffers++;
         it->second.sizeOfPacketBuffers += packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
+        if (!queue.empty() && !queue.back()->isCacheable())
+            ++currentCacheablePacketGroupId;
     }
     else
     {
         ++countOfNonCacheableBuffers;
-        ++currentCacheablePacketGroupId; // fixme
     }
     queue.push(packetBuffer);
 }

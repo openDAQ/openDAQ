@@ -48,6 +48,7 @@ public:
     void addDaqPacket(const uint32_t signalId, const PacketPtr& packet);
     void addDaqPacket(const uint32_t signalId, PacketPtr&& packet);
     PacketBufferPtr getNextPacketBuffer();
+    PacketBufferPtr peekNextPacketBuffer();
     size_t getAvailableBuffersCount() const;
     size_t getNonCacheableBuffersCount() const;
     size_t getSizeOfCacheableBuffers(size_t cacheableGroupId) const;

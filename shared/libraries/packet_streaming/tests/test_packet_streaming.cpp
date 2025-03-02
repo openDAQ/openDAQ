@@ -58,6 +58,28 @@ protected:
     }
 };
 
+TEST_F(PacketStreamingTest, PeekPacket)
+{
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    const auto domainDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, domainDescriptor);
+
+    ASSERT_EQ(server.getNextPacketBuffer(), nullptr);
+    ASSERT_EQ(server.peekNextPacketBuffer(), nullptr);
+
+    server.addDaqPacket(1, serverEventPacket);
+
+    const auto packetBufferPeek = server.peekNextPacketBuffer();
+    ASSERT_NE(packetBufferPeek, nullptr);
+
+    const auto packetBufferGet = server.getNextPacketBuffer();
+    ASSERT_NE(packetBufferGet, nullptr);
+
+    ASSERT_EQ(packetBufferPeek, packetBufferGet);
+
+    ASSERT_EQ(server.peekNextPacketBuffer(), nullptr);
+}
+
 TEST_F(PacketStreamingTest, PacketTimeStamp)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();

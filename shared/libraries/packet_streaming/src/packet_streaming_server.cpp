@@ -94,6 +94,13 @@ PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
     return nullptr;
 }
 
+PacketBufferPtr PacketStreamingServer::peekNextPacketBuffer()
+{
+    if (!queue.empty())
+        return queue.front();
+    return nullptr;
+}
+
 size_t PacketStreamingServer::getAvailableBuffersCount() const
 {
     return queue.size();

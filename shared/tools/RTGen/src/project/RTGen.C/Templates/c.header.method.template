@@ -1,0 +1,5 @@
+$ReturnType$ EXPORTED $NonInterfaceType$_$Name$($NonInterfaceType$* obj, $Arguments$);
+$ReturnType$ EXPORTED $NonInterfaceType$_$Name$($Arguments$);
+$ArgTypeNameNonInterface$** $ArgName$
+$ArgTypeNameNonInterface$* $ArgName$
+, 

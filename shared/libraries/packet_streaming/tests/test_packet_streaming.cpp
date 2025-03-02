@@ -44,7 +44,7 @@ protected:
                                     size_t nonCacheableCnt,
                                     size_t cacheableSize,
                                     size_t cacheableCount,
-                                    size_t cacheableGroupId = PacketBuffer::INVALID_CACHEABLE_GROUP_ID)
+                                    size_t cacheableGroupId = PacketBuffer::NON_CACHEABLE_GROUP_ID)
     {
         EXPECT_EQ(server.getAvailableBuffersCount(), availableCnt);
         EXPECT_EQ(server.getNonCacheableBuffersCount(), nonCacheableCnt);

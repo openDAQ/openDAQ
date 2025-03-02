@@ -387,7 +387,7 @@ StreamingWriteTasks StreamingManager::getStreamingWriteTasks(const PacketStreami
     // plus one task for each group of cacheable buffers
     tasks.reserve(2 * nonCacheableBuffersCount + cacheableGroupsCount);
 
-    size_t currentCacheableGroupId = packet_streaming::PacketBuffer::INVALID_CACHEABLE_GROUP_ID;
+    size_t currentCacheableGroupId = packet_streaming::PacketBuffer::NON_CACHEABLE_GROUP_ID;
     size_t linearBufferCurPos = 0;
     std::shared_ptr<std::vector<char>> linearCacheBuffer;
 
@@ -400,7 +400,7 @@ StreamingWriteTasks StreamingManager::getStreamingWriteTasks(const PacketStreami
             );
         linearBufferCurPos = 0;
         linearCacheBuffer = nullptr;
-        currentCacheableGroupId = packet_streaming::PacketBuffer::INVALID_CACHEABLE_GROUP_ID;
+        currentCacheableGroupId = packet_streaming::PacketBuffer::NON_CACHEABLE_GROUP_ID;
     };
 
     while (auto packetBufferPtr = packetStreamingServerPtr->getNextPacketBuffer())

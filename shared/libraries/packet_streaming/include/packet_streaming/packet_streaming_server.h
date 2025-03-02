@@ -88,6 +88,7 @@ private:
     void addDataPacket(const uint32_t signalId, DataPacket&& packet);
 
     void queuePacketBuffer(const PacketBufferPtr& packetBuffer);
+    size_t getPacketCacheableGroupId(size_t headerSize, size_t payloadSize);
 };
 
 }

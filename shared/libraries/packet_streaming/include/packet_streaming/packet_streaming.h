@@ -72,7 +72,7 @@ struct PacketBuffer
                  const void* payload,
                  std::function<void()> onDestroy,
                  bool enableTimeStamp,
-                 size_t cacheableGroupId = INVALID_CACHEABLE_GROUP_ID);
+                 size_t cacheableGroupId = NON_CACHEABLE_GROUP_ID);
 
     GenericPacketHeader* packetHeader;
     const void* payload;
@@ -86,7 +86,7 @@ struct PacketBuffer
     std::optional<std::chrono::steady_clock::time_point> timeStamp;
 
     size_t cacheableGroupId;
-    static constexpr size_t INVALID_CACHEABLE_GROUP_ID = 0;
+    static constexpr size_t NON_CACHEABLE_GROUP_ID = 0;
     bool isCacheable();
 };
 

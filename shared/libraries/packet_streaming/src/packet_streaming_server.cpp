@@ -12,7 +12,7 @@ PacketStreamingServer::PacketStreamingServer(size_t cacheablePacketPayloadSizeMa
                                              bool attachTimestampToPacketBuffer)
     : jsonSerializer(JsonSerializer())
     , countOfNonCacheableBuffers(0)
-    , currentCacheablePacketGroupId(1)
+    , currentCacheablePacketGroupId(0)
     , packetCollection(std::make_shared<PacketCollection>())
     , releaseThreshold(releaseThreshold)
     , attachTimestampToPacketBuffer(attachTimestampToPacketBuffer)
@@ -88,12 +88,16 @@ PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
             --countOfNonCacheableBuffers;
         }
 
-        if (queue.empty())
-            ++currentCacheablePacketGroupId;
-
         return packetBuffer;
     }
 
+    return nullptr;
+}
+
+PacketBufferPtr PacketStreamingServer::peekNextPacketBuffer()
+{
+    if (!queue.empty())
+        return queue.front();
     return nullptr;
 }
 
@@ -149,9 +153,7 @@ void PacketStreamingServer::addEventPacket(const uint32_t signalId, const EventP
                 serializedPacket.release();
             },
             attachTimestampToPacketBuffer,
-            (packetHeader->payloadSize <= cacheablePacketPayloadSizeMax)
-                ? currentCacheablePacketGroupId
-                : PacketBuffer::INVALID_CACHEABLE_GROUP_ID
+            getPacketCacheableGroupId(packetHeader->size, packetHeader->payloadSize)
         );
 
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
@@ -247,14 +249,34 @@ void PacketStreamingServer::queuePacketBuffer(const PacketBufferPtr& packetBuffe
         const auto [it,_] = cacheableBuffersGroups.emplace(packetBuffer->cacheableGroupId, CacheableBuffersGroup{});
         it->second.countOfPacketBuffers++;
         it->second.sizeOfPacketBuffers += packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
-        if (!queue.empty() && !queue.back()->isCacheable())
-            ++currentCacheablePacketGroupId;
     }
     else
     {
         ++countOfNonCacheableBuffers;
     }
     queue.push(packetBuffer);
+}
+
+size_t PacketStreamingServer::getPacketCacheableGroupId(size_t headerSize, size_t payloadSize)
+{
+    if (payloadSize <= cacheablePacketPayloadSizeMax)
+    {
+        if (queue.empty())
+        {
+            assert(cacheableBuffersGroups.empty());
+            currentCacheablePacketGroupId = 1;
+        }
+
+        // start new group when it is about to queue cacheable after non-cacheable
+        if (!queue.empty() && !queue.back()->isCacheable())
+            ++currentCacheablePacketGroupId;
+
+        if (currentCacheablePacketGroupId == PacketBuffer::NON_CACHEABLE_GROUP_ID)
+            ++currentCacheablePacketGroupId;
+
+        return currentCacheablePacketGroupId;
+    }
+    return PacketBuffer::NON_CACHEABLE_GROUP_ID;
 }
 
 template <class DataPacket>
@@ -301,9 +323,7 @@ void PacketStreamingServer::addDataPacket(const uint32_t signalId, DataPacket&& 
             packet.release();
         },
         attachTimestampToPacketBuffer,
-        (packetHeader->genericHeader.payloadSize <= cacheablePacketPayloadSizeMax)
-            ? currentCacheablePacketGroupId
-            : PacketBuffer::INVALID_CACHEABLE_GROUP_ID
+        getPacketCacheableGroupId(packetHeader->genericHeader.size, packetHeader->genericHeader.payloadSize)
     );
 
     if constexpr (isPacketRValue)
@@ -345,9 +365,7 @@ void PacketStreamingServer::checkAndSendReleasePacket(bool force)
                 delete[] packetIds;
             },
             attachTimestampToPacketBuffer,
-            (packetHeader->payloadSize <= cacheablePacketPayloadSizeMax)
-                ? currentCacheablePacketGroupId
-                : PacketBuffer::INVALID_CACHEABLE_GROUP_ID
+            getPacketCacheableGroupId(packetHeader->size, packetHeader->payloadSize)
         );
 
     queuePacketBuffer(packetBuffer);
@@ -373,7 +391,7 @@ void PacketStreamingServer::addAlreadySentPacket(uint32_t signalId, Int packetId
                 std::free(packetHeader);
             },
             attachTimestampToPacketBuffer,
-            currentCacheablePacketGroupId
+            getPacketCacheableGroupId(packetHeader->genericHeader.size, packetHeader->genericHeader.payloadSize)
         );
 
     queuePacketBuffer(packetBuffer);

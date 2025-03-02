@@ -29,7 +29,7 @@ PacketBuffer::PacketBuffer(PacketBuffer&& packetBuffer) noexcept
     packetBuffer.onDestroy = [](){};
     packetBuffer.packetHeader = nullptr;
     packetBuffer.payload = nullptr;
-    packetBuffer.cacheableGroupId = INVALID_CACHEABLE_GROUP_ID;
+    packetBuffer.cacheableGroupId = NON_CACHEABLE_GROUP_ID;
 }
 
 PacketBuffer::~PacketBuffer()
@@ -39,7 +39,7 @@ PacketBuffer::~PacketBuffer()
 
 bool PacketBuffer::isCacheable()
 {
-    return cacheableGroupId != INVALID_CACHEABLE_GROUP_ID;
+    return cacheableGroupId != NON_CACHEABLE_GROUP_ID;
 }
 
 PacketStreamingException::PacketStreamingException(const std::string& msg)

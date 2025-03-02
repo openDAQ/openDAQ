@@ -169,7 +169,9 @@ private:
                               const std::string& clientId,
                               SignalNumericIdType singalNumericId);
 
-    static void copyToLinearBuffer(const packet_streaming::PacketBufferPtr& packetBufferPtr, char* linearBufferDataPtr);
+    static native_streaming::WriteTask cachePacketsToLinearBuffer(const PacketStreamingServerPtr& packetStreamingServer,
+                                                                  size_t cacheableGroupId,
+                                                                  std::optional<std::chrono::steady_clock::time_point>& timeStamp);
 
     bool removeSignalSubscriberNoLock(const std::string& signalStringId, const std::string& subscribedClientId);
 

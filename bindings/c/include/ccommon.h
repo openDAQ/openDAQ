@@ -5,7 +5,14 @@ extern "C"
 {
 #endif
 
-#define EXPORTED __attribute__((visibility("default")))
+#if !defined(_WIN32)
+    #define EXPORTED __attribute__ ((visibility ("default")))
+#elif defined(BUILDING_SHARED_LIBRARY)
+    #define EXPORTED __declspec(dllexport)
+#else
+    #define EXPORTED __declspec(dllimport)
+#endif
+
 
 #include <stddef.h>
 #include <stdint.h>

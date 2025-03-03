@@ -5,6 +5,7 @@
 #include <coretypes/intfs.h>
 #include <coretypes/objectptr.h>
 #include <coretypes/inspectable_ptr.h>
+#include <coretypes/validation.h>
 
 using namespace daq;
 
@@ -13,8 +14,9 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IErrorTest, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC test(Bool returnError) = 0;
-    virtual ErrCode INTERFACE_FUNC test2() = 0;
-    virtual ErrCode INTERFACE_FUNC test3() = 0;
+    virtual ErrCode INTERFACE_FUNC newMakeErrorInfoTest() = 0;
+    virtual ErrCode INTERFACE_FUNC multipleErrorInfoTest() = 0;
+    virtual ErrCode INTERFACE_FUNC argumentNotNullTest(IBaseObject* obj) = 0;
 };
 
 END_NAMESPACE_OPENDAQ
@@ -34,15 +36,21 @@ public:
         return this->makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Test failed");
     }
 
-    ErrCode INTERFACE_FUNC test2() override
+    ErrCode INTERFACE_FUNC newMakeErrorInfoTest() override
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Test2 failed");
+        return this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "newMakeErrorInfoTest failed");
     }
 
-    ErrCode INTERFACE_FUNC test3() override
+    ErrCode INTERFACE_FUNC multipleErrorInfoTest() override
     {
-        this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Test3 failed once");
-        return this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Test3 failed twice");
+        this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed once");
+        return this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed twice");
+    }
+
+    ErrCode INTERFACE_FUNC argumentNotNullTest(IBaseObject* obj) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(obj);
+        return OPENDAQ_SUCCESS;
     }
 };
 
@@ -103,8 +111,8 @@ TEST_F(ErrorInfoTest, ImplementationName)
 
 TEST_F(ErrorInfoTest, MultipleMessages)
 {
-    MakeErrorInfoForSource(OPENDAQ_ERR_GENERALERROR, nullptr, "General error0");
-    MakeErrorInfoForSource(OPENDAQ_ERR_GENERALERROR, nullptr, "General error1");
+    MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_GENERALERROR, "General error0");
+    MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_GENERALERROR, "General error1");
 
     IErrorInfo* lastError;
     daqGetErrorInfo(&lastError);
@@ -167,7 +175,7 @@ TEST_F(ErrorInfoTest, MultipleMessages)
         std::string expectedMsg = "General error" + std::to_string(i);
         ASSERT_STREQ(msgCharPtr, expectedMsg.c_str());
 
-// #ifndef NDEBUG
+#ifndef NDEBUG
         ConstCharPtr fileName;
         errorInfo->getFileName(&fileName);
         ASSERT_TRUE(fileName != nullptr);
@@ -175,7 +183,7 @@ TEST_F(ErrorInfoTest, MultipleMessages)
         Int line;
         errorInfo->getFileLine(&line);
         ASSERT_NE(line, -1);
-// #endif
+#endif
     }
 }
 
@@ -183,15 +191,35 @@ TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "[ " + std::string(__FILE__) + ":39 ] : Test2 failed"; 
-    ASSERT_THROW_MSG(checkErrorInfo(obj->test2()), GeneralErrorException, expected);
+#ifndef NDEBUG
+    std::string expected = "[ " + std::string(__FILE__) + ":41 ] : newMakeErrorInfoTest failed";
+#else
+    std::string expected = "newMakeErrorInfoTest failed";
+#endif
+    ASSERT_THROW_MSG(checkErrorInfo(obj->newMakeErrorInfoTest()), GeneralErrorException, expected);
 }
 
 TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "[ " + std::string(__FILE__) + ":44 ] : Test3 failed once";
-    expected += "\n[ " + std::string(__FILE__) + ":45 ] : Test3 failed twice"; 
-    ASSERT_THROW_MSG(checkErrorInfo(obj->test3()), GeneralErrorException, expected);
+#ifndef NDEBUG
+    std::string expected = "[ " + std::string(__FILE__) + ":46 ] : multipleErrorInfoTest failed once";
+    expected += "\n[ " + std::string(__FILE__) + ":47 ] : multipleErrorInfoTest failed twice"; 
+#else
+    std::string expected = "multipleErrorInfoTest failed once";
+    expected += "\nmultipleErrorInfoTest failed twice";
+#endif
+    ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
+}
+
+TEST_F(ErrorInfoTest, ArgumentNotNull)
+{
+    auto obj = CreateTestObject();
+#ifndef NDEBUG
+    std::string expected = "[ " + std::string(__FILE__) + ":52 ] : param obj is null";
+    ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), daq::ArgumentNullException, expected);    
+#elif
+    ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), daq::ArgumentNullException, "Invalid parameter");
+#endif
 }

@@ -600,7 +600,7 @@ include(RTGen)
 set(CMAKE_INSTALL_DEBUG_LIBRARIES ON)
 include(InstallRequiredSystemLibraries)
 
-if (NOT WIN32)
+if (NOT CMAKE_HOST_WIN32)
     set(MONO_C mono)
 endif()
 

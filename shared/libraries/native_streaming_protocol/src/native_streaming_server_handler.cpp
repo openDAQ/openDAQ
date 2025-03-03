@@ -250,6 +250,7 @@ void NativeStreamingServerHandler::processStreamingPacket(const std::string& sig
 
 void NativeStreamingServerHandler::sendAvailableStreamingPackets()
 {
+    std::scoped_lock lock(sync);
     for (const auto& [clientId, sessionHandler] : sessionHandlers)
     {
         if (const auto packetStreamingServerPtr = streamingManager.getPacketServerIfRegistered(clientId))

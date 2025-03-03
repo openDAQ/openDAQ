@@ -186,6 +186,7 @@ private:
     std::unordered_set<std::string> streamingClientsIds;
 
     std::mutex sync;
+    static void linearCachingAssertion(const std::string& condition, const PacketStreamingServerPtr& packetStreamingServerPtr, const packet_streaming::PacketBufferPtr& packetBuffer);
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

@@ -42,6 +42,22 @@ bool PacketBuffer::isCacheable()
     return cacheableGroupId != NON_CACHEABLE_GROUP_ID;
 }
 
+std::string PacketBuffer::getTypeString()
+{
+    switch(packetHeader->type)
+    {
+        case PacketType::alreadySent:
+            return "alreadySent";
+        case PacketType::data:
+            return "data";
+        case PacketType::event:
+            return "event";
+        case PacketType::release:
+            return "release";
+    }
+    return "invalid";
+}
+
 PacketStreamingException::PacketStreamingException(const std::string& msg)
     : runtime_error(msg)
 {

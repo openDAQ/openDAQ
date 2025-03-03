@@ -88,6 +88,7 @@ struct PacketBuffer
     size_t cacheableGroupId;
     static constexpr size_t NON_CACHEABLE_GROUP_ID = 0;
     bool isCacheable();
+    std::string getTypeString();
 };
 
 using PacketBufferPtr = std::shared_ptr<PacketBuffer>;

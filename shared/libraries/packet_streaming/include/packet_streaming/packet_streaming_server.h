@@ -90,6 +90,8 @@ private:
 
     void queuePacketBuffer(const PacketBufferPtr& packetBuffer);
     size_t getPacketCacheableGroupId(size_t headerSize, size_t payloadSize);
+
+    void linearCachingAssertion(const std::string& condition, const PacketBufferPtr& packetBuffer);
 };
 
 }

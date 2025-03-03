@@ -3,6 +3,8 @@
 #include <opendaq/packet_destruct_callback_factory.h>
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/data_descriptor_factory.h>
+#include "opendaq/context_factory.h"
+#include "opendaq/custom_log.h"
 
 namespace daq::packet_streaming
 {
@@ -67,27 +69,37 @@ PacketBufferPtr PacketStreamingServer::getNextPacketBuffer()
         if (packetBuffer->isCacheable())
         {
             auto it = cacheableBuffersGroups.find(packetBuffer->cacheableGroupId);
-            assert(it != cacheableBuffersGroups.end());
+            if (it == cacheableBuffersGroups.end())
+                linearCachingAssertion("it == cacheableBuffersGroups.end()", packetBuffer);
+
             auto& cacheableBuffersGroup = it->second;
 
-            assert(cacheableBuffersGroup.countOfPacketBuffers >= 1);
+            if(cacheableBuffersGroup.countOfPacketBuffers == 0)
+                linearCachingAssertion("cacheableBuffersGroup.countOfPacketBuffers == 0", packetBuffer);
+
             --cacheableBuffersGroup.countOfPacketBuffers;
 
-            assert(cacheableBuffersGroup.sizeOfPacketBuffers >= (packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize));
+            if (cacheableBuffersGroup.sizeOfPacketBuffers < (packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize))
+                linearCachingAssertion("cacheableBuffersGroup.sizeOfPacketBuffers < packetBufferSize", packetBuffer);
+
             cacheableBuffersGroup.sizeOfPacketBuffers -= packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
 
             if (cacheableBuffersGroup.countOfPacketBuffers == 0 || cacheableBuffersGroup.sizeOfPacketBuffers == 0)
             {
-                assert(cacheableBuffersGroup.countOfPacketBuffers == 0 && cacheableBuffersGroup.sizeOfPacketBuffers == 0);
-                cacheableBuffersGroups.erase(it); // cacheableBuffersGroup is dangling ref
+                if (!(cacheableBuffersGroup.countOfPacketBuffers == 0 && cacheableBuffersGroup.sizeOfPacketBuffers == 0))
+                    linearCachingAssertion(
+                        "!(cacheableBuffersGroup.countOfPacketBuffers == 0 && cacheableBuffersGroup.sizeOfPacketBuffers == 0)",
+                        packetBuffer);
+
+                cacheableBuffersGroups.erase(it); // ! cacheableBuffersGroup is dangling reference
             }
         }
         else
         {
-            assert(countOfNonCacheableBuffers > 0);
+            if(countOfNonCacheableBuffers == 0)
+                linearCachingAssertion("countOfNonCacheableBuffers == 0", packetBuffer);
             --countOfNonCacheableBuffers;
         }
-
         return packetBuffer;
     }
 
@@ -263,11 +275,12 @@ size_t PacketStreamingServer::getPacketCacheableGroupId(size_t headerSize, size_
     {
         if (queue.empty())
         {
-            assert(cacheableBuffersGroups.empty());
+            if(!cacheableBuffersGroups.empty())
+                linearCachingAssertion("!cacheableBuffersGroups.empty()", nullptr);
             currentCacheablePacketGroupId = 1;
         }
 
-        // start new group when it is about to queue cacheable after non-cacheable
+        // begin a new group when queuing a cacheable buffer after a non-cacheable one
         if (!queue.empty() && !queue.back()->isCacheable())
             ++currentCacheablePacketGroupId;
 
@@ -277,6 +290,37 @@ size_t PacketStreamingServer::getPacketCacheableGroupId(size_t headerSize, size_
         return currentCacheablePacketGroupId;
     }
     return PacketBuffer::NON_CACHEABLE_GROUP_ID;
+}
+
+void PacketStreamingServer::linearCachingAssertion(const std::string& condition, const PacketBufferPtr& packetBuffer)
+{
+    std::string debugInfoString =
+        fmt::format("\nnon-cacheable buffers count {}, "
+                    "cacheable groups count {}, "
+                    "available buffers count {}",
+                    countOfNonCacheableBuffers,
+                    cacheableBuffersGroups.size(),
+                    queue.size());
+
+    if (packetBuffer)
+    {
+        debugInfoString +=
+            fmt::format("\ncacheable group: "
+                        "ID {}, "
+                        "count of buffers {}, "
+                        "size of buffers {};\n"
+                        "packetBuffer: "
+                        "type {}, "
+                        "header size {}, "
+                        "payload size {}",
+                        packetBuffer->cacheableGroupId,
+                        getCountOfCacheableBuffers(packetBuffer->cacheableGroupId),
+                        getSizeOfCacheableBuffers(packetBuffer->cacheableGroupId),
+                        packetBuffer->getTypeString(),
+                        packetBuffer->packetHeader->size,
+                        packetBuffer->packetHeader->payloadSize);
+    }
+    throw PacketStreamingException(fmt::format(R"(Linear caching failure: {};{})", condition, debugInfoString));
 }
 
 template <class DataPacket>

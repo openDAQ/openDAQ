@@ -121,6 +121,41 @@ void StreamingManager::sendDaqPacket(const SendPacketBufferCallback& sendPacketB
     }
 }
 
+void StreamingManager::linearCachingAssertion(const std::string& condition,
+                                              const PacketStreamingServerPtr& packetStreamingServerPtr,
+                                              const packet_streaming::PacketBufferPtr& packetBuffer)
+{
+    std::string debugInfoString =
+        fmt::format("\nPacketStreamingServer: "
+                    "available buffers count {}, "
+                    "cacheable groups count {}, "
+                    "non-cacheable buffers count {};\n",
+                    packetStreamingServerPtr->getAvailableBuffersCount(),
+                    packetStreamingServerPtr->getCountOfCacheableGroups(),
+                    packetStreamingServerPtr->getNonCacheableBuffersCount());
+
+    if (packetBuffer)
+    {
+        debugInfoString +=
+            fmt::format("cacheable group: "
+                        "ID {}, "
+                        "count of buffers {}, "
+                        "size of buffers {};\n"
+                        "packetBuffer: "
+                        "type {}, "
+                        "header size {}, "
+                        "payload size {}",
+                        packetBuffer->cacheableGroupId,
+                        packetStreamingServerPtr->getCountOfCacheableBuffers(packetBuffer->cacheableGroupId),
+                        packetStreamingServerPtr->getSizeOfCacheableBuffers(packetBuffer->cacheableGroupId),
+                        packetBuffer->getTypeString(),
+                        packetBuffer->packetHeader->size,
+                        packetBuffer->packetHeader->payloadSize);
+    }
+
+    throw NativeStreamingProtocolException(fmt::format(R"(Linear caching failure: {};{})", condition, debugInfoString));
+}
+
 WriteTask StreamingManager::cachePacketsToLinearBuffer(const PacketStreamingServerPtr& packetStreamingServerPtr,
                                                        size_t cacheableGroupId,
                                                        std::optional<std::chrono::steady_clock::time_point>& timeStamp)
@@ -128,6 +163,9 @@ WriteTask StreamingManager::cachePacketsToLinearBuffer(const PacketStreamingServ
     size_t countOfCacheableBuffer = packetStreamingServerPtr->getCountOfCacheableBuffers(cacheableGroupId);
     size_t sizeOfCacheableBuffers = packetStreamingServerPtr->getSizeOfCacheableBuffers(cacheableGroupId);
     size_t linearBufferCurPos = 0;
+
+    if (packetStreamingServerPtr->getAvailableBuffersCount() < countOfCacheableBuffer)
+        linearCachingAssertion("buffersAvailable < countOfCacheableBuffer", packetStreamingServerPtr, nullptr);
 
     const size_t linearCacheBufferSize =
         TransportHeader::PACKED_HEADER_SIZE * countOfCacheableBuffer + sizeOfCacheableBuffers;
@@ -137,8 +175,17 @@ WriteTask StreamingManager::cachePacketsToLinearBuffer(const PacketStreamingServ
     {
         auto packetBufferPtr = packetStreamingServerPtr->getNextPacketBuffer();
 
-        assert(packetBufferPtr != nullptr);
-        assert(cacheableGroupId == packetBufferPtr->cacheableGroupId);
+        if (packetBufferPtr == nullptr)
+            linearCachingAssertion("packetBufferPtr == nullptr", packetStreamingServerPtr, nullptr);
+        if (cacheableGroupId != packetBufferPtr->cacheableGroupId)
+            linearCachingAssertion("cacheableGroupId != packetBufferPtr->cacheableGroupId", packetStreamingServerPtr, packetBufferPtr);
+        if (linearCacheBufferSize < (linearBufferCurPos +
+                                     TransportHeader::PACKED_HEADER_SIZE +
+                                     packetBufferPtr->packetHeader->size +
+                                     packetBufferPtr->packetHeader->payloadSize))
+        {
+            linearCachingAssertion("linearCacheBufferSize < linearBufferCurPos + packetBufferSize", packetStreamingServerPtr, packetBufferPtr);
+        }
 
         BaseSessionHandler::copyHeadersToBuffer(packetBufferPtr, linearCacheBuffer->data() + linearBufferCurPos);
         linearBufferCurPos += TransportHeader::PACKED_HEADER_SIZE + packetBufferPtr->packetHeader->size;
@@ -154,7 +201,9 @@ WriteTask StreamingManager::cachePacketsToLinearBuffer(const PacketStreamingServ
             timeStamp = packetBufferPtr->timeStamp.value();
     }
 
-    assert(linearBufferCurPos == linearCacheBufferSize);
+    if (linearBufferCurPos != linearCacheBufferSize)
+        linearCachingAssertion("linearBufferCurPos != linearCacheBufferSize", packetStreamingServerPtr, nullptr);
+
     WriteHandler linearBufferHandler = [linearCacheBuffer = linearCacheBuffer]() {};
     return WriteTask(boost::asio::const_buffer(linearCacheBuffer->data(), linearCacheBuffer->size()), linearBufferHandler);
 }

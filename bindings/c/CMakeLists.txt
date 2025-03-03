@@ -38,6 +38,8 @@ target_include_directories(${LIB_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
 )
 
+target_compile_definitions(${LIB_NAME} PRIVATE BUILDING_SHARED_LIBRARY)
+
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_Headers}")
 
 install(TARGETS ${LIB_NAME}

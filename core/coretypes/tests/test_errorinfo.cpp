@@ -219,7 +219,7 @@ TEST_F(ErrorInfoTest, ArgumentNotNull)
 #ifndef NDEBUG
     std::string expected = "[ " + std::string(__FILE__) + ":52 ] : Parameter obj must not be null";
     ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), daq::ArgumentNullException, expected);    
-#elif
+#else
     ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), daq::ArgumentNullException, "Invalid parameter");
 #endif
 }

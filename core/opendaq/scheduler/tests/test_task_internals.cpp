@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <testutils/ut_logging.h>
 
+#include <chrono>
 #include <opendaq/task_flow.h>
 
 using TaskInternalsTest = testing::Test;
@@ -13,7 +14,7 @@ using namespace daq;
 
 TEST_F(TaskInternalsTest, TaskFlowFutureDestructorDoesNotBlock)
 {
-    using namespace std::literals::chrono_literals;
+    using namespace std::chrono_literals;
 
     bool finished{false};
     tf::Executor e;

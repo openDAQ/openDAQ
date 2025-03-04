@@ -20,6 +20,7 @@
 #include <opendaq/packet_ptr.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/input_port_ptr.h>
+#include <chrono>
 #include <thread>
 
 namespace daq::config_protocol

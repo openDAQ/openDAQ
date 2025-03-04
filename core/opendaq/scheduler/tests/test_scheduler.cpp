@@ -1,8 +1,8 @@
 #include "test_scheduler.h"
 #include <gtest/gtest.h>
 
-#include <thread>
 #include <chrono>
+#include <thread>
 
 #include <opendaq/logger_factory.h>
 

@@ -25,6 +25,7 @@
 #include <atomic>
 #include <mutex>
 #include <set>
+#include <chrono>
 #include <thread>
 
 #include <opcuaclient/opcuacallmethodrequest.h>

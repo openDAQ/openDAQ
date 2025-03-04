@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <math.h>
 #include <functional>
+#include <chrono>
 #include <thread>
 #include <iostream>
 #include <opendaq/utils/timer_thread.h>

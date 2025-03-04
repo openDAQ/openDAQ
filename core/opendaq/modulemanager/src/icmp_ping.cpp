@@ -3,6 +3,7 @@
 #include <opendaq/ipv4_header.h>
 #include <opendaq/format.h>
 #include <opendaq/custom_log.h>
+#include <chrono>
 #include <thread>
 
 using namespace boost;

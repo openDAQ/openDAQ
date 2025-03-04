@@ -22,6 +22,7 @@
 #include "opcuashared/opcua.h"
 #include "opcuashared/opcuacommon.h"
 #include <open62541/server_config_default.h>
+#include <chrono>
 #include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA

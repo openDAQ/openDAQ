@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-
+#include <chrono>
 #include "opcuaclient/opcuaasyncexecthread.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA

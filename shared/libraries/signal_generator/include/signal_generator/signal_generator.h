@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/common.h>
 #include <opendaq/signal_factory.h>
+#include <chrono>
 
 BEGIN_NAMESPACE_OPENDAQ
 

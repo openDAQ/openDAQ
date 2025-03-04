@@ -48,13 +48,13 @@ ErrCode wrapHandler(ProcedurePtr handler, Params... params)
         return OPENDAQ_SUCCESS;
     }
     catch (const DaqException& e)
-        {
-            return ErrorFromDaqException(e, nullptr);
-        }
-        catch (const std::exception& e)
-        {
-            return ErrorFromStdException(e, nullptr, OPENDAQ_ERR_GENERALERROR);
-        }
+    {
+        return errorFromException(e);
+    }
+    catch (const std::exception& e)
+    {
+        return ErrorFromStdException(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+    }
     catch (...)
     {
         return OPENDAQ_ERR_GENERALERROR;

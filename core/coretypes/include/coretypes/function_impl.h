@@ -109,7 +109,7 @@ protected:
         }
         catch (const DaqException& e)
         {
-            return ErrorFromDaqException(e, this->getThisAsBaseObject());
+            return errorFromException(e, this->getThisAsBaseObject());
         }
         catch (...)
         {
@@ -149,7 +149,7 @@ public:
            }
            catch (const DaqException& e)
            {
-               return ErrorFromDaqException(e, this->getThisAsBaseObject());
+               return errorFromException(e, this->getThisAsBaseObject());
            }
            catch (...)
            {

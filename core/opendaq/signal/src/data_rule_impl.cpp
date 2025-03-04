@@ -184,7 +184,7 @@ ErrCode DataRuleImpl::verifyParametersInternal()
     }
     catch (const DaqException& e)
     {
-        return ErrorFromDaqException(e, this->getThisAsBaseObject());
+        return errorFromException(e, this->getThisAsBaseObject());
     }
 
     return OPENDAQ_SUCCESS;

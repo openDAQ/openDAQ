@@ -139,7 +139,7 @@ ErrCode DimensionImpl::getLabels(IList** labels)
     }
     catch (const DaqException& e)
     {
-        return ErrorFromDaqException(e, this->getThisAsBaseObject());
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     
     return OPENDAQ_SUCCESS;

@@ -786,7 +786,7 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
         }
         catch (const DaqException& e)
         {
-            return ErrorFromDaqException(e, this->getThisAsBaseObject());
+            return errorFromException(e, this->getThisAsBaseObject());
         }
         catch (const std::exception& e)
         {

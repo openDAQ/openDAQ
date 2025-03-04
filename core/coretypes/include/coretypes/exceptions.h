@@ -39,20 +39,20 @@ BEGIN_NAMESPACE_OPENDAQ
         {                                                                                        \
         }                                                                                        \
         template <typename... Params>                                                            \
-        explicit excName##Exception(daq::ErrCode err, const std::string& msg, Params&&... params) \
-            : excBase(errCode, msg, std::forward<Params>(params)...)                             \
+        explicit excName##Exception(daq::ErrCode err, const std::string& msg, Params&&... params)\
+            : excBase(err, msg, std::forward<Params>(params)...)                                 \
         {                                                                                        \
         }                                                                                        \
     };                                                                                           \
     OPENDAQ_REGISTER_ERRCODE_EXCEPTION(errCode, excName##Exception)
 
-#define OPENDAQ_REGISTER_ERRCODE_EXCEPTION(errCode, type)                                                \
+#define OPENDAQ_REGISTER_ERRCODE_EXCEPTION(errCode, type)                                           \
     class Exception##type##Factory                                                                  \
     {                                                                                               \
     public:                                                                                         \
         Exception##type##Factory()                                                                  \
         {                                                                                           \
-            daq::ErrorCodeToException::GetInstance()->registerException<type>(errCode);              \
+            daq::ErrorCodeToException::GetInstance()->registerException<type>(errCode);             \
         }                                                                                           \
     };                                                                                              \
                                                                                                     \
@@ -70,7 +70,7 @@ BEGIN_NAMESPACE_OPENDAQ
     }                                                                   \
     catch (const DaqException& e)                                       \
     {                                                                   \
-        return ErrorFromDaqException(e, nullptr);                       \
+        return errorFromException(e);                                   \
     }                                                                   \
     catch (const std::exception& e)                                     \
     {                                                                   \
@@ -80,6 +80,12 @@ BEGIN_NAMESPACE_OPENDAQ
     {                                                                   \
         return OPENDAQ_ERR_GENERALERROR;                                \
     }
+
+#ifdef NDEBUG
+    #define THROW_OPENDAQ_EXCEPTION(opendaqException) throw opendaqException
+#else
+    #define THROW_OPENDAQ_EXCEPTION(opendaqException) throw opendaqException.setFileName(__FILE__).setFileLine(__LINE__)
+#endif
 
 /*
  * Should be in the order of the error's numerical value

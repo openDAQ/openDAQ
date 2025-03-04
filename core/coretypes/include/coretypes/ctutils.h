@@ -193,24 +193,12 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
 
 inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = nullptr)
 {
-    if (e.getDefaultMsg())
-        return e.getErrCode();
-
-    return makeErrorInfo(e.getErrCode(), e.what(), source);
-}
-
 #ifdef NDEBUG
-    #define ErrorFromDaqException(e, source) daq::errorFromException(e, source)
+    return makeErrorInfo(e.getErrCode(), e.what(), source);
 #else
-    inline ErrCode errorFromException(ConstCharPtr fileName, Int fileLine, const DaqException& e, IBaseObject* source = nullptr)
-    {
-        if (e.getDefaultMsg())
-            return e.getErrCode();
-
-        return makeErrorInfo(fileName, fileLine, e.getErrCode(), e.what(), source);
-    }
-    #define ErrorFromDaqException(e, source) daq::errorFromException(__FILE__, __LINE__, e, source)
+    return makeErrorInfo(e.getFileName(), e.getFileLine(), e.getErrCode(), e.what(), source);
 #endif
+}
 
 inline ErrCode errorFromException(const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)
 {
@@ -416,7 +404,7 @@ ErrCode wrapHandler(Handler handler, Params... params)
     }
     catch (const DaqException& e)
     {
-        return ErrorFromDaqException(e, nullptr);
+        return errorFromException(e);
     }
     catch (const std::exception& e)
     {
@@ -438,7 +426,7 @@ ErrCode wrapHandlerReturn(Handler handler, TReturn& output, Params... params)
     }
     catch (const DaqException& e)
     {
-        return ErrorFromDaqException(e, nullptr);
+        return errorFromException(e);
     }
     catch (const std::exception& e)
     {
@@ -472,7 +460,7 @@ ErrCode wrapHandler(Object* object, Handler handler, Params... params)
     {
         IBaseObject* baseObject;
         object->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
-        return ErrorFromDaqException(e, baseObject);
+        return errorFromException(e, baseObject);
     }
     catch (const std::exception& e)
     {
@@ -498,7 +486,7 @@ ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Para
     {
         IBaseObject* baseObject;
         object->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
-        return ErrorFromDaqException(e, baseObject);
+        return errorFromException(e, baseObject);
     }
     catch (const std::exception& e)
     {
@@ -536,7 +524,7 @@ ErrCode daqTry(const IBaseObject* context, F&& func)
         IBaseObject* baseObject = nullptr;
         if (context)
             context->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
-        return ErrorFromDaqException(e, baseObject);
+        return errorFromException(e, baseObject);
     }
     catch (const std::exception& e)
     {

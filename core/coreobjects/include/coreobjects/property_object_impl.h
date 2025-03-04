@@ -1841,7 +1841,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
     }
     catch (const DaqException& e)
     {
-        return ErrorFromDaqException(e, this->getThisAsBaseObject());
+        return errorFromException(e, this->getThisAsBaseObject());
     }
 
     return OPENDAQ_SUCCESS;
@@ -1879,7 +1879,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
     }
     catch (const DaqException& e)
     {
-        return ErrorFromDaqException(e, this->getThisAsBaseObject());
+        return errorFromException(e, this->getThisAsBaseObject());
     }
 }
 
@@ -1946,7 +1946,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
     }
     catch (const DaqException& e)
     {
-        return ErrorFromDaqException(e, this->getThisAsBaseObject());
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (const std::exception& e)
     {
@@ -2556,7 +2556,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
     }
     catch (const DaqException& e)
     {
-        return ErrorFromDaqException(e, this->getThisAsBaseObject());
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (...)
     {
@@ -3274,7 +3274,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
     }
     catch (const DaqException& e)
     {
-        return ErrorFromDaqException(e, this->getThisAsBaseObject());
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (const std::exception& e)
     {

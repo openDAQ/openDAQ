@@ -17,6 +17,7 @@ DECLARE_OPENDAQ_INTERFACE(IErrorTest, IBaseObject)
     virtual ErrCode INTERFACE_FUNC newMakeErrorInfoTest() = 0;
     virtual ErrCode INTERFACE_FUNC multipleErrorInfoTest() = 0;
     virtual ErrCode INTERFACE_FUNC argumentNotNullTest(IBaseObject* obj) = 0;
+    virtual ErrCode INTERFACE_FUNC throwExceptionTest() = 0;
 };
 
 END_NAMESPACE_OPENDAQ
@@ -51,6 +52,14 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(obj);
         return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC throwExceptionTest() override
+    {
+        return daqTry([] 
+        {
+            THROW_OPENDAQ_EXCEPTION(GeneralErrorException("Test failed"));
+        });
     }
 };
 
@@ -187,15 +196,21 @@ TEST_F(ErrorInfoTest, MultipleMessages)
     }
 }
 
+std::string getErrorPrefix(Int fileLine)
+{
+#ifdef NDEBUG
+    return "";
+#else
+    return "[ " + std::string(__FILE__) + ":" + std::to_string(fileLine) + " ] : ";
+#endif
+}
+
+
 TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-#ifndef NDEBUG
-    std::string expected = "[ " + std::string(__FILE__) + ":41 ] : newMakeErrorInfoTest failed";
-#else
-    std::string expected = "newMakeErrorInfoTest failed";
-#endif
+    std::string expected = getErrorPrefix(42) + "newMakeErrorInfoTest failed";
     ASSERT_THROW_MSG(checkErrorInfo(obj->newMakeErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -203,23 +218,22 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-#ifndef NDEBUG
-    std::string expected = "[ " + std::string(__FILE__) + ":46 ] : multipleErrorInfoTest failed once";
-    expected += "\n[ " + std::string(__FILE__) + ":47 ] : multipleErrorInfoTest failed twice"; 
-#else
-    std::string expected = "multipleErrorInfoTest failed once";
-    expected += "\nmultipleErrorInfoTest failed twice";
-#endif
+    std::string expected = getErrorPrefix(47) + "multipleErrorInfoTest failed once";
+    expected += "\n" + getErrorPrefix(48) + "multipleErrorInfoTest failed twice";
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 
 TEST_F(ErrorInfoTest, ArgumentNotNull)
 {
     auto obj = CreateTestObject();
-#ifndef NDEBUG
-    std::string expected = "[ " + std::string(__FILE__) + ":52 ] : Parameter obj must not be null";
-    ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), daq::ArgumentNullException, expected);    
-#else
-    ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), daq::ArgumentNullException, "Invalid parameter");
-#endif
+    std::string expected = getErrorPrefix(53) + "Parameter obj must not be null";
+    ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), ArgumentNullException, expected);
+}
+
+TEST_F(ErrorInfoTest, ThrowExceptionInDaqTry)
+{
+    auto obj = CreateTestObject();
+
+    std::string expected = getErrorPrefix(61) + "Test failed";
+    ASSERT_THROW_MSG(checkErrorInfo(obj->throwExceptionTest()), GeneralErrorException, expected);
 }

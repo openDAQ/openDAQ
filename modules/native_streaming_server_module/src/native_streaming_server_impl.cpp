@@ -423,7 +423,14 @@ void NativeStreamingServerImpl::stopReading()
         LOG_I("Reading thread joined");
     }
 
+    auto ports = List<IInputPort>();
+    for (const auto& [_, __, ___, port] : signalReaders)
+        ports.pushBack(port);
+
     signalReaders.clear();
+
+    for (const auto& port : ports)
+        port.remove();
 }
 
 void NativeStreamingServerImpl::startReadThread()
@@ -434,7 +441,7 @@ void NativeStreamingServerImpl::startReadThread()
             bool hasPacketsToSend = false;
             {
                 std::scoped_lock lock(readersSync);
-                for (const auto& [_, signalGlobalId, reader] : signalReaders)
+                for (const auto& [_, signalGlobalId, reader, __] : signalReaders)
                 {
                     PacketPtr packet = reader.read();
                     while (packet.assigned())
@@ -458,7 +465,7 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr, InputPortPtr>& element)
                            {
                                return std::get<0>(element) == signalToRead;
                            });
@@ -472,14 +479,19 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
     port.connect(signalToRead);
     port.setNotificationMethod(PacketReadyNotification::None);
 
-    signalReaders.push_back(std::tuple<SignalPtr, std::string, PacketReaderPtr>({signalToRead, signalToRead.getGlobalId().toStdString(), reader}));
+
+    signalReaders.push_back(
+        std::tuple<SignalPtr, std::string, PacketReaderPtr, InputPortPtr>(
+            {signalToRead, signalToRead.getGlobalId().toStdString(), reader, port}
+        )
+    );
 }
 
 void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr, InputPortPtr>& element)
                            {
                                return std::get<0>(element) == signalToRead;
                            });
@@ -487,7 +499,10 @@ void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
         return;
 
     LOG_I("Remove reader for signal {}", signalToRead.getGlobalId());
+
+    auto port = std::get<3>(*it);
     signalReaders.erase(it);
+    port.remove();
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

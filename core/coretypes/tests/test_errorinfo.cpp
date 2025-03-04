@@ -226,7 +226,12 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 TEST_F(ErrorInfoTest, ArgumentNotNull)
 {
     auto obj = CreateTestObject();
+    
+#ifdef NDEBUG
+    std::string expected = "Argument must not be NULL.";
+#else
     std::string expected = getErrorPrefix(53) + "Parameter obj must not be null";
+#endif
     ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), ArgumentNullException, expected);
 }
 

@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#719](https://github.com/openDAQ/openDAQ/pull/719) Fixes error when accessing selection property values using "dot" notation (eg. `getPropertySelectionValue("child.val")`).
 - [#642](https://github.com/openDAQ/openDAQ/pull/642) Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
 - [#638](https://github.com/openDAQ/openDAQ/pull/638) Adds a tick tolerance option to the `MultiReader`, allowing for the limitation of inter-sample offsets between read signals.
 - [#631](https://github.com/openDAQ/openDAQ/pull/631) "Any read/write" events are added to property object that are triggered whenever any of the object's property values are read or written.

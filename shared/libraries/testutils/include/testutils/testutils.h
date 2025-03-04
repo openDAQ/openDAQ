@@ -20,6 +20,7 @@
 #include <coretypes/complex_number_type.h>
 #include <coretypes/coretype_traits.h>
 #include <type_traits>
+#include <chrono>
 
 /*
  *  TEST_F_OPTIONAL(fixture, testName)

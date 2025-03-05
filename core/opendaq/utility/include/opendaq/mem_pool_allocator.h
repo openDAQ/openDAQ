@@ -81,7 +81,14 @@ struct MemPoolAllocator
         if (p >= reinterpret_cast<T*>(memPool.startPtr) && p < reinterpret_cast<T*>(memPool.endPtr))
             return;
 
+#ifndef _MSC_VER
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+#endif
         fallBackAllocator.deallocate(p, n);
+#ifndef _MSC_VER
+#pragma GCC diagnostic pop
+#endif
     }
 
 };

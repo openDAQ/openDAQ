@@ -26,12 +26,15 @@
 namespace daq::config_protocol
 {
 
-using SendDaqPacketCallback = std::function<void(const PacketPtr& /*packet*/, SignalNumericIdType /*signalNumericId*/)>;
+using HandleDaqPacketCallback = std::function<void(PacketPtr&& /*packet*/, SignalNumericIdType /*signalNumericId*/)>;
+using SendPreprocessedPacketsCallback = std::function<void()>;
 
 class ConfigProtocolStreamingProducer
 {
 public:
-    ConfigProtocolStreamingProducer(const ContextPtr& daqContext, const SendDaqPacketCallback& sendDaqPacketCallback);
+    ConfigProtocolStreamingProducer(const ContextPtr& daqContext,
+                                    const HandleDaqPacketCallback& sendDaqPacketCallback,
+                                    const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb);
     ~ConfigProtocolStreamingProducer();
 
     SignalNumericIdType registerOrUpdateSignal(const SignalPtr& signal);
@@ -70,7 +73,8 @@ private:
 
     std::unordered_map<StringPtr, StreamedSignal, StringHash, StringEqualTo> streamedSignals;
     std::thread readerThread;
-    SendDaqPacketCallback sendDaqPacketCb;
+    HandleDaqPacketCallback handleDaqPacketCb;
+    SendPreprocessedPacketsCallback sendPreprocessedPacketsCb;
     SignalNumericIdType signalNumericIdCounter;
     bool readThreadRunning;
     ContextPtr daqContext;

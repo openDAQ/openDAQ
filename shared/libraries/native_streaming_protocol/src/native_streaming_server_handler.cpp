@@ -11,6 +11,9 @@
 #include <coreobjects/user_factory.h>
 #include <opendaq/errors.h>
 
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
@@ -31,8 +34,7 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
                                                            OnSignalSubscribedCallback signalSubscribedHandler,
                                                            OnSignalUnsubscribedCallback signalUnsubscribedHandler,
                                                            SetUpConfigProtocolServerCb setUpConfigProtocolServerCb,
-                                                           SizeT maxAllowedConfigConnections,
-                                                           SizeT streamingPacketSendTimeout)
+                                                           const PropertyObjectPtr& config)
     : context(context)
     , ioContextPtr(ioContextPtr)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingServerHandler"))
@@ -41,11 +43,13 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
     , signalUnsubscribedHandler(signalUnsubscribedHandler)
     , setUpConfigProtocolServerCb(setUpConfigProtocolServerCb)
     , connectedClientIndex(0)
-    , maxAllowedConfigConnections(maxAllowedConfigConnections)
+    , maxAllowedConfigConnections(config.getPropertyValue("MaxAllowedConfigConnections"))
     , configConnectionsCount(0)
     , controlConnectionsCount(0)
     , exclusiveControlConnectionsCount(0)
-    , streamingPacketSendTimeout(streamingPacketSendTimeout)
+    , streamingPacketSendTimeout(config.getPropertyValue("StreamingPacketSendTimeout"))
+    , packetStreamingReleaseThreshold(config.getPropertyValue("StreamingPacketReleaseThreshold"))
+    , cacheablePacketPayloadSizeMax(config.getPropertyValue("StreamingCacheablePayloadSizeMax"))
 {
     for (const auto& signal : signalsList)
     {
@@ -244,24 +248,99 @@ void NativeStreamingServerHandler::processStreamingPacket(const std::string& sig
     streamingManager.processPacket(signalId, std::move(packet));
 }
 
-void NativeStreamingServerHandler::scheduleStreamingWriteTasks()
+void NativeStreamingServerHandler::sendAvailableStreamingPackets()
 {
+    std::scoped_lock lock(sync);
     for (const auto& [clientId, sessionHandler] : sessionHandlers)
     {
-        std::optional<std::chrono::steady_clock::time_point> timeStamp(std::nullopt);
-        std::vector<daq::native_streaming::WriteTask> tasks;
-
-        auto consumeBufferCallback = [&tasks, &timeStamp](const std::string&, packet_streaming::PacketBufferPtr&& packetBuffer)
+        if (const auto packetStreamingServerPtr = streamingManager.getPacketServerIfRegistered(clientId))
         {
-            if (!timeStamp.has_value() && packetBuffer->timeStamp.has_value())
-                timeStamp = packetBuffer->timeStamp.value();
-            BaseSessionHandler::createAndPushPacketBufferTasks(std::move(packetBuffer), tasks);
-        };
-
-        streamingManager.consumeAllPacketBuffers(clientId, tasks, consumeBufferCallback);
-        if (!tasks.empty())
-            sessionHandler->schedulePacketBufferWriteTasks(std::move(tasks), std::move(timeStamp));
+            auto [tasks, timeStamp] = StreamingManager::getStreamingWriteTasks(packetStreamingServerPtr);
+            if (!tasks.empty())
+                sessionHandler->schedulePacketBufferWriteTasks(std::move(tasks), std::move(timeStamp));
+        }
     }
+}
+
+PropertyObjectPtr NativeStreamingServerHandler::createDefaultConfig()
+{
+    constexpr Int minPortValue = 0;
+    constexpr Int maxPortValue = 65535;
+
+    auto defaultConfig = PropertyObject();
+    {
+        const auto portProp = IntPropertyBuilder("NativeStreamingPort", 7420)
+                                  .setMinValue(minPortValue)
+                                  .setMaxValue(maxPortValue)
+                                  .build();
+        defaultConfig.addProperty(portProp);
+        defaultConfig.addProperty(StringProperty("Path", "/"));
+    }
+    {
+        // default value "UNLIMITED_CONFIGURATION_CONNECTIONS = 0" stands for unlimited count of concurrent connections
+        const auto configConnectionsLimitProp = IntPropertyBuilder("MaxAllowedConfigConnections", UNLIMITED_CONFIGURATION_CONNECTIONS)
+                                                    .setMinValue(0)
+                                                    .build();
+        defaultConfig.addProperty(configConnectionsLimitProp);
+    }
+    {
+        const auto streamingPacketSendTimeoutPropDescription =
+            "Defines the timeout for sending streaming packets, measured in milliseconds. "
+            "If a timeout is set with this property, and the lifetime of the queued PacketBuffer awaiting transmission exceeds "
+            "the specified limit since the buffer's creation before starting the low-level write operation, the server will reset "
+            "the connection for the corresponding client that owns the queue, effectively clearing it. "
+            "The default value '0' signifies that the streaming server time to send out the packets is not limited, "
+            "i.e. the lifetime of PacketBuffers awaiting for transmission, along with the memory allocated for the queue, are both unlimited.";
+        const auto streamingPacketSendTimeoutProp = IntPropertyBuilder("StreamingPacketSendTimeout", UNLIMITED_PACKET_SEND_TIME)
+                                                        .setMinValue(0)
+                                                        .setDescription(streamingPacketSendTimeoutPropDescription)
+                                                        .build();
+        defaultConfig.addProperty(streamingPacketSendTimeoutProp);
+    }
+    {
+        const auto cacheablePayloadSizeMaxPropDescription =
+            "Defines the threshold for packet's raw data payload size (in bytes) below which streaming data transmission optimizations are applied. "
+            "A higher value typically reduces CPU usage for data transmission but may increase memory consumption, so it should be used "
+            "cautiously on memory-constrained devices. A default value of '0' means these optimizations are applied only to packets without "
+            "raw data, such as ones of signal following implicit rules, e.g., the linear rule for domain signals.";
+        const auto cacheablePayloadSizeMaxProp =
+            IntPropertyBuilder("StreamingCacheablePayloadSizeMax", 10)
+                .setMinValue(0)
+                .setDescription(cacheablePayloadSizeMaxPropDescription)
+                .build();
+        defaultConfig.addProperty(cacheablePayloadSizeMaxProp);
+    }
+    {
+        const auto packetReleaseThresholdPropDescription =
+            "Defines the number of packets processed by both the server and client in streaming, after "
+            "which the server sends a service command to the client to release its copies of said packets. "
+            "A higher value reduces server-generated traffic, generally lowering device CPU usage, "
+            "but at the cost of increased memory consumption on the client side. Use with caution, "
+            "if the client is a gateway device with limited memory.";
+        const auto packetReleaseThresholdProp =
+            IntPropertyBuilder("StreamingPacketReleaseThreshold", packet_streaming::PACKET_RELEASE_THRESHOLD_DEFAULT)
+                .setMinValue(1)
+                .setDescription(packetReleaseThresholdPropDescription)
+                .build();
+        defaultConfig.addProperty(packetReleaseThresholdProp);
+    }
+    {
+        // TODO reminder for future improvements
+        const auto linearCacheSizeMaxPropDescription =
+            "Specifies the linear cache buffer size (in bytes) used for streaming data transmission optimizations. "
+            "A larger buffer size generally reduces CPU usage for data transmission operations, while a reasonable "
+            "limit helps lower peak memory usage by distributing and flattening it. A default value of '0' means "
+            "there is no buffer size limit, optimizing CPU usage at the potential cost of higher memory consumption, "
+            "so it should be used cautiously on devices with limited memory.";
+        const auto linearCacheSizeMaxProp =
+            IntPropertyBuilder("StreamingLinearCacheSizeMax", 0)
+                .setMinValue(0)
+                .setDescription(linearCacheSizeMaxPropDescription)
+                .build();
+        // defaultConfig.addProperty(linearCacheSizeMaxProp);
+    }
+
+    return defaultConfig;
 }
 
 void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
@@ -579,7 +658,9 @@ void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSes
 
     streamingManager.registerClient(sessionHandler->getClientId(),
                                     sessionHandler->getReconnected(),
-                                    streamingPacketSendTimeout != UNLIMITED_PACKET_SEND_TIME);
+                                    streamingPacketSendTimeout != UNLIMITED_PACKET_SEND_TIME,
+                                    cacheablePacketPayloadSizeMax,
+                                    packetStreamingReleaseThreshold);
 
     auto registeredSignals = streamingManager.getRegisteredSignals();
     for (const auto& [signalNumericId, signalPtr] : registeredSignals)

@@ -21,7 +21,7 @@ StreamingManager::StreamingManager(const ContextPtr& context)
 
 void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId,
                                                PacketPtr&& packet,
-                                               const ConsumePacketBufferCallback& consumePacketBufferCb)
+                                               const SendPacketBufferCallback& sendPacketBufferCb)
 {
     std::scoped_lock lock(sync);
 
@@ -47,11 +47,11 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
         {
             while (std::next(it) != registeredSignal.subscribedClientsIds.end())
             {
-                sendDaqPacket(consumePacketBufferCb, packetStreamingServers.at(*it), PacketPtr(packet), *it, registeredSignal.numericId);  // copy packet ptr
+                sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), PacketPtr(packet), *it, registeredSignal.numericId);  // copy packet ptr
                 ++it;
             }
 
-            sendDaqPacket(consumePacketBufferCb, packetStreamingServers.at(*it), std::move(packet), *it, registeredSignal.numericId); // move packet ptr
+            sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), std::move(packet), *it, registeredSignal.numericId); // move packet ptr
         }
     }
     else
@@ -89,7 +89,7 @@ void StreamingManager::processPacket(const std::string& signalStringId, PacketPt
                 packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, PacketPtr(packet));
                 ++it;
             }
-            packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, std::move(packet));
+            pushToPacketStreamingServer(packetStreamingServers.at(*it), std::move(packet), registeredSignal.numericId);
         }
     }
     else
@@ -98,35 +98,114 @@ void StreamingManager::processPacket(const std::string& signalStringId, PacketPt
     }
 }
 
-void StreamingManager::consumeAllPacketBuffers(const std::string& clientId,
-                                               std::vector<daq::native_streaming::WriteTask>& tasks,
-                                               const ConsumePacketBufferCallback& consumePacketBufferCb)
+PacketStreamingServerPtr StreamingManager::getPacketServerIfRegistered(const std::string& clientId)
 {
     std::scoped_lock lock(sync);
 
     if (const auto it = streamingClientsIds.find(clientId); it != streamingClientsIds.end())
-    {
-        auto& packetStreamingServerPtr = packetStreamingServers.at(clientId);
-        tasks.reserve(2 * packetStreamingServerPtr->getAvailableBuffersCount());
+        return packetStreamingServers.at(clientId);
 
-        while (auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
-        {
-            consumePacketBufferCb(clientId, std::move(packetBuffer));
-        }
-    }
+    return nullptr;
 }
 
-void StreamingManager::sendDaqPacket(const ConsumePacketBufferCallback& sendPacketBufferCb,
+void StreamingManager::sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
                                      const PacketStreamingServerPtr& packetStreamingServerPtr,
                                      PacketPtr&& packet,
                                      const std::string& clientId,
                                      SignalNumericIdType singalNumericId)
 {
-    packetStreamingServerPtr->addDaqPacket(singalNumericId, std::move(packet));
+    pushToPacketStreamingServer(packetStreamingServerPtr,  std::move(packet), singalNumericId);
     while (auto packetBuffer = packetStreamingServerPtr->getNextPacketBuffer())
     {
         sendPacketBufferCb(clientId, std::move(packetBuffer));
     }
+}
+
+void StreamingManager::linearCachingAssertion(const std::string& condition,
+                                              const PacketStreamingServerPtr& packetStreamingServerPtr,
+                                              const packet_streaming::PacketBufferPtr& packetBuffer)
+{
+    std::string debugInfoString =
+        fmt::format("\nPacketStreamingServer: "
+                    "available buffers count {}, "
+                    "cacheable groups count {}, "
+                    "non-cacheable buffers count {};\n",
+                    packetStreamingServerPtr->getAvailableBuffersCount(),
+                    packetStreamingServerPtr->getCountOfCacheableGroups(),
+                    packetStreamingServerPtr->getNonCacheableBuffersCount());
+
+    if (packetBuffer)
+    {
+        debugInfoString +=
+            fmt::format("cacheable group: "
+                        "ID {}, "
+                        "count of buffers {}, "
+                        "size of buffers {};\n"
+                        "packetBuffer: "
+                        "type {}, "
+                        "header size {}, "
+                        "payload size {}",
+                        packetBuffer->cacheableGroupId,
+                        packetStreamingServerPtr->getCountOfCacheableBuffers(packetBuffer->cacheableGroupId),
+                        packetStreamingServerPtr->getSizeOfCacheableBuffers(packetBuffer->cacheableGroupId),
+                        packetBuffer->getTypeString(),
+                        packetBuffer->packetHeader->size,
+                        packetBuffer->packetHeader->payloadSize);
+    }
+
+    throw NativeStreamingProtocolException(fmt::format(R"(Linear caching failure: {};{})", condition, debugInfoString));
+}
+
+WriteTask StreamingManager::cachePacketsToLinearBuffer(const PacketStreamingServerPtr& packetStreamingServerPtr,
+                                                       size_t cacheableGroupId,
+                                                       std::optional<std::chrono::steady_clock::time_point>& timeStamp)
+{
+    size_t countOfCacheableBuffer = packetStreamingServerPtr->getCountOfCacheableBuffers(cacheableGroupId);
+    size_t sizeOfCacheableBuffers = packetStreamingServerPtr->getSizeOfCacheableBuffers(cacheableGroupId);
+    size_t linearBufferCurPos = 0;
+
+    if (packetStreamingServerPtr->getAvailableBuffersCount() < countOfCacheableBuffer)
+        linearCachingAssertion("buffersAvailable < countOfCacheableBuffer", packetStreamingServerPtr, nullptr);
+
+    const size_t linearCacheBufferSize =
+        TransportHeader::PACKED_HEADER_SIZE * countOfCacheableBuffer + sizeOfCacheableBuffers;
+    auto linearCacheBuffer = std::make_shared<std::vector<char>>(linearCacheBufferSize);
+
+    for(size_t i = 0; i < countOfCacheableBuffer; ++i)
+    {
+        auto packetBufferPtr = packetStreamingServerPtr->getNextPacketBuffer();
+
+        if (packetBufferPtr == nullptr)
+            linearCachingAssertion("packetBufferPtr == nullptr", packetStreamingServerPtr, nullptr);
+        if (cacheableGroupId != packetBufferPtr->cacheableGroupId)
+            linearCachingAssertion("cacheableGroupId != packetBufferPtr->cacheableGroupId", packetStreamingServerPtr, packetBufferPtr);
+        if (linearCacheBufferSize < (linearBufferCurPos +
+                                     TransportHeader::PACKED_HEADER_SIZE +
+                                     packetBufferPtr->packetHeader->size +
+                                     packetBufferPtr->packetHeader->payloadSize))
+        {
+            linearCachingAssertion("linearCacheBufferSize < linearBufferCurPos + packetBufferSize", packetStreamingServerPtr, packetBufferPtr);
+        }
+
+        BaseSessionHandler::copyHeadersToBuffer(packetBufferPtr, linearCacheBuffer->data() + linearBufferCurPos);
+        linearBufferCurPos += TransportHeader::PACKED_HEADER_SIZE + packetBufferPtr->packetHeader->size;
+        if (packetBufferPtr->packetHeader->payloadSize > 0)
+        {
+            std::memcpy(linearCacheBuffer->data() + linearBufferCurPos,
+                        packetBufferPtr->payload,
+                        packetBufferPtr->packetHeader->payloadSize);
+        }
+        linearBufferCurPos += packetBufferPtr->packetHeader->payloadSize;
+
+        if (!timeStamp.has_value() && packetBufferPtr->timeStamp.has_value())
+            timeStamp = packetBufferPtr->timeStamp.value();
+    }
+
+    if (linearBufferCurPos != linearCacheBufferSize)
+        linearCachingAssertion("linearBufferCurPos != linearCacheBufferSize", packetStreamingServerPtr, nullptr);
+
+    WriteHandler linearBufferHandler = [linearCacheBuffer = linearCacheBuffer]() {};
+    return WriteTask(boost::asio::const_buffer(linearCacheBuffer->data(), linearCacheBuffer->size()), linearBufferHandler);
 }
 
 SignalNumericIdType StreamingManager::registerSignal(const SignalPtr& signal)
@@ -168,7 +247,11 @@ bool StreamingManager::removeSignal(const SignalPtr& signal)
     return doSignalUnsubscribe;
 }
 
-void StreamingManager::registerClient(const std::string& clientId, bool reconnected, bool enablePacketBufferTimestamps)
+void StreamingManager::registerClient(const std::string& clientId,
+                                      bool reconnected,
+                                      bool enablePacketBufferTimestamps,
+                                      size_t packetStreamingReleaseThreshold,
+                                      size_t cacheablePacketPayloadSizeMax)
 {
     std::scoped_lock lock(sync);
 
@@ -189,7 +272,17 @@ void StreamingManager::registerClient(const std::string& clientId, bool reconnec
 
     // create new associated packet server if required
     if (auto it = packetStreamingServers.find(clientId); it == packetStreamingServers.end())
-        packetStreamingServers.insert({clientId, std::make_shared<packet_streaming::PacketStreamingServer>(10, enablePacketBufferTimestamps)});
+    {
+        packetStreamingServers.insert(
+            {
+                clientId,
+                std::make_shared<packet_streaming::PacketStreamingServer>(
+                    cacheablePacketPayloadSizeMax,
+                    packetStreamingReleaseThreshold,
+                    enablePacketBufferTimestamps)
+            }
+        );
+    }
 }
 
 ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)
@@ -230,7 +323,7 @@ ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)
 
 bool StreamingManager::registerSignalSubscriber(const std::string& signalStringId,
                                                 const std::string& subscribedClientId,
-                                                const ConsumePacketBufferCallback& sendPacketBufferCb)
+                                                const SendPacketBufferCallback& sendPacketBufferCb)
 {
     bool doSignalSubscribe = false;
 
@@ -350,6 +443,41 @@ std::vector<std::string> StreamingManager::getRegisteredClientsIds()
     std::scoped_lock lock(sync);
 
     return std::vector<std::string>(streamingClientsIds.begin(), streamingClientsIds.end());
+}
+
+void StreamingManager::pushToPacketStreamingServer(const PacketStreamingServerPtr& packetStreamingServer,
+                                                   PacketPtr&& packet,
+                                                   SignalNumericIdType singalNumericId)
+{
+    packetStreamingServer->addDaqPacket(singalNumericId, std::move(packet));
+}
+
+StreamingWriteTasks StreamingManager::getStreamingWriteTasks(const PacketStreamingServerPtr& packetStreamingServerPtr)
+{
+    std::vector<daq::native_streaming::WriteTask> tasks;
+    std::optional<std::chrono::steady_clock::time_point> timeStamp(std::nullopt);
+
+    const auto nonCacheableBuffersCount = packetStreamingServerPtr->getNonCacheableBuffersCount();
+    const auto cacheableGroupsCount = packetStreamingServerPtr->getCountOfCacheableGroups();
+    // header and payload separate write tasks for each non-cacheable buffer
+    // plus one task for each group of cacheable buffers
+    tasks.reserve(2 * nonCacheableBuffersCount + cacheableGroupsCount);
+
+    while (auto packetBufferPtr = packetStreamingServerPtr->peekNextPacketBuffer())
+    {
+        if (packetBufferPtr->isCacheable())
+        {
+            tasks.push_back(cachePacketsToLinearBuffer(packetStreamingServerPtr, packetBufferPtr->cacheableGroupId, timeStamp));
+        }
+        else
+        {
+            if (!timeStamp.has_value() && packetBufferPtr->timeStamp.has_value())
+                timeStamp = packetBufferPtr->timeStamp.value();
+            BaseSessionHandler::createAndPushPacketBufferTasks(packetStreamingServerPtr->getNextPacketBuffer(), tasks);
+        }
+    }
+
+    return {tasks, timeStamp};
 }
 
 StreamingManager::RegisteredSignal::RegisteredSignal(SignalPtr daqSignal, SignalNumericIdType numericId)

@@ -43,6 +43,7 @@ public:
                 server->processNoReplyRequest(requestPacket);
             },
             nullptr,
+            nullptr,
             nullptr);
     }
 
@@ -78,6 +79,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
             assert(false);
             server.processNoReplyRequest(requestPacket);
         },
+        nullptr,
         nullptr,
         nullptr);
 

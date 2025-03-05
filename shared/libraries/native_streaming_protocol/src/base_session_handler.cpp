@@ -341,7 +341,7 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
 void BaseSessionHandler::sendPacketBuffer(PacketBufferPtr&& packetBuffer)
 {
     std::vector<WriteTask> tasks;
-    tasks.reserve(2);
+    tasks.reserve((packetBuffer->packetHeader->payloadSize > 0) ? 2 : 1);
 
     auto deadlineTime =
         packetBuffer->timeStamp.has_value() && streamingPacketSendTimeout != std::chrono::milliseconds(0)
@@ -364,21 +364,25 @@ void BaseSessionHandler::schedulePacketBufferWriteTasks(std::vector<native_strea
     session->scheduleWrite(std::move(tasks), std::move(deadlineTime));
 }
 
-void BaseSessionHandler::createAndPushPacketBufferTasks(packet_streaming::PacketBufferPtr&& packetBuffer,
-                                                        std::vector<native_streaming::WriteTask>& tasks)
+void BaseSessionHandler::copyHeadersToBuffer(const packet_streaming::PacketBufferPtr& packetBuffer, char* bufferDestPtr)
 {
     size_t payloadSize = packetBuffer->packetHeader->size + packetBuffer->packetHeader->payloadSize;
     if (payloadSize > TransportHeader::MAX_PAYLOAD_SIZE)
     {
         throw NativeStreamingProtocolException("Size of message payload exceeds limit");
     }
-
     auto transportHeader = TransportHeader(PayloadType::PAYLOAD_TYPE_STREAMING_PACKET, payloadSize);
-    auto headersBuffer = std::make_shared<std::vector<char>>(TransportHeader::PACKED_HEADER_SIZE + packetBuffer->packetHeader->size);
+    // Copy each header into the linear buffer
+    std::memcpy(bufferDestPtr, transportHeader.getPackedHeaderPtr(), TransportHeader::PACKED_HEADER_SIZE);
+    std::memcpy(bufferDestPtr + TransportHeader::PACKED_HEADER_SIZE, packetBuffer->packetHeader, packetBuffer->packetHeader->size);
+}
 
-    // Copy each header into the contiguous buffer
-    std::memcpy(headersBuffer->data(), transportHeader.getPackedHeaderPtr(), TransportHeader::PACKED_HEADER_SIZE);
-    std::memcpy(headersBuffer->data() + TransportHeader::PACKED_HEADER_SIZE, packetBuffer->packetHeader, packetBuffer->packetHeader->size);
+void BaseSessionHandler::createAndPushPacketBufferTasks(packet_streaming::PacketBufferPtr&& packetBuffer,
+                                                        std::vector<native_streaming::WriteTask>& tasks)
+{
+    auto headersBuffer = std::make_shared<std::vector<char>>(TransportHeader::PACKED_HEADER_SIZE + packetBuffer->packetHeader->size);
+    copyHeadersToBuffer(packetBuffer, headersBuffer->data());
+
     boost::asio::const_buffer headersTaskBuffer(headersBuffer->data(), headersBuffer->size());
     WriteHandler headersHandler = [headersBuffer]() {};
     tasks.push_back(WriteTask(headersTaskBuffer, headersHandler));

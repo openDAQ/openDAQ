@@ -27,6 +27,7 @@ extern "C"
     typedef void* VoidPtr;
     typedef size_t SizeT;
     typedef uint32_t EnumType;
+    typedef void BaseObject;
 
     const Bool True = 1;
     const Bool False = 0;

@@ -7,7 +7,6 @@ extern "C"
 
 #include "ccommon.h"
 
-    struct Number;
     typedef struct Number Number;
 
     void EXPORTED Number_getFloatValue(Number* self, Float* value);

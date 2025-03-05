@@ -5,9 +5,8 @@ extern "C"
 {
 #endif
 
-#include "base_object.h"
+#include "ccommon.h"
 
-    struct List;
     typedef struct List List;
 
     void EXPORTED List_getItemAt(List* self, SizeT index, BaseObject** obj);

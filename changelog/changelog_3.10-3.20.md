@@ -54,6 +54,7 @@
 - [#653](https://github.com/openDAQ/openDAQ/pull/653) Device info objects without server capabilities are no longer grouped by serial and manufacturer in the `getAvailableDevices` call. 
 - [#635](https://github.com/openDAQ/openDAQ/pull/635) Before the openDAQ instance object is destroyed, it now calls `rootDevice.remove()` in its desctructor.
 - [#630](https://github.com/openDAQ/openDAQ/pull/630) The internal `Device` implementation function `ongetLogFileInfos()` was renamed to `onGetLogFileInfos()`. 
+- [#720](https://github.com/openDAQ/openDAQ/pull/720) Introduces additional performance optimizations for native streaming packet transmitting.
 
 ## Required application changes
 

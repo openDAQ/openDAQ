@@ -5,11 +5,11 @@
 int main(){
 
     List* list = NULL;
-    List_create(&list);
+    List_createList(&list);
 
     Integer* i1 = NULL, *i2 = NULL;
-    Integer_create(&i1, 5);
-    Integer_create(&i2, 6);
+    Integer_createInteger(&i1, 5);
+    Integer_createInteger(&i2, 6);
 
     List_pushBack(list, i1);
     List_pushBack(list, i2);

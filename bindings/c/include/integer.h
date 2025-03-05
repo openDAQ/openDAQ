@@ -7,7 +7,6 @@ extern "C"
 
 #include "ccommon.h"
 
-    struct Integer;
     typedef struct Integer Integer;
 
     void EXPORTED Integer_getValue(Integer* self, Int* value);

@@ -7,8 +7,6 @@ extern "C"
 
 #include "ccommon.h"
 
-    typedef void BaseObject;
-
     void EXPORTED BaseObject_addRef(void* self);
     void EXPORTED BaseObject_releaseRef(void* self);
     void EXPORTED BaseObject_dispose(void* self);

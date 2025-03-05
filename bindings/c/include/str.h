@@ -7,7 +7,6 @@ extern "C"
 
 #include "ccommon.h"
 
-    struct String;
     typedef struct String String;
 
     void EXPORTED String_getCharPtr(String* self, ConstCharPtr* value);

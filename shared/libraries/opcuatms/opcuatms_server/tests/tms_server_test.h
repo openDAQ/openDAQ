@@ -18,7 +18,6 @@
 #include <tms_object_test.h>
 #include <opendaq/context_factory.h>
 #include <opcuatms_server/tms_server_context.h>
-#include <chrono>
 
 class TmsServerObjectTest : public TmsObjectTest
 {

@@ -248,6 +248,12 @@ void NativeStreamingServerHandler::processStreamingPacket(const std::string& sig
     streamingManager.processPacket(signalId, std::move(packet));
 }
 
+void NativeStreamingServerHandler::processStreamingPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices,
+                                                           const std::vector<IPacket*>& packets)
+{
+    streamingManager.processPackets(packetIndices, packets);
+}
+
 void NativeStreamingServerHandler::sendAvailableStreamingPackets()
 {
     std::scoped_lock lock(sync);

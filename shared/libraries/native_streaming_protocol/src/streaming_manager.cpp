@@ -98,6 +98,52 @@ void StreamingManager::processPacket(const std::string& signalStringId, PacketPt
     }
 }
 
+void StreamingManager::processPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices,
+                                      const std::vector<IPacket*>& packets)
+{
+    std::scoped_lock lock(sync);
+
+    for (auto& [signalStringId, packetData] : packetIndices)
+    {
+        if (auto it1 = registeredSignals.find(signalStringId); it1 != registeredSignals.end())
+        {
+            auto& registeredSignal = it1->second;
+
+            for (int i = packetData.index; i < packetData.index + packetData.count; ++i)
+            {
+                auto packet = PacketPtr::Adopt(packets[i]);
+                
+                if (packet.getType() == daq::PacketType::Event)
+                {
+                    const auto eventPacket = packet.asPtr<IEventPacket>(true);
+                    const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                    const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+
+                    if (dataDescriptorParam.assigned())
+                        registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
+                    if (domainDescriptorParam.assigned())
+                        registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
+                }
+
+                if (auto it2 = registeredSignal.subscribedClientsIds.begin(); it2 != registeredSignal.subscribedClientsIds.end())
+                {
+                    while (std::next(it2) != registeredSignal.subscribedClientsIds.end())
+                    {
+                        packetStreamingServers.at(*it2)->addDaqPacket(registeredSignal.numericId, packet);
+                        ++it2;
+                    }
+        
+                    pushToPacketStreamingServer(packetStreamingServers.at(*it2), std::move(packet), registeredSignal.numericId);
+                }
+            }
+        }
+        else
+        {
+            throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+        }
+    }
+}
+
 PacketStreamingServerPtr StreamingManager::getPacketServerIfRegistered(const std::string& clientId)
 {
     std::scoped_lock lock(sync);

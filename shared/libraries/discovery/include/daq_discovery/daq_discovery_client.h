@@ -42,6 +42,9 @@ public:
 
 protected:
     bool verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const;
+    static void populateDiscoveredInfoSerializedProperty(PropertyObjectPtr& info,
+                                                         const MdnsDiscoveredDevice& device,
+                                                         const std::string& propertyName);
 
     std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
     std::unordered_set<std::string> requiredCaps;

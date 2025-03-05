@@ -205,12 +205,16 @@ public:
     {
         initialEventPacket = eventPacket;
         startIoOperations();
-        serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                       ioContextPtrServer,
-                                                                       signalsList,
-                                                                       signalSubscribedHandler,
-                                                                       signalUnsubscribedHandler,
-                                                                       setUpConfigProtocolServerCb);
+        serverHandler = std::make_shared<NativeStreamingServerHandler>(
+            serverContext,
+            ioContextPtrServer,
+            signalsList,
+            signalSubscribedHandler,
+            signalUnsubscribedHandler,
+            setUpConfigProtocolServerCb,
+            [](const std::string&, const std::string&, bool, ClientType){},
+            [](const std::string&){}
+        );
         serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
     }
 
@@ -242,13 +246,17 @@ TEST_P(StreamingProtocolTest, CreateServerNoSignals)
 
     // maxAllowedConfigConnections = 1 is used here to verify that the limit does not impact streaming connections
     config.setPropertyValue("MaxAllowedConfigConnections", 1);
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler,
-                                                                   setUpConfigProtocolServerCb,
-                                                                   config);
+    serverHandler = std::make_shared<NativeStreamingServerHandler>(
+        serverContext,
+        ioContextPtrServer,
+        List<ISignal>(),
+        signalSubscribedHandler,
+        signalUnsubscribedHandler,
+        setUpConfigProtocolServerCb,
+        [](const std::string&, const std::string&, bool, ClientType){},
+        [](const std::string&){},
+        config
+    );
 }
 
 TEST_P(StreamingProtocolTest, CreateClient)

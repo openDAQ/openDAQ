@@ -128,6 +128,10 @@ public:
     ErrCode INTERFACE_FUNC getNetworkInterfaces(IDict** interfaces) override;
     ErrCode INTERFACE_FUNC getNetworkInterface(IString* interfaceName, INetworkInterface** interface) override;
 
+    ErrCode INTERFACE_FUNC addConnectedClient(IString* id, IConnectedClientInfo* clientInfo) override;
+    ErrCode INTERFACE_FUNC removeConnectedClient(IString* id) override;
+    ErrCode INTERFACE_FUNC getConnectedClientsInfo(IList** connectedClientsInfo) override;
+
     // IPropertyObject
     ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
@@ -187,7 +191,8 @@ namespace deviceInfoDetails
         "location",
         "userName",
         "serverCapabilities",
-        "configurationConnectionInfo"
+        "configurationConnectionInfo",
+        "connectedClientsInfo"
     };
 }
 
@@ -211,6 +216,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
 
     Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
+    Super::addProperty(ObjectPropertyBuilder("connectedClientsInfo", PropertyObject()).setReadOnly(true).build());
 
     this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
     {
@@ -991,6 +997,67 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getNetworkInterface(ISt
 }
 
 template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addConnectedClient(IString* id, IConnectedClientInfo* clientInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+    OPENDAQ_PARAM_NOT_NULL(clientInfo);
+
+    BaseObjectPtr clientsInfoProperty;
+    auto propertyName = String("connectedClientsInfo");
+    ErrCode err = this->getPropertyValue(propertyName, &clientsInfoProperty);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto clientsInfoPropretyObject = clientsInfoProperty.asPtr<IPropertyObject>(true);
+    return clientsInfoPropretyObject->addProperty(ObjectProperty(id, clientInfo));
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeConnectedClient(IString* id)
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    BaseObjectPtr clientsInfoProperty;
+    auto propertyName = String("connectedClientsInfo");
+    const ErrCode err = this->getPropertyValue(propertyName, &clientsInfoProperty);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto clientsInfoPropretyObject = clientsInfoProperty.asPtr<IPropertyObject>(true);
+    return clientsInfoPropretyObject->removeProperty(id);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConnectedClientsInfo(IList** connectedClientsInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(connectedClientsInfo);
+    ListPtr<IConnectedClientInfo> clientsInfoList = List<IConnectedClientInfo>();
+
+    BaseObjectPtr obj;
+    auto propertyName = String("connectedClientsInfo");
+    ErrCode err = this->getPropertyValue(propertyName, &obj);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    const auto clientsInfoPtr = obj.asPtr<IPropertyObject>(true);
+    for (const auto& prop : clientsInfoPtr.getAllProperties())
+    {
+        if (prop.getValueType() == ctObject)
+        {
+            BaseObjectPtr clientInfo;
+            err = clientsInfoPtr->getPropertyValue(prop.getName(), &clientInfo);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
+            clientsInfoList.pushBack(clientInfo.detach());
+        }
+    }
+
+    *connectedClientsInfo = clientsInfoList.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setValueInternal(IString* propertyName, IBaseObject* value)
 {
     if (Super::getPropertyObjectParent().assigned())
@@ -1007,7 +1074,6 @@ PropertyObjectPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getOwnerOfPro
             return Super::getPropertyObjectParent();
     return nullptr;
 }
-
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValueNoLock(IString* propertyName, IBaseObject** value)

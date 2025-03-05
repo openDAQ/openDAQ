@@ -17,6 +17,8 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/server_capability_config_ptr.h>
+#include <opendaq/connected_client_info_ptr.h>
+#include <opendaq/client_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 /*!
@@ -46,6 +48,16 @@ inline DeviceInfoConfigPtr DeviceInfoWithChanegableFields(const ListPtr<IString>
 inline ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolId, const StringPtr& protocolName, ProtocolType protocolType)
 {
     ServerCapabilityConfigPtr obj(ServerCapability_Create(protocolId, protocolName, protocolType));
+    return obj;
+}
+
+inline ConnectedClientInfoPtr ConnectedClientInfo(const StringPtr& url,
+                                                  ProtocolType protocolType,
+                                                  const StringPtr& protocolName,
+                                                  ClientType clientType,
+                                                  const StringPtr& hostName)
+{
+    ConnectedClientInfoPtr obj(ConnectedClientInfo_Create(url, protocolType, protocolName, clientType, hostName));
     return obj;
 }
 

@@ -34,6 +34,8 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
                                                            OnSignalSubscribedCallback signalSubscribedHandler,
                                                            OnSignalUnsubscribedCallback signalUnsubscribedHandler,
                                                            SetUpConfigProtocolServerCb setUpConfigProtocolServerCb,
+                                                           OnClientConnectedCallback clientConnectedHandler,
+                                                           OnClientDisconnectedCallback clientDisconnectedHandler,
                                                            const PropertyObjectPtr& config)
     : context(context)
     , ioContextPtr(ioContextPtr)
@@ -42,6 +44,8 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
     , signalSubscribedHandler(signalSubscribedHandler)
     , signalUnsubscribedHandler(signalUnsubscribedHandler)
     , setUpConfigProtocolServerCb(setUpConfigProtocolServerCb)
+    , clientConnectedHandler(clientConnectedHandler)
+    , clientDisconnectedHandler(clientDisconnectedHandler)
     , connectedClientIndex(0)
     , maxAllowedConfigConnections(config.getPropertyValue("MaxAllowedConfigConnections"))
     , configConnectionsCount(0)
@@ -372,6 +376,8 @@ std::shared_ptr<ServerSessionHandler> NativeStreamingServerHandler::releaseSessi
         {
             removedSessionHandler = clientIter->second;
             auto clientId = clientIter->first;
+            if (streamingManager.getPacketServerIfRegistered(clientId) || removedSessionHandler->isConfigProtocolUsed())
+                clientDisconnectedHandler(clientId);
             auto signalsToUnsubscribe = streamingManager.unregisterClient(clientId);
             for (const auto& signal : signalsToUnsubscribe)
                 signalUnsubscribedHandler(signal);
@@ -584,6 +590,10 @@ void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerS
 
         sessionHandler->triggerUseConfigProtocol();
         incrementConfigConnectionCount(sessionHandler);
+        clientConnectedHandler(sessionHandler->getClientId(),
+                               sessionHandler->getSession()->getEndpointAddress(),
+                               false,
+                               sessionHandler->getClientType());
     }
 
     this->setUpConfigProtocolCallbacks(sessionHandler, std::move(firstPacketBuffer));
@@ -669,6 +679,11 @@ void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSes
         sessionHandler->sendSignalAvailable(signalNumericId, signalPtr);
     }
     sessionHandler->sendStreamingInitDone();
+
+    clientConnectedHandler(sessionHandler->getClientId(),
+                           sessionHandler->getSession()->getEndpointAddress(),
+                           true,
+                           ClientType());
 }
 
 void NativeStreamingServerHandler::onSessionError(const std::string& errorMessage, SessionPtr session)

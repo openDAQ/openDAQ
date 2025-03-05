@@ -17,7 +17,6 @@
 #pragma once
 #include <coretypes/common.h>
 #include <coretypes/baseobject.h>
-#include <coretypes/baseobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,7 +33,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
 {
-
     /*!
      * @brief Adds a protocol to the list of supported capabilities.
      * @param serverCapability The supported protocol to add.
@@ -60,6 +58,20 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      * The provided name should be unique within the device info as used as the key in the dictionary of available interfaces.
      */
     virtual ErrCode INTERFACE_FUNC addNetworkInteface(IString* name, INetworkInterface* networkInterface) = 0;
+
+
+    /*!
+     * @brief Adds new connected client info when it is connected
+     * @param id The id of newly connected client.
+     * @param clientInfo The connected client information object.
+     */
+    virtual ErrCode INTERFACE_FUNC addConnectedClient(IString* id, IConnectedClientInfo* clientInfo) = 0;
+
+    /*!
+     * @brief Removes previously added connected client info on client disconnection.
+     * @param id The id of disconnected client.
+     */
+    virtual ErrCode INTERFACE_FUNC removeConnectedClient(IString* id) = 0;
 };
 /*!@}*/
 

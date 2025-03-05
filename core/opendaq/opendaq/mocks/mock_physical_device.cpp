@@ -251,7 +251,7 @@ PropertyObjectPtr MockPhysicalDeviceImpl::onRetrieveNetworkConfiguration(const S
 
 Bool MockPhysicalDeviceImpl::onGetNetworkConfigurationEnabled()
 {
-    return True;
+    return ifaceNames.assigned() && onSubmitConfig.assigned();
 }
 
 ListPtr<IString> MockPhysicalDeviceImpl::onGetNetworkInterfaceNames()

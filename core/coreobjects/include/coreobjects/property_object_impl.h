@@ -305,6 +305,7 @@ public:
 
     friend class AddressInfoImpl;
     friend class ServerCapabilityConfigImpl;
+    friend class ConnectedClientInfoImpl;
 
 protected:
     struct UpdatingAction

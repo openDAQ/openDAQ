@@ -4,10 +4,10 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace permissions
 {
+    static const auto DefaultPropertyObjectPermissions =
+        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
     void GetDefaultPropertyObjectPermissions(IPermissions** permissions)
     {
-        static auto DefaultPropertyObjectPermissions =
-            PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
         if (permissions)
             *permissions = DefaultPropertyObjectPermissions.addRefAndReturn();
     }

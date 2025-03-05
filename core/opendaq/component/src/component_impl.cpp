@@ -4,9 +4,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace permissions
 {
+    static const auto DefaultComponentPermissions = PermissionsBuilder().inherit(true).build();
     void GetDefaultComponentPermissions(IPermissions** permissions)
     {
-        static auto DefaultComponentPermissions = PermissionsBuilder().inherit(true).build();
         if (permissions)
             *permissions = DefaultComponentPermissions.addRefAndReturn();
     }

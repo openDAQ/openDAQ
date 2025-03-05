@@ -5,6 +5,10 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_opendaq/py_packet_buffer.h"
 
+#include <opendaq/module_manager_init.h>
+#include <opendaq/opendaq_init.h>
+#include <coreobjects/util.h>
+
 PYBIND11_MODULE(opendaq, m)
 {
     m.doc() = "openDAQ python bindings";
@@ -15,6 +19,13 @@ PYBIND11_MODULE(opendaq, m)
     m.def("get_tracked_object_count", &daqGetTrackedObjectCount);
     m.def("print_tracked_objects", &daqPrintTrackedObjects);
     m.def("clear_error_info", &daqClearErrorInfo);
+
+    m.def("init_testing", []() 
+    {
+        daq::daqInitializeCoreObjectsTesting();
+        daqInitModuleManagerLibrary();
+        daqInitOpenDaqLibrary();
+    });
 
     // wrap individual components
     

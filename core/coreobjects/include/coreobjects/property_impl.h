@@ -71,8 +71,7 @@ namespace details
 
 namespace permissions
 {
-    static const auto DefaultPermissions =
-        PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+    extern "C" void PUBLIC_EXPORT GetDefaultPermissions(IPermissions** permissions);
 }
 
 class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
@@ -313,7 +312,10 @@ public:
     void initDefaultPermissionManager()
     {
         defaultPermissionManager = PermissionManager();
-        defaultPermissionManager.setPermissions(permissions::DefaultPermissions);
+
+        PermissionsPtr permissions;
+        permissions::GetDefaultPermissions(&permissions);
+        defaultPermissionManager.setPermissions(permissions);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override

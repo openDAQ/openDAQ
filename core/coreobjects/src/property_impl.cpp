@@ -2,6 +2,17 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+namespace permissions
+{
+    void GetDefaultPermissions(IPermissions** permissions)
+    {
+        static auto DefaultPermissions =
+            PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+        if (permissions)
+            *permissions = DefaultPermissions.addRefAndReturn();
+    }
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, Property,
     IProperty, createProperty,

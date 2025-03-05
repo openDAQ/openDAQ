@@ -1,4 +1,3 @@
-#include <chrono>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/task_factory.h>
 #include <opendaq/task_internal.h>

@@ -1,4 +1,3 @@
-#include <chrono>
 #include <testutils/testutils.h>
 #include <opendaq/awaitable_ptr.h>
 #include <opendaq/scheduler_exceptions.h>

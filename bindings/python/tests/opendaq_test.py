@@ -4,7 +4,6 @@ import gc
 
 class TestCase(unittest.TestCase):
     def setUp(self):
-        daq.init_testing()
         self.cnt = daq.get_tracked_object_count()
         self.expect_memory_leak = False
 

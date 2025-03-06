@@ -69,6 +69,12 @@ namespace details
     }
 }
 
+namespace permissions
+{
+    static const auto DefaultPermissions =
+        PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+}
+
 class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
 {
 protected:
@@ -307,9 +313,7 @@ public:
     void initDefaultPermissionManager()
     {
         defaultPermissionManager = PermissionManager();
-        const auto permissionsMask = PermissionMaskBuilder().read().write().execute();
-        const auto permissions = PermissionsBuilder().inherit(false).assign("everyone", permissionsMask).build();
-        defaultPermissionManager.setPermissions(permissions);
+        defaultPermissionManager.setPermissions(permissions::DefaultPermissions);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override

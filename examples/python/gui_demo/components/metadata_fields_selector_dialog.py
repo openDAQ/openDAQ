@@ -10,7 +10,7 @@ from .dialog import Dialog
 class MetadataFieldsSelectorDialog(Dialog):
     def __init__(self, parent, context: AppContext):
         Dialog.__init__(self, parent, 'Metadata fields to display', context)
-        self.evet_port = EventPort(parent)
+        self.event_port = EventPort(parent)
         self.fields = []
         try:
             self.fields = utils.get_attributes_of_node(
@@ -60,7 +60,7 @@ class MetadataFieldsSelectorDialog(Dialog):
     def ok(self):
         self.context.metadata_fields = [utils.title_to_snake_case(self.tree.item(
             item, 'text')) for item in self.tree.selection()]
-        self.evet_port.emit()
+        self.event_port.emit()
         self.destroy()
 
     def cancel(self):

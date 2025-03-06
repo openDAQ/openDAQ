@@ -201,8 +201,9 @@ class AttributesDialog(Dialog):
             self.attributes['Domain Signal ID'] = {
                 'Value': signal.domain_signal.global_id if signal.domain_signal else '', 'Locked': True,
                 'Attribute': '.domain_signal'}
-            self.attributes['Related Signals IDs'] = {'Value': os.linesep.join(
-                [s.global_id for s in signal.related_signals]), 'Locked': True, 'Attribute': 'related_signals'}
+            if signal.related_signals:
+                self.attributes['Related Signals IDs'] = {'Value': os.linesep.join(
+                    [s.global_id for s in signal.related_signals]), 'Locked': True, 'Attribute': 'related_signals'}
             self.attributes['Streamed'] = {'Value': bool(
                 signal.streamed), 'Locked': True, 'Attribute': 'streamed'}
             self.attributes['Last Value'] = {

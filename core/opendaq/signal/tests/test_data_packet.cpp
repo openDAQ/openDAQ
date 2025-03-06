@@ -1121,14 +1121,3 @@ TEST_F(DataPacketTest, GetValueByIndex)
         }
     }
 }
-
-/*
-TEST_F(DataPacketTest, PacketPerformance)
-{
-    auto domainDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(LinearDataRule(1, 0)).setUnit(Unit("s", -1, "seconds", "time")).setTickResolution(Ratio(1, 1000)).build();
-
-    for (size_t i = 0; i < 10000000; ++i)
-    {
-        auto packet = DataPacket(domainDescriptor, 100, 100 * i);
-    }
-}*/

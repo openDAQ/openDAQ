@@ -2,16 +2,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-namespace permissions
-{
-    static const auto DefaultComponentPermissions = PermissionsBuilder().inherit(true).build();
-    void GetDefaultComponentPermissions(IPermissions** permissions)
-    {
-        if (permissions)
-            *permissions = DefaultComponentPermissions.addRefAndReturn();
-    }
-}
-
 using ComponentInternalImpl = ComponentImpl<IComponent>;
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

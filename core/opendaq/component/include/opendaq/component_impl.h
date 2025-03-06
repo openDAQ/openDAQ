@@ -58,11 +58,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
 
-namespace permissions
-{
-    extern "C" void PUBLIC_EXPORT GetDefaultComponentPermissions(IPermissions** permissions);
-}
-
 enum class ComponentStatus : EnumType
 {
     Ok = 0,
@@ -253,8 +248,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 
     if (parent.assigned())
     {
-        PermissionsPtr permissions;
-        permissions::GetDefaultComponentPermissions(&permissions);
+        const auto permissions = PermissionsBuilder().inherit(true).build();
         this->permissionManager.setPermissions(permissions);
         const auto parentManager = parent.getPermissionManager();
         this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);

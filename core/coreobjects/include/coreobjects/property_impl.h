@@ -69,11 +69,6 @@ namespace details
     }
 }
 
-namespace permissions
-{
-    extern "C" void PUBLIC_EXPORT GetDefaultPermissions(IPermissions** permissions);
-}
-
 class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
 {
 protected:
@@ -312,9 +307,8 @@ public:
     void initDefaultPermissionManager()
     {
         defaultPermissionManager = PermissionManager();
-
-        PermissionsPtr permissions;
-        permissions::GetDefaultPermissions(&permissions);
+        const auto permissionsMask = PermissionMaskBuilder().read().write().execute();
+        const auto permissions = PermissionsBuilder().inherit(false).assign("everyone", permissionsMask).build();
         defaultPermissionManager.setPermissions(permissions);
     }
 

@@ -206,7 +206,7 @@ inline BaseObjectPtr ConfigServerComponent::endUpdate(const RpcContext& context,
     if (params.hasKey("Props"))
     {
         if (context.protocolVersion < 1)
-            throw NotSupportedException();
+            THROW_OPENDAQ_EXCEPTION(NotSupportedException());
 
         const ListPtr<IDict> props = params.get("Props");
         applyProps(context.protocolVersion, obj, props);

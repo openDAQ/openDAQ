@@ -60,7 +60,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                                             const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
-        throw ArgumentNullException();
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException());
 
     PropertyObjectPtr configPtr = config;
     if (!configPtr.assigned())
@@ -69,7 +69,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
         configPtr = populateDefaultConfig(configPtr);
 
     if (!acceptsConnectionParameters(connectionString, configPtr))
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     if (!context.assigned())
         throw InvalidParameterException{"Context is not available."};

@@ -100,7 +100,7 @@ inline CoreEventArgsImpl::CoreEventArgsImpl(CoreEventId id, const DictPtr<IStrin
     , parameters(parameters)
 {
     if (!validateParameters())
-        throw InvalidParameterException{"Core event parameters for event type \"{}\" are invalid", this->eventName};
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Core event parameters for event type \"{}\" are invalid", this->eventName));
 }
 
 inline CoreEventArgsImpl::CoreEventArgsImpl(CoreEventId id, const StringPtr& name, const DictPtr<IString, IBaseObject>& parameters)
@@ -108,7 +108,7 @@ inline CoreEventArgsImpl::CoreEventArgsImpl(CoreEventId id, const StringPtr& nam
     , parameters(parameters)
 {
     if (!validateParameters())
-        throw InvalidParameterException{"Core event parameters for event type \"{}\" are invalid", this->eventName};
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Core event parameters for event type \"{}\" are invalid", this->eventName));
 }
 
 inline ErrCode CoreEventArgsImpl::getParameters(IDict** parameters)

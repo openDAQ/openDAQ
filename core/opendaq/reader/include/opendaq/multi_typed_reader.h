@@ -243,17 +243,17 @@ public:
     [[nodiscard]]
     const ComplexFloat32& getValue() const
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
     void roundUpOnUnitOfDomain() override
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
     void roundUpOnDomainInterval(const RatioPtr interval) override
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
     void print(std::ostream& os) const override
@@ -271,7 +271,7 @@ private:
     [[nodiscard]]
     int compare(const Comparable& other) const override
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 };
 
@@ -291,17 +291,17 @@ public:
     [[nodiscard]]
     const ComplexFloat64& getValue() const
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
     void roundUpOnUnitOfDomain() override
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
     void roundUpOnDomainInterval(const RatioPtr interval) override
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
     void print(std::ostream& os) const override
@@ -319,7 +319,7 @@ private:
     [[nodiscard]]
     int compare(const Comparable& other) const override
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 };
 
@@ -356,12 +356,12 @@ public:
 
     void roundUpOnUnitOfDomain() override
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
     void roundUpOnDomainInterval(const RatioPtr interval) override
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
 

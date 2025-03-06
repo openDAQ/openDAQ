@@ -262,7 +262,7 @@ OpcUaVariant VariantConverter<IDataRule>::ToVariant(const DataRulePtr& object, c
     else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_EXPLICITDOMAINRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     return variant;
 }
@@ -283,7 +283,7 @@ ListPtr<IDataRule> VariantConverter<IDataRule>::ToDaqList(const OpcUaVariant& va
     if (variant.isType<UA_BaseRuleDescriptionStructure>())
         return ListConversionUtils::VariantToList<IDataRule, UA_BaseRuleDescriptionStructure>(variant);
 
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>
@@ -303,7 +303,7 @@ OpcUaVariant VariantConverter<IDataRule>::ToArrayVariant(const ListPtr<IDataRule
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_BaseRuleDescriptionStructure>(list);
     if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_CustomRuleDescriptionStructure>(list);
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

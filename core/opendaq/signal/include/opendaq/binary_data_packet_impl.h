@@ -86,7 +86,7 @@ template <bool ExternalMemory>
 void BinaryDataPacketImpl<ExternalMemory>::validateDescriptor()
 {
     if (!dataDescriptor.assigned())
-        throw ArgumentNullException();
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException());
 
     if (dataDescriptor.getSampleType() != SampleType::Binary)
         throw InvalidParameterException("Sample type is not Binary.");

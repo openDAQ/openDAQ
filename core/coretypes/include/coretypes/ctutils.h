@@ -338,7 +338,7 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
 inline std::string toStdString(IString* rtStr)
 {
     if (rtStr == nullptr)
-        throw InvalidParameterException("Parameter must not be null");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Parameter must not be null"));
 
     ConstCharPtr ptr;
     ErrCode err = rtStr->getCharPtr(&ptr);

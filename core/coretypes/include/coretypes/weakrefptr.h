@@ -146,7 +146,7 @@ template <typename TInterface, typename TSmartPtr>
 TSmartPtr WeakRefPtr<TInterface, TSmartPtr>::getRef() const
 {
     if (object == nullptr)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     TInterface* intf = nullptr;
     ErrCode errCode = object->getRefAs(TInterface::Id, reinterpret_cast<void**>(&intf));

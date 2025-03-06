@@ -128,7 +128,7 @@ size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionS
     if (found != 0)
     {
         LOG_W("Invalid connection string \"{}\", no prefix", connectionString);
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
     }
 
     auto idStr = connectionString.substr(prefixWithDeviceStr.size(), std::string::npos);
@@ -140,7 +140,7 @@ size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionS
     catch (const std::invalid_argument&)
     {
         LOG_W("Invalid connection string \"{}\", no id", connectionString);
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
     }
 
     return id;

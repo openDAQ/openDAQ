@@ -113,7 +113,7 @@ public:
     Int getNumerator() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         Int numerator;
         auto errCode = this->object->getNumerator(&numerator);
@@ -129,7 +129,7 @@ public:
     Int getDenominator() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         Int denominator;
         auto errCode = this->object->getDenominator(&denominator);
@@ -147,7 +147,7 @@ public:
     RatioPtr simplify()
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         RatioPtr simplifiedRatio;
         auto errCode = this->object->simplify(&simplifiedRatio);

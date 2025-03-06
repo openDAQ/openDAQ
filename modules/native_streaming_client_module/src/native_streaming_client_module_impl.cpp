@@ -340,7 +340,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
                                                       const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
-        throw ArgumentNullException();
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException());
 
     NativeType nativeType;
     if (ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
@@ -357,7 +357,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         deviceConfig = populateDefaultConfig(config, nativeType);
 
     if (!acceptsConnectionParameters(connectionString, deviceConfig))
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     if (!context.assigned())
         throw InvalidParameterException("Context is not available.");
@@ -617,7 +617,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
                                                             const PropertyObjectPtr& config)
 {
     if (!acceptsStreamingConnectionParameters(connectionString, config))
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming) : createConnectionDefaultConfig(NativeType::streaming);
 

@@ -9,7 +9,7 @@ BEGIN_NAMESPACE_OPENDAQ
 LogFileInfoImpl::LogFileInfoImpl(const LogFileInfoBuilderPtr& builder)
 {
     if (builder == nullptr)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     localPath = builder.getLocalPath();
     name = builder.getName();

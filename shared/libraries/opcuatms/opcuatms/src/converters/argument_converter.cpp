@@ -62,7 +62,7 @@ OpcUaVariant VariantConverter<IArgumentInfo>::ToVariant(const ArgumentInfoPtr& o
     if (targetType == nullptr || targetType == &UA_TYPES[UA_TYPES_ARGUMENT])
         variant.setScalar(*StructConverter<IArgumentInfo, UA_Argument>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     return variant;
 }
@@ -82,7 +82,7 @@ OpcUaVariant VariantConverter<IArgumentInfo>::ToArrayVariant(const ListPtr<IArgu
 {
     if (targetType == nullptr || targetType == &UA_TYPES[UA_TYPES_ARGUMENT])
         return ListConversionUtils::ToArrayVariant<IArgumentInfo, UA_Argument>(list);
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

@@ -254,7 +254,7 @@ OpcUaVariant VariantConverter<IDimensionRule>::ToVariant(const DimensionRulePtr&
     else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDimensionRule, UA_CustomRuleDescriptionStructure>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     return variant;
 }
@@ -273,7 +273,7 @@ ListPtr<IDimensionRule> VariantConverter<IDimensionRule>::ToDaqList(const OpcUaV
     if (variant.isType<UA_CustomRuleDescriptionStructure>())
         return ListConversionUtils::VariantToList<IDimensionRule, UA_CustomRuleDescriptionStructure>(variant);
 
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>
@@ -292,7 +292,7 @@ OpcUaVariant VariantConverter<IDimensionRule>::ToArrayVariant(const ListPtr<IDim
     if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDimensionRule, UA_CustomRuleDescriptionStructure>(list);
 
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

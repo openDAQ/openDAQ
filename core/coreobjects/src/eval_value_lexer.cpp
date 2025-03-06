@@ -132,7 +132,7 @@ void EvalValueLexer::scanToken()
 #undef EMIT_TOKEN_AND_RETURN
 
     }
-    throw daq::ParseFailedException("syntax error");
+    THROW_OPENDAQ_EXCEPTION(daq::ParseFailedException("syntax error"));
 }
 
 void EvalValueLexer::scanString(char delimiter)
@@ -179,7 +179,7 @@ void EvalValueLexer::scanFloat()
     {
         advance();
         if (!std::isdigit(peek()))
-            throw daq::ParseFailedException("expected at least one digit after decimal point");
+            THROW_OPENDAQ_EXCEPTION(daq::ParseFailedException("expected at least one digit after decimal point"));
         while (std::isdigit(peek()))
             advance();
     }
@@ -189,7 +189,7 @@ void EvalValueLexer::scanFloat()
         if (peek() == '+' || peek() == '-')
             advance();
         if (!std::isdigit(peek()))
-            throw daq::ParseFailedException("invalid exponent");
+            THROW_OPENDAQ_EXCEPTION(daq::ParseFailedException("invalid exponent"));
         while (std::isdigit(peek()))
             advance();
     }

@@ -108,7 +108,7 @@ public:
     StructPtr build() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         StructPtr struct_;
         const auto errCode = this->object->build(&struct_);
@@ -124,7 +124,7 @@ public:
     StructTypePtr getStructType() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         StructTypePtr type;
         const auto errCode = this->object->getStructType(&type);
@@ -143,7 +143,7 @@ public:
     ListPtr<IString> getFieldNames() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         ListPtr<IString> names;
         const auto errCode = this->object->getFieldNames(&names);
@@ -162,7 +162,7 @@ public:
     StructBuilderPtr setFieldValues(const ListPtr<IBaseObject> values) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
         
         const auto errCode = this->object->setFieldValues(values);
         checkErrorInfo(errCode);
@@ -179,7 +179,7 @@ public:
     ListPtr<IBaseObject> getFieldValues() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         ListPtr<IBaseObject> values;
         const auto errCode = this->object->getFieldValues(&values);
@@ -196,7 +196,7 @@ public:
     StructBuilderPtr set(const StringPtr& name, const BaseObjectPtr& field) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
         
         const auto errCode = this->object->set(name, field);
         checkErrorInfo(errCode);
@@ -212,7 +212,7 @@ public:
     BaseObjectPtr get(const StringPtr& name) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         BaseObjectPtr field;
         const auto errCode = this->object->get(name, &field);
@@ -228,7 +228,7 @@ public:
     DictPtr<IString, IBaseObject> getAsDictionary() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         DictPtr<IString, IBaseObject> dict;
         const auto errCode = this->object->getAsDictionary(&dict);
@@ -245,7 +245,7 @@ public:
     Bool hasField(const StringPtr& name) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         Bool hasField;
         const auto errCode = this->object->hasField(name, &hasField);

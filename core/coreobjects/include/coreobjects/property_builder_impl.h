@@ -38,7 +38,7 @@ protected:
     {
         if (valueType == ctBinaryData)
         {
-            throw InvalidTypeException{"Properties cannot be BinaryData types"};
+            THROW_OPENDAQ_EXCEPTION(InvalidTypeException{"Properties cannot be BinaryData types"});
         }
     }
 

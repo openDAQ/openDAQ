@@ -64,7 +64,7 @@ OpcUaVariant VariantConverter<IEnumeration>::ToVariant(const EnumerationPtr& obj
 template <>
 ListPtr<IEnumeration> VariantConverter<IEnumeration>::ToDaqList(const OpcUaVariant& variant, const ContextPtr& context)
 {
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>
@@ -72,7 +72,7 @@ OpcUaVariant VariantConverter<IEnumeration>::ToArrayVariant(const ListPtr<IEnume
                                                             const UA_DataType* /*targetType*/,
                                                             const ContextPtr& context)
 {
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

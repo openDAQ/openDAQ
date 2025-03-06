@@ -3,7 +3,6 @@ from tkinter import ttk
 
 import opendaq as daq
 
-from .. import utils
 from ..app_context import AppContext
 from .dialog import Dialog
 from .metadata_fields_selector_dialog import MetadataFieldsSelectorDialog

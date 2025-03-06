@@ -248,8 +248,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 
     if (parent.assigned())
     {
-        const auto permissions = PermissionsBuilder().inherit(true).build();
-        this->permissionManager.setPermissions(permissions);
+        this->permissionManager.setPermissions(PermissionsBuilder().inherit(true).build());
         const auto parentManager = parent.getPermissionManager();
         this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
     }

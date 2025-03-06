@@ -2,17 +2,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-namespace permissions
-{
-    static const auto DefaultPropertyObjectPermissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-
-    void GetDefaultPropertyObjectPermissions(IPermissions** permissions)
-    {
-        if (permissions)
-            *permissions = DefaultPropertyObjectPermissions.addRefAndReturn();
-    }
-}
-
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PropertyObject)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

@@ -67,11 +67,6 @@ namespace object_utils
     };
 }
 
-namespace permissions
-{
-    extern "C" void PUBLIC_EXPORT GetDefaultPropertyObjectPermissions(IPermissions** permissions);
-}
-
 class RecursiveConfigLockGuard : public std::enable_shared_from_this<RecursiveConfigLockGuard>
 {
 public:
@@ -513,10 +508,8 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 
-    PermissionsPtr permissions;
-    permissions::GetDefaultPropertyObjectPermissions(&permissions);
-
-    this->permissionManager.setPermissions(permissions);
+    this->permissionManager.setPermissions(
+        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
 
     PropertyValueEventEmitter readEmitter;
     PropertyValueEventEmitter writeEmitter;

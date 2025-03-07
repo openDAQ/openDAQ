@@ -56,7 +56,7 @@ class AttributesDialog(Dialog):
                 self.notebook.add(signal_desc_frame, text='Signal Descriptor')
                 if self.node.domain_signal is not None:
                     self.notebook.add(signal_domain_desc_frame,
-                                      text='Signal Domain Descriptor')
+                                      text='Domain Signal Descriptor')
                 self.notebook.bind('<<NotebookTabChanged>>',
                                    self.on_tab_change)
             elif daq.IDevice.can_cast_from(node):

@@ -36,6 +36,7 @@
 #include <coreobjects/property_object_ptr.h>
 #include <coreobjects/property_ptr.h>
 #include <coreobjects/property_value_event_args_factory.h>
+#include <coreobjects/object_lock_guard_ptr.h>
 #include <coretypes/cloneable.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/enumeration_factory.h>
@@ -97,6 +98,52 @@ public:
     }
 
 private:
+    std::thread::id* id;
+    int* depth;
+    std::lock_guard<TMutex> lock;
+};
+
+struct LockGuardImpl : public ImplementationOf<ILockGuard>
+{
+    LockGuardImpl(IPropertyObject* owner, std::mutex* lock)
+        : owner(owner)
+        , lock(std::lock_guard(*lock))
+    {
+    }
+
+private:
+    // to insure that owner is destroyed after lock
+    PropertyObjectPtr owner;
+    std::lock_guard<std::mutex> lock;
+};
+
+template <typename TMutex>
+class RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
+{
+public:
+    RecursiveLockGuardImpl(IPropertyObject* owner, TMutex* lock, std::thread::id* threadId, int* depth)
+        : owner(owner) 
+        , id(threadId)
+        , depth(depth)
+        , lock(std::lock_guard(*lock))
+    {
+        assert(this->id != nullptr);
+        assert(this->depth != nullptr);
+
+        *id = std::this_thread::get_id();
+        ++(*this->depth);
+    }
+
+    ~RecursiveLockGuardImpl() override
+    {
+        --(*depth);
+        if (*depth == 0)
+            *id = std::thread::id();
+    }
+
+private:
+    // to insure that owner is destroyed after lock
+    PropertyObjectPtr owner;
     std::thread::id* id;
     int* depth;
     std::lock_guard<TMutex> lock;
@@ -255,6 +302,8 @@ public:
     virtual ErrCode INTERFACE_FUNC setPath(IString* path) override;
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) override;
     virtual ErrCode INTERFACE_FUNC hasUserReadAccess(IBaseObject* userContext, Bool* hasAccessOut) override;
+    virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) override;
+    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) override;
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
@@ -2696,6 +2745,24 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadA
     const auto self = this->template borrowPtr<PropertyObjectPtr>();
     *hasAccessOut = hasUserReadAccess(userContext, self);
     return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
+{
+    OPENDAQ_PARAM_NOT_NULL(lockGuard);
+    return createObject<ILockGuard, LockGuardImpl, IPropertyObject*, std::mutex*>(lockGuard, this->objPtr, &sync);
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveLockGuard(ILockGuard** lockGuard)
+{
+    OPENDAQ_PARAM_NOT_NULL(lockGuard);
+    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
+        return createObject<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>, IPropertyObject*, object_utils::NullMutex*, std::thread::id*, int*>
+            (lockGuard, this->objPtr, &nullSync, &externalCallThreadId, &externalCallDepth);
+    return createObject<ILockGuard, RecursiveLockGuardImpl<std::mutex>, IPropertyObject*, std::mutex*, std::thread::id*, int*>
+        (lockGuard, this->objPtr, &sync, &externalCallThreadId, &externalCallDepth);
 }
 
 template <class PropObjInterface, class... Interfaces>

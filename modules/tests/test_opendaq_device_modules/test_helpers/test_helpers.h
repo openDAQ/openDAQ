@@ -279,6 +279,25 @@ namespace test_helpers
         return clientInstance;
     }
 
+    
+    [[maybe_unused]]
+    static void checkDeviceOperationMode(const daq::DevicePtr& device, const std::string& expected, bool isServer = false)
+    {
+        ASSERT_EQ(device.getOperationMode(), expected);
+        bool active = expected != "Idle";
+        std::string messagePrefix = isServer ? "Server: " : "Client: ";
+
+        for (const auto& fb: device.getFunctionBlocks())
+        {
+            for (const auto& sig: fb.getSignals())
+                ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking fb signal " << sig.getGlobalId() << " for mode " << expected;
+        }
+        for (const auto& ch: device.getChannels())
+        {
+            for (const auto& sig: ch.getSignals())
+                ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking ch signal " << sig.getGlobalId() << " for mode " << expected;
+        }
+    }
 }
 
 inline void removeDeviceDomainSignal(ListPtr<ISignal>& list)

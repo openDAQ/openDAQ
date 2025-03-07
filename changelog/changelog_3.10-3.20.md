@@ -12,6 +12,7 @@
 - [#607](https://github.com/openDAQ/openDAQ/pull/607) [#700](https://github.com/openDAQ/openDAQ/pull/700) Introduces configurable Device Info Properties.
 - [#606](https://github.com/openDAQ/openDAQ/pull/606) Mechanism for retrieving and monitoring the device's connection statuses, enabling tracking of streaming connections.
 - [#605](https://github.com/openDAQ/openDAQ/pull/605) Add support for View Only client to the openDAQ Native configuration protocol.
+- [#704](https://github.com/openDAQ/openDAQ/pull/704) Support setting operation mode for the device which notifies all sub components
 
 ## Python
 

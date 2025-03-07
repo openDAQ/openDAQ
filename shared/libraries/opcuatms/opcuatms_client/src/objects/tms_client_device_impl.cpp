@@ -130,6 +130,59 @@ ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
     return Super::getDomain(deviceDomain);
 }
 
+ErrCode TmsClientDeviceImpl::getAvailableOperationModes(IList** availableOpModes)
+{
+    OPENDAQ_PARAM_NOT_NULL(availableOpModes); 
+    
+    if (!this->hasReference("OperationModeOptions"))
+        return this->makeErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+
+    const auto nodeId = getNodeId("OperationModeOptions");
+    auto opModesNodeStrList = VariantConverter<IString>::ToDaqList(client->readValue(nodeId));
+    *availableOpModes = opModesNodeStrList.detach();
+
+    return OPENDAQ_SUCCESS;
+
+}
+
+ErrCode TmsClientDeviceImpl::setOperationMode(IString* modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+
+    if (!this->hasReference("OperationMode"))
+        return this->makeErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+    
+    const auto nodeId = getNodeId("OperationMode");
+    const auto modeTypeStr = StringPtr::Borrow(modeType).toStdString();
+
+    const auto variant = VariantConverter<IString>::ToVariant(String(modeTypeStr), nullptr, daqContext);
+    client->writeValue(nodeId, variant);   
+           
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode TmsClientDeviceImpl::setOperationModeRecursive(IString* modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+    const auto modeTypeStr = "Recursive" +  StringPtr::Borrow(modeType).toStdString();
+    return this->setOperationMode(String(modeTypeStr));
+}
+
+ErrCode TmsClientDeviceImpl::getOperationMode(IString** modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+
+    if (!this->hasReference("OperationMode"))
+        return this->makeErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+    
+    const auto nodeId = getNodeId("OperationMode");
+    const auto variant = client->readValue(nodeId);
+
+    *modeType = VariantConverter<IString>::ToDaqObject(variant, daqContext).detach();
+    
+    return OPENDAQ_SUCCESS;
+}
+
 void TmsClientDeviceImpl::findAndCreateSubdevices()
 {
     std::map<uint32_t, DevicePtr> orderedDevices;

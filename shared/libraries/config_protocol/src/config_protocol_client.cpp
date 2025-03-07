@@ -283,6 +283,28 @@ StringPtr ConfigProtocolClientComm::getLog(const std::string& globalId, const St
     return sendComponentCommand(globalId, ClientCommand("GetLog", 5), params);
 }
 
+ListPtr<IString> ConfigProtocolClientComm::getAvailableOperationModes(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetAvailableOperationModes", 9));
+}
+
+void ConfigProtocolClientComm::setOperationMode(const std::string& globalId, const StringPtr& modeType)
+{
+    auto params = Dict<IString, IBaseObject>({{"ModeType", modeType}});
+    sendComponentCommand(globalId, ClientCommand("SetOperationMode", 9), params);
+}
+
+void ConfigProtocolClientComm::setOperationModeRecursive(const std::string& globalId, const StringPtr& modeType)
+{
+    auto params = Dict<IString, IBaseObject>({{"ModeType", modeType}});
+    sendComponentCommand(globalId, ClientCommand("SetOperationModeRecursive", 9), params);
+}
+
+StringPtr ConfigProtocolClientComm::getOperationMode(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetOperationMode", 9));
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
 {
     auto dict = Dict<IString, IBaseObject>();

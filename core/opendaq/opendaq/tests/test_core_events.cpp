@@ -796,15 +796,30 @@ TEST_F(CoreEventTest, ComponentUpdatedMuted)
 TEST_F(CoreEventTest, DeviceAdded)
 {
     int addCount = 0;
+    int modeChangeCount = 0;
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentAdded));
-            ASSERT_EQ(args.getEventName(), "ComponentAdded");
-            ASSERT_TRUE(args.getParameters().hasKey("Component"));
-            ASSERT_EQ(args.getParameters().get("Component"), instance.getDevices()[addCount + 1]);
-            ASSERT_EQ(comp, instance.getRootDevice().getItem("Dev"));
-            addCount++;
+            if (args.getEventId() == static_cast<int>(CoreEventId::ComponentAdded))
+            {
+                ASSERT_EQ(args.getEventName(), "ComponentAdded");
+                ASSERT_TRUE(args.getParameters().hasKey("Component"));
+                ASSERT_EQ(args.getParameters().get("Component"), instance.getDevices()[addCount + 1]);
+                ASSERT_EQ(comp, instance.getRootDevice().getItem("Dev"));
+                addCount++;
+            }
+            else if (args.getEventId() == static_cast<int>(CoreEventId::DeviceOperationModeChanged))
+            {
+                ASSERT_EQ(args.getEventName(), "DeviceOperationModeChanged");
+                ASSERT_TRUE(args.getParameters().hasKey("OperationMode"));
+                ASSERT_EQ(args.getParameters().get("OperationMode"), static_cast<Int>(OperationModeType::Operation));
+                ASSERT_EQ(comp, instance.getDevices()[modeChangeCount + 1 ]);
+                modeChangeCount++;
+            }
+            else
+            {
+                ASSERT_TRUE(false) << "Unexpected event";
+            }
         };
 
     instance.addDevice("daqmock://phys_device");
@@ -812,6 +827,7 @@ TEST_F(CoreEventTest, DeviceAdded)
     instance.addDevice("daqmock://phys_device");
 
     ASSERT_EQ(addCount, 3);
+    ASSERT_EQ(modeChangeCount, 3);
 }
 
 TEST_F(CoreEventTest, DeviceRemoved)
@@ -863,7 +879,7 @@ TEST_F(CoreEventTest, DeviceAddedRemovedMuted)
     instance.removeDevice(dev3);
     instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
 
-    ASSERT_EQ(callCount, 2);
+    ASSERT_EQ(callCount, 3);
 }
 
 TEST_F(CoreEventTest, FBAdded)

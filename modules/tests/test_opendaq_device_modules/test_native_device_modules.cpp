@@ -136,7 +136,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 8);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 9);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -3037,4 +3037,23 @@ TEST_F(NativeC2DStreamingTest, StreamingData)
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(clientReceivedPackets, serverReceivedPackets));
+}
+
+TEST_F(NativeDeviceModulesTest, AddNestedFB)
+{
+    const auto server = CreateServerInstance();
+
+    const auto client = Instance();
+    auto dev = client.addDevice("daq.nd://127.0.0.1");
+    auto fb = dev.addFunctionBlock("RefFBModuleStatistics");
+
+    ASSERT_TRUE(fb.getAvailableFunctionBlockTypes().hasKey("RefFBModuleTrigger"));
+
+    FunctionBlockPtr nestedFb;
+    ASSERT_NO_THROW(nestedFb = fb.addFunctionBlock("RefFBModuleTrigger"));
+    ASSERT_TRUE(nestedFb.assigned());
+
+    ASSERT_NO_THROW(fb.removeFunctionBlock(nestedFb));
+    ASSERT_TRUE(nestedFb.isRemoved());
+    ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
 }

@@ -10,6 +10,8 @@
 #include <opendaq/packet_factory.h>
 #include <thread>
 
+#include "opendaq/reader_factory.h"
+
 using namespace daq;
 using namespace testing;
 

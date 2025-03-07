@@ -781,6 +781,13 @@ TEST_F(SignalTest, NoLastValue)
     ASSERT_FALSE(signal.getLastValue().assigned());
 }
 
+TEST_F(SignalTest, SetLastValue)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    signal.setLastValue(4);
+    ASSERT_EQ(signal.getLastValue(), 4);
+}
+
 TEST_F(SignalTest, GetLastValue)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
@@ -844,6 +851,15 @@ TEST_F(SignalTest, GetLastValueAfterEmptyPacket)
     IntegerPtr integerPtr;
     ASSERT_NO_THROW(integerPtr = lastValuePacket.asPtr<IInteger>());
     ASSERT_EQ(integerPtr, 0);
+}
+
+TEST_F(SignalTest, EnableKeepLastValue)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    const auto privateSignal = signal.asPtrOrNull<ISignalPrivate>();
+    ASSERT_TRUE(privateSignal.getKeepLastValue());
+    privateSignal.enableKeepLastValue(false);
+    ASSERT_FALSE(privateSignal.getKeepLastValue());
 }
 
 TEST_F(SignalTest, GetLastValueDisabled)

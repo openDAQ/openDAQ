@@ -329,7 +329,7 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
         cap.setPort(discoveredDevice.servicePort);
 
     deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IDeviceInfoConfig>().setConnectionString(cap.getConnectionString());
+    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
     deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType(false));
 
     return deviceInfo;

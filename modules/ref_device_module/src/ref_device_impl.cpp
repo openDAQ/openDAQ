@@ -292,7 +292,12 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     if (numberOfChannels < 1 || numberOfChannels > 4096)
         throw InvalidParameterException("Invalid number of channels");
 
-    objPtr.addProperty(IntProperty("NumberOfChannels", numberOfChannels));
+    auto numberOfChannelsProp = IntPropertyBuilder("NumberOfChannels", numberOfChannels)
+                                    .setMinValue(1)
+                                    .setMaxValue(4096)
+                                    .build();
+
+    objPtr.addProperty(numberOfChannelsProp);
     objPtr.getOnPropertyValueWrite("NumberOfChannels") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateNumberOfChannels(); };
 

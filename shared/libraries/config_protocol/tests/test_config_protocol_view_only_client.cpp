@@ -44,6 +44,7 @@ public:
             std::bind(&ConfigProtocolViewOnlyClientTest::sendRequestAndGetReply, this, std::placeholders::_1),
             std::bind(&ConfigProtocolViewOnlyClientTest::sendNoReplyRequest, this, std::placeholders::_1),
             nullptr,
+            nullptr,
             nullptr);
 
         clientDevice = client->connect();

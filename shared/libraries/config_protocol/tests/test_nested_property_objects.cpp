@@ -48,6 +48,7 @@ public:
                 std::bind(&ConfigNestedPropertyObjectTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigNestedPropertyObjectTest::sendNoReplyRequest, this, std::placeholders::_1),
                 nullptr,
+                nullptr,
                 nullptr
             );
         clientDevice = client->connect();
@@ -105,6 +106,15 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientGetDotAccess)
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 1);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 2));
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientGetSelectionValueDotAccess)
+{
+    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.Selection"), 0);
+    ASSERT_EQ(clientDevice.getPropertySelectionValue("ObjectProperty.child1.child1_2.child1_2_1.Selection"), "a");
+    clientDevice.setPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.Selection", 1);
+    ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.Selection"), 1);
+    ASSERT_EQ(clientDevice.getPropertySelectionValue("ObjectProperty.child1.child1_2.child1_2_1.Selection"), "b");
 }
 
 TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientSet)

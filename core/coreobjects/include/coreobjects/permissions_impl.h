@@ -20,17 +20,18 @@
 #include <coretypes/dictobject_factory.h>
 #include <coreobjects/permissions_ptr.h>
 #include <coreobjects/permissions_internal.h>
+#include <coreobjects/object_keys.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class PermissionsImpl : public ImplementationOf<IPermissions, IPermissionsInternal>
 {
 public:
+    using PermissionTable = std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>;
     explicit PermissionsImpl();
     explicit PermissionsImpl(Bool inherited,
-                             const DictPtr<IString, Int>& allowed,
-                             const DictPtr<IString, Int>& denied,
-                             const DictPtr<IString, Int>& assigned);
+                             const PermissionTable& allowed,
+                             const PermissionTable& denied,
+                             const PermissionTable& assigned);
 
     ErrCode INTERFACE_FUNC getInherited(Bool* inherited) override;
     ErrCode INTERFACE_FUNC getAllowed(IDict** permissions) override;
@@ -40,7 +41,7 @@ public:
     ErrCode INTERFACE_FUNC getAssigned(IDict** permissions) override;
 
 private:
-    DictPtr<IString, Int> cloneDict(const DictPtr<IString, Int>& dict);
+    static DictPtr<IString, Int> CopyPermissionTable(const PermissionTable& dict);
 
     Bool inherited;
     DictPtr<IString, Int> allowed;

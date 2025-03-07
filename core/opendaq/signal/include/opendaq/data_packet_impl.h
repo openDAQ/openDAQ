@@ -35,12 +35,12 @@ class DataPacketImpl : public GenericDataPacketImpl<TInterface, IReusableDataPac
 public:
     using Super = GenericDataPacketImpl<TInterface, IReusableDataPacket>;
 
-    explicit DataPacketImpl(const DataPacketPtr& domainPacket,
-                            const DataDescriptorPtr& descriptor,
+    explicit DataPacketImpl(IDataPacket* domainPacket,
+                            IDataDescriptor* descriptor,
                             SizeT sampleCount,
-                            const NumberPtr& offset);
+                            INumber* offset);
 
-    explicit DataPacketImpl(const DataDescriptorPtr& descriptor, SizeT sampleCount, const NumberPtr& offset);
+    explicit DataPacketImpl(IDataDescriptor* descriptor, SizeT sampleCount, INumber* offset);
 
     explicit DataPacketImpl(const DataPacketPtr& domainPacket,
                             const DataDescriptorPtr& descriptor,
@@ -117,24 +117,20 @@ void DataPacketImpl<TInterface>::initPacket()
     if (descriptor.getSampleType() == SampleType::Struct && rawSampleSize != sampleSize)
         throw InvalidParameterException("Packets with struct implicit descriptor not supported");
 
-    const auto ruleType = descriptor.getRule().getType();
+    hasDataRuleCalc = descriptor.asPtr<IDataRuleCalcPrivate>(true)->hasDataRuleCalc();
+    hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(true)->hasScalingCalc();
 
-    if (ruleType == DataRuleType::Constant || (ruleType == DataRuleType::Linear && this->offset.assigned()))
-        hasDataRuleCalc = descriptor.asPtr<IDataRuleCalcPrivate>(false)->hasDataRuleCalc();
-
-    hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
-
-    hasReferenceDomainOffset =
-        descriptor.getReferenceDomainInfo().assigned() && descriptor.getReferenceDomainInfo().getReferenceDomainOffset().assigned();
+    const auto referenceDomainInfo = descriptor.getReferenceDomainInfo();
+    hasReferenceDomainOffset = referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned();
 
     hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc && !hasReferenceDomainOffset;
 }
 
 template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
-                                           const DataDescriptorPtr& descriptor,
+DataPacketImpl<TInterface>::DataPacketImpl(IDataPacket* domainPacket,
+                                           IDataDescriptor* descriptor,
                                            SizeT sampleCount,
-                                           const NumberPtr& offset)
+                                           INumber* offset)
     : Super(domainPacket)
     , descriptor(descriptor)
     , offset(offset)
@@ -148,11 +144,11 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     scaledData = nullptr;
     data = nullptr;
 
-    if (!descriptor.assigned())
+    if (descriptor == nullptr)
         throw ArgumentNullException("Data descriptor in packet is null.");
 
-    sampleSize = descriptor.getSampleSize();
-    rawSampleSize = descriptor.getRawSampleSize();
+    sampleSize = this->descriptor.getSampleSize();
+    rawSampleSize = this->descriptor.getRawSampleSize();
     dataSize = sampleCount * sampleSize;
     rawDataSize = sampleCount * rawSampleSize;
 
@@ -212,7 +208,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
 }
 
 template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(const DataDescriptorPtr& descriptor, SizeT sampleCount, const NumberPtr& offset)
+DataPacketImpl<TInterface>::DataPacketImpl(IDataDescriptor* descriptor, SizeT sampleCount, INumber* offset)
     : DataPacketImpl<TInterface>(nullptr, descriptor, sampleCount, offset)
 {
 }
@@ -250,13 +246,14 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
         std::memcpy(reinterpret_cast<uint8_t*>(data) + sampleSize, otherValues, otherValueCount * structSize);
 
     hasDataRuleCalc = true;
-    hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
+    hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(true)->hasScalingCalc();
     if (hasScalingCalc)
         throw InvalidParameterException("Constant data rule with post scaling not supported.");
     hasRawDataOnly = false;
 
+    const auto referenceDomainInfo = descriptor.getReferenceDomainInfo();
     hasReferenceDomainOffset =
-        descriptor.getReferenceDomainInfo().assigned() && descriptor.getReferenceDomainInfo().getReferenceDomainOffset().assigned();
+        referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned();
 }
 
 template <typename TInterface>
@@ -328,11 +325,11 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
                 {
                     if (hasScalingCalc)
                     {
-                        scaledData = descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(data, sampleCount);
+                        scaledData = descriptor.asPtr<IScalingCalcPrivate>(true)->scaleData(data, sampleCount);
                     }
                     else if (hasDataRuleCalc)
                     {
-                        scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateRule(offset, sampleCount, data, rawDataSize);
+                        scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateRule(offset, sampleCount, data, rawDataSize);
                     }
 
                     if (hasReferenceDomainOffset)
@@ -401,7 +398,7 @@ ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::equals(IBaseObject* other, Bo
                 return errCode;
 
             *equals = false;
-            const DataPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IDataPacket>();
+            const DataPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IDataPacket>(true);
             if (packetOther == nullptr)
                 return errCode;
 
@@ -614,7 +611,7 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT s
             void* addr = static_cast<char*>(data) + sampleIndex * descriptor.getRawSampleSize();
             auto output = std::make_unique<char[]>(descriptor.getSampleSize());
             void* outputData = output.get();
-            descriptor.asPtr<IScalingCalcPrivate>(false)->scaleData(addr, 1, &outputData);
+            descriptor.asPtr<IScalingCalcPrivate>(true)->scaleData(addr, 1, &outputData);
             if (hasReferenceDomainOffset)
             {
                 auto referenceDomainOffsetAdder =
@@ -635,7 +632,7 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT s
         {
             auto output = std::make_unique<char[]>(descriptor.getSampleSize());
             void* outputData = output.get();
-            descriptor.asPtr<IDataRuleCalcPrivate>(false)->calculateSample(offset, sampleIndex, data, rawDataSize, &outputData);
+            descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateSample(offset, sampleIndex, data, rawDataSize, &outputData);
             if (hasReferenceDomainOffset)
             {
                 auto referenceDomainOffsetAdder =

@@ -1892,10 +1892,23 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         BaseObjectPtr valuePtr;
         PropertyPtr prop;
 
-        getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+        StringPtr childName;
+        StringPtr subName;
 
-        if (!prop.assigned())
-            throw NotFoundException(R"(Selection property "{}" not found)", propName);
+        if (isChildProperty(propName, childName, subName))
+        {
+            getProperty(propName, &prop);
+            if (!prop.assigned())
+                throw NotFoundException(R"(Selection property "{}" not found)", propName);
+
+            valuePtr = prop.getValue();
+        }
+        else
+        {
+            getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+            if (!prop.assigned())
+                throw NotFoundException(R"(Selection property "{}" not found)", propName);
+        }
 
         const auto propInternal = prop.asPtr<IPropertyInternal>();
         auto values = propInternal.getSelectionValuesNoLock();

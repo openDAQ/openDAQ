@@ -2112,3 +2112,20 @@ TEST_F(PropertyObjectTest, EnumerationPropertySetGet)
     propObj.setPropertyValue("enumProp", EnumerationWithIntValue("EnumType", 2, objManager));
     ASSERT_EQ(propObj.getPropertyValue("enumProp"), "Option3");
 }
+
+TEST_F(PropertyObjectTest, DotAccessSelectionValue)
+{
+    auto child = PropertyObject();
+    child.addProperty(SelectionProperty("foo", List<IString>("a", "b"), 0));
+
+    auto child1 = PropertyObject();
+    child1.addProperty(ObjectProperty("child", child));
+
+    auto parent = PropertyObject();
+    parent.addProperty(ObjectProperty("child", child1));
+
+    ASSERT_EQ(parent.getPropertyValue("child.child.foo"), 0);
+    ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "a");
+    parent.setPropertyValue("child.child.foo", 1);
+    ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "b");
+}

@@ -45,8 +45,7 @@ public:
                                           OnSignalSubscribedCallback signalSubscribedHandler,
                                           OnSignalUnsubscribedCallback signalUnsubscribedHandler,
                                           SetUpConfigProtocolServerCb setUpConfigProtocolServerCb,
-                                          SizeT maxAllowedConfigConnections = UNLIMITED_CONFIGURATION_CONNECTIONS,
-                                          SizeT streamingPacketSendTimeout = UNLIMITED_PACKET_SEND_TIME);
+                                          const PropertyObjectPtr& config = NativeStreamingServerHandler::createDefaultConfig());
     ~NativeStreamingServerHandler() = default;
 
     void startServer(uint16_t port);
@@ -55,7 +54,11 @@ public:
     void addSignal(const SignalPtr& signal);
     void removeComponentSignals(const StringPtr& componentId);
 
-    void sendPacket(const SignalPtr& signal, PacketPtr&& packet);
+    void sendPacket(const std::string& signalId, PacketPtr&& packet);
+    void processStreamingPacket(const std::string& signalId, PacketPtr&& packet);
+    void sendAvailableStreamingPackets();
+
+    static PropertyObjectPtr createDefaultConfig();
 
 protected:
     void initSessionHandler(SessionPtr session);
@@ -112,6 +115,8 @@ protected:
     SizeT controlConnectionsCount;
     SizeT exclusiveControlConnectionsCount;
     SizeT streamingPacketSendTimeout;
+    SizeT packetStreamingReleaseThreshold;
+    SizeT cacheablePacketPayloadSizeMax;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

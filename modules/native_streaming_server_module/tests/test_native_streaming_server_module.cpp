@@ -155,6 +155,15 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
 
     ASSERT_TRUE(config.hasProperty("StreamingPacketSendTimeout"));
     ASSERT_EQ(config.getPropertyValue("StreamingPacketSendTimeout"), 0);
+
+    ASSERT_TRUE(config.hasProperty("StreamingDataPollingPeriod"));
+    ASSERT_EQ(config.getPropertyValue("StreamingDataPollingPeriod"), 20);
+
+    ASSERT_TRUE(config.hasProperty("StreamingCacheablePayloadSizeMax"));
+    ASSERT_EQ(config.getPropertyValue("StreamingCacheablePayloadSizeMax"), 10);
+
+    ASSERT_TRUE(config.hasProperty("StreamingPacketReleaseThreshold"));
+    ASSERT_EQ(config.getPropertyValue("StreamingPacketReleaseThreshold"), 10);
 }
 
 TEST_F(NativeStreamingServerModuleTest, CreateServer)

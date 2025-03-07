@@ -26,7 +26,7 @@ class StreamingProducerTest : public Test
 public:
     void SetUp() override
     {
-        dummySendDaqPacketCb = [](const PacketPtr&, SignalNumericIdType) {};
+        dummyPacketCb = [](const PacketPtr&, SignalNumericIdType) {};
         context = NullContext();
         testDevice = test_utils::createTestDevice();
         signals = testDevice.getDevices()[0].getChannels()[0].getSignals();
@@ -36,18 +36,19 @@ protected:
     ContextPtr context;
     DevicePtr testDevice;
     ListPtr<ISignal> signals;
-    SendDaqPacketCallback dummySendDaqPacketCb;
+    HandleDaqPacketCallback dummyPacketCb;
+    SendPreprocessedPacketsCallback dummySendCb;
     std::vector<SignalNumericIdType> dummyUnusedSignals;
 };
 
 TEST_F(StreamingProducerTest, Instantiate)
 {
-    ConfigProtocolStreamingProducer streamingProducer(context, dummySendDaqPacketCb);
+    ConfigProtocolStreamingProducer streamingProducer(context, dummyPacketCb, dummySendCb);
 }
 
 TEST_F(StreamingProducerTest, NoSignalsRegistered)
 {
-    ConfigProtocolStreamingProducer streamingProducer(context, dummySendDaqPacketCb);
+    ConfigProtocolStreamingProducer streamingProducer(context, dummyPacketCb, dummySendCb);
     ASSERT_EQ(streamingProducer.findRegisteredSignal("Signal"), nullptr);
 }
 
@@ -55,7 +56,7 @@ TEST_F(StreamingProducerTest, RegisterAndFindSignal)
 {
     auto signal = signals[0];
 
-    ConfigProtocolStreamingProducer streamingProducer(context, dummySendDaqPacketCb);
+    ConfigProtocolStreamingProducer streamingProducer(context, dummyPacketCb, dummySendCb);
 
     SignalNumericIdType registeredNumericId;
     ASSERT_NO_THROW(registeredNumericId = streamingProducer.registerOrUpdateSignal(signal));
@@ -69,7 +70,7 @@ TEST_F(StreamingProducerTest, RegisterMultipleSignals)
     auto signal1 = signals[0];
     auto signal2 = signals[1];
 
-    ConfigProtocolStreamingProducer streamingProducer(context, dummySendDaqPacketCb);
+    ConfigProtocolStreamingProducer streamingProducer(context, dummyPacketCb, dummySendCb);
 
     SignalNumericIdType registeredNumericId;
     ASSERT_NO_THROW(registeredNumericId = streamingProducer.registerOrUpdateSignal(signal1));
@@ -85,7 +86,7 @@ TEST_F(StreamingProducerTest, ConnectDisconnectNotRegisteredSignal)
 {
     auto signal = signals[0];
 
-    ConfigProtocolStreamingProducer streamingProducer(context, dummySendDaqPacketCb);
+    ConfigProtocolStreamingProducer streamingProducer(context, dummyPacketCb, dummySendCb);
 
     ASSERT_ANY_THROW(streamingProducer.addConnection(signal, "TestInputPortId"));
     ASSERT_ANY_THROW(streamingProducer.removeConnection(signal, "TestInputPortId", dummyUnusedSignals));
@@ -111,7 +112,7 @@ TEST_F(StreamingProducerTest, ConnectDisconnectRegisteredSignal)
         std::get<1>(streamingData.at(signalNumericId)).set_value();
     };
 
-    ConfigProtocolStreamingProducer streamingProducer(context, sendDaqPacketLambda);
+    ConfigProtocolStreamingProducer streamingProducer(context, sendDaqPacketLambda, dummySendCb);
     {
         std::promise<void> promise;
         std::future<void> future = promise.get_future();
@@ -172,7 +173,7 @@ TEST_F(StreamingProducerTest, SignalMultipleConnections)
     auto valueSignal = signals[0];
     auto domainSignal = valueSignal.getDomainSignal();
 
-    ConfigProtocolStreamingProducer streamingProducer(context, dummySendDaqPacketCb);
+    ConfigProtocolStreamingProducer streamingProducer(context, dummyPacketCb, dummySendCb);
     auto valueSignalNumericId = streamingProducer.registerOrUpdateSignal(valueSignal);
     ASSERT_EQ(valueSignalNumericId, 1u);
     auto domainSignalNumericId = streamingProducer.registerOrUpdateSignal(domainSignal);
@@ -298,6 +299,7 @@ public:
             NullContext(),
             std::bind(&ClientToDeviceStreamingTest::sendRequestAndGetReply, this, std::ref(serverPtr), std::placeholders::_1),
             std::bind(&ClientToDeviceStreamingTest::sendNoReplyRequest, this, std::ref(helper), std::placeholders::_1),
+            nullptr,
             nullptr,
             nullptr);
 

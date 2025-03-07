@@ -11,13 +11,13 @@ PermissionsImpl::PermissionsImpl()
 }
 
 PermissionsImpl::PermissionsImpl(Bool inherited,
-                                 const DictPtr<IString, Int>& allowed,
-                                 const DictPtr<IString, Int>& denied,
-                                 const DictPtr<IString, Int>& assigned)
+                                 const PermissionsImpl::PermissionTable& allowed,
+                                 const PermissionsImpl::PermissionTable& denied,
+                                 const PermissionsImpl::PermissionTable& assigned)
     : inherited(inherited)
-    , allowed(cloneDict(allowed))
-    , denied(cloneDict(denied))
-    , assigned(cloneDict(assigned))
+    , allowed(CopyPermissionTable(allowed))
+    , denied(CopyPermissionTable(denied))
+    , assigned(CopyPermissionTable(assigned))
 {
 }
 
@@ -53,14 +53,11 @@ ErrCode INTERFACE_FUNC PermissionsImpl::getAssigned(IDict** permissions)
     return OPENDAQ_SUCCESS;
 }
 
-DictPtr<IString, Int> PermissionsImpl::cloneDict(const DictPtr<IString, Int>& dict)
-{
-    auto clone = Dict<IString, Int>();
-
+DictPtr<IString, Int> PermissionsImpl::CopyPermissionTable(const PermissionsImpl::PermissionTable& dict){
+    DictPtr<IString, Int> target = Dict<IString, Int>();
     for (const auto& [key, val] : dict)
-        clone.set(key, val);
-
-    return clone;
+        target.set(key, val);
+    return target;
 }
 
 END_NAMESPACE_OPENDAQ

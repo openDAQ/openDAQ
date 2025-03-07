@@ -41,6 +41,7 @@ set(SRC_PublicHeaders_Component
     utility_exceptions.h
     ids_parser.h
     circularPacket.h
+    mem_pool_allocator.h
     PARENT_SCOPE
 )
 

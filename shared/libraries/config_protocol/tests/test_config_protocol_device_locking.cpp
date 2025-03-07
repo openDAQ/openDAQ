@@ -42,6 +42,7 @@ public:
             std::bind(&ConfigProtocolDeviceLockingTest::sendRequestAndGetReply, this, std::placeholders::_1),
             std::bind(&ConfigProtocolDeviceLockingTest::sendNoReplyRequest, this, std::placeholders::_1),
             nullptr,
+            nullptr,
             nullptr);
 
         clientDevice = client->connect();

@@ -19,12 +19,13 @@
 #include <coreobjects/permissions_builder.h>
 #include <coreobjects/permissions_ptr.h>
 #include <coreobjects/permission_manager.h>
+#include <coreobjects/object_keys.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class PermissionsBuilderImpl : public ImplementationOf<IPermissionsBuilder>
 {
 public:
+    using PermissionTable = std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>;
     explicit PermissionsBuilderImpl();
 
     ErrCode INTERFACE_FUNC inherit(Bool inherit) override;
@@ -40,9 +41,10 @@ private:
     void deny(IString* groupId, Int permissionFlags);
 
     Bool inherited;
-    DictPtr<IString, Int> allowed;
-    DictPtr<IString, Int> denied;
-    DictPtr<IString, Int> assigned;
+    
+    PermissionTable allowed;
+    PermissionTable denied;
+    PermissionTable assigned;
 };
 
 END_NAMESPACE_OPENDAQ

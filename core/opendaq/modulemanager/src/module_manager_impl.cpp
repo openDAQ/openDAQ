@@ -139,7 +139,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     const auto contextPtr = ContextPtr::Borrow(context);
     logger = contextPtr.getLogger();
     if (!logger.assigned())
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
@@ -490,7 +490,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         auto connectionStringPtr = String(pureConnectionString);
 
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
-            return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
+            return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
         // Scan for devices if not yet done so
         // TODO: Should we re-scan after a timeout?
@@ -498,7 +498,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         {
             const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
             if (OPENDAQ_FAILED(errCode))
-                return this->makeErrorInfo(errCode, "Failed getting available devices");
+                return this->MakeErrorInfo(errCode, "Failed getting available devices");
         }
 
         // Connection strings with the "daq" prefix automatically choose the best method of connection
@@ -547,7 +547,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         return OPENDAQ_ERR_GENERALERROR;
     }
 
-    return this->makeErrorInfo(
+    return this->MakeErrorInfo(
         OPENDAQ_ERR_NOTFOUND,
         "Device with given connection string and config is not available [{}]",
         connectionString
@@ -745,7 +745,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
     }
 
-    return this->makeErrorInfo(
+    return this->MakeErrorInfo(
         OPENDAQ_ERR_NOTFOUND,
         fmt::format(R"(Function block with given uid and config is not available [{}])", typeId)
     );

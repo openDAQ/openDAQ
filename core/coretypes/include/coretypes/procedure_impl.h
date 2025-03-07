@@ -80,7 +80,7 @@ public:
     {
         if (coreType == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
+            return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
         }
 
         *coreType = ctProc;
@@ -204,7 +204,7 @@ public:
     {
         if (coreType == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
+            return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
         }
 
         *coreType = ctProc;

@@ -80,7 +80,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equals(IBaseObject* other, Bool* 
 {
     if (equal == nullptr)
     {
-        return daq::makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
     }
 
     *equal = false;
@@ -115,7 +115,7 @@ template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equalsValue(const V val, Bool* equals)
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals parameter must not be null.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals parameter must not be null.");
 
     *equals = value == val;
     return OPENDAQ_SUCCESS;

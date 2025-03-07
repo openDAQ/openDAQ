@@ -231,7 +231,7 @@ ErrCode DataDescriptorImpl::validate()
 
             if (!valid)
             {
-                return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
+                return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
                                      "A Data descriptor with struct members can only have the name and dimensions configured. Its rule "
                                      "type must be explicit and Sample type set to Struct. It's name must be assigned and musn't be empty.");
             }
@@ -241,13 +241,13 @@ ErrCode DataDescriptorImpl::validate()
         else
         {
             if (!dataRule.assigned())
-                return makeErrorInfo(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Data descriptor is missing data rule.");
+                return this->MakeErrorInfo(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Data descriptor is missing data rule.");
 
             if (scaling.assigned() && sampleType != convertScaledToSampleType(scaling.getOutputSampleType()))
-                return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Scaling output type does not match the descriptor's sample type.");
+                return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Scaling output type does not match the descriptor's sample type.");
 
             if (scaling.assigned() && (dataRule.getType() != DataRuleType::Explicit || resolution.assigned() || origin != ""))
-                return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
+                return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
                                      "When using post scaling, the data rule type must be explicit, and the resolution and origin must "
                                      "not be configured.");
 
@@ -255,7 +255,7 @@ ErrCode DataDescriptorImpl::validate()
                   dataRule.getType() == DataRuleType::Other))
             {
                 if (sampleType > SampleType::RangeInt64)
-                    return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Implicit data rule types can only be real numbers.");
+                    return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Implicit data rule types can only be real numbers.");
             }
 
             if (dataRule.getType() == DataRuleType::Constant)
@@ -300,7 +300,7 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equa
 {
     return daqTry([this, &other, &equals]() {
         if (equals == nullptr)
-            return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+            return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
         *equals = false;
         if (!other)

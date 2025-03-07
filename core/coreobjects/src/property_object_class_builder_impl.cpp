@@ -79,10 +79,10 @@ ErrCode PropertyObjectClassBuilderImpl::addProperty(IProperty* property)
         auto p = PropertyPtr::Borrow(property);
 
 		if (hasDuplicateReferences(p))
-			return this->makeErrorInfo(OPENDAQ_ERR_INVALIDVALUE, "Reference property references a property that is already referenced by another.");
+			return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDVALUE, "Reference property references a property that is already referenced by another.");
 
         if (props.hasKey(p.getName()))
-            return makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists)", p.getName()));
+            return this->MakeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists)", p.getName()));
         props.set(p.getName(), p);
 
         return OPENDAQ_SUCCESS;
@@ -107,7 +107,7 @@ ErrCode PropertyObjectClassBuilderImpl::removeProperty(IString* propertyName)
     {
         if (!props.hasKey(propertyName))
         {
-            return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name '{}' not found.)", StringPtr::Borrow(propertyName)));
+            return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name '{}' not found.)", StringPtr::Borrow(propertyName)));
         }
 
         props.remove(propertyName);

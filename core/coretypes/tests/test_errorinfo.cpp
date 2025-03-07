@@ -34,7 +34,7 @@ public:
         if (!returnError)
             return OPENDAQ_SUCCESS;
 
-        return this->makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Test failed");
+        return this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Test failed");
     }
 
     ErrCode INTERFACE_FUNC newMakeErrorInfoTest() override

@@ -171,7 +171,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::canConnectSignal(ISignal* signal) c
 {
     const auto removablePtr = SignalPtr::Borrow(signal).asPtrOrNull<IRemovable>();
     if (removablePtr.assigned() && removablePtr.isRemoved())
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Removed signal cannot be connected");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Removed signal cannot be connected");
 
     return OPENDAQ_SUCCESS;
 }
@@ -196,7 +196,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
         {
             auto lock = this->getRecursiveConfigLock();
             if (this->isComponentRemoved)
-                return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
+                return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
 
             connectionRef = connection;
 
@@ -550,7 +550,7 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyOb
     {
         auto ref = this->owner.getRef();
         if (ref != nullptr && ref != owner)
-            return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
+            return this->MakeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
     }
     this->owner = owner;
     return OPENDAQ_SUCCESS;

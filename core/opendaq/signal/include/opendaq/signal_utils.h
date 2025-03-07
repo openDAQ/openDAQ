@@ -34,7 +34,7 @@ inline daq::ErrCode getSignalSampleType(const daq::SignalPtr& signal, daq::Sampl
 
     if (descriptor.isStructDescriptor())
     {
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Struct values are not supported", nullptr);
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Struct values are not supported", nullptr);
     }
 
     return descriptor->getSampleType(sampleType);

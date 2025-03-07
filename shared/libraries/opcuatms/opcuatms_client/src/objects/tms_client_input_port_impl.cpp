@@ -39,7 +39,8 @@ ErrCode TmsClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
 {
     return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
 
-    //return daqTry([&]() {
+    //return daqTry([&]()
+    //{
     //    OpcUaNodeId methodId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE_ACCEPTSSIGNAL);
 
     //    auto signalNodeId = clientContext->getNodeId(signal);
@@ -60,7 +61,8 @@ ErrCode TmsClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
 
 ErrCode TmsClientInputPortImpl::connect(ISignal* signal)
 {
-    return daqTry([&]() {
+    return daqTry([&]()
+    {
         if (!isChildComponent(signal))
             THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
@@ -87,7 +89,8 @@ ErrCode TmsClientInputPortImpl::connect(ISignal* signal)
 
 ErrCode TmsClientInputPortImpl::disconnect()
 {
-    return daqTry([&]() {
+    return daqTry([&]()
+    {
         const auto methodNodeId = getNodeId("Disconnect");
 
         auto request = OpcUaCallMethodRequest();
@@ -134,7 +137,8 @@ SignalPtr TmsClientInputPortImpl::onGetSignal()
 
 ErrCode TmsClientInputPortImpl::getConnection(IConnection** connection)
 {
-    return daqTry([&]() {
+    return daqTry([&]()
+    {
         // TODO: Implement. Awaits support to implement
         return OPENDAQ_ERR_NOTIMPLEMENTED;
     });

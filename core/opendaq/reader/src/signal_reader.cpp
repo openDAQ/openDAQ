@@ -476,19 +476,19 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
                 {
                     invalid = true;
 
-                    return makeErrorInfo(
+                    return MakeErrorInfoForSource(
+                        nullptr, 
                         OPENDAQ_ERR_INVALID_DATA,
-                        "Exception occurred while processing a signal descriptor change",
-                        nullptr
+                        "Exception occurred while processing a signal descriptor change"
                     );
                 }
 
                 if (invalid)
                 {
-                    return makeErrorInfo(
+                    return MakeErrorInfoForSource(
+                        nullptr, 
                         OPENDAQ_ERR_INVALID_DATA,
-                        "Signal no longer compatible with the reader or other signals",
-                        nullptr
+                        "Signal no longer compatible with the reader or other signals"
                     );
                 }
             }
@@ -559,10 +559,10 @@ ErrCode SignalReader::readPacketData()
         auto dataPacket = info.dataPacket;
         if (!dataPacket.getDomainPacket().assigned())
         {
-            return makeErrorInfo(
+            return MakeErrorInfoForSource(
+                nullptr, 
                 OPENDAQ_ERR_INVALIDSTATE,
-                "Packets must have an associated domain packets to read domain data.",
-                nullptr
+                "Packets must have an associated domain packets to read domain data."
             );
         }
 

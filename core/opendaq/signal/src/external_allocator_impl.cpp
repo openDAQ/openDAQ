@@ -27,7 +27,7 @@ ErrCode ExternalAllocatorImpl::allocate(
     VoidPtr* address)
 {
     if(allocated)
-        return makeErrorInfo(OPENDAQ_ERR_PACKET_MEMORY_ALLOCATION, "Memory already in use");
+        return this->MakeErrorInfo(OPENDAQ_ERR_PACKET_MEMORY_ALLOCATION, "Memory already in use");
 
     *address = data;
     allocated = true;
@@ -41,10 +41,10 @@ ErrCode ExternalAllocatorImpl::free(VoidPtr address)
         return OPENDAQ_SUCCESS;
 
     if(deleted)
-        return makeErrorInfo(OPENDAQ_ERR_PACKET_MEMORY_DEALLOCATION, "Memory already freed");
+        return this->MakeErrorInfo(OPENDAQ_ERR_PACKET_MEMORY_DEALLOCATION, "Memory already freed");
 
     if(address != data)
-        return makeErrorInfo(OPENDAQ_ERR_PACKET_MEMORY_DEALLOCATION, "Memory address mismatch");
+        return this->MakeErrorInfo(OPENDAQ_ERR_PACKET_MEMORY_DEALLOCATION, "Memory address mismatch");
 
     deleter.deleteMemory(address);
     deleted = true;

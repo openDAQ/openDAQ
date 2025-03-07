@@ -334,7 +334,7 @@ template <typename T>
 ErrCode EvalValueImpl::equalsValueInternal(const T value, Bool* equals)
 {
     if (equals == nullptr)
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals output-parameter must not be null.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals output-parameter must not be null.");
 
     T thisValue;
     ErrCode errCode = getValueInternal<T>(thisValue);
@@ -914,7 +914,7 @@ ErrCode EvalValueImpl::cloneWithOwner(IPropertyObject* newOwner, IEvalValue** cl
 ErrCode EvalValueImpl::getParseErrorCode()
 {
     if (OPENDAQ_FAILED(parseErrCode))
-        return makeErrorInfo(parseErrCode, parseErrMessage);
+        return this->MakeErrorInfo(parseErrCode, parseErrMessage);
 
     return OPENDAQ_SUCCESS;
 }
@@ -926,7 +926,7 @@ ErrCode EvalValueImpl::getPropertyReferences(IList** propertyReferences)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     if (OPENDAQ_FAILED(parseErrCode))
-        return makeErrorInfo(parseErrCode, parseErrMessage);
+        return this->MakeErrorInfo(parseErrCode, parseErrMessage);
 
     if (this->propertyReferences)
     {

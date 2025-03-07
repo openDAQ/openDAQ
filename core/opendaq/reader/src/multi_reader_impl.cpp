@@ -581,7 +581,7 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMul
         OPENDAQ_PARAM_NOT_NULL(samples);
 
         if (minReadCount > *count)
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
     }
 
     std::scoped_lock lock(mutex);
@@ -615,7 +615,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
         OPENDAQ_PARAM_NOT_NULL(domain);
 
         if (minReadCount > *count)
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
     }
 
     std::scoped_lock lock(mutex);
@@ -656,7 +656,7 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IMultiReaderStatus** status)
     }
 
     if (minReadCount > *count)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be larger than minReadCount.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be larger than minReadCount.");
 
     const SizeT samplesToRead = *count;
     prepare(nullptr, samplesToRead, milliseconds(0));
@@ -1437,7 +1437,7 @@ struct ObjectCreator<IMultiReader>
 
         if (toCopy == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null", nullptr);
+            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
         ReadMode mode;

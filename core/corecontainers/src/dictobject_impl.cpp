@@ -16,7 +16,7 @@ ErrCode DictImpl::getKeyInterfaceId(IntfID* id)
 {
     if (id == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
     }
 
     *id = keyId;
@@ -27,7 +27,7 @@ ErrCode DictImpl::getValueInterfaceId(IntfID* id)
 {
     if (id == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
     }
 
     *id = valueId;
@@ -369,7 +369,7 @@ ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
     {
-        return daq::makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
     }
 
     *equal = false;

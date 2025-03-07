@@ -93,7 +93,7 @@ ErrCode StructTypeImpl::getFieldTypes(IList** types)
 ErrCode StructTypeImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equal = false;
     if (other == nullptr)

@@ -636,7 +636,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
 
     if (!prop.assigned())
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", name));
+        return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", name));
     }
 
     BaseObjectPtr childProp;
@@ -881,7 +881,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
             return inspect.getInterfaceIds()[0] == IPropertyObject::Id;
         }
 
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Only base Property Object object-type values are allowed");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Only base Property Object object-type values are allowed");
     }
 
     auto iterate = [this](const IterablePtr<IBaseObject>& it, CoreType type) {
@@ -917,13 +917,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
         dict->getKeys(&it);
         if (!iterate(it, keyType))
         {
-            return this->makeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Invalid dictionary key type");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Invalid dictionary key type");
         }
 
         dict->getValues(&it);
         if (!iterate(it, itemType))
         {
-            return this->makeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Invalid dictionary item type");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Invalid dictionary item type");
         }
     }
 
@@ -933,7 +933,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
 
         if (itemType != ctUndefined && !iterate(value, itemType))
         {
-            return this->makeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Invalid list item type");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "Invalid list item type");
         }
     }
 
@@ -948,13 +948,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkStructT
 
     auto structPtr = value.asPtrOrNull<IStruct>();
     if (!structPtr.assigned())
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value is not a struct");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value is not a struct");
 
     StructTypePtr structType = prop.asPtr<IPropertyInternal>().getStructTypeNoLock();
     StructTypePtr valueStructType = structPtr.getStructType();
 
     if (structType != valueStructType)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value StructureType is different from the default.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value StructureType is different from the default.");
 
     return OPENDAQ_SUCCESS;
 }
@@ -969,17 +969,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkEnumera
 
     auto enumerationPtr = value.asPtrOrNull<IEnumeration>();
     if (!enumerationPtr.assigned())
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value is not an enumeration");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value is not an enumeration");
 
     auto propEnumerationPtr = propInternal.getDefaultValueNoLock().asPtrOrNull<IEnumeration>();
     if (!propEnumerationPtr.assigned())
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Property default value is not an enumeration");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Property default value is not an enumeration");
 
     EnumerationTypePtr valueEnumerationType = enumerationPtr.getEnumerationType();
     EnumerationTypePtr propEnumerationType = propEnumerationPtr.getEnumerationType();
 
     if (propEnumerationType != valueEnumerationType)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value EnumerationType is different from the default.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Set value EnumerationType is different from the default.");
 
     return OPENDAQ_SUCCESS;
 }
@@ -1000,7 +1000,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
         if (dict.assigned() && dict.hasKey(value))
             return OPENDAQ_SUCCESS;
 
-        return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, "Value is not a key/index of selection values.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, "Value is not a key/index of selection values.");
     }
 
     return OPENDAQ_SUCCESS;
@@ -1044,7 +1044,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
 
         if (!prop.assigned())
         {
-            return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" not found.)", propName));
+            return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" not found.)", propName));
         }
 
         propName = prop.getName();
@@ -1169,7 +1169,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
     }
     catch (const DaqException& e)
     {
-        return this->makeErrorInfo(e.getErrCode(), e.what());
+        return this->MakeErrorInfo(e.getErrCode(), e.what());
     }
 }
 
@@ -1197,7 +1197,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
             {
                 const auto enumVal = propInternal.getDefaultValueNoLock().asPtrOrNull<IEnumeration>();
                 if (!enumVal.assigned())
-                    return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
+                    return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE,
                                                fmt::format(R"(Default value of enumeration property {} is not assigned)", prop.getName()));
 
                 const auto type = enumVal.getEnumerationType();
@@ -1210,7 +1210,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
     }
     catch (const DaqException& e)
     {
-        return this->makeErrorInfo(e.getErrCode(), "Value type is different than Property type and conversion failed");
+        return this->MakeErrorInfo(e.getErrCode(), "Value type is different than Property type and conversion failed");
     }
 
     return OPENDAQ_SUCCESS;
@@ -1282,7 +1282,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwnerToPrope
         }
         catch (const DaqException& e)
         {
-            this->makeErrorInfo(e.getErrCode(), "Failed to set owner to property value");
+            this->MakeErrorInfo(e.getErrCode(), "Failed to set owner to property value");
             throw;
         }
     }
@@ -1422,13 +1422,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::readLocalVal
         {
             if (it->second.getCoreType() != ctList)
             {
-                return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Could not access the index as the value is not a list.");
+                return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Could not access the index as the value is not a list.");
             }
 
             ListPtr<IBaseObject> list = it->second;
             if (info.index >= (int) list.getCount())
             {
-                return this->makeErrorInfo(OPENDAQ_ERR_OUTOFRANGE, "The index parameter is out of bounds of the list.");
+                return this->MakeErrorInfo(OPENDAQ_ERR_OUTOFRANGE, "The index parameter is out of bounds of the list.");
             }
             value = list[std::size_t(info.index)];
         }
@@ -1439,7 +1439,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::readLocalVal
         return OPENDAQ_SUCCESS;
     }
 
-    return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property value "{}" not found)", name));
+    return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property value "{}" not found)", name));
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1526,7 +1526,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
 
     if (!property.assigned())
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", propName));
+        return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", propName));
     }
 
     bool isRef;
@@ -1587,7 +1587,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
             ListPtr<IBaseObject> list = value;
             if (index >= static_cast<int>(list.getCount()))
             {
-                return this->makeErrorInfo(OPENDAQ_ERR_OUTOFRANGE, "The index parameter is out of bounds of the list.");
+                return this->MakeErrorInfo(OPENDAQ_ERR_OUTOFRANGE, "The index parameter is out of bounds of the list.");
             }
             value = list[std::size_t(index)];
         }
@@ -1773,7 +1773,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
 
         if (!prop.assigned())
         {
-            return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", propName));
+            return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", propName));
         }
 
         propName = prop.getName();
@@ -1938,7 +1938,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
 
         if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())
         {
-            return this->makeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "List item type mismatch");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDTYPE, "List item type mismatch");
         }
 
         *value = valuePtr.detach();
@@ -2016,17 +2016,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         const PropertyPtr propPtr = property;
         StringPtr propName = propPtr.getName();
         if (!propName.assigned())
-            return this->makeErrorInfo(OPENDAQ_ERR_INVALIDVALUE, "Property does not have an assigned name.");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDVALUE, "Property does not have an assigned name.");
 
         if (hasDuplicateReferences(propPtr))
-            return this->makeErrorInfo(OPENDAQ_ERR_INVALIDVALUE,
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDVALUE,
                                        "Reference property references a property that is already referenced by another.");
 
         propPtr.asPtr<IOwnable>().setOwner(objPtr);
 
         const auto res = localProperties.insert(std::make_pair(propName, propPtr));
         if (!res.second)
-            return this->makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists.)", propName));
+            return this->MakeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists.)", propName));
 
         auto readEvent = propPtr.asPtr<IPropertyInternal>().getClassOnPropertyValueRead();
         if (readEvent.getListenerCount())
@@ -2069,7 +2069,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
     if (localProperties.find(propertyName) == localProperties.cend())
     {
         StringPtr namePtr = propertyName;
-        return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", namePtr));
+        return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", namePtr));
     }
 
     localProperties.erase(propertyName);
@@ -2231,7 +2231,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
 
     if (!hasProp)
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", name));
+        return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", name));
     }
 
     if (valueWriteEvents.find(name) == valueWriteEvents.end())
@@ -2261,7 +2261,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
 
     if (!hasProp)
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", name));
+        return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", name));
     }
 
     if (valueReadEvents.find(name) == valueReadEvents.end())
@@ -3000,7 +3000,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::toString(Cha
 {
     if (str == nullptr)
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter must not be null");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter must not be null");
     }
 
     std::ostringstream stream;

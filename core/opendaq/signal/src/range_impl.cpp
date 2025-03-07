@@ -42,7 +42,7 @@ ErrCode RangeImpl::getHighValue(INumber** value)
 ErrCode RangeImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (other == nullptr)

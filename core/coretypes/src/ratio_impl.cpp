@@ -165,7 +165,7 @@ ErrCode RatioImpl::equals(IBaseObject *other, Bool* equal) const
 {
     if (equal == nullptr)
     {
-        return daq::makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
     }
 
     *equal = false;

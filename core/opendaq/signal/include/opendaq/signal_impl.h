@@ -372,7 +372,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
 {
     const auto descriptorPtr = DataDescriptorPtr::Borrow(descriptor);
     if (descriptorPtr.assigned() && descriptorPtr.getSampleType() == SampleType::Null)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
                                    "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
 
     std::vector<SignalConfigPtr> valueSignalsOfDomainSignal;
@@ -960,7 +960,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::domainSignalReferenceSet(ISignal*
 
     const auto signalPtr = SignalPtr::Borrow(signal).asPtrOrNull<ISignalConfig>(true);
     if (!signalPtr.assigned())
-        return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
 
     auto lock = this->getRecursiveConfigLock();
     for (const auto& refSignal : domainSignalReferences)
@@ -980,7 +980,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::domainSignalReferenceRemoved(ISig
 
     const auto signalPtr = SignalPtr::Borrow(signal).asPtrOrNull<ISignalConfig>(true);
     if (!signalPtr.assigned())
-        return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
 
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {

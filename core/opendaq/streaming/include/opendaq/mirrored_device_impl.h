@@ -103,7 +103,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::addStreamingSource(IStreaming* stream
 
     if (it != streamingSources.end())
     {
-        return this->makeErrorInfo(
+        return this->MakeErrorInfo(
             OPENDAQ_ERR_DUPLICATEITEM,
             fmt::format(
                 R"(Device with global Id "{}" already has streaming source "{}" )",
@@ -154,7 +154,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
 
     if (it == streamingSources.end())
     {
-        return this->makeErrorInfo(
+        return this->MakeErrorInfo(
             OPENDAQ_ERR_NOTFOUND,
             fmt::format(
                 R"(Device with global Id "{}" does not have streaming source "{}" )",

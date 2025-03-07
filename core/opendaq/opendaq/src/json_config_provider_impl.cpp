@@ -217,7 +217,7 @@ ErrCode JsonConfigProviderImpl::populateOptions(IDict* options)
         size_t errorOffset = document.GetErrorOffset();
 
         auto errorMsg = fmt::format(R"(Failed to parse json configuration on {} position. Error: {})", errorOffset, rapidjson::GetParseError_En(errorCode));
-        return this->makeErrorInfo(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, errorMsg);
+        return this->MakeErrorInfo(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, errorMsg);
     }
 
     HandleObject(BaseObjectPtr::Borrow(options), document);

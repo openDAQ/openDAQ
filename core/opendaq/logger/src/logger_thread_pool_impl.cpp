@@ -13,7 +13,7 @@ ErrCode LoggerThreadPoolImpl::getThreadPoolImpl(ThreadPoolPtr *impl)
 {
     if (impl == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
     *impl = spdlogThreadPool;
     return OPENDAQ_SUCCESS;

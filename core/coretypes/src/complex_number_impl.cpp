@@ -36,7 +36,7 @@ ErrCode ComplexNumberImpl::getValue(ComplexFloat64* value)
 ErrCode ComplexNumberImpl::equalsValue(const ComplexFloat64 value, Bool* equals)
 {
     if (equals == nullptr)
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = this->value == value;
     return OPENDAQ_SUCCESS;
@@ -75,7 +75,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::equals(IBaseObject* other, Bool* equal
 {
     if (equals == nullptr)
     {
-        return daq::makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
     }
 
     *equals = false;

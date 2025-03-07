@@ -244,7 +244,7 @@ ErrCode BlockReaderImpl::readPacketData()
         auto dataPacket = *info.currentDataPacketIter;
         if (!dataPacket.getDomainPacket().assigned())
         {
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
         }
 
         auto domainPacket = dataPacket.getDomainPacket();
@@ -510,7 +510,7 @@ struct ObjectCreator<IBlockReader>
 
         if (toCopy == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null", nullptr);
+            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
         ReadMode readMode;
@@ -528,7 +528,7 @@ struct ObjectCreator<IBlockReader>
         OPENDAQ_PARAM_NOT_NULL(out);
 
         if (builder == nullptr)
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Builder must not be null", nullptr);
+            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_ARGUMENT_NULL, "Builder must not be null");
 
         auto builderPtr = BlockReaderBuilderPtr::Borrow(builder);
         auto signal = builderPtr.getSignal();
@@ -537,15 +537,15 @@ struct ObjectCreator<IBlockReader>
 
         auto assignedCount = signal.assigned() + inputPort.assigned() + oldBlockReader.assigned();
         if (assignedCount > 1)
-            return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Only old block reader instance or signal or input port should be used in builder to construct new instance", nullptr);
+            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_CREATE_FAILED, "Only old block reader instance or signal or input port should be used in builder to construct new instance");
 
         if (builderPtr.getBlockSize() == 0)
-            return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Block size cannot be 0", nullptr);
+            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_CREATE_FAILED, "Block size cannot be 0");
 
         if ((builderPtr.getValueReadType() == SampleType::Undefined || builderPtr.getDomainReadType() == SampleType::Undefined) &&
         builderPtr.getSkipEvents())
         {
-            return makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Reader cannot skip events when sample type is undefined", nullptr);
+            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_CREATE_FAILED, "Reader cannot skip events when sample type is undefined");
         }
 
         ErrCode errCode;
@@ -588,7 +588,7 @@ struct ObjectCreator<IBlockReader>
         }
         else
         {
-            errCode = makeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Signal, input port or old Block reader must be assigned to builder", nullptr);
+            errCode = MakeErrorInfo(OPENDAQ_ERR_CREATE_FAILED, "Signal, input port or old Block reader must be assigned to builder", nullptr);
         }
 
         return errCode;
@@ -607,7 +607,7 @@ private:
 
         if (toCopy == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null", nullptr);
+            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
         auto old = ReaderConfigPtr::Borrow(toCopy);

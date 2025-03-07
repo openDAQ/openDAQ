@@ -448,7 +448,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::submitNetworkConfiguration(ISt
     OPENDAQ_PARAM_NOT_NULL(config);
 
     if (!this->isRootDevice)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
 
     const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
     const auto configPtr = PropertyObjectPtr::Borrow(config);
@@ -464,7 +464,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::retrieveNetworkConfiguration(I
     OPENDAQ_PARAM_NOT_NULL(config);
 
     if (!this->isRootDevice)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
 
     PropertyObjectPtr configPtr;
     const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
@@ -490,7 +490,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getNetworkInterfaceNames(IList
     OPENDAQ_PARAM_NOT_NULL(ifaceNames);
 
     if (!this->isRootDevice)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
 
     ListPtr<IString> ifaceNamesPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetNetworkInterfaceNames, ifaceNamesPtr);
@@ -1023,10 +1023,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getLog(IString** log, IString*
     OPENDAQ_PARAM_NOT_NULL(id);
 
     if (offset < 0)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Offset must be greater than or equal to 0.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Offset must be greater than or equal to 0.");
 
     if (size < -1)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Size must be greater than or equal to -1.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Size must be greater than or equal to -1.");
 
     StringPtr logPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetLog, logPtr, id, size, offset);

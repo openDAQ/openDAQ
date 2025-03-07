@@ -324,16 +324,16 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     const auto connectionStringPtr = StringPtr::Borrow(connectionString);
 
     if (rootDeviceSet)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Root device already set.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Root device already set.");
 
     if (rootDevice.getFunctionBlocks().getCount() > 0)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if function blocks already added");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if function blocks already added");
 
     if (rootDevice.getDevices().getCount() > 0)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if devices are already added");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if devices are already added");
 
     if (rootDevice.getServers().getCount() > 0)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
     const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
 
@@ -741,7 +741,7 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
 
 ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
-    return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "UpdateInternal is not permitted for Instance. Use update instead.");
+    return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "UpdateInternal is not permitted for Instance. Use update instead.");
 }
 
 ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)

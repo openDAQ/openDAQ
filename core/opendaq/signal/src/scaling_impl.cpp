@@ -105,7 +105,7 @@ ErrCode ScalingImpl::verifyParameters()
 ErrCode INTERFACE_FUNC ScalingImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (other == nullptr)
@@ -180,27 +180,27 @@ ErrCode ScalingImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IF
 ErrCode ScalingImpl::verifyParametersInternal() const
 {
     if (!params.assigned())
-        return makeErrorInfo(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Scaling parameters are not set.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Scaling parameters are not set.");
 
     if (inputDataType > SampleType::Int64)
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Scaling input data can consist only of real numbers.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Scaling input data can consist only of real numbers.");
 
     if (ruleType == ScalingType::Linear)
     {
         if (params.getCount() != 2)
         {
-            return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Linear Scaling has an invalid number of parameters. Required parameters are "scale" and "offset".)");
         }
 
         if (!params.hasKey("scale") || !params.hasKey("offset"))
         {
-            return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Linear scaling has invalid parameters. Required parameters are "scale" and "offset".)");
         }
 
         if (!params.get("scale").supportsInterface<INumber>() || !params.get("offset").supportsInterface<INumber>())
-            return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
 
     return OPENDAQ_SUCCESS;

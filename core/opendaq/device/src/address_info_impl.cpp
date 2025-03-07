@@ -39,7 +39,8 @@ ErrCode AddressInfoImpl::getAddress(IString** address)
 {
     OPENDAQ_PARAM_NOT_NULL(address);
 
-    return daqTry([&]() {
+    return daqTry([&]()
+    {
         *address = getTypedProperty<IString>(Address).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -60,7 +61,8 @@ ErrCode AddressInfoImpl::getType(IString** type)
 {
     OPENDAQ_PARAM_NOT_NULL(type);
 
-    return daqTry([&]() {
+    return daqTry([&]()
+    {
         *type = getTypedProperty<IString>(Type).detach();
         return OPENDAQ_SUCCESS;
     });
@@ -70,7 +72,8 @@ ErrCode AddressInfoImpl::getReachabilityStatus(AddressReachabilityStatus* addres
 {
     OPENDAQ_PARAM_NOT_NULL(addressReachability);
 
-    return daqTry([&]() {
+    return daqTry([&]()
+    {
         *addressReachability = static_cast<AddressReachabilityStatus>(getTypedProperty<IInteger>(ReachabilityStatus));
         return OPENDAQ_SUCCESS;
     });

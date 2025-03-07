@@ -75,7 +75,7 @@ ErrCode PropertyObjectClassImpl::getProperty(IString* propertyName, IProperty** 
         }
 
         StringPtr str = propertyName;
-        return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not found.)", str));
+        return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not found.)", str));
     }
 
     *property = res.value().addRefAndReturn();
@@ -151,14 +151,14 @@ ErrCode PropertyObjectClassImpl::getManager(TypeManagerPtr& managerPtr) const
 {
     if (!manager.assigned())
     {
-        return makeErrorInfo(OPENDAQ_ERR_MANAGER_NOT_ASSIGNED, "Property object manager not assigned.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_MANAGER_NOT_ASSIGNED, "Property object manager not assigned.");
     }
 
     managerPtr = manager.getRef();
 
     if (!managerPtr.assigned())
     {
-        return makeErrorInfo(OPENDAQ_ERR_MANAGER_NOT_ASSIGNED, "Property object manager not assigned.");
+        return this->MakeErrorInfo(OPENDAQ_ERR_MANAGER_NOT_ASSIGNED, "Property object manager not assigned.");
     }
     return OPENDAQ_SUCCESS;
 }
@@ -273,7 +273,7 @@ ErrCode PropertyObjectClassImpl::serializeProperties(ISerializer* serializer)
 
             if (errCode == OPENDAQ_ERR_NOINTERFACE)
             {
-                return makeErrorInfo(OPENDAQ_ERR_NOT_SERIALIZABLE,
+                return this->MakeErrorInfo(OPENDAQ_ERR_NOT_SERIALIZABLE,
                                      std::string("Property \"" + propName + "\" does not implement ISerializable."));
             }
 
@@ -412,7 +412,7 @@ ErrCode PropertyObjectClassImpl::toString(CharPtr* str)
 {
     if (str == nullptr)
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter must not be null");
+        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter must not be null");
     }
 
     std::ostringstream stream;

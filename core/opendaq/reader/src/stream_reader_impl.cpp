@@ -468,7 +468,7 @@ ErrCode StreamReaderImpl::readPacketData()
         auto dataPacket = info.dataPacket;
         if (!dataPacket.getDomainPacket().assigned())
         {
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
+            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
         }
 
         auto domainPacket = dataPacket.getDomainPacket();
@@ -757,7 +757,7 @@ struct ObjectCreator<IStreamReader>
 
         if (toCopy == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null", nullptr);
+            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
         ReadMode mode;

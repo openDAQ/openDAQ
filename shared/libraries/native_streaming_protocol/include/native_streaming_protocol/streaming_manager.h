@@ -28,6 +28,20 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
+struct PacketBufferData
+{
+    PacketBufferData() = default;   
+
+    void reset()
+    {
+        index = -1;
+        count = 0;
+    }
+
+    int index = -1;
+    int count = 0;
+};
+
 using SendPacketBufferCallback = std::function<void(const std::string& subscribedClientId,
                                                     packet_streaming::PacketBufferPtr&& packetBuffer)>;
 using PacketStreamingServerPtr = std::shared_ptr<packet_streaming::PacketStreamingServer>;
@@ -56,6 +70,7 @@ public:
     /// @param packet The openDAQ packet to be processed.
     /// @throw NativeStreamingProtocolException if the signal is not registered.
     void processPacket(const std::string& signalStringId, PacketPtr&& packet);
+    void processPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices, const std::vector<IPacket*>& packets);
 
     /// Gets the packet streaming server for streaming client registered under provided id.
     /// @param clientId The unique string ID provided by the client or automatically assigned by the server.

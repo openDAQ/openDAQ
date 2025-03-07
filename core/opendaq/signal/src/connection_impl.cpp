@@ -509,6 +509,26 @@ ErrCode ConnectionImpl::getInputPort(IInputPort** inputPort)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ConnectionImpl::dequeueUpTo(IPacket** packetPtr, SizeT* count)
+{
+    OPENDAQ_PARAM_NOT_NULL(packetPtr);
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    return withLock(
+        [&packetPtr, &count, this]()
+        {
+            auto ptr = packetPtr;
+            *count = std::min(*count, packets.size());
+            for (size_t i = 0; i < *count; ++i)
+            {
+                *ptr = packets.front().detach();
+                ptr++;
+                packets.pop_front();
+            }
+            return OPENDAQ_SUCCESS;
+        });
+}
+
 const std::deque<PacketPtr>& ConnectionImpl::getPackets() const noexcept
 {
     return packets;

@@ -210,7 +210,9 @@ TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = getErrorPrefix(42) + "newMakeErrorInfoTest failed";
+    std::string expected = "newMakeErrorInfoTest failed";
+    expected += "\n\nTraceback (most recent call last):\n";
+    expected += getErrorPrefix(42) + "newMakeErrorInfoTest failed";
     ASSERT_THROW_MSG(checkErrorInfo(obj->newMakeErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -218,8 +220,10 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = getErrorPrefix(47) + "multipleErrorInfoTest failed once";
-    expected += "\n" + getErrorPrefix(48) + "multipleErrorInfoTest failed twice";
+    std::string expected = "multipleErrorInfoTest failed twice";
+    expected += "\n\nTraceback (most recent call last):\n";
+    expected += getErrorPrefix(47) + "multipleErrorInfoTest failed once\n";
+    expected += getErrorPrefix(48) + "multipleErrorInfoTest failed twice";
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -230,7 +234,9 @@ TEST_F(ErrorInfoTest, ArgumentNotNull)
 #ifdef NDEBUG
     std::string expected = "Argument must not be NULL.";
 #else
-    std::string expected = getErrorPrefix(53) + "Parameter obj must not be null";
+    std::string expected = "Parameter obj must not be null";
+    expected += "\n\nTraceback (most recent call last):\n";
+    expected += getErrorPrefix(53) + "Parameter obj must not be null";
 #endif
     ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), ArgumentNullException, expected);
 }
@@ -239,6 +245,8 @@ TEST_F(ErrorInfoTest, ThrowExceptionInDaqTry)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = getErrorPrefix(61) + "Test failed";
+    std::string expected = "Test failed";
+    expected += "\n\nTraceback (most recent call last):\n";
+    expected += getErrorPrefix(61) + "Test failed";
     ASSERT_THROW_MSG(checkErrorInfo(obj->throwExceptionTest()), GeneralErrorException, expected);
 }

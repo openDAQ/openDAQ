@@ -129,8 +129,7 @@ static std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* error
     }
     
     return ss;
-} 
-
+}
 
 inline void checkErrorInfo(ErrCode errCode)
 {
@@ -144,6 +143,34 @@ inline void checkErrorInfo(ErrCode errCode)
         {
             SizeT count = 0;
             errorInfoList->getCount(&count);
+
+            // print last error
+            {
+                IBaseObject* errorInfoObj;
+                errorInfoList->getItemAt(count - 1, &errorInfoObj);
+
+                IErrorInfo* errorInfo;
+                errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+            
+                if (errorInfo != nullptr)
+                {
+                    IString* message;
+                    errorInfo->getMessage(&message);
+                    if (message != nullptr)
+                    {
+                        ConstCharPtr msgCharPtr;
+                        message->getCharPtr(&msgCharPtr);
+                        if (msgCharPtr != nullptr)
+                            ss << msgCharPtr;
+                        message->releaseRef();
+                    }
+                }
+                if (errorInfoObj != nullptr)
+                    errorInfoObj->releaseRef();
+            }
+    
+            // print traceback
+            ss << "\n\nTraceback (most recent call last):";
             for (SizeT i = 0; i < count; ++i)
             {
                 IBaseObject* errorInfoObj;
@@ -154,8 +181,7 @@ inline void checkErrorInfo(ErrCode errCode)
             
                 if (errorInfo != nullptr)
                 {
-                    if (i != 0)
-                        ss << "\n";
+                    ss << "\n";
                     ErrorFormat(ss, errorInfo);
                 }
                 if (errorInfoObj != nullptr)

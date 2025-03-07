@@ -62,7 +62,7 @@ ErrCode TmsClientInputPortImpl::connect(ISignal* signal)
 {
     return daqTry([&]() {
         if (!isChildComponent(signal))
-            throw NotFoundException();
+            THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
         const SignalPtr signalPtr = signal;
         const auto methodNodeId = getNodeId("Connect");

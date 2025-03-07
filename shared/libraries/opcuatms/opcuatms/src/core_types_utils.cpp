@@ -104,7 +104,7 @@ SampleType SampleTypeFromTmsEnum(UA_SampleTypeEnumeration tmsEnum)
         case UA_SAMPLETYPEENUMERATION_RANGEINT64:
             return SampleType::RangeInt64;
         default:
-            throw ConversionFailedException();
+            THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     }
 }
 
@@ -151,7 +151,7 @@ UA_SampleTypeEnumeration SampleTypeToTmsEnum(SampleType daqEnum)
                 "SampleType \"Null\" is not convertible and reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet."
             );
         default:
-            throw ConversionFailedException();
+            THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     }
 }
 
@@ -164,7 +164,7 @@ ScaledSampleType ScaledSampleTypeFromTmsEnum(UA_SampleTypeEnumeration tmsEnum)
         case UA_SAMPLETYPEENUMERATION_FLOAT64:
             return ScaledSampleType::Float64;
         default:
-            throw ConversionFailedException();
+            THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     }
 }
 
@@ -177,7 +177,7 @@ UA_SampleTypeEnumeration ScaledSampleTypeToTmsEnum(ScaledSampleType daqEnum)
         case ScaledSampleType::Float64:
             return UA_SAMPLETYPEENUMERATION_FLOAT64;
         default:
-            throw ConversionFailedException();
+            THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     }
 }
 
@@ -224,7 +224,7 @@ OpcUaVariant DecodeIfExtensionObject(const OpcUaVariant& variant)
         if (extensionObject.isDecoded())
             return extensionObject.getAsVariant();
 
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     }
 
     return variant;

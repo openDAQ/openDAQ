@@ -213,7 +213,7 @@ protected:
     static void CheckDenominatorAndThrow(const Int den)
     {
         if (den == 0)
-            throw InvalidParameterException("Denominator can't be zero");
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Denominator can't be zero"));
     }
 };
 

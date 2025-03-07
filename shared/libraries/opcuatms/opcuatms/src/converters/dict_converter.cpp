@@ -76,13 +76,13 @@ template <>
 DictPtr<IBaseObject, IBaseObject> VariantConverter<IDict>::ToDaqObject(const OpcUaVariant& variant, const ContextPtr& context)
 {
     if (variant.isScalar())
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     if (variant.isType<UA_ExtensionObject>())
         return dict_converter::ExtensionObjectToDict(variant, context);
     if (variant.isType<UA_DaqKeyValuePair>())
         return dict_converter::DaqKeyValuePairToDict(variant, context);
 
-    throw ConversionFailedException();
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>

@@ -21,18 +21,18 @@ StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<I
     this->types.freeze();
 
     if (this->names.getCount() != this->defaultValues.getCount() || this->names.getCount() != this->types.getCount())
-        throw InvalidParameterException{"StructType parameters are of different sizes."};
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("StructType parameters are of different sizes."));
 
     for(const StringPtr& fieldName : this->names)
     {
         if (!daq::validateTypeName(fieldName.getCharPtr()))
-            throw InvalidParameterException{"Struct field names contain some incorrect ones."};
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Struct field names contain some incorrect ones."));
     }
 
     for (const TypePtr& type: this->types)
     {
         if (!detail::structAcceptedCoreTypes.count(type.getCoreType()))
-            throw InvalidParameterException{"Struct fields cannot be ctObject, ctUndefined, ctFunc, ctProc, ctBinaryData"};
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Struct fields cannot be ctObject, ctUndefined, ctFunc, ctProc, ctBinaryData"));
     }
 }
 
@@ -48,18 +48,18 @@ StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<I
         this->types.freeze();
 
     if (this->names.getCount() != this->types.getCount())
-        throw InvalidParameterException{"StructType parameters are of different sizes."};
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("StructType parameters are of different sizes."));
 
     for(const StringPtr& fieldName : this->names)
     {
         if (!daq::validateTypeName(fieldName.getCharPtr()))
-            throw InvalidParameterException{"Struct field names contain some incorrect ones."};
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Struct field names contain some incorrect ones."));
     }
 
     for (const TypePtr& type: this->types)
     {
         if (!detail::structAcceptedCoreTypes.count(type.getCoreType()))
-            throw InvalidParameterException{"Struct fields cannot be ctObject, ctFunc, ctProc, ctBinaryData"};
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Struct fields cannot be ctObject, ctFunc, ctProc, ctBinaryData"));
     }
 }
 

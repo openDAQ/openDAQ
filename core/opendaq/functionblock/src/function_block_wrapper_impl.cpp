@@ -165,10 +165,10 @@ ErrCode FunctionBlockWrapperImpl::setPropertySelectionValues(IString* propertyNa
             const auto propertyNameStr = StringPtr::Borrow(propertyName);
 
             if (!isPropertyVisible(propertyNameStr))
-                throw NotFoundException();
+                THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
             if (!functionBlock.hasProperty(propertyNameStr))
-                throw NotFoundException();
+                THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
             const auto enumValuesPtr = ListPtr<IInteger>::Borrow(enumValues);
 
@@ -307,15 +307,15 @@ ErrCode FunctionBlockWrapperImpl::setPropertyValue(IString* propertyName, IBaseO
             if (isChildProperty(propertyNameStr, childName, subName))
             {
                 if (!isPropertyVisible(childName))
-                    throw NotFoundException();
+                    THROW_OPENDAQ_EXCEPTION(NotFoundException());
             }
             else
             {
                 if (!isPropertyVisible(propertyNameStr))
-                    throw NotFoundException();
+                    THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
                 if (!isSelectionAvailable(propertyNameStr, valuePtr))
-                    throw NotFoundException("Selection value not available");
+                    THROW_OPENDAQ_EXCEPTION(NotFoundException("Selection value not available"));
 
                 auto cIt = coercers.find(propertyNameStr);
                 if (cIt != coercers.end())
@@ -430,7 +430,7 @@ ErrCode FunctionBlockWrapperImpl::getProperty(IString* propertyName, IProperty**
                 *property = prop.detach();
             }
             else
-                throw NotFoundException();
+                THROW_OPENDAQ_EXCEPTION(NotFoundException());
         });
 }
 

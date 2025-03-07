@@ -83,7 +83,7 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl(const Strin
                                                                      const TypeManagerPtr& typeManager)
 {
     if (!typeManager.assigned())
-        throw InvalidParameterException{"Type manager must be assigned on custom Struct creation."};
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Type manager must be assigned on custom Struct creation."));
 
     if (typeManager.hasType(name))
     {
@@ -101,7 +101,7 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl(const Strin
 
         for (const auto& [key, val] : fields)
             if (!namesSet.count(key))
-                throw InvalidParameterException{fmt::format(R"(Struct field "{}" is not part of the Struct type)", key.toStdString())};
+                THROW_OPENDAQ_EXCEPTION(InvalidParameterException(fmt::format(R"(Struct field "{}" is not part of the Struct type)", key.toStdString())));
 
         for (SizeT i = 0; i < types.getCount(); ++i)
         {
@@ -124,14 +124,14 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl(const Strin
                 {
                     StructPtr structObj = field;
                     if (structObj.getStructType() != fieldType)
-                        throw InvalidParameterException{fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())};
+                        THROW_OPENDAQ_EXCEPTION(InvalidParameterException(fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())));
                 }
                 else
                 {
                     auto coreType = field.getCoreType();
                     auto fieldCoreType = fieldType.getCoreType();
                     if (fieldCoreType != ctUndefined && coreType != fieldCoreType)
-                        throw InvalidParameterException{fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())};
+                        THROW_OPENDAQ_EXCEPTION(InvalidParameterException(fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())));
                 }
             }
         }
@@ -139,7 +139,7 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl(const Strin
     else
     {
         if (!fields.assigned())
-            throw InvalidParameterException{"Fields dictionary is missing."};
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Fields dictionary is missing."));
 
         auto types = List<IType>();
         auto fieldValues = fields.getValueList();
@@ -189,7 +189,7 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl (const Stru
 
     for (const auto& [key, val] : fields)
         if (!namesSet.count(key))
-            throw InvalidParameterException{fmt::format(R"(Struct field "{}" is not part of the Struct type)", key.toStdString())};
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException(fmt::format(R"(Struct field "{}" is not part of the Struct type)", key.toStdString())));
 
     for (SizeT i = 0; i < types.getCount(); ++i)
     {
@@ -212,14 +212,14 @@ GenericStructImpl<StructInterface, Interfaces...>::GenericStructImpl (const Stru
             {
                 StructPtr structObj = field;
                 if (structObj.getStructType() != fieldType)
-                    throw InvalidParameterException{fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())};
+                    THROW_OPENDAQ_EXCEPTION(InvalidParameterException(fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())));
             }
             else
             {
                 auto coreType = field.getCoreType();
                 auto fieldCoreType = fieldType.getCoreType();
                 if (fieldCoreType != ctUndefined && coreType != fieldCoreType)
-                    throw InvalidParameterException{fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())};
+                    THROW_OPENDAQ_EXCEPTION(InvalidParameterException(fmt::format(R"(Struct field "{}" type mismatch.)", fieldName.toStdString())));
             }
         }
     }

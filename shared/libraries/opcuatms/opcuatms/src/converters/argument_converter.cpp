@@ -47,7 +47,7 @@ ArgumentInfoPtr VariantConverter<IArgumentInfo>::ToDaqObject(const OpcUaVariant&
     const auto decodedVariant = DecodeIfExtensionObject(variant);
 
     if (!decodedVariant.isType<UA_Argument>())
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     
     return StructConverter<IArgumentInfo, UA_Argument>::ToDaqObject(*static_cast<UA_Argument*>(decodedVariant->data));
 }

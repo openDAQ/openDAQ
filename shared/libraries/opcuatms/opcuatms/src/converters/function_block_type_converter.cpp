@@ -46,7 +46,7 @@ FunctionBlockTypePtr VariantConverter<IFunctionBlockType>::ToDaqObject(const Opc
     const auto decodedVariant = DecodeIfExtensionObject(variant);
 
     if (!decodedVariant.isType<UA_FunctionBlockInfoStructure>())
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     const auto tmsStruct = static_cast<UA_FunctionBlockInfoStructure*>(decodedVariant->data);
     return StructConverter<IFunctionBlockType, UA_FunctionBlockInfoStructure>::ToDaqObject(*tmsStruct);

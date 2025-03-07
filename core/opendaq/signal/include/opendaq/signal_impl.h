@@ -1126,7 +1126,7 @@ BaseObjectPtr SignalBase<TInterface, Interfaces...>::getDeserializedParameter(co
     if (parameter == "domainSignalId")
         return deserializedDomainSignalId;
 
-    throw NotFoundException();
+    THROW_OPENDAQ_EXCEPTION(NotFoundException());
 }
 
 template <typename TInterface, typename... Interfaces>

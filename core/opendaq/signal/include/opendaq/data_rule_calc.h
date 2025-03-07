@@ -145,7 +145,7 @@ void* DataRuleCalcTyped<T>::calculateRule(const NumberPtr& packetOffset, SizeT s
             break;
     }
 
-    throw UnknownRuleTypeException{};
+    THROW_OPENDAQ_EXCEPTION(UnknownRuleTypeException());
 }
 
 template <typename T>
@@ -164,7 +164,7 @@ void DataRuleCalcTyped<T>::calculateRule(const NumberPtr& packetOffset, SizeT sa
             break;
     }
 
-    throw UnknownRuleTypeException{};
+    THROW_OPENDAQ_EXCEPTION(UnknownRuleTypeException());
 }
 
 template <typename T>
@@ -181,7 +181,7 @@ inline void* DataRuleCalcTyped<T>::calculateSample(const NumberPtr& packetOffset
             break;
     }
 
-    throw UnknownRuleTypeException{};
+    THROW_OPENDAQ_EXCEPTION(UnknownRuleTypeException());
 }
 
 template <typename T>
@@ -201,7 +201,7 @@ inline void DataRuleCalcTyped<T>::calculateSample(
             break;
     }
 
-    throw UnknownRuleTypeException{};
+    THROW_OPENDAQ_EXCEPTION(UnknownRuleTypeException());
 }
 
 template <typename T>
@@ -209,7 +209,7 @@ void* DataRuleCalcTyped<T>::calculateLinearRule(const NumberPtr& packetOffset, S
 {
     auto output = std::malloc(sampleCount * sizeof(T));
     if (!output)
-        throw NoMemoryException("Memory allocation failed.");
+        THROW_OPENDAQ_EXCEPTION(NoMemoryException("Memory allocation failed."));
 
     this->calculateLinearRule(packetOffset, sampleCount, &output);
     return output;
@@ -220,7 +220,7 @@ void* DataRuleCalcTyped<T>::calculateConstantRule(SizeT sampleCount, void* input
 {
     auto output = std::malloc(sampleCount * sizeof(T));
     if (!output)
-        throw NoMemoryException("Memory allocation failed.");
+        THROW_OPENDAQ_EXCEPTION(NoMemoryException("Memory allocation failed."));
 
     this->calculateConstantRule(sampleCount, input, inputSize, &output);
     return output;
@@ -252,7 +252,7 @@ template <typename T>
 void DataRuleCalcTyped<T>::calculateConstantRule(SizeT sampleCount, void* input, SizeT inputSize, void** output)
 {
     if (inputSize < sizeof(T))
-        throw InvalidParameterException("Constant rule data packet must have at least one value");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Constant rule data packet must have at least one value"));
 
     constexpr size_t entrySize = sizeof(T) + sizeof(uint32_t);
     const size_t entryCount = (inputSize - sizeof(T)) / entrySize;
@@ -290,7 +290,7 @@ inline void* DataRuleCalcTyped<T>::calculateLinearSample(const NumberPtr& packet
 {
     auto output = std::malloc(sizeof(T));
     if (!output)
-        throw NoMemoryException("Memory allocation failed.");
+        THROW_OPENDAQ_EXCEPTION(NoMemoryException("Memory allocation failed."));
 
     this->calculateLinearSample(packetOffset, sampleIndex, &output);
     return output;
@@ -301,7 +301,7 @@ inline void* DataRuleCalcTyped<T>::calculateConstantSample(const SizeT sampleInd
 {
     auto output = std::malloc(sizeof(T));
     if (!output)
-        throw NoMemoryException("Memory allocation failed.");
+        THROW_OPENDAQ_EXCEPTION(NoMemoryException("Memory allocation failed."));
 
     this->calculateConstantSample(sampleIndex, input, inputSize, &output);
     return output;
@@ -330,7 +330,7 @@ template <typename T>
 inline void DataRuleCalcTyped<T>::calculateConstantSample(const SizeT sampleIndex, void* input, SizeT inputSize, void** output)
 {
     if (inputSize < sizeof(T))
-        throw InvalidParameterException("Constant rule data packet must have at least one value");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Constant rule data packet must have at least one value"));
 
     constexpr size_t entrySize = sizeof(T) + sizeof(uint32_t);
     const size_t entryCount = (inputSize - sizeof(T)) / entrySize;
@@ -405,7 +405,7 @@ static DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, Samp
             break;
     }
 
-    throw InvalidSampleTypeException{"The output rule output type is not supported."};
+    THROW_OPENDAQ_EXCEPTION(InvalidSampleTypeException("The output rule output type is not supported."));
 }
 
 END_NAMESPACE_OPENDAQ

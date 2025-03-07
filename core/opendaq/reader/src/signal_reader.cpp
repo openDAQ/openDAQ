@@ -230,7 +230,7 @@ std::unique_ptr<Comparable> SignalReader::readStartDomain()
     DataPacketPtr domainPacket = info.dataPacket.getDomainPacket();
     if (!domainPacket.assigned())
     {
-        throw InvalidStateException("Packet must have a domain packet assigned!");
+        THROW_OPENDAQ_EXCEPTION(InvalidStateException("Packet must have a domain packet assigned!"));
     }
 
     return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
@@ -532,7 +532,7 @@ void* SignalReader::getValuePacketData(const DataPacketPtr& packet) const
             return packet.getData();
     }
 
-    throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
+    THROW_OPENDAQ_EXCEPTION(InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode)));
 }
 
 bool SignalReader::isSynced() const

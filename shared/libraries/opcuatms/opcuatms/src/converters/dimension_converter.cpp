@@ -62,7 +62,7 @@ DimensionPtr VariantConverter<IDimension>::ToDaqObject(const OpcUaVariant& varia
     const auto decodedVariant = DecodeIfExtensionObject(variant);
 
     if (!decodedVariant.isType<UA_DimensionDescriptorStructure>())
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     const auto tmsStruct = static_cast<UA_DimensionDescriptorStructure*>(decodedVariant->data);
     return StructConverter<IDimension, UA_DimensionDescriptorStructure>::ToDaqObject(*tmsStruct);

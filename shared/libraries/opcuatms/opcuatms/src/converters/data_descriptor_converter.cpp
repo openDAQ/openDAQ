@@ -261,7 +261,7 @@ DataDescriptorPtr VariantConverter<IDataDescriptor>::ToDaqObject(const OpcUaVari
         return StructConverter<IDataDescriptor, UA_DataDescriptorStructure>::ToDaqObject(*tmsStruct);
     }
 
-    throw ConversionFailedException();
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>

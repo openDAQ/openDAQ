@@ -25,10 +25,10 @@ BEGIN_NAMESPACE_OPENDAQ
 inline std::tuple<bool, bool, DataDescriptorPtr, DataDescriptorPtr> parseDataDescriptorEventPacket(const EventPacketPtr& eventPacket)
 {
     if (!eventPacket.assigned())
-        throw ArgumentNullException("Event packet not assigned");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Event packet not assigned"));
 
     if (!(eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED))
-        throw InvalidParameterException(R"(Invalid event packet id: {})", eventPacket.getEventId());
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException(R"(Invalid event packet id: {})", eventPacket.getEventId()));
 
     const auto params = eventPacket.getParameters();
     const DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];

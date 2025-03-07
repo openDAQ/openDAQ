@@ -271,7 +271,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                                               [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp) const
 {
     if (!inputBuffer)
-        throw ArgumentNullException{};
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException());
 
     using namespace reader;
 
@@ -551,7 +551,7 @@ std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionP
         case SampleType::_count:
             break;
     }
-    throw NotSupportedException("The requested sample-type is unsupported or invalid.");
+    THROW_OPENDAQ_EXCEPTION(NotSupportedException("The requested sample-type is unsupported or invalid."));
 }
 
 std::string_view format_as(SampleType sampleType)

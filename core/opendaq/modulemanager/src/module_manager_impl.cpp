@@ -66,7 +66,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     }
 
     if (paths.empty())
-        throw InvalidParameterException{"No valid paths provided!"};
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("No valid paths provided!"));
 
     discoveryClient.initMdnsClient(List<IString>(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME));
 }
@@ -912,13 +912,13 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
 DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const
 {
     if (!availableDevicesGroup.assigned())
-        throw NotFoundException("Device scan has not yet been initiated.");
+        THROW_OPENDAQ_EXCEPTION(NotFoundException("Device scan has not yet been initiated."));
 
     if (useSmartConnection)
     {
         if (availableDevicesGroup.hasKey(inputConnectionString))
             return availableDevicesGroup.get(inputConnectionString);
-        throw NotFoundException(fmt::format("Device with connection string \"{}\" not found", inputConnectionString));
+        THROW_OPENDAQ_EXCEPTION(NotFoundException(fmt::format("Device with connection string \"{}\" not found", inputConnectionString)));
     }
 
     for (const auto & [_, info] : availableDevicesGroup)
@@ -951,7 +951,7 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
 {
     const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
     if (capabilities.getCount() == 0)
-        throw NotFoundException(fmt::format("Device with connection string \"{}\" has no available server capabilities", inputConnectionString));
+        THROW_OPENDAQ_EXCEPTION(NotFoundException(fmt::format("Device with connection string \"{}\" has no available server capabilities", inputConnectionString)));
 
     ServerCapabilityPtr selectedCapability = capabilities[0];
     auto selectedPriority = getServerCapabilityPriority(selectedCapability);
@@ -1467,7 +1467,7 @@ std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManag
         return std::make_pair(strs1[0], tsl::ordered_map<std::string, BaseObjectPtr> {});
 
     if (strs1.size() != 2)
-        throw InvalidParameterException("Invalid connection string");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid connection string"));
 
     std::vector<std::string> options;
     boost::split(options, strs1[1], boost::is_any_of("&"));
@@ -1478,7 +1478,7 @@ std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManag
         std::vector<std::string> keyAndValue;
         boost::split(keyAndValue, option, boost::is_any_of("="));
         if (keyAndValue.size() != 2)
-            throw InvalidParameterException("Invalid connection string");
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid connection string"));
 
         BaseObjectPtr value = EvalValue(keyAndValue[1]);
         optionsMap.insert({keyAndValue[0], value});
@@ -1639,10 +1639,10 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
     std::error_code errCode;
     if (!fs::exists(searchFolder, errCode))
-        throw InvalidParameterException("The specified path \"%s\" does not exist.", searchFolder.c_str());
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("The specified path \"%s\" does not exist.", searchFolder.c_str()));
 
     if (!fs::is_directory(searchFolder, errCode))
-        throw InvalidParameterException("The specified path \"%s\" is not a folder.", searchFolder.c_str());
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("The specified path \"%s\" is not a folder.", searchFolder.c_str()));
 
     fs::recursive_directory_iterator dirIterator(searchFolder);
 
@@ -1718,7 +1718,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
 
     if (libraryErrCode)
     {
-        throw ModuleLoadFailedException(
+        THROW_OPENDAQ_EXCEPTION(ModuleLoadFailedException(
             "Module \"{}\" failed to load. Error: {} [{}]",
             relativePath,
             libraryErrCode.value(),
@@ -1728,7 +1728,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
 #else
             libraryErrCode.message()
 #endif
-        );
+        ));
     }
 
     if (moduleLibrary.has(checkDependenciesFunc))
@@ -1744,12 +1744,12 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
         {
             LOG_T("Failed to check dependencies for \"{}\".", relativePath);
 
-            throw ModuleIncompatibleDependenciesException(
+            THROW_OPENDAQ_EXCEPTION(ModuleIncompatibleDependenciesException(
                 "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
                 relativePath,
                 errCode,
                 errMsg
-            );
+            ));
         }
     }
 
@@ -1757,7 +1757,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
     {
         LOG_T("Module \"{}\" has no exported module factory.", relativePath);
 
-        throw ModuleNoEntryPointException("Module \"{}\" has no exported module factory.", relativePath);
+        THROW_OPENDAQ_EXCEPTION(ModuleNoEntryPointException("Module \"{}\" has no exported module factory.", relativePath));
     }
 
     using ModuleFactory = ErrCode(IModule**, IContext*);
@@ -1771,7 +1771,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
     {
         LOG_T("Failed creating module from \"{}\".", relativePath);
 
-        throw ModuleEntryPointFailedException("Library \"{}\" failed to create a Module.", relativePath);
+        THROW_OPENDAQ_EXCEPTION(ModuleEntryPointFailedException("Library \"{}\" failed to create a Module.", relativePath));
     }
 
     if (auto version = module.getModuleInfo().getVersionInfo(); version.assigned())

@@ -38,7 +38,7 @@ ClientType ClientTypeTools::IntToClientType(Int value)
             return ClientType::ViewOnly;
     }
 
-    throw InvalidValueException("Client type value invalid");
+    THROW_OPENDAQ_EXCEPTION(InvalidValueException("Client type value invalid"));
 }
 
 END_NAMESPACE_OPENDAQ

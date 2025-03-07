@@ -71,7 +71,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     if (id >= devices.size())
     {
         LOG_W("Device with id \"{}\" not found", id);
-        throw NotFoundException();
+        THROW_OPENDAQ_EXCEPTION(NotFoundException());
     }
 
     clearRemovedDevices();

@@ -7,7 +7,7 @@ CmdLineArgsConfigProviderImpl::CmdLineArgsConfigProviderImpl(const ListPtr<IStri
     : cmdLineArgs(cmdLineArgs)
 {
     if (!cmdLineArgs.assigned())
-        throw ArgumentNullException("List of command line args is not assigned");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("List of command line args is not assigned"));
 }
 
 ErrCode INTERFACE_FUNC CmdLineArgsConfigProviderImpl::populateOptions(IDict* options) 

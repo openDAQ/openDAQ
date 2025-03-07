@@ -77,7 +77,7 @@ UnitPtr VariantConverter<IUnit>::ToDaqObject(const OpcUaVariant& variant, const 
     if (decodedVariant.isType<UA_EUInformation>())
         return StructConverter<IUnit, UA_EUInformation>::ToDaqObject(*static_cast<UA_EUInformation*>(decodedVariant->data));
 
-    throw ConversionFailedException();
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>

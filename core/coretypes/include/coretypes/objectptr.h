@@ -846,7 +846,7 @@ ObjectPtr<IBaseObject> baseObjectBinOpOfTwoList(const ObjectPtr<U>& left,
     checkErrorInfo(leftList->getCount(&rightCount));
 
     if (leftCount != rightCount)
-        throw InvalidTypeException();
+        THROW_OPENDAQ_EXCEPTION(InvalidTypeException());
 
     ObjectPtr<IList> list = List_Create();
     for (size_t i = 0; i < leftCount; i++)
@@ -914,7 +914,7 @@ ObjectPtr<IBaseObject> baseObjectBinOp(const ObjectPtr<U>& left, const ObjectPtr
     auto rightCoreType = right.getCoreType();
     auto resultCoreType = leftCoreType > rightCoreType ? leftCoreType : rightCoreType;
     if (resultCoreType > ctList)
-        throw InvalidTypeException();
+        THROW_OPENDAQ_EXCEPTION(InvalidTypeException());
 
     switch (resultCoreType)
     {
@@ -929,7 +929,7 @@ ObjectPtr<IBaseObject> baseObjectBinOp(const ObjectPtr<U>& left, const ObjectPtr
         case ctList:
             return baseObjectBinOpOfList<U, V, O>(left, leftCoreType, right, rightCoreType);
         default:
-            throw InvalidTypeException();
+            THROW_OPENDAQ_EXCEPTION(InvalidTypeException());
     }
 }
 
@@ -993,7 +993,7 @@ ObjectPtr<IBaseObject> baseObjectUnaryOpBaseObject(const ObjectPtr<T>& value)
 {
     auto valueCoreType = value.getCoreType();
     if (valueCoreType != ctInt && valueCoreType != ctFloat)
-        throw InvalidTypeException();
+        THROW_OPENDAQ_EXCEPTION(InvalidTypeException());
 
     switch (valueCoreType)
     {
@@ -1002,7 +1002,7 @@ ObjectPtr<IBaseObject> baseObjectUnaryOpBaseObject(const ObjectPtr<T>& value)
         case ctFloat:
             return baseObjectUnaryOpOfType<T, O, Float>(value);
         default:
-            throw InvalidTypeException();
+            THROW_OPENDAQ_EXCEPTION(InvalidTypeException());
     }
 }
 
@@ -1300,7 +1300,7 @@ ObjectPtr<T>::ObjectPtr(const TComPtr& unknown)
 {
     if (!unknown)
     {
-        throw ArgumentNullException("Interface must not be null");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Interface must not be null"));
     }
 
     IUnknown* intf = (IUnknown*) unknown.GetInterfacePtr();
@@ -2156,7 +2156,7 @@ ObjectPtr<IBaseObject> ObjectPtr<T>::convertTo(CoreType ct) const
             return ObjectPtr<IBaseObject>(val);
         }
         default:
-            throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     }
 }
 
@@ -2179,7 +2179,7 @@ ObjectPtr<IString> ObjectPtr<T>::toString() const
 {
     if (!object)
     {
-        throw InvalidParameterException("Wrapped object must not be null.");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Wrapped object must not be null."));
     }
 
     CharPtr data;

@@ -115,7 +115,7 @@ template <typename TInterface>
 void DataPacketImpl<TInterface>::initPacket()
 {
     if (descriptor.getSampleType() == SampleType::Struct && rawSampleSize != sampleSize)
-        throw InvalidParameterException("Packets with struct implicit descriptor not supported");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Packets with struct implicit descriptor not supported"));
 
     const auto ruleType = descriptor.getRule().getType();
 
@@ -149,7 +149,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     data = nullptr;
 
     if (!descriptor.assigned())
-        throw ArgumentNullException("Data descriptor in packet is null.");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Data descriptor in packet is null."));
 
     sampleSize = descriptor.getSampleSize();
     rawSampleSize = descriptor.getRawSampleSize();
@@ -161,7 +161,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
         data = std::malloc(rawDataSize);
 
         if (data == nullptr)
-            throw NoMemoryException();
+            THROW_OPENDAQ_EXCEPTION(NoMemoryException());
     }
     memorySize = rawDataSize;
 
@@ -191,10 +191,10 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     data = nullptr;
 
     if (!descriptor.assigned())
-        throw ArgumentNullException("Data descriptor in packet is null.");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Data descriptor in packet is null."));
 
     if (!deleter.assigned())
-        throw ArgumentNullException("Deleter must be assigned.");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Deleter must be assigned."));
 
     sampleSize = descriptor.getSampleSize();
     rawSampleSize = descriptor.getRawSampleSize();
@@ -234,10 +234,10 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     data = nullptr;
 
     if (!descriptor.assigned())
-        throw ArgumentNullException("Data descriptor in packet is null.");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Data descriptor in packet is null."));
     const auto ruleType = descriptor.getRule().getType();
     if (ruleType != DataRuleType::Constant)
-        throw InvalidParameterException("Data rule must be constant.");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Data rule must be constant."));
 
     sampleSize = descriptor.getSampleSize();
     dataSize = sampleCount * sampleSize;
@@ -252,7 +252,7 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     hasDataRuleCalc = true;
     hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(false)->hasScalingCalc();
     if (hasScalingCalc)
-        throw InvalidParameterException("Constant data rule with post scaling not supported.");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Constant data rule with post scaling not supported."));
     hasRawDataOnly = false;
 
     hasReferenceDomainOffset =
@@ -429,7 +429,7 @@ bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) co
         if (descriptor.getRule().getType() == DataRuleType::Constant)
             return false;
         else
-            throw InvalidSampleTypeException();
+            THROW_OPENDAQ_EXCEPTION(InvalidSampleTypeException());
     }
 
     return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), rawDataSize) == 0;
@@ -543,12 +543,12 @@ inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr
     const auto dimensions = descriptor.getDimensions();
 
     if (!dimensions.assigned())
-        throw NotAssignedException{"Dimensions of data descriptor not assigned."};
+        THROW_OPENDAQ_EXCEPTION(NotAssignedException("Dimensions of data descriptor not assigned."));
 
     const auto dimensionCount = dimensions.getCount();
 
     if (dimensionCount > 1)
-        throw NotSupportedException{"getLastValue on packets with dimensions supports only up to one dimension."};
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException("getLastValue on packets with dimensions supports only up to one dimension."));
 
     const auto sampleType = descriptor.getSampleType();
 
@@ -756,7 +756,7 @@ ErrCode DataPacketImpl<TInterface>::reuse(IDataDescriptor* newDescriptor,
         data = std::malloc(newRawDataSize);
 
         if (data == nullptr)
-            throw NoMemoryException();
+            THROW_OPENDAQ_EXCEPTION(NoMemoryException());
     }
     else
     {

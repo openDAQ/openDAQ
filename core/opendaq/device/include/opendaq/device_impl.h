@@ -803,7 +803,7 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
-        throw NotFoundException("Function block not found. Device does not allow adding/removing function blocks.");
+        THROW_OPENDAQ_EXCEPTION(NotFoundException("Function block not found. Device does not allow adding/removing function blocks."));
 
     this->functionBlocks.removeItem(functionBlock);
 }
@@ -995,13 +995,13 @@ StringPtr GenericDevice<TInterface, Interfaces...>::onGetLog(const StringPtr& /*
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onSubmitNetworkConfiguration(const StringPtr& /*ifaceName*/, const PropertyObjectPtr& /*config*/)
 {
-    throw NotImplementedException();
+    THROW_OPENDAQ_EXCEPTION(NotImplementedException());
 }
 
 template <typename TInterface, typename... Interfaces>
 PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onRetrieveNetworkConfiguration(const StringPtr& /*ifaceName*/)
 {
-    throw NotImplementedException();
+    THROW_OPENDAQ_EXCEPTION(NotImplementedException());
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1013,7 +1013,7 @@ Bool GenericDevice<TInterface, Interfaces...>::onGetNetworkConfigurationEnabled(
 template <typename TInterface, typename... Interfaces>
 ListPtr<IString> GenericDevice<TInterface, Interfaces...>::onGetNetworkInterfaceNames()
 {
-    throw NotImplementedException();
+    THROW_OPENDAQ_EXCEPTION(NotImplementedException());
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1190,7 +1190,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addStreaming(IStreaming** stre
 template <typename TInterface, typename... Interfaces>
 StreamingPtr GenericDevice<TInterface, Interfaces...>::onAddStreaming(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
 {
-    throw NotImplementedException();
+    THROW_OPENDAQ_EXCEPTION(NotImplementedException());
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1201,7 +1201,7 @@ ServerPtr GenericDevice<TInterface, Interfaces...>::onAddServer(const StringPtr&
 
     auto lock = this->getRecursiveConfigLock();
     if (!this->isRootDevice)
-        throw NotFoundException("Device does not allow adding/removing servers.");
+        THROW_OPENDAQ_EXCEPTION(NotFoundException("Device does not allow adding/removing servers."));
     this->servers.addItem(server);
 
     return server;
@@ -1213,7 +1213,7 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveServer(const ServerPtr& s
     auto lock = this->getRecursiveConfigLock();
 
     if (!this->isRootDevice)
-        throw NotFoundException("Device does not allow adding/removing servers.");
+        THROW_OPENDAQ_EXCEPTION(NotFoundException("Device does not allow adding/removing servers."));
 
     this->servers.removeItem(server);
 }
@@ -1463,7 +1463,7 @@ template <class TInterface, class... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::addSubDevice(const DevicePtr& device)
 {
     if (device.getParent() != devices)
-        throw InvalidParameterException("Invalid parent of device");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid parent of device"));
 
     try
     {
@@ -1471,7 +1471,7 @@ void GenericDevice<TInterface, Interfaces...>::addSubDevice(const DevicePtr& dev
     }
     catch (DuplicateItemException&)
     {
-        throw DuplicateItemException("Device with the same local ID already exists.");
+        THROW_OPENDAQ_EXCEPTION(DuplicateItemException("Device with the same local ID already exists."));
     }
 }
 

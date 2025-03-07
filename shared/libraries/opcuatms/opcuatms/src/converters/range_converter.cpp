@@ -37,7 +37,7 @@ RangePtr VariantConverter<IRange>::ToDaqObject(const OpcUaVariant& variant, cons
     const auto decodedVariant = DecodeIfExtensionObject(variant);
 
     if (!decodedVariant.isType<UA_Range>())
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     
     return StructConverter<IRange, UA_Range>::ToDaqObject(*static_cast<UA_Range*>(decodedVariant->data));
 }

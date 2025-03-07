@@ -12,7 +12,7 @@ BinaryDataImpl::BinaryDataImpl(SizeT size)
     this->data = new (std::nothrow) char[size];
     this->size = size;
     if (this->data == nullptr)
-        throw NoMemoryException();
+        THROW_OPENDAQ_EXCEPTION(NoMemoryException());
 }
 
 ErrCode BinaryDataImpl::getAddress(void** data)

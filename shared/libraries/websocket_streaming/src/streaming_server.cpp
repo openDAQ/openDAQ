@@ -156,11 +156,9 @@ void StreamingServer::broadcastPacket(const std::string& signalId, const PacketP
 DataRuleType StreamingServer::getSignalRuleType(const SignalPtr& signal)
 {
     auto descriptor = signal.getDescriptor();
-    if (!descriptor.assigned() || !descriptor.getRule().assigned())
-    {
-        throw InvalidParameterException(R"(Signal "{}" has incomplete  descriptor - unknown signal rule)", signal.getGlobalId());
-    }
-    return descriptor.getRule().getType();
+    if (descriptor.assigned() && descriptor.getRule().assigned())
+        return descriptor.getRule().getType();
+    THROW_OPENDAQ_EXCEPTION(InvalidParameterException(R"(Signal "{}" has incomplete  descriptor - unknown signal rule)", signal.getGlobalId()));
 }
 
 OutputDomainSignalBasePtr StreamingServer::addUpdateOrFindDomainSignal(const SignalPtr& domainSignal,
@@ -185,7 +183,7 @@ OutputDomainSignalBasePtr StreamingServer::addUpdateOrFindDomainSignal(const Sig
             // find previously added complete output domain signal
             outputDomainSignal = std::dynamic_pointer_cast<OutputDomainSignalBase>(outputSignal);
             if (!outputDomainSignal)
-                throw NoInterfaceException("Previously registered domain output signal {} is not of domain type", domainSignalId);
+                THROW_OPENDAQ_EXCEPTION(NoInterfaceException("Previously registered domain output signal {} is not of domain type", domainSignalId));
         }
     }
     else
@@ -218,7 +216,7 @@ void StreamingServer::addToOutputSignals(const SignalPtr& signal,
         }
         else
         {
-            throw InvalidParameterException("Unsupported domain signal rule type - only domain signals with linear rule type are supported in LT-streaming");
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Unsupported domain signal rule type - only domain signals with linear rule type are supported in LT-streaming"));
         }
     }
     else
@@ -690,8 +688,7 @@ OutputDomainSignalBasePtr StreamingServer::createOutputDomainSignal(const Signal
 
     if (domainSignalRuleType == DataRuleType::Linear)
         return std::make_shared<OutputLinearDomainSignal>(writer, daqDomainSignal, tableId, logCallback);
-    else
-        throw InvalidParameterException("Unsupported domain signal rule type");
+    THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Unsupported domain signal rule type"));
 }
 
 OutputSignalBasePtr StreamingServer::createOutputValueSignal(const SignalPtr& daqSignal,
@@ -705,8 +702,7 @@ OutputSignalBasePtr StreamingServer::createOutputValueSignal(const SignalPtr& da
         return std::make_shared<OutputSyncValueSignal>(writer, daqSignal, outputDomainSignal, tableId, logCallback);
     else if (valueSignalRuleType == DataRuleType::Constant)
         return std::make_shared<OutputConstValueSignal>(writer, daqSignal, outputDomainSignal, tableId, logCallback);
-    else
-        throw InvalidParameterException("Unsupported value signal rule type");
+    THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Unsupported value signal rule type"));
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

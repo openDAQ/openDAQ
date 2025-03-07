@@ -445,7 +445,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunction
 template <typename TInterface, typename... Interfaces>
 FunctionBlockPtr FunctionBlockImpl<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
 {
-    throw NotSupportedException("Function block does not support adding nested function blocks");
+    THROW_OPENDAQ_EXCEPTION(NotSupportedException("Function block does not support adding nested function blocks"));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -534,7 +534,7 @@ template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::addInputPort(const InputPortPtr& inputPort)
 {
     if (inputPort.getParent() != inputPorts)
-        throw InvalidParameterException("Invalid parent of input port");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid parent of input port"));
 
     try
     {
@@ -542,7 +542,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::addInputPort(const InputPortP
     }
     catch (DuplicateItemException&)
     {
-        throw DuplicateItemException("Input port with the same ID already exists");
+        THROW_OPENDAQ_EXCEPTION(DuplicateItemException("Input port with the same ID already exists"));
     }
 }
 

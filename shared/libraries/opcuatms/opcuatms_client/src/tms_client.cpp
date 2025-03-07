@@ -93,7 +93,7 @@ void TmsClient::getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string&
     const auto& references = tmsClientContext->getReferenceBrowser()->browseFiltered(rootNodeId, filter);
 
     if (references.byNodeId.empty())
-        throw NotFoundException();
+        THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
     nodeIdOut = OpcUaNodeId(references.byBrowseName.begin().value()->nodeId.nodeId);
     browseNameOut = references.byBrowseName.begin().key();

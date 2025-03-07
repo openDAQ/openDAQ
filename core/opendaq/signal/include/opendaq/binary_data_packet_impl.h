@@ -89,7 +89,7 @@ void BinaryDataPacketImpl<ExternalMemory>::validateDescriptor()
         THROW_OPENDAQ_EXCEPTION(ArgumentNullException());
 
     if (dataDescriptor.getSampleType() != SampleType::Binary)
-        throw InvalidParameterException("Sample type is not Binary.");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Sample type is not Binary."));
 }
 #endif
 
@@ -120,7 +120,7 @@ BinaryDataPacketImpl<ExternalMemory>::BinaryDataPacketImpl(
 #ifdef OPENDAQ_ENABLE_PARAMETER_VALIDATION
     validateDescriptor();
     if (!this->data)
-        throw InvalidParameterException("Data parameter must not be null.");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Data parameter must not be null."));
 #endif
     type = PacketType::Data;
 }

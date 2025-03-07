@@ -67,7 +67,7 @@ public:
 
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) override
     {
-        throw InvalidStateException();
+        THROW_OPENDAQ_EXCEPTION(InvalidStateException());
     }
 
     SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
@@ -76,7 +76,7 @@ public:
                       SizeT size,
                       std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) override
     {
-        throw InvalidStateException();
+        THROW_OPENDAQ_EXCEPTION(InvalidStateException());
     }
 
     virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) override

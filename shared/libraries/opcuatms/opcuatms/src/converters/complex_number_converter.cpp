@@ -63,7 +63,7 @@ ComplexNumberPtr VariantConverter<IComplexNumber>::ToDaqObject(const OpcUaVarian
         return StructConverter<IComplexNumber, UA_ComplexNumberType>::ToDaqObject(
             *static_cast<UA_ComplexNumberType*>(decodedVariant->data));
 
-    throw ConversionFailedException();
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>

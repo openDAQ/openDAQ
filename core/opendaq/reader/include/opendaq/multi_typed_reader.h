@@ -157,7 +157,7 @@ public:
         den /= gcd;
 
         if (den % num != 0)
-            throw NotSupportedException("Resolution must be aligned on full unit of domain");
+            THROW_OPENDAQ_EXCEPTION(NotSupportedException("Resolution must be aligned on full unit of domain"));
 
         value = (((value * num + den - 1) / den) * den) / num;
     }
@@ -172,7 +172,7 @@ public:
         den /= gcd;
 
         if (den % num != 0)
-            throw NotSupportedException("Resolution must be aligned on full unit of domain");
+            THROW_OPENDAQ_EXCEPTION(NotSupportedException("Resolution must be aligned on full unit of domain"));
 
         value = (((value * num + den - 1) / den) * den) / num;
     }
@@ -211,7 +211,7 @@ private:
         if (sortable == nullptr)
         {
             // ReSharper disable once StringLiteralTypo
-            throw InvalidParameterException("All Comparables must be of the same type!");
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("All Comparables must be of the same type!"));
         }
 
         if (value > sortable->value)
@@ -385,7 +385,7 @@ private:
         if (sortable == nullptr)
         {
             // ReSharper disable once StringLiteralTypo
-            throw InvalidParameterException("All Comparables must be of the same type!");
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("All Comparables must be of the same type!"));
         }
 
         if (value.start > sortable->value.start)

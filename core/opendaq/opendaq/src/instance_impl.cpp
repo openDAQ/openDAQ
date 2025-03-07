@@ -755,7 +755,7 @@ ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
         const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
         const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
         if (rootDeviceWrapperKeysPtr.getCount() != 1)
-            throw InvalidValueException("Invalid root device object");
+            THROW_OPENDAQ_EXCEPTION(InvalidValueException("Invalid root device object"));
 
         const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
         rootDevicePtr.checkObjectType("Device");

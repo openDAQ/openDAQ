@@ -8,7 +8,7 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 BaseObjectPtr SelectionVariantConverter::ToDaqObject(const OpcUaVariant& variant, const ContextPtr& context)
 {
     if (!variant.isType<UA_ExtensionObject>())
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     auto data = static_cast<UA_ExtensionObject*>(variant->data);
     auto dict = Dict<IInteger, IBaseObject>();

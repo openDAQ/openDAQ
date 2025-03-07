@@ -43,18 +43,18 @@ LoggerComponentImpl::LoggerComponentImpl(const StringPtr& name, const ListPtr<IL
 
     if (!sinks.assigned())
     {
-        throw ArgumentNullException("Sinks List must not be null.");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Sinks List must not be null."));
     }
     for (const ObjectPtr<ILoggerSink>& sink : sinks)
     {
         if(!sink.assigned())
         {
-            throw ArgumentNullException("Sink must not be null");
+            THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Sink must not be null"));
         }
         auto sinkPtr = sink.asPtrOrNull<ILoggerSinkBasePrivate>(true);
         if (sinkPtr == nullptr)
         {
-            throw InvalidTypeException("Sink must have valid type");
+            THROW_OPENDAQ_EXCEPTION(InvalidTypeException("Sink must have valid type"));
         }
         spdlogLogger->sinks().push_back(sinkPtr.getSinkImpl());
     }

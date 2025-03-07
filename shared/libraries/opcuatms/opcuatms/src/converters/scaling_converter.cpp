@@ -47,7 +47,7 @@ OpcUaObject<UA_LinearScalingDescriptionStructure> StructConverter<IScaling, UA_L
     const ScalingPtr& object, const ContextPtr& /*context*/)
 {
     if (object.getType() != ScalingType::Linear)
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     OpcUaObject<UA_LinearScalingDescriptionStructure> scaling;
     scaling->type = UA_STRING_ALLOC("linear");
@@ -123,7 +123,7 @@ ScalingPtr VariantConverter<IScaling>::ToDaqObject(const OpcUaVariant& variant, 
         return StructConverter<IScaling, UA_LinearScalingDescriptionStructure>::ToDaqObject(*tmsStruct);
     }
     
-    throw ConversionFailedException();
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>

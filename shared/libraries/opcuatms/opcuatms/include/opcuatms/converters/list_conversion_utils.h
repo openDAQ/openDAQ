@@ -107,7 +107,7 @@ template <typename BlueberryType, typename TmsType>
 ListPtr<BlueberryType> ListConversionUtils::VariantToList(const OpcUaVariant& variant, const ContextPtr& context)
 {
     if (!variant.isType<TmsType>())
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     auto data = static_cast<TmsType*>(variant->data);
     auto list = List<BlueberryType>();
@@ -151,7 +151,7 @@ template <typename BlueberryType>
 ListPtr<BlueberryType> ListConversionUtils::ExtensionObjectVariantToList(const OpcUaVariant& variant, const ContextPtr& context)
 {
     if (!variant.isType<UA_ExtensionObject>())
-        throw ConversionFailedException();
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     const auto data = static_cast<UA_ExtensionObject*>(variant->data);
     auto list = List<BlueberryType>();

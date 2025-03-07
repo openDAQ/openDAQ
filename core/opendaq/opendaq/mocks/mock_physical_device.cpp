@@ -235,18 +235,18 @@ void MockPhysicalDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& iface
     if (onSubmitConfig.assigned())
         onSubmitConfig(ifaceName, config);
     else
-        throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+        THROW_OPENDAQ_EXCEPTION(NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
                                       "and equals signs =============================================================================="
-                                      "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated");
+                                      "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated"));
 }
 
 PropertyObjectPtr MockPhysicalDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr& ifaceName)
 {
     if (onRetrieveConfig.assigned())
         return onRetrieveConfig(ifaceName);
-    throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+    THROW_OPENDAQ_EXCEPTION(NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
                                   "and equals signs =============================================================================="
-                                  "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated");
+                                  "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated"));
 }
 
 Bool MockPhysicalDeviceImpl::onGetNetworkConfigurationEnabled()

@@ -192,7 +192,7 @@ public:
 
         const auto type = readString("__type");
         if (type.toStdString() != objectType)
-            throw InvalidTypeException(fmt::format("Object not of ""{}"" type", objectType));
+            THROW_OPENDAQ_EXCEPTION(InvalidTypeException(fmt::format("Object has type ""{}"" of ""{}""", type.toStdString(), objectType)));
     }
 
     Bool isRoot() const

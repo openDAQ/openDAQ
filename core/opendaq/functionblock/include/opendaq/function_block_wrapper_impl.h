@@ -129,10 +129,10 @@ ErrCode FunctionBlockWrapperImpl::setOverridenObject(
             auto propertyNameStr = StringPtr::Borrow(propertyName);
 
             if (!isPropertyVisible(propertyNameStr))
-                throw NotFoundException();
+                THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
             if (!functionBlock.hasProperty(propertyNameStr))
-                throw NotFoundException();
+                THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
             auto objectPtr = TSmartPtr::Borrow(object);
 

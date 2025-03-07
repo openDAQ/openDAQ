@@ -1904,7 +1904,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         {
             getProperty(propName, &prop);
             if (!prop.assigned())
-                THROW_OPENDAQ_EXCEPTIONNotFoundException(R"(Selection property "{}" not found)", propName));
+                THROW_OPENDAQ_EXCEPTION(NotFoundException(R"(Selection property "{}" not found)", propName));
 
             valuePtr = prop.getValue();
         }

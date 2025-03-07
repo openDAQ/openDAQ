@@ -448,7 +448,7 @@ template <class Intf, class... Intfs>
 bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
 {
     if (!component.supportsInterface(itemId))
-        throw InvalidParameterException("Type of item not allowed in the folder");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Type of item not allowed in the folder"));
 
     const auto res = items.insert({component.getLocalId(), component});
     

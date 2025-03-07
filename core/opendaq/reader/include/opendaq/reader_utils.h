@@ -142,7 +142,7 @@ namespace reader
         auto rule = dataDescriptor.getRule();
         if (rule.assigned() && rule.getType() != DataRuleType::Linear)
         {
-            throw NotSupportedException("Only signals with implicit linear-rule as a domain are supported.");
+            THROW_OPENDAQ_EXCEPTION(NotSupportedException("Only signals with implicit linear-rule as a domain are supported."));
         }
         else
         {
@@ -152,7 +152,7 @@ namespace reader
         double sampleRate = static_cast<double>(resolution.getDenominator()) / (static_cast<double>(resolution.getNumerator()) * delta.getFloatValue());
         if (sampleRate != static_cast<double>(static_cast<int64_t>(sampleRate)))
         {
-            throw NotSupportedException("Only signals with integral sample-rate are supported but found signal with {} Hz", sampleRate);
+            THROW_OPENDAQ_EXCEPTION(NotSupportedException("Only signals with integral sample-rate are supported but found signal with {} Hz", sampleRate));
         }
         return static_cast<int64_t>(sampleRate);
     }

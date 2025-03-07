@@ -349,7 +349,7 @@ public:
      */
     virtual FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
     {
-        throw NotFoundException();
+        THROW_OPENDAQ_EXCEPTION(NotFoundException());
     }
 
     /*!

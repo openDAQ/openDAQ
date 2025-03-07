@@ -96,7 +96,7 @@ void* ScalingCalcTyped<T, U>::scaleLinear(void* data, SizeT sampleCount)
 {
     auto scaledData = std::malloc(sampleCount * sizeof(U));
     if (!scaledData)
-        throw NoMemoryException("Memory allocation failed.");
+        THROW_OPENDAQ_EXCEPTION(NoMemoryException("Memory allocation failed."));
 
     this->scaleLinear(data, sampleCount, &scaledData);
     return scaledData;
@@ -168,6 +168,6 @@ static ScalingCalc* createScalingCalcTyped(const ScalingPtr& scaling)
     if (inputType == SampleType::Int64 && outputType == ScaledSampleType::Float64)
         return new ScalingCalcTyped<SampleTypeToType<SampleType::Int64>::Type, SampleTypeToType<SampleType::Float64>::Type>(scaling);
 
-    throw InvalidSampleTypeException{"The scaling input or output type is not supported."};
+    THROW_OPENDAQ_EXCEPTION(InvalidSampleTypeException("The scaling input or output type is not supported."));
 }
 END_NAMESPACE_OPENDAQ

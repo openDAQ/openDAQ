@@ -69,7 +69,7 @@ RatioPtr VariantConverter<IRatio>::ToDaqObject(const OpcUaVariant& variant, cons
         return StructConverter<IRatio, UA_RationalNumber64>::ToDaqObject(*tmsStruct);
     }
 
-    throw ConversionFailedException();
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>

@@ -695,7 +695,7 @@ BaseObjectPtr GenericInputPortImpl<Interfaces...>::getDeserializedParameter(cons
     if (parameter == "signalId")
         return serializedSignalId;
 
-    throw NotFoundException();
+    THROW_OPENDAQ_EXCEPTION(NotFoundException());
 }
 
 template <class... Interfaces>

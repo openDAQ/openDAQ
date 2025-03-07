@@ -221,13 +221,13 @@ inline void TimeReaderBase::handleDescriptorChanged(const DataDescriptorPtr& des
     auto domainQuantity = unit.getQuantity();
     if (domainQuantity != "time")
     {
-        throw InvalidSampleTypeException(fmt::format(R"(Domain quantity is not "time" but "{}".)", domainQuantity));
+        THROW_OPENDAQ_EXCEPTION(InvalidSampleTypeException(fmt::format(R"(Domain quantity is not "time" but "{}".)", domainQuantity)));
     }
 
     auto timeUnit = unit.getSymbol();
     if (timeUnit != "s")
     {
-        throw NotSupportedException(fmt::format(R"(Only seconds are supported as a time-unit but encountered '{}'.)", timeUnit));
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException(fmt::format(R"(Only seconds are supported as a time-unit but encountered '{}'.)", timeUnit)));
     }
 
     std::istringstream epochString(reader::fixupIso8601(descriptor.getOrigin()));
@@ -280,20 +280,20 @@ inline void TimeReaderBase::readData(void* inputBuffer, std::chrono::system_cloc
             return readSamples(static_cast<SampleTypeToType<SampleType::RangeInt64>::Type*>(inputBuffer), output, count);
         case SampleType::ComplexFloat32:
         case SampleType::ComplexFloat64:
-            throw NotSupportedException("Complex values as time domain are not supported.");
+            THROW_OPENDAQ_EXCEPTION(NotSupportedException("Complex values as time domain are not supported."));
         case SampleType::Binary:
         case SampleType::Struct:
         case SampleType::String:
-            throw NotSupportedException("Struct, string or binary values as time domain are not supported.");
+            THROW_OPENDAQ_EXCEPTION(NotSupportedException("Struct, string or binary values as time domain are not supported."));
         case SampleType::Invalid:
-            throw InvalidStateException("Unknown raw data-type, conversion not possible.");
+            THROW_OPENDAQ_EXCEPTION(InvalidStateException("Unknown raw data-type, conversion not possible."));
         case SampleType::Null:
-            throw InvalidSampleTypeException("Packet with Null sample-type samples encountered");
+            THROW_OPENDAQ_EXCEPTION(InvalidSampleTypeException("Packet with Null sample-type samples encountered"));
         case SampleType::_count:
             break;
     }
 
-    throw InvalidSampleTypeException("Packet with invalid sample-type samples encountered");
+    THROW_OPENDAQ_EXCEPTION(InvalidSampleTypeException("Packet with invalid sample-type samples encountered"));
 }
 
 END_NAMESPACE_OPENDAQ

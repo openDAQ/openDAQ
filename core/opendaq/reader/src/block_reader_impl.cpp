@@ -460,7 +460,7 @@ ErrCode BlockReaderImpl::readWithDomain(void* dataBlocks, void* domainBlocks, Si
 void BlockReaderImpl::initOverlap()
 {
     if (overlap >= 100)
-        throw InvalidParameterException("Overlap could not be greater or equal 100%");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Overlap could not be greater or equal 100%"));
 
     overlappedBlockSize = (blockSize * overlap) / 100;
     overlappedBlockSizeRemainder = blockSize - overlappedBlockSize;

@@ -289,13 +289,13 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 {
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
-    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
 
-    const auto serverInstance = InstanceBuilder()
-                                    .addDiscoveryServer("mdns")
-                                    .setRootDevice("daqref://device1", refDevConfig)
-                                    .build();
+    const auto instanceBuilder = InstanceBuilder().addDiscoveryServer("mdns").setRootDevice("daqref://device0", refDevConfig);
+    
+    const auto refDevOptions = Dict<IString, IBaseObject>({{"SerialNumber", "sim01"}});
+    instanceBuilder.getOptions().get("Modules").asPtr<IDict>().set("ReferenceDevice", refDevOptions);
+
+    const auto serverInstance = instanceBuilder.build();
 
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
@@ -347,13 +347,13 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 {
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
-    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
 
-    const auto serverInstance = InstanceBuilder()
-                                    .addDiscoveryServer("mdns")
-                                    .setRootDevice("daqref://device1", refDevConfig)
-                                    .build();
+    const auto instanceBuilder = InstanceBuilder().addDiscoveryServer("mdns").setRootDevice("daqref://device0", refDevConfig);
+    
+    const auto refDevOptions = Dict<IString, IBaseObject>({{"SerialNumber", "sim01"}});
+    instanceBuilder.getOptions().get("Modules").asPtr<IDict>().set("ReferenceDevice", refDevOptions);
+
+    const auto serverInstance = instanceBuilder.build();
 
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);
     serverInstance.addServer("OpenDAQOPCUA", nullptr);
@@ -407,13 +407,13 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 {
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
-    refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
 
-    const auto serverInstance = InstanceBuilder()
-                                    .addDiscoveryServer("mdns")
-                                    .setRootDevice("daqref://device1", refDevConfig)
-                                    .build();
+    const auto instanceBuilder = InstanceBuilder().addDiscoveryServer("mdns").setRootDevice("daqref://device0", refDevConfig);
+    
+    const auto refDevOptions = Dict<IString, IBaseObject>({{"SerialNumber", "sim01"}});
+    instanceBuilder.getOptions().get("Modules").asPtr<IDict>().set("ReferenceDevice", refDevOptions);
+
+    const auto serverInstance = instanceBuilder.build();
 
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);
 

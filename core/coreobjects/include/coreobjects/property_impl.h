@@ -447,11 +447,11 @@ public:
         }
         catch (const DaqException& e)
         {
-            return errorFromException(e);
+            return errorFromException(e, this->getThisAsBaseObject());
         }
         catch (const std::exception& e)
         {
-            return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what());
+            return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
         }
         catch (...)
         {

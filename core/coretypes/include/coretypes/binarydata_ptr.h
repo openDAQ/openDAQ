@@ -73,7 +73,7 @@ public:
     void* getAddress() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         void* data;
         auto errCode = this->object->getAddress(&data);
@@ -89,7 +89,7 @@ public:
     SizeT getSize() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         SizeT size;
         auto errCode = this->object->getSize(&size);

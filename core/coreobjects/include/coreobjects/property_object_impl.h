@@ -530,16 +530,16 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     {
         this->className = className;
         if (!manager.assigned())
-            throw ManagerNotAssignedException{};
+            THROW_OPENDAQ_EXCEPTION(ManagerNotAssignedException{});
 
         const TypePtr type = manager.getType(className);
 
         if (!type.assigned())
-            throw NotFoundException{"Class with name {} is not available in module manager", className};
+            THROW_OPENDAQ_EXCEPTION(NotFoundException("Class with name {} is not available in module manager", className));
 
         const auto objClass = type.asPtrOrNull<IPropertyObjectClass>();
         if (!objClass.assigned())
-            throw InvalidTypeException{"Type with name {} is not a property object class", className};
+            THROW_OPENDAQ_EXCEPTION(InvalidTypeException("Type with name {} is not a property object class", className));
 
         objectClass = objClass;
 
@@ -776,7 +776,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coercePropertyW
             }
             catch (...)
             {
-                throw CoerceFailedException{};
+                THROW_OPENDAQ_EXCEPTION(CoerceFailedException());
             }
         }
     }
@@ -801,7 +801,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::validatePropert
             }
             catch (...)
             {
-                throw ValidateFailedException{};
+                THROW_OPENDAQ_EXCEPTION(ValidateFailedException());
             }
         }
     }
@@ -1290,7 +1290,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUnbou
     if (res == localProperties.end())
     {
         if (objectClass == nullptr)
-            throw NotFoundException(fmt::format(R"(Property with name {} does not exist.)", name));
+            THROW_OPENDAQ_EXCEPTION(NotFoundException(fmt::format(R"(Property with name {} does not exist.)", name)));
 
         return objectClass.getProperty(name);
     }
@@ -1358,7 +1358,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChil
         const auto defaultValue = prop.getDefaultValue();
         const auto inspect = defaultValue.asPtrOrNull<IInspectable>();
         if (inspect.assigned() && !inspect.getInterfaceIds().empty() && !(inspect.getInterfaceIds()[0] == IPropertyObject::Id))
-            throw InvalidTypeException{"Only base Property Object object-type values are allowed"};
+            THROW_OPENDAQ_EXCEPTION(InvalidTypeException("Only base Property Object object-type values are allowed"));
 
         const auto propName = prop.getName();
         const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
@@ -1448,12 +1448,12 @@ int GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::parseIndex(char 
 
         if (end != last)
         {
-            throw InvalidParameterException("Could not parse the property index.");
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Could not parse the property index."));
         }
 
         return index;
     }
-    throw InvalidParameterException("No matching ] found.");
+    THROW_OPENDAQ_EXCEPTION(InvalidParameterException("No matching ] found."));
 }
 
 #if defined(__GNUC__) && __GNUC__ >= 12
@@ -1836,7 +1836,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
 
     return OPENDAQ_SUCCESS;
@@ -1874,7 +1874,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
 }
 
@@ -1899,7 +1899,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         {
             getProperty(propName, &prop);
             if (!prop.assigned())
-                throw NotFoundException(R"(Selection property "{}" not found)", propName);
+                THROW_OPENDAQ_EXCEPTIONNotFoundException(R"(Selection property "{}" not found)", propName));
 
             valuePtr = prop.getValue();
         }
@@ -1907,13 +1907,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         {
             getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
             if (!prop.assigned())
-                throw NotFoundException(R"(Selection property "{}" not found)", propName);
+                THROW_OPENDAQ_EXCEPTION(NotFoundException(R"(Selection property "{}" not found)", propName));
         }
 
         const auto propInternal = prop.asPtr<IPropertyInternal>();
         auto values = propInternal.getSelectionValuesNoLock();
         if (!values.assigned())
-            throw InvalidPropertyException(R"(Selection property "{}" has no selection values assigned)", propName);
+            THROW_OPENDAQ_EXCEPTION(InvalidPropertyException(R"(Selection property "{}" has no selection values assigned)", propName));
 
         auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true);
         if (!valuesList.assigned())
@@ -1921,7 +1921,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
             auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true);
             if (!valuesDict.assigned())
             {
-                throw InvalidPropertyException(R"(Selection property "{}" values is not a list or dictionary)", propName);
+                THROW_OPENDAQ_EXCEPTION(InvalidPropertyException(R"(Selection property "{}" values is not a list or dictionary)", propName));
             }
 
             valuePtr = valuesDict.get(valuePtr);
@@ -1941,11 +1941,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (const std::exception& e)
     {
-        return errorFromException(e);
+        return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -2551,7 +2551,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (...)
     {
@@ -3269,11 +3269,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (const std::exception& e)
     {
-        return errorFromException(e);
+        return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {

@@ -29,10 +29,10 @@ namespace dict_converter
             if (extensionObject.isDecoded())
                 decodedVariant = extensionObject.getAsVariant();
             else
-                throw ConversionFailedException{};
+                THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
             if (!decodedVariant.isType<UA_DaqKeyValuePair>())
-                throw ConversionFailedException{};
+                THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
             const auto decodedData = static_cast<UA_DaqKeyValuePair*>(decodedVariant->data);
 
@@ -91,7 +91,7 @@ OpcUaVariant VariantConverter<IDict>::ToVariant(const DictPtr<IBaseObject, IBase
                                                 const ContextPtr& context)
 {
     if (targetType != nullptr && targetType != &UA_TYPES_DAQBT[UA_TYPES_DAQBT_DAQKEYVALUEPAIR])
-        throw ConversionFailedException{};
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     auto variant = OpcUaVariant();
     if (object.getCount() == 0)
@@ -115,7 +115,7 @@ OpcUaVariant VariantConverter<IDict>::ToVariant(const DictPtr<IBaseObject, IBase
 template <>
 ListPtr<IDict> VariantConverter<IDict>::ToDaqList(const OpcUaVariant& variant, const ContextPtr& /*context*/)
 {
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>
@@ -123,7 +123,7 @@ OpcUaVariant VariantConverter<IDict>::ToArrayVariant(const ListPtr<IDict>& /*lis
                                                      const UA_DataType* /*targetType*/,
                                                      const ContextPtr& /*context*/)
 {
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 

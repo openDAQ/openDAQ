@@ -249,11 +249,11 @@ FunctionBlockPtr MockDevice1Impl::onAddFunctionBlock(const StringPtr& typeId, co
     if (typeId == "mockfb1")
     {
         if (!config.assigned())
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         const StringPtr param = config.getPropertyValue("Param");
         if (param != "Value")
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(context, this->functionBlocks, "newFb");
         addNestedFunctionBlock(fb);

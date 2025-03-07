@@ -44,11 +44,11 @@ public:
         }
         catch (const DaqException& e)
         {
-            return errorFromException(e);
+            return errorFromException(e, this->getThisAsBaseObject());
         }
-        catch (const std::exception&)
+        catch (const std::exception& e)
         {
-            return OPENDAQ_ERR_GENERALERROR;
+            return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
         }
 
         return OPENDAQ_SUCCESS;

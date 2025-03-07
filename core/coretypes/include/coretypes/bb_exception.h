@@ -41,6 +41,34 @@ public:
         return defaultMsg;
     }
 
+#ifndef NDEBUG
+    [[nodiscard]]
+    DaqException& setFileName(ConstCharPtr fileName)
+    {
+        this->fileName = fileName;
+        return *this;
+    }
+
+    [[nodiscard]]
+    ConstCharPtr getFileName() const
+    {
+        return fileName;
+    }
+
+    [[nodiscard]]
+    DaqException& setFileLine(Int fileLine)
+    {
+        this->fileLine = fileLine;
+        return *this;
+    }
+
+    [[nodiscard]]
+    Int getFileLine() const
+    {
+        return fileLine;
+    }
+#endif
+
 protected:
     template <typename... Params>
     explicit DaqException(bool defaultMsg, ErrCode errCode, const std::string& msg)
@@ -53,6 +81,10 @@ protected:
 private:
     ErrCode errCode;
     bool defaultMsg;
+#ifndef NDEBUG
+    ConstCharPtr fileName;
+    Int fileLine;
+#endif
 };
 
 END_NAMESPACE_OPENDAQ

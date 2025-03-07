@@ -107,7 +107,7 @@ public:
     StringPtr getName() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         StringPtr typeName;
         const auto errCode = this->object->getName(&typeName);

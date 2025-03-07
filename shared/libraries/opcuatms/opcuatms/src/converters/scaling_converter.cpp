@@ -136,7 +136,7 @@ OpcUaVariant VariantConverter<IScaling>::ToVariant(const ScalingPtr& object, con
     else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IScaling, UA_LinearScalingDescriptionStructure>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     return variant;
 }
@@ -151,7 +151,7 @@ ListPtr<IScaling> VariantConverter<IScaling>::ToDaqList(const OpcUaVariant& vari
     if (variant.isType<UA_LinearScalingDescriptionStructure>())
         return ListConversionUtils::VariantToList<IScaling, UA_LinearScalingDescriptionStructure>(variant);
 
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 template <>
@@ -164,7 +164,7 @@ OpcUaVariant VariantConverter<IScaling>::ToArrayVariant(const ListPtr<IScaling>&
     if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IScaling, UA_LinearScalingDescriptionStructure>(list);
     
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

@@ -90,7 +90,7 @@ public:
     void handleEvent(const SenderPtr& sender, const EventArgsPtr& eventArgs) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         auto errCode = this->object->handleEvent(sender, eventArgs);
         checkErrorInfo(errCode);

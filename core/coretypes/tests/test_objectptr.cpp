@@ -37,7 +37,7 @@ public:
     void test() const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         const auto errCode = object->test();
         checkErrorInfo(errCode);

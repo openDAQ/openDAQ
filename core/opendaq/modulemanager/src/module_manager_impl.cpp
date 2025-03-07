@@ -536,11 +536,11 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (const std::exception& e)
     {
-        return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what(), nullptr);
+        return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {

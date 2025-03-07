@@ -7,7 +7,7 @@ BEGIN_NAMESPACE_OPENDAQ
 BinaryDataImpl::BinaryDataImpl(SizeT size)
 {
     if (size == 0)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     this->data = new (std::nothrow) char[size];
     this->size = size;

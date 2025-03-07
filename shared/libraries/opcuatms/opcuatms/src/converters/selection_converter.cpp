@@ -23,10 +23,10 @@ BaseObjectPtr SelectionVariantConverter::ToDaqObject(const OpcUaVariant& variant
         if (extensionObject.isDecoded())
             decodedVariant = extensionObject.getAsVariant();
         else
-            throw ConversionFailedException{};
+            THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
         if (!decodedVariant.isType<UA_SelectionEntryStructure>())
-            throw ConversionFailedException{};
+            THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
         const auto decodedData = static_cast<UA_SelectionEntryStructure*>(decodedVariant->data);
 
@@ -46,7 +46,7 @@ BaseObjectPtr SelectionVariantConverter::ToDaqObject(const OpcUaVariant& variant
 OpcUaVariant SelectionVariantConverter::ToVariant(const BaseObjectPtr& selectionValues, const ContextPtr& context)
 {
     if (!selectionValues.assigned())
-        throw ConversionFailedException{};
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     const auto list = selectionValues.asPtrOrNull<IList>();
     if (list.assigned())
@@ -56,7 +56,7 @@ OpcUaVariant SelectionVariantConverter::ToVariant(const BaseObjectPtr& selection
     if (dict.assigned())
         return DictToVariant(dict, context);
 
-    throw ConversionFailedException{};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 }
 
 OpcUaObject<UA_SelectionEntryStructure> SelectionVariantConverter::ToKeyValuePair(const IntegerPtr& key,

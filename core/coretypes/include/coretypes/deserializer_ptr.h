@@ -38,7 +38,7 @@ public:
     {
         if (!object)
         {
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
         }
 
         BaseObjectPtr baseObj;
@@ -51,7 +51,7 @@ public:
     {
         if (!object)
         {
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
         }
 
         checkErrorInfo(object->update(updatable, serialized, config));
@@ -62,7 +62,7 @@ public:
     {
         if (!object)
         {
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
         }
 
         checkErrorInfo(object->callCustomProc(customProc, serialized));

@@ -55,7 +55,7 @@ public:
     TestValueObjectPtr getValueObject()
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         TestValueObjectPtr obj;
         const auto errCode = this->object->getValueObject(&obj);
@@ -67,7 +67,7 @@ public:
     void setValueObject(const TestValueObjectPtr& valueObject)
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         const auto errCode = this->object->setValueObject(valueObject);
         checkErrorInfo(errCode);
@@ -76,7 +76,7 @@ public:
     void setValueObjectProtected(const TestValueObjectPtr& valueObject)
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         const auto errCode = this->object->setValueObjectProtected(valueObject);
         checkErrorInfo(errCode);

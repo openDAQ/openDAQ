@@ -125,7 +125,7 @@ public:
     void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, daq::SizeT timeoutMs = 0, IReaderStatusType** status = nullptr) const
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(daq::InvalidParameterException());
 
         auto errCode = this->object->readWithDomain(values, domain, count, timeoutMs, status);
         daq::checkErrorInfo(errCode);
@@ -176,7 +176,7 @@ public:
     void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, IReaderStatusType** status = nullptr) const
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(daq::InvalidParameterException());
 
         auto errCode = this->object->readWithDomain(values, domain, count, status);
         daq::checkErrorInfo(errCode);

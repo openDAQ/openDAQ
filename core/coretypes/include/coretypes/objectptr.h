@@ -1024,7 +1024,7 @@ bool operator==(const ObjectPtr<T>& lhs, V rhs)
     if (obj != nullptr)
         return baseObjectToValue<V>(obj) == rhs;
 
-    throw InvalidParameterException();
+    THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 }
 
 template <class T, typename V, typename std::enable_if<is_ct_conv<V>::value, int>::type = 0>
@@ -1043,7 +1043,7 @@ bool operator==(const ObjectPtr<T>& lhs, ConstCharPtr rhs)
         return str == rhs;
     }
 
-    throw InvalidParameterException();
+    THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 }
 
 template <class T>
@@ -1062,7 +1062,7 @@ bool operator!=(const ObjectPtr<T>& lhs, ConstCharPtr rhs)
         return str != rhs;
     }
 
-    throw InvalidParameterException();
+    THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 }
 
 template <class T>
@@ -1459,7 +1459,7 @@ template <class T>
 T* ObjectPtr<T>::operator->() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     return object;
 }
@@ -1627,7 +1627,7 @@ template <typename U, typename V, std::enable_if_t<is_ct_conv<U>::value && !std:
 ObjectPtr<T>::operator U() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     return baseObjectToValue<U>(object);
 }
@@ -1648,7 +1648,7 @@ template <typename U, typename V, std::enable_if_t<is_ct_conv<U>::value && std::
 ObjectPtr<T>::operator U() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     return getValueFromObject<U>(object);
 }
@@ -1927,7 +1927,7 @@ template <class U>
 U* ObjectPtr<T>::as(bool borrow) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     U* intf;
     ErrCode res;
@@ -1945,7 +1945,7 @@ template <class U>
 U* ObjectPtr<T>::asOrNull(bool borrow) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     U* intf;
     ErrCode res;
@@ -1970,7 +1970,7 @@ template <class U, class Ptr>
 Ptr ObjectPtr<T>::asPtr(const bool borrow) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     U* intf;
     if (borrow)
@@ -1992,7 +1992,7 @@ template <class U, class Ptr>
 Ptr ObjectPtr<T>::asPtrOrNull(bool borrow) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     U* intf;
     ErrCode res;
@@ -2024,7 +2024,7 @@ template <class T>
 bool ObjectPtr<T>::supportsInterface(const IntfID& id) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     void* intf;
     auto res = object->borrowInterface(id, &intf);
@@ -2082,7 +2082,7 @@ template <class T>
 CoreType ObjectPtr<T>::getCoreType() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     auto coreTypeObj = asPtrOrNull<ICoreType>(true);
     if (coreTypeObj.assigned())
@@ -2100,7 +2100,7 @@ template <>
 inline CoreType ObjectPtr<ICoreType>::getCoreType() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     CoreType coreType;
     checkErrorInfo(object->getCoreType(&coreType));
@@ -2165,7 +2165,7 @@ SizeT ObjectPtr<T>::getHashCode() const
 {
     if (!object)
     {
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
     }
 
     SizeT hash;
@@ -2198,7 +2198,7 @@ template <typename T>
 void ObjectPtr<T>::freeze() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     auto freezableObj = asPtr<IFreezable>(true);
     checkErrorInfo(freezableObj->freeze());
@@ -2209,7 +2209,7 @@ template <>
 inline void ObjectPtr<IFreezable>::freeze() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     checkErrorInfo(object->freeze());
 }
@@ -2219,7 +2219,7 @@ template <typename T>
 Bool ObjectPtr<T>::isFrozen() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     auto freezableObj = asPtr<IFreezable>(true);
 
@@ -2234,7 +2234,7 @@ template <>
 inline Bool ObjectPtr<IFreezable>::isFrozen() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     Bool frozen;
     checkErrorInfo(object->isFrozen(&frozen));
@@ -2247,7 +2247,7 @@ template <class T>
 ConstCharPtr ObjectPtr<T>::getSerializeId() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     ISerializable* serializable = as<ISerializable>(true);
 
@@ -2263,7 +2263,7 @@ template <>
 inline ConstCharPtr ObjectPtr<ISerializable>::getSerializeId() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     ConstCharPtr id;
     ErrCode errCode = object->getSerializeId(&id);
@@ -2277,7 +2277,7 @@ template <class T>
 void ObjectPtr<T>::serialize(const ObjectPtr<ISerializer>& serializer) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     ISerializable* serializable = as<ISerializable>(true);
 
@@ -2290,7 +2290,7 @@ template <>
 inline void ObjectPtr<ISerializable>::serialize(const ObjectPtr<ISerializer>& serializer) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     checkErrorInfo(object->serialize(serializer));
 }
@@ -2300,7 +2300,7 @@ template <class T>
 void ObjectPtr<T>::dispatch(const ObjectPtr<IBaseObject>& params) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     auto procObj = asPtr<IProcedure>(true);
     ErrCode err = procObj->dispatch(params);
@@ -2312,7 +2312,7 @@ template <>
 inline void ObjectPtr<IProcedure>::dispatch(const ObjectPtr<IBaseObject>& params) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     ErrCode err = object->dispatch(params);
     checkErrorInfo(err);
@@ -2323,7 +2323,7 @@ template <class T>
 void ObjectPtr<T>::dispatch() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     auto procObj = asPtr<IProcedure>(true);
     ErrCode err = procObj->dispatch(nullptr);
@@ -2335,7 +2335,7 @@ template <>
 inline void ObjectPtr<IProcedure>::dispatch() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     ErrCode err = object->dispatch(nullptr);
     checkErrorInfo(err);
@@ -2346,7 +2346,7 @@ template <class T>
 void ObjectPtr<T>::execute() const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     dispatch();
 }
@@ -2356,7 +2356,7 @@ template <typename... Params>
 ObjectPtr<IBaseObject> ObjectPtr<T>::call(Params... params) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     ObjectPtr<IBaseObject> args;
     if constexpr (sizeof...(params) > 1)
@@ -2394,7 +2394,7 @@ template <typename... Params>
 void ObjectPtr<T>::execute(Params... params) const
 {
     if (!object)
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     ObjectPtr<IBaseObject> arr[] = {params...};
     size_t argCount = sizeof...(params);

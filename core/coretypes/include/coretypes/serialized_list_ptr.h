@@ -56,7 +56,7 @@ public:
     SerializedListPtr readSerializedList() const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         ISerializedList* value;
         checkErrorInfo(object->readSerializedList(&value));
@@ -68,7 +68,7 @@ public:
     ListPtr<T> readList(const BaseObjectPtr& context = nullptr, const FunctionPtr& factoryCallback = nullptr) const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         IList* value;
         checkErrorInfo(object->readList(context, factoryCallback, &value));
@@ -79,7 +79,7 @@ public:
     BaseObjectPtr readObject(const BaseObjectPtr& context = nullptr, const FunctionPtr& factoryCallback = nullptr) const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         IBaseObject* value;
         checkErrorInfo(object->readObject(context, factoryCallback, &value));
@@ -90,7 +90,7 @@ public:
     StringPtr readString() const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         IString* value;
         checkErrorInfo(object->readString(&value));
@@ -101,7 +101,7 @@ public:
     Bool readBool() const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         Bool value;
         checkErrorInfo(object->readBool(&value));
@@ -112,7 +112,7 @@ public:
     Int readInt() const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         Int value;
         checkErrorInfo(object->readInt(&value));
@@ -123,7 +123,7 @@ public:
     Float readFloat() const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         Float value;
         checkErrorInfo(object->readFloat(&value));
@@ -134,7 +134,7 @@ public:
     SizeT getCount() const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         SizeT value;
         checkErrorInfo(object->getCount(&value));
@@ -145,7 +145,7 @@ public:
     ObjectPtr<ISerializedObject> readSerializedObject() const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         ObjectPtr<ISerializedObject> value;
         checkErrorInfo(object->readSerializedObject(&value));
@@ -156,7 +156,7 @@ public:
     CoreType getCurrentItemType() const
     {
         if (!object)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         CoreType ct;
         checkErrorInfo(object->getCurrentItemType(&ct));

@@ -71,10 +71,10 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
                                                          const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
-        throw ArgumentNullException();
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException());
 
     if (!acceptsConnectionParameters(connectionString, config))
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     if (!context.assigned())
         throw InvalidParameterException{"Context is not available."};
@@ -138,10 +138,10 @@ bool WebsocketStreamingClientModule::acceptsStreamingConnectionParameters(const 
 StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
-        throw ArgumentNullException();
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException());
 
     if (!acceptsStreamingConnectionParameters(connectionString, config))
-        throw InvalidParameterException();
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     const StringPtr str = formConnectionString(connectionString, config);
     return WebsocketStreaming(str, context);

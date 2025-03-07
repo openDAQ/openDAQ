@@ -109,7 +109,7 @@ public:
     ListPtr<IString> getFieldNames() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         ListPtr<IString> names;
         const auto errCode = this->object->getFieldNames(&names);
@@ -125,7 +125,7 @@ public:
     ListPtr<IBaseObject> getFieldDefaultValues() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         ListPtr<IBaseObject> defaultValues;
         const auto errCode = this->object->getFieldDefaultValues(&defaultValues);
@@ -141,7 +141,7 @@ public:
     ListPtr<IType> getFieldTypes() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
         ListPtr<CoreType> types;
         const auto errCode = this->object->getFieldTypes(&types);

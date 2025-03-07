@@ -74,7 +74,7 @@ struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::Compl
 {
     static T Multiply(T value, const RatioPtr& multiplier)
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
     static T Adjust(T value, const RatioPtr& multiplier)
@@ -84,7 +84,7 @@ struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::Compl
 
     static T GetStart(T startValue, std::int64_t offset)
     {
-        throw NotSupportedException();
+        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
     }
 
     static constexpr bool Check(const RatioPtr& multiplier, T readValue, T startValue)
@@ -323,7 +323,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                     }
                     else
                     {
-                        throw NotSupportedException();
+                        THROW_OPENDAQ_EXCEPTION(NotSupportedException());
                     }
                 }
                 return i / valuesPerSample;

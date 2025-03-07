@@ -49,7 +49,7 @@ public:
     {
         if (this->object == nullptr)
         {
-            throw InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
         }
 
         SizeT count{};
@@ -73,7 +73,7 @@ public:
     StringPtr getRuntimeClassName() const
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            THROW_OPENDAQ_EXCEPTION(daq::InvalidParameterException());
 
         daq::StringPtr name;
         auto errCode = this->object->getRuntimeClassName(&name);

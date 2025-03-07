@@ -64,7 +64,7 @@ inline OpcUaVariant ListConversionUtils::ToVariantTypeArrayVariant(const ListPtr
 inline ListPtr<IBaseObject> ListConversionUtils::VariantTypeArrayToList(const OpcUaVariant& variant, const ContextPtr& context)
 {
     if (!variant.isType<UA_Variant>())
-        throw ConversionFailedException{};
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
 
     auto list = List<IBaseObject>();
     const auto data = static_cast<UA_Variant*>(variant->data);

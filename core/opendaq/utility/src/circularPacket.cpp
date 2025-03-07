@@ -139,60 +139,65 @@ int PacketBuffer::WriteSample(size_t* sampleCount, void** memPos)
 int PacketBuffer::ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount)
 {
     //auto simulatedWritePos = (void*) (((uint8_t*) data + sizeOfMem) + (size_t)((uint8_t*)writePos - (uint8_t)data));
-    std::lock_guard<std::mutex> lock(flip);
-    if (beginningOfDelegatedSpace != readPos)
     {
-        // If the OOS packet falls into space between the beginning of memory and readPos
-        // we can artificially add it at the end and simulate
-        // an extension of the circular buffer up to the writePos
-
-        // |_____WP______RP___|-----SWP
-
-        if (beginningOfDelegatedSpace < readPos)
-            oos_packets.push(
-                std::make_pair(((uint8_t*) data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) data), sampleCount));
-
-        oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount));
-        return 0;
-    }
-    else
-    {
-        // Here we just add to sampleCount until we hit either writePos
-        // or simulatedWritePos
-        while (!oos_packets.empty())
+        std::lock_guard<std::mutex> lock(flip);
+        // lock.lock();
+        if (beginningOfDelegatedSpace != readPos)
         {
-            auto mm = (void*) ((uint8_t*) beginningOfDelegatedSpace + sizeOfSample * sampleCount);
-            if (oos_packets.top().first == mm)
+            // If the OOS packet falls into space between the beginning of memory and readPos
+            // we can artificially add it at the end and simulate
+            // an extension of the circular buffer up to the writePos
+
+            // |_____WP______RP___|-----SWP
+
+            if (beginningOfDelegatedSpace < readPos)
+                oos_packets.push(
+                    std::make_pair(((uint8_t*) data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) data), sampleCount));
+
+            oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount));
+            return 0;
+        }
+        else
+        {
+            // Here we just add to sampleCount until we hit either writePos
+            // or simulatedWritePos
+            while (!oos_packets.empty())
             {
-                //beginningOfDelegatedSpace = oos_packets.top().first;
-                sampleCount += oos_packets.top().second;
-                oos_packets.pop();
-            }
-            else
-            {
-                // This could maybe use a nicer way of concluding...
-                break;
+                auto mm = (void*) ((uint8_t*) beginningOfDelegatedSpace + sizeOfSample * sampleCount);
+                if (oos_packets.top().first == mm)
+                {
+                    // beginningOfDelegatedSpace = oos_packets.top().first;
+                    sampleCount += oos_packets.top().second;
+                    oos_packets.pop();
+                }
+                else
+                {
+                    // This could maybe use a nicer way of concluding...
+                    break;
+                }
             }
         }
+
+        // Empty exit
+        if (readPos == writePos && !bIsFull)
+        {
+            return 1;
+        }
+
+        // Due to checks in writeSample we cannot go further than WritePos
+
+        // Therefore we only need to check for wraparound and adjust the that
+
+        if ((uint8_t*) readPos + sizeOfSample * sampleCount >= (uint8_t*) data + sizeOfSample * sizeOfMem)
+            readPos = (void*) ((uint8_t*) data +
+                               ((uint8_t*) readPos + sizeOfSample * sampleCount - ((uint8_t*) data + sizeOfSample * sizeOfMem)));
+        else
+            readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
+
+        bIsFull = false;
+        // lock.unlock();
     }
-    
-
-    // Empty exit
-    if (readPos == writePos && !bIsFull)
-    {
-        return 1;
-    }
-
-    // Due to checks in writeSample we cannot go further than WritePos
-
-    // Therefore we only need to check for wraparound and adjust the that
-
-    if ((uint8_t*)readPos + sizeOfSample * sampleCount >= (uint8_t*)data + sizeOfSample * sizeOfMem)
-        readPos = (void*)((uint8_t*)data + ((uint8_t*)readPos + sizeOfSample * sampleCount - ((uint8_t*)data + sizeOfSample * sizeOfMem)));
-    else
-        readPos = (void*)((uint8_t*)readPos + sizeOfSample * sampleCount);
-
-    bIsFull = false;
+    cv.notify_all();
     return 0;
     
     // I need to think about the full buffer state (when writePos is a start)
@@ -250,22 +255,16 @@ daq::DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDesc
     }
 }
 
-void PacketBuffer::reset(int iSecTimeout)
+int PacketBuffer::reset()
 {
-    {
-        std::lock_guard<std::mutex> lock(flip);
-        bUnderReset = true;
-    }
-    // Here we now check if the ReadPos and WritePos have realligned
-    // or if the timeout was reached.
+    std::unique_lock<std::mutex> lock(flip);
+    bUnderReset = true;
+    cv.wait(lock, []() -> bool
+        { return ((reaPos == writePos) && (!bIsFull)); });
 
-    
-
-    // We enable the creation of new packets
-    {
-        std::lock_guard<std::mutex> lock(flip);
-        bUnderReset = false;
-    }
+    bUnderReset = false;
+    lock.unlock();
+    return 0;
  }
 
 Packet::Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(void*, size_t)> callback)

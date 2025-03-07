@@ -330,7 +330,6 @@ TEST_F(CircularPacketTest, TestMultiThread)
 {
     PacketBuffer pb;
     auto [descriptor, domain] = generate_building_blocks();
-    size_t n = 100;
     std::condition_variable cv;
 
     std::thread th1(createMultiThreadedPacket, &pb);
@@ -345,7 +344,38 @@ TEST_F(CircularPacketTest, TestMultiThread)
     ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
 }
 
+void createAndWaitPacket(PacketBuffer *pb, daq::DataDescriptorPtr desc, daq::DataPacketPtr &dom)
+{
+    size_t n = 100;
+    auto r = pb->createPacket(&n, desc, dom);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::cout << "Packet was creted and we waited." << std::endl;
+}
+
+/* void cb(PacketBuffer* pb)
+{
+   auto r = pb -> reset();
+}*/
+
 TEST_F(CircularPacketTest, TestReset)
 {
-    ASSERT_FALSE(true);
+    PacketBuffer pb;
+    auto [descriptor, domain] = generate_building_blocks();
+    int g = 500;
+
+    std::thread th1(createAndWaitPacket, &pb, descriptor, domain);
+    std::thread th2(createAndWaitPacket, &pb, descriptor, domain);
+    //auto r = pb.reset(g);
+    //std::thread thReset(cb, &pb);
+    std::thread th3(createAndWaitPacket, &pb, descriptor, domain);
+    std::thread th4(createAndWaitPacket, &pb, descriptor, domain);
+
+    //thReset.join();
+    th1.join();
+    th2.join();
+    th3.join();
+    th4.join();
+
+    ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
+    //ASSERT_EQ(r, 0);
 }

@@ -65,7 +65,7 @@ public:
 
     bool isEmpty();
 
-    void reset(int iSecTimeout);
+    int reset();
 
 //protected:
     // Testing methods
@@ -81,6 +81,7 @@ public:
     size_t getAdjustedSize();
 
     std::mutex flip;
+    std::condition_variable cv;
 private:
     bool bIsFull;
     bool bUnderReset;

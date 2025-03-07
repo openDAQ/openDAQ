@@ -5,6 +5,7 @@
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/packet_destruct_callback_factory.h>
+#include <opendaq/sample_type_traits.h>
 #include "packet_transmission.h"
 
 using namespace daq;
@@ -18,7 +19,7 @@ public:
     }
 
 protected:
-    PacketStreamingServer server {10};
+    PacketStreamingServer server {PACKET_ZERO_PAYLOAD_SIZE, PACKET_RELEASE_THRESHOLD_DEFAULT, false};
     PacketStreamingClient client;
     PacketTransmission transmission;
 
@@ -37,7 +38,47 @@ protected:
         server.checkAndSendReleasePacket(true);
         transmitAll();
     }
+
+    bool testCacheablePacketBuffers(const PacketStreamingServer& server,
+                                    size_t availableCnt,
+                                    size_t nonCacheableCnt,
+                                    size_t cacheableSize,
+                                    size_t cacheableCount,
+                                    size_t cacheableGroupId = PacketBuffer::NON_CACHEABLE_GROUP_ID)
+    {
+        EXPECT_EQ(server.getAvailableBuffersCount(), availableCnt);
+        EXPECT_EQ(server.getNonCacheableBuffersCount(), nonCacheableCnt);
+        EXPECT_EQ(server.getSizeOfCacheableBuffers(cacheableGroupId), cacheableSize);
+        EXPECT_EQ(server.getCountOfCacheableBuffers(cacheableGroupId), cacheableCount);
+
+        return (server.getAvailableBuffersCount() == availableCnt) &&
+               (server.getNonCacheableBuffersCount() == nonCacheableCnt) &&
+               (server.getSizeOfCacheableBuffers(cacheableGroupId) == cacheableSize) &&
+               (server.getCountOfCacheableBuffers(cacheableGroupId) == cacheableCount);
+    }
 };
+
+TEST_F(PacketStreamingTest, PeekPacket)
+{
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    const auto domainDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, domainDescriptor);
+
+    ASSERT_EQ(server.getNextPacketBuffer(), nullptr);
+    ASSERT_EQ(server.peekNextPacketBuffer(), nullptr);
+
+    server.addDaqPacket(1, serverEventPacket);
+
+    const auto packetBufferPeek = server.peekNextPacketBuffer();
+    ASSERT_NE(packetBufferPeek, nullptr);
+
+    const auto packetBufferGet = server.getNextPacketBuffer();
+    ASSERT_NE(packetBufferGet, nullptr);
+
+    ASSERT_EQ(packetBufferPeek, packetBufferGet);
+
+    ASSERT_EQ(server.peekNextPacketBuffer(), nullptr);
+}
 
 TEST_F(PacketStreamingTest, PacketTimeStamp)
 {
@@ -46,13 +87,13 @@ TEST_F(PacketStreamingTest, PacketTimeStamp)
     const auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, domainDescriptor);
 
     {
-        PacketStreamingServer serverEnabledTimeStamps {1, true};
+        PacketStreamingServer serverEnabledTimeStamps {PACKET_ZERO_PAYLOAD_SIZE, 1, true};
         serverEnabledTimeStamps.addDaqPacket(1, serverEventPacket);
         const auto serverPacketBuffer = serverEnabledTimeStamps.getNextPacketBuffer();
         ASSERT_TRUE(serverPacketBuffer->timeStamp.has_value());
     }
     {
-        PacketStreamingServer serverDisabledTimeStamps {1, false};
+        PacketStreamingServer serverDisabledTimeStamps {PACKET_ZERO_PAYLOAD_SIZE, 1, false};
         serverDisabledTimeStamps.addDaqPacket(1, serverEventPacket);
         const auto serverPacketBuffer = serverDisabledTimeStamps.getNextPacketBuffer();
         ASSERT_FALSE(serverPacketBuffer->timeStamp.has_value());
@@ -861,6 +902,179 @@ TEST_F(PacketStreamingTest, DomainPacketTwiceRelease)
     auto [signalId10, packet10] = client.getNextDaqPacket();
     ASSERT_EQ(signalId10, std::numeric_limits<uint32_t>::max());
     ASSERT_EQ(nullptr, packet10);
+}
+
+TEST_F(PacketStreamingTest, CacheablePacketsOnlyImplicit)
+{
+    const auto samplesCount = 10;
+
+    const auto explicitSignalId = 1;
+    const auto explicitRuleDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    const auto eventPacketExplicit = DataDescriptorChangedEventPacket(explicitRuleDescriptor, nullptr);
+    const auto explicitDataPacket = DataPacket(explicitRuleDescriptor, samplesCount);
+
+    const auto implicitSignalId = 2;
+    const auto implicitRuleDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(LinearDataRule(1, 0)).build();
+    const auto eventPacketImplicit = DataDescriptorChangedEventPacket(implicitRuleDescriptor, nullptr);
+    const auto implicitDataPacket = DataPacket(implicitRuleDescriptor, samplesCount);
+
+    PacketStreamingServer server {PACKET_ZERO_PAYLOAD_SIZE, 10, false};
+
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 0u, 0u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
+
+    server.addDaqPacket(explicitSignalId, eventPacketExplicit);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 1u, 1u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
+    server.addDaqPacket(explicitSignalId, explicitDataPacket);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 2u, 2u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
+    server.addDaqPacket(implicitSignalId, eventPacketImplicit);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 3u, 3u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
+    server.addDaqPacket(implicitSignalId, implicitDataPacket);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 4u, 3u, sizeof(DataPacketHeader), 1u, 1u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 4u, 3u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+
+    EXPECT_FALSE(server.getNextPacketBuffer()->isCacheable()); // eventPacketExplicit
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 3u, 2u, sizeof(DataPacketHeader), 1u, 1u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+    EXPECT_FALSE(server.getNextPacketBuffer()->isCacheable()); // explicitDataPacket
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 2u, 1u, sizeof(DataPacketHeader), 1u, 1u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+    EXPECT_FALSE(server.getNextPacketBuffer()->isCacheable()); // eventPacketImplicit
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 1u, 0u, sizeof(DataPacketHeader), 1u, 1u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+    EXPECT_TRUE(server.getNextPacketBuffer()->isCacheable()); // implicitDataPacket
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 0u, 0u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
+}
+
+TEST_F(PacketStreamingTest, CacheablePacketsOnlyData)
+{
+    const auto samplesCount = 10;
+
+    const auto explicitSignalId = 1;
+    const auto explicitRuleDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    const auto eventPacketExplicit = DataDescriptorChangedEventPacket(explicitRuleDescriptor, nullptr);
+    const auto explicitDataPacket = DataPacket(explicitRuleDescriptor, 10);
+
+    const auto implicitSignalId = 2;
+    const auto implicitRuleDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(LinearDataRule(1, 0)).build();
+    const auto eventPacketImplicit = DataDescriptorChangedEventPacket(implicitRuleDescriptor, nullptr);
+    const auto implicitDataPacket = DataPacket(implicitRuleDescriptor, 10);
+
+    const auto payloadSize = samplesCount * getSampleSize(SampleType::Float32);
+    PacketStreamingServer server {payloadSize, 10, false};
+
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 0u, 0u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
+
+    server.addDaqPacket(explicitSignalId, eventPacketExplicit);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 1u, 1u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
+    server.addDaqPacket(explicitSignalId, explicitDataPacket);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 2u, 1u, sizeof(DataPacketHeader) + payloadSize, 1u, 1u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 2u, 1u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+    server.addDaqPacket(implicitSignalId, eventPacketImplicit);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 3u, 2u, sizeof(DataPacketHeader) + payloadSize, 1u, 1u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 3u, 2u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+    server.addDaqPacket(implicitSignalId, implicitDataPacket);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 4u, 2u, sizeof(DataPacketHeader), 1u, 2u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 4u, 2u, sizeof(DataPacketHeader) + payloadSize, 1u, 1u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 4u, 2u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 2u);
+
+    EXPECT_FALSE(server.getNextPacketBuffer()->isCacheable()); // eventPacketExplicit
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 3u, 1u, sizeof(DataPacketHeader), 1u, 2u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 3u, 1u, sizeof(DataPacketHeader) + payloadSize, 1u, 1u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 3u, 1u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 2u);
+    EXPECT_TRUE(server.getNextPacketBuffer()->isCacheable()); // explicitDataPacket
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 2u, 1u, sizeof(DataPacketHeader), 1u, 2u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 2u, 1u, 0u, 0u, 1u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 2u, 1u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+    EXPECT_FALSE(server.getNextPacketBuffer()->isCacheable()); // eventPacketImplicit
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 1u, 0u, sizeof(DataPacketHeader), 1u, 2u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 1u, 0u, 0u, 0u, 1u));
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 1u, 0u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+    EXPECT_TRUE(server.getNextPacketBuffer()->isCacheable()); // implicitDataPacket
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 0u, 0u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
+}
+
+TEST_F(PacketStreamingTest, CacheablePacketsAny)
+{
+    const auto samplesCount = 10;
+
+    const auto explicitSignalId = 1;
+    const auto explicitRuleDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    const auto eventPacketExplicit = DataDescriptorChangedEventPacket(explicitRuleDescriptor, nullptr);
+    const auto explicitDataPacket = DataPacket(explicitRuleDescriptor, 10);
+
+    const auto implicitSignalId = 2;
+    const auto implicitRuleDescriptor =
+        DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(LinearDataRule(1, 0)).build();
+    const auto eventPacketImplicit = DataDescriptorChangedEventPacket(implicitRuleDescriptor, nullptr);
+    const auto implicitDataPacket = DataPacket(implicitRuleDescriptor, 10);
+
+    const auto payloadSize = samplesCount * getSampleSize(SampleType::Float32);
+    PacketStreamingServer server {1000, 10, false};
+
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 0u, 0u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
+
+    server.addDaqPacket(explicitSignalId, eventPacketExplicit);
+    EXPECT_GT(server.getSizeOfCacheableBuffers(1u), sizeof(GenericPacketHeader));
+    EXPECT_EQ(server.getCountOfCacheableBuffers(1u), 1u);
+    EXPECT_EQ(server.getNonCacheableBuffersCount(), 0u);
+    EXPECT_EQ(server.getAvailableBuffersCount(), 1u);
+
+    auto sizeOfCacheableBuffersOld = server.getSizeOfCacheableBuffers(1u);
+    server.addDaqPacket(explicitSignalId, explicitDataPacket);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 2u, 0u, sizeOfCacheableBuffersOld + sizeof(DataPacketHeader) + payloadSize, 2u, 1u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+
+    sizeOfCacheableBuffersOld = server.getSizeOfCacheableBuffers(1u);
+    server.addDaqPacket(implicitSignalId, eventPacketImplicit);
+    EXPECT_GT(server.getSizeOfCacheableBuffers(1u), sizeOfCacheableBuffersOld + sizeof(GenericPacketHeader));
+    EXPECT_EQ(server.getCountOfCacheableBuffers(1u), 3u);
+    EXPECT_EQ(server.getNonCacheableBuffersCount(), 0u);
+    EXPECT_EQ(server.getAvailableBuffersCount(), 3u);
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+
+    sizeOfCacheableBuffersOld = server.getSizeOfCacheableBuffers(1u);
+    server.addDaqPacket(implicitSignalId, implicitDataPacket);
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 4u, 0u, sizeOfCacheableBuffersOld + sizeof(DataPacketHeader), 4u, 1u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+
+    sizeOfCacheableBuffersOld = server.getSizeOfCacheableBuffers(1u);
+    EXPECT_TRUE(server.getNextPacketBuffer()->isCacheable()); // eventPacketExplicit
+    EXPECT_LT(server.getSizeOfCacheableBuffers(1u), sizeOfCacheableBuffersOld - sizeof(GenericPacketHeader));
+    EXPECT_EQ(server.getCountOfCacheableBuffers(1u), 3u);
+    EXPECT_EQ(server.getNonCacheableBuffersCount(), 0u);
+    EXPECT_EQ(server.getAvailableBuffersCount(), 3u);
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+
+    sizeOfCacheableBuffersOld = server.getSizeOfCacheableBuffers(1u);
+    EXPECT_TRUE(server.getNextPacketBuffer()->isCacheable()); // explicitDataPacket
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 2u, 0u, sizeOfCacheableBuffersOld - sizeof(DataPacketHeader) - payloadSize, 2u, 1u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+
+    EXPECT_TRUE(server.getNextPacketBuffer()->isCacheable()); // eventPacketImplicit
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 1u, 0u, sizeof(DataPacketHeader), 1u, 1u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 1u);
+
+    EXPECT_TRUE(server.getNextPacketBuffer()->isCacheable()); // implicitDataPacket
+    EXPECT_TRUE(testCacheablePacketBuffers(server, 0u, 0u, 0u, 0u));
+    EXPECT_EQ(server.getCountOfCacheableGroups(), 0u);
 }
 
 INSTANTIATE_TEST_SUITE_P(MovePacket, ValuePacketDestroyedBeforeDomainSentTest, testing::Values(true, false));

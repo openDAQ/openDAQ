@@ -68,12 +68,6 @@ namespace object_utils
     };
 }
 
-namespace permissions
-{
-    static const auto DefaultPropertyObjectPermissions =
-        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-}
-
 class RecursiveConfigLockGuard : public std::enable_shared_from_this<RecursiveConfigLockGuard>
 {
 public:
@@ -563,7 +557,8 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 
-    this->permissionManager.setPermissions(permissions::DefaultPropertyObjectPermissions);
+    this->permissionManager.setPermissions(
+        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
 
     PropertyValueEventEmitter readEmitter;
     PropertyValueEventEmitter writeEmitter;
@@ -1946,10 +1941,23 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         BaseObjectPtr valuePtr;
         PropertyPtr prop;
 
-        getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+        StringPtr childName;
+        StringPtr subName;
 
-        if (!prop.assigned())
-            throw NotFoundException(R"(Selection property "{}" not found)", propName);
+        if (isChildProperty(propName, childName, subName))
+        {
+            getProperty(propName, &prop);
+            if (!prop.assigned())
+                throw NotFoundException(R"(Selection property "{}" not found)", propName);
+
+            valuePtr = prop.getValue();
+        }
+        else
+        {
+            getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+            if (!prop.assigned())
+                throw NotFoundException(R"(Selection property "{}" not found)", propName);
+        }
 
         const auto propInternal = prop.asPtr<IPropertyInternal>();
         auto values = propInternal.getSelectionValuesNoLock();

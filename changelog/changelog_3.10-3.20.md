@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#719](https://github.com/openDAQ/openDAQ/pull/719) Fixes error when accessing selection property values using "dot" notation (eg. `getPropertySelectionValue("child.val")`).
 - [#642](https://github.com/openDAQ/openDAQ/pull/642) Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
 - [#638](https://github.com/openDAQ/openDAQ/pull/638) Adds a tick tolerance option to the `MultiReader`, allowing for the limitation of inter-sample offsets between read signals.
 - [#631](https://github.com/openDAQ/openDAQ/pull/631) "Any read/write" events are added to property object that are triggered whenever any of the object's property values are read or written.
@@ -54,6 +55,8 @@
 - [#653](https://github.com/openDAQ/openDAQ/pull/653) Device info objects without server capabilities are no longer grouped by serial and manufacturer in the `getAvailableDevices` call. 
 - [#635](https://github.com/openDAQ/openDAQ/pull/635) Before the openDAQ instance object is destroyed, it now calls `rootDevice.remove()` in its desctructor.
 - [#630](https://github.com/openDAQ/openDAQ/pull/630) The internal `Device` implementation function `ongetLogFileInfos()` was renamed to `onGetLogFileInfos()`. 
+- [#720](https://github.com/openDAQ/openDAQ/pull/720) Introduces additional performance optimizations for native streaming packet transmitting.
+- [#723](https://github.com/openDAQ/openDAQ/pull/723) Data path optimizations: no heap allocations on `sendPacket()`, remove dynamic casts on packet reader, use acquisition lock instead of recursive config lock on input port active getter, optimize packet construction, support for manual last value.
 
 ## Required application changes
 

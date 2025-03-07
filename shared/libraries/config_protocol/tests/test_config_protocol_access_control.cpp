@@ -65,6 +65,7 @@ public:
                 std::bind(&ConfigProtocolAccessControlTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigProtocolAccessControlTest::sendNoReplyRequest, this, std::placeholders::_1),
                 nullptr,
+                nullptr,
                 nullptr
             );
 

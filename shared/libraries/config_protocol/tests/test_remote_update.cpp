@@ -37,6 +37,7 @@ public:
                 std::bind(&ConfigRemoteUpdateTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigRemoteUpdateTest::sendNoReplyRequest, this, std::placeholders::_1),
                 nullptr,
+                nullptr,
                 nullptr
             );
         clientDevice = client->connect();

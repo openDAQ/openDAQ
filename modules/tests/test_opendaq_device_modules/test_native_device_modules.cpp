@@ -3095,3 +3095,22 @@ TEST_F(NativeC2DStreamingTest, StreamingData)
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(clientReceivedPackets, serverReceivedPackets));
 }
+
+TEST_F(NativeDeviceModulesTest, AddNestedFB)
+{
+    const auto server = CreateServerInstance();
+
+    const auto client = Instance();
+    auto dev = client.addDevice("daq.nd://127.0.0.1");
+    auto fb = dev.addFunctionBlock("RefFBModuleStatistics");
+
+    ASSERT_TRUE(fb.getAvailableFunctionBlockTypes().hasKey("RefFBModuleTrigger"));
+
+    FunctionBlockPtr nestedFb;
+    ASSERT_NO_THROW(nestedFb = fb.addFunctionBlock("RefFBModuleTrigger"));
+    ASSERT_TRUE(nestedFb.assigned());
+
+    ASSERT_NO_THROW(fb.removeFunctionBlock(nestedFb));
+    ASSERT_TRUE(nestedFb.isRemoved());
+    ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
+}

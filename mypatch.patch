@@ -1,0 +1,752 @@
+diff --git a/core/opendaq/utility/include/opendaq/circularPacket.h b/core/opendaq/utility/include/opendaq/circularPacket.h
+new file mode 100644
+index 00000000..bc188e7e
+--- /dev/null
++++ b/core/opendaq/utility/include/opendaq/circularPacket.h
+@@ -0,0 +1,85 @@
++#pragma once
++
++#include <opendaq/sample_type.h>
++#include <opendaq/data_packet_ptr.h>
++#include <opendaq/packet_factory.h>
++#include <opendaq/deleter_factory.h>
++#include <opendaq/deleter_impl.h>
++#include <iostream>                 // This one is a bit overkill and can be removed with no major problems
++#include <vector>
++#include <memory>
++#include <cstdint>
++#include <functional>
++#include <opendaq/data_descriptor_ptr.h>
++
++enum EnumVariableType
++{
++    Invalid = 0,
++    Int,
++    Float,
++    Char,
++    Structs
++};
++
++class PacketBuffer;
++
++class Packet
++{
++public:
++    Packet();
++    Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(size_t)> callback);
++    ~Packet();
++    size_t sampleAmount;
++    void* assignedData;
++
++private:
++    std::function<void(size_t)> cb = 0;
++};
++
++
++class PacketBuffer
++{
++public:
++    PacketBuffer();
++    ~PacketBuffer();
++
++    // int => return code
++    int WriteSample(size_t* sampleCount, void** memPos);
++
++    int ReadSample(size_t sampleCount);
++
++    size_t getAvailableSampleCount();
++
++    daq::DataPacketPtr createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket);
++
++    Packet createPacket(size_t* sampleCount, size_t dataDescriptor);
++
++    void reset();
++
++//protected:
++    // Testing methods
++    void setWritePos(size_t offset);
++    void setReadPos(size_t offset);
++
++    void* getWritePos();
++    void* getReadPos();
++
++    void setIsFull(bool bState);
++    bool getIsFull();
++
++    size_t getAdjustedSize();
++
++private:
++    bool bIsFull;
++    size_t sizeOfMem;
++    size_t sizeOfSample;
++    void* data;
++    void* writePos;
++    void* readPos;
++    std::function<void(void*)> ff;
++
++    // This is a temporary solution for
++    // situation of the sampleCount being to big to fit
++    size_t sizeAdjusted;
++    bool bAdjustedSize;
++};
+diff --git a/core/opendaq/utility/src/CMakeLists.txt b/core/opendaq/utility/src/CMakeLists.txt
+index 75f1b1cf..351f922a 100644
+--- a/core/opendaq/utility/src/CMakeLists.txt
++++ b/core/opendaq/utility/src/CMakeLists.txt
+@@ -16,6 +16,11 @@ function(create_component_source_groups_${BASE_NAME})
+         ${SDK_HEADERS_DIR}/ids_parser.h
+         ${SDK_SRC_DIR}/ids_parser.cpp
+     )
++
++    source_group("utility//circularPacket" FILES
++        ${SDK_HEADERS_DIR}/circularPacket.h
++        ${SDK_SRC_DIR}/circularPacket.cpp
++    )
+     
+     source_group("utility" FILES 
+         ${SDK_HEADERS_DIR}/utility_errors.h
+@@ -26,6 +31,7 @@ endfunction()
+ 
+ set(SRC_Cpp_Component 
+     ids_parser.cpp
++    circularPacket.cpp
+     utility.natvis
+     PARENT_SCOPE
+ )
+@@ -34,6 +40,7 @@ set(SRC_PublicHeaders_Component
+     utility_errors.h
+     utility_exceptions.h
+     ids_parser.h
++    circularPacket.h
+     PARENT_SCOPE
+ )
+ 
+diff --git a/core/opendaq/utility/src/circularPacket.cpp b/core/opendaq/utility/src/circularPacket.cpp
+new file mode 100644
+index 00000000..bb9f53c5
+--- /dev/null
++++ b/core/opendaq/utility/src/circularPacket.cpp
+@@ -0,0 +1,268 @@
++#include <opendaq/circularPacket.h>
++
++PacketBuffer::PacketBuffer()
++{
++    // Here I need to check for what the type of the PackageBuffer we will use (double, float and so on...)
++    // The size will have to be adjusted when 
++    sizeOfMem = 1024;
++    sizeOfSample = sizeof(double);
++    data = malloc(sizeOfMem * sizeOfSample);
++    writePos = data;
++    readPos = data;
++    bIsFull = false;
++    bAdjustedSize = false;
++    sizeAdjusted = 0;
++}
++
++PacketBuffer::~PacketBuffer()
++{
++    free(data);
++}
++
++void PacketBuffer::setWritePos(size_t offset)
++{
++    writePos = (uint8_t*)writePos + sizeOfSample * offset;
++}
++
++void PacketBuffer::setReadPos(size_t offset)
++{
++    readPos = (size_t*)readPos + sizeOfSample * offset;
++}
++
++void* PacketBuffer::getWritePos()
++{
++    return writePos;
++}
++
++void* PacketBuffer::getReadPos()
++{
++    return readPos;
++}
++
++void PacketBuffer::setIsFull(bool bState)
++{
++    bIsFull = bState;
++}
++
++bool PacketBuffer::getIsFull()
++{
++    return bIsFull;
++}
++
++size_t PacketBuffer::getAdjustedSize()
++{
++    if (bAdjustedSize)
++        return sizeAdjusted;
++
++    return 0;
++}
++
++int PacketBuffer::WriteSample(size_t* sampleCount, void** memPos)
++{
++    // check if sampleCount is not out of scope (so check if readPos if ahead and check if the size does not reach over the sizeofMem)
++
++    // malloc ensures contiguous memory
++    if (writePos >= readPos)
++    {
++        if (writePos == readPos && bIsFull)
++            return 1;
++        // Here the writePos also needs to be moved
++        // (check if the wanted size does not fit try putting it at the beginning)
++        if (((uint8_t*) writePos + sizeOfSample * *sampleCount) < ((uint8_t*) data + sizeOfSample * sizeOfMem))
++        {
++            *memPos = writePos;
++            writePos = (void*) ((uint8_t*) writePos + sizeOfSample * *sampleCount);
++            if (writePos == readPos)
++            {
++                bIsFull = true;
++            }
++            return 0;
++        }
++        else if (((uint8_t*) writePos + sizeOfSample * *sampleCount) == ((uint8_t*) data + sizeOfSample * sizeOfMem))
++        {
++            *memPos = writePos;
++            writePos = data;
++            if (writePos == readPos)
++            {
++                bIsFull = true;
++            }
++            return 0;
++        }
++        else
++        {
++            // The amount has been changed (be careful)
++            *memPos = writePos;
++            bAdjustedSize = true;
++            *sampleCount = ((sizeOfSample * *sampleCount) - (((uint8_t*) writePos + sizeOfSample * *sampleCount) - ((uint8_t*) data + sizeOfSample * sizeOfMem))) / sizeOfSample;
++            sizeAdjusted = *sampleCount;
++            writePos = data;
++            if (writePos == readPos)
++            {
++                bIsFull = true;
++            }
++            return 2;
++        }
++    }
++    else
++    {
++        if (((uint8_t*) writePos + sizeOfSample * *sampleCount) < (uint8_t*)readPos)
++        {
++            *memPos = writePos;
++            writePos = (void*) ((uint8_t*) writePos + sizeOfSample * *sampleCount);
++            return 0;
++        }
++        return 1;
++    }
++
++}
++
++int PacketBuffer::ReadSample(size_t sampleCount)
++{
++    // I need to check if there is space between the writepos and readpos (with a wrap around)
++    if (readPos >= writePos)
++    {
++        // Trying to empty an empty buffer
++        if (readPos == writePos && !bIsFull)
++            return 1;
++
++        if ((uint8_t*)readPos + sizeOfSample * sampleCount < (uint8_t*)data + sizeOfSample * sizeOfMem)
++        {
++            bIsFull = false;
++            // Everything fits up until the end of buffer
++            readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
++            return 0;
++
++        }
++        else
++        {
++            auto remainder = ((uint8_t*) readPos + sizeOfSample * sampleCount) - ((uint8_t*) data + sizeOfSample * sizeOfMem);
++            if ((uint8_t*)data + remainder < writePos)
++            {
++                bAdjustedSize = false;
++                bIsFull = false;
++                readPos = (void*)((uint8_t*) data + remainder);
++                return 0;
++            }
++            // Is the edge case of equal important or no ?? (think about this one at home)
++            // We need to wrap around the end of the buffer
++            return 1;
++        }
++    }
++    else
++    {
++        if ((uint8_t*)readPos + sizeOfSample * sampleCount < writePos)
++        {
++            bIsFull = false;
++            readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
++            return 0;
++        }
++        else if ((uint8_t*) readPos + sizeOfSample * sampleCount == writePos)
++        {
++            readPos = writePos;
++            bIsFull = false;
++            return 0;
++        }
++        
++        return 1;
++    }
++
++}
++
++size_t PacketBuffer::getAvailableSampleCount()
++{
++    return (((uint8_t*)data + sizeOfSample * sizeOfMem) - (uint8_t*)writePos);
++}
++
++daq::DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket)
++{
++    sizeOfSample = dataDescriptor.getRawSampleSize();
++    void* startOfSpace = nullptr;
++    ff = [&, sampleCnt = *sampleCount](void*)
++         {
++             ReadSample(sampleCnt);
++         };
++    int ret = this->WriteSample(sampleCount, &startOfSpace);
++    auto deleter = daq::Deleter(std::move(ff));
++    // Here move is required because there is a smart pointer
++    // somewhere in there (I think...)
++    
++    if (!ret)
++    {   
++        return daq::DataPacketWithExternalMemory(domainPacket,
++                                                 dataDescriptor,
++                                                 (uint64_t)*sampleCount,
++                                                 startOfSpace,
++                                                 deleter); 
++    }
++    else if (ret == 2)
++    {
++        // The argument of the function needs to be changed to reflect the spec details
++        std::cout << "The size of the packet is smaller than requested. It's so JOEVER " << std::endl;
++        return daq::DataPacketWithExternalMemory(domainPacket,
++                                                 dataDescriptor,
++                                                 (uint64_t) *sampleCount,
++                                                 startOfSpace,
++                                                 deleter);
++    }
++    else
++    {
++        // Maybe throw here, or something else (who knows)
++        // This needs to be checked
++        // (This might even throw (or in other way explain that this does not work fine))
++        // If we get stuck here, it means the allocation of memory failed
++        throw 1;
++    }
++}
++
++Packet::Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(size_t)> callback)
++{
++    cb = std::move(callback);
++    // Users code, users memory corruption problems
++    sampleAmount = desiredNumOfSamples;
++    assignedData = beginningOfData;
++    
++}
++
++Packet::Packet()
++{
++    // Failed state
++    sampleAmount = 0;
++    assignedData = nullptr;
++
++}
++
++Packet::~Packet()
++{
++    cb(sampleAmount);
++}
++
++
++// This is a test function that was used to help gauge the behaviour of the buffer class
++Packet PacketBuffer::createPacket(size_t* sampleCount, size_t dataDescriptor)
++{
++    void* startOfSpace = nullptr;
++    int ret = this->WriteSample(sampleCount, &startOfSpace);
++    std::function<void(size_t)> cb = std::bind(&PacketBuffer::ReadSample, this, std::placeholders::_1);
++    if (!ret)
++    {
++        return Packet(*sampleCount, startOfSpace, cb);
++    }
++    else if (ret == 2)
++    {
++        // The argument of the function needs to be changed to reflect the spec details
++        std::cout << "The size of the packet is smaller than requested. It's so JOEVER " << std::endl;
++        return Packet(*sampleCount, startOfSpace, cb);
++    }
++    else
++    {
++        // Maybe throw here, or something else (who knows)
++        return Packet();
++    }
++}
++
++
++void PacketBuffer::reset()
++{
++    // 
++
++}
+diff --git a/core/opendaq/utility/tests/CMakeLists.txt b/core/opendaq/utility/tests/CMakeLists.txt
+index e81824c1..3e39bd6d 100644
+--- a/core/opendaq/utility/tests/CMakeLists.txt
++++ b/core/opendaq/utility/tests/CMakeLists.txt
+@@ -24,6 +24,7 @@ set(TEST_HEADERS_INTERNAL
+ )
+ 
+ set(TEST_SOURCES_INTERNAL test_ids_parser.cpp
++			  test_circular_packet.cpp
+ )
+ 
+ opendaq_prepare_internal_runner(TEST_APP_INTERNAL FOR ${MODULE_NAME}
+diff --git a/core/opendaq/utility/tests/test_circular_packet.cpp b/core/opendaq/utility/tests/test_circular_packet.cpp
+new file mode 100644
+index 00000000..9e7dee30
+--- /dev/null
++++ b/core/opendaq/utility/tests/test_circular_packet.cpp
+@@ -0,0 +1,287 @@
++#include <gtest/gtest.h>
++#include <opendaq/circularPacket.h>
++#include <opendaq/data_descriptor_factory.h>
++#include <opendaq/data_rule_factory.h>
++#include <opendaq/dimension_factory.h>
++#include <opendaq/data_rule_calc_private.h>
++#include <opendaq/packet_factory.h>
++#include <opendaq/reusable_data_packet_ptr.h>
++#include <opendaq/sample_type_traits.h>
++#include <opendaq/scaling_factory.h>
++#include <opendaq/scaling_ptr.h>
++#include <iostream>
++
++using CircularPacketTest = testing::Test;
++
++void display_write_read_pos(PacketBuffer* pb)
++{
++    //std::cout << "Write position: " << pb->getWritePos() << std::endl;
++    //std::cout << "Read position: " << pb->getReadPos() << std::endl;
++}
++
++std::tuple<daq::DataDescriptorPtr, daq::DataPacketPtr> generate_building_blocks()
++{
++    auto dimensions = daq::List<daq::IDimension>();
++    dimensions.pushBack(daq::Dimension(daq::LinearDimensionRule(10, 10, 10)));
++
++
++    auto descriptor =
++        daq::DataDescriptorBuilder()
++        .setSampleType(daq::SampleType::Int8)
++        .setDimensions(dimensions)
++        .setUnit(daq::Unit("s", 10))
++        .build();
++    daq::DataPacketPtr domain = daq::DataPacket(descriptor, 100, 0);
++    return {descriptor, domain};
++}
++
++TEST_F(CircularPacketTest, SanityWritePosCheck)
++{
++    PacketBuffer pb;
++    void* check;
++    size_t bb = 0;
++    size_t* delique = &bb;
++    //std::cout <<pb.getWritePos() << std::endl;
++    *delique = 16;
++    ASSERT_EQ(pb.WriteSample(delique, &check), 0);
++    //int t = pb.WriteSample(16, &check);
++    //std::cout << pb.getWritePos() << std::endl;
++    *delique = 1024;
++    ASSERT_EQ(pb.WriteSample(delique, &check), 2);
++    //std::cout << "Adjusted size: " << pb.getAdjustedSize() << std::endl;
++}
++
++TEST_F(CircularPacketTest, WriteFullRangeFill)
++{
++    PacketBuffer pb;
++    void* check;
++    size_t bb = 0;
++    size_t* fun = &bb;
++    *fun = 512;
++    ASSERT_EQ(pb.WriteSample(fun, &check), 0);
++    ASSERT_EQ(pb.WriteSample(fun, &check), 0);
++    *fun = 2;
++    ASSERT_EQ(pb.WriteSample(fun, &check), 1);       // This one fails becouse the buffer is full
++    //ASSERT_TRUE(pb.getIsFull());
++}
++
++TEST_F(CircularPacketTest, WriteAdjustedSize)
++{
++    PacketBuffer pb;
++    void* check;
++    size_t bb = 0;
++    size_t* run = &bb;
++    *run = 1000;
++    ASSERT_EQ(pb.WriteSample(run, &check), 0);
++    *run = 30;
++    ASSERT_EQ(pb.WriteSample(run, &check), 2);
++    //std::cout << "Adjusted size: " << pb.getAdjustedSize() << std::endl;
++    //ASSERT_TRUE(pb.getIsFull());
++}
++
++TEST_F(CircularPacketTest, WriteEmptyCall)
++{
++    // Check with Jaka if this behaviour should be considered (or if it can be safely ignored)
++    PacketBuffer pb;
++    void* check;
++    size_t bb = 0;
++    size_t* tun = &bb;
++    *tun = 0;
++    ASSERT_EQ(pb.WriteSample(tun, &check), 0);
++    //ASSERT_TRUE(pb.getIsFull());
++}
++
++
++TEST_F(CircularPacketTest, ReadEmpty)
++{
++    PacketBuffer pb;
++    size_t bb = 0;
++    size_t* gun = &bb;
++    *gun = 0;
++    ASSERT_EQ(pb.ReadSample(*gun), 1);
++}
++
++TEST_F(CircularPacketTest, ReadFromFullBuffer)
++{
++    PacketBuffer pb;
++    void* check;
++    size_t bb = 0;
++    size_t* wan = &bb;
++    *wan = 1024;
++    pb.WriteSample(wan, &check);
++    //ASSERT_TRUE(pb.getIsFull());
++    *wan = 512;
++    ASSERT_EQ(pb.ReadSample(*wan), 0);
++}
++
++TEST_F(CircularPacketTest, ReadFullBuffer)
++{
++    PacketBuffer pb;
++    void* check;
++    size_t bb = 0;
++    size_t* hun = &bb;
++    *hun = 512;
++    pb.WriteSample(hun, &check);
++    *hun = 513;
++    ASSERT_EQ(pb.ReadSample(*hun), 1);
++    //display_write_read_pos(&pb);
++    *hun = 256;
++    ASSERT_EQ(pb.ReadSample(*hun), 0);
++    //display_write_read_pos(&pb);
++    *hun = 1000;
++    ASSERT_EQ(pb.WriteSample(hun, &check), 2);
++    //std::cout << "Adjusted size: " << pb.getAdjustedSize() << std::endl;
++    //display_write_read_pos(&pb);
++    *hun = 128;
++    ASSERT_EQ(pb.WriteSample(hun, &check), 0);
++    //display_write_read_pos(&pb);
++    *hun = 800;
++    ASSERT_EQ(pb.ReadSample(*hun), 0);
++    //display_write_read_pos(&pb);
++}
++
++TEST_F(CircularPacketTest, ReadPartialWorkflow)
++{
++    PacketBuffer pb;
++    void* check;
++    size_t bb = 0;
++    size_t* jun = &bb;
++    *jun = 512;
++    pb.WriteSample(jun, &check);
++    *jun = 256;
++    ASSERT_EQ(pb.ReadSample(*jun), 0);
++    *jun = 128;
++    ASSERT_EQ(pb.ReadSample(*jun), 0);
++    *jun = 64;
++    ASSERT_EQ(pb.ReadSample(*jun), 0);
++    *jun = 32;
++    ASSERT_EQ(pb.ReadSample(*jun), 0);
++    *jun = 16;
++    ASSERT_EQ(pb.ReadSample(*jun), 0);
++    //display_write_read_pos(&pb);
++    *jun = 8;
++    ASSERT_EQ(pb.ReadSample(*jun), 0);
++    *jun = 4;
++    ASSERT_EQ(pb.ReadSample(*jun), 0);
++    ASSERT_EQ(pb.ReadSample(*jun), 0);
++    *jun = 1;
++    ASSERT_EQ(pb.ReadSample(*jun), 1);
++}
++
++TEST_F(CircularPacketTest, TestMockPacket)
++{
++    PacketBuffer pb;
++    size_t st = 8;
++    //std::cout << pb.getReadPos() << std::endl;
++    //std::cout << pb.getWritePos() << std::endl;
++    if (1)
++    {
++        Packet pck = pb.createPacket(&st, 10);
++        //std::cout << pb.getWritePos() << std::endl;
++        //std::cout << pck.assignedData << std::endl;
++        Packet pck2 = pb.createPacket(&st, 100);
++        //std::cout << pb.getWritePos() << std::endl;
++    }
++    //std::cout << pb.getReadPos() << std::endl;
++    //std::cout << pb.getWritePos() << std::endl;
++}
++
++TEST_F(CircularPacketTest, TestPacketsWithDescriptorsCreate)
++{
++    auto [descriptor, domain] = generate_building_blocks();
++
++    PacketBuffer pb;
++    size_t sampleCount = 100;
++    std::cout << pb.getReadPos() << std::endl;
++    {
++        auto created = pb.createPacket(&sampleCount, descriptor, domain);
++        std::cout << created.getPacketId() << std::endl
++                  << pb.getWritePos() << std::endl;
++    }
++    std::cout << pb.getWritePos() << std::endl;
++    std::cout << pb.getReadPos() << std::endl;
++
++}
++
++
++TEST_F(CircularPacketTest, TestFillingUpBuffer)
++{
++    auto [desc, dom] = generate_building_blocks();
++
++    PacketBuffer pb;
++    size_t sampleCount = 100;
++    // Here will create a few packets
++    {
++        daq::DataPacketPtr old_stuff;
++        std::vector<daq::DataPacketPtr> a_group;
++            try
++            {
++                for (int i = 0; i < 1000; i++)
++                {
++                    auto new_pck = pb.createPacket(&sampleCount, desc, dom);
++                    a_group.push_back(new_pck);
++                }
++                ASSERT_FALSE(true);
++            }
++            catch (...)
++            {
++                ASSERT_ANY_THROW(pb.createPacket(&sampleCount, desc, dom));
++            }
++    }
++
++}
++
++TEST_F(CircularPacketTest, TestCleanBufferAfterPacketsDestroyed)
++{
++    auto [descriptor, domain] = generate_building_blocks();
++
++    PacketBuffer pb;
++    size_t sampleCount = 100;
++    // Here will create a few packets
++
++    {
++        std::cout << "ReadPosition before buffer gets filled: " << pb.getReadPos() << std::endl;
++        daq::DataPacketPtr old_stuff;
++        std::vector<daq::DataPacketPtr> a_group;
++        try
++        {
++            for (int i = 0; i < 1000; i++)
++            {
++                auto new_pck = pb.createPacket(&sampleCount, descriptor, domain);
++                a_group.push_back(new_pck);
++                std::cout << "WritePosition: " << pb.getWritePos() << std::endl
++                          << "Buffer is full: " << pb.getIsFull() << std::endl;
++            }
++        }
++        catch (...)
++        {
++        }
++    }
++    std::cout << "ReadPosition after full buffer goes out of scope: " << pb.getReadPos() << std::endl;
++    ASSERT_EQ(pb.getIsFull(), 0);
++}
++
++TEST_F(CircularPacketTest, TestPacketImprovementTest)
++// This test will not work until
++// I correctly implement the still-alive concept
++{
++    auto [descriptor, domain] = generate_building_blocks();
++
++    PacketBuffer pb;
++    size_t sampleCount = 100;
++
++    std::cout << pb.getWritePos() << std::endl;
++    auto old_created = pb.createPacket(&sampleCount, descriptor, domain);
++    std::cout << pb.getWritePos() << std::endl;
++    std::cout << "ReadPoint: " << pb.getReadPos() << std::endl;
++    auto save_point = pb.getReadPos();
++    auto mid_point = pb.getWritePos();
++    {
++        auto new_packet = pb.createPacket(&sampleCount, descriptor, domain);
++        mid_point = pb.getWritePos();
++        //std::cout << pb.getWritePos() << std::endl;
++    }
++    std::cout << "ReadPoint: " << pb.getReadPos() << std::endl;
++    ASSERT_EQ(pb.getWritePos(), mid_point);
++    ASSERT_EQ(pb.getReadPos(), save_point);
++}
+diff --git a/mypatch.patch b/mypatch.patch
+new file mode 100644
+index 00000000..8d6ad959
+--- /dev/null
++++ b/mypatch.patch
+@@ -0,0 +1,44 @@
++diff --git a/core/opendaq/utility/src/CMakeLists.txt b/core/opendaq/utility/src/CMakeLists.txt
++index 75f1b1cf..351f922a 100644
++--- a/core/opendaq/utility/src/CMakeLists.txt
+++++ b/core/opendaq/utility/src/CMakeLists.txt
++@@ -16,6 +16,11 @@ function(create_component_source_groups_${BASE_NAME})
++         ${SDK_HEADERS_DIR}/ids_parser.h
++         ${SDK_SRC_DIR}/ids_parser.cpp
++     )
+++
+++    source_group("utility//circularPacket" FILES
+++        ${SDK_HEADERS_DIR}/circularPacket.h
+++        ${SDK_SRC_DIR}/circularPacket.cpp
+++    )
++     
++     source_group("utility" FILES 
++         ${SDK_HEADERS_DIR}/utility_errors.h
++@@ -26,6 +31,7 @@ endfunction()
++ 
++ set(SRC_Cpp_Component 
++     ids_parser.cpp
+++    circularPacket.cpp
++     utility.natvis
++     PARENT_SCOPE
++ )
++@@ -34,6 +40,7 @@ set(SRC_PublicHeaders_Component
++     utility_errors.h
++     utility_exceptions.h
++     ids_parser.h
+++    circularPacket.h
++     PARENT_SCOPE
++ )
++ 
++diff --git a/core/opendaq/utility/tests/CMakeLists.txt b/core/opendaq/utility/tests/CMakeLists.txt
++index e81824c1..3e39bd6d 100644
++--- a/core/opendaq/utility/tests/CMakeLists.txt
+++++ b/core/opendaq/utility/tests/CMakeLists.txt
++@@ -24,6 +24,7 @@ set(TEST_HEADERS_INTERNAL
++ )
++ 
++ set(TEST_SOURCES_INTERNAL test_ids_parser.cpp
+++			  test_circular_packet.cpp
++ )
++ 
++ opendaq_prepare_internal_runner(TEST_APP_INTERNAL FOR ${MODULE_NAME}

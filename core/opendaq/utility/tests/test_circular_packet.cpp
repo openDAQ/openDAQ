@@ -81,7 +81,6 @@ TEST_F(CircularPacketTest, WriteAdjustedSize)
 
 TEST_F(CircularPacketTest, WriteEmptyCall)
 {
-    // Check with Jaka if this behaviour should be considered (or if it can be safely ignored)
     PacketBuffer pb;
     void* check;
     size_t bb = 0;
@@ -98,7 +97,7 @@ TEST_F(CircularPacketTest, ReadEmpty)
     size_t bb = 0;
     size_t* gun = &bb;
     *gun = 0;
-    ASSERT_EQ(pb.ReadSample(*gun), 1);
+    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *gun), 1);
 }
 
 TEST_F(CircularPacketTest, ReadFromFullBuffer)
@@ -111,7 +110,7 @@ TEST_F(CircularPacketTest, ReadFromFullBuffer)
     pb.WriteSample(wan, &check);
     //ASSERT_TRUE(pb.getIsFull());
     *wan = 512;
-    ASSERT_EQ(pb.ReadSample(*wan), 0);
+    ASSERT_EQ(pb.ReadSample(check, *wan), 0);
 }
 
 TEST_F(CircularPacketTest, ReadFullBuffer)
@@ -122,11 +121,11 @@ TEST_F(CircularPacketTest, ReadFullBuffer)
     size_t* hun = &bb;
     *hun = 512;
     pb.WriteSample(hun, &check);
-    *hun = 513;
-    ASSERT_EQ(pb.ReadSample(*hun), 1);
+    //*hun = 513;  This will no longer get checked because the this should not be able to occur
+    //ASSERT_EQ(pb.ReadSample(check, *hun), 1);
     //display_write_read_pos(&pb);
     *hun = 256;
-    ASSERT_EQ(pb.ReadSample(*hun), 0);
+    ASSERT_EQ(pb.ReadSample(check, *hun), 0);
     //display_write_read_pos(&pb);
     *hun = 1000;
     ASSERT_EQ(pb.WriteSample(hun, &check), 2);
@@ -136,7 +135,7 @@ TEST_F(CircularPacketTest, ReadFullBuffer)
     ASSERT_EQ(pb.WriteSample(hun, &check), 0);
     //display_write_read_pos(&pb);
     *hun = 800;
-    ASSERT_EQ(pb.ReadSample(*hun), 0);
+    ASSERT_EQ(pb.ReadSample(check, *hun), 0);
     //display_write_read_pos(&pb);
 }
 
@@ -149,41 +148,35 @@ TEST_F(CircularPacketTest, ReadPartialWorkflow)
     *jun = 512;
     pb.WriteSample(jun, &check);
     *jun = 256;
-    ASSERT_EQ(pb.ReadSample(*jun), 0);
+    ASSERT_EQ(pb.ReadSample(check, *jun), 0);
     *jun = 128;
-    ASSERT_EQ(pb.ReadSample(*jun), 0);
+    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
     *jun = 64;
-    ASSERT_EQ(pb.ReadSample(*jun), 0);
+    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
     *jun = 32;
-    ASSERT_EQ(pb.ReadSample(*jun), 0);
+    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
     *jun = 16;
-    ASSERT_EQ(pb.ReadSample(*jun), 0);
-    //display_write_read_pos(&pb);
+    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
     *jun = 8;
-    ASSERT_EQ(pb.ReadSample(*jun), 0);
+    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
     *jun = 4;
-    ASSERT_EQ(pb.ReadSample(*jun), 0);
-    ASSERT_EQ(pb.ReadSample(*jun), 0);
+    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
+    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
     *jun = 1;
-    ASSERT_EQ(pb.ReadSample(*jun), 1);
+    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 1);
 }
 
 TEST_F(CircularPacketTest, TestMockPacket)
 {
     PacketBuffer pb;
     size_t st = 8;
-    //std::cout << pb.getReadPos() << std::endl;
-    //std::cout << pb.getWritePos() << std::endl;
-    if (1)
+
     {
         Packet pck = pb.createPacket(&st, 10);
-        //std::cout << pb.getWritePos() << std::endl;
-        //std::cout << pck.assignedData << std::endl;
         Packet pck2 = pb.createPacket(&st, 100);
-        //std::cout << pb.getWritePos() << std::endl;
     }
-    //std::cout << pb.getReadPos() << std::endl;
-    //std::cout << pb.getWritePos() << std::endl;
+    ASSERT_EQ(pb.getReadPos(), pb.getWritePos());
+
 }
 
 TEST_F(CircularPacketTest, TestPacketsWithDescriptorsCreate)
@@ -269,19 +262,90 @@ TEST_F(CircularPacketTest, TestPacketImprovementTest)
 
     PacketBuffer pb;
     size_t sampleCount = 100;
+    void* mid_point = NULL;
+    void* save_point = NULL;
 
-    std::cout << pb.getWritePos() << std::endl;
-    auto old_created = pb.createPacket(&sampleCount, descriptor, domain);
-    std::cout << pb.getWritePos() << std::endl;
-    std::cout << "ReadPoint: " << pb.getReadPos() << std::endl;
-    auto save_point = pb.getReadPos();
-    auto mid_point = pb.getWritePos();
     {
-        auto new_packet = pb.createPacket(&sampleCount, descriptor, domain);
+        std::cout << "WritePoint before creation: " << pb.getWritePos() << std::endl;
+        auto old_created = pb.createPacket(&sampleCount, descriptor, domain);
+        std::cout << "WritePoint after outer scope creation: " << pb.getWritePos() << std::endl;
+        std::cout << "ReadPoint after outer scopecreation: " << pb.getReadPos() << std::endl;
+        save_point = pb.getReadPos();
         mid_point = pb.getWritePos();
-        //std::cout << pb.getWritePos() << std::endl;
+        {
+            auto new_packet = pb.createPacket(&sampleCount, descriptor, domain);
+            mid_point = pb.getWritePos();
+            std::cout << "WritePoint after inner scope creation: " << pb.getWritePos() << std::endl;
+        }
+        std::cout << "ReadPoint after going out of inner scope: " << pb.getReadPos() << std::endl;
     }
-    std::cout << "ReadPoint: " << pb.getReadPos() << std::endl;
-    ASSERT_EQ(pb.getWritePos(), mid_point);
-    ASSERT_EQ(pb.getReadPos(), save_point);
+    std::cout << "WritePoint after going out of outer scopr: " << pb.getWritePos() << std::endl;
+    std::cout << "ReadPoint after going out of outer scope: " << pb.getReadPos() << std::endl;
+    ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
+    //ASSERT_EQ(pb.getReadPos(), save_point);
+}
+
+TEST_F(CircularPacketTest, TestPacketReadPartial)
+{
+    auto [descriptor, domain] = generate_building_blocks();
+    PacketBuffer pb;
+    size_t sampleCount = 100;
+    {
+        std::cout << "WritePos before any declarations: " << pb.getWritePos() << std::endl;
+        daq::DataPacketPtr pp;
+        {
+            auto a = pb.createPacket(&sampleCount, descriptor, domain);
+            std::cout << "WritePos after first declare: " << pb.getWritePos() << std::endl;
+            auto b = pb.createPacket(&sampleCount, descriptor, domain);
+            std::cout << "WritePos after second declare: " << pb.getWritePos() << std::endl;
+            {
+                pp = pb.createPacket(&sampleCount, descriptor, domain);
+                std::cout << "WritePos after third declare: " << pb.getWritePos() << std::endl;
+                auto c = pb.createPacket(&sampleCount, descriptor, domain);
+                std::cout << "WritePos after fourth declare: " << pb.getWritePos() << std::endl;
+                auto d = pb.createPacket(&sampleCount, descriptor, domain);
+                std::cout << "WritePos after fifth declare: " << pb.getWritePos() << std::endl;
+            }
+            std::cout << "ReadPos after fourth and fifth declare go OOS: " << pb.getReadPos() << std::endl;
+        }
+        std::cout << "ReadPos after the first and second declare go OOS: " << pb.getReadPos() << std::endl;
+    }
+    std::cout << "ReadPos after the third declare goes OOS: " << pb.getReadPos() << std::endl;
+    ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
+}
+
+void createMultiThreadedPacket(PacketBuffer *pb)
+{
+    auto [desc, dom] = generate_building_blocks();
+    size_t n = 100;
+    
+    auto r = pb->createPacket(&n, desc, dom);
+    std::lock_guard<std::mutex> lock(pb->flip);
+    std::cout << "WritePos: " << pb->getWritePos() << std::endl;
+    std::cout << "Created in the thread: " << r.getRawDataSize() << std::endl;
+}
+
+
+TEST_F(CircularPacketTest, TestMultiThread)
+{
+    PacketBuffer pb;
+    auto [descriptor, domain] = generate_building_blocks();
+    size_t n = 100;
+    std::condition_variable cv;
+
+    std::thread th1(createMultiThreadedPacket, &pb);
+    std::thread th2(createMultiThreadedPacket, &pb);
+    std::thread th3(createMultiThreadedPacket, &pb);
+    std::thread th4(createMultiThreadedPacket, &pb);
+    th4.join();
+    th3.join();
+    th1.join();
+    th2.join();
+
+    ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
+}
+
+TEST_F(CircularPacketTest, TestReset)
+{
+    ASSERT_FALSE(true);
 }

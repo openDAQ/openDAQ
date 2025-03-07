@@ -1,16 +1,30 @@
 #include <opendaq/circularPacket.h>
 
+
 PacketBuffer::PacketBuffer()
 {
-    // Here I need to check for what the type of the PackageBuffer we will use (double, float and so on...)
-    // The size will have to be adjusted when 
-    sizeOfMem = 1024;
-    sizeOfSample = sizeof(double);
+    // Revise so that this correctly reflects the required level of versatility
+    sizeOfMem = 1024;   // This should be adjustable
+    sizeOfSample = sizeof(double);  // This should be adjustable
     data = malloc(sizeOfMem * sizeOfSample);
     writePos = data;
     readPos = data;
     bIsFull = false;
     bAdjustedSize = false;
+    bUnderReset = false;
+    sizeAdjusted = 0;
+}
+
+PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize)
+{
+    sizeOfMem = memSize;
+    sizeOfSample = sampleSize;
+    data = malloc(sizeOfMem * sizeOfSample);
+    writePos = data;
+    readPos = data;
+    bIsFull = false;
+    bAdjustedSize = false;
+    bUnderReset = false;
     sizeAdjusted = 0;
 }
 
@@ -49,6 +63,11 @@ bool PacketBuffer::getIsFull()
     return bIsFull;
 }
 
+bool PacketBuffer::isEmpty()
+{
+    return writePos == readPos && !bIsFull;
+}
+
 size_t PacketBuffer::getAdjustedSize()
 {
     if (bAdjustedSize)
@@ -60,12 +79,13 @@ size_t PacketBuffer::getAdjustedSize()
 int PacketBuffer::WriteSample(size_t* sampleCount, void** memPos)
 {
     // check if sampleCount is not out of scope (so check if readPos if ahead and check if the size does not reach over the sizeofMem)
-
-    // malloc ensures contiguous memory
+    //std::lock_guard<std::mutex> lock(flip);
     if (writePos >= readPos)
     {
         if (writePos == readPos && bIsFull)
+        {
             return 1;
+        }
         // Here the writePos also needs to be moved
         // (check if the wanted size does not fit try putting it at the beginning)
         if (((uint8_t*) writePos + sizeOfSample * *sampleCount) < ((uint8_t*) data + sizeOfSample * sizeOfMem))
@@ -116,56 +136,67 @@ int PacketBuffer::WriteSample(size_t* sampleCount, void** memPos)
 
 }
 
-int PacketBuffer::ReadSample(size_t sampleCount)
+int PacketBuffer::ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount)
 {
-    // I need to check if there is space between the writepos and readpos (with a wrap around)
-    if (readPos >= writePos)
+    //auto simulatedWritePos = (void*) (((uint8_t*) data + sizeOfMem) + (size_t)((uint8_t*)writePos - (uint8_t)data));
+    std::lock_guard<std::mutex> lock(flip);
+    if (beginningOfDelegatedSpace != readPos)
     {
-        // Trying to empty an empty buffer
-        if (readPos == writePos && !bIsFull)
-            return 1;
+        // If the OOS packet falls into space between the beginning of memory and readPos
+        // we can artificially add it at the end and simulate
+        // an extension of the circular buffer up to the writePos
 
-        if ((uint8_t*)readPos + sizeOfSample * sampleCount < (uint8_t*)data + sizeOfSample * sizeOfMem)
-        {
-            bIsFull = false;
-            // Everything fits up until the end of buffer
-            readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
-            return 0;
+        // |_____WP______RP___|-----SWP
 
-        }
-        else
-        {
-            auto remainder = ((uint8_t*) readPos + sizeOfSample * sampleCount) - ((uint8_t*) data + sizeOfSample * sizeOfMem);
-            if ((uint8_t*)data + remainder < writePos)
-            {
-                bAdjustedSize = false;
-                bIsFull = false;
-                readPos = (void*)((uint8_t*) data + remainder);
-                return 0;
-            }
-            // Is the edge case of equal important or no ?? (think about this one at home)
-            // We need to wrap around the end of the buffer
-            return 1;
-        }
+        if (beginningOfDelegatedSpace < readPos)
+            oos_packets.push(
+                std::make_pair(((uint8_t*) data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) data), sampleCount));
+
+        oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount));
+        return 0;
     }
     else
     {
-        if ((uint8_t*)readPos + sizeOfSample * sampleCount < writePos)
+        // Here we just add to sampleCount until we hit either writePos
+        // or simulatedWritePos
+        while (!oos_packets.empty())
         {
-            bIsFull = false;
-            readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
-            return 0;
+            auto mm = (void*) ((uint8_t*) beginningOfDelegatedSpace + sizeOfSample * sampleCount);
+            if (oos_packets.top().first == mm)
+            {
+                //beginningOfDelegatedSpace = oos_packets.top().first;
+                sampleCount += oos_packets.top().second;
+                oos_packets.pop();
+            }
+            else
+            {
+                // This could maybe use a nicer way of concluding...
+                break;
+            }
         }
-        else if ((uint8_t*) readPos + sizeOfSample * sampleCount == writePos)
-        {
-            readPos = writePos;
-            bIsFull = false;
-            return 0;
-        }
-        
+    }
+    
+
+    // Empty exit
+    if (readPos == writePos && !bIsFull)
+    {
         return 1;
     }
 
+    // Due to checks in writeSample we cannot go further than WritePos
+
+    // Therefore we only need to check for wraparound and adjust the that
+
+    if ((uint8_t*)readPos + sizeOfSample * sampleCount >= (uint8_t*)data + sizeOfSample * sizeOfMem)
+        readPos = (void*)((uint8_t*)data + ((uint8_t*)readPos + sizeOfSample * sampleCount - ((uint8_t*)data + sizeOfSample * sizeOfMem)));
+    else
+        readPos = (void*)((uint8_t*)readPos + sizeOfSample * sampleCount);
+
+    bIsFull = false;
+    return 0;
+    
+    // I need to think about the full buffer state (when writePos is a start)
+   
 }
 
 size_t PacketBuffer::getAvailableSampleCount()
@@ -175,16 +206,21 @@ size_t PacketBuffer::getAvailableSampleCount()
 
 daq::DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket)
 {
+    std::lock_guard<std::mutex> loa(flip);
+    if (bUnderReset)
+    {
+        std::cerr << "Under ongoing reset, cannot create new packets" << std::endl;
+        return NULL;
+    }
     sizeOfSample = dataDescriptor.getRawSampleSize();
     void* startOfSpace = nullptr;
-    ff = [&, sampleCnt = *sampleCount](void*)
-         {
-             ReadSample(sampleCnt);
-         };
+    // Here the should be a lock for creation
     int ret = this->WriteSample(sampleCount, &startOfSpace);
+    ff = [&, sampleCnt = *sampleCount, startOfSpace = startOfSpace](void*)
+         {
+             ReadSample(startOfSpace, sampleCnt);
+         };
     auto deleter = daq::Deleter(std::move(ff));
-    // Here move is required because there is a smart pointer
-    // somewhere in there (I think...)
     
     if (!ret)
     {
@@ -214,7 +250,25 @@ daq::DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDesc
     }
 }
 
-Packet::Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(size_t)> callback)
+void PacketBuffer::reset(int iSecTimeout)
+{
+    {
+        std::lock_guard<std::mutex> lock(flip);
+        bUnderReset = true;
+    }
+    // Here we now check if the ReadPos and WritePos have realligned
+    // or if the timeout was reached.
+
+    
+
+    // We enable the creation of new packets
+    {
+        std::lock_guard<std::mutex> lock(flip);
+        bUnderReset = false;
+    }
+ }
+
+Packet::Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(void*, size_t)> callback)
 {
     cb = std::move(callback);
     // Users code, users memory corruption problems
@@ -233,16 +287,18 @@ Packet::Packet()
 
 Packet::~Packet()
 {
-    cb(sampleAmount);
+    cb(assignedData,sampleAmount);
 }
 
 
 // This is a test function that was used to help gauge the behaviour of the buffer class
 Packet PacketBuffer::createPacket(size_t* sampleCount, size_t dataDescriptor)
 {
+    // dd.append(weak pointer)
+
     void* startOfSpace = nullptr;
     int ret = this->WriteSample(sampleCount, &startOfSpace);
-    std::function<void(size_t)> cb = std::bind(&PacketBuffer::ReadSample, this, std::placeholders::_1);
+    std::function<void(void*,size_t)> cb = std::bind(&PacketBuffer::ReadSample, this, std::placeholders::_1, std::placeholders::_2);
     if (!ret)
     {
         return Packet(*sampleCount, startOfSpace, cb);
@@ -261,8 +317,14 @@ Packet PacketBuffer::createPacket(size_t* sampleCount, size_t dataDescriptor)
 }
 
 
-void PacketBuffer::reset()
-{
-    // 
+/*
+    Q: How does a reset work for a single thread?
+    A: It does not. 
 
-}
+    Observation: All basic processes will require a lock on them...
+    (I need to provide a better test for multiple readones, but e)
+    
+*/
+
+
+

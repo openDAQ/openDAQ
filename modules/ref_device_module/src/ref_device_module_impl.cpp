@@ -78,7 +78,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     if (devices[id].assigned() && devices[id].getRef().assigned())
     {
         LOG_W("Device with id \"{}\" already exist", id);
-        throw AlreadyExistsException();
+        THROW_OPENDAQ_EXCEPTION(AlreadyExistsException());
     }
     
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);

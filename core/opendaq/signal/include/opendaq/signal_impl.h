@@ -184,7 +184,7 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , keepLastValue(true)
 {
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
-        throw InvalidSampleTypeException("SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
+        THROW_OPENDAQ_EXCEPTION(InvalidSampleTypeException("SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet."));
     setKeepLastPacket();
 
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
@@ -288,7 +288,7 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
 {
     const auto name = descriptor.getName();
     if (!name.assigned())
-        throw NotAssignedException{"Name of data descriptor not assigned."};
+        THROW_OPENDAQ_EXCEPTION(NotAssignedException{"Name of data descriptor not assigned."});
 
     const auto fields = descriptor.getStructFields();
     auto fieldNames = List<IString>();
@@ -301,12 +301,12 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
             const auto dimensions = field.getDimensions();
 
             if (!dimensions.assigned())
-                throw NotAssignedException{"Dimensions of data descriptor not assigned."};
+                THROW_OPENDAQ_EXCEPTION(NotAssignedException{"Dimensions of data descriptor not assigned."});
 
             const auto dimensionCount = dimensions.getCount();
 
             if (dimensionCount > 1)
-                throw NotSupportedException{"getLastValue on signals with dimensions supports only up to one dimension."};
+                THROW_OPENDAQ_EXCEPTION(NotSupportedException{"getLastValue on signals with dimensions supports only up to one dimension."});
 
             TypePtr type;
 

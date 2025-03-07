@@ -64,14 +64,14 @@ FunctionBlockPtr StatisticsFbImpl::onAddFunctionBlock(const StringPtr& typeId, c
         if (this->functionBlocks.getItems().getCount())
         {
             setComponentStatusWithMessage(ComponentStatus::Error, "Only one nested function block is supported");
-            throw AlreadyExistsException("Only one nested function block is supported");
+            THROW_OPENDAQ_EXCEPTION(AlreadyExistsException("Only one nested function block is supported"));
         }
             
         
         if (typeId != "RefFBModuleTrigger")
         {
             setComponentStatusWithMessage(ComponentStatus::Error, "Statistics function block only supports nested trigger function block");
-            throw InvalidParameterException("Statistics function block only supports nested trigger function block");
+            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Statistics function block only supports nested trigger function block"));
         }
 
         PropertyObjectPtr triggerConfig = config;

@@ -261,12 +261,12 @@ ErrCode DataDescriptorImpl::validate()
             if (dataRule.getType() == DataRuleType::Constant)
             {
                 if (referenceDomainInfo.assigned())
-                    throw InvalidParameterException("Reference Domain Info not supported for constant data rule type.");
+                    THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Reference Domain Info not supported for constant data rule type."));
             }
             if (scaling.assigned())
             {
                 if (referenceDomainInfo.assigned())
-                    throw InvalidParameterException("Reference Domain Info not supported with post scaling.");
+                    THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Reference Domain Info not supported with post scaling."));
             }
                 
         }

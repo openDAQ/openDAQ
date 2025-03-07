@@ -32,7 +32,7 @@ ServerPtr NativeStreamingServerModule::onCreateServer(const StringPtr& serverTyp
                                                       const DevicePtr& rootDevice)
 {
     if (!context.assigned())
-        throw InvalidParameterException{"Context parameter cannot be null."};
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException{"Context parameter cannot be null."});
 
     PropertyObjectPtr config = serverConfig;
     if (!config.assigned())

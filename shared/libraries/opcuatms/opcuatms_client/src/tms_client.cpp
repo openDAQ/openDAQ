@@ -112,9 +112,9 @@ void TmsClient::createAndConectClient()
         {
             case UA_STATUSCODE_BADUSERACCESSDENIED:
             case UA_STATUSCODE_BADIDENTITYTOKENINVALID:
-                throw AuthenticationFailedException(e.what());
+                THROW_OPENDAQ_EXCEPTION(AuthenticationFailedException(e.what()));
             default:
-                throw NotFoundException(e.what());
+                THROW_OPENDAQ_EXCEPTION(NotFoundException(e.what()));
         }
     }
 }

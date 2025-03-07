@@ -501,7 +501,7 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
 
     auto domainInputSignal = findTimeSignalByTableId(tableId);
     if (!domainInputSignal)
-        throw NotFoundException("Unknown domain signal for data signal {}, table {}", signalId, tableId);
+        THROW_OPENDAQ_EXCEPTION(NotFoundException("Unknown domain signal for data signal {}, table {}", signalId, tableId));
 
     InputSignalBasePtr inputSignal = nullptr;
     if (auto availableSigIt = availableSignals.find(signalId); availableSigIt != availableSignals.end())

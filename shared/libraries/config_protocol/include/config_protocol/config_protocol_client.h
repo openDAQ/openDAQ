@@ -368,7 +368,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
 
     auto rootDevice = clientComm->getRootDevice();
     if (!rootDevice.assigned())
-        throw NotAssignedException("Root device is not assigned.");
+        THROW_OPENDAQ_EXCEPTION(NotAssignedException("Root device is not assigned."));
 
     protocolHandshake(clientComm->getProtocolVersion());
     enumerateTypes();
@@ -453,7 +453,7 @@ ComponentPtr ConfigProtocolClient<TRootDeviceImpl>::findComponent(std::string gl
 {
     auto rootDevice = clientComm->getRootDevice();
     if (!rootDevice.assigned())
-        throw NotAssignedException{"Root device is not assigned."};
+        THROW_OPENDAQ_EXCEPTION(NotAssignedException{"Root device is not assigned."});
 
     if (globalId.empty())
         return nullptr;

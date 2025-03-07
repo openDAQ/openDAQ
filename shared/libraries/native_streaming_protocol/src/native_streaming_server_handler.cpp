@@ -716,7 +716,7 @@ ClientType NativeStreamingServerHandler::parseClientTypeProp(const PropertyObjec
         THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
     if (propertyObject.getProperty("ClientType").getValueType() != ctInt)
-        throw InvalidValueException();
+        THROW_OPENDAQ_EXCEPTION(InvalidValueException());
 
     const Int clientTypeInt = propertyObject.getPropertyValue("ClientType");
     return ClientTypeTools::IntToClientType(clientTypeInt);
@@ -728,7 +728,7 @@ bool NativeStreamingServerHandler::parseExclusiveControlDropOthersProp(const Pro
         THROW_OPENDAQ_EXCEPTION(NotFoundException());
 
     if (propertyObject.getProperty("ExclusiveControlDropOthers").getValueType() != ctBool)
-        throw InvalidValueException();
+        THROW_OPENDAQ_EXCEPTION(InvalidValueException());
 
     return propertyObject.getPropertyValue("ExclusiveControlDropOthers");
 }

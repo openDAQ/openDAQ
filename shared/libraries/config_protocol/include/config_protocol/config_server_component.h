@@ -151,7 +151,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
         case CoreType::ctFunc:
             break;
         default:
-            throw InvalidPropertyException("Property not callable");
+            THROW_OPENDAQ_EXCEPTION(InvalidPropertyException("Property not callable"));
     }
 
     if (!prop.getCallableInfo().isConst())
@@ -234,7 +234,7 @@ inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const RpcContext& 
     else if (attributeName == "Active")
         component.setActive(attributeValue);
     else
-        throw InvalidParameterException("Attribute not available or not supported via native config protocol");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Attribute not available or not supported via native config protocol"));
 
     return nullptr;
 }

@@ -290,7 +290,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     }
 
     if (numberOfChannels < 1 || numberOfChannels > 4096)
-        throw InvalidParameterException("Invalid number of channels");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid number of channels"));
 
     auto numberOfChannelsProp = IntPropertyBuilder("NumberOfChannels", numberOfChannels)
                                     .setMinValue(1)
@@ -576,9 +576,9 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
         if (!dhcp)
         {
             if (gateway.getLength() == 0)
-                throw InvalidParameterException("No gateway address specified");
+                THROW_OPENDAQ_EXCEPTION(InvalidParameterException("No gateway address specified"));
             if (address.getLength() == 0)
-                throw InvalidParameterException("Empty static address specified");
+                THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Empty static address specified"));
         }
     };
 
@@ -609,7 +609,7 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
     // Open the command for reading
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
-        throw GeneralErrorException("Failed to start IP modification");
+        THROW_OPENDAQ_EXCEPTION(GeneralErrorException("Failed to start IP modification"));
 
     // Read the output of the command
     while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
@@ -618,7 +618,7 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
     // Get the exit status
     int exitCode = pclose(pipe);
     if (exitCode)
-        throw InvalidParameterException("Invalid IP configuration: {}", result);
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid IP configuration: {}", result));
 
     // The new IP configuration has been successfully verified. Stop the application now
     // to allow it to adopt the updated configuration and reopen network sockets upon relaunch.
@@ -635,7 +635,7 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
     // Open the command for reading
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
-        throw GeneralErrorException("Failed to run retrieve IP configuration script");
+        THROW_OPENDAQ_EXCEPTION(GeneralErrorException("Failed to run retrieve IP configuration script"));
 
     // Read the output of the command
     while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
@@ -644,7 +644,7 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
     // Get the exit status
     int exitCode = pclose(pipe);
     if (exitCode)
-        throw GeneralErrorException("Retrieve IP configuration script failed: {}", result);
+        THROW_OPENDAQ_EXCEPTION(GeneralErrorException("Retrieve IP configuration script failed: {}", result));
 
     auto factoryCallback = [](const StringPtr& typeId,
                               const SerializedObjectPtr& serializedObj,
@@ -652,7 +652,7 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
                               const FunctionPtr& factoryCallback)
     {
         if (typeId != "Result")
-            throw DeserializeException("Wrong script result type ID: {}", typeId);
+            THROW_OPENDAQ_EXCEPTION(DeserializeException("Wrong script result type ID: {}", typeId));
 
         auto config = PropertyObject();
 

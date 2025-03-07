@@ -32,7 +32,7 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
         return nullptr;
 
     if (!context.assigned() || !context.getTypeManager().assigned())
-        throw ConversionFailedException{"Generic struct conversion requires the TypeManager."};
+        THROW_OPENDAQ_EXCEPTION(ConversionFailedException{"Generic struct conversion requires the TypeManager."});
 
     const auto typeManager = context.getTypeManager();
 

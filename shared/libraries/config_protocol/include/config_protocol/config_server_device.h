@@ -83,10 +83,10 @@ inline BaseObjectPtr ConfigServerDevice::removeFunctionBlock(const RpcContext& c
 
     const auto fbs = device.getFunctionBlocks(search::LocalId(localId));
     if (fbs.getCount() == 0)
-        throw NotFoundException("Function block not found");
+        THROW_OPENDAQ_EXCEPTION(NotFoundException("Function block not found"));
 
     if (fbs.getCount() > 1)
-        throw InvalidStateException("Duplicate function block");
+        THROW_OPENDAQ_EXCEPTION(InvalidStateException("Duplicate function block"));
 
     device.removeFunctionBlock(fbs[0]);
     return nullptr;
@@ -188,10 +188,10 @@ inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context,
     const auto devs = device.getDevices(search::LocalId(localId));
 
     if (devs.getCount() == 0)
-        throw NotFoundException("Device not found");
+        THROW_OPENDAQ_EXCEPTION(NotFoundException("Device not found"));
 
     if (devs.getCount() > 1)
-        throw InvalidStateException("Duplicate device");
+        THROW_OPENDAQ_EXCEPTION(InvalidStateException("Duplicate device"));
 
     device.removeDevice(devs[0]);
 

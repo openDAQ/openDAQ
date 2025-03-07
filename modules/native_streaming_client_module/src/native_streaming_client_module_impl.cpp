@@ -348,7 +348,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
         nativeType = NativeType::config;
     else
-        throw InvalidParameterException("Invalid connection string prefix");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid connection string prefix"));
 
     PropertyObjectPtr deviceConfig;
     if (!config.assigned())
@@ -360,7 +360,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     if (!context.assigned())
-        throw InvalidParameterException("Context is not available.");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Context is not available."));
 
     auto host = GetHost(connectionString);
     auto port = GetPort(connectionString, deviceConfig);
@@ -555,7 +555,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     {
         auto message = fmt::format("Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
         LOG_E("{}", message);
-        throw NotFoundException(message);
+        THROW_OPENDAQ_EXCEPTION(NotFoundException(message));
     }
 
     return transportClientHandler;
@@ -748,7 +748,7 @@ StringPtr NativeStreamingClientModule::GetHostType(const StringPtr& url)
 		return String("IPv6");
 	if (std::regex_search(urlString, match, regexIpv4Hostname))
 		return String("IPv4");
-	throw InvalidParameterException("Host type not found in url: {}", url);
+	THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Host type not found in url: {}", url));
 }
 
 StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
@@ -763,7 +763,7 @@ StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
         return String(match[2]);
     if (std::regex_search(urlString, match, regexIpv4Hostname))
         return String(match[2]);
-    throw InvalidParameterException("Host name not found in url: {}", url);
+    THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Host name not found in url: {}", url));
 }
 
 StringPtr NativeStreamingClientModule::GetPort(const StringPtr& url, const PropertyObjectPtr& config)

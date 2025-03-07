@@ -13,10 +13,10 @@ ExternalAllocatorImpl::ExternalAllocatorImpl(void* data, const DeleterPtr& delet
 {
 #ifdef OPENDAQ_ENABLE_PARAMETER_VALIDATION
     if (!this->data)
-        throw InvalidParameterException("Data parameter must not be null.");
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Data parameter must not be null."));
 
     if (!this->deleter.assigned())
-        throw ArgumentNullException("Deleter parameter must not be null.");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Deleter parameter must not be null."));
 #endif
 }
 

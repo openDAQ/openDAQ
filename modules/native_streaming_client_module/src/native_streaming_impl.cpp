@@ -40,8 +40,8 @@ NativeStreamingImpl::NativeStreamingImpl(
     if (protocolInitFuture.wait_for(this->streamingInitTimeout) != std::future_status::ready)
     {
         stopProcessingOperations();
-        throw GeneralErrorException("Streaming protocol intialization timed out; connection string: {}",
-                                    connectionString);
+        THROW_OPENDAQ_EXCEPTION(GeneralErrorException("Streaming protocol intialization timed out; connection string: {}",
+                                    connectionString));
     }
 }
 

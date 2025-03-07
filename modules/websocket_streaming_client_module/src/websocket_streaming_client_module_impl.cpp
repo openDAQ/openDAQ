@@ -77,7 +77,7 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
         THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     if (!context.assigned())
-        throw InvalidParameterException{"Context is not available."};
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException{"Context is not available."});
 
     // We don't create any streaming objects here since the
     // internal streaming object is always created within the device

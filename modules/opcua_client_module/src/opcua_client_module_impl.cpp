@@ -72,7 +72,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
         THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
 
     if (!context.assigned())
-        throw InvalidParameterException{"Context is not available."};
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException{"Context is not available."});
 
     std::string host;
     std::string hostType;
@@ -236,10 +236,10 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
             path = match[4];
     }
     else
-        throw InvalidParameterException("Host name not found in url: {}", connectionString);
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Host name not found in url: {}", connectionString));
 
     if (prefix != std::string(DaqOpcUaDevicePrefix) + "://")
-        throw InvalidParameterException("OpcUa does not support connection string with prefix {}", prefix);
+        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("OpcUa does not support connection string with prefix {}", prefix));
 
     return std::string(OpcUaScheme) + "://" + host + ":" + std::to_string(port) + path;
 }

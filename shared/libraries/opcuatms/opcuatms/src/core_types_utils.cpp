@@ -147,9 +147,9 @@ UA_SampleTypeEnumeration SampleTypeToTmsEnum(SampleType daqEnum)
         case SampleType::Struct:
             return UA_SAMPLETYPEENUMERATION_INVALID;
         case SampleType::Null:
-            throw ConversionFailedException(
+            THROW_OPENDAQ_EXCEPTION(ConversionFailedException(
                 "SampleType \"Null\" is not convertible and reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet."
-            );
+            ));
         default:
             THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
     }
@@ -204,7 +204,7 @@ OpcUaNodeId CoreTypeToUANodeID(CoreType type)
         case ctComplexNumber:
         case ctUndefined:
         default:
-            throw ConversionFailedException{"Mapping between core type and node id is not available"};
+            THROW_OPENDAQ_EXCEPTION(ConversionFailedException{"Mapping between core type and node id is not available"});
     }
 }
 
@@ -212,7 +212,7 @@ CoreType UANodeIdToCoreType(OpcUaNodeId nodeId)
 {
     if (const auto it = details::nodeIdToCoreTypeMap.find(nodeId); it != details::nodeIdToCoreTypeMap.cend())
         return it->second;
-    throw ConversionFailedException{"Mapping between node id and core type is not available."};
+    THROW_OPENDAQ_EXCEPTION(ConversionFailedException{"Mapping between node id and core type is not available."});
 }
 
 OpcUaVariant DecodeIfExtensionObject(const OpcUaVariant& variant)

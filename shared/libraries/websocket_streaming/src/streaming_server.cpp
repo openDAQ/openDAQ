@@ -23,7 +23,7 @@ StreamingServer::StreamingServer(const ContextPtr& context)
     , logger(context.getLogger())
 {
     if (!this->logger.assigned())
-        throw ArgumentNullException("Logger must not be null");
+        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Logger must not be null"));
     loggerComponent = this->logger.getOrAddComponent("StreamingServer");
     logCallback = [this](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg) {
         this->loggerComponent.logMessage(SourceLocation{location.filename, location.line, location.funcname}, msg, static_cast<LogLevel>(level));

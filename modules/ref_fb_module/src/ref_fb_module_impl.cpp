@@ -114,7 +114,7 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
     }
 
     LOG_W("Function block \"{}\" not found", id);
-    throw NotFoundException("Function block not found");
+    THROW_OPENDAQ_EXCEPTION(NotFoundException("Function block not found"));
 }
 
 END_NAMESPACE_REF_FB_MODULE

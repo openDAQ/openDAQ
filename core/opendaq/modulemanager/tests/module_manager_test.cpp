@@ -2,11 +2,15 @@
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/logger_factory.h>
-
 #include "mock/mock_module.h"
 
 #include <chrono>
 #include <thread>
+
+#include <opendaq/component_type_builder_factory.h>
+#include <opendaq/device_info_config_ptr.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/module_manager_utils_ptr.h>
 
 using namespace daq;
 
@@ -139,4 +143,81 @@ TEST_F(ModuleManagerTest, RegisterDaqTypes)
     ASSERT_TRUE(typeManager.hasType("PtpSyncInterface"));
     ASSERT_TRUE(typeManager.hasType("SyncInterfaceBase"));
     ASSERT_TRUE(typeManager.hasType("InterfaceClockSync"));
+}
+
+class MockModuleInternal : public MockModuleImpl
+{
+public:
+    MockModuleInternal();
+
+    daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** availableDevices) override;
+    daq::ErrCode INTERFACE_FUNC getAvailableDeviceTypes(daq::IDict** deviceTypes) override;
+    daq::ErrCode INTERFACE_FUNC createDevice(daq::IDevice** device, daq::IString* connectionString, daq::IComponent* parent, daq::IPropertyObject* config) override;
+
+    DeviceInfoConfigPtr info;
+    DeviceTypePtr type;
+    int scanCount = 0;
+};
+
+MockModuleInternal::MockModuleInternal()
+{
+    info = DeviceInfo("daqmock://dev");
+    type = DeviceTypeBuilder().setConnectionStringPrefix("daqmock").setId("daqmock").build();
+}
+
+daq::ErrCode MockModuleInternal::getAvailableDevices(daq::IList** availableDevices)
+{
+    scanCount++;
+    *availableDevices = List<IDeviceInfo>(info).detach();
+    return OPENDAQ_SUCCESS;
+}
+
+daq::ErrCode MockModuleInternal::getAvailableDeviceTypes(daq::IDict** deviceTypes)
+{
+    *deviceTypes = Dict<IString, IDeviceType>({{type.getId(), type}}).detach();
+    return OPENDAQ_SUCCESS;
+}
+
+daq::ErrCode MockModuleInternal::createDevice(daq::IDevice** device,
+                                              daq::IString* /*connectionString*/,
+                                              daq::IComponent* /*parent*/,
+                                              daq::IPropertyObject* /*config*/)
+{
+    *device = DevicePtr();
+    return OPENDAQ_SUCCESS;
+}
+
+// Disabled, as test is not deterministic on devices where calls between creates take longer than 5s
+TEST_F(ModuleManagerTest, DISABLED_TestScanTimeout1)
+{
+    auto manager = ModuleManager("[[none]]");
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+    auto dev = utils.createDevice("daqmock", nullptr);
+    ASSERT_EQ(impl->scanCount, 1);
+    dev = utils.createDevice("daqmock", nullptr);
+    ASSERT_EQ(impl->scanCount, 1);
+}
+
+// Disabled to not significantly increase test suite runtime
+TEST_F(ModuleManagerTest, DISABLED_TestScanTimeout2)
+{
+    auto manager = ModuleManager("[[none]]");
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+    auto dev = utils.createDevice("daqmock", nullptr);
+    ASSERT_EQ(impl->scanCount, 1);
+
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(6s);
+    dev = utils.createDevice("daqmock", nullptr);
+    ASSERT_EQ(impl->scanCount, 2);
 }

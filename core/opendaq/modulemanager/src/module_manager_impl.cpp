@@ -34,6 +34,9 @@
 #include <opendaq/network_interface_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+using namespace std::chrono_literals;
+
 static OrphanedModules orphanedModules;
 
 static constexpr char createModuleFactory[] = "createModule";
@@ -44,6 +47,7 @@ static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerCompo
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
     , work(ioContext.get_executor())
+    , scanTimeout(5s)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -216,8 +220,6 @@ struct DevicePing
 
 void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 {
-    using namespace std::chrono_literals;
-
     std::vector<DevicePing> statuses;
     std::map<std::string, bool> ipv4Addresses;
     std::map<std::string, bool> ipv6Addresses;
@@ -443,6 +445,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     *availableDevices = availableDevicesPtr.detach();
 
     availableDevicesGroup = groupedDevices;
+    lastScanTime = std::chrono::steady_clock::now();
     return OPENDAQ_SUCCESS;
 }
 
@@ -498,7 +501,8 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
         // Scan for devices if not yet done so
         // TODO: Should we re-scan after a timeout?
-        if (!availableDevicesGroup.assigned())
+        auto currentTime = std::chrono::steady_clock::now();
+        if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > scanTimeout)
         {
             const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
             if (OPENDAQ_FAILED(errCode))

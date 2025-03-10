@@ -34,6 +34,7 @@ set(SRC_PublicHeaders_Component
     utility_errors.h
     utility_exceptions.h
     ids_parser.h
+    mem_pool_allocator.h
     PARENT_SCOPE
 )
 

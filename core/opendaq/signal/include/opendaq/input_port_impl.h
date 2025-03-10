@@ -73,6 +73,9 @@ public:
     // IOwnable
     ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
 
+    // IComponent
+    ErrCode INTERFACE_FUNC getActive(Bool* active) override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
@@ -553,6 +556,17 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyOb
             return this->MakeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
     }
     this->owner = owner;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class ... Interfaces>
+ErrCode GenericInputPortImpl<Interfaces...>::getActive(Bool* active)
+{
+    OPENDAQ_PARAM_NOT_NULL(active);
+
+    auto lock = this->getAcquisitionLock();
+
+    *active = this->active;
     return OPENDAQ_SUCCESS;
 }
 

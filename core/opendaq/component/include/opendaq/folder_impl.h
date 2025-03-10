@@ -44,6 +44,9 @@ public:
     // IComponent
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
 
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+
     // IFolder
     ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
@@ -87,6 +90,8 @@ protected:
     void callEndUpdateOnChildren() override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
+    virtual void syncComponentOperationMode(const ComponentPtr& component);
+
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
     void clearInternal();
@@ -124,8 +129,8 @@ ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
     return daqTry([&]
     {
         std::vector<ComponentPtr> itemsVec;
-        for (const auto& item : this->items)
-            itemsVec.emplace_back(item.second);
+        for (const auto& [_, item] : this->items)
+            itemsVec.emplace_back(item);
         this->setActiveRecursive(itemsVec, active);
         return OPENDAQ_SUCCESS;
     });
@@ -143,8 +148,8 @@ ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searc
         return daqTry([&]
         {
             std::vector<ComponentPtr> itemsVec;
-            for (const auto& item : this->items)
-                itemsVec.emplace_back(item.second);
+            for (const auto& [_, item] : this->items)
+                itemsVec.emplace_back(item);
 
             *items = this->searchItems(searchFilter, itemsVec).detach();
             return OPENDAQ_SUCCESS;
@@ -157,9 +162,9 @@ ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searc
         return err;
 
     ListPtr<IComponent> childList = ListPtr<IComponent>::Adopt(list);
-    for (const auto& item : this->items)
-        if (item.second.getVisible())
-			childList.pushBack(item.second);
+    for (const auto& [_, item] : this->items)
+        if (item.getVisible())
+            childList.pushBack(item);
 
     *items = childList.detach();
 
@@ -209,6 +214,26 @@ ErrCode FolderImpl<Intf, Intfs...>::hasItem(IString* localId, Bool* value)
 }
 
 template <class Intf, class... Intfs>
+void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& component)
+{
+    auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+    if (!componentPrivate.assigned())
+        return;
+
+    auto parentDevice = this->getParentDevice();
+    if (!parentDevice.assigned())
+        return;
+    
+    StringPtr opModeStr;
+    parentDevice.template as<IDevice>(true)->getOperationMode(&opModeStr);
+    if (!opModeStr.assigned())
+        return;
+
+    OperationModeType modeType = this->OperationModeTypeFromString(opModeStr);
+    componentPrivate->updateOperationMode(modeType);
+}
+
+template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 {
     OPENDAQ_PARAM_NOT_NULL(item);
@@ -216,14 +241,13 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
     {
         auto lock = this->getRecursiveConfigLock();
 
-        const ErrCode err = daqTry(
-            [this, &item]
-            {
-                if (!addItemInternal(item))
-                    return OPENDAQ_ERR_DUPLICATEITEM;
+        const ErrCode err = daqTry([this, &item]
+        {
+            if (!addItemInternal(item))
+                return OPENDAQ_ERR_DUPLICATEITEM;
 
-                return OPENDAQ_SUCCESS;
-            });
+            return OPENDAQ_SUCCESS;
+        });
 
         if (OPENDAQ_FAILED(err))
             return err;
@@ -232,12 +256,15 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto component = ComponentPtr::Borrow(item);
+
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                CoreEventId::ComponentAdded,
-                Dict<IString, IBaseObject>({{"Component", component}}));
+            CoreEventId::ComponentAdded,
+            Dict<IString, IBaseObject>({{"Component", component}}));
 
         this->triggerCoreEvent(args);
+
         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
+        syncComponentOperationMode(component);
     }
 
     return OPENDAQ_SUCCESS;
@@ -253,14 +280,13 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
     {
         auto lock = this->getRecursiveConfigLock();
 
-        const ErrCode err = daqTry(
-            [this, &str]
-            {
-                if (!removeItemWithLocalIdInternal(str))
-                    return OPENDAQ_ERR_NOTFOUND;
+        const ErrCode err = daqTry([this, &str]
+        {
+            if (!removeItemWithLocalIdInternal(str))
+                return OPENDAQ_ERR_NOTFOUND;
 
-                return OPENDAQ_SUCCESS;
-            });
+            return OPENDAQ_SUCCESS;
+        });
 
         if (OPENDAQ_FAILED(err))
             return err;
@@ -288,14 +314,13 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
     {
         auto lock = this->getRecursiveConfigLock();
 
-        const ErrCode err = daqTry(
-            [this, &str]
-            {
-                if (!removeItemWithLocalIdInternal(str))
-                    return OPENDAQ_ERR_NOTFOUND;
+        const ErrCode err = daqTry([this, &str]
+        {
+            if (!removeItemWithLocalIdInternal(str))
+                return OPENDAQ_ERR_NOTFOUND;
 
-                return OPENDAQ_SUCCESS;
-            });
+            return OPENDAQ_SUCCESS;
+        });
 
         if (OPENDAQ_FAILED(err))
              return err;
@@ -335,9 +360,9 @@ ErrCode INTERFACE_FUNC FolderImpl<Intf, Intfs...>::getSerializeId(ConstCharPtr* 
 template <class Intf, class ... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::enableCoreEventTrigger()
 {
-    for (const auto& child : items)
+    for (const auto& [_, item] : items)
     {
-        const ErrCode err = child.second.template asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
+        const ErrCode err = item.template asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
         if (OPENDAQ_FAILED(err))
             return err;
     }
@@ -348,9 +373,9 @@ ErrCode FolderImpl<Intf, Intfs...>::enableCoreEventTrigger()
 template <class Intf, class ... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::disableCoreEventTrigger()
 {
-    for (const auto& child : items)
+    for (const auto& [_, item] : items)
     {
-        const ErrCode err = child.second.template asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
+        const ErrCode err = item.template asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
         if (OPENDAQ_FAILED(err))
             return err;
     }
@@ -372,11 +397,10 @@ ErrCode FolderImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized,
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeFolder<IFolderConfig, FolderImpl>(serialized, context, factoryCallback).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = DeserializeFolder<IFolderConfig, FolderImpl>(serialized, context, factoryCallback).detach();
+    });
 }
 
 template <class Intf, class... Intfs>
@@ -450,7 +474,7 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
     if (!component.supportsInterface(itemId))
         THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Type of item not allowed in the folder"));
 
-    const auto res = items.insert({component.getLocalId(), component});
+    const auto res = items.emplace(component.getLocalId(), component);
     
     return res.second;
 }
@@ -464,17 +488,17 @@ void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr
     {
         serializer.key("items");
         serializer.startObject();
-        for (const auto& item : items)
+        for (const auto& [itemId, item] : items)
         {
-            if (!item.second.template asPtr<IPropertyObjectInternal>().hasUserReadAccess(serializer.getUser()))
+            if (!item.template asPtr<IPropertyObjectInternal>().hasUserReadAccess(serializer.getUser()))
                 continue;
 
-            serializer.key(item.first.c_str());
+            serializer.key(itemId.c_str());
 
             if (forUpdate)
-                item.second.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+                item.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
             else
-                item.second.serialize(serializer);
+                item.serialize(serializer);
         }
         serializer.endObject();
     }
@@ -510,10 +534,9 @@ void FolderImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
 {
     Super::callBeginUpdateOnChildren();
 
-    for (const auto& item : items)
+    for (const auto& [_, item] : items)
     {
-        const auto& comp = item.second;
-        comp.beginUpdate();
+        item.beginUpdate();
     }
 }
 
@@ -522,23 +545,43 @@ void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 {
     Super::callEndUpdateOnChildren();
 
-    for (const auto& item : items)
+    for (const auto& [_, item] : items)
     {
-        const auto& comp = item.second;
-        comp.endUpdate();
+        item.endUpdate();
     }
 }
 
 template <class Intf, class ... Intfs>
 void FolderImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
-    for (const auto& item : items)
+    for (const auto& [_, item] : items)
     {
-        const auto updatable = item.second.template asPtrOrNull<IUpdatable>(true);
+        const auto updatable = item.template asPtrOrNull<IUpdatable>(true);
         if (updatable.assigned())
             updatable.updateEnded(context);
     }
     Super::onUpdatableUpdateEnd(context);
+}
+
+template <class Intf, class... Intfs>
+ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
+{
+    ErrCode errCode = Super::updateOperationMode(modeType);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    for (const auto& [_, item] : items)
+    {
+        auto componentPrivate = item.template asPtrOrNull<IComponentPrivate>(true);
+        if (componentPrivate.assigned())
+        {
+            errCode = componentPrivate->updateOperationMode(modeType);
+            if (OPENDAQ_FAILED(errCode))
+                return errCode;
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>

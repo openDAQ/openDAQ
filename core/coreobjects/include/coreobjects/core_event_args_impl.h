@@ -65,6 +65,8 @@ namespace core_event_args_impl
                 return "DeviceLockStateChanged";
             case CoreEventId::ConnectionStatusChanged:
                 return "ConnectionStatusChanged";
+            case CoreEventId::DeviceOperationModeChanged:
+                return "DeviceOperationModeChanged";
             default:
                 break;
         }
@@ -241,6 +243,8 @@ inline bool CoreEventArgsImpl::validateParameters() const
                    && parameters.hasKey("ProtocolType")
                    && parameters.hasKey("StreamingObject")
                    && parameters.hasKey("Message");
+        case CoreEventId::DeviceOperationModeChanged:
+            return parameters.hasKey("OperationMode");
         default:
             break;
     }

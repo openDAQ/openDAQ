@@ -183,6 +183,40 @@ MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
     createAndAddInputPort("ip", PacketReadyNotification::None);
 }
 
+DictPtr<IString, IFunctionBlockType> MockFb1Impl::onGetAvailableFunctionBlockTypes()
+{
+       auto fbTypes = Dict<IString, IFunctionBlockType>({{"mockfb1", FunctionBlockType("mockfb1", "MockFB1", "Mock FB1", nullptr)}});
+
+    auto componentTypePrivate = fbTypes.get("mockfb1").asPtr<IComponentTypePrivate>();
+    componentTypePrivate->setModuleInfo(ModuleInfo(VersionInfo(5, 6, 7), "module_name", "module_id"));
+
+    return fbTypes;
+}
+
+FunctionBlockPtr MockFb1Impl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    if (typeId == "mockfb1")
+    {
+        if (!config.assigned())
+            throw InvalidParameterException();
+
+        const StringPtr param = config.getPropertyValue("Param");
+        if (param != "Value")
+            throw InvalidParameterException();
+
+        const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(context, this->functionBlocks, "newFb");
+        addNestedFunctionBlock(fb);
+        return fb;
+    }
+
+    throw NotFoundException();
+}
+
+void MockFb1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    removeNestedFunctionBlock(functionBlock);
+}
+
 MockFb2Impl::MockFb2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId, "MockClass")
 {

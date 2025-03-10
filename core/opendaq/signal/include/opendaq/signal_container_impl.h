@@ -44,6 +44,9 @@ public:
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
 
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+
 protected:
     FolderConfigPtr signals;
     FolderConfigPtr functionBlocks;
@@ -651,6 +654,27 @@ void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
     }
 
     Super::callEndUpdateOnChildren();
+}
+
+template <class Intf, class... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
+{
+    ErrCode errCode = Super::updateOperationMode(modeType);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    for (const auto& component : components)
+    {
+        auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+        if (!componentPrivate.assigned())
+            continue;
+
+        errCode = componentPrivate->updateOperationMode(modeType);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>

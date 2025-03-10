@@ -16,36 +16,22 @@
 
 #pragma once
 #include <coretypes/common.h>
+#include <coretypes/baseobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
+
 /*!
- * @ingroup opendaq_utility
- * @addtogroup opendaq_core_events Core Event IDs
+ * @ingroup objects_lock_guard
+ * @addtogroup objects_lock_guard LockGuard
  * @{
  */
 
-enum class CoreEventId : uint32_t
+/*!
+ * @brief Interface for lock guard objects.
+ */
+DECLARE_OPENDAQ_INTERFACE(ILockGuard, IBaseObject)
 {
-    PropertyValueChanged = 0,
-    PropertyObjectUpdateEnd = 10,
-    PropertyAdded = 20,
-    PropertyRemoved = 30,
-    ComponentAdded = 40,
-    ComponentRemoved = 50,
-    SignalConnected = 60,
-    SignalDisconnected = 70,
-    DataDescriptorChanged = 80,
-    ComponentUpdateEnd = 90,
-    AttributeChanged = 100,
-    TagsChanged = 110,
-    StatusChanged = 120,
-    TypeAdded = 130,
-    TypeRemoved = 140,
-    DeviceDomainChanged = 150,
-    DeviceLockStateChanged = 160,
-    ConnectionStatusChanged = 170,
-    DeviceOperationModeChanged = 180,
 };
 
 /*!@}*/

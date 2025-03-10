@@ -20,6 +20,9 @@
 #include <config_protocol/config_server_access_control.h>
 #include <opendaq/update_parameters_factory.h>
 
+#include "opendaq/component_holder_factory.h"
+#include "opendaq/search_filter_factory.h"
+
 namespace daq::config_protocol
 {
 
@@ -35,6 +38,9 @@ public:
     static BaseObjectPtr endUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setAttributeValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr update(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr getAvailableFunctionBlockTypes(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr addFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr removeFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
 
 private:
     static void applyProps(uint16_t protocolVersion, const PropertyObjectPtr& obj, const ListPtr<IDict>& props);
@@ -280,5 +286,86 @@ inline void ConfigServerComponent::applyProps(uint16_t protocolVersion, const Pr
             obj.clearPropertyValue(name);
     }
 }
+
+inline BaseObjectPtr ConfigServerComponent::getAvailableFunctionBlockTypes(const RpcContext& context,
+                                                                           const ComponentPtr& component,
+                                                                           const ParamsDictPtr& /*params*/)
+{
+    ConfigServerAccessControl::protectObject(component, context.user, Permission::Read);
+
+    BaseObjectPtr fbTypes;
+    if (const auto device = component.asPtrOrNull<IDevice>(true); device.assigned())
+        fbTypes = device.getAvailableFunctionBlockTypes();
+    else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
+        fbTypes = fb.getAvailableFunctionBlockTypes();
+    else
+        throw InvalidStateException("Component is not a device or function block");
+
+    return fbTypes;
+}
+
+inline BaseObjectPtr ConfigServerComponent::addFunctionBlock(const RpcContext& context,
+                                                             const ComponentPtr& component,
+                                                             const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto fbTypeId = params.get("TypeId");
+    PropertyObjectPtr config;
+    if (params.hasKey("Config"))
+        config = params.get("Config");
+
+    BaseObjectPtr fbNested;
+    if (const auto device = component.asPtrOrNull<IDevice>(true); device.assigned())
+        fbNested = device.addFunctionBlock(fbTypeId, config);
+    else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
+        fbNested = fb.addFunctionBlock(fbTypeId, config);
+    else
+        throw InvalidStateException("Component is not a device or function block");
+
+    return ComponentHolder(fbNested);
+}
+
+inline BaseObjectPtr ConfigServerComponent::removeFunctionBlock(const RpcContext& context,
+                                                                const ComponentPtr& component,
+                                                                const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto localId = params.get("LocalId");
+
+    const auto checkFb = [](const ListPtr<IFunctionBlock>& fbs)
+    {
+        if (fbs.getCount() == 0)
+            throw NotFoundException("Function block not found");
+
+        if (fbs.getCount() > 1)
+            throw InvalidStateException("Duplicate function block");
+    };
+
+    ListPtr<IFunctionBlock> fbs;
+    if (const auto device = component.asPtrOrNull<IDevice>(true); device.assigned())
+    {
+        fbs = device.getFunctionBlocks(search::LocalId(localId));
+        checkFb(fbs);
+        device.removeFunctionBlock(fbs[0]);
+        
+    }
+    else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
+    {
+        fbs = fb.getFunctionBlocks(search::LocalId(localId));
+        checkFb(fbs);
+        fb.removeFunctionBlock(fbs[0]);
+    }
+    else
+        throw InvalidStateException("Component is not a device or function block");
+
+    return nullptr;
+}
+
 
 }

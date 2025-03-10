@@ -109,7 +109,7 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         context.user = this->user;
         context.connectionType = this->connectionType;
 
-        const auto componentGlobalId = static_cast<std::string>(params["ComponentGlobalId"]);
+        const auto componentGlobalId = static_cast<std::string>(params.getOrDefault("ComponentGlobalId", ""));
         const auto component = findComponent(componentGlobalId);
 
         if (!component.assigned())
@@ -140,11 +140,12 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
     addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
     addHandler<ComponentPtr>("Update", &ConfigServerComponent::update);
+    
+    addHandler<ComponentPtr>("GetAvailableFunctionBlockTypes", &ConfigServerComponent::getAvailableFunctionBlockTypes);
+    addHandler<ComponentPtr>("AddFunctionBlock", &ConfigServerComponent::addFunctionBlock);
+    addHandler<ComponentPtr>("RemoveFunctionBlock", &ConfigServerComponent::removeFunctionBlock);
 
     addHandler<DevicePtr>("GetInfo", &ConfigServerDevice::getInfo);
-    addHandler<DevicePtr>("GetAvailableFunctionBlockTypes", &ConfigServerDevice::getAvailableFunctionBlockTypes);
-    addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
-    addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock);
     addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
     addHandler<DevicePtr>("Lock", &ConfigServerDevice::lock);
     addHandler<DevicePtr>("Unlock", &ConfigServerDevice::unlock);
@@ -157,6 +158,10 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
     addHandler<DevicePtr>("SetPropertyValue", &ConfigServerDevice::setPropertyValue);
     addHandler<DevicePtr>("SetProtectedPropertyValue", &ConfigServerDevice::setProtectedPropertyValue);
+    addHandler<DevicePtr>("GetAvailableOperationModes", &ConfigServerDevice::getAvailableOperationModes);
+    addHandler<DevicePtr>("SetOperationMode", &ConfigServerDevice::setOperationMode);
+    addHandler<DevicePtr>("SetOperationModeRecursive", &ConfigServerDevice::setOperationModeRecursive);
+    addHandler<DevicePtr>("GetOperationMode", &ConfigServerDevice::getOperationMode);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
@@ -368,7 +373,7 @@ ComponentPtr ConfigProtocolServer::findComponent(const std::string& componentGlo
 
 BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) const
 {
-    const auto componentGlobalId = static_cast<std::string>(params["ComponentGlobalId"]);
+    const auto componentGlobalId = static_cast<std::string>(params.getOrDefault("ComponentGlobalId", ""));
     const auto component = findComponent(componentGlobalId);
 
     if (!component.assigned())

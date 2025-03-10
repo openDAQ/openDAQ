@@ -25,6 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class PermissionsBuilderImpl : public ImplementationOf<IPermissionsBuilder>
 {
 public:
+    using PermissionTable = std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>;
     explicit PermissionsBuilderImpl();
 
     ErrCode INTERFACE_FUNC inherit(Bool inherit) override;
@@ -39,13 +40,11 @@ private:
     void allow(IString* groupId, Int permissionFlags);
     void deny(IString* groupId, Int permissionFlags);
 
-    static void InsertOrReplace(const StringPtr& groupId, Int permissionFlag, std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& map);
-
     Bool inherited;
     
-    std::unordered_map<StringPtr, Int, StringHash, StringEqualTo> allowed;
-    std::unordered_map<StringPtr, Int, StringHash, StringEqualTo> denied;
-    std::unordered_map<StringPtr, Int, StringHash, StringEqualTo> assigned;
+    PermissionTable allowed;
+    PermissionTable denied;
+    PermissionTable assigned;
 };
 
 END_NAMESPACE_OPENDAQ

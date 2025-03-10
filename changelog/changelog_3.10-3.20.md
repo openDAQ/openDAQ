@@ -3,6 +3,7 @@
 ## Features
 
 - [#719](https://github.com/openDAQ/openDAQ/pull/719) Fixes error when accessing selection property values using "dot" notation (eg. `getPropertySelectionValue("child.val")`).
+- [#718](https://github.com/openDAQ/openDAQ/pull/718) Adds new Native Configuration Protocol RPCs for handling sub-function blocks (function blocks that are children of other FBs.
 - [#642](https://github.com/openDAQ/openDAQ/pull/642) Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
 - [#638](https://github.com/openDAQ/openDAQ/pull/638) Adds a tick tolerance option to the `MultiReader`, allowing for the limitation of inter-sample offsets between read signals.
 - [#631](https://github.com/openDAQ/openDAQ/pull/631) "Any read/write" events are added to property object that are triggered whenever any of the object's property values are read or written.
@@ -11,6 +12,7 @@
 - [#607](https://github.com/openDAQ/openDAQ/pull/607) [#700](https://github.com/openDAQ/openDAQ/pull/700) Introduces configurable Device Info Properties.
 - [#606](https://github.com/openDAQ/openDAQ/pull/606) Mechanism for retrieving and monitoring the device's connection statuses, enabling tracking of streaming connections.
 - [#605](https://github.com/openDAQ/openDAQ/pull/605) Add support for View Only client to the openDAQ Native configuration protocol.
+- [#704](https://github.com/openDAQ/openDAQ/pull/704) Support setting operation mode for the device which notifies all sub components
 
 ## Python
 
@@ -55,6 +57,7 @@
 - [#635](https://github.com/openDAQ/openDAQ/pull/635) Before the openDAQ instance object is destroyed, it now calls `rootDevice.remove()` in its desctructor.
 - [#630](https://github.com/openDAQ/openDAQ/pull/630) The internal `Device` implementation function `ongetLogFileInfos()` was renamed to `onGetLogFileInfos()`. 
 - [#720](https://github.com/openDAQ/openDAQ/pull/720) Introduces additional performance optimizations for native streaming packet transmitting.
+- [#723](https://github.com/openDAQ/openDAQ/pull/723) Data path optimizations: no heap allocations on `sendPacket()`, remove dynamic casts on packet reader, use acquisition lock instead of recursive config lock on input port active getter, optimize packet construction, support for manual last value.
 
 ## Required application changes
 

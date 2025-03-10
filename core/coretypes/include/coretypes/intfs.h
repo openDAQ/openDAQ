@@ -373,7 +373,7 @@ protected:
         if (OPENDAQ_FAILED(err))
             return err;
 
-        setErrorInfoWithSource(thisBaseObject, message, params...);
+        setErrorInfoWithSource(thisBaseObject, message, std::forward<Params>(params)...);
         return errCode;
     }
 
@@ -388,7 +388,7 @@ protected:
         if (OPENDAQ_FAILED(err))
             return err;
 
-        setErrorInfoWithSource(fileName, fileLine, thisBaseObject, message, params...);
+        setErrorInfoWithSource(fileName, fileLine, thisBaseObject, message, std::forward<Params>(params)...);
         return errCode;
     }
 

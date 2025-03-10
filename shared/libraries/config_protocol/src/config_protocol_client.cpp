@@ -803,7 +803,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Clien
     const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
 
     std::string remoteGlobalId{};
-    if (parentComponent.assigned() && parentComponent.supportsInterface<IConfigClientObject>())
+    if (parentComponent.supportsInterface<IConfigClientObject>())
     {
         const auto configClientObject = parentComponent.asPtr<IConfigClientObject>(true);
         StringPtr temp;

@@ -36,7 +36,7 @@ ScalingImpl::ScalingImpl(SampleType inputType, ScaledSampleType outputType, Scal
 {
     checkErrorInfo(verifyParametersInternal());
 
-    if (params.assigned() && params.supportsInterface<IFreezable>())
+    if (params.supportsInterface<IFreezable>())
         params.freeze();
 }
 
@@ -57,7 +57,7 @@ ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
 
     checkErrorInfo(verifyParametersInternal());
 
-    if (params.assigned() && params.supportsInterface<IFreezable>())
+    if (params.supportsInterface<IFreezable>())
         params.freeze();
 }
 

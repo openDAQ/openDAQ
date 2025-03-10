@@ -91,7 +91,6 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
                            if (parentFolder.assigned())
                            {
                                if (parentFolder.getLocalId() == "Srv" &&
-                                   parentFolder.getParent().assigned() &&
                                    parentFolder.getParent().supportsInterface<IDevice>())
                                    parentDevice = parentFolder.getParent().asPtr<IDevice>();
                                else

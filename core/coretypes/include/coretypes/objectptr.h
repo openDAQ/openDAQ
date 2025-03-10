@@ -2024,7 +2024,7 @@ template <class T>
 bool ObjectPtr<T>::supportsInterface(const IntfID& id) const
 {
     if (!object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        return false;
 
     void* intf;
     auto res = object->borrowInterface(id, &intf);
@@ -2435,7 +2435,7 @@ ErrCode createObjectFrozen(Interface** intf, Params... params)
     using Ptr = typename InterfaceToSmartPtr<Interface>::SmartPtr;
 
     Ptr ptr{};
-    ErrCode errCode = daq::createObject<Interface, Impl>(&ptr, params...);
+    ErrCode errCode = daq::createObject<Interface, Impl>(&ptr, std::forward<Params>(params)...);
     if (OPENDAQ_FAILED(errCode))
     {
         return errCode;

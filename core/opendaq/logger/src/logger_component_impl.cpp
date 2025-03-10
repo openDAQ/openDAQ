@@ -1,6 +1,7 @@
-#include <opendaq/logger_component_impl.h>
 #include <coretypes/impl.h>
+#include <coretypes/validation.h>
 
+#include <opendaq/logger_component_impl.h>
 #include <opendaq/logger_sink_base_private_ptr.h>
 #include <opendaq/logger_thread_pool_private.h>
 #include <opendaq/logger_thread_pool_factory.h>
@@ -99,10 +100,7 @@ ErrCode LoggerComponentImpl::logMessage(SourceLocation location, ConstCharPtr ms
 
 ErrCode LoggerComponentImpl::setPattern(IString* pattern)
 {
-    if (pattern == nullptr)
-    {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Pattern can not be null.");
-    }
+    OPENDAQ_PARAM_NOT_NULL(pattern);
 
     spdlogLogger->set_pattern(toStdString(pattern));
     return OPENDAQ_SUCCESS;

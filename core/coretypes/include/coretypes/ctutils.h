@@ -89,7 +89,7 @@ inline std::string objectToString(IBaseObject* object)
     return stream.str();
 }
 
-static std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* errorInfo)
+inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* errorInfo)
 {
     if (errorInfo == nullptr)
         return ss;
@@ -113,12 +113,6 @@ static std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* error
     IString* message;
     errorInfo->getMessage(&message);
 
-    Finally final([&message]
-    {
-        if (message != nullptr)
-            message->releaseRef();
-    });
-
     if (message != nullptr)
     {
         ConstCharPtr msgCharPtr;
@@ -126,6 +120,8 @@ static std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* error
 
         if (msgCharPtr != nullptr)
             ss << msgCharPtr;
+        
+        message->releaseRef();
     }
     
     return ss;
@@ -199,7 +195,7 @@ inline void checkErrorInfo(ErrCode errCode)
 template <typename... Params>
 ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* source, Params... params)
 {
-    setErrorInfoWithSource(source, message, params...);
+    setErrorInfoWithSource(source, message, std::forward<Params>(params)...);
     return errCode;
 }
 
@@ -210,7 +206,7 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
     template <typename... Params>
     ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, IBaseObject* source, Params... params)
     {
-        setErrorInfoWithSource(fileName, fileLine, source, message, params...);
+        setErrorInfoWithSource(fileName, fileLine, source, message, std::forward<Params>(params)...);
         return errCode;
     }
     #define MakeErrorInfoForSource(source, errCode, message, ...) \
@@ -245,7 +241,7 @@ template <typename... Params>
 void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
 {
     IErrorInfo* errorInfo;
-    auto err = createErrorInfoObjectWithSource(&errorInfo, source, message, params...);
+    auto err = createErrorInfoObjectWithSource(&errorInfo, source, message, std::forward<Params>(params)...);
     if (OPENDAQ_FAILED(err))
         return;
 
@@ -258,7 +254,7 @@ void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Par
     void setErrorInfoWithSource(ConstCharPtr fileName, Int fileLine, IBaseObject* source, const std::string& message, Params... params)
     {
         IErrorInfo* errorInfo;
-        auto err = createErrorInfoObjectWithSource(&errorInfo, fileName, fileLine, source, message, params...);
+        auto err = createErrorInfoObjectWithSource(&errorInfo, fileName, fileLine, source, message, std::forward<Params>(params)...);
         if (OPENDAQ_FAILED(err))
             return;
 
@@ -343,7 +339,7 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     template <typename... Params>
     ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, ConstCharPtr fileName, Int fileLine, IBaseObject* sourceObj, const std::string& message, Params... params)
     {
-        ErrCode errCode = createErrorInfoObjectWithSource(errorInfo, sourceObj, message, params...);
+        ErrCode errCode = createErrorInfoObjectWithSource(errorInfo, sourceObj, message, std::forward<Params>(params)...);
         if (OPENDAQ_FAILED(errCode))
             return errCode;
 

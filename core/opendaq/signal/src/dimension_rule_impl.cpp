@@ -24,7 +24,7 @@ DimensionRuleImpl::DimensionRuleImpl(DimensionRuleType ruleType, const DictPtr<I
       , params(this->fields.get("Parameters"))
 {
     checkErrorInfo(verifyParametersInternal());
-    if (params.assigned() && params.supportsInterface<IFreezable>())
+    if (params.supportsInterface<IFreezable>())
         params.freeze();
 }
 

@@ -2630,7 +2630,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEv
 
     for (auto& item : propValues)
     {
-        if (item.second.assigned() && item.second.supportsInterface(IPropertyObject::Id))
+        if (item.second.supportsInterface(IPropertyObject::Id))
         {
             configureClonedObj(item.first, item.second);
         }

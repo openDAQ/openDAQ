@@ -118,7 +118,7 @@ public:
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 
-        if (this->defaultValue.assigned() && this->defaultValue.supportsInterface<IPropertyObject>())
+        if (this->defaultValue.supportsInterface<IPropertyObject>())
             initDefaultPermissionManager();
         checkErrorInfo(validateDuringConstruction());
     }

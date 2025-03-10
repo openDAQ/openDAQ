@@ -88,10 +88,7 @@ ErrCode LoggerSinkBase<Interfaces...>::shouldLog(LogLevel level, Bool* willLog)
 template <typename... Interfaces>
 ErrCode LoggerSinkBase<Interfaces...>::setPattern(IString* pattern)
 {
-    if (pattern == nullptr)
-    {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "The pattern can not be null.");
-    }
+    OPENDAQ_PARAM_NOT_NULL(pattern);
 
     try
     {

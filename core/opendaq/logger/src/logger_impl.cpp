@@ -1,6 +1,6 @@
 #include <opendaq/logger_impl.h>
 #include <coretypes/impl.h>
-
+#include <coretypes/validation.h>
 #include <opendaq/logger_component_factory.h>
 #include <opendaq/logger_sink_factory.h>
 #include <opendaq/logger_sink_base_private_ptr.h>
@@ -139,10 +139,7 @@ ErrCode LoggerImpl::addComponent(IString* name, ILoggerComponent** component)
 
 ErrCode LoggerImpl::removeComponent(IString* name)
 {
-    if (name == nullptr)
-    {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
-    }
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     std::lock_guard<std::mutex> lock(addComponentMutex);
 

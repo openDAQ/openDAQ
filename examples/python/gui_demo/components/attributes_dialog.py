@@ -3,7 +3,6 @@ from tkinter import ttk
 
 import opendaq as daq
 
-from ..event_port import EventPort
 from ..app_context import AppContext
 from .dialog import Dialog
 from .generic_attributes_treeview import AttributesTreeview
@@ -13,13 +12,12 @@ from .data_descriptor_treeview import DataDescriptorTreeview
 class AttributesDialog(Dialog):
     def __init__(self, parent, title, node, context: AppContext, **kwargs):
         Dialog.__init__(self, parent, title, context, **kwargs)
-        self.event_port = EventPort(parent)
 
         self.geometry(f'{600}x{800}')
         tree_frame = ttk.Frame(self)
         tree_frame.pack(fill=tk.BOTH, expand=True)
 
-        AttributesTreeview(tree_frame, node, context)
+        AttributesTreeview(parent, tree_frame, node, context)
 
         if daq.ISignal.can_cast_from(node) or daq.IDevice.can_cast_from(node):
             additional_tree_frame = ttk.Frame(self)

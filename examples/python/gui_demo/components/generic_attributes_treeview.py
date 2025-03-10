@@ -6,15 +6,16 @@ import os
 
 from .. import utils
 from ..app_context import AppContext
-
+from ..event_port import EventPort
 
 class AttributesTreeview(ttk.Treeview):
-    def __init__(self, parent, node=None, context: AppContext = None, **kwargs):
-        ttk.Treeview.__init__(self, parent, columns=('value', 'access', *context.metadata_fields), show='tree headings', **kwargs)
+    def __init__(self, parent, frame, node=None, context: AppContext = None, **kwargs):
+        ttk.Treeview.__init__(self, frame, columns=('value', 'access', *context.metadata_fields), show='tree headings', **kwargs)
 
         self.context = context
         self.node = node
         self.attributes = None
+        self.event_port = EventPort(parent)
 
         scroll_bar = ttk.Scrollbar(
             self, orient=tk.VERTICAL, command=self.yview)
@@ -109,6 +110,7 @@ class AttributesTreeview(ttk.Treeview):
         print(f'Value changed for {sel}: {value} -> {new_value}')
 
         self.tree_update()
+        self.event_port.emit()
 
     def tree_update(self):
         self.delete(*self.get_children())

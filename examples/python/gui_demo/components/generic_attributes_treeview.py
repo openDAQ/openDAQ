@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, simpledialog
 
 import opendaq as daq
+import os
 
 from .. import utils
 from ..app_context import AppContext

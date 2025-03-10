@@ -1,8 +1,8 @@
-$ReturnType$ $NonInterfaceType$_$Name$($NonInterfaceType$* obj, $Arguments$)
 $ReturnType$ $NonInterfaceType$_$Name$($Arguments$)
-return reinterpret_cast<$ArgTypeFull$*>(obj)->$Name$($ArgumentsImpl$);
-*obj = reinterpret_cast<$NonInterfaceType$*>($FactoryName$($ArgumentsImpl$));
+$ReturnType$ $NonInterfaceType$_$Name$($Arguments$)
+return reinterpret_cast<$ArgTypeFull$*>(self)->$Name$($ArgumentsForwarding$);
+$ArgTypeFull$* ptr = nullptr;
+ErrCode err = $FactoryName$(&ptr$ArgumentsForwarding$);
+*obj = reinterpret_cast<$NonInterfaceType$*>(ptr);
 return 0;
-$ArgTypeNameNonInterface$** $ArgName$
-$ArgTypeNameNonInterface$* $ArgName$
-, 
+return err;

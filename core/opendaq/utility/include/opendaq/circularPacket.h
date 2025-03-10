@@ -14,6 +14,11 @@
 #include <cstdint>
 #include <functional>
 #include <opendaq/data_descriptor_ptr.h>
+    
+struct PacketBufferInit
+{
+    daq::DataDescriptorPtr desc;
+};
 
 enum EnumVariableType
 {
@@ -47,7 +52,7 @@ class PacketBuffer
 
 public:
     PacketBuffer();
-
+    PacketBuffer(PacketBufferInit instructions);
     PacketBuffer(size_t sampleSize, size_t memSize);
 
     ~PacketBuffer();

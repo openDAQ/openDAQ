@@ -15,8 +15,6 @@ using CircularPacketTest = testing::Test;
 
 void display_write_read_pos(PacketBuffer* pb)
 {
-    //std::cout << "Write position: " << pb->getWritePos() << std::endl;
-    //std::cout << "Read position: " << pb->getReadPos() << std::endl;
 }
 
 std::tuple<daq::DataDescriptorPtr, daq::DataPacketPtr> generate_building_blocks()
@@ -41,14 +39,10 @@ TEST_F(CircularPacketTest, SanityWritePosCheck)
     void* check;
     size_t bb = 0;
     size_t* delique = &bb;
-    //std::cout <<pb.getWritePos() << std::endl;
     *delique = 16;
     ASSERT_EQ(pb.WriteSample(delique, &check), 0);
-    //int t = pb.WriteSample(16, &check);
-    //std::cout << pb.getWritePos() << std::endl;
     *delique = 1024;
     ASSERT_EQ(pb.WriteSample(delique, &check), 2);
-    //std::cout << "Adjusted size: " << pb.getAdjustedSize() << std::endl;
 }
 
 TEST_F(CircularPacketTest, WriteFullRangeFill)
@@ -62,7 +56,6 @@ TEST_F(CircularPacketTest, WriteFullRangeFill)
     ASSERT_EQ(pb.WriteSample(fun, &check), 0);
     *fun = 2;
     ASSERT_EQ(pb.WriteSample(fun, &check), 1);       // This one fails becouse the buffer is full
-    //ASSERT_TRUE(pb.getIsFull());
 }
 
 TEST_F(CircularPacketTest, WriteAdjustedSize)
@@ -75,8 +68,6 @@ TEST_F(CircularPacketTest, WriteAdjustedSize)
     ASSERT_EQ(pb.WriteSample(run, &check), 0);
     *run = 30;
     ASSERT_EQ(pb.WriteSample(run, &check), 2);
-    //std::cout << "Adjusted size: " << pb.getAdjustedSize() << std::endl;
-    //ASSERT_TRUE(pb.getIsFull());
 }
 
 TEST_F(CircularPacketTest, WriteEmptyCall)
@@ -87,7 +78,6 @@ TEST_F(CircularPacketTest, WriteEmptyCall)
     size_t* tun = &bb;
     *tun = 0;
     ASSERT_EQ(pb.WriteSample(tun, &check), 0);
-    //ASSERT_TRUE(pb.getIsFull());
 }
 
 
@@ -108,7 +98,6 @@ TEST_F(CircularPacketTest, ReadFromFullBuffer)
     size_t* wan = &bb;
     *wan = 1024;
     pb.WriteSample(wan, &check);
-    //ASSERT_TRUE(pb.getIsFull());
     *wan = 512;
     ASSERT_EQ(pb.ReadSample(check, *wan), 0);
 }
@@ -121,22 +110,14 @@ TEST_F(CircularPacketTest, ReadFullBuffer)
     size_t* hun = &bb;
     *hun = 512;
     pb.WriteSample(hun, &check);
-    //*hun = 513;  This will no longer get checked because the this should not be able to occur
-    //ASSERT_EQ(pb.ReadSample(check, *hun), 1);
-    //display_write_read_pos(&pb);
     *hun = 256;
     ASSERT_EQ(pb.ReadSample(check, *hun), 0);
-    //display_write_read_pos(&pb);
     *hun = 1000;
     ASSERT_EQ(pb.WriteSample(hun, &check), 2);
-    //std::cout << "Adjusted size: " << pb.getAdjustedSize() << std::endl;
-    //display_write_read_pos(&pb);
     *hun = 128;
     ASSERT_EQ(pb.WriteSample(hun, &check), 0);
-    //display_write_read_pos(&pb);
     *hun = 800;
     ASSERT_EQ(pb.ReadSample(check, *hun), 0);
-    //display_write_read_pos(&pb);
 }
 
 TEST_F(CircularPacketTest, ReadPartialWorkflow)
@@ -282,7 +263,6 @@ TEST_F(CircularPacketTest, TestPacketImprovementTest)
     std::cout << "WritePoint after going out of outer scopr: " << pb.getWritePos() << std::endl;
     std::cout << "ReadPoint after going out of outer scope: " << pb.getReadPos() << std::endl;
     ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
-    //ASSERT_EQ(pb.getReadPos(), save_point);
 }
 
 TEST_F(CircularPacketTest, TestPacketReadPartial)
@@ -344,38 +324,63 @@ TEST_F(CircularPacketTest, TestMultiThread)
     ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
 }
 
-void createAndWaitPacket(PacketBuffer *pb, daq::DataDescriptorPtr desc, daq::DataPacketPtr &dom)
+// This is a very inelegant solution,
+// but it allows the test to run without waiting
+// in the test thread itself
+int t = 0;
+
+void createAndWaitPacket(PacketBuffer *pb, daq::DataDescriptorPtr desc, daq::DataPacketPtr &dom, std::condition_variable *cv)
 {
+    
     size_t n = 100;
     auto r = pb->createPacket(&n, desc, dom);
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    std::cout << "Packet was creted and we waited." << std::endl;
+    std::mutex re;
+    std::unique_lock<std::mutex> lck(re);
+    cv->wait(lck,
+             [&]
+             {
+                 t += 1;
+                 return true;
+             });
+    lck.unlock();
+    cv->notify_all();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::cout << "Packet was created. " << std::endl;
 }
 
-/* void cb(PacketBuffer* pb)
+ void cb(PacketBuffer* pb)
 {
    auto r = pb -> reset();
-}*/
+    std::cout << r << std::endl;
+}
 
 TEST_F(CircularPacketTest, TestReset)
 {
     PacketBuffer pb;
+    std::condition_variable start_up_assurance;
     auto [descriptor, domain] = generate_building_blocks();
-    int g = 500;
 
-    std::thread th1(createAndWaitPacket, &pb, descriptor, domain);
-    std::thread th2(createAndWaitPacket, &pb, descriptor, domain);
-    //auto r = pb.reset(g);
-    //std::thread thReset(cb, &pb);
-    std::thread th3(createAndWaitPacket, &pb, descriptor, domain);
-    std::thread th4(createAndWaitPacket, &pb, descriptor, domain);
+    std::thread th1(createAndWaitPacket, &pb, descriptor, domain, &start_up_assurance);
 
-    //thReset.join();
+    std::thread th2(createAndWaitPacket, &pb, descriptor, domain, &start_up_assurance);
+
+    std::thread th3(createAndWaitPacket, &pb, descriptor, domain, &start_up_assurance);
+
+    std::thread th4(createAndWaitPacket, &pb, descriptor, domain, &start_up_assurance);
+
+    std::mutex gh;
+    std::unique_lock<std::mutex> rezan(gh);
+
+    start_up_assurance.wait(rezan, [&] { return t >= 4; });
+    std::thread th5(createAndWaitPacket, &pb, descriptor, domain, &start_up_assurance);
+
+    cb(&pb);
+    
     th1.join();
     th2.join();
     th3.join();
     th4.join();
-
+    th5.join();
     ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
-    //ASSERT_EQ(r, 0);
+
 }

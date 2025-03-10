@@ -28,6 +28,11 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize)
     sizeAdjusted = 0;
 }
 
+PacketBuffer::PacketBuffer(PacketBufferInit instructions)
+{
+
+}
+
 PacketBuffer::~PacketBuffer()
 {
     free(data);
@@ -138,10 +143,8 @@ int PacketBuffer::WriteSample(size_t* sampleCount, void** memPos)
 
 int PacketBuffer::ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount)
 {
-    //auto simulatedWritePos = (void*) (((uint8_t*) data + sizeOfMem) + (size_t)((uint8_t*)writePos - (uint8_t)data));
     {
         std::lock_guard<std::mutex> lock(flip);
-        // lock.lock();
         if (beginningOfDelegatedSpace != readPos)
         {
             // If the OOS packet falls into space between the beginning of memory and readPos
@@ -166,7 +169,6 @@ int PacketBuffer::ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount
                 auto mm = (void*) ((uint8_t*) beginningOfDelegatedSpace + sizeOfSample * sampleCount);
                 if (oos_packets.top().first == mm)
                 {
-                    // beginningOfDelegatedSpace = oos_packets.top().first;
                     sampleCount += oos_packets.top().second;
                     oos_packets.pop();
                 }
@@ -195,7 +197,6 @@ int PacketBuffer::ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount
             readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
 
         bIsFull = false;
-        // lock.unlock();
     }
     cv.notify_all();
     return 0;
@@ -211,11 +212,12 @@ size_t PacketBuffer::getAvailableSampleCount()
 
 daq::DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket)
 {
-    std::lock_guard<std::mutex> loa(flip);
+    std::unique_lock<std::mutex> loa(flip);
     if (bUnderReset)
     {
         std::cerr << "Under ongoing reset, cannot create new packets" << std::endl;
-        return NULL;
+        cv.wait(loa, [&] { return !bUnderReset; });
+        return daq::DataPacketPtr();
     }
     sizeOfSample = dataDescriptor.getRawSampleSize();
     void* startOfSpace = nullptr;
@@ -259,11 +261,13 @@ int PacketBuffer::reset()
 {
     std::unique_lock<std::mutex> lock(flip);
     bUnderReset = true;
-    cv.wait(lock, []() -> bool
-        { return ((reaPos == writePos) && (!bIsFull)); });
+    cv.wait(lock, [&]
+            {
+                std::cerr << "Calling the check in reset. " << std::endl;
+            return ((readPos == writePos) && (!bIsFull)); });
 
     bUnderReset = false;
-    lock.unlock();
+    cv.notify_all();
     return 0;
  }
 
@@ -293,7 +297,6 @@ Packet::~Packet()
 // This is a test function that was used to help gauge the behaviour of the buffer class
 Packet PacketBuffer::createPacket(size_t* sampleCount, size_t dataDescriptor)
 {
-    // dd.append(weak pointer)
 
     void* startOfSpace = nullptr;
     int ret = this->WriteSample(sampleCount, &startOfSpace);
@@ -324,6 +327,4 @@ Packet PacketBuffer::createPacket(size_t* sampleCount, size_t dataDescriptor)
     (I need to provide a better test for multiple readones, but e)
     
 */
-
-
 

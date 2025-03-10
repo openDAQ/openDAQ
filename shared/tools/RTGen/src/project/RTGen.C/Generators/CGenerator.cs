@@ -4,6 +4,7 @@ using RTGen.Interfaces;
 using RTGen.Types;
 using RTGen.Util;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,7 +20,20 @@ namespace RTGen.C.Generators
             Source = 1,
         }
 
+        protected enum ArgsListType
+        {
+            MethodDeclaration,
+            ArgsForwarding
+        }
+
+        private static ISet<string> ForbiddenTypes => new HashSet<string>
+        {
+            "IntfID"
+        };
+
         private GeneratorType _generatorType = GeneratorType.Header;
+        private ISet<string> _typesToDeclare = new HashSet<string>();
+        private ISet<string> _methodNamesToCommentOut = new HashSet<string>();
 
         //Overriden
 
@@ -62,11 +76,6 @@ namespace RTGen.C.Generators
             }
         }
 
-        protected override void SetCustomVariables()
-        {
-            Variables["typedefs"] = GetTypedefs();
-        }
-
         protected override StringBuilder WriteMethods(IRTInterface rtClass, string baseTemplatePath)
         {
             return new StringBuilder();
@@ -85,17 +94,18 @@ namespace RTGen.C.Generators
         {
             StringBuilder sb = new StringBuilder();
 
-            if (this._generatorType == GeneratorType.Header)
+            if (_generatorType == GeneratorType.Header)
             {
                 string common = "ccommon";
-                string lib = Options.LibraryInfo.OutputName;
 
-                sb.AppendLine($"#include <{lib}/{lib}.h>");
-                sb.AppendLine($"#include <{lib}/{common}.h>");
+                sb.AppendLine($"#include \"{common}.h\"");
             }
-            else if (this._generatorType == GeneratorType.Source)
+            else if (_generatorType == GeneratorType.Source)
             {
-                sb.AppendLine($"#include \"{Options.Filename}.h\"");
+                string lib = Options.LibraryInfo.Name;
+                string file = Options.Filename ?? "";
+                var header = (lib ?? "") + (String.IsNullOrEmpty(lib) ? "" : "/") + (file ?? "") + ".h";
+                sb.AppendLine($"#include \"{header}\"");
                 sb.AppendLine();
                 sb.AppendLine("#include <opendaq/opendaq.h>");
             }
@@ -138,9 +148,14 @@ namespace RTGen.C.Generators
         protected string GetTypedefs()
         {
             StringBuilder sb = new StringBuilder();
-            string type = RtFile.CurrentClass.Type.NonInterfaceName;
-            sb.AppendLine($"struct {type};");
-            sb.AppendLine($"typedef struct {type} {type};");
+            foreach(var type in _typesToDeclare)
+            {
+                if (type == "BaseObject")
+                {
+                    continue;
+                }
+                sb.AppendLine($"typedef struct {type} {type};");
+            }
             return sb.ToString();
         }
 
@@ -159,6 +174,68 @@ namespace RTGen.C.Generators
             return String.Join(separator, args.Select(arg => arg.Name));
         }
 
+        protected string ArgumentsToString<T>(T methodOrFactory, ArgsListType listType)
+        {
+            IRTFactory factory = methodOrFactory as IRTFactory;
+            IMethod method = methodOrFactory as IMethod;
+            IOverload overload = method != null ? method.Overloads[0] : factory.ToOverload();
+
+            IList<IArgument> args = overload.Arguments.ToList();
+
+            //adding self pointer to the method declaration
+            if (listType == ArgsListType.MethodDeclaration && method != null)
+            {
+                IArgument self = new Argument(RtFile.CurrentClass.Type, "self");
+                self.Type.Modifiers = "*";
+                args.Insert(0, self);
+            }
+
+            StringBuilder sb = new StringBuilder();
+            
+            for (int i = 0; i < args.Count; i++)
+            {
+                IArgument arg = args[i];
+
+                //TODO: should be removed later
+                //as some parts of the bindings are not yet implemented
+                //we need to comment out the methods that use non implemented types
+                if (ForbiddenTypes.Contains(arg.Type.NonInterfaceName))
+                {
+                    _methodNamesToCommentOut.Add(overload.Method.Name);
+                } else if(!arg.Type.Flags.IsValueType)
+                {
+                    //filling types for typedefs
+                    _typesToDeclare.Add(arg.Type.NonInterfaceName);
+                }
+
+                if (listType == ArgsListType.MethodDeclaration)
+                {
+                    sb.Append($"{arg.Type.NonInterfaceName}{arg.Type.Modifiers} {arg.Name}");
+                } else
+                {
+                    //skipping self pointer in factory call
+                    if (factory != null && i == 0)
+                    {
+                        if(i != args.Count - 1) sb.Append(", ");
+                        continue;
+                    }
+
+                    if (arg.Type.Flags.IsValueType)
+                    {
+                        sb.Append(arg.Name);
+                    } else
+                    {
+                        sb.Append($"reinterpret_cast<{arg.Type.FullName()}{arg.Type.Modifiers}>({arg.Name})");
+                    }
+                }
+                if (i != args.Count - 1)
+                {
+                    sb.Append(", ");
+                }
+            }
+            return sb.ToString();
+        }
+
         protected void GenerateHeader(string templatePath, string outputPath)
         {
             string methodTemplatePath = Path.Combine(Path.GetDirectoryName(templatePath), Path.GetFileNameWithoutExtension(templatePath) + ".method.template");
@@ -169,6 +246,7 @@ namespace RTGen.C.Generators
 
             Variables["Methods"] = methods.ToString();
             Variables["headers"] = GetIncludes(RtFile);
+            Variables["typedefs"] = GetTypedefs();
 
             GenerateOutput(RtFile.CurrentClass, templatePath, outputPath);
         }
@@ -226,12 +304,13 @@ namespace RTGen.C.Generators
             }
         }
 
-        string ReplaceVariable<T>(string variable, GeneratorType generatorType, IRTInterface iface, T methodOrFactory, string templatePath, string outArgTemplate, string inArgTemplate, string separator)
+        string ReplaceVariable<T>(string variable, GeneratorType generatorType, IRTInterface iface, T methodOrFactory, string templatePath)
         {
             IMethod method = methodOrFactory as IMethod;
             IRTFactory factory = methodOrFactory as IRTFactory;
             IOverload overload = method != null ? method.Overloads[0] : factory.ToOverload();
 
+            //TODO: merge these two branches
             if (generatorType == GeneratorType.Header)
             {
                 switch (variable)
@@ -248,7 +327,7 @@ namespace RTGen.C.Generators
                         }
                         return typeName;
                     case "Arguments":
-                        return GetMethodArguments(overload, outArgTemplate, inArgTemplate, separator);
+                        return ArgumentsToString(methodOrFactory, ArgsListType.MethodDeclaration);
                     default:
                         LogIgnoredVariable(variable, templatePath);
                         return string.Empty;
@@ -274,10 +353,12 @@ namespace RTGen.C.Generators
                     case "FactoryName":
                         return iface.Type.Namespace.ToString() + "::" + overload.Method.Name;
                     case "Arguments":
-                        return GetMethodArguments(overload, outArgTemplate, inArgTemplate, separator);
-                    case "ArgumentsImpl":
-                        var args = method != null ? overload.Arguments : overload.Arguments.Skip(1);
-                        return ArgumentListToString(args, separator);
+                        return ArgumentsToString(methodOrFactory, ArgsListType.MethodDeclaration);
+                        //return GetMethodArguments(overload);
+                    case "ArgumentsForwarding":
+                        return ArgumentsToString(methodOrFactory, ArgsListType.ArgsForwarding);
+                        //var args = method != null ? overload.Arguments : overload.Arguments.Skip(1);
+                        //return ArgumentListToString(args, separator);
                     default:
                         LogIgnoredVariable(variable, templatePath);
                         return string.Empty;
@@ -300,9 +381,6 @@ namespace RTGen.C.Generators
 
             string methodDeclarationTemplate = methodTemplate[0];
             string factoryDeclarationTemplate = methodTemplate[1];
-            string outArgTemplate = methodTemplate[2];
-            string inArgTemplate = methodTemplate[3];
-            string separator = methodTemplate[4];
 
             foreach (IMethod method in rtClass.Methods)
             {
@@ -316,9 +394,13 @@ namespace RTGen.C.Generators
                 string generatedMethod = ReplacementRegex.Replace(template, m =>
                 {
                     string variable = m.Groups[1].Value;
-                    return ReplaceVariable(variable, GeneratorType.Header, rtClass, method, templatePath, outArgTemplate, inArgTemplate, separator);
+                    return ReplaceVariable(variable, GeneratorType.Header, rtClass, method, templatePath);
                 });
+
+                bool isCommentedOut = _methodNamesToCommentOut.Contains(method.Name);
+                if (isCommentedOut) methods.AppendLine("/*");
                 methods.AppendLine(base.Indentation + generatedMethod);
+                if (isCommentedOut) methods.AppendLine("*/");
             }
 
             foreach (IRTFactory factory in RtFile.Factories)
@@ -327,9 +409,13 @@ namespace RTGen.C.Generators
                 string generatedFactory = ReplacementRegex.Replace(factoryDeclarationTemplate, m =>
                 {
                     string variable = m.Groups[1].Value;
-                    return ReplaceVariable(variable, GeneratorType.Header, rtClass, factory, templatePath, outArgTemplate, inArgTemplate, separator);
+                    return ReplaceVariable(variable, GeneratorType.Header, rtClass, factory, templatePath);
                 });
+
+                bool isCommentedOut = _methodNamesToCommentOut.Contains(factory.Name);
+                if (isCommentedOut) methods.AppendLine("/*");
                 methods.AppendLine(base.Indentation + generatedFactory);
+                if (isCommentedOut) methods.AppendLine("*/");
             }
 
             return methods;
@@ -350,22 +436,20 @@ namespace RTGen.C.Generators
             string methodDefinitionTemplate = methodTemplate[0];
             string factoryDefinitionTemplate = methodTemplate[1];
             string implMethodTemplate = methodTemplate[2];
-            string implFactoryTemplate = methodTemplate[3];
-            string returnTemplate = methodTemplate[4];
-            string outArgTemplate = methodTemplate[5];
-            string inArgTemplate = methodTemplate[6];
-            string separator = methodTemplate[7];
+            string pointerDeclarationTemplate = methodTemplate[3];
+            string factoryCallTemplate = methodTemplate[4];
+            string pointerCastTemplate = methodTemplate[5];
+            string returnZeroTemplate = methodTemplate[6];
+            string returnErrorTemplate = methodTemplate[7];
 
             foreach (IMethod method in rtClass.Methods)
             {
-                string template = methodDefinitionTemplate;
-
                 if (!HandleMemberMethod(rtClass, method))
                 {
                     continue;
                 }
 
-                string generatedMethod = ReplacementRegex.Replace(template, m =>
+                string generatedMethod = ReplacementRegex.Replace(methodDefinitionTemplate, m =>
                 {
                     string variable = m.Groups[1].Value;
 
@@ -375,12 +459,8 @@ namespace RTGen.C.Generators
                         return customVariable;
                     }
 
-                    return ReplaceVariable(variable, GeneratorType.Source, rtClass, method, templatePath, outArgTemplate, inArgTemplate, separator);
+                    return ReplaceVariable(variable, GeneratorType.Source, rtClass, method, templatePath);
                 });
-                if (String.IsNullOrEmpty(generatedMethod))
-                {
-                    continue;
-                }
 
                 string generatedMethodImpl = ReplacementRegex.Replace(implMethodTemplate, m =>
                 {
@@ -390,17 +470,17 @@ namespace RTGen.C.Generators
                     {
                         return customVariable;
                     }
-                    return ReplaceVariable(variable, GeneratorType.Source, rtClass, method, templatePath, outArgTemplate, inArgTemplate, separator);
+                    return ReplaceVariable(variable, GeneratorType.Source, rtClass, method, templatePath);
                 });
-                if (String.IsNullOrEmpty(generatedMethodImpl))
-                {
-                    continue;
-                }
 
+                bool isCommentedOut = _methodNamesToCommentOut.Contains(method.Name);
+
+                if (isCommentedOut) methods.AppendLine("/*");
                 methods.AppendLine(generatedMethod);
                 methods.AppendLine("{");
                 methods.AppendLine(base.Indentation + generatedMethodImpl);
                 methods.AppendLine("}");
+                if (isCommentedOut) methods.AppendLine("*/");
                 methods.AppendLine();
             }
 
@@ -409,30 +489,32 @@ namespace RTGen.C.Generators
                 IOverload factoryMethod = factory.ToOverload();
 
                 string generatedFactory = ReplacementRegex.Replace(factoryDefinitionTemplate, m =>
-                {
-                    string variable = m.Groups[1].Value;
-                    return ReplaceVariable(variable, GeneratorType.Source, rtClass, factory, templatePath, outArgTemplate, inArgTemplate, separator);
-                });
-                if (String.IsNullOrEmpty(generatedFactory))
-                {
-                    continue;
-                }
+                    ReplaceVariable(m.Groups[1].Value, GeneratorType.Source, rtClass, factory, templatePath)
+                );
 
-                string generatedFactoryImpl = ReplacementRegex.Replace(implFactoryTemplate, m =>
-                {
-                    string variable = m.Groups[1].Value;
-                    return ReplaceVariable(variable, GeneratorType.Source, rtClass, factory, templatePath, outArgTemplate, inArgTemplate, separator);
-                });
-                if (String.IsNullOrEmpty(generatedFactoryImpl))
-                {
-                    continue;
-                }
+                string objectPointer = ReplacementRegex.Replace(pointerDeclarationTemplate, m =>
+                    ReplaceVariable(m.Groups[1].Value, GeneratorType.Source, rtClass, factory, templatePath)
+                );
 
+                string factoryCall = ReplacementRegex.Replace(factoryCallTemplate, m =>
+                    ReplaceVariable(m.Groups[1].Value, GeneratorType.Source, rtClass, factory, templatePath)
+                );
+
+                string objectPointerCast = ReplacementRegex.Replace(pointerCastTemplate, m =>
+                    ReplaceVariable(m.Groups[1].Value, GeneratorType.Source, rtClass, factory, templatePath)
+                );
+
+                bool isCommentedOut = _methodNamesToCommentOut.Contains(factory.Name);
+
+                if (isCommentedOut) methods.AppendLine("/*");
                 methods.AppendLine(generatedFactory);
                 methods.AppendLine("{");
-                methods.AppendLine(base.Indentation + generatedFactoryImpl);
-                methods.AppendLine(base.Indentation + returnTemplate);
+                methods.AppendLine(base.Indentation + objectPointer);
+                methods.AppendLine(base.Indentation + factoryCall);
+                methods.AppendLine(base.Indentation + objectPointerCast);
+                methods.AppendLine(base.Indentation + returnErrorTemplate);
                 methods.AppendLine("}");
+                if (isCommentedOut) methods.AppendLine("*/");
                 methods.AppendLine();
             }
             return methods;

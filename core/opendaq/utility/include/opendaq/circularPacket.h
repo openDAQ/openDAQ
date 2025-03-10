@@ -14,19 +14,21 @@
 #include <cstdint>
 #include <functional>
 #include <opendaq/data_descriptor_ptr.h>
-    
+
 struct PacketBufferInit
 {
     daq::DataDescriptorPtr desc;
+    size_t sampleAmount;
+    EnumAdjustSize sizeAdjustment;
+
 };
 
-enum EnumVariableType
+enum EnumAdjustSize
 {
     Invalid = 0,
-    Int,
-    Float,
-    Char,
-    Structs
+    AdjustOnEnd,
+    Fragment,
+    PreMadePackets
 };
 
 class PacketBuffer;
@@ -52,7 +54,7 @@ class PacketBuffer
 
 public:
     PacketBuffer();
-    PacketBuffer(PacketBufferInit instructions);
+    PacketBuffer(const PacketBufferInit &instructions);
     PacketBuffer(size_t sampleSize, size_t memSize);
 
     ~PacketBuffer();

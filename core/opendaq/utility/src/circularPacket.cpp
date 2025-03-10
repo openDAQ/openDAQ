@@ -28,9 +28,20 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize)
     sizeAdjusted = 0;
 }
 
-PacketBuffer::PacketBuffer(PacketBufferInit instructions)
+PacketBuffer::PacketBuffer(const PacketBufferInit &instructions)
 {
-
+   sizeOfSample = instructions.desc.getRawSampleSize();
+   sizeOfMem = instructions.sampleAmount;
+   data = malloc(sizeOfMem * sizeOfSample);
+   writePos = data;
+   readPos = data;
+   bIsFull = false;
+   bUnderReset = false;
+   bAdjustedSize = false;
+   sizeAdjusted = 0;
+   // enumAdjustSize we will come back to this when,
+   // alternative implementation is made
+   // (for now we will ignore it)
 }
 
 PacketBuffer::~PacketBuffer()

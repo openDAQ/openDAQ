@@ -55,7 +55,7 @@ TEST_F(CircularPacketTest, WriteFullRangeFill)
     ASSERT_EQ(pb.WriteSample(fun, &check), 0);
     ASSERT_EQ(pb.WriteSample(fun, &check), 0);
     *fun = 2;
-    ASSERT_EQ(pb.WriteSample(fun, &check), 1);       // This one fails becouse the buffer is full
+    ASSERT_EQ(pb.WriteSample(fun, &check), 1);       // This one fails because the buffer is full
 }
 
 TEST_F(CircularPacketTest, WriteAdjustedSize)

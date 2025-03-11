@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-import opendaq
+import opendaq as daq
 
 from .. import utils
 from ..event_port import EventPort
@@ -15,8 +15,8 @@ class MetadataFieldsSelectorDialog(Dialog):
         self.event_port = EventPort(parent)
         self.fields = []
         try:
-            my_prop = opendaq.StringProperty(opendaq.String(
-                'MyString'), opendaq.String('foo'), opendaq.Boolean(True))
+            my_prop = daq.StringProperty(daq.String(
+                'MyString'), daq.String('foo'), daq.Boolean(True))
             self.fields = utils.get_attributes_of_node(my_prop)
             self.fields.remove('name')
             self.fields.remove('value')

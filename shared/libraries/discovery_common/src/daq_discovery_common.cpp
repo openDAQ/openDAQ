@@ -86,10 +86,12 @@ TxtProperties DiscoveryUtils::jsonToTxt(const std::string& serialized, const std
         std::string key = name + SERIALIZED_PROPERTY_SUFFIX + std::to_string(keyValuePairIndex);
 
         size_t startPos = pos;
-        size_t endPos = 255 - key.size() + pos;
+        size_t endPos = 254 - key.size() + pos;
         std::string value = serialized.substr(startPos, (endPos > serialized.size()) ? std::string::npos : endPos - startPos);
 
         result.insert({key, value});
+
+        pos += value.size();
     }
 
     return result;

@@ -90,6 +90,7 @@ protected:
     std::mutex readersSync;
     bool serverStopped;
     size_t maxPacketReadCount;
+    std::unordered_set<std::string> registeredClientIds;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

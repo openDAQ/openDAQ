@@ -245,6 +245,9 @@ void NativeStreamingServerImpl::stopServerInternal()
             infoInternal.removeServerCapability("OpenDAQNativeStreaming");
         if (info.hasServerCapability("OpenDAQNativeConfiguration"))
             infoInternal.removeServerCapability("OpenDAQNativeConfiguration");
+        for (const auto& clientId : registeredClientIds)
+            rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(clientId);
+        registeredClientIds.clear();
     }
 
     stopReading();
@@ -342,6 +345,7 @@ void NativeStreamingServerImpl::prepareServerHandler()
                     ? ConnectedClientInfo(url, ProtocolType::Streaming, "OpenDAQNativeStreaming", clientType, "")
                     : ConnectedClientInfo(url, ProtocolType::Configuration, "OpenDAQNativeConfiguration", clientType, "");
             rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(clientId, clientInfo);
+            registeredClientIds.insert(clientId);
         }
     };
 
@@ -351,6 +355,7 @@ void NativeStreamingServerImpl::prepareServerHandler()
             rootDevice.assigned())
         {
             rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(clientId);
+            registeredClientIds.erase(clientId);
         }
     };
 

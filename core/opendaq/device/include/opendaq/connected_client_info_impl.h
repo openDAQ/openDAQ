@@ -27,6 +27,7 @@ class ConnectedClientInfoImpl : public GenericPropertyObjectImpl<IConnectedClien
 public:
     using Super = GenericPropertyObjectImpl<IConnectedClientInfo>;
 
+    ConnectedClientInfoImpl();
     explicit ConnectedClientInfoImpl(const StringPtr& url,
                                      ProtocolType protocolType,
                                      const StringPtr& protocolName,

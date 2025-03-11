@@ -32,6 +32,7 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
     serverInstance.getModuleManager().addModule(deviceModule);
     auto deviceTypes = serverInstance.getAvailableDeviceTypes();
     auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
+    mockDeviceConfig.setPropertyValue("netConfigEnabled", True);
     mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
     mockDeviceConfig.setPropertyValue("onSubmitConfig", modifyIpConfigCallback);
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
@@ -71,6 +72,7 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfigError)
     serverInstance.getModuleManager().addModule(deviceModule);
     auto deviceTypes = serverInstance.getAvailableDeviceTypes();
     auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
+    mockDeviceConfig.setPropertyValue("netConfigEnabled", True);
     mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0"));
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
 
@@ -132,6 +134,7 @@ TEST_F(ModulesDeviceDiscoveryTest, RetrieveIpConfig)
     serverInstance.getModuleManager().addModule(deviceModule);
     auto deviceTypes = serverInstance.getAvailableDeviceTypes();
     auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
+    mockDeviceConfig.setPropertyValue("netConfigEnabled", True);
     mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
     mockDeviceConfig.setPropertyValue("onSubmitConfig", Procedure([](StringPtr, PropertyObjectPtr) {}));
     mockDeviceConfig.setPropertyValue("onRetrieveConfig", retrieveIpConfigCallback);
@@ -161,7 +164,7 @@ TEST_F(ModulesDeviceDiscoveryTest, RetrieveIpConfig)
     EXPECT_EQ(retrieveCallCount, 1u);
 }
 
-TEST_F(ModulesDeviceDiscoveryTest, DISABLED_NativeConnectedClients)
+TEST_F(ModulesDeviceDiscoveryTest, NativeConnectedClients)
 {
     const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
@@ -179,11 +182,15 @@ TEST_F(ModulesDeviceDiscoveryTest, DISABLED_NativeConnectedClients)
     };
 
     const auto instance = Instance();
-    EXPECT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+    ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
 
     auto device = instance.addDevice("daq.ns://127.0.0.1");
-    EXPECT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 1u);
+    auto connectedClientsInfo = getConnectedClients(instance.getAvailableDevices());
+    ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
+    ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectedClientsInfo[0].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_TRUE(connectedClientsInfo[0].getUrl().toStdString().find("127.0.0.1") != std::string::npos);
 
     instance.removeDevice(device);
-    EXPECT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+    ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
 }

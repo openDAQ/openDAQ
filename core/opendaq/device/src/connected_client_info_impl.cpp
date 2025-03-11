@@ -57,7 +57,7 @@ ClientType ConnectedClientInfoImpl::StringToClientType(const StringPtr& type)
         return ClientType::ExclusiveControl;
     if (type == "ViewOnly")
         return ClientType::ViewOnly;
-    return ClientType::Control;
+    return ClientType();
 }
 
 template <typename T>
@@ -66,23 +66,29 @@ typename InterfaceToSmartPtr<T>::SmartPtr ConnectedClientInfoImpl::getTypedPrope
     return objPtr.getPropertyValue(name).template asPtr<T>();
 }
 
+ConnectedClientInfoImpl::ConnectedClientInfoImpl()
+    : Super()
+{
+    Super::addProperty(StringProperty(Url, ""));
+    Super::addProperty(StringProperty(ClientProtocolTypeName, ""));
+    Super::addProperty(StringProperty(ClientProtocolName, ""));
+    Super::addProperty(StringProperty(ClientTypeName, ""));
+    Super::addProperty(StringProperty(HostName, ""));
+}
+
 ConnectedClientInfoImpl::ConnectedClientInfoImpl(const StringPtr& url,
                                                  ProtocolType protocolType,
                                                  const StringPtr& protocolName,
                                                  ClientType clientType,
                                                  const StringPtr& hostName)
-    : Super()
+    : ConnectedClientInfoImpl()
 {
-    Super::addProperty(StringProperty(Url, url));
-    Super::addProperty(StringProperty(ClientProtocolTypeName, ProtocolTypeToString(protocolType)));
-    Super::addProperty(StringProperty(ClientProtocolName, protocolName));
-
-    auto clientTypeString = String("");
+    Super::setPropertyValue(String(Url), url);
+    Super::setPropertyValue(String(ClientProtocolTypeName), ProtocolTypeToString(protocolType));
+    Super::setPropertyValue(String(ClientProtocolName), protocolName);
     if (protocolType == ProtocolType::Configuration || protocolType == ProtocolType::ConfigurationAndStreaming)
-        clientTypeString = ClientTypeToString(clientType);
-    Super::addProperty(StringProperty(ClientTypeName, clientTypeString));
-
-    Super::addProperty(StringProperty(HostName, hostName));
+        Super::setPropertyValue(String(ClientTypeName), ClientTypeToString(clientType));
+    Super::setPropertyValue(String(HostName), hostName);
 }
 
 ErrCode ConnectedClientInfoImpl::getUrl(IString** url)
@@ -181,11 +187,7 @@ ErrCode ConnectedClientInfoImpl::Deserialize(ISerializedObject* serialized,
                        [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
                        {
                            const auto clientInfo =
-                               createWithImplementation<IConnectedClientInfo, ConnectedClientInfoImpl>("",
-                                                                                                       ProtocolType::Unknown,
-                                                                                                       "",
-                                                                                                       ClientType(),
-                                                                                                       "");
+                               createWithImplementation<IConnectedClientInfo, ConnectedClientInfoImpl>();
                            return clientInfo;
                        }).detach();
         });
@@ -195,11 +197,7 @@ ErrCode ConnectedClientInfoImpl::clone(IPropertyObject** cloned)
 {
     OPENDAQ_PARAM_NOT_NULL(cloned);
 
-    auto obj = createWithImplementation<IConnectedClientInfo, ConnectedClientInfoImpl>("",
-                                                                                       ProtocolType::Unknown,
-                                                                                       "",
-                                                                                       ClientType(),
-                                                                                       "");
+    auto obj = createWithImplementation<IConnectedClientInfo, ConnectedClientInfoImpl>();
 
     return daqTry([this, &obj, &cloned]()
     {

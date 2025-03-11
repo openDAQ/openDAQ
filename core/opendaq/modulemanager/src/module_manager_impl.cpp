@@ -39,6 +39,7 @@ using namespace std::chrono_literals;
 
 static OrphanedModules orphanedModules;
 
+static constexpr std::chrono::milliseconds DefaultrescanTimer = 5000ms;
 static constexpr char createModuleFactory[] = "createModule";
 static constexpr char checkDependenciesFunc[] = "checkDependencies";
 
@@ -47,7 +48,7 @@ static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerCompo
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
     , work(ioContext.get_executor())
-    , scanTimeout(5s)
+    , rescanTimer(DefaultrescanTimer)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -144,10 +145,20 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     if (modulesLoaded)
         return OPENDAQ_SUCCESS;
     
-    const auto contextPtr = ContextPtr::Borrow(context);
-    logger = contextPtr.getLogger();
+    this->context = ContextPtr::Borrow(context);
+    logger = this->context.getLogger();
     if (!logger.assigned())
         return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
+
+    auto options = this->context.getOptions();
+    if (options.hasKey("ModuleManager"))
+    {
+        DictPtr<IString, IBaseObject> inner = options.get("ModuleManager");
+        if (inner.hasKey("AddDeviceRescanTimer"))
+        {
+            this->rescanTimer = std::chrono::milliseconds(static_cast<int>(inner.get("AddDeviceRescanTimer")));
+        }
+    }
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
@@ -499,10 +510,9 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
             return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
-        // Scan for devices if not yet done so
-        // TODO: Should we re-scan after a timeout?
+        // Scan for devices if not yet done so, or timeout is exceeded
         auto currentTime = std::chrono::steady_clock::now();
-        if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > scanTimeout)
+        if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
         {
             const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
             if (OPENDAQ_FAILED(errCode))

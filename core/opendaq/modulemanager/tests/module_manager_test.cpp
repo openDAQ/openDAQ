@@ -187,37 +187,40 @@ daq::ErrCode MockModuleInternal::createDevice(daq::IDevice** device,
     return OPENDAQ_SUCCESS;
 }
 
-// Disabled, as test is not deterministic on devices where calls between creates take longer than 5s
-TEST_F(ModuleManagerTest, DISABLED_TestScanTimeout1)
+TEST_F(ModuleManagerTest, TestRescanTimer1)
 {
     auto manager = ModuleManager("[[none]]");
-    auto module = createWithImplementation<IModule, MockModuleInternal>();
 
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 100000}})}});
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
+    
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
     manager.addModule(module);
     auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
-
     auto utils = manager.asPtr<IModuleManagerUtils>();
-    auto dev = utils.createDevice("daqmock", nullptr);
+
+    utils.createDevice("daqmock", nullptr);
     ASSERT_EQ(impl->scanCount, 1);
-    dev = utils.createDevice("daqmock", nullptr);
+    utils.createDevice("daqmock", nullptr);
     ASSERT_EQ(impl->scanCount, 1);
 }
 
-// Disabled to not significantly increase test suite runtime
-TEST_F(ModuleManagerTest, DISABLED_TestScanTimeout2)
+TEST_F(ModuleManagerTest, TestRescanTimer2)
 {
     auto manager = ModuleManager("[[none]]");
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 10}})}});
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
+    
     auto module = createWithImplementation<IModule, MockModuleInternal>();
-
     manager.addModule(module);
     auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
-
     auto utils = manager.asPtr<IModuleManagerUtils>();
-    auto dev = utils.createDevice("daqmock", nullptr);
+
+    utils.createDevice("daqmock", nullptr);
     ASSERT_EQ(impl->scanCount, 1);
 
     using namespace std::chrono_literals;
-    std::this_thread::sleep_for(6s);
-    dev = utils.createDevice("daqmock", nullptr);
+    std::this_thread::sleep_for(1s);
+    utils.createDevice("daqmock", nullptr);
     ASSERT_EQ(impl->scanCount, 2);
 }

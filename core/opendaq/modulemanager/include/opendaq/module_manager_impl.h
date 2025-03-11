@@ -125,10 +125,10 @@ private:
 
     DictPtr<IString, IDeviceInfo> availableDevicesWithIpConfig;
     discovery::DiscoveryClient discoveryClient; // for discovering devices which has IP modification feature enabled
-
+    ContextPtr context;
 
     std::chrono::time_point<std::chrono::steady_clock> lastScanTime;
-    std::chrono::seconds scanTimeout;
+    std::chrono::milliseconds rescanTimer;
 };
 
 END_NAMESPACE_OPENDAQ

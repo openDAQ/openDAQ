@@ -7,25 +7,22 @@
 #include <coreobjects/authentication_provider_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 {
-    return Dict<IString, IBaseObject>({
-        {"ModuleManager", Dict<IString, IBaseObject>({
-                {"ModulesPaths", List<IString>(""),
-                }
-            })},
-        {"Scheduler", Dict<IString, IBaseObject>({
-                {"WorkersNum", 0}
-            })},
-        {"Logging", Dict<IString, IBaseObject>({
-                {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
-            })},
-        {"RootDevice", Dict<IString, IBaseObject>({
-                {"DefaultLocalId", ""},
-                {"ConnectionString", ""}
-            })},   
-        {"Modules", Dict<IString, IBaseObject>()}
+    return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({
+                                            {"ModulesPaths", List<IString>("")}, {"AddDeviceRescanTimer", 5000}
+                                        })},
+                                       {"Scheduler", Dict<IString, IBaseObject>({
+                                            {"WorkersNum", 0}
+                                        })},
+                                       {"Logging", Dict<IString, IBaseObject>({
+                                            {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
+                                        })},
+                                       {"RootDevice", Dict<IString, IBaseObject>({
+                                            {"DefaultLocalId", ""},
+                                            {"ConnectionString", ""}
+                                        })},
+                                       {"Modules", Dict<IString, IBaseObject>()}
     });
 }
 

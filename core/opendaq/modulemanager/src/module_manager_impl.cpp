@@ -1711,6 +1711,16 @@ static void printAvailableTypes(const ModulePtr& module, const LoggerComponentPt
     printComponentTypes([&module]{ return module.getAvailableServerTypes(); }, "SRV", loggerComponent);
 }
 
+static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
+{
+#if defined(__linux__) || defined(linux) || defined(__linux)
+    // boost does not propagate `dlopen()` error messages
+    return dlerror();
+#else
+    return libraryErrCode.message();
+#endif
+}
+
 ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
 {
     auto currDir = fs::current_path();
@@ -1726,12 +1736,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
             "Module \"{}\" failed to load. Error: {} [{}]",
             relativePath,
             libraryErrCode.value(),
-#if defined(__linux__) || defined(linux) || defined(__linux)
-            // boost does not propagate `dlopen()` error messages
-            dlerror()
-#else
-            libraryErrCode.message()
-#endif
+            GetMessageFromLibraryErrCode(libraryErrCode)
         ));
     }
 

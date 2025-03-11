@@ -45,7 +45,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * ErrCode ISomeInterface::checkValue(Int value)
  * {
  *     if (value < 0)
- *         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter should be >= 0", nullptr);
+ *         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter should be >= 0");
  *     return OPENDAQ_SUCCESS;
  * };
  *

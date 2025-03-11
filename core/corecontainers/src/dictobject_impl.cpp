@@ -359,7 +359,7 @@ ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
     }
 
     *equal = false;

@@ -74,7 +74,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::equals(IBaseObject* other, Bool* equal
 {
     if (equals == nullptr)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
     }
 
     *equals = false;

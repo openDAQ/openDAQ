@@ -581,7 +581,7 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMul
         OPENDAQ_PARAM_NOT_NULL(samples);
 
         if (minReadCount > *count)
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
     }
 
     std::scoped_lock lock(mutex);
@@ -615,7 +615,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
         OPENDAQ_PARAM_NOT_NULL(domain);
 
         if (minReadCount > *count)
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
     }
 
     std::scoped_lock lock(mutex);
@@ -656,7 +656,7 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IMultiReaderStatus** status)
     }
 
     if (minReadCount > *count)
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be larger than minReadCount.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be larger than minReadCount.");
 
     const SizeT samplesToRead = *count;
     prepare(nullptr, samplesToRead, milliseconds(0));
@@ -790,7 +790,7 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
         }
         catch (const std::exception& e)
         {
-            return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+            return ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
         }
         catch (...)
         {
@@ -1261,10 +1261,7 @@ void MultiReaderImpl::sync()
 
 ErrCode MultiReaderImpl::getTickResolution(IRatio** resolution)
 {
-    if (resolution == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(resolution);
 
     *resolution = readResolution.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -1272,10 +1269,7 @@ ErrCode MultiReaderImpl::getTickResolution(IRatio** resolution)
 
 ErrCode MultiReaderImpl::getOrigin(IString** origin)
 {
-    if (origin == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(origin);
 
     *origin = readOrigin.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -1283,10 +1277,7 @@ ErrCode MultiReaderImpl::getOrigin(IString** origin)
 
 ErrCode MultiReaderImpl::getOffset(void* domainStart)
 {
-    if (domainStart == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(domainStart);
 
     if (commonStart)
     {
@@ -1299,10 +1290,7 @@ ErrCode MultiReaderImpl::getOffset(void* domainStart)
 
 ErrCode INTERFACE_FUNC MultiReaderImpl::getCommonSampleRate(Int* commonSampleRate)
 {
-    if (commonSampleRate == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(commonSampleRate);
 
     *commonSampleRate = this->commonSampleRate;
 
@@ -1437,7 +1425,7 @@ struct ObjectCreator<IMultiReader>
 
         if (toCopy == nullptr)
         {
-            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
         ReadMode mode;

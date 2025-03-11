@@ -34,18 +34,18 @@ public:
         if (!returnError)
             return OPENDAQ_SUCCESS;
 
-        return this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Test failed");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Test failed");
     }
 
     ErrCode INTERFACE_FUNC newMakeErrorInfoTest() override
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "newMakeErrorInfoTest failed");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "newMakeErrorInfoTest failed");
     }
 
     ErrCode INTERFACE_FUNC multipleErrorInfoTest() override
     {
-        this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed once");
-        return this->MakeErrorInfo(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed twice");
+        MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed once");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed twice");
     }
 
     ErrCode INTERFACE_FUNC argumentNotNullTest(IBaseObject* obj) override
@@ -120,8 +120,8 @@ TEST_F(ErrorInfoTest, ImplementationName)
 
 TEST_F(ErrorInfoTest, MultipleMessages)
 {
-    MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_GENERALERROR, "General error0");
-    MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_GENERALERROR, "General error1");
+    MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error0");
+    MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error1");
 
     IErrorInfo* lastError;
     daqGetErrorInfo(&lastError);
@@ -196,7 +196,7 @@ TEST_F(ErrorInfoTest, MultipleMessages)
     }
 }
 
-std::string getErrorPrefix(Int fileLine)
+std::string getErrorPrefix([[maybe_unused]] Int fileLine)
 {
 #ifdef NDEBUG
     return "";

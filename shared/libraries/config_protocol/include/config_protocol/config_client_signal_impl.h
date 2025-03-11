@@ -188,7 +188,7 @@ inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
     }
     catch (const std::exception& e)
     {
-        return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+        return ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;

@@ -232,7 +232,7 @@ ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(IStreaming* stream
 
     if (it != streamingSourcesRefs.end())
     {
-        return this->MakeErrorInfo(
+        return MAKE_ERROR_INFO(
             OPENDAQ_ERR_DUPLICATEITEM,
             fmt::format(
                 R"(Signal with global Id "{}" already has streaming source "{}" )",
@@ -268,7 +268,7 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* stream
     }
     else
     {
-        return this->MakeErrorInfo(
+        return MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
             fmt::format(
                 R"(Signal with global Id "{}" does not have streaming source "{}" )",
@@ -411,37 +411,37 @@ ErrCode MirroredSignalBase<Interfaces...>::setMirroredDomainSignal(IMirroredSign
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::setDescriptor(IDataDescriptor* /*descriptor*/)
 {
-    return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::setDomainSignal(ISignal* /*signal*/)
 {
-    return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::setRelatedSignals(IList* /*signals*/)
 {
-    return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::addRelatedSignal(ISignal* /*signal*/)
 {
-    return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::removeRelatedSignal(ISignal* /*signal*/)
 {
-    return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::clearRelatedSignals()
 {
-    return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Mirrored signal cannot be changed on client side");
 }
 
 template <typename... Interfaces>
@@ -507,7 +507,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setActiveStreamingSource(IString* str
 
     if (it == streamingSourcesRefs.end())
     {
-        return this->MakeErrorInfo(
+        return MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
             fmt::format(
                 R"(Signal with global Id "{}" does not have streaming source "{}" )",
@@ -520,7 +520,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setActiveStreamingSource(IString* str
     StreamingPtr streamingSource = it->second.getRef();
     if (!streamingSource.assigned())
     {
-        return this->MakeErrorInfo(
+        return MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
             fmt::format(
                 R"(Signal with global Id "{}": streaming source "{}" is already destroyed)",

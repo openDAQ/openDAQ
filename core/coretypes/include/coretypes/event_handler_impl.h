@@ -48,7 +48,7 @@ public:
         }
         catch (const std::exception& e)
         {
-            return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+            return ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
         }
 
         return OPENDAQ_SUCCESS;
@@ -58,7 +58,7 @@ public:
     {
         if (hashCode == nullptr)
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
         }
 
         *hashCode = subscription.hashCode;

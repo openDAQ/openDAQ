@@ -73,8 +73,7 @@ public:
         if (this->object == nullptr)
             THROW_OPENDAQ_EXCEPTION(daq::InvalidParameterException());
 
-        if (!intf)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(intf);
 
         auto errCode = Super::queryInterface(id, intf);
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
@@ -88,8 +87,7 @@ public:
         if (this->object == nullptr)
             THROW_OPENDAQ_EXCEPTION(daq::InvalidParameterException());
 
-        if (!intf)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(intf);
 
         auto errCode = Super::borrowInterface(id, intf);
         if (errCode == OPENDAQ_ERR_NOINTERFACE)

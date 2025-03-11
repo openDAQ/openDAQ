@@ -46,8 +46,7 @@ public:
 
 extern "C" daq::ErrCode LIBRARY_FACTORY createInteger(IInteger** objTmp, const Int value)
 {
-    if (!objTmp)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(objTmp);
 
     switch (value)
     {

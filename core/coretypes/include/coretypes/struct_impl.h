@@ -233,7 +233,7 @@ template <class StructInterface, class... Interfaces>
 ErrCode GenericStructImpl<StructInterface, Interfaces...>::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equal = false;
     if (other == nullptr)
@@ -250,8 +250,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::equals(IBaseObject* o
 template <class StructInterface, class... Interfaces>
 ErrCode GenericStructImpl<StructInterface, Interfaces...>::getStructType(IStructType** type)
 {
-    if (!type)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = this->structType.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -260,8 +259,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::getStructType(IStruct
 template <class StructInterface, class... Interfaces>
 ErrCode GenericStructImpl <StructInterface, Interfaces...>::getFieldNames(IList** names)
 {
-    if (!names)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(names);
 
     *names = this->fields.getKeyList().addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -270,8 +268,7 @@ ErrCode GenericStructImpl <StructInterface, Interfaces...>::getFieldNames(IList*
 template <class StructInterface, class ... Interfaces>
 ErrCode GenericStructImpl<StructInterface, Interfaces...>::getFieldValues(IList** values)
 {
-    if (!values)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(values);
 
     *values = this->fields.getValueList().addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -286,8 +283,7 @@ ErrCode GenericStructImpl <StructInterface, Interfaces...>::get(IString* name, I
         return OPENDAQ_SUCCESS;
     }
 
-    if (!field)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(field);
 
     const auto nameObj = StringPtr::Borrow(name);
     if (this->fields.hasKey(name))
@@ -301,8 +297,7 @@ ErrCode GenericStructImpl <StructInterface, Interfaces...>::get(IString* name, I
 template <class StructInterface, class ... Interfaces>
 ErrCode GenericStructImpl<StructInterface, Interfaces...>::getAsDictionary(IDict** dictionary)
 {
-    if (!dictionary)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(dictionary);
 
     *dictionary = this->fields.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -311,8 +306,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::getAsDictionary(IDict
 template <class StructInterface, class... Interfaces>
 ErrCode GenericStructImpl<StructInterface, Interfaces...>::hasField(IString* name, Bool* hasField)
 {
-    if (!hasField)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(hasField);
     
     *hasField = false;
     if (!name)
@@ -328,8 +322,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::hasField(IString* nam
 template <class StructInterface, class... Interfaces>
 ErrCode GenericStructImpl<StructInterface, Interfaces...>::getCoreType(CoreType* coreType)
 {
-    if (!coreType)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = ctStruct;
     return OPENDAQ_SUCCESS;
@@ -376,8 +369,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::getSerializeId(ConstC
 template <class StructInterface, class ... Interfaces>
 ErrCode GenericStructImpl<StructInterface, Interfaces...>::toString(CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     std::ostringstream strStream;
     bool first = true;
@@ -396,8 +388,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::toString(CharPtr* str
 
     const auto len = strStream.str().size() + 1;
     *str = static_cast<CharPtr>(daqAllocateMemory(len));
-    if (*str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(*str);
 
 #if defined(__STDC_SECURE_LIB__) || defined(__STDC_LIB_EXT1__)
     strcpy_s(*str, len, strStream.str().c_str());

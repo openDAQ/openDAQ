@@ -149,10 +149,8 @@ GenericInputPortImpl<Interfaces ...>::GenericInputPortImpl(const ContextPtr& con
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::acceptsSignal(ISignal* signal, Bool* accepts)
 {
-    if (signal == nullptr || accepts == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+    OPENDAQ_PARAM_NOT_NULL(signal);
 
     const auto err = canConnectSignal(signal);
     if (OPENDAQ_FAILED(err))
@@ -174,7 +172,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::canConnectSignal(ISignal* signal) c
 {
     const auto removablePtr = SignalPtr::Borrow(signal).asPtrOrNull<IRemovable>();
     if (removablePtr.assigned() && removablePtr.isRemoved())
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Removed signal cannot be connected");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Removed signal cannot be connected");
 
     return OPENDAQ_SUCCESS;
 }
@@ -182,8 +180,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::canConnectSignal(ISignal* signal) c
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
 {
-    if (signal == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(signal);
 
     try
     {
@@ -199,7 +196,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
         {
             auto lock = this->getRecursiveConfigLock();
             if (this->isComponentRemoved)
-                return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
+                return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
 
             connectionRef = connection;
 
@@ -243,7 +240,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
     }
     catch (const std::exception& e)
     {
-        return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+        return ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -320,8 +317,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnect()
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::getSignal(ISignal** signal)
 {
-    if (signal == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(signal);
 
     auto lock = this->getRecursiveConfigLock();
 
@@ -343,8 +339,7 @@ SignalPtr GenericInputPortImpl<Interfaces...>::getSignalNoLock()
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connection)
 {
-    if (connection == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(connection);
 
     auto lock = this->getRecursiveConfigLock();
 
@@ -553,7 +548,7 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyOb
     {
         auto ref = this->owner.getRef();
         if (ref != nullptr && ref != owner)
-            return this->MakeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
     }
     this->owner = owner;
     return OPENDAQ_SUCCESS;

@@ -179,7 +179,7 @@ ErrCode ErrorInfoImpl::isFrozen(Bool* frozen) const
 ErrCode ErrorInfoImpl::freeze()
 {
     if (frozen)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     this->frozen = true;
 

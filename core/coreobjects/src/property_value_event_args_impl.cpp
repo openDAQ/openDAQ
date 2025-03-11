@@ -7,7 +7,7 @@ ErrCode PropertyValueEventArgsImpl::getProperty(IProperty** prop)
 {
     if (prop == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return property by a null pointer.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return property by a null pointer.");
     }
 
     *prop = property.addRefAndReturn();
@@ -18,7 +18,7 @@ ErrCode PropertyValueEventArgsImpl::getValue(IBaseObject** value)
 {
     if (value == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the value by a null pointer");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the value by a null pointer");
     }
 
     *value = newValue.addRefAndReturn();
@@ -29,7 +29,7 @@ ErrCode PropertyValueEventArgsImpl::getOldValue(IBaseObject** value)
 {
     if (value == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the old value by a null pointer");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the old value by a null pointer");
     }
 
     *value = oldValue.addRefAndReturn();
@@ -44,10 +44,7 @@ ErrCode PropertyValueEventArgsImpl::setValue(IBaseObject* value)
 
 ErrCode PropertyValueEventArgsImpl::getPropertyEventType(PropertyEventType* changeType)
 {
-    if (changeType == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(changeType);
 
     *changeType = type;
     return OPENDAQ_SUCCESS;

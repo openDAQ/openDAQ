@@ -200,14 +200,14 @@ ErrCode TypedReader<ReadType>::readData(void* inputBuffer, SizeT offset, void** 
         case SampleType::Struct:
             return readValues<SampleTypeToType<SampleType::Struct>::Type>(inputBuffer, offset, outputBuffer, count);
         case SampleType::Invalid:
-            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.");
         case SampleType::Null:
-            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered");
         case SampleType::_count:
             break;
     }
 
-    return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
 }
 
 template <typename ReadType>
@@ -246,20 +246,19 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
         case SampleType::Binary:
         case SampleType::String:
         case SampleType::Struct:
-            return MakeErrorInfoForSource(
-                nullptr, 
+            return MAKE_ERROR_INFO(
                 OPENDAQ_ERR_NOT_SUPPORTED,
                 "Using the SampleType {} as a domain is not supported", dataSampleType
             );
         case SampleType::Invalid:
-            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.");
         case SampleType::Null:
-            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered");
         case SampleType::_count:
             break;
     }
 
-    return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
 }
 
 template <typename TReadType>
@@ -338,8 +337,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
     }
     else
     {
-        return MakeErrorInfoForSource(
-            nullptr, 
+        return MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOT_SUPPORTED,
             "Implicit conversion from packet data-type to the read data-type is not supported."
         );
@@ -350,12 +348,13 @@ template <typename TReadType>
 template <typename TDataType>
 ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT toRead) const
 {
-    if (!inputBuffer || !outputBuffer)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(inputBuffer);
+    OPENDAQ_PARAM_NOT_NULL(outputBuffer);
+
     if constexpr (std::is_same_v<TReadType, void*>)
     {
         if (!ignoreTransform && transformFunction.assigned())
-            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_NOT_SUPPORTED, "Transform function for void reader not supported.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Transform function for void reader not supported.");
 
         const auto dataStart = static_cast<void*>(static_cast<uint8_t*>(inputBuffer) + offset * rawSampleSize);
         const auto toReadInBytes = rawSampleSize * toRead;
@@ -398,8 +397,7 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
     }
     else
     {
-        return MakeErrorInfoForSource(
-            nullptr, 
+        return MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOT_SUPPORTED,
             "Implicit conversion from packet data-type to the read data-type is not supported."
         );

@@ -52,7 +52,7 @@ ErrCode LoggerImpl::getLevel(LogLevel* level)
 {
     if (level == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
     *level = this->level;
 
@@ -63,17 +63,17 @@ ErrCode LoggerImpl::getOrAddComponent(IString* name, ILoggerComponent** componen
 {
     if (component == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
 
     if (name == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
     }
 
     if (StringPtr::Borrow(name).getLength() == 0)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Name can not be empty.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Name can not be empty.");
     }
 
     std::lock_guard<std::mutex> lock(addComponentMutex);
@@ -90,7 +90,7 @@ ErrCode LoggerImpl::getOrAddComponent(IString* name, ILoggerComponent** componen
     auto res = components.insert({toStdString(name), componentPtr});
     if (!res.second)
     {
-        return this->MakeErrorInfo(
+        return MAKE_ERROR_INFO(
             OPENDAQ_ERR_ALREADYEXISTS,
             "Can't add LoggerComponent with already existent name [" + toStdString(name) + "]"
             );
@@ -104,17 +104,17 @@ ErrCode LoggerImpl::addComponent(IString* name, ILoggerComponent** component)
 {
     if (component == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
 
     if (name == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
     }
 
     if ( toStdString(name).empty() )
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Name can not be empty.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Name can not be empty.");
     }
 
     LoggerComponentPtr componentPtr = LoggerComponent(name, ListPtr<ILoggerSink>{sinks}, threadPool, level);
@@ -125,7 +125,7 @@ ErrCode LoggerImpl::addComponent(IString* name, ILoggerComponent** component)
         auto res = components.insert({toStdString(name), componentPtr});
         if (!res.second)
         {
-            return this->MakeErrorInfo(
+            return MAKE_ERROR_INFO(
                 OPENDAQ_ERR_ALREADYEXISTS,
                 ("Can't add LoggerComponent with already existsted name ["+toStdString(name)+"]").c_str()
             );
@@ -146,7 +146,7 @@ ErrCode LoggerImpl::removeComponent(IString* name)
     auto componentIt = components.find(toStdString(name));
     if (componentIt == components.end())
     {
-        return this->MakeErrorInfo(
+        return MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
             "LoggerComponent with the specified name does not exist"
         );
@@ -162,7 +162,7 @@ ErrCode LoggerImpl::getComponents(IList** list)
 {
     if (list == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
 
     auto componentsPtr = List<ILoggerComponent>();
@@ -183,11 +183,11 @@ ErrCode LoggerImpl::getComponent(IString* name, ILoggerComponent** component)
 {
     if (component == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
     if (name == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
     }
 
     std::lock_guard<std::mutex> lock(addComponentMutex);
@@ -195,7 +195,7 @@ ErrCode LoggerImpl::getComponent(IString* name, ILoggerComponent** component)
     auto componentIt = components.find(toStdString(name));
     if (componentIt == components.end())
     {
-        return this->MakeErrorInfo(
+        return MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
             "LoggerComponent with the specified name not found"
         );

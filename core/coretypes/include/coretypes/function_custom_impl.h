@@ -46,8 +46,7 @@ CustomFunctionImpl<TFunctor>::CustomFunctionImpl(TFunctor value)
 template <typename TFunctor>
 ErrCode CustomFunctionImpl<TFunctor>::call(IBaseObject* params, IBaseObject** result)
 {
-    if (!result)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(result);
 
     if (!functor)
         return OPENDAQ_ERR_NOTASSIGNED;
@@ -70,8 +69,7 @@ ErrCode CustomFunctionImpl<TFunctor>::call(IBaseObject* params, IBaseObject** re
 template <typename TFunctor>
 ErrCode CustomFunctionImpl<TFunctor>::getCoreType(CoreType* coreType)
 {
-    if (!coreType)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = ctFunc;
     return OPENDAQ_SUCCESS;
@@ -80,8 +78,7 @@ ErrCode CustomFunctionImpl<TFunctor>::getCoreType(CoreType* coreType)
 template <typename TFunctor>
 ErrCode CustomFunctionImpl<TFunctor>::toString(CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     return daqDuplicateCharPtr("Function", str);
 }

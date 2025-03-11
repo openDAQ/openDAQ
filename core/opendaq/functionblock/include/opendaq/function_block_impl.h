@@ -148,8 +148,7 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlockType(IFunctionBlockType** type)
 {
-    if (type == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = this->type.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -257,8 +256,7 @@ ListPtr<IInputPort> FunctionBlockImpl<TInterface, Interfaces...>::getInputPortsR
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getStatusSignal(ISignal** statusSignal)
 {
-    if (statusSignal == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(statusSignal);
 
     SignalPtr statusSig;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetStatusSignal, statusSig);
@@ -411,8 +409,7 @@ ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctio
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
-    if (functionBlockTypes == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
 
     DictPtr<IString, IFunctionBlockType> dict;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableFunctionBlockTypes, dict);
@@ -430,10 +427,8 @@ DictPtr<IString, IFunctionBlockType> FunctionBlockImpl<TInterface, Interfaces...
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
 {
-    if (functionBlock == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    if (typeId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(functionBlock);
+    OPENDAQ_PARAM_NOT_NULL(typeId);
 
     FunctionBlockPtr functionBlockPtr;
     const auto typeIdPtr = StringPtr::Borrow(typeId);
@@ -453,8 +448,7 @@ FunctionBlockPtr FunctionBlockImpl<TInterface, Interfaces...>::onAddFunctionBloc
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
 {
-    if (functionBlock == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(functionBlock);
 
     const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
@@ -472,8 +466,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const F
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
 {
-    if (accept == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(accept);
 
     Bool accepted;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAcceptsSignal, accepted, port, signal);

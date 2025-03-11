@@ -65,7 +65,7 @@ ErrCode LoggerComponentImpl::getName(IString** name)
 {
     if (name == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
 
     StringPtr nameStr(spdlogLogger->name());
@@ -84,7 +84,7 @@ ErrCode LoggerComponentImpl::getLevel(LogLevel* level)
 {
     if (level == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
     *level = (LogLevel) spdlogLogger->level();
 
@@ -110,7 +110,7 @@ ErrCode LoggerComponentImpl::shouldLog(LogLevel level, Bool* willLog)
 {
     if (willLog == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
 
     *willLog = spdlogLogger->should_log(static_cast<spdlog::level::level_enum>(level));

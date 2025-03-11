@@ -129,7 +129,7 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
     {
         if (dataPacket.getType() != PacketType::Data)
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
         }
 
         auto domainPacket = dataPacket.getDomainPacket();
@@ -357,7 +357,7 @@ struct ObjectCreator<ITailReader>
 
         if (toCopy == nullptr)
         {
-            return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
         ReadMode mode;
@@ -400,7 +400,7 @@ daq::ErrCode PUBLIC_EXPORT createTailReaderFromBuilder(ITailReader** objTmp, ITa
     if ((builderPtr.getValueReadType() == SampleType::Undefined || builderPtr.getDomainReadType() == SampleType::Undefined) &&
         builderPtr.getSkipEvents())
     {
-        return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_CREATE_FAILED, "Reader cannot skip events when sample type is undefined");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_CREATE_FAILED, "Reader cannot skip events when sample type is undefined");
     }
 
     if (auto port = builderPtr.getInputPort(); port.assigned())
@@ -424,7 +424,7 @@ daq::ErrCode PUBLIC_EXPORT createTailReaderFromBuilder(ITailReader** objTmp, ITa
                                                          builderPtr.getSkipEvents());
     }
 
-    return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_ARGUMENT_NULL, "Neither signal nor input port is not set in TailReader builder");
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Neither signal nor input port is not set in TailReader builder");
 }
 
 END_NAMESPACE_OPENDAQ

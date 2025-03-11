@@ -257,8 +257,7 @@ ErrCode EvalValueImpl::checkParseAndResolve(bool lock)
 
 ErrCode EvalValueImpl::getCoreType(CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     ErrCode err = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(err))
@@ -277,8 +276,7 @@ ErrCode EvalValueImpl::getCoreType(CoreType* coreType)
 
 ErrCode EvalValueImpl::getEval(IString** evalString)
 {
-    if (evalString == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(evalString);
 
     *evalString = this->eval.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -292,8 +290,7 @@ BaseObjectPtr EvalValueImpl::calc()
 
 ErrCode EvalValueImpl::getResult(IBaseObject** obj)
 {
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     ErrCode err = checkParseAndResolve(true);
     if (OPENDAQ_FAILED(err))
@@ -312,8 +309,7 @@ ErrCode EvalValueImpl::getResult(IBaseObject** obj)
 
 ErrCode EvalValueImpl::getResultNoLock(IBaseObject** obj)
 {
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     ErrCode err = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(err))
@@ -334,7 +330,7 @@ template <typename T>
 ErrCode EvalValueImpl::equalsValueInternal(const T value, Bool* equals)
 {
     if (equals == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals output-parameter must not be null.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals output-parameter must not be null.");
 
     T thisValue;
     ErrCode errCode = getValueInternal<T>(thisValue);
@@ -347,8 +343,7 @@ ErrCode EvalValueImpl::equalsValueInternal(const T value, Bool* equals)
 
 ErrCode EvalValueImpl::Float_GetValue(Float* value)
 {
-    if (value == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     return getValueInternal<Float>(*value);
 }
@@ -360,8 +355,7 @@ ErrCode EvalValueImpl::Float_EqualsValue(const Float value, Bool* equals)
 
 ErrCode EvalValueImpl::Integer_GetValue(Int* value)
 {
-    if (value == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     return getValueInternal<Int>(*value);
 }
@@ -373,8 +367,7 @@ ErrCode EvalValueImpl::Integer_EqualsValue(const Int value, Bool* equals)
 
 ErrCode EvalValueImpl::Boolean_GetValue(Bool* value)
 {
-    if (value == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     return getValueInternal<Bool>(*value);
 }
@@ -386,8 +379,7 @@ ErrCode EvalValueImpl::Boolean_EqualsValue(const Bool value, Bool* equals)
 
 ErrCode EvalValueImpl::StringObject_GetCharPtr(ConstCharPtr* value)
 {
-    if (value == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     ErrCode errCode = getValueInternal<std::string>(strResult);
     *value = strResult.c_str();
@@ -396,8 +388,7 @@ ErrCode EvalValueImpl::StringObject_GetCharPtr(ConstCharPtr* value)
 
 ErrCode EvalValueImpl::StringObject_GetLength(SizeT* size)
 {
-    if (size == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(size);
 
     ErrCode errCode = getValueInternal<std::string>(strResult);
     *size = strResult.length();
@@ -424,8 +415,7 @@ ErrCode EvalValueImpl::getValueInternal(T& value)
 
 ErrCode EvalValueImpl::toString(CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     ErrCode errCode = getValueInternal<std::string>(strResult);
     if (OPENDAQ_FAILED(errCode))
@@ -433,8 +423,7 @@ ErrCode EvalValueImpl::toString(CharPtr* str)
 
     const auto len = std::strlen(strResult.c_str()) + 1;
     *str = static_cast<CharPtr>(daqAllocateMemory(len));
-    if (*str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(*str);
 
 #if defined(__STDC_SECURE_LIB__) || defined(__STDC_LIB_EXT1__)
     strcpy_s(*str, len, strResult.c_str());
@@ -446,24 +435,21 @@ ErrCode EvalValueImpl::toString(CharPtr* str)
 
 ErrCode EvalValueImpl::toFloat(Float* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     return getValueInternal<Float>(*val);
 }
 
 ErrCode EvalValueImpl::toInt(Int* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     return getValueInternal<Int>(*val);
 }
 
 ErrCode EvalValueImpl::toBool(Bool* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     return getValueInternal<Bool>(*val);
 }
@@ -472,8 +458,7 @@ ErrCode EvalValueImpl::toBool(Bool* val)
 
 ErrCode EvalValueImpl::getItemAt(SizeT index, IBaseObject** obj)
 {
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     auto err = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(err))
@@ -488,8 +473,7 @@ ErrCode EvalValueImpl::getItemAt(SizeT index, IBaseObject** obj)
 
 ErrCode EvalValueImpl::getCount(SizeT* size)
 {
-    if (size == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(size);
 
     auto err = checkParseAndResolve(false);
     if (OPENDAQ_FAILED(err))
@@ -573,17 +557,12 @@ ErrCode EvalValueImpl::createStartIterator(IIterator** iterator)
     }
     catch (const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
 
     errCode = list->createStartIterator(iterator);
 
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    return OPENDAQ_SUCCESS;
+    return errCode;
 }
 
 ErrCode EvalValueImpl::createEndIterator(IIterator** iterator)
@@ -597,12 +576,7 @@ ErrCode EvalValueImpl::createEndIterator(IIterator** iterator)
     ListPtr<IBaseObject> list = node->getResult();
     errCode = list->createEndIterator(iterator);
 
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
-
-    return OPENDAQ_SUCCESS;
+    return errCode;
 }
 
 ErrCode EvalValueImpl::getFloatValue(Float* value)
@@ -732,8 +706,7 @@ ErrCode EvalValueImpl::Property_SetValue(IBaseObject* /*value*/)
 
 ErrCode EvalValueImpl::UnitObject_GetId(Int* id)
 {
-    if (id == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     UnitPtr unit;
     ErrCode err = getValueInternal<UnitPtr>(unit);
@@ -750,8 +723,7 @@ ErrCode EvalValueImpl::UnitObject_GetId(Int* id)
 
 ErrCode EvalValueImpl::UnitObject_GetSymbol(IString** symbol)
 {
-    if (symbol == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(symbol);
 
     UnitPtr unit;
     ErrCode err = getValueInternal<UnitPtr>(unit);
@@ -768,8 +740,7 @@ ErrCode EvalValueImpl::UnitObject_GetSymbol(IString** symbol)
 
 ErrCode EvalValueImpl::UnitObject_GetName(IString** name)
 {
-    if (name == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     UnitPtr unit;
     ErrCode err = getValueInternal<UnitPtr>(unit);
@@ -786,8 +757,7 @@ ErrCode EvalValueImpl::UnitObject_GetName(IString** name)
 
 ErrCode EvalValueImpl::UnitObject_GetQuantity(IString** quantity)
 {
-    if (quantity == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(quantity);
 
     UnitPtr unit;
     ErrCode err = getValueInternal<UnitPtr>(unit);
@@ -888,8 +858,8 @@ ErrCode EvalValueImpl::Deserialize(ISerializedObject* serialized,
 
 ErrCode EvalValueImpl::cloneWithOwner(IPropertyObject* newOwner, IEvalValue** clonedValue)
 {
-    if (newOwner == nullptr || clonedValue == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(clonedValue);
+    OPENDAQ_PARAM_NOT_NULL(newOwner);
 
     // OPENDAQ_TODO: properly handle error when parse failed
     assert(node != nullptr);
@@ -914,7 +884,7 @@ ErrCode EvalValueImpl::cloneWithOwner(IPropertyObject* newOwner, IEvalValue** cl
 ErrCode EvalValueImpl::getParseErrorCode()
 {
     if (OPENDAQ_FAILED(parseErrCode))
-        return this->MakeErrorInfo(parseErrCode, parseErrMessage);
+        return MAKE_ERROR_INFO(parseErrCode, parseErrMessage);
 
     return OPENDAQ_SUCCESS;
 }
@@ -922,11 +892,10 @@ ErrCode EvalValueImpl::getParseErrorCode()
 
 ErrCode EvalValueImpl::getPropertyReferences(IList** propertyReferences)
 {
-    if (propertyReferences == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(propertyReferences);
 
     if (OPENDAQ_FAILED(parseErrCode))
-        return this->MakeErrorInfo(parseErrCode, parseErrMessage);
+        return MAKE_ERROR_INFO(parseErrCode, parseErrMessage);
 
     if (this->propertyReferences)
     {

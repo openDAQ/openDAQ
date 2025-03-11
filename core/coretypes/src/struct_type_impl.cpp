@@ -65,8 +65,7 @@ StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<I
 
 ErrCode StructTypeImpl::getFieldNames(IList** names)
 {
-    if (names == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(names);
 
     *names = this->names.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -74,8 +73,7 @@ ErrCode StructTypeImpl::getFieldNames(IList** names)
 
 ErrCode StructTypeImpl::getFieldDefaultValues(IList** defaultValues)
 {
-    if (defaultValues == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(defaultValues);
 
     *defaultValues = this->defaultValues.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -83,8 +81,7 @@ ErrCode StructTypeImpl::getFieldDefaultValues(IList** defaultValues)
 
 ErrCode StructTypeImpl::getFieldTypes(IList** types)
 {
-    if (types == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(types);
 
     *types = this->types.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -93,7 +90,7 @@ ErrCode StructTypeImpl::getFieldTypes(IList** types)
 ErrCode StructTypeImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equal = false;
     if (other == nullptr)
@@ -172,8 +169,7 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
 
 ErrCode StructTypeImpl::getSerializeId(ConstCharPtr* id) const
 {
-    if (!id)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     *id = SerializeId();
 
@@ -229,7 +225,7 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     }
     catch (const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (...)
     {

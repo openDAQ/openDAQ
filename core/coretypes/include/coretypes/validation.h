@@ -34,7 +34,7 @@
         do { if (nullptr == (param)) return OPENDAQ_ERR_ARGUMENT_NULL; } while (0)
 #else
     #define OPENDAQ_PARAM_NOT_NULL(param) \
-        do { if (nullptr == (param)) return MakeErrorInfoForSource(nullptr, OPENDAQ_ERR_ARGUMENT_NULL, "Parameter %s must not be null", #param); } while (0)
+        do { if (nullptr == (param)) return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter %s must not be null", #param); } while (0)
 #endif
 
 #define OPENDAQ_PARAM_TRUTHY(param) \

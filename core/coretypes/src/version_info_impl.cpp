@@ -14,8 +14,7 @@ VersionInfoImpl::VersionInfoImpl(SizeT major, SizeT minor, SizeT patch)
 
 ErrCode VersionInfoImpl::getMajor(SizeT* major)
 {
-    if (!major)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(major);
 
     *major = this->fields.get("Major");
     return OPENDAQ_SUCCESS;
@@ -23,8 +22,7 @@ ErrCode VersionInfoImpl::getMajor(SizeT* major)
 
 ErrCode VersionInfoImpl::getMinor(SizeT* minor)
 {
-    if (!minor)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(minor);
 
     *minor = this->fields.get("Minor");
     return OPENDAQ_SUCCESS;
@@ -32,8 +30,7 @@ ErrCode VersionInfoImpl::getMinor(SizeT* minor)
 
 ErrCode VersionInfoImpl::getPatch(SizeT* patch)
 {
-    if (!patch)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(patch);
 
     *patch = this->fields.get("Patch");
     return OPENDAQ_SUCCESS;

@@ -90,8 +90,7 @@ ErrCode AddressInfoImpl::setReachabilityStatusPrivate(AddressReachabilityStatus 
 
 ErrCode AddressInfoImpl::getInterfaceIds(SizeT* idCount, IntfID** ids)
 {
-    if (idCount == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(idCount);
 
     *idCount = InterfaceIds::Count() + 1;
     if (ids == nullptr)

@@ -6,6 +6,7 @@
 #include <coretypes/cycle_detector.h>
 #include <coretypes/list_ptr.h>
 #include <coretypes/baseobject_factory.h>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -35,7 +36,7 @@ ErrCode ListImpl::getElementInterfaceId(IntfID* id)
 {
     if (id == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
     }
 
     *id = iid;
@@ -68,10 +69,7 @@ ErrCode ListImpl::toString(CharPtr* str)
 
 ErrCode ListImpl::clone(IBaseObject** cloned)
 {
-    if (cloned == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(cloned);
 
     ListImpl* lst = new(std::nothrow) ListImpl(iid);
     if (lst == nullptr)
@@ -107,7 +105,7 @@ ErrCode ListImpl::clone(IBaseObject** cloned)
 ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null");
 
     if (!other)
     {
@@ -149,9 +147,8 @@ ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const
 
 ErrCode ListImpl::getItemAt(SizeT index, IBaseObject** item)
 {
-    if (item == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(item);
+    
     if (index >= list.size())
         return OPENDAQ_ERR_OUTOFRANGE;
 
@@ -249,9 +246,8 @@ ErrCode ListImpl::popBack(IBaseObject** obj)
         return OPENDAQ_ERR_FROZEN;
     }
 
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    
     if (!list.empty())
     {
         *obj = list.back();
@@ -269,8 +265,7 @@ ErrCode ListImpl::popFront(IBaseObject** obj)
         return OPENDAQ_ERR_FROZEN;
     }
 
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     if (!list.empty())
     {
@@ -361,8 +356,7 @@ ErrCode ListImpl::clear()
 
 ErrCode ListImpl::createStartIterator(IIterator** iterator)
 {
-    if (iterator == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(iterator);
 
     *iterator = new(std::nothrow) ListIteratorImpl(this, list.begin());
     if (*iterator == nullptr)
@@ -375,8 +369,7 @@ ErrCode ListImpl::createStartIterator(IIterator** iterator)
 
 ErrCode ListImpl::createEndIterator(IIterator** iterator)
 {
-    if (iterator == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(iterator);
 
     *iterator = new(std::nothrow) ListIteratorImpl(this, list.end());
     if (*iterator == nullptr)
@@ -389,9 +382,8 @@ ErrCode ListImpl::createEndIterator(IIterator** iterator)
 
 ErrCode ListImpl::getCoreType(CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(coreType);
+    
     *coreType = ctList;
     return OPENDAQ_SUCCESS;
 }
@@ -488,7 +480,7 @@ ListIteratorImpl::ListIteratorImpl(ListImpl* list, std::vector<IBaseObject*>::it
 ErrCode ListIteratorImpl::getElementInterfaceId(IntfID* id)
 {
     if (id == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Id output parameter must not be null.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Id output parameter must not be null.");
 
     *id = valueId;
     return OPENDAQ_SUCCESS;

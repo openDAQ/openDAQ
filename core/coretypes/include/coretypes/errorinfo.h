@@ -37,7 +37,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * in case of an error, it can check if `IErrorInfo` is stored in thread-local storage using `daqGetErrorInfo` for
  * additional error information.
  *
- * `MakeErrorInfo` automatically creates IErrorInfo and calls `daqSetErrorInfo`. In case of an error, `checkErrorInfo`
+ * `MAKE_ERROR_INFO` automatically creates IErrorInfo and calls `daqSetErrorInfo`. In case of an error, `checkErrorInfo`
  * calls `daqGetErrorInfo` to get extended error information and throws an exception.
  *
  * Example:
@@ -45,7 +45,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * ErrCode ISomeInterface::checkValue(Int value)
  * {
  *     if (value < 0)
- *         return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter should be >= 0", nullptr);
+ *         return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter should be >= 0", nullptr);
  *     return OPENDAQ_SUCCESS;
  * };
  *

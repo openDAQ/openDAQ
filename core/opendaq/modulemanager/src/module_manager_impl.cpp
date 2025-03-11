@@ -98,8 +98,7 @@ ModuleManagerImpl::~ModuleManagerImpl()
 
 ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 {
-    if (availableModules == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(availableModules);
     
     auto list = List<IModule>();
     for (auto& library : libraries)
@@ -113,8 +112,7 @@ ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 
 ErrCode ModuleManagerImpl::addModule(IModule* module)
 {
-    if (module == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(module);
     
     orphanedModules.tryUnload();
 
@@ -143,7 +141,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     const auto contextPtr = ContextPtr::Borrow(context);
     logger = contextPtr.getLogger();
     if (!logger.assigned())
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
@@ -494,7 +492,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         auto connectionStringPtr = String(pureConnectionString);
 
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
-            return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
         // Scan for devices if not yet done so
         // TODO: Should we re-scan after a timeout?
@@ -502,7 +500,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         {
             const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
             if (OPENDAQ_FAILED(errCode))
-                return this->MakeErrorInfo(errCode, "Failed getting available devices");
+                return MAKE_ERROR_INFO(errCode, "Failed getting available devices");
         }
 
         // Connection strings with the "daq" prefix automatically choose the best method of connection
@@ -544,14 +542,14 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     }
     catch (const std::exception& e)
     {
-        return ErrorFromStdException(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+        return ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
         return OPENDAQ_ERR_GENERALERROR;
     }
 
-    return this->MakeErrorInfo(
+    return MAKE_ERROR_INFO(
         OPENDAQ_ERR_NOTFOUND,
         "Device with given connection string and config is not available [{}]",
         connectionString
@@ -749,7 +747,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
     }
 
-    return this->MakeErrorInfo(
+    return MAKE_ERROR_INFO(
         OPENDAQ_ERR_NOTFOUND,
         fmt::format(R"(Function block with given uid and config is not available [{}])", typeId)
     );

@@ -156,19 +156,19 @@ template <typename MainInterface, typename ... Interfaces>
 ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::checkClassNameIsSyncInterface(const StringPtr& className, const TypeManagerPtr& manager) const
 {
     if (!className.assigned())
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Interface name does not inherit from SyncInterfaceBase.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Interface name does not inherit from SyncInterfaceBase.");
 
     TypePtr type;
     ErrCode errCode = manager->getType(className, &type);
     if (OPENDAQ_FAILED(errCode) || type == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not registered in type manager.", className));
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not registered in type manager.", className));
 
     if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
     {
         auto parentName = objectClass.getParentName();
         if (!parentName.assigned())
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' does not inherit from 'SyncInterfaceBase'.", className));
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' does not inherit from 'SyncInterfaceBase'.", className));
         }
         if (parentName == "SyncInterfaceBase")
         {
@@ -177,7 +177,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::checkClassNameIs
         return checkClassNameIsSyncInterface(parentName, manager);
     }
 
-    return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not IPropertyObjectClass", className));
+    return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not IPropertyObjectClass", className));
 }
 
 template <typename MainInterface, typename ... Interfaces>
@@ -190,18 +190,18 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
     StringPtr className = interfacePtr.getClassName();
     if (className == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Interface name is not assigned.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Interface name is not assigned.");
     }
 
     if (className == "SyncInterfaceBase")
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Allowed adding property objects which inherits from 'SyncInterfaceBase', but not 'SyncInterfaceBase' itself.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Allowed adding property objects which inherits from 'SyncInterfaceBase', but not 'SyncInterfaceBase' itself.");
     }
 
     auto typeManager = this->context.getTypeManager();
     if (typeManager == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "TypeManager is not assigned.");
     }
 
     ErrCode errCode = checkClassNameIsSyncInterface(className, typeManager);

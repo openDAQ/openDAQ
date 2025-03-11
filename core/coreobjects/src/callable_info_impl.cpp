@@ -24,10 +24,7 @@ CallableInfoImpl::CallableInfoImpl(ListPtr<IArgumentInfo> arguments, CoreType re
 
 ErrCode CallableInfoImpl::getReturnType(CoreType* type)
 {
-    if (type == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = this->returnType;
     return OPENDAQ_SUCCESS;
@@ -35,10 +32,7 @@ ErrCode CallableInfoImpl::getReturnType(CoreType* type)
 
 ErrCode CallableInfoImpl::getArguments(IList** argumentInfo)
 {
-    if (argumentInfo == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(argumentInfo);
 
     *argumentInfo = this->arguments.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -56,7 +50,7 @@ ErrCode CallableInfoImpl::equals(IBaseObject* other, Bool* equal) const
 {
     return daqTry([this, &other, &equal]() {
         if (equal == nullptr)
-            return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
         *equal = false;
         if (!other)

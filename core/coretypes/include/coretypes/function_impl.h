@@ -81,7 +81,7 @@ public:
    {
        if (coreType == nullptr)
        {
-           return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
+           return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
        }
 
        *coreType = ctFunc;
@@ -126,39 +126,38 @@ class FunctionImpl : public FunctionBase<TFunctor>
 public:
     explicit FunctionImpl(TFunctor functor)
        : FunctionBase<TFunctor>(std::move(functor))
-   {
-   }
+    {
+    }
 
-   ErrCode INTERFACE_FUNC call(IBaseObject* args, IBaseObject** result) override
-   {
-       if (result == nullptr)
-           return OPENDAQ_ERR_ARGUMENT_NULL;
+    ErrCode INTERFACE_FUNC call(IBaseObject* args, IBaseObject** result) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(result);
 
-       if constexpr (std::is_same<typename FunctionTraits<TFunctor>::ResultType, ErrCode>::value)
-       {
-           return this->dispatchInternal(result, args);
-       }
-       else
-       {
-           try
-           {
-               BaseObjectPtr funcReturn = callMultipleParams(this->functor,
-                                                             ListPtr<IBaseObject>(args),
-                                                             std::make_index_sequence<ArgCount>{});
-               *result = funcReturn.detach();
-           }
-           catch (const DaqException& e)
-           {
-               return errorFromException(e, this->getThisAsBaseObject());
-           }
-           catch (...)
-           {
-               return OPENDAQ_ERR_CALLFAILED;
-           }
+        if constexpr (std::is_same<typename FunctionTraits<TFunctor>::ResultType, ErrCode>::value)
+        {
+            return this->dispatchInternal(result, args);
+        }
+        else
+        {
+            try
+            {
+                BaseObjectPtr funcReturn = callMultipleParams(this->functor,
+                                                                ListPtr<IBaseObject>(args),
+                                                                std::make_index_sequence<ArgCount>{});
+                *result = funcReturn.detach();
+            }
+            catch (const DaqException& e)
+            {
+                return errorFromException(e, this->getThisAsBaseObject());
+            }
+            catch (...)
+            {
+                return OPENDAQ_ERR_CALLFAILED;
+            }
 
-           return OPENDAQ_SUCCESS;
-       }
-   }
+            return OPENDAQ_SUCCESS;
+        }
+    }
 };
 
 template <typename TFunctor>
@@ -166,18 +165,17 @@ class FunctionImpl<TFunctor, 1> : public FunctionBase<TFunctor>
 {
 public:
     explicit FunctionImpl(TFunctor functor)
-       : FunctionBase<TFunctor>(std::move(functor))
-   {
-   }
+        : FunctionBase<TFunctor>(std::move(functor))
+    {
+    }
 
-   ErrCode INTERFACE_FUNC call(IBaseObject* args, IBaseObject** result) override
-   {
-       if (result == nullptr)
-           return OPENDAQ_ERR_ARGUMENT_NULL;
+    ErrCode INTERFACE_FUNC call(IBaseObject* args, IBaseObject** result) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(result);
 
-       auto arg = BaseObjectPtr::Borrow(args);
-       return this->dispatchInternal(result, arg);
-   }
+        auto arg = BaseObjectPtr::Borrow(args);
+        return this->dispatchInternal(result, arg);
+    }
 };
 
 template <typename TFunctor>
@@ -186,16 +184,15 @@ class FunctionImpl<TFunctor, 0> : public FunctionBase<TFunctor>
 public:
     explicit FunctionImpl(TFunctor functor)
        : FunctionBase<TFunctor>(std::move(functor))
-   {
-   }
+    {
+    }
 
-   ErrCode INTERFACE_FUNC call(IBaseObject* /*args*/, IBaseObject** result) override
-   {
-       if (result == nullptr)
-           return OPENDAQ_ERR_ARGUMENT_NULL;
+    ErrCode INTERFACE_FUNC call(IBaseObject* /*args*/, IBaseObject** result) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(result);
 
-       return this->dispatchInternal(result);
-   }
+        return this->dispatchInternal(result);
+    }
 };
 
 template <typename TFunctor>
@@ -203,25 +200,24 @@ class FunctionImpl<TFunctor, FuncObjectNativeArgs> : public FunctionBase<TFuncto
 {
 public:
     explicit FunctionImpl(TFunctor func)
-       : FunctionBase<TFunctor>(std::move(func))
-   {
-   }
+        : FunctionBase<TFunctor>(std::move(func))
+    {
+    }
 
-   ErrCode INTERFACE_FUNC call([[maybe_unused]] IBaseObject* args,
-                               [[maybe_unused]] IBaseObject** result) override
-   {
-       if (result == nullptr)
-           return OPENDAQ_ERR_ARGUMENT_NULL;
+    ErrCode INTERFACE_FUNC call([[maybe_unused]] IBaseObject* args,
+                                [[maybe_unused]] IBaseObject** result) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(result);
 
-       if constexpr (std::is_same_v<typename TFunctor::result_type, ErrCode>)
-       {
-           return this->functor(args, result);
-       }
-       else
-       {
-           return OPENDAQ_ERR_NOTIMPLEMENTED;
-       }
-   }
+        if constexpr (std::is_same_v<typename TFunctor::result_type, ErrCode>)
+        {
+            return this->functor(args, result);
+        }
+        else
+        {
+            return OPENDAQ_ERR_NOTIMPLEMENTED;
+        }
+    }
 };
 
 class FunctionNull : public ImplementationOf<ICoreType, IFunction>
@@ -236,7 +232,7 @@ public:
     {
         if (coreType == nullptr)
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
         }
 
         *coreType = ctFunc;
@@ -249,37 +245,35 @@ public:
 template <typename TFunctor, typename std::enable_if<!std::is_bind_expression<TFunctor>::value>::type* = nullptr>
 ErrCode createFunctionWrapper(IFunction** obj, [[maybe_unused]] TFunctor func)
 {
-   if (!obj)
-       return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
-   try
-   {
-       if constexpr (std::is_same_v<TFunctor, std::nullptr_t>)
-       {
-           *obj = new FunctionNull();
-       }
-       else
-       {
-           *obj = new FunctionImpl<TFunctor>(std::move(func));
-       }
-   }
-   catch (const DaqException& e)
-   {
-       setErrorInfoWithSource(nullptr, e.what());
-       return e.getErrCode();
-   }
-   catch (const std::bad_alloc&)
-   {
-       return OPENDAQ_ERR_NOMEMORY;
-   }
-   catch (const std::exception&)
-   {
-       return OPENDAQ_ERR_GENERALERROR;
-   }
+    try
+    {
+        if constexpr (std::is_same_v<TFunctor, std::nullptr_t>)
+        {
+            *obj = new FunctionNull();
+        }
+        else
+        {
+            *obj = new FunctionImpl<TFunctor>(std::move(func));
+        }
+    }
+    catch (const DaqException& e)
+    {
+        return errorFromException(e);
+    }
+    catch (const std::bad_alloc&)
+    {
+        return OPENDAQ_ERR_NOMEMORY;
+    }
+    catch (const std::exception&)
+    {
+        return OPENDAQ_ERR_GENERALERROR;
+    }
 
-   (*obj)->addRef();
+    (*obj)->addRef();
 
-   return OPENDAQ_SUCCESS;
+    return OPENDAQ_SUCCESS;
 }
 
 // Handle std::bind()
@@ -287,30 +281,28 @@ ErrCode createFunctionWrapper(IFunction** obj, [[maybe_unused]] TFunctor func)
 template <typename TFunctor, typename std::enable_if<std::is_bind_expression<TFunctor>::value>::type* = nullptr>
 ErrCode createFunctionWrapper(IFunction** obj, TFunctor func)
 {
-   if (!obj)
-       return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
-   try
-   {
-       *obj = new FunctionImpl<TFunctor, FuncObjectNativeArgs>(std::move(func));
-   }
-   catch (const DaqException& e)
-   {
-       setErrorInfoWithSource(nullptr, e.what());
-       return e.getErrCode();
-   }
-   catch (const std::bad_alloc&)
-   {
-       return OPENDAQ_ERR_NOMEMORY;
-   }
-   catch (const std::exception&)
-   {
-       return OPENDAQ_ERR_GENERALERROR;
-   }
+    try
+    {
+        *obj = new FunctionImpl<TFunctor, FuncObjectNativeArgs>(std::move(func));
+    }
+    catch (const DaqException& e)
+    {
+        return errorFromException(e);
+    }
+    catch (const std::bad_alloc&)
+    {
+        return OPENDAQ_ERR_NOMEMORY;
+    }
+    catch (const std::exception&)
+    {
+        return OPENDAQ_ERR_GENERALERROR;
+    }
 
-   (*obj)->addRef();
+    (*obj)->addRef();
 
-   return OPENDAQ_SUCCESS;
+    return OPENDAQ_SUCCESS;
 }
 
 // Function pointer
@@ -318,30 +310,28 @@ ErrCode createFunctionWrapper(IFunction** obj, TFunctor func)
 template <typename TFunctor>
 ErrCode createFunctionWrapper(IFunction** obj, TFunctor* func)
 {
-   if (!obj)
-       return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
-   try
-   {
-       *obj = new FunctionImpl<TFunctor>(func);
-   }
-   catch (const DaqException& e)
-   {
-       setErrorInfoWithSource(nullptr, e.what());
-       return e.getErrCode();
-   }
-   catch (const std::bad_alloc&)
-   {
-       return OPENDAQ_ERR_NOMEMORY;
-   }
-   catch (const std::exception&)
-   {
-       return OPENDAQ_ERR_GENERALERROR;
-   }
+    try
+    {
+        *obj = new FunctionImpl<TFunctor>(func);
+    }
+    catch (const DaqException& e)
+    {
+        return errorFromException(e);
+    }
+    catch (const std::bad_alloc&)
+    {
+        return OPENDAQ_ERR_NOMEMORY;
+    }
+    catch (const std::exception&)
+    {
+        return OPENDAQ_ERR_GENERALERROR;
+    }
 
-   (*obj)->addRef();
+    (*obj)->addRef();
 
-   return OPENDAQ_SUCCESS;
+    return OPENDAQ_SUCCESS;
 }
 
 // Lambda / std::bind

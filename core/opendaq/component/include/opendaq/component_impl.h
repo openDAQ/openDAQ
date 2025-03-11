@@ -780,7 +780,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     auto configPtr = BaseObjectPtr::Borrow(config);
     if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>())
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
     }
     
     const bool muted = this->coreEventMuted;

@@ -63,8 +63,7 @@ ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
 
 ErrCode ScalingImpl::getInputSampleType(SampleType* type)
 {
-    if (!type)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = inputDataType;
     return OPENDAQ_SUCCESS;
@@ -72,8 +71,7 @@ ErrCode ScalingImpl::getInputSampleType(SampleType* type)
 
 ErrCode ScalingImpl::getOutputSampleType(ScaledSampleType* type)
 {
-    if (!type)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = outputDataType;
     return OPENDAQ_SUCCESS;
@@ -81,8 +79,7 @@ ErrCode ScalingImpl::getOutputSampleType(ScaledSampleType* type)
 
 ErrCode ScalingImpl::getType(ScalingType* type)
 {
-    if (!type)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = ruleType;
     return OPENDAQ_SUCCESS;
@@ -90,8 +87,7 @@ ErrCode ScalingImpl::getType(ScalingType* type)
 
 ErrCode ScalingImpl::getParameters(IDict** parameters)
 {
-    if (!parameters)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(parameters);
 
     *parameters = params.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -105,7 +101,7 @@ ErrCode ScalingImpl::verifyParameters()
 ErrCode INTERFACE_FUNC ScalingImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (other == nullptr)
@@ -180,27 +176,27 @@ ErrCode ScalingImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IF
 ErrCode ScalingImpl::verifyParametersInternal() const
 {
     if (!params.assigned())
-        return this->MakeErrorInfo(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Scaling parameters are not set.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Scaling parameters are not set.");
 
     if (inputDataType > SampleType::Int64)
-        return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Scaling input data can consist only of real numbers.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Scaling input data can consist only of real numbers.");
 
     if (ruleType == ScalingType::Linear)
     {
         if (params.getCount() != 2)
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Linear Scaling has an invalid number of parameters. Required parameters are "scale" and "offset".)");
         }
 
         if (!params.hasKey("scale") || !params.hasKey("offset"))
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Linear scaling has invalid parameters. Required parameters are "scale" and "offset".)");
         }
 
         if (!params.get("scale").supportsInterface<INumber>() || !params.get("offset").supportsInterface<INumber>())
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
 
     return OPENDAQ_SUCCESS;

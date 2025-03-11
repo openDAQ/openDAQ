@@ -70,7 +70,7 @@ ErrCode StringImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
     }
 
     if (other == nullptr)
@@ -132,8 +132,7 @@ ErrCode StringImpl::getLength(SizeT* size)
 
 ErrCode StringImpl::toString(CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     return daqDuplicateCharPtr(this->str, str);
 }

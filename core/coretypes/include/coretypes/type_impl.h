@@ -51,8 +51,7 @@ GenericTypeImpl<TypeInterface>::GenericTypeImpl (StringPtr typeName, CoreType co
 template <class TypeInterface>
 ErrCode GenericTypeImpl<TypeInterface>::getName(IString** typeName)
 {
-    if (!typeName)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(typeName);
 
     *typeName = this->typeName.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -62,7 +61,7 @@ template <class TypeInterface>
 ErrCode GenericTypeImpl<TypeInterface>::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equal = false;
     if (other == nullptr)
@@ -79,8 +78,7 @@ ErrCode GenericTypeImpl<TypeInterface>::equals(IBaseObject* other, Bool* equal) 
 template <class TypeInterface>
 ErrCode GenericTypeImpl<TypeInterface>::getCoreType(CoreType* coreType)
 {
-    if (!coreType)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = this->coreType;
     return OPENDAQ_SUCCESS;

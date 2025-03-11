@@ -30,10 +30,7 @@ ErrCode RatioImpl::toString(CharPtr* str)
 
 ErrCode RatioImpl::getNumerator(Int* numerator)
 {
-    if (numerator == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(numerator);
 
     *numerator = this->numerator;
 
@@ -42,10 +39,7 @@ ErrCode RatioImpl::getNumerator(Int* numerator)
 
 ErrCode RatioImpl::getDenominator(Int* denominator)
 {
-    if (denominator == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(denominator);
 
     *denominator = this->denominator;
 
@@ -54,10 +48,7 @@ ErrCode RatioImpl::getDenominator(Int* denominator)
 
 ErrCode RatioImpl::simplify(IRatio** simplifiedRatio)
 {
-    if (simplifiedRatio == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(simplifiedRatio);
 
     Int num = numerator;
     Int den = denominator;
@@ -69,10 +60,7 @@ ErrCode RatioImpl::simplify(IRatio** simplifiedRatio)
 
 ErrCode RatioImpl::toFloat(Float* val)
 {
-    if (val == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = numerator / static_cast<Float>(denominator);
     return OPENDAQ_SUCCESS;
@@ -80,10 +68,7 @@ ErrCode RatioImpl::toFloat(Float* val)
 
 ErrCode RatioImpl::toInt(Int* val)
 {
-    if (val == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     Float realValue = -1;
     ErrCode err = toFloat(&realValue);
@@ -99,10 +84,7 @@ ErrCode RatioImpl::toInt(Int* val)
 
 ErrCode RatioImpl::toBool(Bool* val)
 {
-    if (val == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     Float realValue = -1;
     ErrCode err = toFloat(&realValue);
@@ -118,8 +100,7 @@ ErrCode RatioImpl::toBool(Bool* val)
 
 ErrCode RatioImpl::getCoreType(CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = ctRatio;
     return OPENDAQ_SUCCESS;
@@ -165,7 +146,7 @@ ErrCode RatioImpl::equals(IBaseObject *other, Bool* equal) const
 {
     if (equal == nullptr)
     {
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
     }
 
     *equal = false;
@@ -196,8 +177,7 @@ ErrCode RatioImpl::equals(IBaseObject *other, Bool* equal) const
 
 ErrCode RatioImpl::compareTo(IBaseObject* obj)
 {
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     IConvertible* objConvIntf;
     Float objFloatValue;

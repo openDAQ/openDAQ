@@ -23,8 +23,7 @@ RangeImpl::RangeImpl(NumberPtr lowValue, NumberPtr highValue)
 
 ErrCode RangeImpl::getLowValue(INumber** value)
 {
-    if (!value)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     *value = low.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -32,8 +31,7 @@ ErrCode RangeImpl::getLowValue(INumber** value)
 
 ErrCode RangeImpl::getHighValue(INumber** value)
 {
-    if (!value)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     *value = high.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -42,7 +40,7 @@ ErrCode RangeImpl::getHighValue(INumber** value)
 ErrCode RangeImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (other == nullptr)

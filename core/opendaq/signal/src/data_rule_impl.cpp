@@ -59,8 +59,7 @@ DataRuleImpl::DataRuleImpl(IDataRuleBuilder* dataRuleBuilder)
 
 ErrCode DataRuleImpl::getType(DataRuleType* type)
 {
-    if (!type)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = ruleType;
     return OPENDAQ_SUCCESS;
@@ -68,8 +67,7 @@ ErrCode DataRuleImpl::getType(DataRuleType* type)
 
 ErrCode DataRuleImpl::getParameters(IDict** parameters)
 {
-    if (!parameters)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(parameters);
 
     *parameters = params.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -83,7 +81,7 @@ ErrCode DataRuleImpl::verifyParameters()
 ErrCode INTERFACE_FUNC DataRuleImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->MakeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null.");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null.");
 
     *equals = false;
     if (other == nullptr)
@@ -146,25 +144,25 @@ ErrCode DataRuleImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
 ErrCode DataRuleImpl::verifyParametersInternal()
 {
     if (!params.assigned() && ruleType != DataRuleType::Explicit)
-        return this->MakeErrorInfo(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Data rule parameters are not set");
+        return MAKE_ERROR_INFO(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Data rule parameters are not set");
 
     if (ruleType == DataRuleType::Linear)
     {
         if (params.getCount() != 2)
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Linear rule has an invalid number of parameters. Required parameters are "delta" and "start")");
         }
 
         if (!params.hasKey("delta") || !params.hasKey("start"))
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Linear rule has invalid parameters. Required parameters are "delta" and "start")");
         }
 
         if (!params.get("delta").supportsInterface<INumber>() || !params.get("start").supportsInterface<INumber>())
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
         }
     }
 
@@ -172,7 +170,7 @@ ErrCode DataRuleImpl::verifyParametersInternal()
     {
         if (params.getCount() != 0)
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Constant rule has an invalid number of parameters.)");
         }
     }

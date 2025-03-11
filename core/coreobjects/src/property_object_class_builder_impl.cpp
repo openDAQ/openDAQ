@@ -24,8 +24,7 @@ PropertyObjectClassBuilderImpl::PropertyObjectClassBuilderImpl(const TypeManager
 
 ErrCode PropertyObjectClassBuilderImpl::build(IPropertyObjectClass** propertyObjectClass)
 {
-    if (propertyObjectClass == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(propertyObjectClass);
 
     const auto builderPtr = this->borrowPtr<PropertyObjectClassBuilderPtr>();
 
@@ -46,8 +45,7 @@ ErrCode PropertyObjectClassBuilderImpl::setName(IString* className)
 
 ErrCode PropertyObjectClassBuilderImpl::getName(IString** className)
 {
-    if (!className)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(className);
 
     *className = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -61,8 +59,7 @@ inline ErrCode PropertyObjectClassBuilderImpl::setParentName(IString* parentName
 
 ErrCode PropertyObjectClassBuilderImpl::getParentName(IString** parentName)
 {
-    if (!parentName)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(parentName);
 
     *parentName = this->parent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -70,19 +67,17 @@ ErrCode PropertyObjectClassBuilderImpl::getParentName(IString** parentName)
 
 ErrCode PropertyObjectClassBuilderImpl::addProperty(IProperty* property)
 {
-    if (property == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(property);
 
     return wrapHandler([this, &property]()
     {
         auto p = PropertyPtr::Borrow(property);
 
 		if (hasDuplicateReferences(p))
-			return this->MakeErrorInfo(OPENDAQ_ERR_INVALIDVALUE, "Reference property references a property that is already referenced by another.");
+			return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, "Reference property references a property that is already referenced by another.");
 
         if (props.hasKey(p.getName()))
-            return this->MakeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists)", p.getName()));
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists)", p.getName()));
         props.set(p.getName(), p);
 
         return OPENDAQ_SUCCESS;
@@ -91,8 +86,7 @@ ErrCode PropertyObjectClassBuilderImpl::addProperty(IProperty* property)
 
 ErrCode PropertyObjectClassBuilderImpl::getProperties(IDict** properties)
 {
-    if (!properties)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(properties);
 
     *properties = this->props.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -100,14 +94,13 @@ ErrCode PropertyObjectClassBuilderImpl::getProperties(IDict** properties)
 
 ErrCode PropertyObjectClassBuilderImpl::removeProperty(IString* propertyName)
 {
-    if (propertyName == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
 
     return wrapHandler([this, &propertyName]()
     {
         if (!props.hasKey(propertyName))
         {
-            return this->MakeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name '{}' not found.)", StringPtr::Borrow(propertyName)));
+            return MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name '{}' not found.)", StringPtr::Borrow(propertyName)));
         }
 
         props.remove(propertyName);
@@ -131,8 +124,7 @@ ErrCode PropertyObjectClassBuilderImpl::setPropertyOrder(IList* orderedPropertyN
 
 ErrCode PropertyObjectClassBuilderImpl::getPropertyOrder(IList** orderedPropertyNames)
 {
-    if (!orderedPropertyNames)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(orderedPropertyNames);
 
     *orderedPropertyNames = this->customOrder.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -140,8 +132,7 @@ ErrCode PropertyObjectClassBuilderImpl::getPropertyOrder(IList** orderedProperty
 
 ErrCode PropertyObjectClassBuilderImpl::getManager(ITypeManager** manager)
 {
-    if (!manager)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(manager);
 
     if (this->manager.assigned())
         *manager = this->manager.getRef().addRefAndReturn();

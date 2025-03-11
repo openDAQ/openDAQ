@@ -1,5 +1,6 @@
 #include <discovery_common/daq_discovery_common.h>
 #include <cctype>
+#include <map>
 
 BEGIN_NAMESPACE_DISCOVERY_COMMON
 
@@ -70,12 +71,12 @@ size_t DiscoveryUtils::getTxtRecordsCount(const void* buffer, size_t size, size_
 TxtProperties DiscoveryUtils::jsonToTxt(const std::string& serialized, const std::string& name)
 {
     // TODO verify value strings from json for restricted symbols
-    const char* Backspace = "BACKSPACE";                // \x08
-    const char* Tab = "TAB";                            // \x09
-    const char* NewLine = "NEW-LINE";                   // \x0A
-    const char* CarriageReturn = "CARRIAGE-RETURN";     // \x0D
-    const char* Escape = "ESCAPE";                      // \x1B
-    const char* EqualSign = "EQUAL-SIGN";               // '='
+//    const char* Backspace = "BACKSPACE";                // \x08
+//    const char* Tab = "TAB";                            // \x09
+//    const char* NewLine = "NEW-LINE";                   // \x0A
+//    const char* CarriageReturn = "CARRIAGE-RETURN";     // \x0D
+//    const char* Escape = "ESCAPE";                      // \x1B
+//    const char* EqualSign = "EQUAL-SIGN";               // '='
 
     auto result = TxtProperties();
 

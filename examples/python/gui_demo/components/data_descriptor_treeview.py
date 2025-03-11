@@ -6,10 +6,8 @@ import opendaq as daq
 from .. import utils
 from ..app_context import AppContext
 
-import opendaq
-
 class DataDescriptorTreeview(ttk.Treeview):
-    def __init__(self, parent, data_descriptor : opendaq.IDataDescriptor = None, context: AppContext = None, **kwargs):
+    def __init__(self, parent, data_descriptor : daq.IDataDescriptor = None, context: AppContext = None, **kwargs):
         ttk.Treeview.__init__(self, parent, columns=('value', 'access', *context.metadata_fields), show='tree headings', **kwargs)
 
         self.context = context

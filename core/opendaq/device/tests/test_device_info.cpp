@@ -218,6 +218,14 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     info.setRevisionCounter(1);
     info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id1", "test", ProtocolType::Streaming));
     info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id2", "test", ProtocolType::Configuration));
+    info.asPtr<IDeviceInfoInternal>().addConnectedClient(
+        "id1",
+        ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", ClientType(), "Host name")
+    );
+    info.asPtr<IDeviceInfoInternal>().addConnectedClient(
+        "id2",
+        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", ClientType::ExclusiveControl, "Host name")
+    );
 
     const auto serializer = JsonSerializer();
     info.serialize(serializer);
@@ -230,6 +238,7 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     ASSERT_EQ(newDeviceInfo.getServerCapabilities().getCount(), 2u);
     ASSERT_EQ(newDeviceInfo.getServerCapabilities()[0].getProtocolId(), "test_id1");
     ASSERT_EQ(newDeviceInfo.getServerCapabilities()[1].getProtocolId(), "test_id2");
+    ASSERT_EQ(newDeviceInfo.getConnectedClientsInfo().getCount(), 2u);
 
     serializer.reset();
     newDeviceInfo.serialize(serializer);

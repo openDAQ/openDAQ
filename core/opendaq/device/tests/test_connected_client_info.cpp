@@ -46,4 +46,35 @@ TEST_F(ConnectedClientInfoTest, Freezable)
     ASSERT_THROW(clientInfo.addProperty(StringProperty("test_key", "test_value")), FrozenException);
 }
 
+TEST_F(ConnectedClientInfoTest, SerializeDeserialize)
+{
+    ConnectedClientInfoPtr clientInfo =
+        ConnectedClientInfo("url", ProtocolType::Configuration, "Protocol name", ClientType::ExclusiveControl, "Host name");
+
+    clientInfo.addProperty(StringProperty("Location", "Office"));
+    clientInfo.addProperty(IntProperty("ElapsedTime", 999));
+    clientInfo.addProperty(FloatProperty("SomeMetric", 172.4));
+    clientInfo.addProperty(BoolProperty("IsActive", true));
+
+    const auto serializer = JsonSerializer();
+    clientInfo.serialize(serializer);
+    const auto serializedClientInfo = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const ConnectedClientInfoPtr newClientInfo = deserializer.deserialize(serializedClientInfo, nullptr, nullptr);
+
+    ASSERT_EQ(newClientInfo.getUrl(), "url");
+    ASSERT_EQ(newClientInfo.getProtocolName(), "Protocol name");
+    ASSERT_EQ(newClientInfo.getClientType(), ClientType::ExclusiveControl);
+    ASSERT_EQ(newClientInfo.getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(newClientInfo.getHostName(), "Host name");
+
+    serializer.reset();
+    newClientInfo.serialize(serializer);
+    const auto newSerializedClientInfo = serializer.getOutput();
+
+    ASSERT_EQ(serializedClientInfo, newSerializedClientInfo);
+}
+
 END_NAMESPACE_OPENDAQ

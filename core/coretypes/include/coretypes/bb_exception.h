@@ -82,8 +82,8 @@ private:
     ErrCode errCode;
     bool defaultMsg;
 #ifndef NDEBUG
-    ConstCharPtr fileName;
-    Int fileLine;
+    ConstCharPtr fileName = nullptr;
+    Int fileLine = -1;
 #endif
 };
 

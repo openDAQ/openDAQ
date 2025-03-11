@@ -64,10 +64,10 @@ class AttributesTreeview(ttk.Treeview):
         if not node:
             return
 
-        sel = utils.treeview_get_first_selection(self)[1:]
+        sel = utils.treeview_get_first_selection(self)
+        sel = sel[1:] if sel else sel
         if sel not in self.attributes:
             return
-
         attr_dict = self.attributes[sel]
 
         if attr_dict['Locked']:

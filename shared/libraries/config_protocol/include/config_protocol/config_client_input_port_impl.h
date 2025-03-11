@@ -101,7 +101,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
                 if (clientComm->getProtocolVersion() >= 2)
                     clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId);
                 else
-                    return MAKE_ERROR_INFO(
+                    return DAQ_MAKE_ERROR_INFO(
                         OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
                         "Client-to-device streaming operations are not supported by the protocol version currently in use"
                     );
@@ -149,7 +149,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
 
             const auto signalPtr = SignalPtr::Borrow(signal);
             if (!isSignalFromTheSameComponentTree(signalPtr))
-                return MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Signal is not from the same component tree");
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Signal is not from the same component tree");
 
             const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
             if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))

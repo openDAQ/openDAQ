@@ -172,7 +172,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::canConnectSignal(ISignal* signal) c
 {
     const auto removablePtr = SignalPtr::Borrow(signal).asPtrOrNull<IRemovable>();
     if (removablePtr.assigned() && removablePtr.isRemoved())
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Removed signal cannot be connected");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Removed signal cannot be connected");
 
     return OPENDAQ_SUCCESS;
 }
@@ -196,7 +196,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
         {
             auto lock = this->getRecursiveConfigLock();
             if (this->isComponentRemoved)
-                return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
 
             connectionRef = connection;
 
@@ -548,7 +548,7 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyOb
     {
         auto ref = this->owner.getRef();
         if (ref != nullptr && ref != owner)
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
     }
     this->owner = owner;
     return OPENDAQ_SUCCESS;
@@ -704,7 +704,7 @@ BaseObjectPtr GenericInputPortImpl<Interfaces...>::getDeserializedParameter(cons
     if (parameter == "signalId")
         return serializedSignalId;
 
-    THROW_OPENDAQ_EXCEPTION(NotFoundException());
+    DAQ_THROW_EXCEPTION(NotFoundException());
 }
 
 template <class... Interfaces>

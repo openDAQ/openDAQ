@@ -61,7 +61,7 @@ template <class TypeInterface>
 ErrCode GenericTypeImpl<TypeInterface>::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equal = false;
     if (other == nullptr)

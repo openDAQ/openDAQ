@@ -52,7 +52,7 @@ ListPtr<IBaseObject> VariantConverter<IBaseObject>::ToDaqList(const OpcUaVariant
     if (typeKind == UA_DATATYPEKIND_STRUCTURE || typeKind == UA_DATATYPEKIND_OPTSTRUCT)
         return VariantConverter<IStruct>::ToDaqList(variant, context);
 
-    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
+    DAQ_THROW_EXCEPTION(ConversionFailedException());
 }
 
 template <>
@@ -100,7 +100,7 @@ BaseObjectPtr VariantConverter<IBaseObject>::ToDaqObject(const OpcUaVariant& var
         return VariantConverter<IStruct>::ToDaqObject(unwrapped, context);
 
 
-    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
+    DAQ_THROW_EXCEPTION(ConversionFailedException());
 }
 
 template <>
@@ -172,7 +172,7 @@ OpcUaVariant VariantConverter<IBaseObject>::ToVariant(const BaseObjectPtr& objec
         }
     }
 
-    THROW_OPENDAQ_EXCEPTION(ConversionFailedException());
+    DAQ_THROW_EXCEPTION(ConversionFailedException());
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

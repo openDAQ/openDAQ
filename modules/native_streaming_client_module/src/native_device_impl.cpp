@@ -394,7 +394,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
         std::this_thread::get_id() != reconnectionProcessingThreadId)
     {
         unregisterConfigRequest(reqId);
-        THROW_OPENDAQ_EXCEPTION(ConnectionLostException());
+        DAQ_THROW_EXCEPTION(ConnectionLostException());
     }
 
     // send packet using a temporary copy of the transport client
@@ -406,7 +406,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
     else
     {
         unregisterConfigRequest(reqId);
-        THROW_OPENDAQ_EXCEPTION(ComponentRemovedException());
+        DAQ_THROW_EXCEPTION(ComponentRemovedException());
     }
 
     if (future.wait_for(configProtocolRequestTimeout) == std::future_status::ready)
@@ -418,9 +418,9 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
         unregisterConfigRequest(reqId);
         LOG_E("Native configuration protocol request id {} timed out", reqId);
         if (connectionStatus == "Connected")
-            THROW_OPENDAQ_EXCEPTION(GeneralErrorException("Native configuration protocol request id {} timed out", reqId));
+            DAQ_THROW_EXCEPTION(GeneralErrorException("Native configuration protocol request id {} timed out", reqId));
         else
-            THROW_OPENDAQ_EXCEPTION(ConnectionLostException("Native configuration protocol request id {} timed out due to disconnection", reqId));
+            DAQ_THROW_EXCEPTION(ConnectionLostException("Native configuration protocol request id {} timed out due to disconnection", reqId));
     }
 }
 
@@ -494,7 +494,7 @@ void NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& 
     if (connectionStatus != "Connected" &&
         std::this_thread::get_id() != reconnectionProcessingThreadId)
     {
-        THROW_OPENDAQ_EXCEPTION(ConnectionLostException());
+        DAQ_THROW_EXCEPTION(ConnectionLostException());
     }
 
     // send packet using a temporary copy of the transport client
@@ -502,7 +502,7 @@ void NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& 
     if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
         transportClientHandlerTemp->sendConfigRequest(reqPacket);
     else
-        THROW_OPENDAQ_EXCEPTION(ComponentRemovedException());
+        DAQ_THROW_EXCEPTION(ComponentRemovedException());
 }
 
 NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCommPtr& configProtocolClientComm,

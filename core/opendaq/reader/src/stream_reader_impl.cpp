@@ -26,7 +26,7 @@ StreamReaderImpl::StreamReaderImpl(const SignalPtr& signal,
     , timeoutType(timeoutType)
 {
     if (!signal.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Signal must not be null"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Signal must not be null"));
 
     valueReader = createReaderForType(valueReadType, nullptr);
     domainReader = createReaderForType(domainReadType, nullptr);
@@ -52,7 +52,7 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     , timeoutType(timeoutType)
 {
     if (!port)
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Input port must not be null."));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Input port must not be null."));
 
     valueReader = createReaderForType(valueReadType, nullptr);
     domainReader = createReaderForType(domainReadType, nullptr);
@@ -76,7 +76,7 @@ StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
     : readMode(mode)
 {
     if (!readerConfig.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Existing reader must not be null"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Existing reader must not be null"));
 
     readerConfig.markAsInvalid();
 
@@ -140,12 +140,12 @@ StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
 StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
 {
     if (!builder.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Builder must not be null"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Builder must not be null"));
 
     if ((builder.getValueReadType() == SampleType::Undefined || builder.getDomainReadType() == SampleType::Undefined) &&
         builder.getSkipEvents())
     {
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Reader cannot skip events when sample type is undefined"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Reader cannot skip events when sample type is undefined"));
     }
 
     readMode = builder.getReadMode();
@@ -168,7 +168,7 @@ StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
         }
         else 
         {
-            THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Signal or port must be set"));
+            DAQ_THROW_EXCEPTION(ArgumentNullException("Signal or port must be set"));
         }
     }
     catch (...)
@@ -446,7 +446,7 @@ void* StreamReaderImpl::getValuePacketData(const DataPacketPtr& packet) const
             return packet.getData();
     }
 
-    THROW_OPENDAQ_EXCEPTION(InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode)));
+    DAQ_THROW_EXCEPTION(InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode)));
 }
 
 ErrCode StreamReaderImpl::readPacketData()
@@ -468,7 +468,7 @@ ErrCode StreamReaderImpl::readPacketData()
         auto dataPacket = info.dataPacket;
         if (!dataPacket.getDomainPacket().assigned())
         {
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
         }
 
         auto domainPacket = dataPacket.getDomainPacket();
@@ -757,7 +757,7 @@ struct ObjectCreator<IStreamReader>
 
         if (toCopy == nullptr)
         {
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
         ReadMode mode;

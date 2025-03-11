@@ -192,7 +192,7 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , keepLastValue(true)
 {
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
-        THROW_OPENDAQ_EXCEPTION(InvalidSampleTypeException("SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet."));
+        DAQ_THROW_EXCEPTION(InvalidSampleTypeException("SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet."));
     setKeepLastPacket();
 
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
@@ -296,7 +296,7 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
 {
     const auto name = descriptor.getName();
     if (!name.assigned())
-        THROW_OPENDAQ_EXCEPTION(NotAssignedException{"Name of data descriptor not assigned."});
+        DAQ_THROW_EXCEPTION(NotAssignedException{"Name of data descriptor not assigned."});
 
     const auto fields = descriptor.getStructFields();
     auto fieldNames = List<IString>();
@@ -309,12 +309,12 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
             const auto dimensions = field.getDimensions();
 
             if (!dimensions.assigned())
-                THROW_OPENDAQ_EXCEPTION(NotAssignedException{"Dimensions of data descriptor not assigned."});
+                DAQ_THROW_EXCEPTION(NotAssignedException{"Dimensions of data descriptor not assigned."});
 
             const auto dimensionCount = dimensions.getCount();
 
             if (dimensionCount > 1)
-                THROW_OPENDAQ_EXCEPTION(NotSupportedException{"getLastValue on signals with dimensions supports only up to one dimension."});
+                DAQ_THROW_EXCEPTION(NotSupportedException{"getLastValue on signals with dimensions supports only up to one dimension."});
 
             TypePtr type;
 
@@ -380,7 +380,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
 {
     const auto descriptorPtr = DataDescriptorPtr::Borrow(descriptor);
     if (descriptorPtr.assigned() && descriptorPtr.getSampleType() == SampleType::Null)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
                                    "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
 
     std::vector<SignalConfigPtr> valueSignalsOfDomainSignal;
@@ -980,7 +980,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::domainSignalReferenceSet(ISignal*
 
     const auto signalPtr = SignalPtr::Borrow(signal).asPtrOrNull<ISignalConfig>(true);
     if (!signalPtr.assigned())
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
 
     auto lock = this->getRecursiveConfigLock();
     for (const auto& refSignal : domainSignalReferences)
@@ -1000,7 +1000,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::domainSignalReferenceRemoved(ISig
 
     const auto signalPtr = SignalPtr::Borrow(signal).asPtrOrNull<ISignalConfig>(true);
     if (!signalPtr.assigned())
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
 
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {
@@ -1146,7 +1146,7 @@ BaseObjectPtr SignalBase<TInterface, Interfaces...>::getDeserializedParameter(co
     if (parameter == "domainSignalId")
         return deserializedDomainSignalId;
 
-    THROW_OPENDAQ_EXCEPTION(NotFoundException());
+    DAQ_THROW_EXCEPTION(NotFoundException());
 }
 
 template <typename TInterface, typename... Interfaces>

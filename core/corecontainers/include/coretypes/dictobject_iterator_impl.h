@@ -40,7 +40,7 @@ public:
     ErrCode INTERFACE_FUNC getKeyInterfaceId(IntfID* idKey) override
     {
         if (idKey == nullptr)
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Key-id output parameter must not be null.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Key-id output parameter must not be null.");
 
         *idKey = keyId;
         return OPENDAQ_SUCCESS;
@@ -49,7 +49,7 @@ public:
     ErrCode INTERFACE_FUNC getValueInterfaceId(IntfID* idValue) override
     {
         if (idValue == nullptr)
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Value-id output parameter must not be null.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Value-id output parameter must not be null.");
 
         *idValue = valueId;
         return OPENDAQ_SUCCESS;
@@ -76,7 +76,7 @@ public:
     ErrCode INTERFACE_FUNC getElementInterfaceId(IntfID* elementId) override
     {
         if (elementId == nullptr)
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Element-Id output parameter must not be null.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Element-Id output parameter must not be null.");
 
         *elementId = id;
         return OPENDAQ_SUCCESS;

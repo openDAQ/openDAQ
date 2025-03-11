@@ -81,7 +81,7 @@ public:
    {
        if (coreType == nullptr)
        {
-           return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
+           return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
        }
 
        *coreType = ctFunc;
@@ -232,7 +232,7 @@ public:
     {
         if (coreType == nullptr)
         {
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
         }
 
         *coreType = ctFunc;

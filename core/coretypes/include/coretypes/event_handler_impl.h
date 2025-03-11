@@ -58,7 +58,7 @@ public:
     {
         if (hashCode == nullptr)
         {
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
         }
 
         *hashCode = subscription.hashCode;

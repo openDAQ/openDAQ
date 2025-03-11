@@ -44,18 +44,18 @@ LoggerComponentImpl::LoggerComponentImpl(const StringPtr& name, const ListPtr<IL
 
     if (!sinks.assigned())
     {
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Sinks List must not be null."));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Sinks List must not be null."));
     }
     for (const ObjectPtr<ILoggerSink>& sink : sinks)
     {
         if(!sink.assigned())
         {
-            THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Sink must not be null"));
+            DAQ_THROW_EXCEPTION(ArgumentNullException("Sink must not be null"));
         }
         auto sinkPtr = sink.asPtrOrNull<ILoggerSinkBasePrivate>(true);
         if (sinkPtr == nullptr)
         {
-            THROW_OPENDAQ_EXCEPTION(InvalidTypeException("Sink must have valid type"));
+            DAQ_THROW_EXCEPTION(InvalidTypeException("Sink must have valid type"));
         }
         spdlogLogger->sinks().push_back(sinkPtr.getSinkImpl());
     }
@@ -65,7 +65,7 @@ ErrCode LoggerComponentImpl::getName(IString** name)
 {
     if (name == nullptr)
     {
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
 
     StringPtr nameStr(spdlogLogger->name());
@@ -84,7 +84,7 @@ ErrCode LoggerComponentImpl::getLevel(LogLevel* level)
 {
     if (level == nullptr)
     {
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
     *level = (LogLevel) spdlogLogger->level();
 
@@ -110,7 +110,7 @@ ErrCode LoggerComponentImpl::shouldLog(LogLevel level, Bool* willLog)
 {
     if (willLog == nullptr)
     {
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
 
     *willLog = spdlogLogger->should_log(static_cast<spdlog::level::level_enum>(level));

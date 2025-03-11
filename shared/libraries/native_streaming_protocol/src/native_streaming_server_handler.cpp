@@ -713,10 +713,10 @@ void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(
 ClientType NativeStreamingServerHandler::parseClientTypeProp(const PropertyObjectPtr& propertyObject)
 {
     if (!propertyObject.hasProperty("ClientType"))
-        THROW_OPENDAQ_EXCEPTION(NotFoundException());
+        DAQ_THROW_EXCEPTION(NotFoundException());
 
     if (propertyObject.getProperty("ClientType").getValueType() != ctInt)
-        THROW_OPENDAQ_EXCEPTION(InvalidValueException());
+        DAQ_THROW_EXCEPTION(InvalidValueException());
 
     const Int clientTypeInt = propertyObject.getPropertyValue("ClientType");
     return ClientTypeTools::IntToClientType(clientTypeInt);
@@ -725,10 +725,10 @@ ClientType NativeStreamingServerHandler::parseClientTypeProp(const PropertyObjec
 bool NativeStreamingServerHandler::parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject)
 {
     if (!propertyObject.hasProperty("ExclusiveControlDropOthers"))
-        THROW_OPENDAQ_EXCEPTION(NotFoundException());
+        DAQ_THROW_EXCEPTION(NotFoundException());
 
     if (propertyObject.getProperty("ExclusiveControlDropOthers").getValueType() != ctBool)
-        THROW_OPENDAQ_EXCEPTION(InvalidValueException());
+        DAQ_THROW_EXCEPTION(InvalidValueException());
 
     return propertyObject.getPropertyValue("ExclusiveControlDropOthers");
 }

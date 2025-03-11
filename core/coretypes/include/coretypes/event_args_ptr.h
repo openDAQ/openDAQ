@@ -90,7 +90,7 @@ public:
     Int getEventId() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         Int id;
         auto errCode = this->object->getEventId(&id);
@@ -102,7 +102,7 @@ public:
     StringPtr getEventName() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         StringPtr name;
         auto errCode = this->object->getEventName(&name);

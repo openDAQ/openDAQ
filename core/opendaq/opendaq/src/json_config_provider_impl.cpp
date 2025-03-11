@@ -47,7 +47,7 @@ StringPtr JsonConfigProviderImpl::GetDataFromFile(const StringPtr& filename)
     std::ifstream file (filename.toStdString());
 
     if (!file)
-        THROW_OPENDAQ_EXCEPTION(NotFoundException(fmt::format("Json config file \"{}\" not found", filename)));
+        DAQ_THROW_EXCEPTION(NotFoundException(fmt::format("Json config file \"{}\" not found", filename)));
 
     std::ostringstream ss;
     ss << file.rdbuf();
@@ -217,7 +217,7 @@ ErrCode JsonConfigProviderImpl::populateOptions(IDict* options)
         size_t errorOffset = document.GetErrorOffset();
 
         auto errorMsg = fmt::format(R"(Failed to parse json configuration on {} position. Error: {})", errorOffset, rapidjson::GetParseError_En(errorCode));
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, errorMsg);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, errorMsg);
     }
 
     HandleObject(BaseObjectPtr::Borrow(options), document);

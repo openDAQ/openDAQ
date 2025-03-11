@@ -17,7 +17,7 @@ RatioImpl::RatioImpl(Int numerator, Int denominator)
 
     if (this->denominator == 0)
     {
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Denominator can not be 0"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Denominator can not be 0"));
     }
 }
 
@@ -146,7 +146,7 @@ ErrCode RatioImpl::equals(IBaseObject *other, Bool* equal) const
 {
     if (equal == nullptr)
     {
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
     }
 
     *equal = false;

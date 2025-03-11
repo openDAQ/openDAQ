@@ -66,7 +66,7 @@ ErrCode LoggerSinkBase<Interfaces...>::getLevel(LogLevel* level)
 {
     if (level == nullptr)
     {
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
     }
 
     *level = static_cast<LogLevel>(sink->level());
@@ -78,7 +78,7 @@ ErrCode LoggerSinkBase<Interfaces...>::shouldLog(LogLevel level, Bool* willLog)
 {
     if (willLog == nullptr)
     {
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
     }
 
     *willLog = sink->should_log(static_cast<spdlog::level::level_enum>(level));
@@ -129,7 +129,7 @@ template <typename... Interfaces>
 ErrCode LoggerSinkBase<Interfaces...>::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (other == nullptr)
@@ -145,7 +145,7 @@ template <typename... Interfaces>
 ErrCode LoggerSinkBase<Interfaces...>::getSinkImpl(typename LoggerSinkBase<Interfaces...>::SinkPtr* sinkImp)
 {
     if (sinkImp == nullptr)
-       return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "SinkImp out-parameter must not be null");
+       return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "SinkImp out-parameter must not be null");
     *sinkImp = sink;
     return OPENDAQ_SUCCESS;
 }

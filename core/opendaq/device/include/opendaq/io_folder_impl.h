@@ -102,7 +102,7 @@ template <class... Intfs>
 bool IoFolderImpl<Intfs...>::addItemInternal(const ComponentPtr& component)
 {
     if (!component.supportsInterface<IIoFolderConfig>() && !component.supportsInterface<IChannel>())
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Type of item not allowed in the folder"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Type of item not allowed in the folder"));
 
     return Super::addItemInternal(component);
 }

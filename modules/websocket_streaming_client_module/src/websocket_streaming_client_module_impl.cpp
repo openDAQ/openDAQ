@@ -71,13 +71,13 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
                                                          const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException());
+        DAQ_THROW_EXCEPTION(ArgumentNullException());
 
     if (!acceptsConnectionParameters(connectionString, config))
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     if (!context.assigned())
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException{"Context is not available."});
+        DAQ_THROW_EXCEPTION(InvalidParameterException{"Context is not available."});
 
     // We don't create any streaming objects here since the
     // internal streaming object is always created within the device
@@ -138,10 +138,10 @@ bool WebsocketStreamingClientModule::acceptsStreamingConnectionParameters(const 
 StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException());
+        DAQ_THROW_EXCEPTION(ArgumentNullException());
 
     if (!acceptsStreamingConnectionParameters(connectionString, config))
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     const StringPtr str = formConnectionString(connectionString, config);
     return WebsocketStreaming(str, context);

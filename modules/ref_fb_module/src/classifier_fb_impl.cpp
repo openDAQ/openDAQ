@@ -98,7 +98,7 @@ void ClassifierFbImpl::readProperties()
     if (blockSize == 0)
     {
         setComponentStatusWithMessage(ComponentStatus::Error, "Classifier property BlockSize must be greater than 0");
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Classifier property BlockSize must be greater than 0"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Classifier property BlockSize must be greater than 0"));
     }
 
     if (!useCustomClasses)

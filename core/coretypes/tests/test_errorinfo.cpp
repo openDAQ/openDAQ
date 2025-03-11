@@ -34,18 +34,18 @@ public:
         if (!returnError)
             return OPENDAQ_SUCCESS;
 
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Test failed");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Test failed");
     }
 
     ErrCode INTERFACE_FUNC newMakeErrorInfoTest() override
     {
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "newMakeErrorInfoTest failed");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "newMakeErrorInfoTest failed");
     }
 
     ErrCode INTERFACE_FUNC multipleErrorInfoTest() override
     {
-        MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed once");
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed twice");
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed once");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed twice");
     }
 
     ErrCode INTERFACE_FUNC argumentNotNullTest(IBaseObject* obj) override
@@ -58,7 +58,7 @@ public:
     {
         return daqTry([] 
         {
-            THROW_OPENDAQ_EXCEPTION(GeneralErrorException("Test failed"));
+            DAQ_THROW_EXCEPTION(GeneralErrorException("Test failed"));
         });
     }
 };
@@ -120,8 +120,8 @@ TEST_F(ErrorInfoTest, ImplementationName)
 
 TEST_F(ErrorInfoTest, MultipleMessages)
 {
-    MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error0");
-    MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error1");
+    DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error0");
+    DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error1");
 
     IErrorInfo* lastError;
     daqGetErrorInfo(&lastError);

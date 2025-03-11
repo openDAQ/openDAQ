@@ -42,9 +42,9 @@ void TmsServer::setOpcUaPath(const std::string& path)
 void TmsServer::start()
 {
     if (!device.assigned())
-        THROW_OPENDAQ_EXCEPTION(InvalidStateException("Device is not set."));
+        DAQ_THROW_EXCEPTION(InvalidStateException("Device is not set."));
     if (!context.assigned())
-        THROW_OPENDAQ_EXCEPTION(InvalidStateException("Context is not set."));
+        DAQ_THROW_EXCEPTION(InvalidStateException("Context is not set."));
 
     server = std::make_shared<OpcUaServer>();
     server->setPort(opcUaPort);

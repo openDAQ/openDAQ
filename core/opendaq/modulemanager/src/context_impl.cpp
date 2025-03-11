@@ -29,7 +29,7 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
     , discoveryServers(std::move(discoveryServices))
 {
     if (!this->logger.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Logger must not be null"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Logger must not be null"));
 
     if (!this->typeManager.assigned())
         this->typeManager = TypeManager();

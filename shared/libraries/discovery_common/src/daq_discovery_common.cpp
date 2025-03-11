@@ -26,7 +26,7 @@ PropertyObjectPtr IpModificationUtils::populateIpConfigProperties(const TxtPrope
     for (const auto& key : txtKeys)
     {
         if (const auto it = txtProps.find(key); it == txtProps.end())
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Incomplete IP configuration"));
+            DAQ_THROW_EXCEPTION(InvalidParameterException("Incomplete IP configuration"));
     }
 
     auto config = PropertyObject();

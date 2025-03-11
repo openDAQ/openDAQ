@@ -19,7 +19,7 @@ namespace detail
         if (ruleType == DataRuleType::Linear)
             return Dict<IString, IBaseObject>({{"delta", param1}, {"start", param2}});
 
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException{"Invalid type of data rule. Rules with 2 number parameters can only be explicit or linear."});
+        DAQ_THROW_EXCEPTION(InvalidParameterException{"Invalid type of data rule. Rules with 2 number parameters can only be explicit or linear."});
     }
 
     static DictPtr<IString, IBaseObject> checkTypeAndBuildNoParams(DataRuleType ruleType)
@@ -29,7 +29,7 @@ namespace detail
         if (ruleType == DataRuleType::Constant)
             return Dict<IString, IBaseObject>();
 
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException{"Invalid type of data rule. Rules with no parameters can only be explicit or constant."});
+        DAQ_THROW_EXCEPTION(InvalidParameterException{"Invalid type of data rule. Rules with no parameters can only be explicit or constant."});
     }
 }
 
@@ -81,7 +81,7 @@ ErrCode DataRuleImpl::verifyParameters()
 ErrCode INTERFACE_FUNC DataRuleImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null.");
 
     *equals = false;
     if (other == nullptr)
@@ -144,25 +144,25 @@ ErrCode DataRuleImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
 ErrCode DataRuleImpl::verifyParametersInternal()
 {
     if (!params.assigned() && ruleType != DataRuleType::Explicit)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Data rule parameters are not set");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Data rule parameters are not set");
 
     if (ruleType == DataRuleType::Linear)
     {
         if (params.getCount() != 2)
         {
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Linear rule has an invalid number of parameters. Required parameters are "delta" and "start")");
         }
 
         if (!params.hasKey("delta") || !params.hasKey("start"))
         {
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Linear rule has invalid parameters. Required parameters are "delta" and "start")");
         }
 
         if (!params.get("delta").supportsInterface<INumber>() || !params.get("start").supportsInterface<INumber>())
         {
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
         }
     }
 
@@ -170,7 +170,7 @@ ErrCode DataRuleImpl::verifyParametersInternal()
     {
         if (params.getCount() != 0)
         {
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                                  R"(Constant rule has an invalid number of parameters.)");
         }
     }

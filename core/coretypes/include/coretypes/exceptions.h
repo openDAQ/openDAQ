@@ -82,9 +82,9 @@ BEGIN_NAMESPACE_OPENDAQ
     }
 
 #ifdef NDEBUG
-    #define THROW_OPENDAQ_EXCEPTION(opendaqException) throw opendaqException
+    #define DAQ_THROW_EXCEPTION(opendaqException) throw opendaqException
 #else
-    #define THROW_OPENDAQ_EXCEPTION(opendaqException) throw opendaqException.setFileName(__FILE__).setFileLine(__LINE__)
+    #define DAQ_THROW_EXCEPTION(opendaqException) throw opendaqException.setFileName(__FILE__).setFileLine(__LINE__)
 #endif
 
 /*

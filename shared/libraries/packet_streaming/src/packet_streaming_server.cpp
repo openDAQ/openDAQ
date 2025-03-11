@@ -36,7 +36,7 @@ void PacketStreamingServer::addDaqPacket(const uint32_t signalId, const PacketPt
             }
             break;
         default:
-            THROW_OPENDAQ_EXCEPTION(NotSupportedException("Packet type not supported"));
+            DAQ_THROW_EXCEPTION(NotSupportedException("Packet type not supported"));
     }
 
     checkAndSendReleasePacket(false);
@@ -53,7 +53,7 @@ void PacketStreamingServer::addDaqPacket(const uint32_t signalId, PacketPtr&& pa
             addDataPacket(signalId, DataPacketPtr(std::move(packet)));
             break;
         default:
-            THROW_OPENDAQ_EXCEPTION(NotSupportedException("Packet type not supported"));
+            DAQ_THROW_EXCEPTION(NotSupportedException("Packet type not supported"));
     }
 
     checkAndSendReleasePacket(false);

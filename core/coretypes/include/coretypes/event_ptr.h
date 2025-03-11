@@ -98,7 +98,7 @@ public:
     void addHandler(const EventHandlerPtr<TSender, TEventArgs>& eventHandler) const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         auto errCode = this->object->addHandler(eventHandler);
         checkErrorInfo(errCode);
@@ -107,7 +107,7 @@ public:
     void removeHandler(const EventHandlerPtr<TSender, TEventArgs>& eventHandler) const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         auto errCode = this->object->removeHandler(eventHandler);
         checkErrorInfo(errCode);
@@ -116,7 +116,7 @@ public:
     void trigger(TSender& sender, TEventArgs& args) const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         auto errCode = this->object->trigger(sender, args);
         checkErrorInfo(errCode);
@@ -125,7 +125,7 @@ public:
     void clear() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         auto errCode = this->object->clear();
         checkErrorInfo(errCode);
@@ -141,7 +141,7 @@ public:
     SizeT getListenerCount() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         SizeT count;
         auto errCode = this->object->getSubscriberCount(&count);
@@ -153,7 +153,7 @@ public:
     ListPtr<IEventHandler> getListeners() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         ListPtr<IEventHandler> listeners;
         auto errCode = this->object->getSubscribers(&listeners);
@@ -165,7 +165,7 @@ public:
     void mute() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         auto errCode = this->object->mute();
         checkErrorInfo(errCode);
@@ -174,7 +174,7 @@ public:
     void unmute() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         auto errCode = this->object->unmute();
         checkErrorInfo(errCode);
@@ -183,7 +183,7 @@ public:
     void muteListener(const EventHandlerPtr<TSender, TEventArgs>& eventHandler) const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         auto errCode = this->object->muteListener(eventHandler);
         checkErrorInfo(errCode);
@@ -192,7 +192,7 @@ public:
     void unmuteListener(const EventHandlerPtr<TSender, TEventArgs>& eventHandler) const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         auto errCode = this->object->unmuteListener(eventHandler);
         checkErrorInfo(errCode);

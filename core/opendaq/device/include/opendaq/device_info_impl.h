@@ -710,11 +710,11 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
     CoreType type;
     property->getValueType(&type);
     if (static_cast<int>(type) > 3 && name != "serverCapabilities")
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Only String, Int, Bool, or Float-type properties can be added to Device Info.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Only String, Int, Bool, or Float-type properties can be added to Device Info.");
 
     BaseObjectPtr selValues;
     if (property->getSelectionValues(&selValues); selValues.assigned())
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Selection-type properties cannot be added to Device Info.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Selection-type properties cannot be added to Device Info.");
 
     return Super::addProperty(property);
 }

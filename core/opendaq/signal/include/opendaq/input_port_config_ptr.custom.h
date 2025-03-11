@@ -23,7 +23,7 @@
 void remove() const
 {	
     if (this->object == nullptr)
-        THROW_OPENDAQ_EXCEPTION(daq::InvalidParameterException());
+        DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
     
     IRemovable* removable;
     auto errCode = this->object->borrowInterface(IRemovable::Id, reinterpret_cast<void**>(&removable));
@@ -45,7 +45,7 @@ void remove() const
 bool isRemoved() const
 {
     if (this->object == nullptr)
-        THROW_OPENDAQ_EXCEPTION(daq::InvalidParameterException());
+        DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
     
     IRemovable* removable;
     auto errCode = this->object->borrowInterface(IRemovable::Id, reinterpret_cast<void**>(&removable));

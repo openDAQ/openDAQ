@@ -46,7 +46,7 @@ TmsClientPropertyImpl::TmsClientPropertyImpl(const ContextPtr& daqContext, const
     : TmsClientObjectImpl(daqContext, ctx, nodeId)
 {
     if (!this->daqContext.getLogger().assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Logger must not be null"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Logger must not be null"));
 
     this->loggerComponent = this->daqContext.getLogger().getOrAddComponent("TmsClientPropertyImpl");
     this->name = propertyName;
@@ -190,7 +190,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                             if (clientContext->getReferenceBrowser()->isSubtypeOf(dataType, enumerationTypeId))
                             {
                                 if (value->type != &UA_TYPES[UA_TYPES_INT32])
-                                    THROW_OPENDAQ_EXCEPTION(ConversionFailedException{"Enumeration node data type is not uint32_t"});
+                                    DAQ_THROW_EXCEPTION(ConversionFailedException{"Enumeration node data type is not uint32_t"});
 
                                 const auto enumBrowseName = client->readBrowseName(dataType);
                                 const auto enumType = GetUAEnumerationDataTypeByName(enumBrowseName);

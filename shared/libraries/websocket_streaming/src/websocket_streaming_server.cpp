@@ -45,9 +45,9 @@ void WebsocketStreamingServer::setControlPort(uint16_t port)
 void WebsocketStreamingServer::start()
 {
     if (!device.assigned())
-        THROW_OPENDAQ_EXCEPTION(InvalidStateException("Device is not set."));
+        DAQ_THROW_EXCEPTION(InvalidStateException("Device is not set."));
     if (!context.assigned())
-        THROW_OPENDAQ_EXCEPTION(InvalidStateException("Context is not set."));
+        DAQ_THROW_EXCEPTION(InvalidStateException("Context is not set."));
     if (streamingPort == 0 || controlPort == 0)
         return;
 

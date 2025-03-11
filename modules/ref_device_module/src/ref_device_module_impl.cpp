@@ -71,14 +71,14 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     if (id >= devices.size())
     {
         LOG_W("Device with id \"{}\" not found", id);
-        THROW_OPENDAQ_EXCEPTION(NotFoundException());
+        DAQ_THROW_EXCEPTION(NotFoundException());
     }
 
     clearRemovedDevices();
     if (devices[id].assigned() && devices[id].getRef().assigned())
     {
         LOG_W("Device with id \"{}\" already exist", id);
-        THROW_OPENDAQ_EXCEPTION(AlreadyExistsException());
+        DAQ_THROW_EXCEPTION(AlreadyExistsException());
     }
     
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
@@ -128,7 +128,7 @@ size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionS
     if (found != 0)
     {
         LOG_W("Invalid connection string \"{}\", no prefix", connectionString);
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
     }
 
     auto idStr = connectionString.substr(prefixWithDeviceStr.size(), std::string::npos);
@@ -140,7 +140,7 @@ size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionS
     catch (const std::invalid_argument&)
     {
         LOG_W("Invalid connection string \"{}\", no id", connectionString);
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
     }
 
     return id;

@@ -320,7 +320,7 @@ template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::addSignal(const SignalPtr& signal)
 {
     if (signal.getParent() != this->signals)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid parent of signal"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid parent of signal"));
 
     try
     {
@@ -328,7 +328,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::addSignal(const SignalPtr& sign
     }
     catch (DuplicateItemException&)
     {
-        THROW_OPENDAQ_EXCEPTION(DuplicateItemException("Signal with the same local ID already exists."));
+        DAQ_THROW_EXCEPTION(DuplicateItemException("Signal with the same local ID already exists."));
     }
 }
 
@@ -342,7 +342,7 @@ template <class Intf, class ... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::addNestedFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (functionBlock.getParent() != functionBlocks)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid parent of function block"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid parent of function block"));
 
     try
     {
@@ -350,7 +350,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::addNestedFunctionBlock(const Fu
     }
     catch (DuplicateItemException&)
     {
-        THROW_OPENDAQ_EXCEPTION(DuplicateItemException("Function block with the same local ID already exists."));
+        DAQ_THROW_EXCEPTION(DuplicateItemException("Function block with the same local ID already exists."));
     }
 }
 
@@ -361,7 +361,7 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
     this->context->getModuleManager(&obj);
 
     if (obj == nullptr)
-        THROW_OPENDAQ_EXCEPTION(NotAssignedException{"Module Manager is not available in the Context."});
+        DAQ_THROW_EXCEPTION(NotAssignedException{"Module Manager is not available in the Context."});
 
     IModuleManagerUtils* managerUtils;
     obj->borrowInterface(IModuleManagerUtils::Id, reinterpret_cast<void**>(&managerUtils));
@@ -388,14 +388,14 @@ void GenericSignalContainerImpl<Intf, Intfs...>::validateComponentNotExists(cons
                            [&localId](const ComponentPtr& component) { return component.getLocalId().toStdString() == localId; });
 
     if (it != this->components.end())
-        THROW_OPENDAQ_EXCEPTION(DuplicateItemException("Duplicate component"));
+        DAQ_THROW_EXCEPTION(DuplicateItemException("Duplicate component"));
 }
 
 template <class Intf, class ... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::validateComponentIsDefault(const std::string& localId)
 {
     if (!this->defaultComponents.count(localId))
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Non-default component cannot be added as child!"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Non-default component cannot be added as child!"));
 }
 
 template <class Intf, class ... Intfs>

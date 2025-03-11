@@ -577,7 +577,7 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPort(const Sign
 {
     const auto streamingProducer = streamingProducerRef.lock();
     if (!streamingProducer)
-        THROW_OPENDAQ_EXCEPTION(NotAssignedException("StreamingProducer is not assigned."));
+        DAQ_THROW_EXCEPTION(NotAssignedException("StreamingProducer is not assigned."));
 
     auto domainSignal = signal.getDomainSignal();
     const auto [domainSignalNumericId, domainSignalGlobalId, serializedDomainSignal] =
@@ -608,7 +608,7 @@ void ConfigProtocolClientComm::requireMinServerVersion(const ClientCommand& comm
               command.getMinServerVersion(),
               protocolVersion);
 
-        THROW_OPENDAQ_EXCEPTION(ServerVersionTooLowException());
+        DAQ_THROW_EXCEPTION(ServerVersionTooLowException());
     }
 }
 
@@ -860,7 +860,7 @@ SignalPtr ConfigProtocolClientComm::findSignalByRemoteGlobalIdWithComponent(cons
 SignalPtr ConfigProtocolClientComm::findSignalByRemoteGlobalId(const DevicePtr& device, const std::string& remoteGlobalId)
 {
     if (remoteGlobalId.find("/") != 0)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Global id must start with /"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Global id must start with /"));
 
     const std::string globalIdWithoutSlash = remoteGlobalId.substr(1);
 

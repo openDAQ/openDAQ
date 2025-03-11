@@ -15,7 +15,7 @@ StreamingManager::StreamingManager(const ContextPtr& context)
 {
     auto logger = this->context.getLogger();
     if (!logger.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Logger must not be null"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Logger must not be null"));
     loggerComponent = logger.getOrAddComponent("NativeStreamingSubscribers");
 }
 

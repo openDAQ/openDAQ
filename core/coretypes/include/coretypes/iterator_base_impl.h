@@ -91,7 +91,7 @@ template <typename T, typename E, typename VS>
 ErrCode IteratorBaseImpl<T, E, VS>::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
 
     *equal = false;
     if (!other)

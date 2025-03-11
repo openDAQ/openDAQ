@@ -79,7 +79,7 @@ Bool ConfigMirroredExternalSignalImpl::onTriggerEvent(const EventPacketPtr& even
 void ConfigMirroredExternalSignalImpl::assignDomainSignal(const MirroredSignalConfigPtr& domainSignal)
 {
     if (domainSignal.assigned() && !domainSignal.supportsInterface<IMirroredExternalSignalPrivate>())
-        THROW_OPENDAQ_EXCEPTION(NoInterfaceException(fmt::format(R"(Domain signal "{}" is not valid.)", domainSignal.getGlobalId())));
+        DAQ_THROW_EXCEPTION(NoInterfaceException(fmt::format(R"(Domain signal "{}" is not valid.)", domainSignal.getGlobalId())));
 
     if (mirroredDomainSignal == domainSignal)
         return;

@@ -300,7 +300,7 @@ template <class T, class U, class V>
 V ListObjectPtr<T, U, V>::getItemAt(size_t index) const
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     IBaseObject* obj;
     ErrCode errCode = this->object->getItemAt(index, &obj);
@@ -313,7 +313,7 @@ template <class T, class U, class V>
 SizeT ListObjectPtr<T, U, V>::getCount() const
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     SizeT size;
     checkErrorInfo(this->object->getCount(&size));
@@ -324,7 +324,7 @@ template <class T, class TValueInterface, class TValuePtr>
 SizeT ListObjectPtr<T, TValueInterface, TValuePtr>::empty() const
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     SizeT size;
     checkErrorInfo(this->object->getCount(&size));
@@ -342,7 +342,7 @@ template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::setItemAt(size_t index, const V& obj)
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     ErrCode errCode = this->object->setItemAt(index, obj);
     checkErrorInfo(errCode);
@@ -352,7 +352,7 @@ template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::pushBack(const V& obj)
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     checkErrorInfo(this->object->pushBack(obj));
 }
@@ -361,7 +361,7 @@ template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::pushBack(V&& obj)
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     checkErrorInfo(this->object->moveBack(obj));
     obj.detach();
@@ -384,7 +384,7 @@ template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::pushFront(const V& obj)
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     checkErrorInfo(this->object->pushFront(obj));
 }
@@ -393,7 +393,7 @@ template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::pushFront(V&& obj)
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     checkErrorInfo(this->object->moveFront(obj));
     obj.detach();
@@ -403,7 +403,7 @@ template <class T, class U, class V>
 V ListObjectPtr<T, U, V>::popFront()
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     IBaseObject* obj;
     ErrCode errCode = this->object->popFront(&obj);
@@ -416,7 +416,7 @@ template <class T, class U, class V>
 V ListObjectPtr<T, U, V>::popBack()
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     IBaseObject* obj;
     ErrCode errCode = this->object->popBack(&obj);
@@ -429,7 +429,7 @@ template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::insertAt(size_t index, const V& obj)
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     ErrCode errCode = this->object->insertAt(index, obj);
     checkErrorInfo(errCode);
@@ -439,7 +439,7 @@ template <class T, class U, class V>
 V ListObjectPtr<T, U, V>::removeAt(size_t index)
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     IBaseObject* obj;
     ErrCode errCode = this->object->removeAt(index, &obj);
@@ -452,7 +452,7 @@ template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::deleteAt(size_t index)
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     ErrCode errCode = this->object->deleteAt(index);
     checkErrorInfo(errCode);
@@ -462,7 +462,7 @@ template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::clear()
 {
     if (!ObjectPtr<T>::object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     checkErrorInfo(this->object->clear());
 }
@@ -507,7 +507,7 @@ template <class T, class TValueInterface, class TValuePtr>
 IntfID ListObjectPtr<T, TValueInterface, TValuePtr>::getElementInterfaceId() const
 {
     if (!this->object)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException());
 
     auto elementType = this->template asPtrOrNull<IListElementType>(true);
 

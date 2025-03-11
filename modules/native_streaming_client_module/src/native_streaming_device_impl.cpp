@@ -29,7 +29,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
 {
     if (!this->connectionString.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("connectionString cannot be null"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("connectionString cannot be null"));
     this->name = "NativeStreamingClientPseudoDevice";
 
     createNativeStreaming(transportProtocolClient,
@@ -135,7 +135,7 @@ void NativeStreamingDeviceImpl::addToDeviceSignals(const StringPtr& signalString
                                                    const StringPtr& serializedSignal)
 {
     if (auto iter = deviceSignals.find(signalStringId); iter != deviceSignals.end())
-        THROW_OPENDAQ_EXCEPTION(AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId));
+        DAQ_THROW_EXCEPTION(AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId));
 
     auto signalToAdd = createSignal(signalStringId, serializedSignal);
     StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
@@ -174,7 +174,7 @@ void NativeStreamingDeviceImpl::addToDeviceSignalsOnReconnection(const StringPtr
         if (auto iter2 = deviceSignalsReconnection.find(signalStringId); iter2 == deviceSignalsReconnection.end())
             signalToAdd = createSignal(signalStringId, serializedSignal);
         else
-            THROW_OPENDAQ_EXCEPTION(AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId));
+            DAQ_THROW_EXCEPTION(AlreadyExistsException("Signal with id {} already exists in native streaming device", signalStringId));
     }
 
     StringPtr domainSignalStringId = signalToAdd.asPtr<IDeserializeComponent>(true).getDeserializedParameter("domainSignalId");
@@ -221,7 +221,7 @@ void NativeStreamingDeviceImpl::signalAvailableHandler(const StringPtr& signalSt
 void NativeStreamingDeviceImpl::signalUnavailableHandler(const StringPtr& signalStringId)
 {
     if (auto iter = deviceSignals.find(signalStringId); iter == deviceSignals.end())
-        THROW_OPENDAQ_EXCEPTION(NotFoundException("Signal with id {} is not found in native streaming device", signalStringId));
+        DAQ_THROW_EXCEPTION(NotFoundException("Signal with id {} is not found in native streaming device", signalStringId));
 
     auto [signalToRemove,_] = deviceSignals.at(signalStringId);
 

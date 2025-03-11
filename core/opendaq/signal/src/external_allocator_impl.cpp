@@ -13,10 +13,10 @@ ExternalAllocatorImpl::ExternalAllocatorImpl(void* data, const DeleterPtr& delet
 {
 #ifdef OPENDAQ_ENABLE_PARAMETER_VALIDATION
     if (!this->data)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Data parameter must not be null."));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Data parameter must not be null."));
 
     if (!this->deleter.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Deleter parameter must not be null."));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Deleter parameter must not be null."));
 #endif
 }
 
@@ -27,7 +27,7 @@ ErrCode ExternalAllocatorImpl::allocate(
     VoidPtr* address)
 {
     if(allocated)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_PACKET_MEMORY_ALLOCATION, "Memory already in use");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_PACKET_MEMORY_ALLOCATION, "Memory already in use");
 
     *address = data;
     allocated = true;
@@ -41,10 +41,10 @@ ErrCode ExternalAllocatorImpl::free(VoidPtr address)
         return OPENDAQ_SUCCESS;
 
     if(deleted)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_PACKET_MEMORY_DEALLOCATION, "Memory already freed");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_PACKET_MEMORY_DEALLOCATION, "Memory already freed");
 
     if(address != data)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_PACKET_MEMORY_DEALLOCATION, "Memory address mismatch");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_PACKET_MEMORY_DEALLOCATION, "Memory address mismatch");
 
     deleter.deleteMemory(address);
     deleted = true;

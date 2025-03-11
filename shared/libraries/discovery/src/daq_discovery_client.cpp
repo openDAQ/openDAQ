@@ -128,7 +128,7 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
                 responseProperties["serialNumber"] != serialNumber.toStdString() ||
                 responseProperties["ifaceName"] != ifaceName.toStdString())
             {
-                return MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response");
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response");
             }
             config = IpModificationUtils::populateIpConfigProperties(responseProperties);
             return OPENDAQ_SUCCESS;

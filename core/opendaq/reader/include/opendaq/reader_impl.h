@@ -48,7 +48,7 @@ public:
         , skipEvents(skipEvents)
     {
         if (!signal.assigned())
-            THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Signal must not be null."));
+            DAQ_THROW_EXCEPTION(ArgumentNullException("Signal must not be null."));
 
         this->internalAddRef();
         try
@@ -80,7 +80,7 @@ public:
         , skipEvents(skipEvents)
     {
         if (!port.assigned())
-            THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Port must not be null."));
+            DAQ_THROW_EXCEPTION(ArgumentNullException("Port must not be null."));
         
         port.asPtr<IOwnable>().setOwner(portBinder);
 
@@ -364,10 +364,10 @@ protected:
         , timeoutType(ReadTimeoutType::All)
     {
         if (!readerConfig.assigned())
-            THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Existing reader must not be null"));
+            DAQ_THROW_EXCEPTION(ArgumentNullException("Existing reader must not be null"));
 
         if (!port.assigned())
-            THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Input port must not be null"));
+            DAQ_THROW_EXCEPTION(ArgumentNullException("Input port must not be null"));
 
         readerConfig.markAsInvalid();
 
@@ -498,7 +498,7 @@ protected:
                 return packet.getData();
         }
 
-        THROW_OPENDAQ_EXCEPTION(InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode)));
+        DAQ_THROW_EXCEPTION(InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode)));
     }
 
     NumberPtr calculateOffset(const DataPacketPtr& packet, SizeT offset) const 

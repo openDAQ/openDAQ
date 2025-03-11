@@ -36,7 +36,7 @@ ErrCode ListImpl::getElementInterfaceId(IntfID* id)
 {
     if (id == nullptr)
     {
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
     }
 
     *id = iid;
@@ -105,7 +105,7 @@ ErrCode ListImpl::clone(IBaseObject** cloned)
 ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null");
 
     if (!other)
     {
@@ -480,7 +480,7 @@ ListIteratorImpl::ListIteratorImpl(ListImpl* list, std::vector<IBaseObject*>::it
 ErrCode ListIteratorImpl::getElementInterfaceId(IntfID* id)
 {
     if (id == nullptr)
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Id output parameter must not be null.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Id output parameter must not be null.");
 
     *id = valueId;
     return OPENDAQ_SUCCESS;

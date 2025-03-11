@@ -12,7 +12,7 @@ EnumerationTypeImpl::EnumerationTypeImpl(StringPtr typeName, DictPtr<IString, II
     , enumerators(enumerators)
 {
     if (enumerators.getCount() == 0)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid EnumerationType parameters."));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid EnumerationType parameters."));
 
     this->enumerators.freeze();
 }
@@ -22,13 +22,13 @@ EnumerationTypeImpl::EnumerationTypeImpl(StringPtr typeName, ListPtr<IString> en
     , enumerators(Dict<IString, IInteger>())
 {
     if (!enumeratorNames.assigned() || enumeratorNames.getCount() == 0)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid EnumerationType parameters."));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid EnumerationType parameters."));
 
     Int enumeratorValue = firstEnumeratorIntValue;
     for (const auto& name : enumeratorNames)
     {
         if (enumerators.hasKey(name))
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException(
+            DAQ_THROW_EXCEPTION(InvalidParameterException(
                 fmt::format(R"(EnumerationType duplicated enumerator name {}.)", name.toStdString())
             ));
 

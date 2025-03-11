@@ -74,10 +74,10 @@ ErrCode PropertyObjectClassBuilderImpl::addProperty(IProperty* property)
         auto p = PropertyPtr::Borrow(property);
 
 		if (hasDuplicateReferences(p))
-			return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, "Reference property references a property that is already referenced by another.");
+			return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, "Reference property references a property that is already referenced by another.");
 
         if (props.hasKey(p.getName()))
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists)", p.getName()));
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists)", p.getName()));
         props.set(p.getName(), p);
 
         return OPENDAQ_SUCCESS;
@@ -100,7 +100,7 @@ ErrCode PropertyObjectClassBuilderImpl::removeProperty(IString* propertyName)
     {
         if (!props.hasKey(propertyName))
         {
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name '{}' not found.)", StringPtr::Borrow(propertyName)));
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name '{}' not found.)", StringPtr::Borrow(propertyName)));
         }
 
         props.remove(propertyName);
@@ -178,7 +178,7 @@ ListPtr<IProperty> PropertyObjectClassBuilderImpl::getProperties() const
         {
             const auto parentClass = managerPtr.getType(parent).asPtrOrNull<IPropertyObjectClass>();
             if (!parentClass.assigned())
-                THROW_OPENDAQ_EXCEPTION(InvalidTypeException("Type with name {} is not a property object class", parent));
+                DAQ_THROW_EXCEPTION(InvalidTypeException("Type with name {} is not a property object class", parent));
 
             properties = parentClass.getProperties(True);
         }

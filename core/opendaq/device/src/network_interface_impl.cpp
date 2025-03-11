@@ -59,7 +59,7 @@ void NetworkInterfaceImpl::validate()
         !this->ownerDeviceManufacturerName.assigned() || this->ownerDeviceManufacturerName == "" ||
         !this->ownerDeviceSerialNumber.assigned() || this->ownerDeviceSerialNumber == "" ||
         !this->moduleManager.assigned())
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Cannot create NetworkInterface object - invalid parameters"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Cannot create NetworkInterface object - invalid parameters"));
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

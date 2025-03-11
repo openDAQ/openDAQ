@@ -200,7 +200,7 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
 }
 
 #ifdef NDEBUG
-    #define MAKE_ERROR_INFO(errCode, message, ...) \
+    #define DAQ_MAKE_ERROR_INFO(errCode, message, ...) \
         daq::makeErrorInfo(errCode, message, nullptr, ##__VA_ARGS__)
 #else
     template <typename... Params>
@@ -209,7 +209,7 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
         setErrorInfoWithSource(fileName, fileLine, source, message, std::forward<Params>(params)...);
         return errCode;
     }
-    #define MAKE_ERROR_INFO(errCode, message, ...) \
+    #define DAQ_MAKE_ERROR_INFO(errCode, message, ...) \
         daq::makeErrorInfo(__FILE__, __LINE__, errCode, message, nullptr, ##__VA_ARGS__)
 #endif
 
@@ -360,7 +360,7 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
 inline std::string toStdString(IString* rtStr)
 {
     if (rtStr == nullptr)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Parameter must not be null"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Parameter must not be null"));
 
     ConstCharPtr ptr;
     ErrCode err = rtStr->getCharPtr(&ptr);

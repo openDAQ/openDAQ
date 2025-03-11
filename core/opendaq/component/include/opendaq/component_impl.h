@@ -234,7 +234,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
           }))
 {
     if (!localId.assigned() || localId.toStdString().empty())
-        THROW_OPENDAQ_EXCEPTION(GeneralErrorException("Local id not assigned"));
+        DAQ_THROW_EXCEPTION(GeneralErrorException("Local id not assigned"));
 
     if (parent.assigned())
         globalId = parent.getGlobalId().toStdString() + "/" + static_cast<std::string>(localId);
@@ -242,7 +242,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
         globalId = "/" + localId;
 
     if (!context.assigned())
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Context must be assigned on component creation"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Context must be assigned on component creation"));
 
     if (context.getLogger().assigned()) {
         const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
@@ -780,7 +780,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     auto configPtr = BaseObjectPtr::Borrow(config);
     if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>())
     {
-        return MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
     }
     
     const bool muted = this->coreEventMuted;
@@ -884,14 +884,14 @@ BaseObjectPtr ComponentImpl<Intf, Intfs...>::DeserializeComponent(const Serializ
                                                                   CreateComponentCallback&& createComponentCallback)
 {
     if (!serialized.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Serialized object not assigned"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Serialized object not assigned"));
 
     if (!context.assigned())
-        THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Deserialization context not assigned"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException("Deserialization context not assigned"));
 
     const auto componentDeserializeContext = context.asPtrOrNull<IComponentDeserializeContext>(true);
     if (!componentDeserializeContext.assigned())
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid deserialization context"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid deserialization context"));
 
     ComponentPtr component = Super::DeserializePropertyObject(
         serialized,
@@ -1188,7 +1188,7 @@ template <class Intf, class... Intfs>
 bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
 {
     if (id.find('/') != std::string::npos)
-        THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Component id " + id + " contains '/'"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException("Component id " + id + " contains '/'"));
     return id.find(' ') == std::string::npos;
 }
 
@@ -1222,7 +1222,7 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
     }
     catch (const NotFoundException&)
     {
-        THROW_OPENDAQ_EXCEPTION(NotFoundException("ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called "
+        DAQ_THROW_EXCEPTION(NotFoundException("ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called "
                                 "before setComponentStatus."));
     }
 

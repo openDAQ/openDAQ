@@ -128,7 +128,7 @@ public:
     StructTypePtr getStructType() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         StructTypePtr type;
         const auto errCode = this->object->getStructType(&type);
@@ -147,7 +147,7 @@ public:
     ListPtr<IString> getFieldNames() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         ListPtr<IString> names;
         const auto errCode = this->object->getFieldNames(&names);
@@ -166,7 +166,7 @@ public:
     ListPtr<IBaseObject> getFieldValues() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         ListPtr<IBaseObject> values;
         const auto errCode = this->object->getFieldValues(&values);
@@ -183,7 +183,7 @@ public:
     BaseObjectPtr get(const StringPtr& name) const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         BaseObjectPtr field;
         const auto errCode = this->object->get(name, &field);
@@ -199,7 +199,7 @@ public:
     DictPtr<IString, IBaseObject> getAsDictionary() const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         DictPtr<IString, IBaseObject> dict;
         const auto errCode = this->object->getAsDictionary(&dict);
@@ -216,7 +216,7 @@ public:
     Bool hasField(const StringPtr& name) const
     {
         if (this->object == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException());
 
         Bool hasField;
         const auto errCode = this->object->hasField(name, &hasField);

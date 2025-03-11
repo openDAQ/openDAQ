@@ -94,7 +94,7 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
                                    parentFolder.getParent().supportsInterface<IDevice>())
                                    parentDevice = parentFolder.getParent().asPtr<IDevice>();
                                else
-                                   THROW_OPENDAQ_EXCEPTION(GeneralErrorException("The server-component can be placed only under device's servers folder"));
+                                   DAQ_THROW_EXCEPTION(GeneralErrorException("The server-component can be placed only under device's servers folder"));
                            }
 
                            return createWithImplementation<IServer, ConfigClientServerImpl>(

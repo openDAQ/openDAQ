@@ -651,7 +651,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
         
         const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());
         if (impl == nullptr)
-            THROW_OPENDAQ_EXCEPTION(InvalidStateException("Failed to cast to ConfigClientPropertyObjectImpl"));
+            DAQ_THROW_EXCEPTION(InvalidStateException("Failed to cast to ConfigClientPropertyObjectImpl"));
         impl->unfreeze();
         this->writeLocalValue(propName, clientPropObj);
         this->configureClonedObj(propName, clientPropObj);
@@ -852,7 +852,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const St
     {
         case ctProc:
         case ctFunc:
-            THROW_OPENDAQ_EXCEPTION(InvalidOperationException("Cannot set remote function property"));
+            DAQ_THROW_EXCEPTION(InvalidOperationException("Cannot set remote function property"));
         default:
             return;
     }
@@ -961,15 +961,15 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
     {
         const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
         if (!serializedPtr.assigned())
-            THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Serialized object not assigned"));
+            DAQ_THROW_EXCEPTION(ArgumentNullException("Serialized object not assigned"));
 
         const auto contextPtr = BaseObjectPtr::Borrow(context);
         if (!contextPtr.assigned())
-            THROW_OPENDAQ_EXCEPTION(ArgumentNullException("Deserialization context not assigned"));
+            DAQ_THROW_EXCEPTION(ArgumentNullException("Deserialization context not assigned"));
 
         const auto componentDeserializeContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>(true);
         if (!componentDeserializeContext.assigned())
-            THROW_OPENDAQ_EXCEPTION(InvalidParameterException("Invalid deserialization context"));
+            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid deserialization context"));
 
         const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 

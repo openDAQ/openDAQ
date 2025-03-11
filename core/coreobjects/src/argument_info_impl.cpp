@@ -38,7 +38,7 @@ ErrCode ArgumentInfoImpl::equals(IBaseObject* other, Bool* equal) const
 {
     return daqTry([this, &other, &equal]() {
         if (equal == nullptr)
-            return MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
         *equal = false;
         if (!other)

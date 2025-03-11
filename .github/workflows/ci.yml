@@ -2,6 +2,7 @@ name: Build and Test openDAQ
 
 on:
   workflow_dispatch:
+  push:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 
@@ -153,7 +154,7 @@ jobs:
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          ctest --verbose --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
           if (Test-Path -Path "${{ env.dotnet_test_path }}") {
             if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
             Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"
@@ -310,7 +311,7 @@ jobs:
       - name: Test
         env:
           GTEST_OUTPUT: "xml:/junit_reports/unit/"
-        run: ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
+        run: ctest --verbose --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()
@@ -393,7 +394,7 @@ jobs:
           trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
 
           # Perform tests
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+          ctest --verbose --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
 
           EOL
 
@@ -516,7 +517,7 @@ jobs:
           python$last_version -m venv build/venv
           . build/venv/bin/activate
           pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          ctest --verbose --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()
@@ -619,7 +620,7 @@ jobs:
           python$last_version -m venv build/venv
           . build/venv/bin/activate
           pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          ctest --verbose --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()

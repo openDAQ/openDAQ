@@ -51,8 +51,9 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_EQ(deviceInfo.getLocation(), "");
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
     ASSERT_EQ(deviceInfo.getNetworkInterfaces().getCount(), 0u);
+    ASSERT_EQ(deviceInfo.getConnectedClientsInfo().getCount(), 0u);
 
-    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 26u);
+    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 27u);
 }
 
 TEST_F(DeviceInfoTest, SetGetProperties)
@@ -292,6 +293,37 @@ TEST_F(DeviceInfoTest, NetworkInterfaces)
     EXPECT_EQ(defaultConfig.getPropertyValue("dhcp6"), True);
     EXPECT_EQ(defaultConfig.getPropertyValue("address6"), String(""));
     EXPECT_EQ(defaultConfig.getPropertyValue("gateway6"), String(""));
+}
+
+TEST_F(DeviceInfoTest, ConnectedClientsInfo)
+{
+    auto context = NullContext();
+    DeviceInfoPtr info = DeviceInfo("", "");
+    DeviceInfoInternalPtr internalInfo = info;
+
+    auto clientInfo1 =
+        ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", ClientType(), "Host name");
+    auto clientInfo2 =
+        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", ClientType::ExclusiveControl, "Host name");
+    auto clientInfo3 =
+        ConnectedClientInfo("url3", ProtocolType::ConfigurationAndStreaming, "Protocol name", ClientType::ViewOnly, "Host name");
+
+    internalInfo.addConnectedClient("id1", clientInfo1);
+    internalInfo.addConnectedClient("id2", clientInfo2);
+    internalInfo.addConnectedClient("id3", clientInfo3);
+    ASSERT_THROW(internalInfo.addConnectedClient("id3", clientInfo3), AlreadyExistsException);
+
+    ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 3u);
+
+    ASSERT_THROW(internalInfo.removeConnectedClient("id4"), NotFoundException);
+
+    internalInfo.removeConnectedClient("id3");
+    ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 2u);
+    ASSERT_EQ(info.getConnectedClientsInfo()[0].getUrl(), clientInfo1.getPropertyValue("Url"));
+
+    internalInfo.removeConnectedClient("id2");
+    internalInfo.removeConnectedClient("id1");
+    ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 0u);
 }
 
 TEST_F(DeviceInfoTest, OwnerName)

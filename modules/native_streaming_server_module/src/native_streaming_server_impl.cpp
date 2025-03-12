@@ -342,8 +342,8 @@ void NativeStreamingServerImpl::prepareServerHandler()
         {
             const auto clientInfo =
                 isStreamingConnection
-                    ? ConnectedClientInfo(url, ProtocolType::Streaming, "OpenDAQNativeStreaming", clientType, hostName)
-                    : ConnectedClientInfo(url, ProtocolType::Configuration, "OpenDAQNativeConfiguration", clientType, hostName);
+                    ? ConnectedClientInfo(url, ProtocolType::Streaming, "OpenDAQNativeStreaming", "", hostName)
+                    : ConnectedClientInfo(url, ProtocolType::Configuration, "OpenDAQNativeConfiguration", ClientTypeTools::ClientTypeToString(clientType), hostName);
             rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(clientId, clientInfo);
             registeredClientIds.insert(clientId);
         }

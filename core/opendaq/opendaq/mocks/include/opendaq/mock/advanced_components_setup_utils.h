@@ -130,7 +130,7 @@ namespace daq::test_utils
             return availableDevices;
         }
 
-        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr) override
+        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/ = nullptr) override
         {
             if (connectionString == "mock://test")
             {

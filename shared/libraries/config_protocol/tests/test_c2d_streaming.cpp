@@ -8,7 +8,7 @@
 #include <opendaq/packet_factory.h>
 #include <future>
 #include <queue>
-#include "test_utils.h"
+#include "opendaq/mock/advanced_components_setup_utils.h"
 
 #include <coreobjects/user_factory.h>
 #include <opendaq/event_packet_utils.h>

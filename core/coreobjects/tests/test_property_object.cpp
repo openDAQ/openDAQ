@@ -1802,7 +1802,7 @@ TEST_F(PropertyObjectTest, Clone)
     ASSERT_NO_THROW(propObj.asPtr<IPropertyObjectInternal>().clone());
 
     propObj.setPropertyValue("child.child.foo", "test");
-    ASSERT_EQ(propObj2.getPropertyValue("foo"), "bar");
+    ASSERT_EQ(propObj2.getPropertyValue("foo"), "test");
     ASSERT_EQ(clonedObj2.getPropertyValue("foo"), "test");
 }
 

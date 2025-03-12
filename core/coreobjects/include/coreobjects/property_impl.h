@@ -845,8 +845,25 @@ public:
 		        return OPENDAQ_SUCCESS;
 	        });
     }
+    
+    ErrCode cloneDefaultValueAndRelease() override
+    {
+        const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
 
-    ErrCode INTERFACE_FUNC getClassOnPropertyValueWrite(IEvent** event) override
+        if (!cloneable.assigned())
+            return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Default value of property is not cloneable!");
+
+        PropertyObjectPtr cloned;
+        ErrCode err = cloneable->clone(&cloned);
+        if (OPENDAQ_FAILED(err))
+            return err;
+
+        defaultValue = cloned.detach();
+        defaultValue.freeze();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode getClassOnPropertyValueWrite(IEvent** event) override
     {
         if (event == nullptr)
         {
@@ -946,7 +963,7 @@ public:
             return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Property {} is missing its default value)", name));
         }
 
-        if (defaultValue.assigned())
+        if (defaultValue.assigned() && valueType != ctObject)
         {
             if (const auto freezable = defaultValue.asPtrOrNull<IFreezable>(); freezable.assigned())
             {

@@ -442,8 +442,12 @@ protected:
 
     bool shouldWriteLocalValue(const StringPtr& name, const BaseObjectPtr& value) const;
     // Adds the value to the local list of values (`propValues`)
-    bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value);
+    bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite = false);
+
+    // Used when cloning object-type property default values of property object classes on construction.
+    // Must be overridden by modules that have their own property object implementation.
     virtual void cloneAndSetChildPropertyObject(const PropertyPtr& prop);
+    void moveObjectPropertyDefaultValue(const PropertyPtr& prop);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
 
     ErrCode beginUpdateInternal(bool deep);
@@ -1282,7 +1286,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::shouldWriteLoca
 }
 
 template <class PropObjInterface, class... Interfaces>
-bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue(const StringPtr& name, const BaseObjectPtr& value)
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite)
 {
     auto it = propValues.find(name);
     if (it != propValues.end())
@@ -1290,6 +1294,10 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue
         if (it->second == value)
             return false;
         it->second = value;
+    }
+    else if (forceWrite)
+    {
+        propValues.emplace(name, value);
     }
     else
     {
@@ -1418,6 +1426,24 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChil
         const PropertyObjectPtr cloned = cloneable.clone();
         writeLocalValue(propName, cloned);
         configureClonedObj(propName, cloned);
+    }
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::moveObjectPropertyDefaultValue(const PropertyPtr& prop)
+{
+    const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
+    if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
+    {
+        const auto defaultValue = prop.getDefaultValue();
+        const auto inspect = defaultValue.asPtrOrNull<IInspectable>();
+        if (inspect.assigned() && !inspect.getInterfaceIds().empty() && !(inspect.getInterfaceIds()[0] == IPropertyObject::Id))
+            throw InvalidTypeException{"Only base Property Object object-type values are allowed"};
+
+        const auto propName = prop.getName();
+        writeLocalValue(propName, defaultValue, true);
+        configureClonedObj(propName, defaultValue);
+        propPtrInternal.cloneDefaultValueAndRelease();
     }
 }
 
@@ -2090,7 +2116,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
                 emitter.addHandler(listener);
         }
 
-        cloneAndSetChildPropertyObject(propPtr);
+        moveObjectPropertyDefaultValue(propPtr);
         triggerCoreEventInternal(CoreEventArgsPropertyAdded(objPtr, propPtr, path));
 
         return OPENDAQ_SUCCESS;

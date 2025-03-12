@@ -340,8 +340,8 @@ void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& 
     {
         if (value.getCoreType() == CoreType::ctEnumeration)
         {
-            statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage(
-                key, value.asPtr<IEnumeration>(true), msg);
+            statusContainer.template asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage(
+                key, value.template asPtr<IEnumeration>(true), msg);
             msg = String("");
         }
     }

@@ -78,10 +78,7 @@ void AuthenticationProviderImpl::loadUserList(const ListPtr<IUser>& userList)
 
 UserPtr AuthenticationProviderImpl::findUserInternal(const StringPtr& username)
 {
-    if (users.hasKey(username))
-        return users.get(username);
-
-    return nullptr;
+    return users.getOrDefault(username);
 }
 
 bool AuthenticationProviderImpl::isPasswordValid(const std::string& hash, const StringPtr& password)

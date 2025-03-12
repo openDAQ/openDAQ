@@ -286,10 +286,7 @@ ErrCode GenericStructImpl <StructInterface, Interfaces...>::get(IString* name, I
     OPENDAQ_PARAM_NOT_NULL(field);
 
     const auto nameObj = StringPtr::Borrow(name);
-    if (this->fields.hasKey(name))
-        *field = this->fields.get(name).addRefAndReturn();
-    else
-        *field = nullptr;
+    *field = this->fields.getOrDefault(name).addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }

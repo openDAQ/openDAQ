@@ -293,9 +293,7 @@ StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         const auto funcName = dictObj.get("Name");
-        ParamsDictPtr funcParams;
-        if (dictObj.hasKey("Params"))
-            funcParams = dictObj.get("Params");
+        ParamsDictPtr funcParams = dictObj.getOrDefault("Params");
 
         const auto retValue = callRpc(funcName, funcParams);
 
@@ -339,9 +337,7 @@ void ConfigProtocolServer::processNoReplyRpc(const StringPtr& jsonStr)
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         funcName = dictObj.get("Name");
-        ParamsDictPtr funcParams;
-        if (dictObj.hasKey("Params"))
-            funcParams = dictObj.get("Params");
+        ParamsDictPtr funcParams = dictObj.getOrDefault("Params");
 
         callRpc(funcName, funcParams);
     }

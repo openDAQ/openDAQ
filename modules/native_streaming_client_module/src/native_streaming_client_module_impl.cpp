@@ -229,24 +229,21 @@ void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObject
     if (options.getCount() == 0)
         return;
 
-    if (options.hasKey("ProtocolVersion"))
     {
-        auto value = options.get("ProtocolVersion");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("ProtocolVersion");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             deviceConfig.setPropertyValue("ProtocolVersion", value);
     }
 
-    if (options.hasKey("ConfigProtocolRequestTimeout"))
     {
-        auto value = options.get("ConfigProtocolRequestTimeout");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("ConfigProtocolRequestTimeout");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             deviceConfig.setPropertyValue("ConfigProtocolRequestTimeout", value);
     }
 
-    if (options.hasKey("RestoreClientConfigOnReconnect"))
     {
-        auto value = options.get("RestoreClientConfigOnReconnect");
-        if (value.getCoreType() == CoreType::ctBool)
+        auto value = options.getOrDefault("RestoreClientConfigOnReconnect");
+        if (value.assigned() && value.getCoreType() == CoreType::ctBool)
             deviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", value);
     }
 }
@@ -257,45 +254,39 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     if (options.getCount() == 0)
         return;
 
-    if (options.hasKey("MonitoringEnabled"))
     {
-        auto value = options.get("MonitoringEnabled");
-        if (value.getCoreType() == CoreType::ctBool)
+        auto value = options.getOrDefault("MonitoringEnabled");
+        if (value.assigned() && value.getCoreType() == CoreType::ctBool)
             transportLayerConfig.setPropertyValue("MonitoringEnabled", value);
     }
 
-    if (options.hasKey("HeartbeatPeriod"))
     {
-        auto value = options.get("HeartbeatPeriod");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("HeartbeatPeriod");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("HeartbeatPeriod", value);
     }
 
-    if (options.hasKey("InactivityTimeout"))
     {
-        auto value = options.get("InactivityTimeout");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("InactivityTimeout");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("InactivityTimeout", value);
     }
 
-    if (options.hasKey("ConnectionTimeout"))
     {
-        auto value = options.get("ConnectionTimeout");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("ConnectionTimeout");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("ConnectionTimeout", value);
     }
 
-    if (options.hasKey("StreamingInitTimeout"))
     {
-        auto value = options.get("StreamingInitTimeout");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("StreamingInitTimeout");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("StreamingInitTimeout", value);
     }
 
-    if (options.hasKey("ReconnectionPeriod"))
     {
-        auto value = options.get("ReconnectionPeriod");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("ReconnectionPeriod");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("ReconnectionPeriod", value);
     }
 }

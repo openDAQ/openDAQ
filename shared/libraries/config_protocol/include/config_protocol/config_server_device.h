@@ -135,9 +135,7 @@ inline BaseObjectPtr ConfigServerDevice::addDevice(const RpcContext& context,
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto connectionString = params.get("ConnectionString");
-    PropertyObjectPtr config;
-    if (params.hasKey("Config"))
-        config = params.get("Config");
+    PropertyObjectPtr config = params.getOrDefault("Config");
 
     const auto dev = device.addDevice(connectionString, config);
     return ComponentHolder(dev);

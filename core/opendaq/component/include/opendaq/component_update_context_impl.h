@@ -122,15 +122,7 @@ inline ErrCode ComponentUpdateContextImpl::getInputPortConnections(IString* pare
     OPENDAQ_PARAM_NOT_NULL(parentId);
     OPENDAQ_PARAM_NOT_NULL(connections);
 
-    DictPtr<IString, IBaseObject> ports;
-    if (!this->connections.hasKey(parentId))
-    {
-        ports = Dict<IString, IBaseObject>();
-    }
-    else
-    {
-        ports = this->connections.get(parentId);
-    }
+    DictPtr<IString, IBaseObject> ports = this->connections.getOrDefault(parentId, Dict<IString, IBaseObject>());
     *connections = ports.detach();
     return OPENDAQ_SUCCESS;
 }

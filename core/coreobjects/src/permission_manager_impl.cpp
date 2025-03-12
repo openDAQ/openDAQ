@@ -68,7 +68,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, Permissi
 
     for (const auto& group : groups)
     {
-        permissionMask = permissions.getDenied().hasKey(group) ? (Int) permissions.getDenied().get(group) : 0;
+        permissionMask = (Int) permissions.getDenied().getOrDefault(group, Int(0));
 
         if ((permissionMask & targetPermissionInt) != 0)
         {
@@ -79,7 +79,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::isAuthorized(IUser* user, Permissi
 
     for (const auto& group : groups)
     {
-        permissionMask = permissions.getAllowed().hasKey(group) ? (Int) permissions.getAllowed().get(group) : 0;
+        permissionMask = (Int) permissions.getAllowed().getOrDefault(group, Int(0));
 
         if ((permissionMask & targetPermissionInt) != 0)
         {

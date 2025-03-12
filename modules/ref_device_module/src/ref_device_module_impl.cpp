@@ -11,11 +11,9 @@ RefDeviceModule::RefDeviceModule(ContextPtr context)
              daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
              std::move(context),
              REF_MODULE_NAME)
-    , maxNumberOfDevices(2)
 {
     auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-    if (options.hasKey("MaxNumberOfDevices"))
-        maxNumberOfDevices = options.get("MaxNumberOfDevices");
+    maxNumberOfDevices = options.getOrDefault("MaxNumberOfDevices", 2);
     devices.resize(maxNumberOfDevices);
 }
 
@@ -27,8 +25,7 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
 
     if (options.assigned())
     {
-        if (options.hasKey("SerialNumber"))
-            serialNumber = options.get("SerialNumber");
+        serialNumber = options.getOrDefault("SerialNumber");
     }
 
     auto availableDevices = List<IDeviceInfo>();
@@ -101,14 +98,12 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     if (options.assigned())
     {
-        if (options.hasKey("LocalId"))
         {
-            StringPtr localIdTemp = options.get("LocalId");
+            StringPtr localIdTemp = options.getOrDefault("LocalId", "");
             localId = localIdTemp.getLength() ? localIdTemp : nullptr;
         }
-        if (options.hasKey("Name"))
         {
-            StringPtr nameTemp = options.get("Name");
+            StringPtr nameTemp = options.getOrDefault("Name", "");
             name = nameTemp.getLength() ? nameTemp : nullptr;
         }
     }

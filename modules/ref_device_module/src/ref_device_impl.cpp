@@ -55,9 +55,8 @@ RefDeviceImpl::RefDeviceImpl(size_t id,
     }
 
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-    if (options.assigned() && options.hasKey("SerialNumber"))
     {
-        const StringPtr serialTemp = options.get("SerialNumber");
+        const StringPtr serialTemp = options.getOrDefault("SerialNumber", "");
         serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
     }
 
@@ -286,11 +285,8 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     if (options.assigned())
     {
-        if (options.hasKey("NumberOfChannels"))
-            numberOfChannels = options.get("NumberOfChannels");
-
-        if (options.hasKey("EnableCANChannel"))
-            enableCANChannel = options.get("EnableCANChannel");
+        numberOfChannels = options.getOrDefault("NumberOfChannels", numberOfChannels);
+        enableCANChannel = options.getOrDefault("EnableCANChannel", enableCANChannel);
     }
 
     if (numberOfChannels < 1 || numberOfChannels > 4096)

@@ -229,16 +229,8 @@ void ConfigClientComponentBaseImpl<Impl>::remoteUpdateStatuses(const SerializedO
 
         for (const auto& [name, value] : statusDict)
         {
-            StringPtr msg;
-            if (messagesDict.hasKey(name))
-                msg = messagesDict.get(name);
-            else
-                msg = String("");
-
-            if (statuses.hasKey(name))
-                statusContainerPrivate.setStatusWithMessage(name, value, msg);
-            else
-                statusContainerPrivate.addStatusWithMessage(name, value, msg);
+            StringPtr msg = messagesDict.getOrDefault(name, "");
+            statusContainerPrivate.addStatusWithMessage(name, value, msg);
         }
     }
 }
@@ -341,17 +333,15 @@ void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& 
     ComponentStatusContainerPtr statusContainer;
     checkErrorInfo(Impl::getStatusContainer(&statusContainer));
 
-    auto msg = String("");
     const DictPtr<IString, IBaseObject> params = args.getParameters();
-    if (params.hasKey("Message"))
-        msg = params.get("Message");
+    StringPtr msg = params.getOrDefault("Message", "");
 
-    for (const auto& st : params)
+    for (const auto& [key, value] : params)
     {
-        if (st.second.getCoreType() == CoreType::ctEnumeration)
+        if (value.getCoreType() == CoreType::ctEnumeration)
         {
             statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage(
-                st.first, st.second.asPtr<IEnumeration>(true), msg);
+                key, value.asPtr<IEnumeration>(true), msg);
             msg = String("");
         }
     }

@@ -171,9 +171,7 @@ void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const ra
     for (auto & el : value.GetObject())
     {
         auto optionName = el.name.GetString();
-        BaseObjectPtr optionValue;
-        if (optionsPtr.hasKey(optionName))
-            optionValue = optionsPtr.get(optionName);
+        BaseObjectPtr optionValue = optionsPtr.getOrDefault(optionName);
 
         if (el.value.IsObject()) 
         {

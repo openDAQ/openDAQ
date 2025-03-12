@@ -139,9 +139,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
                                                          const ParamsDictPtr& params)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
-    BaseObjectPtr callParams;
-    if (params.hasKey("Params"))
-        callParams = params.get("Params");
+    BaseObjectPtr callParams = params.getOrDefault("Params");
 
     const auto prop = component.getProperty(propertyName);
     const auto propValue = component.getPropertyValue(propertyName);
@@ -313,9 +311,7 @@ inline BaseObjectPtr ConfigServerComponent::addFunctionBlock(const RpcContext& c
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto fbTypeId = params.get("TypeId");
-    PropertyObjectPtr config;
-    if (params.hasKey("Config"))
-        config = params.get("Config");
+    PropertyObjectPtr config = params.getOrDefault("Config");
 
     BaseObjectPtr fbNested;
     if (const auto device = component.asPtrOrNull<IDevice>(true); device.assigned())

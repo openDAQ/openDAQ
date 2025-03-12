@@ -412,16 +412,11 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
     const ErrCode errCode = reply["ErrorCode"];
     if (OPENDAQ_FAILED(errCode))
     {
-        std::string msg;
-        if (reply.hasKey("ErrorMessage"))
-            msg = static_cast<std::string>(reply.get("ErrorMessage"));
+        std::string msg = reply.getOrDefault("ErrorMessage", "");
         throwExceptionFromErrorCode(errCode, msg);
     }
 
-    if (reply.hasKey("ReturnValue"))
-        return reply.get("ReturnValue");
-
-    return {};
+    return reply.getOrDefault("ReturnValue");
 }
 
 BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringPtr& typeId,

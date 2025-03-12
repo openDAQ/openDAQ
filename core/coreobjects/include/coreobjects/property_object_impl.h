@@ -446,8 +446,9 @@ protected:
 
     // Used when cloning object-type property default values of property object classes on construction.
     // Must be overridden by modules that have their own property object implementation.
-    virtual void cloneAndSetChildPropertyObject(const PropertyPtr& prop);
-    void moveObjectPropertyDefaultValue(const PropertyPtr& prop);
+    virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
+    bool checkIsChildObjectProperty(const PropertyPtr& prop);
+    void setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
 
     ErrCode beginUpdateInternal(bool deep);
@@ -597,7 +598,12 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
         objectClass = objClass;
 
         for (const auto& prop : objectClass.getProperties(true))
-            cloneAndSetChildPropertyObject(prop);
+        {
+            if (checkIsChildObjectProperty(prop))
+            {
+                setChildPropertyObject(prop.getName(), cloneChildPropertyObject(prop));
+            }
+        }
     }
 }
 
@@ -1407,30 +1413,21 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkFor
 }
 
 template <typename PropObjInterface, typename... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChildPropertyObject(const PropertyPtr& prop)
+PropertyObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneChildPropertyObject(const PropertyPtr& prop)
 {
-    const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
-    if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
-    {
-        const auto defaultValue = prop.getDefaultValue();
-        const auto inspect = defaultValue.asPtrOrNull<IInspectable>();
-        if (inspect.assigned() && !inspect.getInterfaceIds().empty() && !(inspect.getInterfaceIds()[0] == IPropertyObject::Id))
-            throw InvalidTypeException{"Only base Property Object object-type values are allowed"};
+    const auto defaultValue = prop.getDefaultValue();
+    const auto propName = prop.getName();
+    const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
 
-        const auto propName = prop.getName();
-        const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+    if (!cloneable.assigned())
+        return nullptr;
 
-        if (!cloneable.assigned())
-            return;
+    return cloneable.clone();
 
-        const PropertyObjectPtr cloned = cloneable.clone();
-        writeLocalValue(propName, cloned);
-        configureClonedObj(propName, cloned);
-    }
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::moveObjectPropertyDefaultValue(const PropertyPtr& prop)
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkIsChildObjectProperty(const PropertyPtr& prop)
 {
     const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
     if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
@@ -1440,11 +1437,17 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::moveObjectPrope
         if (inspect.assigned() && !inspect.getInterfaceIds().empty() && !(inspect.getInterfaceIds()[0] == IPropertyObject::Id))
             throw InvalidTypeException{"Only base Property Object object-type values are allowed"};
 
-        const auto propName = prop.getName();
-        writeLocalValue(propName, defaultValue, true);
-        configureClonedObj(propName, defaultValue);
-        propPtrInternal.cloneDefaultValueAndRelease();
+        return true;
     }
+
+    return false;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned)
+{
+    writeLocalValue(propName, cloned);
+    configureClonedObj(propName, cloned);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1902,7 +1905,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
                 }
 
                 propValues.erase(it);
-                cloneAndSetChildPropertyObject(prop);
+                if (checkIsChildObjectProperty(prop))
+                    setChildPropertyObject(prop.getName(), cloneChildPropertyObject(prop));
             }
 
             if (!isUpdating)
@@ -2116,7 +2120,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
                 emitter.addHandler(listener);
         }
 
-        moveObjectPropertyDefaultValue(propPtr);
+        if (checkIsChildObjectProperty(propPtr))
+        {
+            auto defaultValue = propPtr.getDefaultValue();
+            propPtr.asPtrOrNull<IPropertyInternal>().overrideDefaultValue(cloneChildPropertyObject(propPtr));
+            setChildPropertyObject(propPtr.getName(), defaultValue);
+        }
+        
         triggerCoreEventInternal(CoreEventArgsPropertyAdded(objPtr, propPtr, path));
 
         return OPENDAQ_SUCCESS;

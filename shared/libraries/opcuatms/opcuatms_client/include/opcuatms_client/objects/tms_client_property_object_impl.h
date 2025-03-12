@@ -155,7 +155,7 @@ protected:
     PropertyPtr addVariableBlockProperty(const StringPtr& propName, const OpcUaNodeId& propNodeId);
     void browseRawProperties();
     bool isIgnoredMethodProperty(const std::string& browseName);
-    void cloneAndSetChildPropertyObject(const PropertyPtr& prop) override;
+    PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
 
 private:
     bool isBasePropertyObject(const PropertyObjectPtr& propObj);

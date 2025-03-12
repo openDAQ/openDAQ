@@ -1600,7 +1600,7 @@ TEST_F(PropertyObjectTest, ObjectPropMetadata)
 
     ASSERT_EQ(propObj.getVisibleProperties().getCount(), 0u);
     ASSERT_THROW(propObj.setPropertyValue("child", PropertyObject()), AccessDeniedException);
-    ASSERT_THROW(childObj.setPropertyValue("Foo", "NotBar"), FrozenException);
+    ASSERT_NO_THROW(childObj.setPropertyValue("Foo", "NotBar"));
 }
 
 TEST_F(PropertyObjectTest, DISABLED_SerializeAndDeserializeEmpty)
@@ -1811,7 +1811,8 @@ TEST_F(PropertyObjectTest, NestedObjectsFrozen)
     const auto propObj = PropertyObject();
     const auto propObj1 = PropertyObject();
     propObj.addProperty(ObjectProperty("Child", propObj1));
-    ASSERT_TRUE(propObj1.isFrozen());
+    ASSERT_FALSE(propObj1.isFrozen());
+    ASSERT_TRUE(propObj.getProperty("Child").getDefaultValue().isFrozen());
 }
 
 TEST_F(PropertyObjectTest, ClonedObjectSet)

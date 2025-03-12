@@ -80,7 +80,7 @@ protected:
 
     virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
-    void cloneAndSetChildPropertyObject(const PropertyPtr& prop) override;
+    PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
 
 /*
     void beginApplyUpdate() override;
@@ -611,7 +611,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(const SerializedOb
 }
 
 template <class Impl>
-void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(const PropertyPtr& prop)
+PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyObject(const PropertyPtr& prop)
 {
     const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
     if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
@@ -619,15 +619,10 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
         const auto propName = prop.getName();
         const auto defaultValueObj = prop.getDefaultValue().asPtrOrNull<IPropertyObject>();
         if (!defaultValueObj.assigned())
-            return;
+            return nullptr;
 
         if (!isBasePropertyObject(defaultValueObj))
-        {
-            auto clonedValue = defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
-            this->writeLocalValue(propName, clonedValue);
-            this->configureClonedObj(propName, clonedValue);
-            return;
-        }
+            return defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
 
         // This feels hacky...
         const auto serializer = JsonSerializer();
@@ -653,9 +648,11 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
         if (impl == nullptr)
             throw InvalidStateException("Failed to cast to ConfigClientPropertyObjectImpl");
         impl->unfreeze();
-        this->writeLocalValue(propName, clientPropObj);
-        this->configureClonedObj(propName, clientPropObj);
+
+        return clientPropObj;
     }
+
+    return nullptr;
 }
 
 /*

@@ -4,11 +4,9 @@
 #include <coreobjects/property_object_class_factory.h>
 #include <coreobjects/property_ptr.h>
 #include <coretypes/type_manager_factory.h>
-
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 PropertyObjectClassBuilderImpl::PropertyObjectClassBuilderImpl(StringPtr name)
     : name(std::move(name))
     , props(Dict<IString, IProperty>())
@@ -84,6 +82,13 @@ ErrCode PropertyObjectClassBuilderImpl::addProperty(IProperty* property)
         if (props.hasKey(p.getName()))
             return makeErrorInfo(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property with name {} already exists)", p.getName()));
         props.set(p.getName(), p);
+
+        auto defaultValue = p.asPtr<IPropertyInternal>().getDefaultValueUnresolved();
+        if (auto freezable = defaultValue.asPtrOrNull<IFreezable>(); freezable.assigned())
+        {
+            if (!freezable.isFrozen())
+                freezable.freeze();
+        }
 
         return OPENDAQ_SUCCESS;
     });

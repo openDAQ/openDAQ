@@ -553,7 +553,7 @@ bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodProperty(const std::s
 }
 
 template <class Impl>
-void TmsClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(const PropertyPtr& prop)
+PropertyObjectPtr TmsClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyObject(const PropertyPtr& prop)
 {
     const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
     if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
@@ -561,27 +561,22 @@ void TmsClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(const
         const auto propName = prop.getName();
         const auto defaultValueObj = prop.getDefaultValue().asPtrOrNull<IPropertyObject>();
         if (!defaultValueObj.assigned())
-            return;
+            return nullptr;
 
         if (!isBasePropertyObject(defaultValueObj))
         {
-            auto clonedValue = defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
-            this->writeLocalValue(propName, clonedValue);
-            this->configureClonedObj(propName, clonedValue);
-            return;
+            return defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
         }
 
         if (const auto& objIt = objectTypeIdMap.find(propName); objIt != objectTypeIdMap.cend())
         {
-            auto clientObj = TmsClientPropertyObject(daqContext, clientContext, objIt->second);
-            this->writeLocalValue(propName, clientObj);
-            this->configureClonedObj(propName, clientObj);
+            return TmsClientPropertyObject(daqContext, clientContext, objIt->second);
         }
-        else
-        {
-            throw NotFoundException{"Object property with name {} not found", propName};
-        }
+        
+        throw NotFoundException{"Object property with name {} not found", propName};
     }
+
+    return nullptr;
 }
 
 template <class Impl>

@@ -846,20 +846,11 @@ public:
 	        });
     }
     
-    ErrCode cloneDefaultValueAndRelease() override
+    ErrCode overrideDefaultValue(IBaseObject* newDefaultValue)  override
     {
-        const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
-
-        if (!cloneable.assigned())
-            return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Default value of property is not cloneable!");
-
-        PropertyObjectPtr cloned;
-        ErrCode err = cloneable->clone(&cloned);
-        if (OPENDAQ_FAILED(err))
-            return err;
-
-        defaultValue = cloned.detach();
-        defaultValue.freeze();
+        defaultValue = newDefaultValue;
+        if (defaultValue.supportsInterface<IFreezable>() && !defaultValue.isFrozen())
+            defaultValue.freeze();
         return OPENDAQ_SUCCESS;
     }
 

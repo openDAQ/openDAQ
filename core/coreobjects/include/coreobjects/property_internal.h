@@ -137,7 +137,9 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getCoercerNoLock(ICoercer** coercer) = 0;
     virtual ErrCode INTERFACE_FUNC getCallableInfoNoLock(ICallableInfo** callable) = 0;
     virtual ErrCode INTERFACE_FUNC getStructTypeNoLock(IStructType** structType) = 0;
-    virtual ErrCode INTERFACE_FUNC cloneDefaultValueAndRelease() = 0;
+
+    // Freezes default value
+    virtual ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue) = 0;
 };
 /*!@}*/
 

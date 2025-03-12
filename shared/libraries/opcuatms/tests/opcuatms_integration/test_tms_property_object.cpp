@@ -262,3 +262,90 @@ TEST_F(TmsPropertyObjectTest, TestReadOnlyWriteFail)
     ASSERT_EQ(clientObj.getPropertyValue("ReadOnly"), 0);
     ASSERT_THROW(clientObj.setPropertyValue("ReadOnly", 100), AccessDeniedException);
 }
+
+TEST_F(TmsPropertyObjectTest, DotAccessClient)
+{
+    PropertyObjectPtr obj = PropertyObject();
+    PropertyObjectPtr child1 = PropertyObject();
+    PropertyObjectPtr child2 = PropertyObject();
+
+    child2.addProperty(StringProperty("foo", "bar"));
+    child1.addProperty(ObjectProperty("child", child2));
+    obj.addProperty(ObjectProperty("child", child1));
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    auto prop = clientObj.getProperty("child.child.foo");
+
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "bar");
+    ASSERT_EQ(prop.getValue(), "bar");
+
+    ASSERT_NO_THROW(clientObj.setPropertyValue("child.child.foo", "test"));
+    ASSERT_EQ(obj.getPropertyValue("child.child.foo"), "test");
+    ASSERT_EQ(prop.getValue(), "test");
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "test");
+
+    ASSERT_NO_THROW(prop.setValue("bar"));
+    ASSERT_EQ(obj.getPropertyValue("child.child.foo"), "bar");
+    ASSERT_EQ(prop.getValue(), "bar");
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "bar");
+}
+
+TEST_F(TmsPropertyObjectTest, DotAccessClientSelection)
+{
+    PropertyObjectPtr obj = PropertyObject();
+    PropertyObjectPtr child1 = PropertyObject();
+    PropertyObjectPtr child2 = PropertyObject();
+
+    child2.addProperty(SelectionProperty("fruit", List<IString>("apple", "orange", "banana"), 0));
+    child1.addProperty(ObjectProperty("child", child2));
+    obj.addProperty(ObjectProperty("child", child1));
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    auto prop = clientObj.getProperty("child.child.fruit");
+
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.fruit"), 0);
+    ASSERT_EQ(prop.getValue(), 0);
+    ASSERT_EQ(clientObj.getPropertySelectionValue("child.child.fruit"), "apple");
+    ASSERT_EQ(obj.getPropertySelectionValue("child.child.fruit"), "apple");
+
+    ASSERT_NO_THROW(clientObj.setPropertyValue("child.child.fruit", 1));
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.fruit"), 1);
+    ASSERT_EQ(prop.getValue(), 1);
+    ASSERT_EQ(clientObj.getPropertySelectionValue("child.child.fruit"), "orange");
+    ASSERT_EQ(obj.getPropertySelectionValue("child.child.fruit"), "orange");
+
+    ASSERT_NO_THROW(prop.setValue(2));
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.fruit"), 2);
+    ASSERT_EQ(prop.getValue(), 2);
+    ASSERT_EQ(clientObj.getPropertySelectionValue("child.child.fruit"), "banana");
+    ASSERT_EQ(obj.getPropertySelectionValue("child.child.fruit"), "banana");
+}
+
+TEST_F(TmsPropertyObjectTest, DotAccessClientServerChange)
+{
+    PropertyObjectPtr obj = PropertyObject();
+    PropertyObjectPtr child1 = PropertyObject();
+    PropertyObjectPtr child2 = PropertyObject();
+
+    child2.addProperty(StringProperty("foo", "bar"));
+    child1.addProperty(ObjectProperty("child", child2));
+    obj.addProperty(ObjectProperty("child", child1));
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    auto prop = clientObj.getProperty("child.child.foo");
+    auto serverProp = obj.getProperty("child.child.foo");
+
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "bar");
+    ASSERT_EQ(prop.getValue(), "bar");
+
+    ASSERT_NO_THROW(obj.setPropertyValue("child.child.foo", "test"));
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "test");
+    ASSERT_EQ(prop.getValue(), "test");
+
+    ASSERT_NO_THROW(serverProp.setValue("bar"));
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "bar");
+    ASSERT_EQ(prop.getValue(), "bar");
+}

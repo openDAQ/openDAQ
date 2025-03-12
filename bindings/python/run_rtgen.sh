@@ -108,6 +108,7 @@ run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device      
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info_builder
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           connection_status_container_private
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           connected_client_info
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    channel
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block_type

@@ -54,7 +54,7 @@ inline ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolId, c
 inline ConnectedClientInfoPtr ConnectedClientInfo(const StringPtr& url,
                                                   ProtocolType protocolType,
                                                   const StringPtr& protocolName,
-                                                  ClientType clientType,
+                                                  const StringPtr& clientType,
                                                   const StringPtr& hostName)
 {
     ConnectedClientInfoPtr obj(ConnectedClientInfo_Create(url, protocolType, protocolName, clientType, hostName));

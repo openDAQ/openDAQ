@@ -10,10 +10,14 @@ BEGIN_NAMESPACE_OPENDAQ
 TEST_F(ConnectedClientInfoTest, Factory)
 {
     ConnectedClientInfoPtr clientInfo =
-        ConnectedClientInfo("url", ProtocolType::Configuration, "Protocol name", ClientType::ExclusiveControl, "Host name");
+        ConnectedClientInfo("url",
+                            ProtocolType::Configuration,
+                            "Protocol name",
+                            ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl),
+                            "Host name");
     ASSERT_EQ(clientInfo.getUrl(), "url");
     ASSERT_EQ(clientInfo.getProtocolName(), "Protocol name");
-    ASSERT_EQ(clientInfo.getClientType(), ClientType::ExclusiveControl);
+    ASSERT_EQ(clientInfo.getClientTypeName(), ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl));
     ASSERT_EQ(clientInfo.getProtocolType(), ProtocolType::Configuration);
     ASSERT_EQ(clientInfo.getHostName(), "Host name");
 }
@@ -21,7 +25,11 @@ TEST_F(ConnectedClientInfoTest, Factory)
 TEST_F(ConnectedClientInfoTest, CustomProperties)
 {
     ConnectedClientInfoPtr clientInfo =
-        ConnectedClientInfo("url", ProtocolType::ConfigurationAndStreaming, "Protocol name", ClientType::Control, "Host name");
+        ConnectedClientInfo("url",
+                            ProtocolType::ConfigurationAndStreaming,
+                            "Protocol name",
+                            "",
+                            "Host name");
     SizeT defaultPropertiesCnt = clientInfo.getAllProperties().getCount();
 
     clientInfo.addProperty(StringProperty("Location", "Office"));
@@ -37,7 +45,7 @@ TEST_F(ConnectedClientInfoTest, CustomProperties)
 TEST_F(ConnectedClientInfoTest, Freezable)
 {
     ConnectedClientInfoPtr clientInfo =
-        ConnectedClientInfo("url", ProtocolType::Streaming, "Protocol name", ClientType(), "Host name");
+        ConnectedClientInfo("url", ProtocolType::Streaming, "Protocol name", "", "Host name");
 
     ASSERT_FALSE(clientInfo.isFrozen());
     ASSERT_NO_THROW(clientInfo.freeze());
@@ -49,7 +57,11 @@ TEST_F(ConnectedClientInfoTest, Freezable)
 TEST_F(ConnectedClientInfoTest, SerializeDeserialize)
 {
     ConnectedClientInfoPtr clientInfo =
-        ConnectedClientInfo("url", ProtocolType::Configuration, "Protocol name", ClientType::ExclusiveControl, "Host name");
+        ConnectedClientInfo("url",
+                            ProtocolType::Configuration,
+                            "Protocol name",
+                            ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl),
+                            "Host name");
 
     clientInfo.addProperty(StringProperty("Location", "Office"));
     clientInfo.addProperty(IntProperty("ElapsedTime", 999));
@@ -66,7 +78,7 @@ TEST_F(ConnectedClientInfoTest, SerializeDeserialize)
 
     ASSERT_EQ(newClientInfo.getUrl(), "url");
     ASSERT_EQ(newClientInfo.getProtocolName(), "Protocol name");
-    ASSERT_EQ(newClientInfo.getClientType(), ClientType::ExclusiveControl);
+    ASSERT_EQ(newClientInfo.getClientTypeName(), ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl));
     ASSERT_EQ(newClientInfo.getProtocolType(), ProtocolType::Configuration);
     ASSERT_EQ(newClientInfo.getHostName(), "Host name");
 

@@ -27,17 +27,17 @@ class ConnectedClientInfoImpl : public GenericPropertyObjectImpl<IConnectedClien
 public:
     using Super = GenericPropertyObjectImpl<IConnectedClientInfo>;
 
-    ConnectedClientInfoImpl();
+    explicit ConnectedClientInfoImpl();
     explicit ConnectedClientInfoImpl(const StringPtr& url,
                                      ProtocolType protocolType,
                                      const StringPtr& protocolName,
-                                     ClientType clientType,
+                                     const StringPtr& clientType,
                                      const StringPtr& hostName);
 
     ErrCode INTERFACE_FUNC getUrl(IString** url) override;
     ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) override;
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
-    ErrCode INTERFACE_FUNC getClientType(ClientType* type) override;
+    ErrCode INTERFACE_FUNC getClientTypeName(IString** type) override;
     ErrCode INTERFACE_FUNC getHostName(IString** hostName) override;
 
     ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
@@ -54,9 +54,6 @@ private:
 
     static StringPtr ProtocolTypeToString(ProtocolType type);
     static ProtocolType StringToProtocolType(const StringPtr& type);
-
-    static StringPtr ClientTypeToString(ClientType type);
-    static ClientType StringToClientType(const StringPtr& type);
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ConnectedClientInfoImpl)

@@ -34,32 +34,6 @@ ProtocolType ConnectedClientInfoImpl::StringToProtocolType(const StringPtr& type
     return ProtocolType::Unknown;
 }
 
-StringPtr ConnectedClientInfoImpl::ClientTypeToString(ClientType type)
-{
-    switch (type)
-    {
-        case(ClientType::Control):
-            return "Control";
-        case(ClientType::ExclusiveControl):
-            return "ExclusiveControl";
-        case(ClientType::ViewOnly):
-            return "ViewOnly";
-        default:
-            return "";
-    }
-}
-
-ClientType ConnectedClientInfoImpl::StringToClientType(const StringPtr& type)
-{
-    if (type == "Control")
-        return ClientType::Control;
-    if (type == "ExclusiveControl")
-        return ClientType::ExclusiveControl;
-    if (type == "ViewOnly")
-        return ClientType::ViewOnly;
-    return ClientType();
-}
-
 template <typename T>
 typename InterfaceToSmartPtr<T>::SmartPtr ConnectedClientInfoImpl::getTypedProperty(const StringPtr& name)
 {
@@ -79,15 +53,14 @@ ConnectedClientInfoImpl::ConnectedClientInfoImpl()
 ConnectedClientInfoImpl::ConnectedClientInfoImpl(const StringPtr& url,
                                                  ProtocolType protocolType,
                                                  const StringPtr& protocolName,
-                                                 ClientType clientType,
+                                                 const StringPtr& clientType,
                                                  const StringPtr& hostName)
     : ConnectedClientInfoImpl()
 {
     Super::setPropertyValue(String(Url), url);
     Super::setPropertyValue(String(ClientProtocolTypeName), ProtocolTypeToString(protocolType));
     Super::setPropertyValue(String(ClientProtocolName), protocolName);
-    if (protocolType == ProtocolType::Configuration || protocolType == ProtocolType::ConfigurationAndStreaming)
-        Super::setPropertyValue(String(ClientTypeName), ClientTypeToString(clientType));
+    Super::setPropertyValue(String(ClientTypeName), clientType);
     Super::setPropertyValue(String(HostName), hostName);
 }
 
@@ -120,11 +93,11 @@ ErrCode ConnectedClientInfoImpl::getProtocolName(IString** protocolName)
     });
 }
 
-ErrCode ConnectedClientInfoImpl::getClientType(ClientType* type)
+ErrCode ConnectedClientInfoImpl::getClientTypeName(IString** type)
 {
     return daqTry([&]
     {
-        *type = StringToClientType(getTypedProperty<IString>(ClientTypeName));
+        *type = getTypedProperty<IString>(ClientTypeName).detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -223,7 +196,7 @@ extern "C"
                               IString* url,
                               ProtocolType protocolType,
                               IString* protocolName,
-                              ClientType clientType,
+                              IString* clientType,
                               IString* hostName)
 {
     return daq::createObject<IConnectedClientInfo, ConnectedClientInfoImpl>(objTmp, url, protocolType, protocolName, clientType, hostName);

@@ -18,7 +18,6 @@
 #include <coretypes/stringobject.h>
 #include <coreobjects/property_object.h>
 #include <opendaq/server_capability.h>
-#include <opendaq/client_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -54,9 +53,9 @@ DECLARE_OPENDAQ_INTERFACE(IConnectedClientInfo, IPropertyObject)
 
     /*!
      * @brief Gets the type of connected configuration connection client.
-     * @param[out] type The type of client (Enumeration value reflecting client type: "Control", "ExclusiveControl", "ViewOnly").
+     * @param[out] type The string representation of client type ("Control", "ExclusiveControl", "ViewOnly").
      */
-    virtual ErrCode INTERFACE_FUNC getClientType(ClientType* type) = 0;
+    virtual ErrCode INTERFACE_FUNC getClientTypeName(IString** type) = 0;
 
     /*!
      * @brief Gets the client host name.
@@ -78,7 +77,7 @@ DECLARE_OPENDAQ_INTERFACE(IConnectedClientInfo, IPropertyObject)
  * @param url The URL of connected client.
  * @param protocolType The type of the protocol type used by the client.
  * @param protocolName The name of the protocol name used by the client.
- * @param clientType The configuration connection client type.
+ * @param clientType The configuration connection client type name.
  * @param hostName The host name of connected client.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
@@ -86,7 +85,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IString*, url,
     ProtocolType, protocolType,
     IString*, protocolName,
-    ClientType, clientType,
+    IString*, clientType,
     IString*, hostName
 )
 

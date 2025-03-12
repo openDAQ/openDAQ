@@ -48,6 +48,9 @@ public:
     void setClientId(const std::string& clientId);
     std::string getClientId();
 
+    void setClientHostName(const std::string& hostName);
+    std::string getClientHostName();
+
     void setReconnected(bool reconnected);
     bool getReconnected();
     UserPtr getUser();
@@ -73,6 +76,7 @@ private:
     OnTrasportLayerPropertiesCallback transportLayerPropsHandler;
 
     std::string clientId;
+    std::string clientHostName;
     bool reconnected;
     bool useConfigProtocol;
     ClientType clientType = ClientType::Control;

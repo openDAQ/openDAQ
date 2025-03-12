@@ -424,6 +424,13 @@ void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjec
         LOG_W("Invalid transport layer properties - missing connection activity monitoring parameters");
     }
 
+    if (propertyObject.hasProperty("HostName") &&
+        propertyObject.getProperty("HostName").getValueType() == ctString)
+    {
+        StringPtr hostName = propertyObject.getPropertyValue("HostName");
+        sessionHandler->setClientHostName(hostName.toStdString());
+    }
+
     if (propertyObject.hasProperty("Reconnected") &&
         propertyObject.hasProperty("ClientId") &&
         propertyObject.getProperty("Reconnected").getValueType() == ctBool &&
@@ -593,7 +600,8 @@ void NativeStreamingServerHandler::connectConfigProtocol(std::shared_ptr<ServerS
         clientConnectedHandler(sessionHandler->getClientId(),
                                sessionHandler->getSession()->getEndpointAddress(),
                                false,
-                               sessionHandler->getClientType());
+                               sessionHandler->getClientType(),
+                               sessionHandler->getClientHostName());
     }
 
     this->setUpConfigProtocolCallbacks(sessionHandler, std::move(firstPacketBuffer));
@@ -683,7 +691,8 @@ void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSes
     clientConnectedHandler(sessionHandler->getClientId(),
                            sessionHandler->getSession()->getEndpointAddress(),
                            true,
-                           ClientType());
+                           ClientType(),
+                           sessionHandler->getClientHostName());
 }
 
 void NativeStreamingServerHandler::onSessionError(const std::string& errorMessage, SessionPtr session)

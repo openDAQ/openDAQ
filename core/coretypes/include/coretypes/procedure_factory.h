@@ -53,7 +53,7 @@ ErrCode wrapHandler(ProcedurePtr handler, Params... params)
     }
     catch (const std::exception& e)
     {
-        return ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {

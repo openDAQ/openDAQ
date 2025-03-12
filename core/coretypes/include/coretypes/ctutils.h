@@ -228,13 +228,13 @@ inline ErrCode errorFromException(const std::exception& e, IBaseObject* source =
 }
 
 #ifdef NDEBUG
-    #define ERROR_FROM_STD_EXCEPTION(e, source, errCode) daq::errorFromException(e, source, errCode)
+    #define DAQ_ERROR_FROM_STD_EXCEPTION(e, source, errCode) daq::errorFromException(e, source, errCode)
 #else
     inline ErrCode errorFromException(ConstCharPtr fileName, Int fileLine, const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)
     {
         return makeErrorInfo(fileName, fileLine, errCode, e.what(), source);
     }
-    #define ERROR_FROM_STD_EXCEPTION(e, source, errCode) daq::errorFromException(__FILE__, __LINE__, e, source, errCode)
+    #define DAQ_ERROR_FROM_STD_EXCEPTION(e, source, errCode) daq::errorFromException(__FILE__, __LINE__, e, source, errCode)
 #endif
 
 template <typename... Params>
@@ -430,7 +430,7 @@ ErrCode wrapHandler(Handler handler, Params... params)
     }
     catch (const std::exception& e)
     {
-        return ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -452,7 +452,7 @@ ErrCode wrapHandlerReturn(Handler handler, TReturn& output, Params... params)
     }
     catch (const std::exception& e)
     {
-        return ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -488,7 +488,7 @@ ErrCode wrapHandler(Object* object, Handler handler, Params... params)
     {
         IBaseObject* baseObject;
         object->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
-        return ERROR_FROM_STD_EXCEPTION(e, baseObject, OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, baseObject, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -514,7 +514,7 @@ ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Para
     {
         IBaseObject* baseObject;
         object->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
-        return ERROR_FROM_STD_EXCEPTION(e, baseObject, OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, baseObject, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
@@ -553,7 +553,7 @@ ErrCode daqTry(const IBaseObject* context, F&& func)
         IBaseObject* baseObject = nullptr;
         if (context)
             context->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
-        return ERROR_FROM_STD_EXCEPTION(e, baseObject, OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, baseObject, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {

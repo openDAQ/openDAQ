@@ -100,7 +100,7 @@ ErrCode LoggerSinkBase<Interfaces...>::setPattern(IString* pattern)
     }
     catch (const std::exception& e)
     {
-        return ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;
@@ -119,7 +119,7 @@ ErrCode LoggerSinkBase<Interfaces...>::flush()
     }
     catch (const std::exception& e)
     {
-        return ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;

@@ -47,7 +47,8 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
 
         if (!prop.assigned())
             throw NotFoundException(R"(Child property "{}" not found)", propertyNamePtr);
-
+        if (protectedWrite)
+            return prop.asPtr<IPropertyInternal>()->setValueProtected(value);
         return prop->setValue(value);
     }
 

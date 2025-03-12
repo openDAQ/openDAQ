@@ -38,9 +38,9 @@
 #include <coreobjects/permission_manager_internal_ptr.h>
 #include <coreobjects/errors.h>
 #include <coreobjects/permission_mask_builder_factory.h>
+#include <coreobjects/property_object_protected.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 namespace details
 {
     static const std::unordered_map<IntfID, CoreType> intfIdToCoreTypeMap = {
@@ -817,12 +817,12 @@ public:
 	        });
     }
 
-    ErrCode INTERFACE_FUNC getStructType(IStructType** structType) override
+    ErrCode getStructType(IStructType** structType) override
     {
 	    return getStructTypeInternal(structType, true);
     }
 
-    ErrCode INTERFACE_FUNC getStructTypeNoLock(IStructType** structType) override
+    ErrCode getStructTypeNoLock(IStructType** structType) override
     {
 	    return getStructTypeInternal(structType, false);
     }
@@ -923,6 +923,14 @@ public:
             return OPENDAQ_ERR_NO_OWNER;
 
         return owner.getRef()->setPropertyValue(this->name, value);
+    }
+
+    ErrCode INTERFACE_FUNC setValueProtected(IBaseObject* newValue) override
+    {
+        if (!owner.assigned() || !owner.getRef().assigned())
+            return OPENDAQ_ERR_NO_OWNER;
+
+        return owner.getRef().asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(this->name, newValue);
     }
 
     ErrCode INTERFACE_FUNC validate()

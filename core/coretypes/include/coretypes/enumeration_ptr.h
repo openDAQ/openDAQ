@@ -134,7 +134,7 @@ public:
     EnumerationTypePtr getEnumerationType() const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         EnumerationTypePtr type;
         auto errCode = this->object->getEnumerationType(&type);
@@ -150,7 +150,7 @@ public:
     StringPtr getValue() const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         StringPtr value;
         auto errCode = this->object->getValue(&value);
@@ -166,7 +166,7 @@ public:
     Int getIntValue() const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Int value;
         auto errCode = this->object->getIntValue(&value);
@@ -180,7 +180,7 @@ private:
     EnumerationPtr& fromStringObj(const StringPtr& value)
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         StringPtr val;
         auto errCode = this->object->getValue(&val);

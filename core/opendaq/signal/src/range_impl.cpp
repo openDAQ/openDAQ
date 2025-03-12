@@ -18,7 +18,7 @@ RangeImpl::RangeImpl(NumberPtr lowValue, NumberPtr highValue)
     , high(this->fields.get("HighValue"))
 {
     if (low > high)
-        DAQ_THROW_EXCEPTION(RangeBoundariesInvalidException{});
+        DAQ_THROW_EXCEPTION(RangeBoundariesInvalidException);
 }
 
 ErrCode RangeImpl::getLowValue(INumber** value)
@@ -101,7 +101,7 @@ ErrCode RangeImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFun
             low = serializedObj.readFloat("low");
             break;
         default:
-            DAQ_THROW_EXCEPTION(InvalidTypeException());
+            DAQ_THROW_EXCEPTION(InvalidTypeException);
     }
     const auto highType = serializedObj.getType("high");
     switch (highType)
@@ -113,7 +113,7 @@ ErrCode RangeImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFun
             high = serializedObj.readFloat("high");
             break;
         default:
-            DAQ_THROW_EXCEPTION(InvalidTypeException());
+            DAQ_THROW_EXCEPTION(InvalidTypeException);
     }
 
     return createObject<IRange, RangeImpl>(reinterpret_cast<IRange**>(obj), low, high);

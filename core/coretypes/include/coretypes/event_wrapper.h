@@ -39,12 +39,12 @@ public:
     {
         if (!sub)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Must bind to a valid callable."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Must bind to a valid callable.");
         }
 
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized control."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized control.");
         }
 
         HandlerPtr handler;
@@ -58,12 +58,12 @@ public:
     {
         if (!sub)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Must bind to a valid callable."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Must bind to a valid callable.");
         }
 
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized event."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized event.");
         }
 
         HandlerPtr handler;
@@ -77,7 +77,7 @@ public:
     {
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized event."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized event.");
         }
 
         eventPtr.clear();
@@ -88,12 +88,12 @@ public:
     {
         if (!sub)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Must bind to a valid callable."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Must bind to a valid callable.");
         }
 
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized event."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized event.");
         }
 
         HandlerPtr handler;
@@ -105,12 +105,12 @@ public:
     {
         if (!sub)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Must bind to a valid callable."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Must bind to a valid callable.");
         }
 
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized control."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized control.");
         }
 
         HandlerPtr handler;
@@ -124,7 +124,7 @@ public:
     {
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized event."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized event.");
         }
 
         return eventPtr.getListenerCount();
@@ -134,7 +134,7 @@ public:
     {
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized event."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized event.");
         }
 
         return eventPtr.getListeners();
@@ -144,7 +144,7 @@ public:
     {
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized event."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized event.");
         }
 
         eventPtr.mute();
@@ -154,7 +154,7 @@ public:
     {
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized event."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized event.");
         }
 
         eventPtr.unmute();
@@ -170,12 +170,12 @@ public:
     {
         if (!sub)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Must bind to a valid callable."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Must bind to a valid callable.");
         }
 
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized event."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized event.");
         }
 
         HandlerPtr handler;
@@ -195,12 +195,12 @@ public:
     {
         if (!sub)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Must bind to a valid callable."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Must bind to a valid callable.");
         }
 
         if (!eventPtr.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid or uninitialized event."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid or uninitialized event.");
         }
 
         HandlerPtr handler;

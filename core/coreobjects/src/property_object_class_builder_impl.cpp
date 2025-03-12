@@ -178,7 +178,7 @@ ListPtr<IProperty> PropertyObjectClassBuilderImpl::getProperties() const
         {
             const auto parentClass = managerPtr.getType(parent).asPtrOrNull<IPropertyObjectClass>();
             if (!parentClass.assigned())
-                DAQ_THROW_EXCEPTION(InvalidTypeException("Type with name {} is not a property object class", parent));
+                DAQ_THROW_EXCEPTION(InvalidTypeException, "Type with name {} is not a property object class", parent);
 
             properties = parentClass.getProperties(True);
         }

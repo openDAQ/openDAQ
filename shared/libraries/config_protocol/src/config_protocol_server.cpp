@@ -45,7 +45,7 @@ ComponentPtr ComponentFinderRootDevice::findComponentInternal(const ComponentPtr
 ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalId)
 {         
     if (globalId.find("/") != 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException("Global id must start with /"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Global id must start with /");
 
     const std::string globalIdWithoutSlash = globalId.substr(1);
 
@@ -113,7 +113,7 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         const auto component = findComponent(componentGlobalId);
 
         if (!component.assigned())
-            DAQ_THROW_EXCEPTION(NotFoundException("Component not found"));
+            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
 
         const auto componentPtr = component.asPtr<typename SmartPtr::DeclaredInterface>();
         return handler(context, componentPtr, params);
@@ -377,7 +377,7 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
     const auto component = findComponent(componentGlobalId);
 
     if (!component.assigned())
-        DAQ_THROW_EXCEPTION(NotFoundException("Component not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
 
     ConfigServerAccessControl::protectObject(component, user, Permission::Read);
     return ComponentHolder(component);
@@ -398,7 +398,7 @@ BaseObjectPtr ConfigProtocolServer::connectSignal(const RpcContext& context, con
     const StringPtr signalId = params.get("SignalId");
     const SignalPtr signal = findComponent(signalId);
     if (signal.assigned() && streamingConsumer.isExternalSignal(signal))
-        DAQ_THROW_EXCEPTION(InvalidParameterException("Mirrored external signal cannot be connected to server input port"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Mirrored external signal cannot be connected to server input port");
     return ConfigServerInputPort::connect(context, inputPort, signal, params);
 }
 

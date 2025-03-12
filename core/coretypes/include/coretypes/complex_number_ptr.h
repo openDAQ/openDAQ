@@ -139,7 +139,7 @@ private:
     void validateHasObject() const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
     }
 
 };

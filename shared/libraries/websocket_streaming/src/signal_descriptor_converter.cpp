@@ -128,7 +128,7 @@ void SignalDescriptorConverter::ToStreamedValueSignal(const daq::SignalPtr& valu
 
     daq::streaming_protocol::SampleType requestedSampleType = Convert(daqSampleType);
     if (requestedSampleType != valueStream->getSampleType())
-        DAQ_THROW_EXCEPTION(ConversionFailedException("Sample type has been changed"));
+        DAQ_THROW_EXCEPTION(ConversionFailedException, "Sample type has been changed");
 
     UnitPtr unit = dataDescriptor.getUnit();
     if (unit.assigned())
@@ -181,7 +181,7 @@ void SignalDescriptorConverter::ToStreamedLinearSignal(const daq::SignalPtr& dom
     daq::streaming_protocol::SampleType requestedSampleType = Convert(daqSampleType);
     if (requestedSampleType != daq::streaming_protocol::SampleType::SAMPLETYPE_S64 &&
         requestedSampleType != daq::streaming_protocol::SampleType::SAMPLETYPE_U64)
-        DAQ_THROW_EXCEPTION(ConversionFailedException("Non-64bit domain sample types are not supported"));
+        DAQ_THROW_EXCEPTION(ConversionFailedException, "Non-64bit domain sample types are not supported");
 
     DataRulePtr rule = domainDescriptor.getRule();
     SetLinearTimeRule(rule, linearStream);
@@ -235,7 +235,7 @@ daq::DataRulePtr SignalDescriptorConverter::GetRule(const daq::streaming_protoco
         }
         break;
         default:
-            DAQ_THROW_EXCEPTION(ConversionFailedException("Unsupported data rule type"));
+            DAQ_THROW_EXCEPTION(ConversionFailedException, "Unsupported data rule type");
     }
 }
 
@@ -246,7 +246,7 @@ void SignalDescriptorConverter::SetLinearTimeRule(const daq::DataRulePtr& rule, 
 {
     if (!rule.assigned() || rule.getType() != DataRuleType::Linear)
     {
-        DAQ_THROW_EXCEPTION(ConversionFailedException("Time rule is not supported"));
+        DAQ_THROW_EXCEPTION(ConversionFailedException, "Time rule is not supported");
     }
     uint64_t delta = rule.getParameters().get("delta");
     linearStream->setOutputRate(delta);
@@ -288,7 +288,7 @@ daq::SampleType SignalDescriptorConverter::Convert(daq::streaming_protocol::Samp
         case daq::streaming_protocol::SampleType::SAMPLETYPE_BITFIELD64:
             return daq::SampleType::UInt64;
         default:
-            DAQ_THROW_EXCEPTION(ConversionFailedException("Unsupported input sample type"));
+            DAQ_THROW_EXCEPTION(ConversionFailedException, "Unsupported input sample type");
     }
 }
 
@@ -341,7 +341,7 @@ daq::streaming_protocol::SampleType SignalDescriptorConverter::Convert(daq::Samp
         case daq::SampleType::String:
         case daq::SampleType::RangeInt64:
         default:
-            DAQ_THROW_EXCEPTION(ConversionFailedException("Unsupported output sample type"));
+            DAQ_THROW_EXCEPTION(ConversionFailedException, "Unsupported output sample type");
     }
 }
 

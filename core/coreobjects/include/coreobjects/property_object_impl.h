@@ -579,16 +579,16 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     {
         this->className = className;
         if (!manager.assigned())
-            DAQ_THROW_EXCEPTION(ManagerNotAssignedException{});
+            DAQ_THROW_EXCEPTION(ManagerNotAssignedException);
 
         const TypePtr type = manager.getType(className);
 
         if (!type.assigned())
-            DAQ_THROW_EXCEPTION(NotFoundException("Class with name {} is not available in module manager", className));
+            DAQ_THROW_EXCEPTION(NotFoundException, "Class with name {} is not available in module manager", className);
 
         const auto objClass = type.asPtrOrNull<IPropertyObjectClass>();
         if (!objClass.assigned())
-            DAQ_THROW_EXCEPTION(InvalidTypeException("Type with name {} is not a property object class", className));
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Type with name {} is not a property object class", className);
 
         objectClass = objClass;
 
@@ -824,7 +824,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coercePropertyW
             }
             catch (...)
             {
-                DAQ_THROW_EXCEPTION(CoerceFailedException());
+                DAQ_THROW_EXCEPTION(CoerceFailedException);
             }
         }
     }
@@ -849,7 +849,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::validatePropert
             }
             catch (...)
             {
-                DAQ_THROW_EXCEPTION(ValidateFailedException());
+                DAQ_THROW_EXCEPTION(ValidateFailedException);
             }
         }
     }
@@ -1338,7 +1338,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUnbou
     if (res == localProperties.end())
     {
         if (objectClass == nullptr)
-            DAQ_THROW_EXCEPTION(NotFoundException(fmt::format(R"(Property with name {} does not exist.)", name)));
+            DAQ_THROW_EXCEPTION(NotFoundException, R"(Property with name {} does not exist.)", name);
 
         return objectClass.getProperty(name);
     }
@@ -1406,7 +1406,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneAndSetChil
         const auto defaultValue = prop.getDefaultValue();
         const auto inspect = defaultValue.asPtrOrNull<IInspectable>();
         if (inspect.assigned() && !inspect.getInterfaceIds().empty() && !(inspect.getInterfaceIds()[0] == IPropertyObject::Id))
-            DAQ_THROW_EXCEPTION(InvalidTypeException("Only base Property Object object-type values are allowed"));
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Only base Property Object object-type values are allowed");
 
         const auto propName = prop.getName();
         const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
@@ -1496,12 +1496,12 @@ int GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::parseIndex(char 
 
         if (end != last)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Could not parse the property index."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Could not parse the property index.");
         }
 
         return index;
     }
-    DAQ_THROW_EXCEPTION(InvalidParameterException("No matching ] found."));
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "No matching ] found.");
 }
 
 #if defined(__GNUC__) && __GNUC__ >= 12
@@ -1946,7 +1946,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         {
             getProperty(propName, &prop);
             if (!prop.assigned())
-                DAQ_THROW_EXCEPTION(NotFoundException(R"(Selection property "{}" not found)", propName));
+                DAQ_THROW_EXCEPTION(NotFoundException, R"(Selection property "{}" not found)", propName);
 
             valuePtr = prop.getValue();
         }
@@ -1954,13 +1954,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         {
             getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
             if (!prop.assigned())
-                DAQ_THROW_EXCEPTION(NotFoundException(R"(Selection property "{}" not found)", propName));
+                DAQ_THROW_EXCEPTION(NotFoundException, R"(Selection property "{}" not found)", propName);
         }
 
         const auto propInternal = prop.asPtr<IPropertyInternal>();
         auto values = propInternal.getSelectionValuesNoLock();
         if (!values.assigned())
-            DAQ_THROW_EXCEPTION(InvalidPropertyException(R"(Selection property "{}" has no selection values assigned)", propName));
+            DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" has no selection values assigned)", propName);
 
         auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true);
         if (!valuesList.assigned())
@@ -1968,7 +1968,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
             auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true);
             if (!valuesDict.assigned())
             {
-                DAQ_THROW_EXCEPTION(InvalidPropertyException(R"(Selection property "{}" values is not a list or dictionary)", propName));
+                DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" values is not a list or dictionary)", propName);
             }
 
             valuePtr = valuesDict.get(valuePtr);

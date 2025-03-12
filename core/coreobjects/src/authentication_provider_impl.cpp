@@ -116,7 +116,7 @@ void JsonStringAuthenticationProviderImpl::loadJsonString(const StringPtr& jsonS
     document.Parse(jsonString);
 
     if (document.HasParseError())
-        DAQ_THROW_EXCEPTION(ParseFailedException());
+        DAQ_THROW_EXCEPTION(ParseFailedException);
 
     this->allowAnonymous = parseAllowAnonymous(document);
     this->users = parseUsers(document);
@@ -125,7 +125,7 @@ void JsonStringAuthenticationProviderImpl::loadJsonString(const StringPtr& jsonS
 bool JsonStringAuthenticationProviderImpl::parseAllowAnonymous(rapidjson::Document& document)
 {
     if (!document.HasMember("allowAnonymous") || !document["allowAnonymous"].IsBool())
-        DAQ_THROW_EXCEPTION(ParseFailedException());
+        DAQ_THROW_EXCEPTION(ParseFailedException);
 
     return document["allowAnonymous"].GetBool();
 }
@@ -138,14 +138,14 @@ DictPtr<IString, IUser> JsonStringAuthenticationProviderImpl::parseUsers(rapidjs
         return users;
 
     if (!document["users"].IsArray())
-        DAQ_THROW_EXCEPTION(ParseFailedException());
+        DAQ_THROW_EXCEPTION(ParseFailedException);
 
     const auto userArray = document["users"].GetArray();
 
     for (size_t i = 0; i < userArray.Size(); i++)
     {
         if (!userArray[i].IsObject())
-            DAQ_THROW_EXCEPTION(ParseFailedException());
+            DAQ_THROW_EXCEPTION(ParseFailedException);
 
         const auto user = parseUser(userArray[i].GetObject());
         users.set(user.getUsername(), user);
@@ -157,9 +157,9 @@ DictPtr<IString, IUser> JsonStringAuthenticationProviderImpl::parseUsers(rapidjs
 UserPtr JsonStringAuthenticationProviderImpl::parseUser(const rapidjson::Value& userObject)
 {
     if (!userObject.HasMember("username") || !userObject["username"].IsString())
-        DAQ_THROW_EXCEPTION(ParseFailedException());
+        DAQ_THROW_EXCEPTION(ParseFailedException);
     if (!userObject.HasMember("passwordHash") || !userObject["passwordHash"].IsString())
-        DAQ_THROW_EXCEPTION(ParseFailedException());
+        DAQ_THROW_EXCEPTION(ParseFailedException);
 
     const auto username = userObject["username"].GetString();
     const auto passwordHash = userObject["passwordHash"].GetString();
@@ -174,14 +174,14 @@ ListPtr<IString> JsonStringAuthenticationProviderImpl::parseUserGroups(const rap
     if (!userObject.HasMember("groups"))
         return groups;
     if (!userObject["groups"].IsArray())
-        DAQ_THROW_EXCEPTION(ParseFailedException());
+        DAQ_THROW_EXCEPTION(ParseFailedException);
 
     auto groupArray = userObject["groups"].GetArray();
 
     for (size_t i = 0; i < groupArray.Size(); i++)
     {
         if (!groupArray[i].IsString())
-            DAQ_THROW_EXCEPTION(ParseFailedException());
+            DAQ_THROW_EXCEPTION(ParseFailedException);
 
         const auto groupName = groupArray[i].GetString();
         groups.pushBack(groupName);
@@ -205,7 +205,7 @@ std::string JsonFileAuthenticationProviderImpl::readJsonFile(const StringPtr& fi
     const auto exists = fs::exists(filenameStr);
 
     if (!exists)
-        DAQ_THROW_EXCEPTION(NotFoundException("Json authentication file does not exist"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Json authentication file does not exist");
 
     std::ifstream file;
     file.open(filenameStr);

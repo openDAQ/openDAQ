@@ -21,18 +21,18 @@ StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<I
     this->types.freeze();
 
     if (this->names.getCount() != this->defaultValues.getCount() || this->names.getCount() != this->types.getCount())
-        DAQ_THROW_EXCEPTION(InvalidParameterException("StructType parameters are of different sizes."));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "StructType parameters are of different sizes.");
 
     for(const StringPtr& fieldName : this->names)
     {
         if (!daq::validateTypeName(fieldName.getCharPtr()))
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Struct field names contain some incorrect ones."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Struct field names contain some incorrect ones.");
     }
 
     for (const TypePtr& type: this->types)
     {
         if (!detail::structAcceptedCoreTypes.count(type.getCoreType()))
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Struct fields cannot be ctObject, ctUndefined, ctFunc, ctProc, ctBinaryData"));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Struct fields cannot be ctObject, ctUndefined, ctFunc, ctProc, ctBinaryData");
     }
 }
 
@@ -48,18 +48,18 @@ StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<I
         this->types.freeze();
 
     if (this->names.getCount() != this->types.getCount())
-        DAQ_THROW_EXCEPTION(InvalidParameterException("StructType parameters are of different sizes."));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "StructType parameters are of different sizes.");
 
     for(const StringPtr& fieldName : this->names)
     {
         if (!daq::validateTypeName(fieldName.getCharPtr()))
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Struct field names contain some incorrect ones."));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Struct field names contain some incorrect ones.");
     }
 
     for (const TypePtr& type: this->types)
     {
         if (!detail::structAcceptedCoreTypes.count(type.getCoreType()))
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Struct fields cannot be ctObject, ctFunc, ctProc, ctBinaryData"));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Struct fields cannot be ctObject, ctFunc, ctProc, ctBinaryData");
     }
 }
 

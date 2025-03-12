@@ -34,7 +34,7 @@ inline BaseObjectPtr ConfigServerInputPort::connect(const RpcContext& context,
                                                     const ParamsDictPtr& params)
 {
     if (!signal.assigned())
-        DAQ_THROW_EXCEPTION(NotFoundException("Cannot connect requested signal. Signal not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Cannot connect requested signal. Signal not found");
 
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
     ConfigServerAccessControl::protectLockedComponent(inputPort);
@@ -63,7 +63,7 @@ inline BaseObjectPtr ConfigServerInputPort::accepts(const RpcContext& context,
                                                     const UserPtr& user)
 {
     if (!signal.assigned())
-        DAQ_THROW_EXCEPTION(NotFoundException("Cannot connect requested signal. Signal not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Cannot connect requested signal. Signal not found");
 
     ConfigServerAccessControl::protectObject(inputPort, user, Permission::Read);
     ConfigServerAccessControl::protectObject(signal, user, Permission::Read);

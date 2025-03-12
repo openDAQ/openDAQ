@@ -340,7 +340,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
                                                       const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException());
+        DAQ_THROW_EXCEPTION(ArgumentNullException);
 
     NativeType nativeType;
     if (ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
@@ -348,7 +348,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
         nativeType = NativeType::config;
     else
-        DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid connection string prefix"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string prefix");
 
     PropertyObjectPtr deviceConfig;
     if (!config.assigned())
@@ -357,10 +357,10 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         deviceConfig = populateDefaultConfig(config, nativeType);
 
     if (!acceptsConnectionParameters(connectionString, deviceConfig))
-        DAQ_THROW_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     if (!context.assigned())
-        DAQ_THROW_EXCEPTION(InvalidParameterException("Context is not available."));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
     auto host = GetHost(connectionString);
     auto port = GetPort(connectionString, deviceConfig);
@@ -555,7 +555,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     {
         auto message = fmt::format("Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
         LOG_E("{}", message);
-        DAQ_THROW_EXCEPTION(NotFoundException(message));
+        DAQ_THROW_EXCEPTION(NotFoundException, message);
     }
 
     return transportClientHandler;
@@ -617,7 +617,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
                                                             const PropertyObjectPtr& config)
 {
     if (!acceptsStreamingConnectionParameters(connectionString, config))
-        DAQ_THROW_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming) : createConnectionDefaultConfig(NativeType::streaming);
 
@@ -748,7 +748,7 @@ StringPtr NativeStreamingClientModule::GetHostType(const StringPtr& url)
 		return String("IPv6");
 	if (std::regex_search(urlString, match, regexIpv4Hostname))
 		return String("IPv4");
-	DAQ_THROW_EXCEPTION(InvalidParameterException("Host type not found in url: {}", url));
+	DAQ_THROW_EXCEPTION(InvalidParameterException, "Host type not found in url: {}", url);
 }
 
 StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
@@ -763,7 +763,7 @@ StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
         return String(match[2]);
     if (std::regex_search(urlString, match, regexIpv4Hostname))
         return String(match[2]);
-    DAQ_THROW_EXCEPTION(InvalidParameterException("Host name not found in url: {}", url));
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
 }
 
 StringPtr NativeStreamingClientModule::GetPort(const StringPtr& url, const PropertyObjectPtr& config)

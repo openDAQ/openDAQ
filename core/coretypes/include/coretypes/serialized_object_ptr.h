@@ -66,7 +66,7 @@ public:
     SerializedObjectPtr readSerializedObject(const StringPtr& key) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         SerializedObjectPtr value;
         checkErrorInfo(object->readSerializedObject(key, &value));
@@ -77,7 +77,7 @@ public:
     BaseObjectPtr readObject(const StringPtr& key, const BaseObjectPtr& context = nullptr, const FunctionPtr& factoryCallback = nullptr) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         IBaseObject* value;
         checkErrorInfo(object->readObject(key, context, factoryCallback, &value));
@@ -88,7 +88,7 @@ public:
     StringPtr readString(const StringPtr& key) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         StringPtr value;
         checkErrorInfo(object->readString(key, &value));
@@ -99,7 +99,7 @@ public:
     Bool readBool(const StringPtr& key) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Bool value;
         checkErrorInfo(object->readBool(key, &value));
@@ -110,7 +110,7 @@ public:
     Int readInt(const StringPtr& key) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Int value;
         ErrCode errCode = object->readInt(key, &value);
@@ -122,7 +122,7 @@ public:
     Float readFloat(const StringPtr& key) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Float value;
         checkErrorInfo(object->readFloat(key, &value));
@@ -133,7 +133,7 @@ public:
     ListPtr<IString> getKeys() const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         IList* keys;
         checkErrorInfo(object->getKeys(&keys));
@@ -144,7 +144,7 @@ public:
     Bool hasKey(const StringPtr& hasMember) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Bool keys;
         checkErrorInfo(object->hasKey(hasMember, &keys));
@@ -156,7 +156,7 @@ public:
     ListPtr<T> readList(const StringPtr& key, const BaseObjectPtr& context = nullptr, const FunctionPtr& factoryCallback = nullptr) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         IList* value;
         checkErrorInfo(object->readList(key, context, factoryCallback, &value));
@@ -167,7 +167,7 @@ public:
     SerializedListPtr readSerializedList(const StringPtr& key) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         SerializedListPtr value;
         checkErrorInfo(object->readSerializedList(key, &value));
@@ -178,7 +178,7 @@ public:
     CoreType getType(const StringPtr& key) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         CoreType ct;
         checkErrorInfo(object->getType(key, &ct));
@@ -192,13 +192,13 @@ public:
 
         const auto type = readString("__type");
         if (type.toStdString() != objectType)
-            DAQ_THROW_EXCEPTION(InvalidTypeException(fmt::format("Object has type ""{}"" of ""{}""", type.toStdString(), objectType)));
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Object has type ""{}"" of ""{}""", type.toStdString(), objectType);
     }
 
     Bool isRoot() const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
         
         Bool isRoot;
         checkErrorInfo(object->isRoot(&isRoot));
@@ -208,7 +208,7 @@ public:
     StringPtr toJson() const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
         
         StringPtr jsonString;
         checkErrorInfo(object->toJson(&jsonString));

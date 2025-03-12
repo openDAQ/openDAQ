@@ -125,7 +125,7 @@ public:
     void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, daq::SizeT timeoutMs = 0, IReaderStatusType** status = nullptr) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         auto errCode = this->object->readWithDomain(values, domain, count, timeoutMs, status);
         daq::checkErrorInfo(errCode);
@@ -176,7 +176,7 @@ public:
     void readWithDomain(void* values, std::chrono::system_clock::time_point* domain, daq::SizeT* count, IReaderStatusType** status = nullptr) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         auto errCode = this->object->readWithDomain(values, domain, count, status);
         daq::checkErrorInfo(errCode);
@@ -221,13 +221,13 @@ inline void TimeReaderBase::handleDescriptorChanged(const DataDescriptorPtr& des
     auto domainQuantity = unit.getQuantity();
     if (domainQuantity != "time")
     {
-        DAQ_THROW_EXCEPTION(InvalidSampleTypeException(fmt::format(R"(Domain quantity is not "time" but "{}".)", domainQuantity)));
+        DAQ_THROW_EXCEPTION(InvalidSampleTypeException, R"(Domain quantity is not "time" but "{}".)", domainQuantity);
     }
 
     auto timeUnit = unit.getSymbol();
     if (timeUnit != "s")
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException(fmt::format(R"(Only seconds are supported as a time-unit but encountered '{}'.)", timeUnit)));
+        DAQ_THROW_EXCEPTION(NotSupportedException, R"(Only seconds are supported as a time-unit but encountered '{}'.)", timeUnit);
     }
 
     std::istringstream epochString(reader::fixupIso8601(descriptor.getOrigin()));
@@ -280,20 +280,20 @@ inline void TimeReaderBase::readData(void* inputBuffer, std::chrono::system_cloc
             return readSamples(static_cast<SampleTypeToType<SampleType::RangeInt64>::Type*>(inputBuffer), output, count);
         case SampleType::ComplexFloat32:
         case SampleType::ComplexFloat64:
-            DAQ_THROW_EXCEPTION(NotSupportedException("Complex values as time domain are not supported."));
+            DAQ_THROW_EXCEPTION(NotSupportedException, "Complex values as time domain are not supported.");
         case SampleType::Binary:
         case SampleType::Struct:
         case SampleType::String:
-            DAQ_THROW_EXCEPTION(NotSupportedException("Struct, string or binary values as time domain are not supported."));
+            DAQ_THROW_EXCEPTION(NotSupportedException, "Struct, string or binary values as time domain are not supported.");
         case SampleType::Invalid:
-            DAQ_THROW_EXCEPTION(InvalidStateException("Unknown raw data-type, conversion not possible."));
+            DAQ_THROW_EXCEPTION(InvalidStateException, "Unknown raw data-type, conversion not possible.");
         case SampleType::Null:
-            DAQ_THROW_EXCEPTION(InvalidSampleTypeException("Packet with Null sample-type samples encountered"));
+            DAQ_THROW_EXCEPTION(InvalidSampleTypeException, "Packet with Null sample-type samples encountered");
         case SampleType::_count:
             break;
     }
 
-    DAQ_THROW_EXCEPTION(InvalidSampleTypeException("Packet with invalid sample-type samples encountered"));
+    DAQ_THROW_EXCEPTION(InvalidSampleTypeException, "Packet with invalid sample-type samples encountered");
 }
 
 END_NAMESPACE_OPENDAQ

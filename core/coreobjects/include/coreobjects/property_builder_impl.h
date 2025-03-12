@@ -39,7 +39,7 @@ protected:
     {
         if (valueType == ctBinaryData)
         {
-            DAQ_THROW_EXCEPTION(InvalidTypeException{"Properties cannot be BinaryData types"});
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Properties cannot be BinaryData types");
         }
     }
 

@@ -115,7 +115,7 @@ public:
     {
         if (!object)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
         }
 
         return getValue<std::string>("");
@@ -129,7 +129,7 @@ public:
     {
         if (!object)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
         }
 
         ConstCharPtr value;
@@ -151,7 +151,7 @@ public:
     {
         if (!object)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
         }
 
         ConstCharPtr value;
@@ -172,7 +172,7 @@ public:
     {
         if (!object)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
         }
 
         SizeT size;

@@ -86,7 +86,7 @@ public:
     void update(const SerializedObjectPtr& update, const BaseObjectPtr& config) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         auto errCode = this->object->update(update, config);
         daq::checkErrorInfo(errCode);
@@ -95,7 +95,7 @@ public:
     void serializeForUpdate(const ObjectPtr<ISerializer>& serializer) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         auto errCode = this->object->serializeForUpdate(serializer);
         daq::checkErrorInfo(errCode);
@@ -104,7 +104,7 @@ public:
     void updateEnded(const BaseObjectPtr& context) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         auto errCode = this->object->updateEnded(context);
         daq::checkErrorInfo(errCode);
@@ -113,7 +113,7 @@ public:
     void updateInternal(const SerializedObjectPtr& update, const BaseObjectPtr& context) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         auto errCode = this->object->updateInternal(update, context);
         daq::checkErrorInfo(errCode);

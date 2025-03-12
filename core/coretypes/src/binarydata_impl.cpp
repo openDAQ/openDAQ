@@ -7,12 +7,12 @@ BEGIN_NAMESPACE_OPENDAQ
 BinaryDataImpl::BinaryDataImpl(SizeT size)
 {
     if (size == 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException());
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     this->data = new (std::nothrow) char[size];
     this->size = size;
     if (this->data == nullptr)
-        DAQ_THROW_EXCEPTION(NoMemoryException());
+        DAQ_THROW_EXCEPTION(NoMemoryException);
 }
 
 ErrCode BinaryDataImpl::getAddress(void** data)

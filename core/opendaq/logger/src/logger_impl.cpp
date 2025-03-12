@@ -22,17 +22,17 @@ LoggerImpl::LoggerImpl(const ListPtr<ILoggerSink>& sinksList, LogLevel level)
 {
     if (!sinksList.assigned())
     {
-        DAQ_THROW_EXCEPTION(ArgumentNullException("Sinks List must not be null."));
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Sinks List must not be null.");
     }
     for (const ObjectPtr<ILoggerSink>& sink : sinksList)
     {
         if(!sink.assigned())
         {
-            DAQ_THROW_EXCEPTION(ArgumentNullException("Sink must not be null."));
+            DAQ_THROW_EXCEPTION(ArgumentNullException, "Sink must not be null.");
         }
         if(!sink.supportsInterface<ILoggerSinkBasePrivate>())
         {
-            DAQ_THROW_EXCEPTION(InvalidTypeException("Sink must have valid type."));
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Sink must have valid type.");
         }
         sinks.push_back(sink);
     }

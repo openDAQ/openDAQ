@@ -90,7 +90,7 @@ public:
     void handleEvent(const SenderPtr& sender, const EventArgsPtr& eventArgs) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->handleEvent(sender, eventArgs);
         checkErrorInfo(errCode);

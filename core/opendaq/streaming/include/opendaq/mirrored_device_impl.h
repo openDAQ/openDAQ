@@ -211,13 +211,11 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
 
     if (it != streamingSources.end())
     {
-        DAQ_THROW_EXCEPTION(DuplicateItemException(
-            fmt::format(
-                R"(Device with global Id "{}" already has streaming source "{}" )",
-                this->globalId,
-                connectionString
-            )
-        ));
+        DAQ_THROW_EXCEPTION(DuplicateItemException,
+                            R"(Device with global Id "{}" already has streaming source "{}" )",
+                            this->globalId,
+                            connectionString
+        );
     }
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();

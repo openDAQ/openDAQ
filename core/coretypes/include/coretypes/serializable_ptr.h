@@ -58,7 +58,7 @@ public:
     void serialize(const ObjectPtr<ISerializer>& serializator) const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->serialize(serializator);
         checkErrorInfo(errCode);

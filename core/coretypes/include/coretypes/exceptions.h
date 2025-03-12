@@ -38,9 +38,13 @@ BEGIN_NAMESPACE_OPENDAQ
             : excBase(errCode, msg, std::forward<Params>(params)...)                             \
         {                                                                                        \
         }                                                                                        \
+        explicit excName##Exception(daq::Int fileLine, daq::ConstCharPtr fileName)               \
+            : excBase(true, errCode, excMsg, fileName, fileLine)                                 \
+        {                                                                                        \
+        }                                                                                        \
         template <typename... Params>                                                            \
-        explicit excName##Exception(daq::ErrCode err, const std::string& msg, Params&&... params)\
-            : excBase(err, msg, std::forward<Params>(params)...)                                 \
+        explicit excName##Exception(daq::Int fileLine, daq::ConstCharPtr fileName, const std::string& msg, Params&&... params) \
+            : excBase(fileName, fileLine, errCode, msg, std::forward<Params>(params)...)         \
         {                                                                                        \
         }                                                                                        \
     };                                                                                           \
@@ -82,9 +86,9 @@ BEGIN_NAMESPACE_OPENDAQ
     }
 
 #ifdef NDEBUG
-    #define DAQ_THROW_EXCEPTION(opendaqException) throw opendaqException
+    #define DAQ_THROW_EXCEPTION(OpendaqException, ...) throw OpendaqException(##__VA_ARGS__)
 #else
-    #define DAQ_THROW_EXCEPTION(opendaqException) throw opendaqException.setFileName(__FILE__).setFileLine(__LINE__)
+    #define DAQ_THROW_EXCEPTION(OpendaqException, ...) throw OpendaqException(__LINE__, __FILE__, ##__VA_ARGS__)
 #endif
 
 /*

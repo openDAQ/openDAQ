@@ -87,7 +87,7 @@ public:
     SizeT getMajor() const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         SizeT major;
         auto errCode = this->object->getMajor(&major);
@@ -99,7 +99,7 @@ public:
     SizeT getMinor() const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         SizeT minor;
         auto errCode = this->object->getMinor(&minor);
@@ -111,7 +111,7 @@ public:
     SizeT getPatch() const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(daq::InvalidParameterException());
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         SizeT patch;
         auto errCode = this->object->getPatch(&patch);

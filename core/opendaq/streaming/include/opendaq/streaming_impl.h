@@ -779,9 +779,10 @@ void StreamingImpl<Interfaces...>::addToAvailableSignals(const StringPtr& signal
     else
     {
         LOG_E("Signal with id {} is already registered as available", signalStreamingId);
-        DAQ_THROW_EXCEPTION(DuplicateItemException("Signal with id {} is already registered as available in streaming {}",
-                                     signalStreamingId,
-                                     this->connectionString));
+        DAQ_THROW_EXCEPTION(DuplicateItemException, 
+                            "Signal with id {} is already registered as available in streaming {}",
+                            signalStreamingId,
+                            this->connectionString);
     }
 }
 
@@ -798,7 +799,10 @@ void StreamingImpl<Interfaces...>::removeFromAvailableSignals(const StringPtr& s
     else
     {
         LOG_E("Signal with id {} was not registered as available", signalStreamingId);
-        DAQ_THROW_EXCEPTION(NotFoundException("Signal with id {} was not registered as available in streaming {}", signalStreamingId, this->connectionString));
+        DAQ_THROW_EXCEPTION(NotFoundException, 
+                            "Signal with id {} was not registered as available in streaming {}",
+                            signalStreamingId, 
+                            this->connectionString);
     }
 }
 
@@ -873,7 +877,7 @@ template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::completeReconnection()
 {
     if (!isReconnecting)
-        DAQ_THROW_EXCEPTION(InvalidStateException("Fail to complete reconnection - reconnection was not started"));
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Fail to complete reconnection - reconnection was not started");
 
     isReconnecting = false;
 }

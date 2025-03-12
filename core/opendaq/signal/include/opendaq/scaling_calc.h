@@ -76,7 +76,7 @@ void* ScalingCalcTyped<T, U>::scaleData(void* data, SizeT sampleCount)
     if (type == ScalingType::Linear)
         return scaleLinear(data, sampleCount);
 
-    throw(UnknownRuleTypeException{});
+    DAQ_THROW_EXCEPTION(UnknownRuleTypeException);
 }
 
 template <typename T, typename U>
@@ -88,7 +88,7 @@ void ScalingCalcTyped<T, U>::scaleData(void* data, SizeT sampleCount, void** out
         return;
     }
 
-    throw(UnknownRuleTypeException{});
+    DAQ_THROW_EXCEPTION(UnknownRuleTypeException);
 }
 
 template <typename T, typename U>
@@ -96,7 +96,7 @@ void* ScalingCalcTyped<T, U>::scaleLinear(void* data, SizeT sampleCount)
 {
     auto scaledData = std::malloc(sampleCount * sizeof(U));
     if (!scaledData)
-        DAQ_THROW_EXCEPTION(NoMemoryException("Memory allocation failed."));
+        DAQ_THROW_EXCEPTION(NoMemoryException, "Memory allocation failed.");
 
     this->scaleLinear(data, sampleCount, &scaledData);
     return scaledData;
@@ -168,6 +168,6 @@ static ScalingCalc* createScalingCalcTyped(const ScalingPtr& scaling)
     if (inputType == SampleType::Int64 && outputType == ScaledSampleType::Float64)
         return new ScalingCalcTyped<SampleTypeToType<SampleType::Int64>::Type, SampleTypeToType<SampleType::Float64>::Type>(scaling);
 
-    DAQ_THROW_EXCEPTION(InvalidSampleTypeException("The scaling input or output type is not supported."));
+    DAQ_THROW_EXCEPTION(InvalidSampleTypeException, "The scaling input or output type is not supported.");
 }
 END_NAMESPACE_OPENDAQ

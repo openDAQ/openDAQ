@@ -19,7 +19,7 @@ namespace detail
         if (ruleType == DataRuleType::Linear)
             return Dict<IString, IBaseObject>({{"delta", param1}, {"start", param2}});
 
-        DAQ_THROW_EXCEPTION(InvalidParameterException{"Invalid type of data rule. Rules with 2 number parameters can only be explicit or linear."});
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid type of data rule. Rules with 2 number parameters can only be explicit or linear.");
     }
 
     static DictPtr<IString, IBaseObject> checkTypeAndBuildNoParams(DataRuleType ruleType)
@@ -29,7 +29,7 @@ namespace detail
         if (ruleType == DataRuleType::Constant)
             return Dict<IString, IBaseObject>();
 
-        DAQ_THROW_EXCEPTION(InvalidParameterException{"Invalid type of data rule. Rules with no parameters can only be explicit or constant."});
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid type of data rule. Rules with no parameters can only be explicit or constant.");
     }
 }
 

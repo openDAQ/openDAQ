@@ -360,7 +360,7 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
 inline std::string toStdString(IString* rtStr)
 {
     if (rtStr == nullptr)
-        DAQ_THROW_EXCEPTION(InvalidParameterException("Parameter must not be null"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Parameter must not be null");
 
     ConstCharPtr ptr;
     ErrCode err = rtStr->getCharPtr(&ptr);

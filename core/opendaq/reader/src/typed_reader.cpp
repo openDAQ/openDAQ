@@ -74,7 +74,7 @@ struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::Compl
 {
     static T Multiply(T value, const RatioPtr& multiplier)
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     static T Adjust(T value, const RatioPtr& multiplier)
@@ -84,7 +84,7 @@ struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::Compl
 
     static T GetStart(T startValue, std::int64_t offset)
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     static constexpr bool Check(const RatioPtr& multiplier, T readValue, T startValue)
@@ -270,7 +270,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                                               [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp) const
 {
     if (!inputBuffer)
-        DAQ_THROW_EXCEPTION(ArgumentNullException());
+        DAQ_THROW_EXCEPTION(ArgumentNullException);
 
     using namespace reader;
 
@@ -322,7 +322,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                     }
                     else
                     {
-                        DAQ_THROW_EXCEPTION(NotSupportedException());
+                        DAQ_THROW_EXCEPTION(NotSupportedException);
                     }
                 }
                 return i / valuesPerSample;
@@ -549,7 +549,7 @@ std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionP
         case SampleType::_count:
             break;
     }
-    DAQ_THROW_EXCEPTION(NotSupportedException("The requested sample-type is unsupported or invalid."));
+    DAQ_THROW_EXCEPTION(NotSupportedException, "The requested sample-type is unsupported or invalid.");
 }
 
 std::string_view format_as(SampleType sampleType)

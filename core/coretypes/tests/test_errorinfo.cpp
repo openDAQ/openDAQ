@@ -58,7 +58,7 @@ public:
     {
         return daqTry([] 
         {
-            DAQ_THROW_EXCEPTION(GeneralErrorException("Test failed"));
+            DAQ_THROW_EXCEPTION(GeneralErrorException, "Test failed");
         });
     }
 };

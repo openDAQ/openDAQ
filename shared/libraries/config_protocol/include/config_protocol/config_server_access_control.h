@@ -52,7 +52,7 @@ inline void ConfigServerAccessControl::protectObject(const PropertyObjectPtr& co
     for (const auto permission : requiredPermissions)
     {
         if (!permissionManager.isAuthorized(user, permission))
-            DAQ_THROW_EXCEPTION(AccessDeniedException());
+            DAQ_THROW_EXCEPTION(AccessDeniedException);
     }
 }
 
@@ -77,13 +77,13 @@ inline void ConfigServerAccessControl::protectLockedComponent(const ComponentPtr
     const auto device = getParentDevice(component);
 
     if (device.assigned() && device.isLocked())
-        DAQ_THROW_EXCEPTION(DeviceLockedException());
+        DAQ_THROW_EXCEPTION(DeviceLockedException);
 }
 
 inline void ConfigServerAccessControl::protectViewOnlyConnection(ClientType connectionType)
 {
     if (connectionType == ClientType::ViewOnly)
-        DAQ_THROW_EXCEPTION(AccessDeniedException("Operation is not avilable under view-only connection"));
+        DAQ_THROW_EXCEPTION(AccessDeniedException, "Operation is not avilable under view-only connection");
 }
 
 inline DevicePtr ConfigServerAccessControl::getParentDevice(const ComponentPtr& component)

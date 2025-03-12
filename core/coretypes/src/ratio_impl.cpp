@@ -17,7 +17,7 @@ RatioImpl::RatioImpl(Int numerator, Int denominator)
 
     if (this->denominator == 0)
     {
-        DAQ_THROW_EXCEPTION(InvalidParameterException("Denominator can not be 0"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Denominator can not be 0");
     }
 }
 

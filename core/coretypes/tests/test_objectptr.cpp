@@ -37,7 +37,7 @@ public:
     void test() const
     {
         if (!object)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const auto errCode = object->test();
         checkErrorInfo(errCode);

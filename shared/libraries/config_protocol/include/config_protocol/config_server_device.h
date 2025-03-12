@@ -156,10 +156,10 @@ inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context,
     const auto devs = device.getDevices(search::LocalId(localId));
 
     if (devs.getCount() == 0)
-        DAQ_THROW_EXCEPTION(NotFoundException("Device not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device not found");
 
     if (devs.getCount() > 1)
-        DAQ_THROW_EXCEPTION(InvalidStateException("Duplicate device"));
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Duplicate device");
 
     device.removeDevice(devs[0]);
 

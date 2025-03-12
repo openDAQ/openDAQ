@@ -36,34 +36,34 @@ NativeStreamingClientImpl::~NativeStreamingClientImpl()
 void NativeStreamingClientImpl::manageTransportLayerProps()
 {
     if (!transportLayerProperties.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException("Transport layer properties cannot be null"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Transport layer properties cannot be null");
 
     if (!transportLayerProperties.hasProperty("MonitoringEnabled"))
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer MonitoringEnabled property not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer MonitoringEnabled property not found");
     if (!transportLayerProperties.hasProperty("HeartbeatPeriod"))
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer HeartbeatPeriod property not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer HeartbeatPeriod property not found");
     if (!transportLayerProperties.hasProperty("InactivityTimeout"))
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer InactivityTimeout property not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer InactivityTimeout property not found");
     if (!transportLayerProperties.hasProperty("ConnectionTimeout"))
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer ConnectionTimeout property not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ConnectionTimeout property not found");
     if (!transportLayerProperties.hasProperty("StreamingInitTimeout"))
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer StreamingInitTimeout property not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer StreamingInitTimeout property not found");
     if (!transportLayerProperties.hasProperty("ReconnectionPeriod"))
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer ReconnectionPeriod property not found"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ReconnectionPeriod property not found");
 
     if (transportLayerProperties.hasProperty("ClientId") &&
         transportLayerProperties.getProperty("ClientId").getValueType() != ctString)
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer ClientId property should be of String type"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ClientId property should be of String type");
     if (transportLayerProperties.getProperty("MonitoringEnabled").getValueType() != ctBool)
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer MonitoringEnabled property should be of Bool type"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer MonitoringEnabled property should be of Bool type");
     if (transportLayerProperties.getProperty("HeartbeatPeriod").getValueType() != ctInt)
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer HeartbeatPeriod property should be of Int type"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer HeartbeatPeriod property should be of Int type");
     if (transportLayerProperties.getProperty("InactivityTimeout").getValueType() != ctInt)
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer InactivityTimeout property should be of Int type"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer InactivityTimeout property should be of Int type");
     if (transportLayerProperties.getProperty("ConnectionTimeout").getValueType() != ctInt)
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer ConnectionTimeout property should be of Int type"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ConnectionTimeout property should be of Int type");
     if (transportLayerProperties.getProperty("ReconnectionPeriod").getValueType() != ctInt)
-        DAQ_THROW_EXCEPTION(NotFoundException("Transport layer ReconnectionPeriod property should be of Int type"));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ReconnectionPeriod property should be of Int type");
 
     connectionMonitoringEnabled = transportLayerProperties.getPropertyValue("MonitoringEnabled");
     heartbeatPeriod = transportLayerProperties.getPropertyValue("HeartbeatPeriod");
@@ -477,7 +477,7 @@ void NativeStreamingClientImpl::handleSignal(const SignalNumericIdType& signalNu
                       signalNumericId,
                       it->second,
                       signalStringId);
-                DAQ_THROW_EXCEPTION(DuplicateItemException());
+                DAQ_THROW_EXCEPTION(DuplicateItemException);
             }
         }
         else

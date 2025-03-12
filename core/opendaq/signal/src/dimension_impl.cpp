@@ -40,7 +40,7 @@ DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, 
     , rule(rule)
 {
     if (!rule.assigned())
-        DAQ_THROW_EXCEPTION(ConfigurationIncompleteException{"Dimension rule is not assigned."});
+        DAQ_THROW_EXCEPTION(ConfigurationIncompleteException, "Dimension rule is not assigned.");
 }
 
 DimensionImpl::DimensionImpl(IDimensionBuilder* dimensionBuilder)
@@ -52,7 +52,7 @@ DimensionImpl::DimensionImpl(IDimensionBuilder* dimensionBuilder)
     this->rule = builderPtr.getRule();
 
     if (!rule.assigned())
-        DAQ_THROW_EXCEPTION(ConfigurationIncompleteException{"Dimension rule is not assigned."});
+        DAQ_THROW_EXCEPTION(ConfigurationIncompleteException, "Dimension rule is not assigned.");
 }
 
 

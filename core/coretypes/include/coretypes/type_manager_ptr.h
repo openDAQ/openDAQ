@@ -112,7 +112,7 @@ public:
     void addType(const TypePtr& type) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const auto errCode = this->object->addType(type);
         checkErrorInfo(errCode);
@@ -129,7 +129,7 @@ public:
     void removeType(const StringPtr& name) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const auto errCode = this->object->removeType(name);
         checkErrorInfo(errCode);
@@ -144,7 +144,7 @@ public:
     TypePtr getType(const StringPtr& name) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         TypePtr type;
         const auto errCode = this->object->getType(name, &type);
@@ -160,7 +160,7 @@ public:
     ListPtr<IString> getTypes() const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ListPtr<IString> types;
         const auto errCode = this->object->getTypes(&types);
@@ -177,7 +177,7 @@ public:
     Bool hasType(const StringPtr& typeName) const
     {
         if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException());
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Bool hasType;
         const auto errCode = this->object->hasType(typeName, &hasType);

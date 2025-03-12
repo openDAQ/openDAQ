@@ -349,7 +349,7 @@ public:
      */
     virtual FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
     {
-        DAQ_THROW_EXCEPTION(NotFoundException());
+        DAQ_THROW_EXCEPTION(NotFoundException);
     }
 
     /*!

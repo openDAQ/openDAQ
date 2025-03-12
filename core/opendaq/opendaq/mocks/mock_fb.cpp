@@ -41,7 +41,7 @@ FunctionBlockPtr MockFunctionBlockImpl::onAddFunctionBlock(const StringPtr& type
         this->addNestedFunctionBlock(childFB);
         return childFB;
     }
-    DAQ_THROW_EXCEPTION(NotSupportedException("Mock function block supports only NestedFBId"));
+    DAQ_THROW_EXCEPTION(NotSupportedException, "Mock function block supports only NestedFBId");
 }
 
 

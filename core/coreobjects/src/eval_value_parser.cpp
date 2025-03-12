@@ -91,7 +91,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::expression(int precedence)
 {
     auto token = advance();
     if (token.type == TokenType::End || prefixParseRules.find(token.type) == prefixParseRules.end())
-        DAQ_THROW_EXCEPTION(daq::ParseFailedException("Unexpected end of expression"));
+        DAQ_THROW_EXCEPTION(daq::ParseFailedException, "Unexpected end of expression");
     auto left = prefix(token, prefixParseRules[token.type]);
     while (precedence < infixTokenPrecedence(peek().type))
     {
@@ -187,7 +187,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& tok
                 }
                 consume(TokenType::CloseParen);
                 if (valueNodes->size() < 2)
-                    DAQ_THROW_EXCEPTION(daq::ParseFailedException("switch statement must have at least two values"));
+                    DAQ_THROW_EXCEPTION(daq::ParseFailedException, "switch statement must have at least two values");
                 return std::make_unique<daq::SwitchNode>(std::move(varNode), std::move(valueNodes));
             }
         case TokenType::Unit:
@@ -198,7 +198,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& tok
                 while(!isAt(TokenType::CloseParen))
                 {
                     if (unitParams->size() > 3)
-                        DAQ_THROW_EXCEPTION(daq::ParseFailedException("Unit literal accepts up to 4 arguments"));
+                        DAQ_THROW_EXCEPTION(daq::ParseFailedException, "Unit literal accepts up to 4 arguments");
 
                     unitParams->push_back(expression());
                     if (!isAt(TokenType::CloseParen))
@@ -207,7 +207,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& tok
                 consume(TokenType::CloseParen);
 
                 if (unitParams->empty())
-                    DAQ_THROW_EXCEPTION(daq::ParseFailedException("Unit literal must have at least one argument (symbol)"));
+                    DAQ_THROW_EXCEPTION(daq::ParseFailedException, "Unit literal must have at least one argument (symbol)");
 
                 auto unitNode = std::make_unique<daq::UnitNode>(std::move(unitParams));
                 return unitNode;
@@ -224,7 +224,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& tok
                 {
                     case TokenType::Percent: nextNode = propref(); break;
                     case TokenType::Dollar: nextNode = valref(); break;
-                    default: DAQ_THROW_EXCEPTION(daq::ParseFailedException("unexpected token found"));
+                    default: DAQ_THROW_EXCEPTION(daq::ParseFailedException, "unexpected token found");
                 }
 
                 auto node = std::make_unique<daq::RefNode>(argNum);
@@ -235,7 +235,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& tok
         case TokenType::Identifier:
             {
                 if (!params->useFunctionAsReferenceResolver)
-                    DAQ_THROW_EXCEPTION(daq::ParseFailedException("invalid identifier"));
+                    DAQ_THROW_EXCEPTION(daq::ParseFailedException, "invalid identifier");
 
                 std::string str = std::get<std::string>(token.value);
                 auto node = std::make_unique<daq::RefNode>(str, daq::RefType::Func);
@@ -243,7 +243,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& tok
                 return node;
             }
         default:
-            DAQ_THROW_EXCEPTION(daq::ParseFailedException("syntax error"));
+            DAQ_THROW_EXCEPTION(daq::ParseFailedException, "syntax error");
     }
 }
 
@@ -288,7 +288,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::propref()
         else if (propertyItem == "propertynames")
             refType = daq::RefType::PropertyNames;
         else
-            DAQ_THROW_EXCEPTION(daq::ParseFailedException("syntax error"));
+            DAQ_THROW_EXCEPTION(daq::ParseFailedException, "syntax error");
         str += ":" + propertyItem;
     }
     if (isAt(TokenType::OpenParen))
@@ -332,7 +332,7 @@ bool EvalValueParser::isAt(TokenType tokenType) const
 void EvalValueParser::assertIsAt(TokenType tokenType) const
 {
     if (!isAt(tokenType))
-        DAQ_THROW_EXCEPTION(daq::ParseFailedException("syntax error"));
+        DAQ_THROW_EXCEPTION(daq::ParseFailedException, "syntax error");
 }
 
 void EvalValueParser::consume(TokenType tokenType)

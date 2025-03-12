@@ -157,7 +157,7 @@ public:
         den /= gcd;
 
         if (den % num != 0)
-            DAQ_THROW_EXCEPTION(NotSupportedException("Resolution must be aligned on full unit of domain"));
+            DAQ_THROW_EXCEPTION(NotSupportedException, "Resolution must be aligned on full unit of domain");
 
         value = (((value * num + den - 1) / den) * den) / num;
     }
@@ -172,7 +172,7 @@ public:
         den /= gcd;
 
         if (den % num != 0)
-            DAQ_THROW_EXCEPTION(NotSupportedException("Resolution must be aligned on full unit of domain"));
+            DAQ_THROW_EXCEPTION(NotSupportedException, "Resolution must be aligned on full unit of domain");
 
         value = (((value * num + den - 1) / den) * den) / num;
     }
@@ -211,7 +211,7 @@ private:
         if (sortable == nullptr)
         {
             // ReSharper disable once StringLiteralTypo
-            DAQ_THROW_EXCEPTION(InvalidParameterException("All Comparables must be of the same type!"));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "All Comparables must be of the same type!");
         }
 
         if (value > sortable->value)
@@ -243,17 +243,17 @@ public:
     [[nodiscard]]
     const ComplexFloat32& getValue() const
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     void roundUpOnUnitOfDomain() override
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     void roundUpOnDomainInterval(const RatioPtr interval) override
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     void print(std::ostream& os) const override
@@ -271,7 +271,7 @@ private:
     [[nodiscard]]
     int compare(const Comparable& other) const override
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 };
 
@@ -291,17 +291,17 @@ public:
     [[nodiscard]]
     const ComplexFloat64& getValue() const
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     void roundUpOnUnitOfDomain() override
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     void roundUpOnDomainInterval(const RatioPtr interval) override
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     void print(std::ostream& os) const override
@@ -319,7 +319,7 @@ private:
     [[nodiscard]]
     int compare(const Comparable& other) const override
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 };
 
@@ -356,12 +356,12 @@ public:
 
     void roundUpOnUnitOfDomain() override
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     void roundUpOnDomainInterval(const RatioPtr interval) override
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException());
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
 
@@ -385,7 +385,7 @@ private:
         if (sortable == nullptr)
         {
             // ReSharper disable once StringLiteralTypo
-            DAQ_THROW_EXCEPTION(InvalidParameterException("All Comparables must be of the same type!"));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "All Comparables must be of the same type!");
         }
 
         if (value.start > sortable->value.start)

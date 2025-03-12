@@ -90,7 +90,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
 
         updateCommonSampleRateAndDividers();
         if (invalid)
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Signal sample rate does not match required common sample rate"));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Signal sample rate does not match required common sample rate");
     }
     catch (...)
     {
@@ -104,7 +104,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
     , minReadCount(1)
 {
     if (!readerConfig.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException("Existing reader must not be null"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Existing reader must not be null");
 
     readerConfig.markAsInvalid();
 
@@ -131,7 +131,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
 
         updateCommonSampleRateAndDividers();
         if (invalid)
-            DAQ_THROW_EXCEPTION(InvalidParameterException("Signal sample rate does not match required common sample rate"));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Signal sample rate does not match required common sample rate");
     }
     catch (...)
     {
@@ -218,19 +218,19 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
         auto domain = signal.getDomainSignal();
         if (!domain.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException(R"(Signal "{}" does not have a domain signal set.)", signal.getLocalId()));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain signal set.)", signal.getLocalId());
         }
 
         auto domainDescriptor = domain.getDescriptor();
         if (!domainDescriptor.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException(R"(Signal "{}" does not have a domain descriptor set.)", signal.getLocalId()));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain descriptor set.)", signal.getLocalId());
         }
 
         auto domainUnit = domainDescriptor.getUnit();
         if (!domainUnit.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException(R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId()));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId());
         }
 
         if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
@@ -240,33 +240,35 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 
             if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
             {
-                DAQ_THROW_EXCEPTION(InvalidParameterException(R"(Signal "{}" does not have a domain quantity set.)", signal.getLocalId()));
+                DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain quantity set.)", signal.getLocalId());
             }
 
             if (domainQuantity != "time")
             {
-                DAQ_THROW_EXCEPTION(NotSupportedException(R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
-                                            signal.getLocalId(),
-                                            domainQuantity));
+                DAQ_THROW_EXCEPTION(NotSupportedException,
+                                    R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
+                                    signal.getLocalId(),
+                                    domainQuantity);
             }
 
             if (domainUnitSymbol != "s")
             {
-                DAQ_THROW_EXCEPTION(NotSupportedException(R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
-                                            signal.getLocalId(),
-                                            domainUnitSymbol));
+                DAQ_THROW_EXCEPTION(NotSupportedException,
+                                    R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
+                                    signal.getLocalId(),
+                                    domainUnitSymbol);
             }
         }
         else
         {
             if (domainQuantity != domainUnit.getQuantity())
             {
-                DAQ_THROW_EXCEPTION(InvalidStateException(R"(Signal "{}" domain quantity does not match with others.)", signal.getLocalId()));
+                DAQ_THROW_EXCEPTION(InvalidStateException, R"(Signal "{}" domain quantity does not match with others.)", signal.getLocalId());
             }
 
             if (domainUnitSymbol != domainUnit.getSymbol())
             {
-                DAQ_THROW_EXCEPTION(InvalidStateException(R"(Signal "{}" domain unit does not match with others.)", signal.getLocalId()));
+                DAQ_THROW_EXCEPTION(InvalidStateException, R"(Signal "{}" domain unit does not match with others.)", signal.getLocalId());
             }
         }
 
@@ -294,7 +296,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
             else
             {
                 if (timeSource != TimeSource::Unknown && referenceDomainInfo.getReferenceTimeSource() != timeSource)
-                    DAQ_THROW_EXCEPTION(InvalidStateException("Only one known Reference Time Source is allowed per Multi Reader."));
+                    DAQ_THROW_EXCEPTION(InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
                 timeSource = referenceDomainInfo.getReferenceTimeSource();
             }
 
@@ -326,7 +328,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 
                 if (needsKnownTimeSource && !hasKnownTimeSource)
                 {
-                    DAQ_THROW_EXCEPTION(InvalidStateException("Reference domain is incompatible."));
+                    DAQ_THROW_EXCEPTION(InvalidStateException, "Reference domain is incompatible.");
                 }
             }
 
@@ -387,9 +389,9 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
 void MultiReaderImpl::checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list)
 {
     if (!list.assigned())
-        DAQ_THROW_EXCEPTION(NotAssignedException("List of inputs is not assigned"));
+        DAQ_THROW_EXCEPTION(NotAssignedException, "List of inputs is not assigned");
     if (list.getCount() == 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException("Need at least one signal."));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Need at least one signal.");
     context = list[0].getContext();
 }
 
@@ -406,7 +408,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
         {
             if (haveInputPorts)
-                DAQ_THROW_EXCEPTION(InvalidParameterException("Cannot pass both input ports and signals as items"));
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
             haveSignals = true;
 
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
@@ -418,7 +420,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         else if (auto port = el.asPtrOrNull<IInputPortConfig>(); port.assigned())
         {
             if (haveSignals)
-                DAQ_THROW_EXCEPTION(InvalidParameterException("Cannot pass both input ports and signals as items"));
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
             haveInputPorts = true;
 
             if (overrideMethod)
@@ -427,7 +429,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         }
         else
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException("One of the elements of input list is not signal or input port"));
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "One of the elements of input list is not signal or input port");
         }
     }
 

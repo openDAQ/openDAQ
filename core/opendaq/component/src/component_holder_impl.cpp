@@ -10,10 +10,10 @@ ComponentHolderImpl::ComponentHolderImpl(const StringPtr& localId, const StringP
     , component(component)
 {
     if (!localId.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException("Id must be assigned"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Id must be assigned");
 
     if (!component.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException("Component must be assigned"));
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Component must be assigned");
 }
 
 ComponentHolderImpl::ComponentHolderImpl(const ComponentPtr& component)
@@ -96,7 +96,7 @@ ErrCode ComponentHolderImpl::Deserialize(ISerializedObject* serialized, IBaseObj
     const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 
     if (!contextPtr.supportsInterface<IComponentDeserializeContext>())
-        DAQ_THROW_EXCEPTION(InvalidParameterException("Invalid context"));
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid context");
 
     ComponentDeserializeContextPtr deserializeContextPtr = contextPtr;
 
@@ -105,10 +105,10 @@ ErrCode ComponentHolderImpl::Deserialize(ISerializedObject* serialized, IBaseObj
         {
             const auto keys = serializedObj.getKeys();
             if (keys.getCount() < 2)
-                DAQ_THROW_EXCEPTION(InvalidValueException("Invalid structure of component holder"));
+                DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid structure of component holder");
 
             if (keys[0] != "__type")
-                DAQ_THROW_EXCEPTION(InvalidValueException("Invalid structure of component holder"));
+                DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid structure of component holder");
 
             const auto rootKey = keys[1];
             auto parent = deserializeContextPtr.getParent();

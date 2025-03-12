@@ -167,11 +167,6 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
             return getPropertyValue(refProp.getName(), value);
         }
-        //else if (const auto& objIt = objectTypeIdMap.find(propertyNamePtr); objIt != objectTypeIdMap.cend())
-        //{
-        //    *value = TmsClientPropertyObject(daqContext, clientContext, objIt->second).detach();
-        //    return OPENDAQ_SUCCESS;
-        //}
 
         return Impl::getPropertyValue(propertyName, value);
     });

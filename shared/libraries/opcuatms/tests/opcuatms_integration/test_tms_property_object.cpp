@@ -10,6 +10,7 @@
 #include "tms_object_integration_test.h"
 #include <opcuatms_client/objects/tms_client_property_object_factory.h>
 #include <coreobjects/property_object_class_factory.h>
+#include <opendaq/mock/advanced_components_setup_utils.h>
 
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/context_factory.h>

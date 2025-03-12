@@ -6,7 +6,7 @@
 #include <gmock/gmock.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
-#include "test_utils.h"
+#include <opendaq/mock/advanced_components_setup_utils.h>
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/context_factory.h>

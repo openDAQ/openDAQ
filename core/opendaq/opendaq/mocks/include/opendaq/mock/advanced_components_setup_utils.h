@@ -21,7 +21,7 @@
 #include <opendaq/channel_impl.h>
 #include <opendaq/server_impl.h>
 
-namespace daq::config_protocol::test_utils
+namespace daq::test_utils
 {
     DevicePtr createTestDevice(const std::string& localId = "root_dev");
     ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);

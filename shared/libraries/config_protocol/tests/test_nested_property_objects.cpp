@@ -16,7 +16,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/sync_component_ptr.h>
 #include <opendaq/sync_component_private_ptr.h>
-#include "test_utils.h"
+#include <opendaq/mock/advanced_components_setup_utils.h>
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"

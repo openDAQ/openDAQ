@@ -83,7 +83,7 @@ public:
             [](const SignalPtr&){},
             [](const SignalPtr&){},
             setUpConfigProtocolServerCb,
-            [](const std::string&, const std::string&, bool, ClientType){},
+            [](const std::string&, const std::string&, bool, ClientType, const std::string&){},
             [](const std::string&){}
         );
         serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);

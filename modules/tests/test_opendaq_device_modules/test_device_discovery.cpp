@@ -208,6 +208,8 @@ TEST_F(ModulesDeviceDiscoveryTest, NativeConnectedClients)
         ASSERT_EQ(connectedClientsInfo[1].getProtocolName(), "OpenDAQNativeStreaming");
         ASSERT_TRUE(connectedClientsInfo[1].getUrl().toStdString().find("127.0.0.1") != std::string::npos);
 
+        ASSERT_EQ(connectedClientsInfo[0].getHostName(), connectedClientsInfo[1].getHostName());
+
         instance.removeDevice(device);
         ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
     }

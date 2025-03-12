@@ -212,7 +212,7 @@ public:
             signalSubscribedHandler,
             signalUnsubscribedHandler,
             setUpConfigProtocolServerCb,
-            [](const std::string&, const std::string&, bool, ClientType){},
+            [](const std::string&, const std::string&, bool, ClientType, const std::string&){},
             [](const std::string&){}
         );
         serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
@@ -253,7 +253,7 @@ TEST_P(StreamingProtocolTest, CreateServerNoSignals)
         signalSubscribedHandler,
         signalUnsubscribedHandler,
         setUpConfigProtocolServerCb,
-        [](const std::string&, const std::string&, bool, ClientType){},
+        [](const std::string&, const std::string&, bool, ClientType, const std::string&){},
         [](const std::string&){},
         config
     );

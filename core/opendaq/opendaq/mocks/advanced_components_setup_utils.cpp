@@ -118,7 +118,7 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     return component;
 }
 
-static PropertyObjectPtr createMockNestedPropertyObject()
+PropertyObjectPtr createMockNestedPropertyObject()
 {
     PropertyObjectPtr parent = PropertyObject();
     PropertyObjectPtr child1 = PropertyObject();

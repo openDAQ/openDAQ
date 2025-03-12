@@ -13,11 +13,11 @@ TEST_F(ConnectedClientInfoTest, Factory)
         ConnectedClientInfo("url",
                             ProtocolType::Configuration,
                             "Protocol name",
-                            ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl),
+                            "ExclusiveControl",
                             "Host name");
     ASSERT_EQ(clientInfo.getUrl(), "url");
     ASSERT_EQ(clientInfo.getProtocolName(), "Protocol name");
-    ASSERT_EQ(clientInfo.getClientTypeName(), ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl));
+    ASSERT_EQ(clientInfo.getClientTypeName(), "ExclusiveControl");
     ASSERT_EQ(clientInfo.getProtocolType(), ProtocolType::Configuration);
     ASSERT_EQ(clientInfo.getHostName(), "Host name");
 }
@@ -60,7 +60,7 @@ TEST_F(ConnectedClientInfoTest, SerializeDeserialize)
         ConnectedClientInfo("url",
                             ProtocolType::Configuration,
                             "Protocol name",
-                            ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl),
+                            "ExclusiveControl",
                             "Host name");
 
     clientInfo.addProperty(StringProperty("Location", "Office"));
@@ -78,7 +78,7 @@ TEST_F(ConnectedClientInfoTest, SerializeDeserialize)
 
     ASSERT_EQ(newClientInfo.getUrl(), "url");
     ASSERT_EQ(newClientInfo.getProtocolName(), "Protocol name");
-    ASSERT_EQ(newClientInfo.getClientTypeName(), ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl));
+    ASSERT_EQ(newClientInfo.getClientTypeName(), "ExclusiveControl");
     ASSERT_EQ(newClientInfo.getProtocolType(), ProtocolType::Configuration);
     ASSERT_EQ(newClientInfo.getHostName(), "Host name");
 

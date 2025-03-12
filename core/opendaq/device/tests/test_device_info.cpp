@@ -224,7 +224,7 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     );
     info.asPtr<IDeviceInfoInternal>().addConnectedClient(
         "id2",
-        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl), "Host name")
+        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name")
     );
 
     const auto serializer = JsonSerializer();
@@ -313,9 +313,9 @@ TEST_F(DeviceInfoTest, ConnectedClientsInfo)
     auto clientInfo1 =
         ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", "", "Host name");
     auto clientInfo2 =
-        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", ClientTypeTools::ClientTypeToString(ClientType::ExclusiveControl), "Host name");
+        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name");
     auto clientInfo3 =
-        ConnectedClientInfo("url3", ProtocolType::ConfigurationAndStreaming, "Protocol name", ClientTypeTools::ClientTypeToString(ClientType::ViewOnly), "Host name");
+        ConnectedClientInfo("url3", ProtocolType::ConfigurationAndStreaming, "Protocol name", "ViewOnly", "Host name");
 
     internalInfo.addConnectedClient("id1", clientInfo1);
     internalInfo.addConnectedClient("id2", clientInfo2);

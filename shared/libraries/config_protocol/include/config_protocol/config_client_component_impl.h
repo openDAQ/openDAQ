@@ -230,7 +230,10 @@ void ConfigClientComponentBaseImpl<Impl>::remoteUpdateStatuses(const SerializedO
         for (const auto& [name, value] : statusDict)
         {
             StringPtr msg = messagesDict.getOrDefault(name, "");
-            statusContainerPrivate.addStatusWithMessage(name, value, msg);
+            if (statuses.hasKey(name))
+                statusContainerPrivate.setStatusWithMessage(name, value, msg);
+            else
+                statusContainerPrivate.addStatusWithMessage(name, value, msg);
         }
     }
 }

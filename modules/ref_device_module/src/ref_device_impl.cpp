@@ -54,7 +54,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id,
         serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
     }
 
-    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
+    if (const auto options = this->context.getModuleOptions(REF_MODULE_NAME); options.assigned())
     {
         const StringPtr serialTemp = options.getOrDefault("SerialNumber", "");
         serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;

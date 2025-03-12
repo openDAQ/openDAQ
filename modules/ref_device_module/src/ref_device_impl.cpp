@@ -56,8 +56,9 @@ RefDeviceImpl::RefDeviceImpl(size_t id,
 
     if (const auto options = this->context.getModuleOptions(REF_MODULE_NAME); options.assigned())
     {
-        const StringPtr serialTemp = options.getOrDefault("SerialNumber", "");
-        serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
+        const StringPtr serialTemp = options.getOrDefault("SerialNumber");
+        if (serialTemp.assigned() && serialTemp.getLength())
+            serialNumber = serialTemp;
     }
 
     initIoFolder();

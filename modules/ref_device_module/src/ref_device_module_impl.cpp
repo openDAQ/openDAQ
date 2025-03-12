@@ -98,14 +98,11 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     if (options.assigned())
     {
-        {
-            StringPtr localIdTemp = options.getOrDefault("LocalId", "");
+        if (StringPtr localIdTemp = options.getOrDefault("LocalId"); localIdTemp.assigned())
             localId = localIdTemp.getLength() ? localIdTemp : nullptr;
-        }
-        {
-            StringPtr nameTemp = options.getOrDefault("Name", "");
+
+        if (StringPtr nameTemp = options.getOrDefault("Name"); nameTemp.assigned())
             name = nameTemp.getLength() ? nameTemp : nullptr;
-        }
     }
 
     if (!localId.assigned())

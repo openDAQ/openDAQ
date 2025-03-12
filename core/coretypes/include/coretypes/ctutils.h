@@ -190,6 +190,7 @@ inline void checkErrorInfo(ErrCode errCode)
 
         throwExceptionFromErrorCode(errCode, ss.str());
     }
+    daqClearErrorInfo();
 }
 
 template <typename... Params>

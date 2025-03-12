@@ -183,14 +183,32 @@ TEST_F(ModulesDeviceDiscoveryTest, NativeConnectedClients)
 
     const auto instance = Instance();
     ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+    {
+        auto device = instance.addDevice("daq.ns://127.0.0.1");
+        auto connectedClientsInfo = getConnectedClients(instance.getAvailableDevices());
+        ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
 
-    auto device = instance.addDevice("daq.ns://127.0.0.1");
-    auto connectedClientsInfo = getConnectedClients(instance.getAvailableDevices());
-    ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
-    ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
-    ASSERT_EQ(connectedClientsInfo[0].getProtocolName(), "OpenDAQNativeStreaming");
-    ASSERT_TRUE(connectedClientsInfo[0].getUrl().toStdString().find("127.0.0.1") != std::string::npos);
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolName(), "OpenDAQNativeStreaming");
+        ASSERT_TRUE(connectedClientsInfo[0].getUrl().toStdString().find("127.0.0.1") != std::string::npos);
 
-    instance.removeDevice(device);
-    ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+        instance.removeDevice(device);
+        ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+    }
+    {
+        auto device = instance.addDevice("daq.nd://127.0.0.1");
+        auto connectedClientsInfo = getConnectedClients(instance.getAvailableDevices());
+        ASSERT_EQ(connectedClientsInfo.getCount(), 2u);
+
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolName(), "OpenDAQNativeConfiguration");
+        ASSERT_TRUE(connectedClientsInfo[0].getUrl().toStdString().find("127.0.0.1") != std::string::npos);
+
+        ASSERT_EQ(connectedClientsInfo[1].getProtocolType(), ProtocolType::Streaming);
+        ASSERT_EQ(connectedClientsInfo[1].getProtocolName(), "OpenDAQNativeStreaming");
+        ASSERT_TRUE(connectedClientsInfo[1].getUrl().toStdString().find("127.0.0.1") != std::string::npos);
+
+        instance.removeDevice(device);
+        ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+    }
 }

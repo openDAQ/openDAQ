@@ -97,7 +97,7 @@ void MdnsDiscoveredService::populateRecords(std::vector<mdns_record_t>& records)
         this->recordSize += key.size() + value.size() + 2;
     }
 
-    // updated earlier
+    // connectedClientsProperties updated earlier
     for (const auto& [key, value] : connectedClientsProperties)
     {
         records.push_back(createTxtRecord(key, value));

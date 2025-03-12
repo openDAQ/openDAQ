@@ -71,6 +71,8 @@ size_t DiscoveryUtils::getTxtRecordsCount(const void* buffer, size_t size, size_
 TxtProperties DiscoveryUtils::jsonToTxt(const std::string& serialized, const std::string& name)
 {
     // TODO verify value strings from json for restricted symbols
+    assert(!std::any_of(serialized.begin(), serialized.end(),
+                        [](unsigned char c) { return c == '=' || !std::isprint(c); }));
 //    const char* Backspace = "BACKSPACE";                // \x08
 //    const char* Tab = "TAB";                            // \x09
 //    const char* NewLine = "NEW-LINE";                   // \x0A
@@ -159,10 +161,14 @@ TxtProperties DiscoveryUtils::serializeObjectToTxtProperty(const BaseObjectPtr& 
 BaseObjectPtr DiscoveryUtils::deserializeObjectFromTxtProperties(const TxtProperties& txtKeyValuePairs,
                                                                  const StringPtr& propertyName)
 {
-    std::map<std::string, std::string> orderedValueStrings;
-
     // get related key-value pairs in order
     std::string prefix = propertyName.toStdString() + SERIALIZED_PROPERTY_SUFFIX;
+    auto comparator = [prefixSize = prefix.size()](const std::string& stringA, const std::string& stringB)
+    {
+        return std::stoi(stringA.substr(prefixSize)) < std::stoi(stringB.substr(prefixSize));
+    };
+    std::map<std::string, std::string, std::function<bool(const std::string&, const std::string&)>> orderedValueStrings(comparator);
+
     for (const auto& [key, value] : txtKeyValuePairs)
         if (key.find(prefix) == 0)
             orderedValueStrings.insert({key, value});
@@ -178,7 +184,7 @@ BaseObjectPtr DiscoveryUtils::deserializeObjectFromTxtProperties(const TxtProper
 
     // deserialize
     auto deserializer = JsonDeserializer();
-    return deserializer.deserialize(serializedPropertyObject);
+    return deserializer.deserialize(String(serializedPropertyObject));
 }
 
 END_NAMESPACE_DISCOVERY_COMMON

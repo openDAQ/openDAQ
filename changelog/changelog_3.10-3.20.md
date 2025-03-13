@@ -16,6 +16,7 @@
 
 ## Python
 
+- [#729](https://github.com/openDAQ/openDAQ/pull/729) Improve Python GUI app: attributes dialog update, device info via generic properties treeview, metadata fields fix
 - [#690](https://github.com/openDAQ/openDAQ/pull/690) Enable Python wheels for MacOS
 - [#675](https://github.com/openDAQ/openDAQ/pull/675) Adds a command line option to specify an additional module load path when starting the Python GUI application.
 - [#662](https://github.com/openDAQ/openDAQ/pull/662) Standardizes property modification mechanisms in Python GUI application.

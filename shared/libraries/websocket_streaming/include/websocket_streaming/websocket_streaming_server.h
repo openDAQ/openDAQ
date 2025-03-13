@@ -48,6 +48,7 @@ protected:
     daq::websocket_streaming::StreamingServer streamingServer;
     daq::websocket_streaming::AsyncPacketReader packetReader;
     LoggerComponentPtr loggerComponent;
+    std::unordered_set<std::string> registeredClientIds;
 
 private:
     static DictPtr<IString, ISignal> getSignalsOfComponent(ComponentPtr& component);

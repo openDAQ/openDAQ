@@ -54,9 +54,12 @@ void TmsServer::start()
         {
             const auto loggerComponent = context.getLogger().getOrAddComponent("TmsServer");
             LOG_I("New client connected, ID: {}", clientId);
-            device.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
-                clientId,
-                ConnectedClientInfo("", ProtocolType::Configuration, "OpenDAQOPCUA", "", ""));
+            if (device.assigned() && !device.isRemoved())
+            {
+                device.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
+                    clientId,
+                    ConnectedClientInfo("", ProtocolType::Configuration, "OpenDAQOPCUA", "", ""));
+            }
             registeredClientIds.insert(clientId);
         }
     );
@@ -67,7 +70,10 @@ void TmsServer::start()
             {
                 const auto loggerComponent = context.getLogger().getOrAddComponent("TmsServer");
                 LOG_I("Client disconnected, ID: {}", clientId);
-                device.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(clientId);
+                if (device.assigned() && !device.isRemoved())
+                {
+                    device.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(clientId);
+                }
                 registeredClientIds.erase(clientId);
             }
         }
@@ -93,7 +99,7 @@ void TmsServer::start()
 
 void TmsServer::stop()
 {
-    if (this->device.assigned())
+    if (device.assigned() && !device.isRemoved())
     {
         const auto info = device.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
@@ -101,8 +107,8 @@ void TmsServer::stop()
             infoInternal.removeServerCapability("OpenDAQOPCUAConfiguration");
         for (const auto& clientId : registeredClientIds)
             infoInternal.removeConnectedClient(clientId);
-        registeredClientIds.clear();
     }
+    registeredClientIds.clear();
 
     if (server)
         server->stop();

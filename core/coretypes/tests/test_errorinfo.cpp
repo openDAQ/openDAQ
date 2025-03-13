@@ -196,12 +196,12 @@ TEST_F(ErrorInfoTest, MultipleMessages)
     }
 }
 
-std::string getErrorPrefix([[maybe_unused]] Int fileLine)
+std::string getErrorPostfix([[maybe_unused]] Int fileLine)
 {
 #ifdef NDEBUG
     return "";
 #else
-    return "[ " + std::string(__FILE__) + ":" + std::to_string(fileLine) + " ] : ";
+    return " [ File " + std::string(__FILE__) + ":" + std::to_string(fileLine) + " ]";
 #endif
 }
 
@@ -210,9 +210,7 @@ TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "newMakeErrorInfoTest failed";
-    expected += "\n\nTraceback (most recent call last):\n";
-    expected += getErrorPrefix(42) + "newMakeErrorInfoTest failed";
+    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(42);
     ASSERT_THROW_MSG(checkErrorInfo(obj->newMakeErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -220,10 +218,8 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "multipleErrorInfoTest failed twice";
-    expected += "\n\nTraceback (most recent call last):\n";
-    expected += getErrorPrefix(47) + "multipleErrorInfoTest failed once\n";
-    expected += getErrorPrefix(48) + "multipleErrorInfoTest failed twice";
+    std::string expected = "multipleErrorInfoTest failed twice" + getErrorPostfix(48);
+    expected += "\nmultipleErrorInfoTest failed once" + getErrorPostfix(47);
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -234,9 +230,7 @@ TEST_F(ErrorInfoTest, ArgumentNotNull)
 #ifdef NDEBUG
     std::string expected = "Argument must not be NULL.";
 #else
-    std::string expected = "Parameter obj must not be null";
-    expected += "\n\nTraceback (most recent call last):\n";
-    expected += getErrorPrefix(53) + "Parameter obj must not be null";
+    std::string expected = "Parameter obj must not be null" + getErrorPostfix(53);
 #endif
     ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), ArgumentNullException, expected);
 }
@@ -245,8 +239,6 @@ TEST_F(ErrorInfoTest, ThrowExceptionInDaqTry)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "Test failed";
-    expected += "\n\nTraceback (most recent call last):\n";
-    expected += getErrorPrefix(61) + "Test failed";
+    std::string expected = "Test failed" + getErrorPostfix(61);
     ASSERT_THROW_MSG(checkErrorInfo(obj->throwExceptionTest()), GeneralErrorException, expected);
 }

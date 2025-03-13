@@ -94,22 +94,6 @@ inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* error
     if (errorInfo == nullptr)
         return ss;
 
-#ifndef NDEBUG
-    ConstCharPtr fileNameCharPtr;
-    Int fileLine = -1;
-    
-    errorInfo->getFileName(&fileNameCharPtr);
-    errorInfo->getFileLine(&fileLine);
-
-    if (fileNameCharPtr != nullptr)
-    {
-        ss << "[ " << fileNameCharPtr;
-        if (fileLine != -1)
-            ss << ":" << fileLine;
-        ss << " ] : ";
-    }
-#endif
-
     IString* message;
     errorInfo->getMessage(&message);
 
@@ -123,6 +107,22 @@ inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* error
         
         message->releaseRef();
     }
+
+#ifndef NDEBUG
+    ConstCharPtr fileNameCharPtr;
+    Int fileLine = -1;
+    
+    errorInfo->getFileName(&fileNameCharPtr);
+    errorInfo->getFileLine(&fileLine);
+
+    if (fileNameCharPtr != nullptr)
+    {
+        ss << " [ File " << fileNameCharPtr;
+        if (fileLine != -1)
+            ss << ":" << fileLine;
+        ss << " ]";
+    }
+#endif
     
     return ss;
 }
@@ -139,35 +139,8 @@ inline void checkErrorInfo(ErrCode errCode)
         {
             SizeT count = 0;
             errorInfoList->getCount(&count);
-
-            // print last error
-            {
-                IBaseObject* errorInfoObj;
-                errorInfoList->getItemAt(count - 1, &errorInfoObj);
-
-                IErrorInfo* errorInfo;
-                errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-            
-                if (errorInfo != nullptr)
-                {
-                    IString* message;
-                    errorInfo->getMessage(&message);
-                    if (message != nullptr)
-                    {
-                        ConstCharPtr msgCharPtr;
-                        message->getCharPtr(&msgCharPtr);
-                        if (msgCharPtr != nullptr)
-                            ss << msgCharPtr;
-                        message->releaseRef();
-                    }
-                }
-                if (errorInfoObj != nullptr)
-                    errorInfoObj->releaseRef();
-            }
     
-            // print traceback
-            ss << "\n\nTraceback (most recent call last):";
-            for (SizeT i = 0; i < count; ++i)
+            for (SizeT i = count; i-- > 0;)
             {
                 IBaseObject* errorInfoObj;
                 errorInfoList->getItemAt(i, &errorInfoObj);
@@ -177,8 +150,9 @@ inline void checkErrorInfo(ErrCode errCode)
             
                 if (errorInfo != nullptr)
                 {
-                    ss << "\n";
                     ErrorFormat(ss, errorInfo);
+                    if (i != 0)
+                        ss << "\n";
                 }
                 if (errorInfoObj != nullptr)
                     errorInfoObj->releaseRef();

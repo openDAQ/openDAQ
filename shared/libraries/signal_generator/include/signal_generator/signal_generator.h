@@ -19,6 +19,8 @@
 #include <opendaq/signal_factory.h>
 #include <chrono>
 
+#include <opendaq/circularPacket.h>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 class SignalGenerator;
@@ -54,6 +56,7 @@ protected:
     size_t maxPacketSize{};
     RatioPtr resolution;
     uint64_t absStartTick = 0;
+    PacketBuffer* packetBuff;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -5,6 +5,7 @@
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/unit_factory.h>
 #include <coretypes/procedure_factory.h>
+#include <opendaq/circularPacket.h>
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/data_rule_factory.h>
@@ -49,6 +50,9 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     resetCounter();
     createSignals();
     buildSignalDescriptors();
+
+    pb = new PacketBuffer((size_t)packetSize, (size_t)1024); // for now
+    //idp = new IdsParser();
 }
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
@@ -341,7 +345,9 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
     }
     else
     {
-        dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+        //dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+
+        dataPacket = pb->createPacket(&newSamples, valueSignal.getDescriptor(), domainPacket);
 
         double* buffer;
 

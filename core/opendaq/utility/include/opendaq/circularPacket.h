@@ -5,21 +5,24 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/deleter_factory.h>
 #include <opendaq/deleter_impl.h>
-#include <iostream>                 // This one is a bit overkill and can be removed with no major problems
+#include <iostream>
 #include <mutex>
-#include <thread>
 #include <vector>
 #include <queue>
 #include <memory>
-#include <cstdint>
 #include <functional>
 #include <opendaq/data_descriptor_ptr.h>
+
+
+//#include "stdafx.h"
+
+BEGIN_NAMESPACE_OPENDAQ
 
 struct PacketBufferInit
 {
     daq::DataDescriptorPtr desc;
     size_t sampleAmount;
-    EnumAdjustSize sizeAdjustment;
+    enum EnumAdjustSize sizeAdjustment;
 
 };
 
@@ -47,15 +50,17 @@ private:
 };
 
 
-class PacketBuffer
+class PUBLIC_EXPORT PacketBuffer
 {
     // When reset is invoked the WriteSample functionality should be locked,
     // we must not lock the entire PacketBuffer itself
 
 public:
     PacketBuffer();
-    PacketBuffer(const PacketBufferInit &instructions);
+
     PacketBuffer(size_t sampleSize, size_t memSize);
+
+    PacketBuffer(const PacketBufferInit& instructions);
 
     ~PacketBuffer();
 
@@ -68,7 +73,7 @@ public:
 
     daq::DataPacketPtr createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket);
 
-    Packet createPacket(size_t* sampleCount, size_t dataDescriptor);
+    Packet cP(size_t* sampleCount, size_t dataDescriptor);
 
     bool isEmpty();
 
@@ -107,3 +112,6 @@ private:
     size_t sizeAdjusted;
     bool bAdjustedSize;
 };
+
+
+END_NAMESPACE_OPENDAQ

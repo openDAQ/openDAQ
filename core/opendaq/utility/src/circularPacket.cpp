@@ -1,11 +1,13 @@
+//#include "stdafx.h"
+
 #include <opendaq/circularPacket.h>
 
+using namespace daq;
 
 PacketBuffer::PacketBuffer()
 {
-    // Revise so that this correctly reflects the required level of versatility
-    sizeOfMem = 1024;   // This should be adjustable
-    sizeOfSample = sizeof(double);  // This should be adjustable
+    sizeOfMem = 1024;
+    sizeOfSample = sizeof(double);
     data = malloc(sizeOfMem * sizeOfSample);
     writePos = data;
     readPos = data;
@@ -28,26 +30,27 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize)
     sizeAdjusted = 0;
 }
 
-PacketBuffer::PacketBuffer(const PacketBufferInit &instructions)
-{
-   sizeOfSample = instructions.desc.getRawSampleSize();
-   sizeOfMem = instructions.sampleAmount;
-   data = malloc(sizeOfMem * sizeOfSample);
-   writePos = data;
-   readPos = data;
-   bIsFull = false;
-   bUnderReset = false;
-   bAdjustedSize = false;
-   sizeAdjusted = 0;
-   // enumAdjustSize we will come back to this when,
-   // alternative implementation is made
-   // (for now we will ignore it)
-}
-
 PacketBuffer::~PacketBuffer()
 {
     free(data);
 }
+
+PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
+{
+    sizeOfSample = instructions.desc.getRawSampleSize();
+    sizeOfMem = instructions.sampleAmount;
+    data = malloc(sizeOfMem * sizeOfSample);
+    writePos = data;
+    readPos = data;
+    bIsFull = false;
+    bUnderReset = false;
+    bAdjustedSize = false;
+    sizeAdjusted = 0;
+    // enumAdjustSize we will come back to this when,
+    // alternative implementation is made
+    // (for now we will ignore it)
+}
+
 
 void PacketBuffer::setWritePos(size_t offset)
 {
@@ -221,7 +224,7 @@ size_t PacketBuffer::getAvailableSampleCount()
     return (((uint8_t*)data + sizeOfSample * sizeOfMem) - (uint8_t*)writePos);
 }
 
-daq::DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket)
+DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket)
 {
     std::unique_lock<std::mutex> loa(flip);
     if (bUnderReset)
@@ -306,7 +309,7 @@ Packet::~Packet()
 
 
 // This is a test function that was used to help gauge the behaviour of the buffer class
-Packet PacketBuffer::createPacket(size_t* sampleCount, size_t dataDescriptor)
+Packet PacketBuffer::cP(size_t* sampleCount, size_t dataDescriptor)
 {
 
     void* startOfSpace = nullptr;
@@ -328,14 +331,3 @@ Packet PacketBuffer::createPacket(size_t* sampleCount, size_t dataDescriptor)
         return Packet();
     }
 }
-
-
-/*
-    Q: How does a reset work for a single thread?
-    A: It does not. 
-
-    Observation: All basic processes will require a lock on them...
-    (I need to provide a better test for multiple readones, but e)
-    
-*/
-

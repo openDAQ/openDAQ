@@ -5,6 +5,7 @@
 #include <opendaq/dimension_factory.h>
 #include <opendaq/data_rule_calc_private.h>
 #include <opendaq/packet_factory.h>
+#include <thread>
 #include <opendaq/reusable_data_packet_ptr.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scaling_factory.h>
@@ -13,7 +14,7 @@
 
 using CircularPacketTest = testing::Test;
 
-void display_write_read_pos(PacketBuffer* pb)
+void display_write_read_pos(daq::PacketBuffer* pb)
 {
 }
 
@@ -35,7 +36,7 @@ std::tuple<daq::DataDescriptorPtr, daq::DataPacketPtr> generate_building_blocks(
 
 TEST_F(CircularPacketTest, SanityWritePosCheck)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     void* check;
     size_t bb = 0;
     size_t* delique = &bb;
@@ -47,7 +48,7 @@ TEST_F(CircularPacketTest, SanityWritePosCheck)
 
 TEST_F(CircularPacketTest, WriteFullRangeFill)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     void* check;
     size_t bb = 0;
     size_t* fun = &bb;
@@ -60,7 +61,7 @@ TEST_F(CircularPacketTest, WriteFullRangeFill)
 
 TEST_F(CircularPacketTest, WriteAdjustedSize)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     void* check;
     size_t bb = 0;
     size_t* run = &bb;
@@ -72,7 +73,7 @@ TEST_F(CircularPacketTest, WriteAdjustedSize)
 
 TEST_F(CircularPacketTest, WriteEmptyCall)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     void* check;
     size_t bb = 0;
     size_t* tun = &bb;
@@ -83,7 +84,7 @@ TEST_F(CircularPacketTest, WriteEmptyCall)
 
 TEST_F(CircularPacketTest, ReadEmpty)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     size_t bb = 0;
     size_t* gun = &bb;
     *gun = 0;
@@ -92,7 +93,7 @@ TEST_F(CircularPacketTest, ReadEmpty)
 
 TEST_F(CircularPacketTest, ReadFromFullBuffer)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     void* check;
     size_t bb = 0;
     size_t* wan = &bb;
@@ -104,7 +105,7 @@ TEST_F(CircularPacketTest, ReadFromFullBuffer)
 
 TEST_F(CircularPacketTest, ReadFullBuffer)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     void* check;
     size_t bb = 0;
     size_t* hun = &bb;
@@ -122,7 +123,7 @@ TEST_F(CircularPacketTest, ReadFullBuffer)
 
 TEST_F(CircularPacketTest, ReadPartialWorkflow)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     void* check;
     size_t bb = 0;
     size_t* jun = &bb;
@@ -149,12 +150,12 @@ TEST_F(CircularPacketTest, ReadPartialWorkflow)
 
 TEST_F(CircularPacketTest, TestMockPacket)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     size_t st = 8;
 
     {
-        Packet pck = pb.createPacket(&st, 10);
-        Packet pck2 = pb.createPacket(&st, 100);
+        daq::Packet pck = pb.cP(&st, 10);
+        daq::Packet pck2 = pb.cP(&st, 100);
     }
     ASSERT_EQ(pb.getReadPos(), pb.getWritePos());
 
@@ -164,7 +165,7 @@ TEST_F(CircularPacketTest, TestPacketsWithDescriptorsCreate)
 {
     auto [descriptor, domain] = generate_building_blocks();
 
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     size_t sampleCount = 100;
     std::cout << pb.getReadPos() << std::endl;
     {
@@ -182,7 +183,7 @@ TEST_F(CircularPacketTest, TestFillingUpBuffer)
 {
     auto [desc, dom] = generate_building_blocks();
 
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     size_t sampleCount = 100;
     // Here will create a few packets
     {
@@ -209,7 +210,7 @@ TEST_F(CircularPacketTest, TestCleanBufferAfterPacketsDestroyed)
 {
     auto [descriptor, domain] = generate_building_blocks();
 
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     size_t sampleCount = 100;
     // Here will create a few packets
 
@@ -241,7 +242,7 @@ TEST_F(CircularPacketTest, TestPacketImprovementTest)
 {
     auto [descriptor, domain] = generate_building_blocks();
 
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     size_t sampleCount = 100;
     void* mid_point = NULL;
     void* save_point = NULL;
@@ -268,7 +269,7 @@ TEST_F(CircularPacketTest, TestPacketImprovementTest)
 TEST_F(CircularPacketTest, TestPacketReadPartial)
 {
     auto [descriptor, domain] = generate_building_blocks();
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     size_t sampleCount = 100;
     {
         std::cout << "WritePos before any declarations: " << pb.getWritePos() << std::endl;
@@ -294,7 +295,7 @@ TEST_F(CircularPacketTest, TestPacketReadPartial)
     ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
 }
 
-void createMultiThreadedPacket(PacketBuffer *pb)
+void createMultiThreadedPacket(daq::PacketBuffer *pb)
 {
     auto [desc, dom] = generate_building_blocks();
     size_t n = 100;
@@ -308,7 +309,7 @@ void createMultiThreadedPacket(PacketBuffer *pb)
 
 TEST_F(CircularPacketTest, TestMultiThread)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     auto [descriptor, domain] = generate_building_blocks();
     std::condition_variable cv;
 
@@ -329,7 +330,7 @@ TEST_F(CircularPacketTest, TestMultiThread)
 // in the test thread itself
 int t = 0;
 
-void createAndWaitPacket(PacketBuffer *pb, daq::DataDescriptorPtr desc, daq::DataPacketPtr &dom, std::condition_variable *cv)
+void createAndWaitPacket(daq::PacketBuffer *pb, daq::DataDescriptorPtr desc, daq::DataPacketPtr &dom, std::condition_variable *cv)
 {
     
     size_t n = 100;
@@ -348,7 +349,7 @@ void createAndWaitPacket(PacketBuffer *pb, daq::DataDescriptorPtr desc, daq::Dat
     std::cout << "Packet was created. " << std::endl;
 }
 
- void cb(PacketBuffer* pb)
+ void cb(daq::PacketBuffer* pb)
 {
    auto r = pb -> reset();
     std::cout << r << std::endl;
@@ -356,7 +357,7 @@ void createAndWaitPacket(PacketBuffer *pb, daq::DataDescriptorPtr desc, daq::Dat
 
 TEST_F(CircularPacketTest, TestReset)
 {
-    PacketBuffer pb;
+    daq::PacketBuffer pb;
     std::condition_variable start_up_assurance;
     auto [descriptor, domain] = generate_building_blocks();
 

@@ -88,9 +88,6 @@ public:
         , loopRunning(false)
         , stopAcq(false)
     {
-        if (!this->info.isFrozen())
-            this->info.freeze();
-            
         this->templateImpl->componentImpl = this;
         this->templateImpl->objPtr = this->thisPtr<PropertyObjectPtr>();
         this->templateImpl->loggerComponent = this->context.getLogger().getOrAddComponent(params.logName);

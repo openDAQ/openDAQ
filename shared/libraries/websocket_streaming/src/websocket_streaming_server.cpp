@@ -54,6 +54,22 @@ void WebsocketStreamingServer::start()
     streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignals(search::Recursive(search::Any())); });
     streamingServer.onStartSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.startReadSignals(signals); } );
     streamingServer.onStopSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.stopReadSignals(signals); } );
+    streamingServer.onClientConnected(
+        [this](const std::string& clientId, const std::string& url)
+        {
+            device.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
+                clientId,
+                ConnectedClientInfo(url, ProtocolType::Streaming, "OpenDAQLTStreaming", "", ""));
+            registeredClientIds.insert(clientId);
+        }
+    );
+    streamingServer.onClientDisconnected(
+        [this](const std::string& clientId)
+        {
+            device.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(clientId);
+            registeredClientIds.erase(clientId);
+        }
+    );
     streamingServer.start(streamingPort, controlPort);
 
     packetReader.setLoopFrequency(50);
@@ -81,6 +97,9 @@ void WebsocketStreamingServer::stop()
          const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
          if (info.hasServerCapability("OpenDAQLTStreaming"))
              infoInternal.removeServerCapability("OpenDAQLTStreaming");
+         for (const auto& clientId : registeredClientIds)
+             infoInternal.removeConnectedClient(clientId);
+         registeredClientIds.clear();
     }
 
     stopInternal();

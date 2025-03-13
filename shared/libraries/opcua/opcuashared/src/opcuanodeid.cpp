@@ -101,6 +101,8 @@ OpcUaIdentifierUniversal OpcUaNodeId::getIdentifier(const UA_NodeId& uaNodeId)
             return std::to_string(uaNodeId.identifier.numeric);
         case OpcUaIdentifierType::String:
             return utils::ToStdString(uaNodeId.identifier.string);
+        case OpcUaIdentifierType::Guid:
+            return utils::GuidToString(uaNodeId.identifier.guid);
         default:
             throw std::runtime_error("C Exception: unsupported identifier type!");
     };

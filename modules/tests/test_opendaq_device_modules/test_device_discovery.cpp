@@ -181,9 +181,10 @@ TEST_F(ModulesDeviceDiscoveryTest, NativeConnectedClients)
         return connectedClients;
     };
 
-    const auto instance = Instance();
+    auto instance = Instance();
     ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
     {
+        // native streaming client
         auto device = instance.addDevice("daq.ns://127.0.0.1");
         auto connectedClientsInfo = getConnectedClients(instance.getAvailableDevices());
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
@@ -197,6 +198,7 @@ TEST_F(ModulesDeviceDiscoveryTest, NativeConnectedClients)
         ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
     }
     {
+        // native configuration & streaming client
         auto device = instance.addDevice("daq.nd://127.0.0.1");
         auto connectedClientsInfo = getConnectedClients(instance.getAvailableDevices());
         ASSERT_EQ(connectedClientsInfo.getCount(), 2u);
@@ -212,6 +214,84 @@ TEST_F(ModulesDeviceDiscoveryTest, NativeConnectedClients)
         ASSERT_TRUE(connectedClientsInfo[1].getUrl().toStdString().find("127.0.0.1") != std::string::npos);
 
         ASSERT_EQ(connectedClientsInfo[0].getHostName(), connectedClientsInfo[1].getHostName());
+
+        instance.removeDevice(device);
+        ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+    }
+    {
+        // native configuration exclusive control client
+        instance = test_helpers::connectInstanceWithClientType("daq.nd://127.0.0.1", ClientType::ExclusiveControl);
+        auto device = instance.getDevices()[0];
+        auto connectedClientsInfo = getConnectedClients(instance.getAvailableDevices());
+        ASSERT_EQ(connectedClientsInfo.getCount(), 2u);
+
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolName(), "OpenDAQNativeConfiguration");
+        ASSERT_EQ(connectedClientsInfo[0].getClientTypeName(), "ExclusiveControl");
+        ASSERT_TRUE(connectedClientsInfo[0].getUrl().toStdString().find("127.0.0.1") != std::string::npos);
+    }
+}
+
+TEST_F(ModulesDeviceDiscoveryTest, LtConnectedClients)
+{
+    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
+    serverInstance.getModuleManager().addModule(deviceModule);
+    serverInstance.setRootDevice("daqmock://phys_device");
+    serverInstance.addServer("OpenDAQLTStreaming", nullptr).enableDiscovery();
+
+    const auto getConnectedClients = [](const ListPtr<IDeviceInfo>& availableDevices)
+    {
+        ListPtr<IConnectedClientInfo> connectedClients = List<IConnectedClientInfo>();
+        for (const auto& deviceInfo : availableDevices)
+            if (deviceInfo.getConnectionString() == "daq://manufacturer_serial_number")
+                connectedClients = deviceInfo.getConnectedClientsInfo();
+        return connectedClients;
+    };
+
+    const auto instance = Instance();
+    ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+    {
+        auto device = instance.addDevice("daq.lt://127.0.0.1");
+        auto connectedClientsInfo = getConnectedClients(instance.getAvailableDevices());
+        ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
+
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolName(), "OpenDAQLTStreaming");
+        ASSERT_EQ(connectedClientsInfo[0].getClientTypeName(), "");
+        ASSERT_TRUE(connectedClientsInfo[0].getUrl().toStdString().find("127.0.0.1") != std::string::npos);
+
+        instance.removeDevice(device);
+        ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+    }
+}
+
+TEST_F(ModulesDeviceDiscoveryTest, OpcuaConnectedClients)
+{
+    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
+    serverInstance.getModuleManager().addModule(deviceModule);
+    serverInstance.setRootDevice("daqmock://phys_device");
+    serverInstance.addServer("OpenDAQOPCUA", nullptr).enableDiscovery();
+
+    const auto getConnectedClients = [](const ListPtr<IDeviceInfo>& availableDevices)
+    {
+        ListPtr<IConnectedClientInfo> connectedClients = List<IConnectedClientInfo>();
+        for (const auto& deviceInfo : availableDevices)
+            if (deviceInfo.getConnectionString() == "daq://manufacturer_serial_number")
+                connectedClients = deviceInfo.getConnectedClientsInfo();
+        return connectedClients;
+    };
+
+    const auto instance = Instance();
+    ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);
+    {
+        auto device = instance.addDevice("daq.opcua://127.0.0.1");
+        auto connectedClientsInfo = getConnectedClients(instance.getAvailableDevices());
+        ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
+
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
+        ASSERT_EQ(connectedClientsInfo[0].getProtocolName(), "OpenDAQOPCUA");
 
         instance.removeDevice(device);
         ASSERT_EQ(getConnectedClients(instance.getAvailableDevices()).getCount(), 0u);

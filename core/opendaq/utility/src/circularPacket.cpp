@@ -4,6 +4,14 @@
 
 using namespace daq;
 
+PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr desc, size_t sA, enum EnumAdjustSize eAdjust)
+    : desc(desc)
+    , sampleAmount(sA)
+    , sizeAdjustment(eAdjust)
+{
+}
+
+
 PacketBuffer::PacketBuffer()
 {
     sizeOfMem = 1024;
@@ -35,7 +43,7 @@ PacketBuffer::~PacketBuffer()
     free(data);
 }
 
-PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
+PacketBuffer::PacketBuffer(const PUBLIC_EXPORT PacketBufferInit& instructions)
 {
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleAmount;
@@ -212,6 +220,7 @@ int PacketBuffer::ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount
 
         bIsFull = false;
     }
+    //std::cout << "We messing with memory... " << std::endl;
     cv.notify_all();
     return 0;
     
@@ -236,6 +245,7 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     sizeOfSample = dataDescriptor.getRawSampleSize();
     void* startOfSpace = nullptr;
     // Here the should be a lock for creation
+    std::cout << "Packet was created. " << std::endl;
     int ret = this->WriteSample(sampleCount, &startOfSpace);
     ff = [&, sampleCnt = *sampleCount, startOfSpace = startOfSpace](void*)
          {

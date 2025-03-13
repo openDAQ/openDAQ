@@ -14,16 +14,15 @@
 #include <opendaq/data_descriptor_ptr.h>
 
 
-//#include "stdafx.h"
-
 BEGIN_NAMESPACE_OPENDAQ
 
-struct PacketBufferInit
+struct PUBLIC_EXPORT PacketBufferInit
 {
+    PacketBufferInit(daq::DataDescriptorPtr desc, size_t sA, enum EnumAdjustSize eAdjust);
+
     daq::DataDescriptorPtr desc;
     size_t sampleAmount;
     enum EnumAdjustSize sizeAdjustment;
-
 };
 
 enum EnumAdjustSize
@@ -60,7 +59,7 @@ public:
 
     PacketBuffer(size_t sampleSize, size_t memSize);
 
-    PacketBuffer(const PacketBufferInit& instructions);
+    PacketBuffer(const PUBLIC_EXPORT PacketBufferInit& instructions);
 
     ~PacketBuffer();
 

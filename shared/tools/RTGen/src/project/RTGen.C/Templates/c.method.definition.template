@@ -1,5 +1,0 @@
-void $CallingConvention$ $Name$($Arguments$);
-$ReturnType$ $CallingConvention$ $Name$($Arguments$);
-$ArgTypeName$** $ArgName$
-$ArgTypeName$* $ArgName$
-, 

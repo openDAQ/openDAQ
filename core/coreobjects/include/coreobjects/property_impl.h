@@ -817,17 +817,17 @@ public:
 	        });
     }
 
-    ErrCode getStructType(IStructType** structType) override
+    ErrCode INTERFACE_FUNC getStructType(IStructType** structType) override
     {
 	    return getStructTypeInternal(structType, true);
     }
 
-    ErrCode getStructTypeNoLock(IStructType** structType) override
+    ErrCode INTERFACE_FUNC getStructTypeNoLock(IStructType** structType) override
     {
 	    return getStructTypeInternal(structType, false);
     }
 
-    ErrCode getStructTypeInternal(IStructType** structType, bool lock)
+    ErrCode INTERFACE_FUNC getStructTypeInternal(IStructType** structType, bool lock)
     {
 	    OPENDAQ_PARAM_NOT_NULL(structType);
 
@@ -846,7 +846,7 @@ public:
 	        });
     }
     
-    ErrCode overrideDefaultValue(IBaseObject* newDefaultValue)  override
+    ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue)  override
     {
         defaultValue = newDefaultValue;
         if (defaultValue.supportsInterface<IFreezable>() && !defaultValue.isFrozen())
@@ -854,7 +854,7 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode getClassOnPropertyValueWrite(IEvent** event) override
+    ErrCode INTERFACE_FUNC getClassOnPropertyValueWrite(IEvent** event) override
     {
         if (event == nullptr)
         {

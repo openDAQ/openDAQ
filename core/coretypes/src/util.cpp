@@ -1,7 +1,6 @@
 #include <coretypes/common.h>
 #include <coretypes/errors.h>
 #include <fmt/format.h>
-
 #include <regex>
 
 extern "C"
@@ -36,7 +35,7 @@ daq::ErrCode PUBLIC_EXPORT daqInterfaceIdToString(const daq::IntfID& iid, daq::C
 }
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT stringToDaqInterfaceId(const std::string& guidStr, daq::IntfID& iid)
+daq::ErrCode PUBLIC_EXPORT daqStringToInterfaceId(const std::string& guidStr, daq::IntfID& iid)
 {
     std::regex guidRegex(
         R"(\{([\dA-Fa-f]{8})-([\dA-Fa-f]{4})-([\dA-Fa-f]{4})-([\dA-Fa-f]{2})([\dA-Fa-f]{2})-((?:[\dA-Fa-f]{2}){6})\})");

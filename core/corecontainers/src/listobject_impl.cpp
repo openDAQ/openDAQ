@@ -7,9 +7,10 @@
 #include <coretypes/list_ptr.h>
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/validation.h>
+#include <coretypes/serialization.h>
+#include "coretypes/stringobject_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class ListIteratorImpl : public IteratorBaseImpl<std::vector<IBaseObject*>, IListElementType>
 {
 public:
@@ -430,6 +431,28 @@ ErrCode ListImpl::isFrozen(Bool* isFrozen) const
 
 ErrCode ListImpl::serialize(ISerializer* serializer)
 {
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+    Int version;
+    ErrCode err = serializer->getVersion(&version);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    if (version > 1)
+    {
+        serializer->startTaggedObject(this);
+
+        if (!(iid == IUnknown::Id))
+        {
+            serializer->key("itemIntfID");
+            
+            char iidString[39];
+            daqInterfaceIdToString(iid, iidString);
+            serializer->writeString(iidString, 38);
+        }
+
+        serializer->key("values");
+    }
+
     serializer->startList();
 
     for (const auto& element : list)
@@ -462,13 +485,50 @@ ErrCode ListImpl::serialize(ISerializer* serializer)
 
     serializer->endList();
 
+    if (version > 1)
+    {
+        serializer->endObject();
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ListImpl::getSerializeId(ConstCharPtr* /*id*/) const
+ErrCode ListImpl::getSerializeId(ConstCharPtr* id) const
 {
-    // Handled directly by the serializer and deserializer
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr ListImpl::SerializeId()
+{
+    return "List";
+}
+
+ErrCode INTERFACE_FUNC deserializeList(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+{
+    Bool hasKey;
+    IntfID id = IUnknown::Id;
+    ser->hasKey(String("itemIntfID"), &hasKey);
+    if (hasKey)
+    {
+        StringPtr str;
+        ser->readString(String("itemIntfID"), &str);
+        daqStringToInterfaceId(str, id);
+    }
+
+    SerializedListPtr list = nullptr;
+    ser->readSerializedList(String("values"), &list);
+
+    ListPtr<IBaseObject> listObj = createWithImplementation<IList, ListImpl>(id);
+    for (SizeT i = 0; i < list.getCount(); i++)
+    {
+        listObj.pushBack(list.readObject(context, factoryCallback));
+    }
+
+    *obj = listObj.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ListIteratorImpl::ListIteratorImpl(ListImpl* list, std::vector<IBaseObject*>::iterator it)

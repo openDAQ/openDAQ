@@ -7,6 +7,14 @@ BEGIN_NAMESPACE_OPENDAQ
 template <typename TWriter>
 JsonSerializerImpl<TWriter>::JsonSerializerImpl()
     : writer(buffer)
+    , version(2)
+{
+}
+
+template <typename TWriter>
+JsonSerializerImpl<TWriter>::JsonSerializerImpl(Int version)
+    : writer(buffer)
+    , version(version)
 {
 }
 
@@ -214,6 +222,15 @@ ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::setUser(IBaseObject* user)
 }
 
 template <typename TWriter>
+ErrCode JsonSerializerImpl<TWriter>::getVersion(Int* version)
+{
+    OPENDAQ_PARAM_NOT_NULL(version);
+
+    *version = this->version;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::getOutput(IString** output)
 {
     *output = String_Create(buffer.GetString());
@@ -247,5 +264,30 @@ ErrCode PUBLIC_EXPORT createJsonSerializer(ISerializer** jsonSerializer, Bool pr
     return OPENDAQ_SUCCESS;
 }
 
+// createJsonSerializer
+extern "C"
+ErrCode PUBLIC_EXPORT createJsonSerializerWithVersion(ISerializer** jsonSerializer, Int version, Bool pretty = False)
+{
+    OPENDAQ_PARAM_NOT_NULL(jsonSerializer);
+
+    ISerializer* object;
+    if (pretty)
+    {
+        object = new(std::nothrow) PrettyJsonSerializer(version);
+    }
+    else
+    {
+        object = new(std::nothrow) JsonSerializerImpl<>(version);
+    }
+
+    if (!object)
+    {
+        return OPENDAQ_ERR_NOMEMORY;
+    }
+
+    object->addRef();
+    *jsonSerializer = object;
+    return OPENDAQ_SUCCESS;
+}
 
 END_NAMESPACE_OPENDAQ

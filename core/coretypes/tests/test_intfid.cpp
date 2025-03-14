@@ -268,7 +268,7 @@ TEST_F(IntfIdTest, TestInterfaceToStringConversion)
         char iidString[39];
         IntfID iidOut;
         daqInterfaceIdToString(iidIn, iidString);
-        stringToDaqInterfaceId(iidString, iidOut);
+        daqStringToInterfaceId(iidString, iidOut);
         ASSERT_EQ(iidIn, iidOut);
     };
 

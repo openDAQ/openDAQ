@@ -1,5 +1,2 @@
 $ReturnType$ EXPORTED $NonInterfaceType$_$Name$($Arguments$);
 $ReturnType$ EXPORTED $NonInterfaceType$_$Name$($Arguments$);
-$ArgTypeNameNonInterface$** $ArgName$
-$ArgTypeNameNonInterface$* $ArgName$
-, 

@@ -14,7 +14,7 @@ namespace RTGen.C.Generators
 {
     class CGenerator : TemplateGenerator
     {
-        enum GeneratorType
+        protected enum GeneratorType
         {
             Header = 0,
             Source = 1,
@@ -26,14 +26,15 @@ namespace RTGen.C.Generators
             ArgsForwarding
         }
 
-        private static ISet<string> ForbiddenTypes => new HashSet<string>
+        protected static ISet<string> ForbiddenTypes => new HashSet<string>
         {
-            "IntfID"
+            "IntfID",
+            "ComplexFloat64"
         };
 
-        private GeneratorType _generatorType = GeneratorType.Header;
-        private ISet<string> _typesToDeclare = new HashSet<string>();
-        private ISet<string> _methodNamesToCommentOut = new HashSet<string>();
+        protected GeneratorType _generatorType = GeneratorType.Header;
+        protected ISet<string> _typesToDeclare = new HashSet<string>();
+        protected ISet<string> _methodNamesToCommentOut = new HashSet<string>();
 
         //Overriden
 
@@ -83,7 +84,7 @@ namespace RTGen.C.Generators
 
         protected override string GetMethodArgumentVariable(IArgument arg, IOverload overload, string variable)
         {
-            if(variable == "ArgTypeNameNonInterface")
+            if (variable == "ArgTypeNameNonInterface")
             {
                 return arg.Type.NonInterfaceName;
             }
@@ -148,7 +149,7 @@ namespace RTGen.C.Generators
         protected string GetTypedefs()
         {
             StringBuilder sb = new StringBuilder();
-            foreach(var type in _typesToDeclare)
+            foreach (var type in _typesToDeclare)
             {
                 if (type == "BaseObject")
                 {
@@ -191,7 +192,7 @@ namespace RTGen.C.Generators
             }
 
             StringBuilder sb = new StringBuilder();
-            
+
             for (int i = 0; i < args.Count; i++)
             {
                 IArgument arg = args[i];
@@ -202,30 +203,47 @@ namespace RTGen.C.Generators
                 if (ForbiddenTypes.Contains(arg.Type.NonInterfaceName))
                 {
                     _methodNamesToCommentOut.Add(overload.Method.Name);
-                } else if(!arg.Type.Flags.IsValueType)
+                }
+                else if (!arg.Type.Flags.IsValueType)
                 {
                     //filling types for typedefs
-                    _typesToDeclare.Add(arg.Type.NonInterfaceName);
+                    if (arg.Type.Name != "void") _typesToDeclare.Add(arg.Type.NonInterfaceName);
                 }
 
                 if (listType == ArgsListType.MethodDeclaration)
                 {
                     sb.Append($"{arg.Type.NonInterfaceName}{arg.Type.Modifiers} {arg.Name}");
-                } else
+                }
+                else
                 {
                     //skipping self pointer in factory call
                     if (factory != null && i == 0)
                     {
-                        if(i != args.Count - 1) sb.Append(", ");
+                        if (i != args.Count - 1) sb.Append(", ");
                         continue;
                     }
 
-                    if (arg.Type.Flags.IsValueType)
+                    if (arg.Type.Flags.IsValueType || arg.Type.Name == "void")
                     {
-                        sb.Append(arg.Name);
-                    } else
+                        if (arg.Type.Name == "CoreType") //special CoreType handling
+                        {
+                            if (String.IsNullOrEmpty(arg.Type.Modifiers))
+                            {
+                                sb.Append($"static_cast<{arg.Type.Namespace}::{arg.Type.Name}>({arg.Name})");
+                            }
+                            else
+                            {
+                                sb.Append($"reinterpret_cast<{arg.Type.Namespace}::{arg.Type.Name}{arg.Type.Modifiers}>({arg.Name})");
+                            }
+                        }
+                        else
+                        {
+                            sb.Append(arg.Name);
+                        }
+                    }
+                    else
                     {
-                        sb.Append($"reinterpret_cast<{arg.Type.FullName()}{arg.Type.Modifiers}>({arg.Name})");
+                        sb.Append($"reinterpret_cast<{arg.Type.Namespace}::{arg.Type.Name}{arg.Type.Modifiers}>({arg.Name})");
                     }
                 }
                 if (i != args.Count - 1)
@@ -264,7 +282,7 @@ namespace RTGen.C.Generators
             GenerateOutput(RtFile.CurrentClass, templatePath, outputPath);
         }
 
-        private void GenerateOutput(IRTInterface rtClass, string templatePath, string outputPath)
+        protected void GenerateOutput(IRTInterface rtClass, string templatePath, string outputPath)
         {
             StreamReader template = null;
             try
@@ -304,7 +322,7 @@ namespace RTGen.C.Generators
             }
         }
 
-        string ReplaceVariable<T>(string variable, GeneratorType generatorType, IRTInterface iface, T methodOrFactory, string templatePath)
+        protected string ReplaceVariable<T>(string variable, GeneratorType generatorType, IRTInterface iface, T methodOrFactory, string templatePath)
         {
             IMethod method = methodOrFactory as IMethod;
             IRTFactory factory = methodOrFactory as IRTFactory;
@@ -354,11 +372,8 @@ namespace RTGen.C.Generators
                         return iface.Type.Namespace.ToString() + "::" + overload.Method.Name;
                     case "Arguments":
                         return ArgumentsToString(methodOrFactory, ArgsListType.MethodDeclaration);
-                        //return GetMethodArguments(overload);
                     case "ArgumentsForwarding":
                         return ArgumentsToString(methodOrFactory, ArgsListType.ArgsForwarding);
-                        //var args = method != null ? overload.Arguments : overload.Arguments.Skip(1);
-                        //return ArgumentListToString(args, separator);
                     default:
                         LogIgnoredVariable(variable, templatePath);
                         return string.Empty;
@@ -367,7 +382,7 @@ namespace RTGen.C.Generators
             return String.Empty;
         }
 
-        StringBuilder GenerateMethodsHeader(string templatePath)
+        protected StringBuilder GenerateMethodsHeader(string templatePath)
         {
             IRTInterface rtClass = RtFile.CurrentClass;
             StringBuilder methods = new StringBuilder();
@@ -421,7 +436,7 @@ namespace RTGen.C.Generators
             return methods;
         }
 
-        StringBuilder GenerateMethodsSource(string templatePath)
+        protected StringBuilder GenerateMethodsSource(string templatePath)
         {
             IRTInterface rtClass = RtFile.CurrentClass;
             StringBuilder methods = new StringBuilder();

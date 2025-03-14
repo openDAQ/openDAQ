@@ -56,9 +56,6 @@
     <None Include="Templates\c.header.method.template">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Templates\c.method.definition.template">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="Templates\c.method.template">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

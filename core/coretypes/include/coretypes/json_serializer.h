@@ -31,4 +31,17 @@ inline ISerializer* JsonSerializer_Create(Bool pretty = False)
     throw std::bad_alloc();
 }
 
+extern "C"
+ErrCode PUBLIC_EXPORT createJsonSerializerWithVersion(ISerializer** obj, Int version, Bool pretty = False);
+
+inline ISerializer* JsonSerializer_Create(Int version, Bool pretty = False)
+{
+    ISerializer* obj;
+    ErrCode res = createJsonSerializerWithVersion(&obj, version, pretty);
+    if (OPENDAQ_SUCCEEDED(res))
+        return obj;
+
+    throw std::bad_alloc();
+}
+
 END_NAMESPACE_OPENDAQ

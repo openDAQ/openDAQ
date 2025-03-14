@@ -23,12 +23,15 @@
 #include <coretypes/cloneable.h>
 #include <coretypes/iterable.h>
 #include <coretypes/list_element_type.h>
-
+#include <coretypes/deserializer.h>
+#include <coretypes/serialized_object.h>
 #include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 class ListIteratorImpl;
+
+ErrCode INTERFACE_FUNC deserializeList(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 class ListImpl : public ImplementationOf<IList, IIterable, ISerializable, IListElementType, ICoreType, ICloneable, IFreezable>
 {
@@ -71,6 +74,12 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+    {
+        return deserializeList(ser, context, factoryCallback, obj);
+    }
 
     // IBaseObject
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
@@ -96,5 +105,7 @@ private:
 
     void releaseRefOnChildren();
 };
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ListImpl)
 
 END_NAMESPACE_OPENDAQ

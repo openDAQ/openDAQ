@@ -260,3 +260,22 @@ TEST_F(IntfIdTest, VersionInfoString)
 {
     ASSERT_EQ(daqInterfaceIdString<IVersionInfo>(), "{5951D4D2-35EB-513C-B67D-89DABC6BE3BF}");
 }
+
+TEST_F(IntfIdTest, TestInterfaceToStringConversion)
+{
+    auto testInterfaceToStringConversion = [](const IntfID& iidIn)
+    {
+        char iidString[39];
+        IntfID iidOut;
+        daqInterfaceIdToString(iidIn, iidString);
+        daqStringToInterfaceId(iidString, iidOut);
+        ASSERT_EQ(iidIn, iidOut);
+    };
+
+    testInterfaceToStringConversion(IString::Id);
+    testInterfaceToStringConversion(INumber::Id);
+    testInterfaceToStringConversion(IBaseObject::Id);
+    testInterfaceToStringConversion(IList::Id);
+    testInterfaceToStringConversion(IVersionInfo::Id);
+    testInterfaceToStringConversion(IInspectable::Id);
+}

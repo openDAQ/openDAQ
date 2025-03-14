@@ -88,9 +88,10 @@ private:
     bool fixedPacketSize;
     uint64_t packetSize;
     StringPtr referenceDomainId;
-    PacketBuffer* pb;
+    std::unique_ptr<daq::PacketBuffer> pb;
     daq::IdsParser* idp;
 
+    void packetBufferSetup();
 
     void initProperties();
     void packetSizeChangedInternal();

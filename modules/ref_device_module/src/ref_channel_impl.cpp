@@ -42,6 +42,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
     , referenceDomainId(init.referenceDomainId)
+    //, pb(PacketBuffer((size_t) packetSize, (size_t)1024))
 {
     initProperties();
     waveformChangedInternal();
@@ -50,9 +51,14 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     resetCounter();
     createSignals();
     buildSignalDescriptors();
-
-    pb = new PacketBuffer((size_t)packetSize, (size_t)1024); // for now
+    packetBufferSetup();
     //idp = new IdsParser();
+
+}
+
+void RefChannelImpl::packetBufferSetup()
+{
+    pb = std::make_unique<daq::PacketBuffer>((size_t) packetSize, (size_t)1024);
 }
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)

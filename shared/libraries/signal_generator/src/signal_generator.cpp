@@ -18,7 +18,7 @@ SignalGenerator::SignalGenerator(const SignalConfigPtr& signal,
     calculateSampleSize();
     calculateResolutionAndOutputRate();
     calculateAbsStartTick(absTime);
-    packetBuff = new PacketBuffer(daq::SignalGenerator::signal.getDescriptor().getRawSampleSize(), 1024);
+    packetBuff = std::make_unique<PacketBuffer>(daq::SignalGenerator::signal.getDescriptor().getRawSampleSize(), (size_t)1024);
 }
 
 void SignalGenerator::setFunction(GenerateSampleFunc function)

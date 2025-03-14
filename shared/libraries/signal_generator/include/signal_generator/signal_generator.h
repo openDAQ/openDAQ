@@ -56,7 +56,7 @@ protected:
     size_t maxPacketSize{};
     RatioPtr resolution;
     uint64_t absStartTick = 0;
-    PacketBuffer* packetBuff;
+    std::unique_ptr<PacketBuffer> packetBuff;
 };
 
 END_NAMESPACE_OPENDAQ

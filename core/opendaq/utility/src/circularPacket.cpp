@@ -1,5 +1,3 @@
-//#include "stdafx.h"
-
 #include <opendaq/circularPacket.h>
 
 using namespace daq;
@@ -317,7 +315,6 @@ Packet::~Packet()
     cb(assignedData,sampleAmount);
 }
 
-
 // This is a test function that was used to help gauge the behaviour of the buffer class
 Packet PacketBuffer::cP(size_t* sampleCount, size_t dataDescriptor)
 {
@@ -340,4 +337,30 @@ Packet PacketBuffer::cP(size_t* sampleCount, size_t dataDescriptor)
         // Maybe throw here, or something else (who knows)
         return Packet();
     }
+}
+
+void PacketBuffer::resize(const PUBLIC_EXPORT PacketBufferInit& instructions)
+{
+    // If I were to give a new PacketBufferInit into here then a new malloc could be called
+    // similarly to the way buffer gets created in the constructor, we can create a new version in this function
+    // 
+
+    reset();
+
+    // crude, but effective
+    if (!this->isEmpty())
+        throw;
+
+    free(data);
+
+    sizeOfSample = instructions.desc.getRawSampleSize();
+    sizeOfMem = instructions.sampleAmount;
+    data = malloc(sizeOfMem * sizeOfSample);
+    writePos = data;
+    readPos = data;
+    bIsFull = false;
+    bUnderReset = false;
+    bAdjustedSize = false;
+    sizeAdjusted = 0;
+
 }

@@ -16,6 +16,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+
+// Think about what needs also to be included in here...
+
 struct PUBLIC_EXPORT PacketBufferInit
 {
     PacketBufferInit(daq::DataDescriptorPtr desc, size_t sA, enum EnumAdjustSize eAdjust);
@@ -62,6 +65,8 @@ public:
     PacketBuffer(const PUBLIC_EXPORT PacketBufferInit& instructions);
 
     ~PacketBuffer();
+
+    void resize(const PUBLIC_EXPORT PacketBufferInit& instructions);
 
     // int => return code
     int WriteSample(size_t* sampleCount, void** memPos);

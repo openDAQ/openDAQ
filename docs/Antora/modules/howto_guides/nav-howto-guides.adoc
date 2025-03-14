@@ -26,3 +26,4 @@
 *** xref:howto_access_control_connect.adoc[]
 *** xref:howto_access_control_user_list.adoc[]
 *** xref:howto_access_control_protected_object.adoc[]
+** xref:howto_record_data.adoc[]

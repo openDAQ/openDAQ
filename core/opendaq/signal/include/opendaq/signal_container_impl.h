@@ -38,7 +38,8 @@ public:
                                const ComponentPtr& parent,
                                const StringPtr& localId,
                                const StringPtr& className = nullptr,
-                               const StringPtr& name = nullptr);
+                               const StringPtr& name = nullptr,
+                               const PropertyObjectPtr& config = nullptr);
     
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
@@ -118,6 +119,9 @@ protected:
 private:
     template <class Component>
     void swapComponent(Component& origComponent, const Component& newComponent);
+
+protected:
+    PropertyObjectPtr componentConfig;
 };
 
 template <class Intf = IComponent, class... Intfs>
@@ -131,7 +135,8 @@ public:
                         const ComponentPtr& parent,
                         const StringPtr& localId,
                         const StringPtr& className = nullptr,
-                        const StringPtr& name = nullptr);
+                        const StringPtr& name = nullptr,
+                        const PropertyObjectPtr& config = nullptr);
     
     // IComponent
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
@@ -147,12 +152,14 @@ GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const Con
                                                                        const ComponentPtr& parent,
                                                                        const StringPtr& localId,
                                                                        const StringPtr& className,
-                                                                       const StringPtr& name)
+                                                                       const StringPtr& name,
+                                                                       const PropertyObjectPtr& config)
     : Super(context, parent, localId, className, name)
     , allowNonDefaultComponents(false)
     , signalContainerLoggerComponent(
         context.getLogger().assigned() ? context.getLogger().getOrAddComponent("GenericSignalContainerImpl")
             : throw ArgumentNullException{"Logger not assigned!"})
+    , componentConfig(config)
 {
     defaultComponents.insert("Sig");
     defaultComponents.insert("FB");
@@ -197,8 +204,9 @@ SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& conte
                                                          const ComponentPtr& parent,
                                                          const StringPtr& localId,
                                                          const StringPtr& className,
-                                                         const StringPtr& name)
-    : Super(context, parent, localId, className, name)
+                                                         const StringPtr& name,
+                                                         const PropertyObjectPtr& config)
+    : Super(context, parent, localId, className, name, config)
 {
 }
 
@@ -569,6 +577,12 @@ void GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomObjectValues(con
     Super::serializeCustomObjectValues(serializer, forUpdate);
     serializeFolder(serializer, signals, "Sig", forUpdate);
     serializeFolder(serializer, functionBlocks, "FB", forUpdate);
+
+    if (forUpdate && componentConfig.assigned())
+    {
+        serializer.key("config");
+        componentConfig.serialize(serializer);
+    }
 }
 
 template <class Intf, class... Intfs>

@@ -167,7 +167,6 @@ protected:
     SyncComponentPtr syncComponent;
     FolderConfigPtr servers;
     LoggerComponentPtr loggerComponent;
-    PropertyObjectPtr deviceConfig;
     bool isRootDevice;
     UserLockPtr userLock;
     ConnectionStatusContainerPrivatePtr connectionStatusContainer;
@@ -345,7 +344,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObject* config)
 {
-    this->deviceConfig = config;
+    this->componentConfig = config;
     return OPENDAQ_SUCCESS;
 }
 
@@ -1313,6 +1312,8 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::onAddDevice(const StringPtr&
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     auto device = managerUtils.createDevice(connectionString, devices, config);
+    if (device.assigned() && config.assigned())
+        device.template asPtr<IDevicePrivate>()->setDeviceConfig(config);
     addSubDevice(device);
 
     return device;
@@ -1444,7 +1445,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObject** config)
 {
     OPENDAQ_PARAM_NOT_NULL(config);
-    *config = this->deviceConfig.addRefAndReturn();
+    *config = this->componentConfig.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -1738,12 +1739,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
                 serializer.writeString(serialNumber);
             }
         }
-
-        if (deviceConfig.assigned())
-        {
-            serializer.key("deviceConfig");
-            deviceConfig.serialize(serializer);
-        }
     }
 
     if (syncComponent.assigned())
@@ -1772,7 +1767,12 @@ void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::st
     {
         auto typeId = serializedFunctionBlock.readString("typeId");
 
-        auto config = PropertyObject();
+        PropertyObjectPtr config;
+        if (serializedFunctionBlock.hasKey("config"))
+            config = serializedFunctionBlock.readObject("config");
+        else
+            config = PropertyObject();
+
         config.addProperty(StringProperty("LocalId", fbId));
 
         auto fb = onAddFunctionBlock(typeId, config);
@@ -1809,6 +1809,8 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
         if (serializedDevice.hasKey("deviceConfig"))
             deviceConfig = serializedDevice.readObject("deviceConfig");
+        else if (serializedDevice.hasKey("config"))
+            deviceConfig = serializedDevice.readObject("config");
 
         if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
         {
@@ -1856,8 +1858,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             this->removeDevice(device);
         }
 
-        DevicePtr device;
-        this->addDevice(&device, connectionString, deviceConfig);
+        DevicePtr device = onAddDevice(connectionString, deviceConfig);
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
     }

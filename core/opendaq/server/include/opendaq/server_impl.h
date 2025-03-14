@@ -47,7 +47,12 @@ public:
                         const DevicePtr& rootDevice,
                         const ContextPtr& context,
                         const ComponentPtr& parent = nullptr)
-        : Super(context, parent.assigned() ? parent : (rootDevice.assigned() ? rootDevice.getItem("Srv") : nullptr), id)
+        : Super(context, 
+            parent.assigned() ? parent : (rootDevice.assigned() ? rootDevice.getItem("Srv") : nullptr), 
+            id,
+            nullptr,
+            nullptr,
+            serverConfig)
         , id(id)
         , config(serverConfig)
         , rootDeviceRef(rootDevice)

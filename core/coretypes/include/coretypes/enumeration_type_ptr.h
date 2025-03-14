@@ -117,7 +117,7 @@ public:
     ListPtr<IString> getEnumeratorNames() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ListPtr<IString> names;
         auto errCode = this->object->getEnumeratorNames(&names);
@@ -133,7 +133,7 @@ public:
     DictPtr<IString, IInteger> getAsDictionary() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         DictPtr<IString, IInteger> dictionary;
         auto errCode = this->object->getAsDictionary(&dictionary);
@@ -150,7 +150,7 @@ public:
     Int getEnumeratorIntValue(const StringPtr& name) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Int value;
         auto errCode = this->object->getEnumeratorIntValue(name, &value);
@@ -166,7 +166,7 @@ public:
     SizeT getCount() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         SizeT count;
         auto errCode = this->object->getCount(&count);

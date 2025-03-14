@@ -16,16 +16,16 @@
 
 #pragma once
 #include <coretypes/arguments.h>
+#include <coretypes/validation.h>
 #include <coretypes/common.h>
-#include <coretypes/ctutils.h>
 #include <coretypes/errorinfo.h>
 #include <coretypes/errors.h>
 #include <coretypes/exceptions.h>
 #include <coretypes/inspectable.h>
+#include <coretypes/delegate.hpp>
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <coretypes/delegate.hpp>
 #include <string>
 
 #if defined(__GNUC__)
@@ -240,8 +240,7 @@ public:
 
     virtual ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override
     {
-        if (!intf)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(intf);
 
         if (InterfaceIds::Check(id, intf, (void*) this, true))
         {
@@ -253,8 +252,7 @@ public:
 
     virtual ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override
     {
-        if (!intf)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(intf);
 
         if (InterfaceIds::Check(id, intf, (void*) this, false))
         {
@@ -266,8 +264,7 @@ public:
 
     virtual ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) override
     {
-        if (hashCode == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(hashCode);
 
         *hashCode = reinterpret_cast<SizeT>(this);
         return OPENDAQ_SUCCESS;
@@ -299,8 +296,7 @@ public:
 
     virtual ErrCode INTERFACE_FUNC toString(CharPtr* str) override
     {
-        if (str == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(str);
 
         return MainInterface::OpenDaqType(str);
     }
@@ -309,8 +305,7 @@ public:
 
     virtual ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override
     {
-        if (idCount == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(idCount);
 
         *idCount = InterfaceIds::Count();
         if (ids == nullptr)
@@ -324,8 +319,7 @@ public:
 
     virtual ErrCode INTERFACE_FUNC getRuntimeClassName(IString** implementationName) override
     {
-        if (implementationName == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(implementationName);
 
         auto id = typeid(*this).name();
 #if defined(__GNUC__)
@@ -359,6 +353,11 @@ protected:
         return static_cast<IBaseObject*>(static_cast<MainInterface*>(this));
     }
 
+    IBaseObject* getThisAsBaseObject() const
+    {
+        return const_cast<IBaseObject*>(static_cast<const IBaseObject*>(static_cast<const MainInterface*>(this)));
+    }
+
     void checkAndCallDispose()
     {
         if (!disposeCalled)
@@ -373,7 +372,7 @@ protected:
         if (OPENDAQ_FAILED(err))
             return err;
 
-        setErrorInfoWithSource(thisBaseObject, message, params...);
+        setErrorInfoWithSource(thisBaseObject, message, std::forward<Params>(params)...);
         return errCode;
     }
 

@@ -25,6 +25,7 @@
 #include <coreobjects/unit_ptr.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -38,7 +39,7 @@ protected:
     {
         if (valueType == ctBinaryData)
         {
-            throw InvalidTypeException{"Properties cannot be BinaryData types"};
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Properties cannot be BinaryData types");
         }
     }
 
@@ -174,9 +175,8 @@ public:
 
     ErrCode INTERFACE_FUNC build(IProperty** property) override
     {
-        if (property == nullptr)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(property);
+        
         const auto propertyBuilderPtr = this->borrowPtr<PropertyBuilderPtr>();
 
         return daqTry([&]()
@@ -194,9 +194,8 @@ public:
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
     {
-        if (!type)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(type);
+        
         *type = this->valueType;
         return OPENDAQ_SUCCESS;
     }
@@ -209,9 +208,8 @@ public:
 
     ErrCode INTERFACE_FUNC getName(IString** name) override
     {
-        if (!name)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(name);
+        
         *name = this->name.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -224,9 +222,8 @@ public:
 
     ErrCode INTERFACE_FUNC getDescription(IString** description) override
     {
-        if (!description)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(description);
+        
         *description = this->description.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -239,8 +236,7 @@ public:
 
     ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override
     {
-        if (!unit)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(unit); 
 
         *unit = this->unit.addRefAndReturn();
         return OPENDAQ_SUCCESS;
@@ -254,9 +250,8 @@ public:
 
     ErrCode INTERFACE_FUNC getMinValue(INumber** min) override
     {
-        if (!min)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(min);
+        
         *min = this->minValue.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -269,9 +264,8 @@ public:
 
     ErrCode INTERFACE_FUNC getMaxValue(INumber** max) override
     {
-        if (!max)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(max);
+        
         *max = this->maxValue.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -293,9 +287,8 @@ public:
 
     ErrCode INTERFACE_FUNC getDefaultValue(IBaseObject** value) override
     {
-        if (!value)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(value);
+    
         *value = this->defaultValue.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -317,8 +310,7 @@ public:
 
     ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) override
     {
-        if (!values)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(values);
 
         *values = this->suggestedValues.addRefAndReturn();
         return OPENDAQ_SUCCESS;
@@ -332,9 +324,8 @@ public:
 
     ErrCode INTERFACE_FUNC getVisible(IBoolean** visible) override
     {
-        if (!visible)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(visible);
+        
         *visible = this->visible.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -347,9 +338,8 @@ public:
 
     ErrCode INTERFACE_FUNC getReadOnly(IBoolean** readOnly) override
     {
-        if (!readOnly)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(readOnly);
+        
         *readOnly = this->readOnly.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -371,8 +361,7 @@ public:
 
     ErrCode INTERFACE_FUNC getSelectionValues(IBaseObject** values) override
     {
-        if (!values)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(values);
         
         *values = this->selectionValues.addRefAndReturn();
         return OPENDAQ_SUCCESS;
@@ -386,9 +375,8 @@ public:
 
     ErrCode INTERFACE_FUNC getReferencedProperty(IEvalValue** propertyEval) override
     {
-        if (!propertyEval)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(propertyEval);
+        
         *propertyEval = this->refProp.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -401,9 +389,8 @@ public:
 
     ErrCode INTERFACE_FUNC getValidator(IValidator** validator) override
     {
-        if (!validator)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(validator);
+        
         *validator = this->validator.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -416,9 +403,8 @@ public:
     
     ErrCode INTERFACE_FUNC getCoercer(ICoercer** coercer) override
     {
-        if (!coercer)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(coercer);
+    
         *coercer = this->coercer.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -431,9 +417,8 @@ public:
 
     ErrCode INTERFACE_FUNC getCallableInfo(ICallableInfo** callable) override
     {
-        if (!callable)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(callable);
+        
         *callable = this->callableInfo.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -446,9 +431,8 @@ public:
 
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) override
     {
-        if (!event)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(event);
+        
         *event = this->onValueWrite.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -461,9 +445,8 @@ public:
 
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) override
     {
-        if (!event)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
-
+        OPENDAQ_PARAM_NOT_NULL(event);
+        
         *event = this->onValueRead.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }

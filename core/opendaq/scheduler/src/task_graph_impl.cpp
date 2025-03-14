@@ -26,16 +26,14 @@ TaskGraph::TaskGraph(ProcedurePtr callable, const StringPtr& name)
 
 ErrCode TaskGraph::getName(IString** name)
 {
-    if (name == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     return createStringN(name, flow.name().c_str(), flow.name().size());
 }
 
 ErrCode TaskGraph::setName(IString* name)
 {
-    if (name == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     std::string n = toStdString(name);
 
@@ -47,8 +45,7 @@ ErrCode TaskGraph::setName(IString* name)
 
 ErrCode TaskGraph::then(ITask* continuation)
 {
-    if (continuation == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(continuation);
 
     // ZoneScoped;
 

@@ -18,7 +18,7 @@ DataRulePtr StructConverter<IDataRule, UA_LinearRuleDescriptionStructure>::ToDaq
                                                                                        const ContextPtr& /*context*/)
 {
     if (tmsStruct.type != "linear")
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     const NumberPtr delta = VariantConverter<INumber>::ToDaqObject(OpcUaVariant(tmsStruct.delta));
     const NumberPtr start = VariantConverter<INumber>::ToDaqObject(OpcUaVariant(tmsStruct.start));
@@ -49,7 +49,7 @@ DataRulePtr StructConverter<IDataRule, UA_ConstantRuleDescriptionStructure>::ToD
     const UA_ConstantRuleDescriptionStructure& tmsStruct, const ContextPtr& /*context*/)
 {
     if (tmsStruct.type != "constant")
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     const NumberPtr value = VariantConverter<INumber>::ToDaqObject(tmsStruct.value);
     return ConstantDataRule();
@@ -75,7 +75,7 @@ DataRulePtr StructConverter<IDataRule, UA_BaseRuleDescriptionStructure>::ToDaqOb
                                                                                      const ContextPtr& /*context*/)
 {
     if (tmsStruct.type != "explicit")
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return ExplicitDataRule();
 }
@@ -97,7 +97,7 @@ DataRulePtr StructConverter<IDataRule, UA_ExplicitDomainRuleDescriptionStructure
     const ContextPtr& /*context*/)
 {
     if (tmsStruct.type != "explicit")
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     const NumberPtr minExpectedDelta = VariantConverter<INumber>::ToDaqObject(OpcUaVariant(tmsStruct.minExpectedDelta));
     const NumberPtr maxExpectedDelta = VariantConverter<INumber>::ToDaqObject(OpcUaVariant(tmsStruct.maxExpectedDelta));
@@ -129,7 +129,7 @@ DataRulePtr StructConverter<IDataRule, UA_CustomRuleDescriptionStructure>::ToDaq
                                                                                        const ContextPtr& context)
 {
     if (tmsStruct.type != "custom")
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     auto params = Dict<IString, IBaseObject>();
     for (size_t i = 0; i < tmsStruct.parametersSize; i++)
@@ -214,7 +214,7 @@ DataRulePtr VariantConverter<IDataRule>::ToDaqObject(const OpcUaVariant& variant
         return StructConverter<IDataRule, UA_BaseRuleDescriptionStructure>::ToDaqObject(*tmsStruct);
     }
 
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -262,7 +262,7 @@ OpcUaVariant VariantConverter<IDataRule>::ToVariant(const DataRulePtr& object, c
     else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_EXPLICITDOMAINRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDataRule, UA_ExplicitDomainRuleDescriptionStructure>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -283,7 +283,7 @@ ListPtr<IDataRule> VariantConverter<IDataRule>::ToDaqList(const OpcUaVariant& va
     if (variant.isType<UA_BaseRuleDescriptionStructure>())
         return ListConversionUtils::VariantToList<IDataRule, UA_BaseRuleDescriptionStructure>(variant);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -303,7 +303,7 @@ OpcUaVariant VariantConverter<IDataRule>::ToArrayVariant(const ListPtr<IDataRule
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_BaseRuleDescriptionStructure>(list);
     if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataRule, UA_CustomRuleDescriptionStructure>(list);
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

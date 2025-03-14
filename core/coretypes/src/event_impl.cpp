@@ -10,8 +10,7 @@ EventImpl::EventImpl()
 
 ErrCode EventImpl::addHandler(IEventHandler* eventHandler)
 {
-    if (eventHandler == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(eventHandler);
 
     std::scoped_lock lock(sync);
 
@@ -26,8 +25,7 @@ ErrCode EventImpl::addHandler(IEventHandler* eventHandler)
 
 ErrCode EventImpl::removeHandler(IEventHandler* eventHandler)
 {
-    if (eventHandler == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(eventHandler);
 
     std::scoped_lock lock(sync);
 
@@ -83,8 +81,7 @@ ErrCode EventImpl::getSubscriberCount(SizeT* count)
 
 ErrCode EventImpl::getSubscribers(IList** subscribers)
 {
-    if (!subscribers)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(subscribers);
 
 	std::scoped_lock lock(sync);
 
@@ -178,8 +175,7 @@ ErrCode EventImpl::unmuteListener(IEventHandler* eventHandler)
 
 ErrCode EventImpl::setMuted(IEventHandler* eventHandler, bool muted)
 {
-    if (eventHandler == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(eventHandler);
 
     SizeT hashCode;
     ErrCode errCode = eventHandler->getHashCode(&hashCode);

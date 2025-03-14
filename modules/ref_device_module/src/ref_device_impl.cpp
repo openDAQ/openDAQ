@@ -54,11 +54,11 @@ RefDeviceImpl::RefDeviceImpl(size_t id,
         serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
     }
 
-    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-    if (options.assigned() && options.hasKey("SerialNumber"))
+    if (const auto options = this->context.getModuleOptions(REF_MODULE_NAME); options.assigned())
     {
-        const StringPtr serialTemp = options.get("SerialNumber");
-        serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
+        const StringPtr serialTemp = options.getOrDefault("SerialNumber");
+        if (serialTemp.assigned() && serialTemp.getLength())
+            serialNumber = serialTemp;
     }
 
     initIoFolder();
@@ -286,15 +286,12 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     if (options.assigned())
     {
-        if (options.hasKey("NumberOfChannels"))
-            numberOfChannels = options.get("NumberOfChannels");
-
-        if (options.hasKey("EnableCANChannel"))
-            enableCANChannel = options.get("EnableCANChannel");
+        numberOfChannels = options.getOrDefault("NumberOfChannels", numberOfChannels);
+        enableCANChannel = options.getOrDefault("EnableCANChannel", enableCANChannel);
     }
 
     if (numberOfChannels < 1 || numberOfChannels > 4096)
-        throw InvalidParameterException("Invalid number of channels");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid number of channels");
 
     auto numberOfChannelsProp = IntPropertyBuilder("NumberOfChannels", numberOfChannels)
                                     .setMinValue(1)
@@ -584,9 +581,9 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
         if (!dhcp)
         {
             if (gateway.getLength() == 0)
-                throw InvalidParameterException("No gateway address specified");
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "No gateway address specified");
             if (address.getLength() == 0)
-                throw InvalidParameterException("Empty static address specified");
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "Empty static address specified");
         }
     };
 
@@ -617,7 +614,7 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
     // Open the command for reading
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
-        throw GeneralErrorException("Failed to start IP modification");
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to start IP modification");
 
     // Read the output of the command
     while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
@@ -626,7 +623,7 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
     // Get the exit status
     int exitCode = pclose(pipe);
     if (exitCode)
-        throw InvalidParameterException("Invalid IP configuration: {}", result);
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid IP configuration: {}", result);
 
     // The new IP configuration has been successfully verified. Stop the application now
     // to allow it to adopt the updated configuration and reopen network sockets upon relaunch.
@@ -643,7 +640,7 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
     // Open the command for reading
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
-        throw GeneralErrorException("Failed to run retrieve IP configuration script");
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to run retrieve IP configuration script");
 
     // Read the output of the command
     while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
@@ -652,7 +649,7 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
     // Get the exit status
     int exitCode = pclose(pipe);
     if (exitCode)
-        throw GeneralErrorException("Retrieve IP configuration script failed: {}", result);
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Retrieve IP configuration script failed: {}", result);
 
     auto factoryCallback = [](const StringPtr& typeId,
                               const SerializedObjectPtr& serializedObj,
@@ -660,7 +657,7 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
                               const FunctionPtr& factoryCallback)
     {
         if (typeId != "Result")
-            throw DeserializeException("Wrong script result type ID: {}", typeId);
+            DAQ_THROW_EXCEPTION(DeserializeException, "Wrong script result type ID: {}", typeId);
 
         auto config = PropertyObject();
 

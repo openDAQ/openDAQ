@@ -27,8 +27,7 @@ PropertyObjectClassImpl::PropertyObjectClassImpl(IPropertyObjectClassBuilder* bu
 
 ErrCode PropertyObjectClassImpl::getName(IString** typeName)
 {
-    if (typeName == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(typeName);
 
     *typeName = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -36,8 +35,7 @@ ErrCode PropertyObjectClassImpl::getName(IString** typeName)
 
 ErrCode PropertyObjectClassImpl::getParentName(IString** parentName)
 {
-    if (parentName == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(parentName);
 
     *parentName = this->parent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -45,8 +43,8 @@ ErrCode PropertyObjectClassImpl::getParentName(IString** parentName)
 
 ErrCode PropertyObjectClassImpl::getProperty(IString* propertyName, IProperty** property)
 {
-    if (propertyName == nullptr || property == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+    OPENDAQ_PARAM_NOT_NULL(property);
 
     auto res = props.find(propertyName);
     if (res == props.cend())
@@ -75,7 +73,7 @@ ErrCode PropertyObjectClassImpl::getProperty(IString* propertyName, IProperty** 
         }
 
         StringPtr str = propertyName;
-        return makeErrorInfo(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not found.)", str));
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property with name {} not found.)", str));
     }
 
     *property = res.value().addRefAndReturn();
@@ -84,10 +82,8 @@ ErrCode PropertyObjectClassImpl::getProperty(IString* propertyName, IProperty** 
 
 ErrCode PropertyObjectClassImpl::hasProperty(IString* propertyName, Bool* hasProperty)
 {
-    if (propertyName == nullptr || hasProperty == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+    OPENDAQ_PARAM_NOT_NULL(hasProperty);
 
     const auto res = props.find(propertyName);
     if (res == props.end())
@@ -151,14 +147,14 @@ ErrCode PropertyObjectClassImpl::getManager(TypeManagerPtr& managerPtr) const
 {
     if (!manager.assigned())
     {
-        return makeErrorInfo(OPENDAQ_ERR_MANAGER_NOT_ASSIGNED, "Property object manager not assigned.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MANAGER_NOT_ASSIGNED, "Property object manager not assigned.");
     }
 
     managerPtr = manager.getRef();
 
     if (!managerPtr.assigned())
     {
-        return makeErrorInfo(OPENDAQ_ERR_MANAGER_NOT_ASSIGNED, "Property object manager not assigned.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MANAGER_NOT_ASSIGNED, "Property object manager not assigned.");
     }
     return OPENDAQ_SUCCESS;
 }
@@ -241,8 +237,7 @@ ErrCode PropertyObjectClassImpl::getWithCustomOrder(Bool includeInherited, IList
 
 ErrCode PropertyObjectClassImpl::getProperties(Bool includeInherited, IList** properties)
 {
-    if (properties == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(properties);
 
     if (customOrder.empty())
     {
@@ -273,7 +268,7 @@ ErrCode PropertyObjectClassImpl::serializeProperties(ISerializer* serializer)
 
             if (errCode == OPENDAQ_ERR_NOINTERFACE)
             {
-                return makeErrorInfo(OPENDAQ_ERR_NOT_SERIALIZABLE,
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE,
                                      std::string("Property \"" + propName + "\" does not implement ISerializable."));
             }
 
@@ -412,7 +407,7 @@ ErrCode PropertyObjectClassImpl::toString(CharPtr* str)
 {
     if (str == nullptr)
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter must not be null");
     }
 
     std::ostringstream stream;

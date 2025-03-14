@@ -120,7 +120,7 @@ template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (!functionBlock.assigned())
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     this->clientComm->removeFunctionBlock(this->remoteGlobalId, functionBlock.getLocalId());
 
@@ -169,7 +169,7 @@ template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& device)
 {
     if (!device.assigned())
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     this->clientComm->removeDevice(this->remoteGlobalId, device.getLocalId());
 

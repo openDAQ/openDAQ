@@ -142,7 +142,7 @@ PropertyObjectPtr createMockNestedPropertyObject()
     ProcedurePtr procCallback = Procedure(
         [&](const IntegerPtr& intVal) {
             if (intVal < Integer(1))
-                throw InvalidParameterException{};
+                DAQ_THROW_EXCEPTION(InvalidParameterException);
         });
 
     child1_2_1.addProperty(StringProperty("String", "String"));
@@ -198,18 +198,18 @@ FunctionBlockPtr MockFb1Impl::onAddFunctionBlock(const StringPtr& typeId, const 
     if (typeId == "mockfb1")
     {
         if (!config.assigned())
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const StringPtr param = config.getPropertyValue("Param");
         if (param != "Value")
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(context, this->functionBlocks, "newFb");
         addNestedFunctionBlock(fb);
         return fb;
     }
 
-    throw NotFoundException();
+    DAQ_THROW_EXCEPTION(NotFoundException);
 }
 
 void MockFb1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
@@ -283,17 +283,17 @@ FunctionBlockPtr MockDevice1Impl::onAddFunctionBlock(const StringPtr& typeId, co
     if (typeId == "mockfb1")
     {
         if (!config.assigned())
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const StringPtr param = config.getPropertyValue("Param");
         if (param != "Value")
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(context, this->functionBlocks, "newFb");
         addNestedFunctionBlock(fb);
         return fb;
     }
-    throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
 }
 
 void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)

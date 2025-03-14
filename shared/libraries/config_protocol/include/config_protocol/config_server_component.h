@@ -157,9 +157,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
                                                          const ParamsDictPtr& params)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
-    BaseObjectPtr callParams;
-    if (params.hasKey("Params"))
-        callParams = params.get("Params");
+    BaseObjectPtr callParams = params.getOrDefault("Params");
 
     const auto prop = component.getProperty(propertyName);
     const auto propValue = component.getPropertyValue(propertyName);
@@ -175,7 +173,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
         case CoreType::ctFunc:
             break;
         default:
-            throw InvalidPropertyException("Property not callable");
+            DAQ_THROW_EXCEPTION(InvalidPropertyException, "Property not callable");
     }
 
     if (!prop.getCallableInfo().isConst())
@@ -230,7 +228,7 @@ inline BaseObjectPtr ConfigServerComponent::endUpdate(const RpcContext& context,
     if (params.hasKey("Props"))
     {
         if (context.protocolVersion < 1)
-            throw NotSupportedException();
+            DAQ_THROW_EXCEPTION(NotSupportedException);
 
         const ListPtr<IDict> props = params.get("Props");
         applyProps(context.protocolVersion, obj, props);
@@ -258,7 +256,7 @@ inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const RpcContext& 
     else if (attributeName == "Active")
         component.setActive(attributeValue);
     else
-        throw InvalidParameterException("Attribute not available or not supported via native config protocol");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Attribute not available or not supported via native config protocol");
 
     return nullptr;
 }
@@ -317,7 +315,7 @@ inline BaseObjectPtr ConfigServerComponent::getAvailableFunctionBlockTypes(const
     else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
         fbTypes = fb.getAvailableFunctionBlockTypes();
     else
-        throw InvalidStateException("Component is not a device or function block");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device or function block");
 
     return fbTypes;
 }
@@ -331,9 +329,7 @@ inline BaseObjectPtr ConfigServerComponent::addFunctionBlock(const RpcContext& c
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto fbTypeId = params.get("TypeId");
-    PropertyObjectPtr config;
-    if (params.hasKey("Config"))
-        config = params.get("Config");
+    PropertyObjectPtr config = params.getOrDefault("Config");
 
     BaseObjectPtr fbNested;
     if (const auto device = component.asPtrOrNull<IDevice>(true); device.assigned())
@@ -341,7 +337,7 @@ inline BaseObjectPtr ConfigServerComponent::addFunctionBlock(const RpcContext& c
     else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
         fbNested = fb.addFunctionBlock(fbTypeId, config);
     else
-        throw InvalidStateException("Component is not a device or function block");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device or function block");
 
     return ComponentHolder(fbNested);
 }
@@ -358,11 +354,12 @@ inline BaseObjectPtr ConfigServerComponent::removeFunctionBlock(const RpcContext
 
     const auto checkFb = [](const ListPtr<IFunctionBlock>& fbs)
     {
-        if (fbs.getCount() == 0)
-            throw NotFoundException("Function block not found");
+        auto fbsCount = fbs.getCount();
+        if (fbsCount == 0)
+            DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
 
-        if (fbs.getCount() > 1)
-            throw InvalidStateException("Duplicate function block");
+        if (fbsCount > 1)
+            DAQ_THROW_EXCEPTION(InvalidStateException, "Duplicate function block");
     };
 
     ListPtr<IFunctionBlock> fbs;
@@ -380,7 +377,7 @@ inline BaseObjectPtr ConfigServerComponent::removeFunctionBlock(const RpcContext
         fb.removeFunctionBlock(fbs[0]);
     }
     else
-        throw InvalidStateException("Component is not a device or function block");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device or function block");
 
     return nullptr;
 }

@@ -135,7 +135,7 @@ ErrCode TmsClientDeviceImpl::getAvailableOperationModes(IList** availableOpModes
     OPENDAQ_PARAM_NOT_NULL(availableOpModes); 
     
     if (!this->hasReference("OperationModeOptions"))
-        return this->makeErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
 
     const auto nodeId = getNodeId("OperationModeOptions");
     auto opModesNodeStrList = VariantConverter<IString>::ToDaqList(client->readValue(nodeId));
@@ -150,7 +150,7 @@ ErrCode TmsClientDeviceImpl::setOperationMode(IString* modeType)
     OPENDAQ_PARAM_NOT_NULL(modeType);
 
     if (!this->hasReference("OperationMode"))
-        return this->makeErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
     
     const auto nodeId = getNodeId("OperationMode");
     const auto modeTypeStr = StringPtr::Borrow(modeType).toStdString();
@@ -164,7 +164,7 @@ ErrCode TmsClientDeviceImpl::setOperationMode(IString* modeType)
 ErrCode TmsClientDeviceImpl::setOperationModeRecursive(IString* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
-    const auto modeTypeStr = "Recursive" +  StringPtr::Borrow(modeType).toStdString();
+    const auto modeTypeStr = "Recursive" + StringPtr::Borrow(modeType).toStdString();
     return this->setOperationMode(String(modeTypeStr));
 }
 
@@ -173,7 +173,7 @@ ErrCode TmsClientDeviceImpl::getOperationMode(IString** modeType)
     OPENDAQ_PARAM_NOT_NULL(modeType);
 
     if (!this->hasReference("OperationMode"))
-        return this->makeErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
     
     const auto nodeId = getNodeId("OperationMode");
     const auto variant = client->readValue(nodeId);

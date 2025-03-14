@@ -36,7 +36,7 @@ public:
     Int getValue() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Int value;
         const auto errCode = object->getValue(&value);

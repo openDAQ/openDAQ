@@ -651,7 +651,7 @@ PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyOb
         
         const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());
         if (impl == nullptr)
-            throw InvalidStateException("Failed to cast to ConfigClientPropertyObjectImpl");
+            DAQ_THROW_EXCEPTION(InvalidStateException, "Failed to cast to ConfigClientPropertyObjectImpl");
         impl->unfreeze();
 
         return clientPropObj;
@@ -854,7 +854,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const St
     {
         case ctProc:
         case ctFunc:
-            throw InvalidOperationException("Cannot set remote function property");
+            DAQ_THROW_EXCEPTION(InvalidOperationException, "Cannot set remote function property");
         default:
             return;
     }
@@ -963,15 +963,15 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
     {
         const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
         if (!serializedPtr.assigned())
-            throw ArgumentNullException("Serialized object not assigned");
+            DAQ_THROW_EXCEPTION(ArgumentNullException, "Serialized object not assigned");
 
         const auto contextPtr = BaseObjectPtr::Borrow(context);
         if (!contextPtr.assigned())
-            throw ArgumentNullException("Deserialization context not assigned");
+            DAQ_THROW_EXCEPTION(ArgumentNullException, "Deserialization context not assigned");
 
         const auto componentDeserializeContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>(true);
         if (!componentDeserializeContext.assigned())
-            throw InvalidParameterException("Invalid deserialization context");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid deserialization context");
 
         const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 

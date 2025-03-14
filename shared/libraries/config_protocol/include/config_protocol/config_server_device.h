@@ -48,9 +48,7 @@ public:
     static BaseObjectPtr getOperationMode(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
 };
 
-inline BaseObjectPtr ConfigServerDevice::getInfo(const RpcContext& context,
-                                                 const DevicePtr& device,
-                                                 const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerDevice::getInfo(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
 
@@ -137,9 +135,7 @@ inline BaseObjectPtr ConfigServerDevice::addDevice(const RpcContext& context,
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
     const auto connectionString = params.get("ConnectionString");
-    PropertyObjectPtr config;
-    if (params.hasKey("Config"))
-        config = params.get("Config");
+    PropertyObjectPtr config = params.getOrDefault("Config");
 
     const auto dev = device.addDevice(connectionString, config);
     return ComponentHolder(dev);
@@ -158,10 +154,10 @@ inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context,
     const auto devs = device.getDevices(search::LocalId(localId));
 
     if (devs.getCount() == 0)
-        throw NotFoundException("Device not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device not found");
 
     if (devs.getCount() > 1)
-        throw InvalidStateException("Duplicate device");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Duplicate device");
 
     device.removeDevice(devs[0]);
 

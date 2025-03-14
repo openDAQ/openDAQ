@@ -37,7 +37,7 @@ RangePtr VariantConverter<IRange>::ToDaqObject(const OpcUaVariant& variant, cons
     const auto decodedVariant = DecodeIfExtensionObject(variant);
 
     if (!decodedVariant.isType<UA_Range>())
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
     
     return StructConverter<IRange, UA_Range>::ToDaqObject(*static_cast<UA_Range*>(decodedVariant->data));
 }
@@ -50,7 +50,7 @@ OpcUaVariant VariantConverter<IRange>::ToVariant(const RangePtr& object, const U
     if (targetType == nullptr || targetType == &UA_TYPES[UA_TYPES_RANGE])
         variant.setScalar(*StructConverter<IRange, UA_Range>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -69,7 +69,7 @@ OpcUaVariant VariantConverter<IRange>::ToArrayVariant(const ListPtr<IRange>& lis
     if (targetType == nullptr || targetType == &UA_TYPES[UA_TYPES_RANGE])
         return ListConversionUtils::ToArrayVariant<IRange, UA_Range>(list);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

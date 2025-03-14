@@ -58,8 +58,7 @@ ErrCode MockModuleImpl::createServer(daq::IServer** server,
 
 ErrCode MockModuleImpl::getModuleInfo(IModuleInfo** info)
 {
-    if (info == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(info);
 
     *info = ModuleInfo(VersionInfo(0, 0, 0), "MockModule", "mock").detach();
 

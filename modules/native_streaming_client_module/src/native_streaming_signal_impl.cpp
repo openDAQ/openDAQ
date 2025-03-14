@@ -48,9 +48,9 @@ void NativeStreamingSignalImpl::assignDomainSignal(const SignalPtr& domainSignal
         }
         else
         {
-            throw NoInterfaceException(
-                fmt::format(R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
-                            domainSignal.getGlobalId()));
+            DAQ_THROW_EXCEPTION(NoInterfaceException,
+                                R"(Domain signal "{}" does not implement IMirroredSignalConfig interface.)",
+                                domainSignal.getGlobalId());
         }
     }
     else

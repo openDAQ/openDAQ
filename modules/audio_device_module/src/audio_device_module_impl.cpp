@@ -39,7 +39,7 @@ ListPtr<IDeviceInfo> AudioDeviceModule::onGetAvailableDevices()
     if (result != MA_SUCCESS)
     {
         LOG_W("Miniaudio get devices failed: {}", ma_result_description(result));
-        throw GeneralErrorException("Failed to retrieve device information");
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to retrieve device information");
     }
 
     auto availableDevices = List<IDeviceInfo>();
@@ -99,7 +99,7 @@ FunctionBlockPtr AudioDeviceModule::onCreateFunctionBlock(const StringPtr& id, c
     }
 
     LOG_W("Function block \"{}\" not found", id);
-    throw NotFoundException("Function block not found");
+    DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
 }
 
 END_NAMESPACE_AUDIO_DEVICE_MODULE

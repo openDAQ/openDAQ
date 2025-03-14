@@ -13,10 +13,7 @@ JsonSerializerImpl<TWriter>::JsonSerializerImpl()
 template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::startTaggedObject(ISerializable* serializable)
 {
-    if (!serializable)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(serializable);
 
     ConstCharPtr id;
     ErrCode errCode = serializable->getSerializeId(&id);
@@ -59,21 +56,16 @@ ErrCode JsonSerializerImpl<TWriter>::endList()
 
 inline ErrCode getCharLen(ConstCharPtr string, SizeT& length)
 {
-    if (string != nullptr)
-        length = strlen(string);
-    else
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(string);
+    
+    length = strlen(string);
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::keyRaw(ConstCharPtr string, SizeT length)
 {
-    if (string == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(string);
 
     if (length <= 0)
     {
@@ -109,10 +101,7 @@ ErrCode JsonSerializerImpl<TWriter>::key(ConstCharPtr string)
 template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::keyStr(IString* name)
 {
-    if (!name)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     ConstCharPtr str;
     ErrCode errCode = name->getCharPtr(&str);
@@ -121,10 +110,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyStr(IString* name)
         return errCode;
     }
 
-    if (str == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     SizeT length;
     errCode = name->getLength(&length);
@@ -214,8 +200,7 @@ ErrCode JsonSerializerImpl<TWriter>::writeString(ConstCharPtr string, SizeT leng
 template <typename TWriter>
 ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::getUser(IBaseObject** user)
 {
-    if (!user)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(user);
 
     *user = this->userContext.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -240,10 +225,7 @@ ErrCode JsonSerializerImpl<TWriter>::getOutput(IString** output)
 extern "C"
 ErrCode PUBLIC_EXPORT createJsonSerializer(ISerializer** jsonSerializer, Bool pretty = False)
 {
-    if (jsonSerializer == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(jsonSerializer);
 
     ISerializer* object;
     if (pretty)

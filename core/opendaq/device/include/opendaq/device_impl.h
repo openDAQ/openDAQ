@@ -467,7 +467,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::submitNetworkConfiguration(ISt
     OPENDAQ_PARAM_NOT_NULL(config);
 
     if (!this->isRootDevice)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
 
     const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
     const auto configPtr = PropertyObjectPtr::Borrow(config);
@@ -483,7 +483,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::retrieveNetworkConfiguration(I
     OPENDAQ_PARAM_NOT_NULL(config);
 
     if (!this->isRootDevice)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
 
     PropertyObjectPtr configPtr;
     const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
@@ -509,7 +509,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getNetworkInterfaceNames(IList
     OPENDAQ_PARAM_NOT_NULL(ifaceNames);
 
     if (!this->isRootDevice)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
 
     ListPtr<IString> ifaceNamesPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetNetworkInterfaceNames, ifaceNamesPtr);
@@ -822,7 +822,7 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
-        throw NotFoundException("Function block not found. Device does not allow adding/removing function blocks.");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found. Device does not allow adding/removing function blocks.");
 
     this->functionBlocks.removeItem(functionBlock);
 }
@@ -1014,13 +1014,13 @@ StringPtr GenericDevice<TInterface, Interfaces...>::onGetLog(const StringPtr& /*
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onSubmitNetworkConfiguration(const StringPtr& /*ifaceName*/, const PropertyObjectPtr& /*config*/)
 {
-    throw NotImplementedException();
+    DAQ_THROW_EXCEPTION(NotImplementedException);
 }
 
 template <typename TInterface, typename... Interfaces>
 PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onRetrieveNetworkConfiguration(const StringPtr& /*ifaceName*/)
 {
-    throw NotImplementedException();
+    DAQ_THROW_EXCEPTION(NotImplementedException);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1032,7 +1032,7 @@ Bool GenericDevice<TInterface, Interfaces...>::onGetNetworkConfigurationEnabled(
 template <typename TInterface, typename... Interfaces>
 ListPtr<IString> GenericDevice<TInterface, Interfaces...>::onGetNetworkInterfaceNames()
 {
-    throw NotImplementedException();
+    DAQ_THROW_EXCEPTION(NotImplementedException);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1042,10 +1042,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getLog(IString** log, IString*
     OPENDAQ_PARAM_NOT_NULL(id);
 
     if (offset < 0)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Offset must be greater than or equal to 0.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Offset must be greater than or equal to 0.");
 
     if (size < -1)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Size must be greater than or equal to -1.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Size must be greater than or equal to -1.");
 
     StringPtr logPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetLog, logPtr, id, size, offset);
@@ -1338,7 +1338,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addStreaming(IStreaming** stre
 template <typename TInterface, typename... Interfaces>
 StreamingPtr GenericDevice<TInterface, Interfaces...>::onAddStreaming(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
 {
-    throw NotImplementedException();
+    DAQ_THROW_EXCEPTION(NotImplementedException);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1349,7 +1349,7 @@ ServerPtr GenericDevice<TInterface, Interfaces...>::onAddServer(const StringPtr&
 
     auto lock = this->getRecursiveConfigLock();
     if (!this->isRootDevice)
-        throw NotFoundException("Device does not allow adding/removing servers.");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device does not allow adding/removing servers.");
     this->servers.addItem(server);
 
     return server;
@@ -1361,7 +1361,7 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveServer(const ServerPtr& s
     auto lock = this->getRecursiveConfigLock();
 
     if (!this->isRootDevice)
-        throw NotFoundException("Device does not allow adding/removing servers.");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device does not allow adding/removing servers.");
 
     this->servers.removeItem(server);
 }
@@ -1611,7 +1611,7 @@ template <class TInterface, class... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::addSubDevice(const DevicePtr& device)
 {
     if (device.getParent() != devices)
-        throw InvalidParameterException("Invalid parent of device");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid parent of device");
 
     try
     {
@@ -1619,7 +1619,7 @@ void GenericDevice<TInterface, Interfaces...>::addSubDevice(const DevicePtr& dev
     }
     catch (DuplicateItemException&)
     {
-        throw DuplicateItemException("Device with the same local ID already exists.");
+        DAQ_THROW_EXCEPTION(DuplicateItemException, "Device with the same local ID already exists.");
     }
 }
 

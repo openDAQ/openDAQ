@@ -36,7 +36,7 @@ ErrCode ComplexNumberImpl::getValue(ComplexFloat64* value)
 ErrCode ComplexNumberImpl::equalsValue(const ComplexFloat64 value, Bool* equals)
 {
     if (equals == nullptr)
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = this->value == value;
     return OPENDAQ_SUCCESS;
@@ -53,8 +53,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::getReal(Float* real)
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::getImaginary(Float* imaginary)
 {
-    if (imaginary == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(imaginary);
 
     *imaginary = this->value.imaginary;
     return OPENDAQ_SUCCESS;
@@ -75,7 +74,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::equals(IBaseObject* other, Bool* equal
 {
     if (equals == nullptr)
     {
-        return daq::makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
     }
 
     *equals = false;
@@ -94,8 +93,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::equals(IBaseObject* other, Bool* equal
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::toString(CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     std::ostringstream os;
     CoreTypeHelper<ComplexFloat64>::Print(os, value);
@@ -104,8 +102,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::toString(CharPtr* str)
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::toFloat(Float* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = value.real;
     return OPENDAQ_SUCCESS;
@@ -113,8 +110,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::toFloat(Float* val)
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::toInt(Int* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = Int(value.real);
     return OPENDAQ_SUCCESS;
@@ -122,8 +118,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::toInt(Int* val)
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::toBool(Bool* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = value.real != 0 || value.imaginary != 0;
     return OPENDAQ_SUCCESS;
@@ -133,8 +128,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::toBool(Bool* val)
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::getCoreType(CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = ctComplexNumber;
     return OPENDAQ_SUCCESS;
@@ -144,8 +138,7 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::getCoreType(CoreType* coreType)
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::compareTo(IBaseObject* other)
 {
-    if (other == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(other);
 
     IComplexNumber* obj = nullptr;
     ErrCode err = other->borrowInterface(IComplexNumber::Id, reinterpret_cast<void**>(&obj));
@@ -180,8 +173,7 @@ ErrCode ComplexNumberImpl::Deserialize(ISerializedObject* serializedObj,
                                        IFunction* /*factoryCallback*/,
                                        IBaseObject** obj)
 {
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     ComplexFloat64 complex;
     coretype_utils::read(serializedObj, complex);
@@ -192,8 +184,7 @@ ErrCode ComplexNumberImpl::Deserialize(ISerializedObject* serializedObj,
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::getSerializeId(ConstCharPtr* id) const
 {
-    if (id == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     *id = SerializeId();
     return OPENDAQ_SUCCESS;

@@ -1888,8 +1888,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
                 {
                     if (protectedAccess)
                     {
-                        auto objProtected = it->second.asPtr<IPropertyObjectProtected>(true);
-                        auto obj = it->second.asPtr<IPropertyObject>(true);
+                        auto objProtected = it->second.template asPtr<IPropertyObjectProtected>(true);
+                        auto obj = it->second.template asPtr<IPropertyObject>(true);
                         for (const auto& childProp: obj.getAllProperties())
                         {
                             objProtected.clearProtectedPropertyValue(childProp.getName());
@@ -1897,7 +1897,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
                     }
                     else
                     {
-                        auto obj = it->second.asPtr<IPropertyObject>(true);
+                        auto obj = it->second.template asPtr<IPropertyObject>(true);
                         for (const auto& childProp: obj.getAllProperties())
                         {
                             obj.clearPropertyValue(childProp.getName());

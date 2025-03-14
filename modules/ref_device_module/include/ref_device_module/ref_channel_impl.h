@@ -18,6 +18,10 @@
 #include <ref_device_module/common.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
+
+#include <opendaq/circularPacket.h>
+#include <opendaq/ids_parser.h>
+
 #include <optional>
 #include <random>
 
@@ -84,6 +88,10 @@ private:
     bool fixedPacketSize;
     uint64_t packetSize;
     StringPtr referenceDomainId;
+    std::unique_ptr<daq::PacketBuffer> pb;
+    daq::IdsParser* idp;
+
+    void packetBufferSetup();
 
     void initProperties();
     void packetSizeChangedInternal();

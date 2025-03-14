@@ -5,6 +5,7 @@
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/unit_factory.h>
 #include <coretypes/procedure_factory.h>
+#include <opendaq/circularPacket.h>
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/data_rule_factory.h>
@@ -41,6 +42,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
     , referenceDomainId(init.referenceDomainId)
+    //, pb(PacketBuffer((size_t) packetSize, (size_t)1024))
 {
     initProperties();
     waveformChangedInternal();
@@ -49,6 +51,14 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     resetCounter();
     createSignals();
     buildSignalDescriptors();
+    packetBufferSetup();
+    //idp = new IdsParser();
+
+}
+
+void RefChannelImpl::packetBufferSetup()
+{
+    pb = std::make_unique<daq::PacketBuffer>((size_t) packetSize, (size_t)1024);
 }
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
@@ -341,7 +351,9 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
     }
     else
     {
-        dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+        //dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+
+        dataPacket = pb->createPacket(&newSamples, valueSignal.getDescriptor(), domainPacket);
 
         double* buffer;
 

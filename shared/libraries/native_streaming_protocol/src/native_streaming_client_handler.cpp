@@ -1,5 +1,6 @@
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <native_streaming/client.hpp>
+#include <boost/asio/ip/host_name.hpp>
 #include "native_streaming_protocol/streaming_manager.h"
 
 #include <opendaq/custom_log.h>
@@ -73,6 +74,10 @@ void NativeStreamingClientImpl::manageTransportLayerProps()
 
     if (!transportLayerProperties.hasProperty("Reconnected"))
         transportLayerProperties.addProperty(BoolProperty("Reconnected", False));
+
+    if (!transportLayerProperties.hasProperty("HostName"))
+        transportLayerProperties.addProperty(StringProperty("HostName", ""));
+    transportLayerProperties.setPropertyValue("HostName", String(boost::asio::ip::host_name()));
 }
 
 void NativeStreamingClientImpl::resetStreamingHandlers()

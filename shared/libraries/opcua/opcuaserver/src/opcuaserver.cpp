@@ -54,6 +54,16 @@ void OpcUaServer::setAuthenticationProvider(const AuthenticationProviderPtr& aut
     this->authenticationProvider = authenticationProvider;
 }
 
+void OpcUaServer::setClientConnectedHandler(const OnClientConnectedCallback& callback)
+{
+    this->clientConnectedHandler = callback;
+}
+
+void OpcUaServer::setClientDisconnectedHandler(const OnClientDisconnectedCallback& callback)
+{
+    this->clientDisconnectedHandler = callback;
+}
+
 void OpcUaServer::setSecurityConfig(OpcUaServerSecurityConfig* config)
 {
     throw std::runtime_error("method setSecurityConfig() is deprecated");
@@ -566,7 +576,11 @@ UA_StatusCode OpcUaServer::activateSession(UA_Server* server,
     }
 
     if (status == UA_STATUSCODE_GOOD)
+    {
         serverInstance->createSession(*sessionId, sessionContext);
+        if (serverInstance->clientConnectedHandler)
+            serverInstance->clientConnectedHandler(OpcUaNodeId::getIdentifier(*sessionId));
+    }
 
     return status;
 }
@@ -583,6 +597,9 @@ void OpcUaServer::closeSession(UA_Server* server, UA_AccessControl* ac, const UA
 
     if (serverInstance->deleteSessionContextCallback)
         serverInstance->deleteSessionContextCallback(sessionContext);
+
+    if (serverInstance->clientDisconnectedHandler)
+        serverInstance->clientDisconnectedHandler(OpcUaNodeId::getIdentifier(*sessionId));
 }
 
 

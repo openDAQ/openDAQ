@@ -85,6 +85,7 @@ protected:
 
     std::mutex readersSync;
     bool serverStopped;
+    std::unordered_set<std::string> registeredClientIds;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

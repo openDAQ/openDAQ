@@ -44,6 +44,8 @@ public:
     using OnAcceptCallback = std::function<ListPtr<ISignal>(const daq::streaming_protocol::StreamWriterPtr& writer)>;
     using OnStartSignalsReadCallback = std::function<void(const ListPtr<ISignal>& signal)>;
     using OnStopSignalsReadCallback = std::function<void(const ListPtr<ISignal>& signal)>;
+    using OnClientConnectedCallback = std::function<void(const std::string& clientId, const std::string& url)>;
+    using OnClientDisconnectedCallback = std::function<void(const std::string& clientId)>;
 
     StreamingServer(const ContextPtr& context);
     ~StreamingServer();
@@ -55,6 +57,8 @@ public:
     void onAccept(const OnAcceptCallback& callback);
     void onStartSignalsRead(const OnStartSignalsReadCallback& callback);
     void onStopSignalsRead(const OnStopSignalsReadCallback& callback);
+    void onClientConnected(const OnClientConnectedCallback& callback);
+    void onClientDisconnected(const OnClientDisconnectedCallback& callback);
 
     void broadcastPacket(const std::string& signalId, const PacketPtr& packet);
 
@@ -129,6 +133,8 @@ protected:
     OnAcceptCallback onAcceptCallback;
     OnStartSignalsReadCallback onStartSignalsReadCallback;
     OnStopSignalsReadCallback onStopSignalsReadCallback;
+    OnClientConnectedCallback clientConnectedHandler;
+    OnClientDisconnectedCallback clientDisconnectedHandler;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
     daq::streaming_protocol::LogCallback logCallback;

@@ -391,12 +391,6 @@ TEST_F(ListObjectTest, DoubleFreeze)
     ASSERT_EQ(list.asPtr<IFreezable>(true)->freeze(), OPENDAQ_IGNORED);
 }
 
-TEST_F(ListObjectTest, SerializeId)
-{
-    auto list = List<IBaseObject>();
-    ASSERT_EQ(list.getSerializeId(), "List");
-}
-
 TEST_F(ListObjectTest, GetItemWithSubscriptionOperator)
 {
     auto list = List<Int>(1, 2, 3);

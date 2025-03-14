@@ -50,7 +50,6 @@ template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::startList()
 {
     writer.StartArray();
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -58,7 +57,6 @@ template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::endList()
 {
     writer.EndArray();
-
     return OPENDAQ_SUCCESS;
 }
 

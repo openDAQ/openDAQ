@@ -1837,7 +1837,7 @@ TEST_F(PropertyObjectTest, ClonedObjectsClear)
     const auto cloned = propObj.getPropertyValue("Child");
     propObj.setPropertyValue("Child.MyInt", 15);
     propObj.clearPropertyValue("Child");
-    ASSERT_NE(cloned, propObj.getPropertyValue("Child"));
+    ASSERT_EQ(cloned, propObj.getPropertyValue("Child"));
     ASSERT_EQ(propObj.getPropertyValue("Child.MyInt"), 10);
 }
 
@@ -1874,6 +1874,7 @@ TEST_F(PropertyObjectTest, BeginEndUpdateClonedClear)
     const auto oldChild = propObj.getPropertyValue("Child");
     const auto newChild = PropertyObject();
     newChild.addProperty(IntProperty("NewInt", 15));
+    newChild.setPropertyValue("NewInt", 10);
     propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", newChild);
 
     propObj.beginUpdate();
@@ -1883,9 +1884,9 @@ TEST_F(PropertyObjectTest, BeginEndUpdateClonedClear)
 
     propObj.endUpdate();
 
-    ASSERT_NE(propObj.getPropertyValue("Child"), newChild);
+    ASSERT_EQ(propObj.getPropertyValue("Child"), newChild);
     ASSERT_NE(propObj.getPropertyValue("Child"), oldChild);
-    ASSERT_EQ(propObj.getPropertyValue("Child.MyString"), "foo");
+    ASSERT_EQ(propObj.getPropertyValue("Child.NewInt"), 15);
 }
 
 TEST_F(PropertyObjectTest, BeginEndUpdateClonedClassObject)
@@ -1911,9 +1912,9 @@ TEST_F(PropertyObjectTest, BeginEndUpdateClonedClassObject)
 
     propObj.endUpdate();
 
-    ASSERT_NE(propObj.getPropertyValue("Child"), newChild);
+    ASSERT_EQ(propObj.getPropertyValue("Child"), newChild);
     ASSERT_NE(propObj.getPropertyValue("Child"), oldChild);
-    ASSERT_EQ(propObj.getPropertyValue("Child.Child.MyString"), "foo");
+    ASSERT_EQ(propObj.getPropertyValue("Child.NewInt"), 15);
 }
 
 TEST_F(PropertyObjectTest, ClonedClassObjects)

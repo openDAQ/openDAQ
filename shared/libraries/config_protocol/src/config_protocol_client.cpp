@@ -120,6 +120,20 @@ void ConfigProtocolClientComm::clearPropertyValue(
     parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
+void ConfigProtocolClientComm::clearProtectedPropertyValue(const std::string& globalId, const std::string& propertyName)
+{
+    requireMinServerVersion(ClientCommand("ClearProtectedPropertyValue", 10));
+
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    dict.set("PropertyName", String(propertyName));
+    auto clearPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "ClearProtectedPropertyValue", dict);
+    const auto clearPropertyValueRpcReplyPacketBuffer = sendRequestCallback(clearPropertyValueRpcRequestPacketBuffer);
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
+}
+
 void ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path)
 {
     auto dict = Dict<IString, IBaseObject>();

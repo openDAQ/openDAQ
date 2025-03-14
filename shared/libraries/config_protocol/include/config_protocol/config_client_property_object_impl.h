@@ -261,10 +261,15 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearPropertyValue(IString* pr
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IString* propertyName)
 {
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
     if (!deserializationComplete)
         return Impl::clearProtectedPropertyValue(propertyName);
 
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    const auto propertyNamePtr = StringPtr::Borrow(propertyName);
+    return daqTry([this, &propertyNamePtr]()
+    {
+        clientComm->clearProtectedPropertyValue(remoteGlobalId, propertyNamePtr);
+    });
 }
 
 template <class Impl>

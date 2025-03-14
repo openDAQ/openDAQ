@@ -543,10 +543,7 @@ TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectServerClearIndividual)
     ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 2));
 }
 
-// BUG: Clearing the server side value of an object-type property makes the TMS server property object
-//      hold a pointer to the old object instead of the newly created one post-clear.
-
-TEST_F(TmsNestedPropertyObjectTest, DISABLED_TestNestedObjectServerClearObject)
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectServerClearObject)
 {
     serverObj.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");
     serverObj.setPropertyValue("child1.child1_1.Float", 2.1);
@@ -559,7 +556,7 @@ TEST_F(TmsNestedPropertyObjectTest, DISABLED_TestNestedObjectServerClearObject)
     ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
 
     for (const auto& prop : serverObj.getAllProperties())
-        serverObj.clearPropertyValue(prop.getName());
+        serverObj.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue(prop.getName());
     
     ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(serverObj.getPropertyValue("child1.child1_1.Float"), 1.1);
@@ -576,7 +573,7 @@ TEST_F(TmsNestedPropertyObjectTest, DISABLED_TestNestedObjectServerClearObject)
     serverObj.setPropertyValue("child1.child1_2.Int", 2);
     serverObj.setPropertyValue("child2.child2_1.Ratio", Ratio(1, 5));
 
-    serverObj.clearPropertyValue("child1");
+    serverObj.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue("child1");
     
     ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 1.1);

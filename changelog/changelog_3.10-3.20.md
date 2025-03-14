@@ -64,6 +64,27 @@
 
 ## Required application changes
 
+### [#731](https://github.com/openDAQ/openDAQ/pull/731)
+
+`IPropertyObject::clearPropertyValue(IString* name)` when invoked on an Object-type property, no longer removes the property object and restores it to the default, but instead calls `clearPropertyValue` recursively on the object's properties.
+
+
+```cpp
+auto propObj1 = PropertyObject();
+auto propObj2 = PropertyObject();
+
+propObj1.addProperty(ObjectProperty("Child", propObj2));
+
+auto propObj3 = PropertyObject();
+propObj3.addProperty(IntProperty("IntProp", 0));
+propObj3.setPropertyValue("IntProp", 1);
+propObj1.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", propObj3);
+
+// The below code does not restore "Child" to `propObj2`.
+// It instead sets "Child.IntProp" to its default value of "1".
+propObj1.clearPropertyValue("Child");
+```
+
 ### [#609](https://github.com/openDAQ/openDAQ/pull/609) Relocated module info functions
 
 The following no longer works:

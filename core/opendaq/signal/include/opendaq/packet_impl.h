@@ -89,7 +89,7 @@ template <typename TInterface, typename... TInterfaces>
 inline ErrCode INTERFACE_FUNC PacketImpl<TInterface, TInterfaces...>::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (other == nullptr)

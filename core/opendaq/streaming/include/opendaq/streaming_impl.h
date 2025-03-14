@@ -223,7 +223,7 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
         auto mirroredSignal = signal.asPtrOrNull<IMirroredSignalConfig>();
         if (mirroredSignal == nullptr)
         {
-            return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE,
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE,
                                        fmt::format(R"(Signal "{}" does not implement IMirroredSignalConfig interface.)",
                                                    signal.getGlobalId()));
         }
@@ -246,7 +246,7 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
 
             if (it != streamingSignalsItems.end())
             {
-                return this->makeErrorInfo(
+                return DAQ_MAKE_ERROR_INFO(
                     OPENDAQ_ERR_DUPLICATEITEM,
                     fmt::format(
                         R"(Signal with Ids (global /// remote /// key) "{}" /// "{}" /// "{}" failed to add - signal already added to streaming "{}")",
@@ -294,7 +294,7 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
         auto mirroredSignalToRemove = signal.asPtrOrNull<IMirroredSignalConfig>();
         if (mirroredSignalToRemove == nullptr)
         {
-            return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE,
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE,
                                  fmt::format(R"(Signal "{}" does not implement IMirroredSignalConfig interface.)",
                                              signal.getGlobalId()));
         }
@@ -335,7 +335,7 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
             }
             else
             {
-                return this->makeErrorInfo(
+                return DAQ_MAKE_ERROR_INFO(
                     OPENDAQ_ERR_NOTFOUND,
                     fmt::format(
                         R"(Signal with Ids (global /// remote /// key) "{}" /// "{}" /// "{}" failed to remove - signal not found in streaming "{}" )",
@@ -424,7 +424,7 @@ ErrCode StreamingImpl<Interfaces...>::doSubscribeSignal(const StringPtr& signalR
     }
     else
     {
-        return this->makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
             fmt::format(
                 R"(Signal with remote Id "{}" failed to subscribe - signal is not added to streaming "{}" )",
@@ -449,7 +449,7 @@ ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const StringPtr& signalRem
 {
     if (!signalRemoteId.assigned())
     {
-        return this->makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_ARGUMENT_NULL,
             fmt::format(R"(Failed to subscribe - signal id is null)")
         );
@@ -457,7 +457,7 @@ ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const StringPtr& signalRem
 
     if (signalRemoteId == domainSignalRemoteId)
     {
-        return this->makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_INVALIDPARAMETER,
             fmt::format(
                 R"(Signal "{}" failed to subscribe - provided domain signal Id is the same: "{}")",
@@ -501,7 +501,7 @@ ErrCode StreamingImpl<Interfaces...>::doUnsubscribeSignal(const StringPtr& signa
     {
         if (it->second.first == 0)
         {
-            return this->makeErrorInfo(
+            return DAQ_MAKE_ERROR_INFO(
                 OPENDAQ_ERR_INVALIDSTATE,
                 fmt::format(
                     R"(Signal with remote Id "{}" failed to unsubscribe within streaming "{}", already unsubscribed)",
@@ -516,7 +516,7 @@ ErrCode StreamingImpl<Interfaces...>::doUnsubscribeSignal(const StringPtr& signa
     }
     else
     {
-        return this->makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
             fmt::format(
                 R"(Signal with remote Id "{}" failed to unsubscribe - signal is not added to streaming "{}" )",
@@ -541,7 +541,7 @@ ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const StringPtr& signalR
 {
     if (!signalRemoteId.assigned())
     {
-        return this->makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_ARGUMENT_NULL,
             fmt::format(R"(Failed to unsubscribe - signal id is null)")
         );
@@ -549,7 +549,7 @@ ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const StringPtr& signalR
 
     if (signalRemoteId == domainSignalRemoteId)
     {
-        return this->makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_INVALIDPARAMETER,
             fmt::format(
                 R"(Signal "{}" failed to unsubscribe - provided domain signal Id is the same: "{}")",
@@ -607,7 +607,7 @@ ErrCode StreamingImpl<Interfaces...>::detachRemovedSignal(const StringPtr& signa
     }
     else
     {
-        return this->makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
             fmt::format(
                 R"(Signal "{}" failed to remove - signal not found in streaming "{}" )",
@@ -779,9 +779,10 @@ void StreamingImpl<Interfaces...>::addToAvailableSignals(const StringPtr& signal
     else
     {
         LOG_E("Signal with id {} is already registered as available", signalStreamingId);
-        throw DuplicateItemException("Signal with id {} is already registered as available in streaming {}",
-                                     signalStreamingId,
-                                     this->connectionString);
+        DAQ_THROW_EXCEPTION(DuplicateItemException, 
+                            "Signal with id {} is already registered as available in streaming {}",
+                            signalStreamingId,
+                            this->connectionString);
     }
 }
 
@@ -798,7 +799,10 @@ void StreamingImpl<Interfaces...>::removeFromAvailableSignals(const StringPtr& s
     else
     {
         LOG_E("Signal with id {} was not registered as available", signalStreamingId);
-        throw NotFoundException("Signal with id {} was not registered as available in streaming {}", signalStreamingId, this->connectionString);
+        DAQ_THROW_EXCEPTION(NotFoundException, 
+                            "Signal with id {} was not registered as available in streaming {}",
+                            signalStreamingId, 
+                            this->connectionString);
     }
 }
 
@@ -873,7 +877,7 @@ template <typename... Interfaces>
 void StreamingImpl<Interfaces...>::completeReconnection()
 {
     if (!isReconnecting)
-        throw InvalidStateException("Fail to complete reconnection - reconnection was not started");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Fail to complete reconnection - reconnection was not started");
 
     isReconnecting = false;
 }

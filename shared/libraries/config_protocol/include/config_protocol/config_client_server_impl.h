@@ -91,11 +91,10 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
                            if (parentFolder.assigned())
                            {
                                if (parentFolder.getLocalId() == "Srv" &&
-                                   parentFolder.getParent().assigned() &&
                                    parentFolder.getParent().supportsInterface<IDevice>())
                                    parentDevice = parentFolder.getParent().asPtr<IDevice>();
                                else
-                                   throw GeneralErrorException("The server-component can be placed only under device's servers folder");
+                                   DAQ_THROW_EXCEPTION(GeneralErrorException, "The server-component can be placed only under device's servers folder");
                            }
 
                            return createWithImplementation<IServer, ConfigClientServerImpl>(

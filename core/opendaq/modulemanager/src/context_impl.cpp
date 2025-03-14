@@ -29,7 +29,7 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
     , discoveryServers(std::move(discoveryServices))
 {
     if (!this->logger.assigned())
-        throw ArgumentNullException("Logger must not be null");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Logger must not be null");
 
     if (!this->typeManager.assigned())
         this->typeManager = TypeManager();
@@ -173,12 +173,12 @@ ErrCode ContextImpl::getModuleOptions(IString* moduleId, IDict** options)
     OPENDAQ_PARAM_NOT_NULL(moduleId);
     OPENDAQ_PARAM_NOT_NULL(options);
 
-    if (this->options.assigned() && this->options.hasKey("Modules"))
+    if (this->options.assigned())
     {
-        DictPtr<IString, IBaseObject> modules = this->options.get("Modules");
-        if (modules.assigned() && modules.hasKey(moduleId))
+        DictPtr<IString, IBaseObject> modules = this->options.getOrDefault("Modules");
+        if (modules.assigned())
         {
-            DictPtr<IString, IBaseObject> moduleOptions = modules.get(moduleId);
+            DictPtr<IString, IBaseObject> moduleOptions = modules.getOrDefault(moduleId);
             if (moduleOptions.assigned())
             {
                 *options = moduleOptions.addRefAndReturn();

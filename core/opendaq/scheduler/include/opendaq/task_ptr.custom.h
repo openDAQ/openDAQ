@@ -24,7 +24,7 @@
 TaskPtr then(const daq::TaskPtr& continuation) const
 {
     if (this->object == nullptr)
-        throw daq::InvalidParameterException();
+        DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
     auto errCode = this->object->then(continuation);
     daq::checkErrorInfo(errCode);
@@ -55,7 +55,7 @@ TaskPtr then(daq::ITask* continuation) const
 TaskPtr then(daq::ProcedurePtr work, daq::StringPtr name = "") const
 {
     if (this->object == nullptr)
-        throw daq::InvalidParameterException();
+        DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
     TaskPtr continuation = Task_Create(work, name);
     auto errCode = this->object->then(continuation);

@@ -903,7 +903,7 @@ void RendererFbImpl::prepareSingleXAxis()
         auto sigIt = signalContexts.begin();
         if (!sigIt->valid)
         {
-            throw InvalidStateException("First signal not valid");
+            DAQ_THROW_EXCEPTION(InvalidStateException, "First signal not valid");
         }
             
 
@@ -920,19 +920,19 @@ void RendererFbImpl::prepareSingleXAxis()
 
             if (sigIt->hasTimeOrigin != hasTimeOrigin)
             {
-               throw InvalidStateException("Time origin set on some signals, but not all of them");
+                DAQ_THROW_EXCEPTION(InvalidStateException, "Time origin set on some signals, but not all of them");
             }
 
             if (!hasTimeOrigin)
             {
                if (domainUnit != sigIt->domainUnit)
                {
-                   throw InvalidStateException("Domain unit not equal");
+                    DAQ_THROW_EXCEPTION(InvalidStateException, "Domain unit not equal");
                }
 
                if (domainQuantity != sigIt->domainQuantity)
                {
-                   throw InvalidStateException("Domain quantity not equal");
+                    DAQ_THROW_EXCEPTION(InvalidStateException, "Domain quantity not equal");
                }
             }
 
@@ -1337,7 +1337,7 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
             }
             catch (const std::exception& e)
             {
-                throw InvalidPropertyException("Invalid data rule parameters: {}", e.what());
+                DAQ_THROW_EXCEPTION(InvalidPropertyException, "Invalid data rule parameters: {}", e.what());
             }
             signalContext.isExplicit = false;
         }

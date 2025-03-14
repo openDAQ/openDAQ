@@ -90,7 +90,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
 
         updateCommonSampleRateAndDividers();
         if (invalid)
-            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Signal sample rate does not match required common sample rate");
     }
     catch (...)
     {
@@ -104,7 +104,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
     , minReadCount(1)
 {
     if (!readerConfig.assigned())
-        throw ArgumentNullException("Existing reader must not be null");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Existing reader must not be null");
 
     readerConfig.markAsInvalid();
 
@@ -131,7 +131,7 @@ MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType
 
         updateCommonSampleRateAndDividers();
         if (invalid)
-            throw InvalidParameterException("Signal sample rate does not match required common sample rate");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Signal sample rate does not match required common sample rate");
     }
     catch (...)
     {
@@ -218,19 +218,19 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
         auto domain = signal.getDomainSignal();
         if (!domain.assigned())
         {
-            throw InvalidParameterException(R"(Signal "{}" does not have a domain signal set.)", signal.getLocalId());
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain signal set.)", signal.getLocalId());
         }
 
         auto domainDescriptor = domain.getDescriptor();
         if (!domainDescriptor.assigned())
         {
-            throw InvalidParameterException(R"(Signal "{}" does not have a domain descriptor set.)", signal.getLocalId());
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain descriptor set.)", signal.getLocalId());
         }
 
         auto domainUnit = domainDescriptor.getUnit();
         if (!domainUnit.assigned())
         {
-            throw InvalidParameterException(R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId());
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId());
         }
 
         if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
@@ -240,33 +240,35 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 
             if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
             {
-                throw InvalidParameterException(R"(Signal "{}" does not have a domain quantity set.)", signal.getLocalId());
+                DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain quantity set.)", signal.getLocalId());
             }
 
             if (domainQuantity != "time")
             {
-                throw NotSupportedException(R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
-                                            signal.getLocalId(),
-                                            domainQuantity);
+                DAQ_THROW_EXCEPTION(NotSupportedException,
+                                    R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
+                                    signal.getLocalId(),
+                                    domainQuantity);
             }
 
             if (domainUnitSymbol != "s")
             {
-                throw NotSupportedException(R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
-                                            signal.getLocalId(),
-                                            domainUnitSymbol);
+                DAQ_THROW_EXCEPTION(NotSupportedException,
+                                    R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
+                                    signal.getLocalId(),
+                                    domainUnitSymbol);
             }
         }
         else
         {
             if (domainQuantity != domainUnit.getQuantity())
             {
-                throw InvalidStateException(R"(Signal "{}" domain quantity does not match with others.)", signal.getLocalId());
+                DAQ_THROW_EXCEPTION(InvalidStateException, R"(Signal "{}" domain quantity does not match with others.)", signal.getLocalId());
             }
 
             if (domainUnitSymbol != domainUnit.getSymbol())
             {
-                throw InvalidStateException(R"(Signal "{}" domain unit does not match with others.)", signal.getLocalId());
+                DAQ_THROW_EXCEPTION(InvalidStateException, R"(Signal "{}" domain unit does not match with others.)", signal.getLocalId());
             }
         }
 
@@ -294,7 +296,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
             else
             {
                 if (timeSource != TimeSource::Unknown && referenceDomainInfo.getReferenceTimeSource() != timeSource)
-                    throw InvalidStateException("Only one known Reference Time Source is allowed per Multi Reader.");
+                    DAQ_THROW_EXCEPTION(InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
                 timeSource = referenceDomainInfo.getReferenceTimeSource();
             }
 
@@ -326,7 +328,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
 
                 if (needsKnownTimeSource && !hasKnownTimeSource)
                 {
-                    throw InvalidStateException("Reference domain is incompatible.");
+                    DAQ_THROW_EXCEPTION(InvalidStateException, "Reference domain is incompatible.");
                 }
             }
 
@@ -387,9 +389,9 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
 void MultiReaderImpl::checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list)
 {
     if (!list.assigned())
-        throw NotAssignedException("List of inputs is not assigned");
+        DAQ_THROW_EXCEPTION(NotAssignedException, "List of inputs is not assigned");
     if (list.getCount() == 0)
-        throw InvalidParameterException("Need at least one signal.");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Need at least one signal.");
     context = list[0].getContext();
 }
 
@@ -406,7 +408,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
         {
             if (haveInputPorts)
-                throw InvalidParameterException("Cannot pass both input ports and signals as items");
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
             haveSignals = true;
 
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
@@ -418,7 +420,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         else if (auto port = el.asPtrOrNull<IInputPortConfig>(); port.assigned())
         {
             if (haveSignals)
-                throw InvalidParameterException("Cannot pass both input ports and signals as items");
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
             haveInputPorts = true;
 
             if (overrideMethod)
@@ -427,7 +429,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         }
         else
         {
-            throw InvalidParameterException("One of the elements of input list is not signal or input port");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "One of the elements of input list is not signal or input port");
         }
     }
 
@@ -581,7 +583,7 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMul
         OPENDAQ_PARAM_NOT_NULL(samples);
 
         if (minReadCount > *count)
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
     }
 
     std::scoped_lock lock(mutex);
@@ -615,7 +617,7 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
         OPENDAQ_PARAM_NOT_NULL(domain);
 
         if (minReadCount > *count)
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
     }
 
     std::scoped_lock lock(mutex);
@@ -656,7 +658,7 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IMultiReaderStatus** status)
     }
 
     if (minReadCount > *count)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be larger than minReadCount.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be larger than minReadCount.");
 
     const SizeT samplesToRead = *count;
     prepare(nullptr, samplesToRead, milliseconds(0));
@@ -786,11 +788,11 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
         }
         catch (const DaqException& e)
         {
-            return errorFromException(e, nullptr);
+            return errorFromException(e, this->getThisAsBaseObject());
         }
         catch (const std::exception& e)
         {
-            return errorFromException(e);
+            return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
         }
         catch (...)
         {
@@ -1261,10 +1263,7 @@ void MultiReaderImpl::sync()
 
 ErrCode MultiReaderImpl::getTickResolution(IRatio** resolution)
 {
-    if (resolution == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(resolution);
 
     *resolution = readResolution.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -1272,10 +1271,7 @@ ErrCode MultiReaderImpl::getTickResolution(IRatio** resolution)
 
 ErrCode MultiReaderImpl::getOrigin(IString** origin)
 {
-    if (origin == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(origin);
 
     *origin = readOrigin.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -1283,10 +1279,7 @@ ErrCode MultiReaderImpl::getOrigin(IString** origin)
 
 ErrCode MultiReaderImpl::getOffset(void* domainStart)
 {
-    if (domainStart == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(domainStart);
 
     if (commonStart)
     {
@@ -1299,10 +1292,7 @@ ErrCode MultiReaderImpl::getOffset(void* domainStart)
 
 ErrCode INTERFACE_FUNC MultiReaderImpl::getCommonSampleRate(Int* commonSampleRate)
 {
-    if (commonSampleRate == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(commonSampleRate);
 
     *commonSampleRate = this->commonSampleRate;
 
@@ -1437,7 +1427,7 @@ struct ObjectCreator<IMultiReader>
 
         if (toCopy == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null", nullptr);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
         ReadMode mode;

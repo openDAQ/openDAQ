@@ -1,6 +1,7 @@
-#include <opendaq/logger_component_impl.h>
 #include <coretypes/impl.h>
+#include <coretypes/validation.h>
 
+#include <opendaq/logger_component_impl.h>
 #include <opendaq/logger_sink_base_private_ptr.h>
 #include <opendaq/logger_thread_pool_private.h>
 #include <opendaq/logger_thread_pool_factory.h>
@@ -43,18 +44,18 @@ LoggerComponentImpl::LoggerComponentImpl(const StringPtr& name, const ListPtr<IL
 
     if (!sinks.assigned())
     {
-        throw ArgumentNullException("Sinks List must not be null.");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Sinks List must not be null.");
     }
     for (const ObjectPtr<ILoggerSink>& sink : sinks)
     {
         if(!sink.assigned())
         {
-            throw ArgumentNullException("Sink must not be null");
+            DAQ_THROW_EXCEPTION(ArgumentNullException, "Sink must not be null");
         }
         auto sinkPtr = sink.asPtrOrNull<ILoggerSinkBasePrivate>(true);
         if (sinkPtr == nullptr)
         {
-            throw InvalidTypeException("Sink must have valid type");
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Sink must have valid type");
         }
         spdlogLogger->sinks().push_back(sinkPtr.getSinkImpl());
     }
@@ -64,7 +65,7 @@ ErrCode LoggerComponentImpl::getName(IString** name)
 {
     if (name == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
 
     StringPtr nameStr(spdlogLogger->name());
@@ -83,7 +84,7 @@ ErrCode LoggerComponentImpl::getLevel(LogLevel* level)
 {
     if (level == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
     *level = (LogLevel) spdlogLogger->level();
 
@@ -99,10 +100,7 @@ ErrCode LoggerComponentImpl::logMessage(SourceLocation location, ConstCharPtr ms
 
 ErrCode LoggerComponentImpl::setPattern(IString* pattern)
 {
-    if (pattern == nullptr)
-    {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Pattern can not be null.");
-    }
+    OPENDAQ_PARAM_NOT_NULL(pattern);
 
     spdlogLogger->set_pattern(toStdString(pattern));
     return OPENDAQ_SUCCESS;
@@ -112,7 +110,7 @@ ErrCode LoggerComponentImpl::shouldLog(LogLevel level, Bool* willLog)
 {
     if (willLog == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
     }
 
     *willLog = spdlogLogger->should_log(static_cast<spdlog::level::level_enum>(level));

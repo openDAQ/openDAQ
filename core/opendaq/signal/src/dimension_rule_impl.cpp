@@ -24,7 +24,7 @@ DimensionRuleImpl::DimensionRuleImpl(DimensionRuleType ruleType, const DictPtr<I
       , params(this->fields.get("Parameters"))
 {
     checkErrorInfo(verifyParametersInternal());
-    if (params.assigned() && params.supportsInterface<IFreezable>())
+    if (params.supportsInterface<IFreezable>())
         params.freeze();
 }
 
@@ -64,8 +64,7 @@ DimensionRuleImpl::DimensionRuleImpl(IDimensionRuleBuilder* dimensionRuleBuilder
 
 ErrCode DimensionRuleImpl::getType(DimensionRuleType* type)
 {
-    if (!type)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = ruleType;
     return OPENDAQ_SUCCESS;
@@ -73,8 +72,7 @@ ErrCode DimensionRuleImpl::getType(DimensionRuleType* type)
 
 ErrCode DimensionRuleImpl::getParameters(IDict** parameters)
 {
-    if (!parameters)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(parameters);
 
     *parameters = params.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -88,7 +86,7 @@ ErrCode DimensionRuleImpl::verifyParameters()
 ErrCode DimensionRuleImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (!other)
@@ -110,7 +108,7 @@ ErrCode DimensionRuleImpl::equals(IBaseObject* other, Bool* equals) const
 ErrCode DimensionRuleImpl::verifyParametersInternal() const
 {
     if (!params.assigned())
-        return makeErrorInfo(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Dimension rule parameters are not set");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Dimension rule parameters are not set");
 
     ErrCode err = OPENDAQ_SUCCESS;
     if (ruleType == DimensionRuleType::Linear)
@@ -126,20 +124,20 @@ ErrCode DimensionRuleImpl::checkLinearRuleValidity() const
 {
     if (params.getCount() != 3)
     {
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                              R"(Linear rule has an invalid number of parameters. Required parameters are "delta", "size" and "start")");
     }
 
     if (!params.hasKey("delta") || !params.hasKey("start") || !params.hasKey("size"))
     {
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                              R"(Linear rule has invalid parameters. Required parameters are "delta", "size" and "start")");
     }
 
     if (!params.get("delta").supportsInterface<INumber>() || !params.get("start").supportsInterface<INumber>() ||
         !params.get("size").supportsInterface<INumber>())
     {
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
     return OPENDAQ_SUCCESS;
 }
@@ -148,14 +146,14 @@ ErrCode DimensionRuleImpl::checkListRuleValidity() const
 {
     if (!params.hasKey("List"))
     {
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(Linear rule has invalid parameters. The "List" parameter is required.)");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS, R"(Linear rule has invalid parameters. The "List" parameter is required.)");
     }
 
     if (!params.get("List").supportsInterface<IList>())
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, R"(The "List" parameter must be a list object.)");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS, R"(The "List" parameter must be a list object.)");
 
     if (!listLabelsValid(params.get("List")))
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_DIMENSION_LABEL_TYPES,
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_DIMENSION_LABEL_TYPES,
                              R"(The "List" elements must be either strings, numbers, or ranges. All elements must be of the same kind.)");
 
     return OPENDAQ_SUCCESS;
@@ -165,21 +163,21 @@ ErrCode DimensionRuleImpl::checkLogRuleValidity() const
 {
     if (params.getCount() != 4)
     {
-        return makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_INVALID_PARAMETERS,
             R"(Linear rule has an invalid number of parameters. Required parameters are "delta", "size", "base" and "start")");
     }
 
     if (!params.hasKey("delta") || !params.hasKey("start") || !params.hasKey("size") || !params.hasKey("base"))
     {
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS,
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS,
                              R"(Linear rule has invalid parameters. Required parameters are "delta", "size", "base" and "start")");
     }
 
     if (!params.get("delta").supportsInterface<INumber>() || !params.get("start").supportsInterface<INumber>() ||
         !params.get("size").supportsInterface<INumber>() || !params.get("base").supportsInterface<INumber>())
     {
-        return makeErrorInfo(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_PARAMETERS, "Linear scaling parameters must be numbers.");
     }
     return OPENDAQ_SUCCESS;
 }

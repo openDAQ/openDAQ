@@ -161,6 +161,19 @@ inline CoreEventArgsPtr CoreEventArgsDeviceLockStateChanged(Bool isLocked)
     return obj;
 }
 
+/*!
+ * @brief Creates Core event args that are passed as argument when the device operation mode changes.
+ * @param operationMode The new operation mode of the device.
+ *
+ * The ID of the event is 180, and the event name is "DeviceOperationModeChanged".
+ */
+
+inline CoreEventArgsPtr CoreEventArgsDeviceOperationModeChanged(Int operationMode)
+{
+    CoreEventArgsPtr obj(CoreEventArgsDeviceOperationModeChanged_Create(operationMode));
+    return obj;
+}
+
 
 /*!@}*/
 

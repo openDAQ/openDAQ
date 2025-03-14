@@ -91,8 +91,7 @@ PUBLIC_EXPORT daq::Bool daqIsTrackingObjects()
 extern "C"
 PUBLIC_EXPORT ErrCode daqDuplicateCharPtr(ConstCharPtr source, CharPtr* dest)
 {
-    if (dest == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(dest);
 
     if (source == nullptr)
         *dest = nullptr;
@@ -115,8 +114,7 @@ PUBLIC_EXPORT ErrCode daqDuplicateCharPtr(ConstCharPtr source, CharPtr* dest)
 extern "C"
 ErrCode PUBLIC_EXPORT daqDuplicateCharPtrN(ConstCharPtr source, SizeT length, CharPtr* dest)
 {
-    if (dest == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(dest);
 
     if (source == nullptr)
         *dest = nullptr;

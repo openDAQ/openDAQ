@@ -617,7 +617,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackFailed)
     serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
     {
         if ((Int)arg.getValue() > 0)
-            throw InvalidParameterException("Invalid value");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid value");
     };
 
     ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
@@ -633,7 +633,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SetSelectionPropertyValueCallbackFailed)
         if ((Int)arg.getValue() > 0)
         {
             ASSERT_NE(obj.getPropertySelectionValue("EditableProperty"), "defaultValue");
-            throw InvalidParameterException("Invalid value");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid value");
         }
     };
 
@@ -723,7 +723,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackDependencies)
     {
         if ((Int)arg.getValue() < 0)
         {
-            throw OutOfRangeException("Ones");
+            DAQ_THROW_EXCEPTION(OutOfRangeException, "Ones");
         }
         if ((Int)arg.getValue() > 9)
         {
@@ -740,9 +740,9 @@ TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackDependencies)
     serverDevice.getOnPropertyValueWrite("Tens") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
     {
         if ((Int)arg.getValue() < 0)
-            throw OutOfRangeException("Tens");
+            DAQ_THROW_EXCEPTION(OutOfRangeException, "Tens");
         if ((Int)arg.getValue() > 9)
-            throw OutOfRangeException("Tens");
+            DAQ_THROW_EXCEPTION(OutOfRangeException, "Tens");
     };
 
     ASSERT_EQ(clientDevice.getPropertyValue("Number"), 0);
@@ -779,7 +779,7 @@ TEST_F(ConfigNestedPropertyObjectTest, ThrowExeptionRestoringValuePartialy)
     {
         obj.setPropertyValue("param2", arg.getValue());
         if ((Int)arg.getValue() < 0)
-            throw OutOfRangeException("param 1 value is negative");
+            DAQ_THROW_EXCEPTION(OutOfRangeException, "param 1 value is negative");
     };
 
     ASSERT_EQ(clientDevice.getPropertyValue("param1"), 0);

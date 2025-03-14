@@ -26,8 +26,7 @@ SubTask::SubTask(const tf::Task& task, TaskGraph* graph)
 
 ErrCode SubTask::setName(IString* taskName)
 {
-    if (taskName == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(taskName);
 
     this->name = taskName;
     if (!task.empty())
@@ -39,8 +38,7 @@ ErrCode SubTask::setName(IString* taskName)
 
 ErrCode SubTask::getName(IString** taskName)
 {
-    if (taskName == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(taskName);
 
     if (task.empty())
     {
@@ -57,8 +55,7 @@ ErrCode SubTask::getName(IString** taskName)
 
 ErrCode SubTask::then(ITask* continuation)
 {
-    if (continuation == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(continuation);
 
     auto pre = dynamic_cast<SubTask*>(continuation);
     if (pre == nullptr)
@@ -80,8 +77,7 @@ ErrCode SubTask::then(ITask* continuation)
 
 ErrCode SubTask::getHashCode(SizeT* hashCode)
 {
-    if (hashCode == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(hashCode);
 
     *hashCode = id;
     return OPENDAQ_SUCCESS;

@@ -32,7 +32,7 @@ OpcUaVariant VariantConverter<IBoolean>::ToVariant(const BoolPtr& object, const 
     if (targetType == nullptr || targetType == &UA_TYPES[UA_TYPES_BOOLEAN])
         return OpcUaVariant(static_cast<bool>(object));
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -49,7 +49,7 @@ OpcUaVariant VariantConverter<IBoolean>::ToArrayVariant(const ListPtr<IBoolean>&
     if (targetType == nullptr || targetType == &UA_TYPES[UA_TYPES_BOOLEAN])
         return ListConversionUtils::ToArrayVariant<IBoolean, UA_Boolean>(list);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 // Int
@@ -181,7 +181,7 @@ OpcUaVariant VariantConverter<IInteger>::ToVariant(const IntegerPtr& object, con
     else if (targetType == &UA_TYPES[UA_TYPES_SBYTE])
         variant.setScalar(*StructConverter<IInteger, UA_SByte>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -206,7 +206,7 @@ ListPtr<IInteger> VariantConverter<IInteger>::ToDaqList(const OpcUaVariant& vari
     if (variant.isType<UA_SByte>())
         return ListConversionUtils::VariantToList<IInteger, UA_SByte>(variant);
     
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -231,7 +231,7 @@ OpcUaVariant VariantConverter<IInteger>::ToArrayVariant(const ListPtr<IInteger>&
     if (targetType == &UA_TYPES[UA_TYPES_SBYTE])
        return ListConversionUtils::ToArrayVariant<IInteger, UA_SByte>(list);
     
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 // Float
@@ -279,7 +279,7 @@ OpcUaVariant VariantConverter<IFloat>::ToVariant(const FloatPtr& object, const U
     else if (targetType == &UA_TYPES[UA_TYPES_FLOAT])
         variant.setScalar(*StructConverter<IFloat, UA_Float>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -292,7 +292,7 @@ ListPtr<IFloat> VariantConverter<IFloat>::ToDaqList(const OpcUaVariant& variant,
     if (variant.isType<UA_Float>())
         return ListConversionUtils::VariantToList<IFloat, UA_Float>(variant);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -305,7 +305,7 @@ OpcUaVariant VariantConverter<IFloat>::ToArrayVariant(const ListPtr<IFloat>& lis
     if (targetType == &UA_TYPES[UA_TYPES_FLOAT])
         return ListConversionUtils::ToArrayVariant<IFloat, UA_Float>(list);
     
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 // String
@@ -366,7 +366,7 @@ OpcUaVariant VariantConverter<IString>::ToVariant(const StringPtr& object, const
     else if (targetType == &UA_TYPES[UA_TYPES_QUALIFIEDNAME])
         variant.setScalar(*StructConverter<IString, UA_QualifiedName>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -381,7 +381,7 @@ ListPtr<IString> VariantConverter<IString>::ToDaqList(const OpcUaVariant& varian
     if (variant.isType<UA_QualifiedName>())
         return ListConversionUtils::VariantToList<IString, UA_QualifiedName>(variant);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -394,7 +394,7 @@ OpcUaVariant VariantConverter<IString>::ToArrayVariant(const ListPtr<IString>& l
     if (targetType == &UA_TYPES[UA_TYPES_LOCALIZEDTEXT])
         return ListConversionUtils::ToArrayVariant<IString, UA_LocalizedText>(list);
     
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 

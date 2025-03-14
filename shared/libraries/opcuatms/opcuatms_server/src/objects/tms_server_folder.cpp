@@ -40,7 +40,7 @@ void TmsServerFolder::addChildNodes()
         }
         else
         {
-            throw daq::NotImplementedException("Unhandled item: " + item.getGlobalId());
+            DAQ_THROW_EXCEPTION(daq::NotImplementedException, "Unhandled item: " + item.getGlobalId());
         }
     }
 

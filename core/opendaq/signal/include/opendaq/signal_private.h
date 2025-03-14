@@ -47,6 +47,12 @@ DECLARE_OPENDAQ_INTERFACE(ISignalPrivate, IBaseObject)
      * @param[out] serializeId The signal serilized id.
      */
     virtual ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) = 0;
+
+    /*!
+     * @brief Returns True if last value calculation is enabled on the signal.
+     * @param[out] keepLastValue True if enabled.
+     */
+    virtual ErrCode INTERFACE_FUNC getKeepLastValue(Bool* keepLastValue) = 0;
 };
 /*!@}*/
 

@@ -13,10 +13,7 @@ JsonSerializedList::JsonSerializedList(const JsonList& list)
 
 ErrCode JsonSerializedList::readSerializedList(ISerializedList** list)
 {
-    if (list == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(list);
 
     if (index >= length)
     {
@@ -41,10 +38,7 @@ ErrCode JsonSerializedList::readSerializedList(ISerializedList** list)
 
 ErrCode JsonSerializedList::readList(IBaseObject* context, IFunction* factoryCallback, IList** list)
 {
-    if (list == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(list);
 
     if (index >= length)
     {
@@ -77,10 +71,7 @@ ErrCode JsonSerializedList::readList(IBaseObject* context, IFunction* factoryCal
 
 ErrCode JsonSerializedList::readSerializedObject(ISerializedObject** plainObj)
 {
-    if (plainObj == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(plainObj);
 
     if (index >= length)
     {
@@ -114,10 +105,7 @@ ErrCode JsonSerializedList::readSerializedObject(ISerializedObject** plainObj)
 
 ErrCode JsonSerializedList::readObject(IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
-    if (obj == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     if (index >= length)
     {
@@ -129,10 +117,7 @@ ErrCode JsonSerializedList::readObject(IBaseObject* context, IFunction* factoryC
 
 ErrCode JsonSerializedList::readString(IString** obj)
 {
-    if (obj == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     if (index >= length)
     {
@@ -158,10 +143,7 @@ ErrCode JsonSerializedList::readString(IString** obj)
 
 ErrCode JsonSerializedList::readBool(Bool* obj)
 {
-    if (obj == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     if (index >= length)
     {
@@ -179,10 +161,7 @@ ErrCode JsonSerializedList::readBool(Bool* obj)
 
 ErrCode JsonSerializedList::readInt(Int* obj)
 {
-    if (obj == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     if (index >= length)
     {
@@ -200,10 +179,7 @@ ErrCode JsonSerializedList::readInt(Int* obj)
 
 ErrCode JsonSerializedList::readFloat(Float* obj)
 {
-    if (obj == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     if (index >= length)
     {
@@ -221,10 +197,7 @@ ErrCode JsonSerializedList::readFloat(Float* obj)
 
 ErrCode JsonSerializedList::getCount(SizeT* size)
 {
-    if (size == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(size);
 
     *size = length;
 
@@ -233,11 +206,7 @@ ErrCode JsonSerializedList::getCount(SizeT* size)
 
 ErrCode JsonSerializedList::getCurrentItemType(CoreType* size)
 {
-
-    if (size == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(size);
 
     if (index >= length)
     {
@@ -250,8 +219,7 @@ ErrCode JsonSerializedList::getCurrentItemType(CoreType* size)
 
 ErrCode JsonSerializedList::toString(CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     return daqDuplicateCharPtr("JsonSerializedList", str);
 }

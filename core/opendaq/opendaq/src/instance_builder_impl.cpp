@@ -7,25 +7,22 @@
 #include <coreobjects/authentication_provider_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 {
-    return Dict<IString, IBaseObject>({
-        {"ModuleManager", Dict<IString, IBaseObject>({
-                {"ModulesPaths", List<IString>(""),
-                }
-            })},
-        {"Scheduler", Dict<IString, IBaseObject>({
-                {"WorkersNum", 0}
-            })},
-        {"Logging", Dict<IString, IBaseObject>({
-                {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
-            })},
-        {"RootDevice", Dict<IString, IBaseObject>({
-                {"DefaultLocalId", ""},
-                {"ConnectionString", ""}
-            })},   
-        {"Modules", Dict<IString, IBaseObject>()}
+    return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({
+                                            {"ModulesPaths", List<IString>("")}, {"AddDeviceRescanTimer", 5000}
+                                        })},
+                                       {"Scheduler", Dict<IString, IBaseObject>({
+                                            {"WorkersNum", 0}
+                                        })},
+                                       {"Logging", Dict<IString, IBaseObject>({
+                                            {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
+                                        })},
+                                       {"RootDevice", Dict<IString, IBaseObject>({
+                                            {"DefaultLocalId", ""},
+                                            {"ConnectionString", ""}
+                                        })},
+                                       {"Modules", Dict<IString, IBaseObject>()}
     });
 }
 
@@ -66,8 +63,7 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::getModules()
 
 ErrCode InstanceBuilderImpl::build(IInstance** instance)
 {
-    if (instance == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(instance);
 
     const auto builderPtr = this->borrowPtr<InstanceBuilderPtr>();
     return daqTry([&]()
@@ -79,8 +75,7 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
 
 ErrCode InstanceBuilderImpl::addConfigProvider(IConfigProvider* configProvider)
 {
-    if (configProvider == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(configProvider);
     
     providers.pushBack(configProvider);
     return OPENDAQ_SUCCESS;
@@ -98,8 +93,7 @@ ErrCode INTERFACE_FUNC InstanceBuilderImpl::setContext(IContext* context)
 
 ErrCode INTERFACE_FUNC InstanceBuilderImpl::getContext(IContext** context)
 {
-    if (context == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(context);
 
     *context = this->context.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -113,8 +107,7 @@ ErrCode InstanceBuilderImpl::setLogger(ILogger* logger)
 
 ErrCode InstanceBuilderImpl::getLogger(ILogger** logger)
 {
-    if (logger == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(logger);
     
     *logger = this->logger.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -128,8 +121,7 @@ ErrCode InstanceBuilderImpl::setGlobalLogLevel(LogLevel logLevel)
 
 ErrCode InstanceBuilderImpl::getGlobalLogLevel(LogLevel* logLevel)
 {
-    if (logLevel == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(logLevel);
 
     *logLevel = LogLevel(getLoggingOptions()["GlobalLogLevel"]);
     return OPENDAQ_SUCCESS;
@@ -137,8 +129,7 @@ ErrCode InstanceBuilderImpl::getGlobalLogLevel(LogLevel* logLevel)
 
 ErrCode InstanceBuilderImpl::setComponentLogLevel(IString* component, LogLevel logLevel)
 {
-    if (component == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(component);
 
     componentsLogLevel.set(component, UInt(logLevel));
     return OPENDAQ_SUCCESS;
@@ -146,8 +137,7 @@ ErrCode InstanceBuilderImpl::setComponentLogLevel(IString* component, LogLevel l
 
 ErrCode InstanceBuilderImpl::getComponentsLogLevel(IDict** components)
 {
-    if (components == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(components);
 
     *components = componentsLogLevel.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -155,8 +145,7 @@ ErrCode InstanceBuilderImpl::getComponentsLogLevel(IDict** components)
 
 ErrCode InstanceBuilderImpl::addLoggerSink(ILoggerSink* sink)
 {
-    if (sink == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(sink);
     
     for (const auto & s: sinks)
     {
@@ -170,8 +159,7 @@ ErrCode InstanceBuilderImpl::addLoggerSink(ILoggerSink* sink)
 
 ErrCode InstanceBuilderImpl::setSinkLogLevel(ILoggerSink* sink, LogLevel logLevel)
 {
-    if (sink == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(sink);
     
     sink->setLevel(logLevel);
 
@@ -187,8 +175,7 @@ ErrCode InstanceBuilderImpl::setSinkLogLevel(ILoggerSink* sink, LogLevel logLeve
 
 ErrCode InstanceBuilderImpl::getLoggerSinks(IList** sinks)
 {
-    if (sinks == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(sinks);
 
     *sinks = this->sinks.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -196,8 +183,7 @@ ErrCode InstanceBuilderImpl::getLoggerSinks(IList** sinks)
 
 ErrCode InstanceBuilderImpl::setModulePath(IString* path)
 {
-    if (path == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(path);
 
     getModuleManagerOptions().set("ModulesPaths", List<IString>(path));
     return OPENDAQ_SUCCESS;
@@ -205,8 +191,7 @@ ErrCode InstanceBuilderImpl::setModulePath(IString* path)
 
 ErrCode InstanceBuilderImpl::getModulePath(IString** path)
 {
-    if (path == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(path);
 
     auto paths = getModuleManagerOptions().get("ModulesPaths").asPtr<IList>();
     if (paths.empty()) 
@@ -223,8 +208,7 @@ ErrCode InstanceBuilderImpl::getModulePath(IString** path)
 
 ErrCode InstanceBuilderImpl::addModulePath(IString* path)
 {
-    if (path == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(path);
 
     getModuleManagerOptions().get("ModulesPaths").asPtr<IList>().pushBack(path);
     return OPENDAQ_SUCCESS;
@@ -232,8 +216,7 @@ ErrCode InstanceBuilderImpl::addModulePath(IString* path)
 
 ErrCode InstanceBuilderImpl::getModulePathsList(IList** paths)
 {
-    if (paths == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(paths);
 
     *paths = getModuleManagerOptions().get("ModulesPaths").asPtr<IList>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -241,8 +224,7 @@ ErrCode InstanceBuilderImpl::getModulePathsList(IList** paths)
 
 ErrCode InstanceBuilderImpl::setModuleManager(IModuleManager* moduleManager)
 {
-    if (moduleManager == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(moduleManager);
     
     this->moduleManager = moduleManager;
     return OPENDAQ_SUCCESS;
@@ -250,8 +232,7 @@ ErrCode InstanceBuilderImpl::setModuleManager(IModuleManager* moduleManager)
 
 ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
 {
-    if (moduleManager == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(moduleManager);
     
     *moduleManager = this->moduleManager.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -259,8 +240,7 @@ ErrCode InstanceBuilderImpl::getModuleManager(IModuleManager** moduleManager)
 
 ErrCode INTERFACE_FUNC InstanceBuilderImpl::setAuthenticationProvider(IAuthenticationProvider* authenticationProvider)
 {
-    if (authenticationProvider == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(authenticationProvider);
 
     this->authenticationProvider = authenticationProvider;
     return OPENDAQ_SUCCESS;
@@ -268,8 +248,7 @@ ErrCode INTERFACE_FUNC InstanceBuilderImpl::setAuthenticationProvider(IAuthentic
 
 ErrCode INTERFACE_FUNC InstanceBuilderImpl::getAuthenticationProvider(IAuthenticationProvider** authenticationProvider)
 {
-    if (authenticationProvider == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(authenticationProvider);
 
     *authenticationProvider = this->authenticationProvider.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -283,8 +262,7 @@ ErrCode InstanceBuilderImpl::setSchedulerWorkerNum(SizeT numWorkers)
 
 ErrCode InstanceBuilderImpl::getSchedulerWorkerNum(SizeT* numWorkers)
 {
-    if (numWorkers == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(numWorkers);
 
     *numWorkers = getSchedulerOptions()["WorkersNum"];
     return OPENDAQ_SUCCESS;
@@ -292,8 +270,7 @@ ErrCode InstanceBuilderImpl::getSchedulerWorkerNum(SizeT* numWorkers)
 
 ErrCode InstanceBuilderImpl::setScheduler(IScheduler* scheduler)
 {
-    if (scheduler == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(scheduler);
     
     this->scheduler = scheduler;
     return OPENDAQ_SUCCESS;
@@ -301,8 +278,7 @@ ErrCode InstanceBuilderImpl::setScheduler(IScheduler* scheduler)
 
 ErrCode InstanceBuilderImpl::getScheduler(IScheduler** scheduler)
 {
-    if (scheduler == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(scheduler);
     
     *scheduler = this->scheduler.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -319,8 +295,7 @@ ErrCode InstanceBuilderImpl::setDefaultRootDeviceLocalId(IString* localId)
 
 ErrCode InstanceBuilderImpl::getDefaultRootDeviceLocalId(IString** localId)
 {
-    if (localId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(localId);
     
     *localId = getRootDevice().get("DefaultLocalId").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -328,8 +303,7 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceLocalId(IString** localId)
 
 ErrCode InstanceBuilderImpl::setRootDevice(IString* connectionString, IPropertyObject* config)
 {
-    if (connectionString == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
 
     getRootDevice().set("ConnectionString", connectionString);
     this->rootDeviceConfig = config;
@@ -338,8 +312,7 @@ ErrCode InstanceBuilderImpl::setRootDevice(IString* connectionString, IPropertyO
 
 ErrCode InstanceBuilderImpl::getRootDevice(IString** connectionString)
 {
-    if (connectionString == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
     
     *connectionString = getRootDevice().get("ConnectionString").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -347,8 +320,7 @@ ErrCode InstanceBuilderImpl::getRootDevice(IString** connectionString)
 
 ErrCode INTERFACE_FUNC InstanceBuilderImpl::getRootDeviceConfig(IPropertyObject** config)
 {
-    if (config == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(config);
 
     *config = this->rootDeviceConfig.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -356,8 +328,7 @@ ErrCode INTERFACE_FUNC InstanceBuilderImpl::getRootDeviceConfig(IPropertyObject*
 
 ErrCode InstanceBuilderImpl::setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo)
 {
-    if (deviceInfo == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(deviceInfo);
 
     this->defaultRootDeviceInfo = deviceInfo;
     return OPENDAQ_SUCCESS;
@@ -365,8 +336,7 @@ ErrCode InstanceBuilderImpl::setDefaultRootDeviceInfo(IDeviceInfo* deviceInfo)
 
 ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
 {
-    if (deviceInfo == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(deviceInfo);
     
     *deviceInfo = this->defaultRootDeviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -374,8 +344,7 @@ ErrCode InstanceBuilderImpl::getDefaultRootDeviceInfo(IDeviceInfo** deviceInfo)
 
 ErrCode InstanceBuilderImpl::getOptions(IDict** options)
 {
-    if (options == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(options);
 
     auto logger = this->logger;
     if (!logger.assigned())
@@ -425,8 +394,7 @@ ErrCode InstanceBuilderImpl::enableStandardProviders(Bool flag)
 
 ErrCode InstanceBuilderImpl::getDiscoveryServers(IList** serverNames)
 {
-    if (serverNames == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(serverNames);
 
     *serverNames = discoveryServers.addRefAndReturn();
     return OPENDAQ_SUCCESS;

@@ -13,7 +13,7 @@ EventPacketImpl::EventPacketImpl(StringPtr eventId, DictPtr<IString, IBaseObject
     , parameters(std::move(parameters))
 {
     this->type = PacketType::Event;
-    if (this->parameters.supportsInterface<IFreezable>() && !this->parameters.isFrozen())
+    if (this->parameters.supportsInterface<IFreezable>())
         this->parameters.freeze();
 }
 
@@ -36,7 +36,7 @@ ErrCode EventPacketImpl::getParameters(IDict** parameters)
 ErrCode EventPacketImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (other == nullptr)

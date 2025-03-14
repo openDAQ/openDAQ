@@ -35,6 +35,7 @@
 #include <opendaq/signal_errors.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/event_packet_utils.h>
+#include <opendaq/mem_pool_allocator.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -51,6 +52,10 @@ template <typename TInterface, typename... Interfaces>
 class SignalBase;
 
 using SignalImpl = SignalBase<ISignalConfig>;
+
+using TempConnectionsAllocator = detail::MemPoolAllocator<ConnectionPtr>;
+using TempConnectionsMemPool = detail::StaticMemPool<ConnectionPtr, 8>;
+using TempConnections = std::vector<ConnectionPtr, TempConnectionsAllocator>;
 
 template <typename TInterface, typename... Interfaces>
 class SignalBase : public ComponentImpl<TInterface, ISignalEvents, ISignalPrivate, Interfaces...>
@@ -89,6 +94,8 @@ public:
     ErrCode INTERFACE_FUNC sendPackets(IList* packets) override;
     ErrCode INTERFACE_FUNC sendPacketAndStealRef(IPacket* packet) override;
     ErrCode INTERFACE_FUNC sendPacketsAndStealRef(IList* packet) override;
+    ErrCode INTERFACE_FUNC setLastValue(IBaseObject* lastValue) override;
+
 
     // ISignalEvents
     ErrCode INTERFACE_FUNC listenerConnected(IConnection* connection) override;
@@ -100,6 +107,7 @@ public:
     ErrCode INTERFACE_FUNC clearDomainSignalWithoutNotification() override;
     ErrCode INTERFACE_FUNC enableKeepLastValue(Bool enabled) override;
     ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
+    ErrCode INTERFACE_FUNC getKeepLastValue(Bool* keepLastValue) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -153,12 +161,12 @@ private:
     void setKeepLastPacket();
     TypePtr addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
                                         const DataDescriptorPtr& descriptor) const;
-    void buildTempConnections(std::vector<ConnectionPtr>& tempConnections);
+    void buildTempConnections(TempConnections& tempConnections);
     void checkKeepLastPacket(const PacketPtr& packet);
-    void enqueuePacketToConnections(const PacketPtr& packet, const std::vector<ConnectionPtr>& tempConnections);
-    void enqueuePacketToConnections(PacketPtr&& packet, const std::vector<ConnectionPtr>& tempConnections);
-    void enqueuePacketsToConnections(const ListPtr<IPacket>& packets, const std::vector<ConnectionPtr>& tempConnections);
-    void enqueuePacketsToConnections(ListPtr<IPacket>&& packets, const std::vector<ConnectionPtr>& tempConnections);
+    void enqueuePacketToConnections(const PacketPtr& packet, const TempConnections& tempConnections);
+    void enqueuePacketToConnections(PacketPtr&& packet, const TempConnections& tempConnections);
+    void enqueuePacketsToConnections(const ListPtr<IPacket>& packets, const TempConnections& tempConnections);
+    void enqueuePacketsToConnections(ListPtr<IPacket>&& packets, const TempConnections& tempConnections);
 
     template <class Packet>
     bool keepLastPacketAndEnqueue(Packet&& packet);
@@ -184,7 +192,7 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , keepLastValue(true)
 {
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
-        throw InvalidSampleTypeException("SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
+        DAQ_THROW_EXCEPTION(InvalidSampleTypeException, "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
     setKeepLastPacket();
 
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
@@ -288,7 +296,7 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
 {
     const auto name = descriptor.getName();
     if (!name.assigned())
-        throw NotAssignedException{"Name of data descriptor not assigned."};
+        DAQ_THROW_EXCEPTION(NotAssignedException, "Name of data descriptor not assigned.");
 
     const auto fields = descriptor.getStructFields();
     auto fieldNames = List<IString>();
@@ -301,12 +309,12 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
             const auto dimensions = field.getDimensions();
 
             if (!dimensions.assigned())
-                throw NotAssignedException{"Dimensions of data descriptor not assigned."};
+                DAQ_THROW_EXCEPTION(NotAssignedException, "Dimensions of data descriptor not assigned.");
 
             const auto dimensionCount = dimensions.getCount();
 
             if (dimensionCount > 1)
-                throw NotSupportedException{"getLastValue on signals with dimensions supports only up to one dimension."};
+                DAQ_THROW_EXCEPTION(NotSupportedException, "getLastValue on signals with dimensions supports only up to one dimension.");
 
             TypePtr type;
 
@@ -372,7 +380,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
 {
     const auto descriptorPtr = DataDescriptorPtr::Borrow(descriptor);
     if (descriptorPtr.assigned() && descriptorPtr.getSampleType() == SampleType::Null)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
                                    "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
 
     std::vector<SignalConfigPtr> valueSignalsOfDomainSignal;
@@ -638,7 +646,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getConnections(IList** connection
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::buildTempConnections(std::vector<ConnectionPtr>& tempConnections)
+void SignalBase<TInterface, Interfaces...>::buildTempConnections(TempConnections& tempConnections)
 {
     tempConnections.reserve(connections.size());
     for (const auto& connection : connections)
@@ -660,14 +668,14 @@ void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr&
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(const PacketPtr& packet, const std::vector<ConnectionPtr>& tempConnections)
+void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(const PacketPtr& packet, const TempConnections& tempConnections)
 {
     for (const auto& connection : tempConnections)
         connection.enqueue(packet);
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr&& packet, const std::vector<ConnectionPtr>& tempConnections)
+void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr&& packet, const TempConnections& tempConnections)
 {
     if (tempConnections.empty())
         return;
@@ -684,7 +692,7 @@ void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     const ListPtr<IPacket>& packets,
-    const std::vector<ConnectionPtr>& tempConnections)
+    const TempConnections& tempConnections)
 {
     for (const auto& connection : tempConnections)
         connection.enqueueMultiple(packets);
@@ -693,7 +701,7 @@ void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     ListPtr<IPacket>&& packets,
-    const std::vector<ConnectionPtr>& tempConnections)
+    const TempConnections& tempConnections)
 {
     if (tempConnections.empty())
         return;
@@ -711,7 +719,8 @@ template <typename TInterface, typename... Interfaces>
 template <class Packet>
 bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueue(Packet&& packet)
 {
-    std::vector<ConnectionPtr> tempConnections;
+    TempConnectionsMemPool memPool;
+    TempConnections tempConnections{TempConnectionsAllocator(memPool)};
 
     {
         auto lock = this->getAcquisitionLock();
@@ -732,7 +741,8 @@ template <typename TInterface, typename... Interfaces>
 template <class ListOfPackets>
 bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueueMultiple(ListOfPackets&& packets)
 {
-    std::vector<ConnectionPtr> tempConnections;
+    TempConnectionsMemPool memPool;
+    TempConnections tempConnections{TempConnectionsAllocator(memPool)};
 
     {
         size_t cnt = packets.getCount();
@@ -816,6 +826,16 @@ ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendPacketsAndStea
 
             return OPENDAQ_SUCCESS;
         });
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastValue)
+{
+    auto lock = this->getAcquisitionLock();
+
+    this->lastDataValue = lastValue;
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -960,7 +980,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::domainSignalReferenceSet(ISignal*
 
     const auto signalPtr = SignalPtr::Borrow(signal).asPtrOrNull<ISignalConfig>(true);
     if (!signalPtr.assigned())
-        return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
 
     auto lock = this->getRecursiveConfigLock();
     for (const auto& refSignal : domainSignalReferences)
@@ -980,7 +1000,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::domainSignalReferenceRemoved(ISig
 
     const auto signalPtr = SignalPtr::Borrow(signal).asPtrOrNull<ISignalConfig>(true);
     if (!signalPtr.assigned())
-        return this->makeErrorInfo(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE, "Signal does not implement ISignalConfig interface.");
 
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {
@@ -1126,7 +1146,7 @@ BaseObjectPtr SignalBase<TInterface, Interfaces...>::getDeserializedParameter(co
     if (parameter == "domainSignalId")
         return deserializedDomainSignalId;
 
-    throw NotFoundException();
+    DAQ_THROW_EXCEPTION(NotFoundException);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1203,6 +1223,17 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::getSignalSerializeId(IString** serializeId)
 {
     return this->getGlobalId(serializeId);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getKeepLastValue(Bool* keepLastValue)
+{
+    OPENDAQ_PARAM_NOT_NULL(keepLastValue);
+
+    auto lock = this->getRecursiveConfigLock();
+
+    *keepLastValue = this->keepLastValue ? True : False;
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

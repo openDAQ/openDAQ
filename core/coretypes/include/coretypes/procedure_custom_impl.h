@@ -45,8 +45,7 @@ CustomProcedureImpl<F>::CustomProcedureImpl(F proc)
 template <typename F>
 ErrCode CustomProcedureImpl<F>::getCoreType(CoreType* coreType)
 {
-    if (!coreType)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = ctProc;
     return OPENDAQ_SUCCESS;
@@ -55,8 +54,7 @@ ErrCode CustomProcedureImpl<F>::getCoreType(CoreType* coreType)
 template <typename F>
 ErrCode CustomProcedureImpl<F>::toString(CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     return daqDuplicateCharPtr("Procedure", str);
 }
@@ -77,7 +75,7 @@ ErrCode CustomProcedureImpl<F>::dispatch(IBaseObject* params)
         }
         catch (const DaqException& e)
         {
-            return errorFromException(e);
+            return errorFromException(e, this->getThisAsBaseObject());
         }
         catch (...)
         {

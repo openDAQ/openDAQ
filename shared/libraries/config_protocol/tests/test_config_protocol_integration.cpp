@@ -344,6 +344,23 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
     ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, FunctionBlocksNested)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    const auto config = PropertyObject();
+    config.addProperty(StringPropertyBuilder("Param", "Value").build());
+
+    const auto fb = clientSubDevice.addFunctionBlock("mockfb1", config);
+    auto types = fb.getAvailableFunctionBlockTypes();
+    auto nestedFb = fb.addFunctionBlock(types.getKeyList()[0], config);
+    ASSERT_TRUE(nestedFb.assigned());
+    fb.removeFunctionBlock(nestedFb);
+
+    ASSERT_TRUE(nestedFb.isRemoved());
+    ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
+}
+
 TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockWithEvent)
 {
     const auto serverSubDevice = serverDevice.getDevices()[0];

@@ -23,8 +23,7 @@ ListPtr<IString> EnvConfigProviderImpl::GetEnvValues()
 
 ErrCode EnvConfigProviderImpl::populateOptions(IDict* options) 
 {
-    if (options == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(options);
 
     auto optionsPtr = DictPtr<IString, IBaseObject>::Borrow(options);
 

@@ -204,10 +204,7 @@ ErrCode JsonSerializedObject::getKeys(IList** list)
 
 ErrCode JsonSerializedObject::getType(IString* key, CoreType* type)
 {
-    if (key == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     ConstCharPtr str;
     key->getCharPtr(&str);
@@ -224,10 +221,7 @@ ErrCode JsonSerializedObject::getType(IString* key, CoreType* type)
 
 ErrCode JsonSerializedObject::isRoot(Bool* isRoot)
 {
-    if (isRoot == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(isRoot);
 
     *isRoot = root;
     return OPENDAQ_SUCCESS;
@@ -235,8 +229,7 @@ ErrCode JsonSerializedObject::isRoot(Bool* isRoot)
 
 ErrCode JsonSerializedObject::toJson(IString** jsonString)
 {
-    if (jsonString == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(jsonString);
 
     *jsonString = objToJson(object).detach();
     return OPENDAQ_SUCCESS;
@@ -244,8 +237,7 @@ ErrCode JsonSerializedObject::toJson(IString** jsonString)
 
 ErrCode JsonSerializedObject::toString(CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     return daqDuplicateCharPtr("JsonSerializedObject", str);
 }

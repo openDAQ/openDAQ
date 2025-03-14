@@ -26,10 +26,14 @@ InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
     , rootDeviceSet(false)
 {
+    loggerComponent = this->context.getLogger().addComponent("Instance");
     auto instanceId = DefineLocalId(localId);
     rootDevice = Client(this->context, instanceId);
     rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-    loggerComponent = this->context.getLogger().addComponent("Instance");
+
+    const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
+    if (devicePrivate.assigned())
+        devicePrivate->setAsRoot();
 }
 
 InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
@@ -46,9 +50,6 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     if (connectionString.assigned() && connectionString.getLength())
     {
         rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, rootDeviceConfig);
-        const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
-        if (devicePrivate.assigned())
-            devicePrivate->setAsRoot();
         LOG_I("Root device set to {}", connectionString)
         rootDeviceSet = true;
     }
@@ -58,6 +59,10 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
         auto instanceId = DefineLocalId(localId);
         rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
     }
+
+    const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
+    if (devicePrivate.assigned())
+        devicePrivate->setAsRoot();
 
     for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
         discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);
@@ -309,6 +314,26 @@ ErrCode InstanceImpl::getConnectionStatusContainer(IComponentStatusContainer** s
     return rootDevice->getConnectionStatusContainer(statusContainer);
 }
 
+ErrCode InstanceImpl::getAvailableOperationModes(IList** availableOpModes)
+{
+    return rootDevice->getAvailableOperationModes(availableOpModes);
+}
+
+ErrCode InstanceImpl::setOperationMode(IString* modeType)
+{
+    return rootDevice->setOperationMode(modeType);
+}
+
+ErrCode InstanceImpl::setOperationModeRecursive(IString* modeType)
+{
+    return rootDevice->setOperationModeRecursive(modeType);
+}
+
+ErrCode INTERFACE_FUNC InstanceImpl::getOperationMode(IString** modeType)
+{
+    return rootDevice->getOperationMode(modeType);
+}
+
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
 {
     OPENDAQ_PARAM_NOT_NULL(currentRootDevice);
@@ -324,16 +349,16 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     const auto connectionStringPtr = StringPtr::Borrow(connectionString);
 
     if (rootDeviceSet)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Root device already set.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Root device already set.");
 
     if (rootDevice.getFunctionBlocks().getCount() > 0)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if function blocks already added");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if function blocks already added");
 
     if (rootDevice.getDevices().getCount() > 0)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if devices are already added");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if devices are already added");
 
     if (rootDevice.getServers().getCount() > 0)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
     const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
 
@@ -741,7 +766,7 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
 
 ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
-    return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "UpdateInternal is not permitted for Instance. Use update instead.");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "UpdateInternal is not permitted for Instance. Use update instead.");
 }
 
 ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
@@ -755,7 +780,7 @@ ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
         const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
         const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
         if (rootDeviceWrapperKeysPtr.getCount() != 1)
-            throw InvalidValueException("Invalid root device object");
+            DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid root device object");
 
         const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
         rootDevicePtr.checkObjectType("Device");

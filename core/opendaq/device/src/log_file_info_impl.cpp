@@ -9,7 +9,7 @@ BEGIN_NAMESPACE_OPENDAQ
 LogFileInfoImpl::LogFileInfoImpl(const LogFileInfoBuilderPtr& builder)
 {
     if (builder == nullptr)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     localPath = builder.getLocalPath();
     name = builder.getName();
@@ -20,10 +20,10 @@ LogFileInfoImpl::LogFileInfoImpl(const LogFileInfoBuilderPtr& builder)
     lastModified = builder.getLastModified();
 
     if (!name.assigned() || name.getLength() == 0)
-        throw InvalidParameterException("Log file name is not assigned or empty.");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Log file name is not assigned or empty.");
     
     if (!lastModified.assigned() || lastModified.getLength() == 0)
-        throw InvalidParameterException("Last modified date is not assigned or empty.");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Last modified date is not assigned or empty.");
 
     if (id.assigned() && id.getLength() > 0)
         return;

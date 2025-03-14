@@ -343,7 +343,7 @@ inline ErrCode MDNSDiscoveryClient::requestIpConfigModification(const std::strin
     sendNonDiscoveryQuery(records, discovery_common::IpModificationUtils::IP_MODIFICATION_OPCODE, requestQueryId, callback);
 
     if (OPENDAQ_FAILED(rpcErrorCode))
-        return makeErrorInfo(rpcErrorCode, rpcErrorMessage, nullptr);
+        return DAQ_MAKE_ERROR_INFO(rpcErrorCode, rpcErrorMessage);
 
     return OPENDAQ_SUCCESS;
 }
@@ -403,7 +403,7 @@ inline ErrCode MDNSDiscoveryClient::requestCurrentIpConfiguration(const std::str
     sendNonDiscoveryQuery(records, discovery_common::IpModificationUtils::IP_GET_CONFIG_OPCODE, requestQueryId, callback);
 
     if (OPENDAQ_FAILED(rpcErrorCode))
-        return makeErrorInfo(rpcErrorCode, rpcErrorMessage, nullptr);
+        return DAQ_MAKE_ERROR_INFO(rpcErrorCode, rpcErrorMessage);
 
     return OPENDAQ_SUCCESS;
 }

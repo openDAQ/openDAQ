@@ -69,7 +69,7 @@ RatioPtr VariantConverter<IRatio>::ToDaqObject(const OpcUaVariant& variant, cons
         return StructConverter<IRatio, UA_RationalNumber64>::ToDaqObject(*tmsStruct);
     }
 
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -82,7 +82,7 @@ OpcUaVariant VariantConverter<IRatio>::ToVariant(const RatioPtr& object, const U
     else if (targetType == &UA_TYPES[UA_TYPES_RATIONALNUMBER])
         variant.setScalar(*StructConverter<IRatio, UA_RationalNumber>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -97,7 +97,7 @@ ListPtr<IRatio> VariantConverter<IRatio>::ToDaqList(const OpcUaVariant& variant,
     if (variant.isType<UA_RationalNumber64>())
         return ListConversionUtils::VariantToList<IRatio, UA_RationalNumber64>(variant);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -110,7 +110,7 @@ OpcUaVariant VariantConverter<IRatio>::ToArrayVariant(const ListPtr<IRatio>& lis
     if (targetType == &UA_TYPES[UA_TYPES_RATIONALNUMBER])
         return ListConversionUtils::ToArrayVariant<IRatio, UA_RationalNumber>(list);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

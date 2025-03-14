@@ -74,7 +74,7 @@ struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::Compl
 {
     static T Multiply(T value, const RatioPtr& multiplier)
     {
-        throw NotSupportedException();
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     static T Adjust(T value, const RatioPtr& multiplier)
@@ -84,7 +84,7 @@ struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::Compl
 
     static T GetStart(T startValue, std::int64_t offset)
     {
-        throw NotSupportedException();
+        DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
     static constexpr bool Check(const RatioPtr& multiplier, T readValue, T startValue)
@@ -200,14 +200,14 @@ ErrCode TypedReader<ReadType>::readData(void* inputBuffer, SizeT offset, void** 
         case SampleType::Struct:
             return readValues<SampleTypeToType<SampleType::Struct>::Type>(inputBuffer, offset, outputBuffer, count);
         case SampleType::Invalid:
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.");
         case SampleType::Null:
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered", nullptr);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered");
         case SampleType::_count:
             break;
     }
 
-    return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered", nullptr);
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
 }
 
 template <typename ReadType>
@@ -246,20 +246,19 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
         case SampleType::Binary:
         case SampleType::String:
         case SampleType::Struct:
-            return makeErrorInfo(
+            return DAQ_MAKE_ERROR_INFO(
                 OPENDAQ_ERR_NOT_SUPPORTED,
-                fmt::format("Using the SampleType {} as a domain is not supported", dataSampleType),
-                nullptr
+                "Using the SampleType {} as a domain is not supported", dataSampleType
             );
         case SampleType::Invalid:
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.", nullptr);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.");
         case SampleType::Null:
-            return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered", nullptr);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered");
         case SampleType::_count:
             break;
     }
 
-    return makeErrorInfo(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered", nullptr);
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
 }
 
 template <typename TReadType>
@@ -271,7 +270,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                                               [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp) const
 {
     if (!inputBuffer)
-        throw ArgumentNullException{};
+        DAQ_THROW_EXCEPTION(ArgumentNullException);
 
     using namespace reader;
 
@@ -323,7 +322,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                     }
                     else
                     {
-                        throw NotSupportedException();
+                        DAQ_THROW_EXCEPTION(NotSupportedException);
                     }
                 }
                 return i / valuesPerSample;
@@ -338,10 +337,9 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
     }
     else
     {
-        return makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOT_SUPPORTED,
-            "Implicit conversion from packet data-type to the read data-type is not supported.",
-            nullptr
+            "Implicit conversion from packet data-type to the read data-type is not supported."
         );
     }
 }
@@ -350,12 +348,13 @@ template <typename TReadType>
 template <typename TDataType>
 ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT toRead) const
 {
-    if (!inputBuffer || !outputBuffer)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(inputBuffer);
+    OPENDAQ_PARAM_NOT_NULL(outputBuffer);
+
     if constexpr (std::is_same_v<TReadType, void*>)
     {
         if (!ignoreTransform && transformFunction.assigned())
-            return makeErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED, "Transform function for void reader not supported.", nullptr);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Transform function for void reader not supported.");
 
         const auto dataStart = static_cast<void*>(static_cast<uint8_t*>(inputBuffer) + offset * rawSampleSize);
         const auto toReadInBytes = rawSampleSize * toRead;
@@ -398,10 +397,9 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
     }
     else
     {
-        return makeErrorInfo(
+        return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOT_SUPPORTED,
-            "Implicit conversion from packet data-type to the read data-type is not supported.",
-            nullptr
+            "Implicit conversion from packet data-type to the read data-type is not supported."
         );
     }
 }
@@ -551,7 +549,7 @@ std::unique_ptr<Reader> createReaderForType(SampleType readType, const FunctionP
         case SampleType::_count:
             break;
     }
-    throw NotSupportedException("The requested sample-type is unsupported or invalid.");
+    DAQ_THROW_EXCEPTION(NotSupportedException, "The requested sample-type is unsupported or invalid.");
 }
 
 std::string_view format_as(SampleType sampleType)

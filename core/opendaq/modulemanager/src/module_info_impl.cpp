@@ -17,8 +17,7 @@ ModuleInfoImpl::ModuleInfoImpl(const VersionInfoPtr& versionInfo, const StringPt
 
 ErrCode INTERFACE_FUNC ModuleInfoImpl::getVersionInfo(IVersionInfo** versionInfo)
 {
-    if (!versionInfo)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(versionInfo);
 
     *versionInfo = this->fields.get("VersionInfo").asPtr<IVersionInfo>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -26,8 +25,7 @@ ErrCode INTERFACE_FUNC ModuleInfoImpl::getVersionInfo(IVersionInfo** versionInfo
 
 ErrCode INTERFACE_FUNC ModuleInfoImpl::getName(IString** name)
 {
-    if (!name)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     *name = this->fields.get("Name").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -35,8 +33,7 @@ ErrCode INTERFACE_FUNC ModuleInfoImpl::getName(IString** name)
 
 ErrCode INTERFACE_FUNC ModuleInfoImpl::getId(IString** id)
 {
-    if (!id)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     *id = this->fields.get("Id").asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;

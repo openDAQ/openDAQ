@@ -78,8 +78,7 @@ IteratorBaseImpl<T, E, VS>::~IteratorBaseImpl()
 template <typename T, typename E, typename VS>
 ErrCode IteratorBaseImpl<T, E, VS>::getCurrent(IBaseObject** obj) const
 {
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     if (it == end)
         return OPENDAQ_ERR_NOTASSIGNED;
@@ -92,7 +91,7 @@ template <typename T, typename E, typename VS>
 ErrCode IteratorBaseImpl<T, E, VS>::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
 
     *equal = false;
     if (!other)

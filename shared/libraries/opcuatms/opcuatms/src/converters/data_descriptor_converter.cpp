@@ -261,7 +261,7 @@ DataDescriptorPtr VariantConverter<IDataDescriptor>::ToDaqObject(const OpcUaVari
         return StructConverter<IDataDescriptor, UA_DataDescriptorStructure>::ToDaqObject(*tmsStruct);
     }
 
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -283,7 +283,7 @@ OpcUaVariant VariantConverter<IDataDescriptor>::ToVariant(const DataDescriptorPt
     else if (targetType ==&UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_STRUCTDESCRIPTORSTRUCTURE])
         variant.setScalar(*StructConverter<IDataDescriptor, UA_StructDescriptorStructure>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -298,7 +298,7 @@ ListPtr<IDataDescriptor> VariantConverter<IDataDescriptor>::ToDaqList(const OpcU
     if (variant.isType<UA_StructDescriptorStructure>())
         return ListConversionUtils::VariantToList<IDataDescriptor, UA_StructDescriptorStructure>(variant);
     
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -313,7 +313,7 @@ OpcUaVariant VariantConverter<IDataDescriptor>::ToArrayVariant(const ListPtr<IDa
     if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_STRUCTDESCRIPTORSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDataDescriptor, UA_StructDescriptorStructure>(list);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 

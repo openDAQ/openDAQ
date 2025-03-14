@@ -100,12 +100,20 @@ public:
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
     ErrCode INTERFACE_FUNC getServers(IList** servers) override;
+
     ErrCode INTERFACE_FUNC lock() override;
     ErrCode INTERFACE_FUNC unlock() override;
     ErrCode INTERFACE_FUNC isLocked(Bool* locked) override;
+
     ErrCode INTERFACE_FUNC getLogFileInfos(IList** logFileInfos) override;
     ErrCode INTERFACE_FUNC getLog(IString** log, IString* id, Int size, Int offset) override;
+
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
+
+    ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
+    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
+    ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
+    ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -148,6 +156,9 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
 
 protected:
     DeviceInfoPtr deviceInfo;
@@ -213,6 +224,12 @@ protected:
     virtual Bool onGetNetworkConfigurationEnabled();
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
+    virtual std::set<OperationModeType> onGetAvailableOperationModes();
+    void onOperationModeChanged(OperationModeType modeType) override;
+
+    ListPtr<ILockGuard> getTreeLockGuard();
+    ErrCode updateOperationModeInternal(OperationModeType modeType);
+
     DevicePtr getParentDevice();
 
 private:
@@ -227,6 +244,7 @@ private:
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
+    OperationModeType operationMode;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -320,6 +338,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock();
 
     this->isRootDevice = true;
+    this->updateOperationMode(OperationModeType::Unknown);
     return OPENDAQ_SUCCESS;
 }
 
@@ -448,7 +467,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::submitNetworkConfiguration(ISt
     OPENDAQ_PARAM_NOT_NULL(config);
 
     if (!this->isRootDevice)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
 
     const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
     const auto configPtr = PropertyObjectPtr::Borrow(config);
@@ -464,7 +483,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::retrieveNetworkConfiguration(I
     OPENDAQ_PARAM_NOT_NULL(config);
 
     if (!this->isRootDevice)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
 
     PropertyObjectPtr configPtr;
     const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
@@ -490,7 +509,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getNetworkInterfaceNames(IList
     OPENDAQ_PARAM_NOT_NULL(ifaceNames);
 
     if (!this->isRootDevice)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Device must be set as root to manage network configuration.");
 
     ListPtr<IString> ifaceNamesPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetNetworkInterfaceNames, ifaceNamesPtr);
@@ -803,7 +822,7 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
-        throw NotFoundException("Function block not found. Device does not allow adding/removing function blocks.");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found. Device does not allow adding/removing function blocks.");
 
     this->functionBlocks.removeItem(functionBlock);
 }
@@ -995,13 +1014,13 @@ StringPtr GenericDevice<TInterface, Interfaces...>::onGetLog(const StringPtr& /*
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onSubmitNetworkConfiguration(const StringPtr& /*ifaceName*/, const PropertyObjectPtr& /*config*/)
 {
-    throw NotImplementedException();
+    DAQ_THROW_EXCEPTION(NotImplementedException);
 }
 
 template <typename TInterface, typename... Interfaces>
 PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onRetrieveNetworkConfiguration(const StringPtr& /*ifaceName*/)
 {
-    throw NotImplementedException();
+    DAQ_THROW_EXCEPTION(NotImplementedException);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1013,7 +1032,7 @@ Bool GenericDevice<TInterface, Interfaces...>::onGetNetworkConfigurationEnabled(
 template <typename TInterface, typename... Interfaces>
 ListPtr<IString> GenericDevice<TInterface, Interfaces...>::onGetNetworkInterfaceNames()
 {
-    throw NotImplementedException();
+    DAQ_THROW_EXCEPTION(NotImplementedException);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1023,10 +1042,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getLog(IString** log, IString*
     OPENDAQ_PARAM_NOT_NULL(id);
 
     if (offset < 0)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Offset must be greater than or equal to 0.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Offset must be greater than or equal to 0.");
 
     if (size < -1)
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT, "Size must be greater than or equal to -1.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Size must be greater than or equal to -1.");
 
     StringPtr logPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetLog, logPtr, id, size, offset);
@@ -1065,6 +1084,135 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getConnectionStatusContainer(I
     auto ret = this->connectionStatusContainer.template asPtr<IComponentStatusContainer>();
     *statusContainer = ret.detach();
 
+    return OPENDAQ_SUCCESS;
+}
+template <typename TInterface, typename... Interfaces>
+ListPtr<ILockGuard> GenericDevice<TInterface, Interfaces...>::getTreeLockGuard()
+{
+    auto lockGuardList = List<ILockGuard>();
+
+    LockGuardPtr lockGuard;
+    this->getRecursiveLockGuard(&lockGuard);
+    lockGuardList.pushBack(lockGuard);
+
+    ListPtr<IComponent> items;
+    this->getItems(&items, search::Recursive(search::Not(search::InterfaceId(IDevice::Id))));
+    if (!items.assigned())
+        return lockGuardList;
+
+    for (const auto& item : items)
+    {
+        auto objProtected = item.template asPtrOrNull<IPropertyObjectInternal>(true);
+        if (objProtected.assigned())
+            lockGuardList.pushBack(objProtected.getRecursiveLockGuard());
+    }
+
+    return lockGuardList;
+}
+
+template <typename TInterface, typename... Interfaces>
+std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvailableOperationModes()
+{
+    return {OperationModeType::Operation};
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(IList** availableOpModes)
+{
+    OPENDAQ_PARAM_NOT_NULL(availableOpModes);
+
+    std::set<OperationModeType> modes;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
+    
+    auto modesList = List<IString>();
+    for (const auto& mode : modes)
+        modesList.pushBack(this->OperationModeTypeToString(mode));
+
+    *availableOpModes = modesList.detach();
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
+{
+    bool active = modeType != OperationModeType::Idle;
+    for (const auto& signal : this->signals.getItems(search::InterfaceId(ISignal::Id)))
+        signal.setActive(active);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(OperationModeType modeType)
+{
+    const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        this->operationMode = modeType;
+
+        if (!this->coreEventMuted && this->coreEvent.assigned())
+            this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
+    }
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /* modeType */)
+{
+    return this->updateOperationModeInternal(OperationModeType::Operation);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+    OperationModeType mode = this->OperationModeTypeFromString(StringPtr::Borrow(modeType));
+    if (this->onGetAvailableOperationModes().count(mode) == 0)
+        return OPENDAQ_IGNORED;
+
+    auto lockGuardList = this->getTreeLockGuard();
+
+    ErrCode errCode = this->updateOperationModeInternal(mode);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    for (const auto& component : this->components)
+    {
+        if (component == this->devices)
+            continue;
+
+        auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+        if (!componentPrivate.assigned())
+            continue;
+
+        errCode = componentPrivate->updateOperationMode(mode);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(IString* modeType)
+{
+    ErrCode errCode = setOperationMode(modeType);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    
+    for (const DevicePtr & dev: this->devices.getItems())
+    {
+        errCode = dev->setOperationModeRecursive(modeType);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(IString** modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+    *modeType = String(this->OperationModeTypeToString(this->operationMode)).detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -1190,7 +1338,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addStreaming(IStreaming** stre
 template <typename TInterface, typename... Interfaces>
 StreamingPtr GenericDevice<TInterface, Interfaces...>::onAddStreaming(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
 {
-    throw NotImplementedException();
+    DAQ_THROW_EXCEPTION(NotImplementedException);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1201,7 +1349,7 @@ ServerPtr GenericDevice<TInterface, Interfaces...>::onAddServer(const StringPtr&
 
     auto lock = this->getRecursiveConfigLock();
     if (!this->isRootDevice)
-        throw NotFoundException("Device does not allow adding/removing servers.");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device does not allow adding/removing servers.");
     this->servers.addItem(server);
 
     return server;
@@ -1213,7 +1361,7 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveServer(const ServerPtr& s
     auto lock = this->getRecursiveConfigLock();
 
     if (!this->isRootDevice)
-        throw NotFoundException("Device does not allow adding/removing servers.");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device does not allow adding/removing servers.");
 
     this->servers.removeItem(server);
 }
@@ -1402,18 +1550,18 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
     if (this->isComponentRemoved)
         return OPENDAQ_ERR_COMPONENT_REMOVED;
 
-    return daqTry(
-        [this, &configuration]() {
-            auto serializer = JsonSerializer(True);
+    return daqTry([this, &configuration]
+    {
+        auto serializer = JsonSerializer(True);
 
-            checkErrorInfo(this->serialize(serializer));
+        checkErrorInfo(this->serialize(serializer));
 
-            auto str = serializer.getOutput();
+        auto str = serializer.getOutput();
 
-            *configuration = str.detach();
+        *configuration = str.detach();
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -1463,7 +1611,7 @@ template <class TInterface, class... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::addSubDevice(const DevicePtr& device)
 {
     if (device.getParent() != devices)
-        throw InvalidParameterException("Invalid parent of device");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid parent of device");
 
     try
     {
@@ -1471,7 +1619,7 @@ void GenericDevice<TInterface, Interfaces...>::addSubDevice(const DevicePtr& dev
     }
     catch (DuplicateItemException&)
     {
-        throw DuplicateItemException("Device with the same local ID already exists.");
+        DAQ_THROW_EXCEPTION(DuplicateItemException, "Device with the same local ID already exists.");
     }
 }
 

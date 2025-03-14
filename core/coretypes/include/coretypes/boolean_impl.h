@@ -23,8 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 template <>
 inline ErrCode OrdinalObjectImpl<Bool, IBoolean>::toBool(Bool* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     if (value != 0)
         *val = True;
@@ -37,8 +36,7 @@ inline ErrCode OrdinalObjectImpl<Bool, IBoolean>::toBool(Bool* val)
 template <>
 inline ErrCode OrdinalObjectImpl<Bool, IBoolean>::getHashCode(SizeT* hashCode)
 {
-    if (hashCode == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(hashCode);
 
     if (value)
         *hashCode = 1;
@@ -51,8 +49,7 @@ inline ErrCode OrdinalObjectImpl<Bool, IBoolean>::getHashCode(SizeT* hashCode)
 template <>
 inline ErrCode OrdinalObjectImpl<Bool, IBoolean>::serialize(ISerializer* serializer)
 {
-    if (serializer == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(serializer);
 
     serializer->writeBool(value);
 

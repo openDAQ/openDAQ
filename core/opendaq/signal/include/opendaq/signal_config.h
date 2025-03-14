@@ -125,6 +125,15 @@ DECLARE_OPENDAQ_INTERFACE(ISignalConfig, ISignal)
      * is taken by underlying connections and they could be destroyed before the function returns.
      */
     virtual ErrCode INTERFACE_FUNC sendPacketsAndStealRef(IList* packets) = 0;
+
+    /*!
+     * @brief Sets the last value of the signal.
+     * @param lastValue The lastValue.
+     *
+     * This method is used to manually set the last value of the signal. Useful when automatic calculation of
+     * last value is disabled, usually due to performance reasons.
+     */
+    virtual ErrCode INTERFACE_FUNC setLastValue(IBaseObject* lastValue) = 0;
 };
 /*!@}*/
 

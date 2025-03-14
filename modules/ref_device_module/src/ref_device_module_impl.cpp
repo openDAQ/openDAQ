@@ -11,11 +11,9 @@ RefDeviceModule::RefDeviceModule(ContextPtr context)
              daq::VersionInfo(REF_DEVICE_MODULE_MAJOR_VERSION, REF_DEVICE_MODULE_MINOR_VERSION, REF_DEVICE_MODULE_PATCH_VERSION),
              std::move(context),
              REF_MODULE_NAME)
-    , maxNumberOfDevices(2)
 {
     auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-    if (options.hasKey("MaxNumberOfDevices"))
-        maxNumberOfDevices = options.get("MaxNumberOfDevices");
+    maxNumberOfDevices = options.getOrDefault("MaxNumberOfDevices", 2);
     devices.resize(maxNumberOfDevices);
 }
 
@@ -27,8 +25,7 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
 
     if (options.assigned())
     {
-        if (options.hasKey("SerialNumber"))
-            serialNumber = options.get("SerialNumber");
+        serialNumber = options.getOrDefault("SerialNumber");
     }
 
     auto availableDevices = List<IDeviceInfo>();
@@ -71,14 +68,14 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     if (id >= devices.size())
     {
         LOG_W("Device with id \"{}\" not found", id);
-        throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
     }
 
     clearRemovedDevices();
     if (devices[id].assigned() && devices[id].getRef().assigned())
     {
         LOG_W("Device with id \"{}\" already exist", id);
-        throw AlreadyExistsException();
+        DAQ_THROW_EXCEPTION(AlreadyExistsException);
     }
     
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
@@ -101,16 +98,11 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     if (options.assigned())
     {
-        if (options.hasKey("LocalId"))
-        {
-            StringPtr localIdTemp = options.get("LocalId");
+        if (StringPtr localIdTemp = options.getOrDefault("LocalId"); localIdTemp.assigned())
             localId = localIdTemp.getLength() ? localIdTemp : nullptr;
-        }
-        if (options.hasKey("Name"))
-        {
-            StringPtr nameTemp = options.get("Name");
+
+        if (StringPtr nameTemp = options.getOrDefault("Name"); nameTemp.assigned())
             name = nameTemp.getLength() ? nameTemp : nullptr;
-        }
     }
 
     if (!localId.assigned())
@@ -128,7 +120,7 @@ size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionS
     if (found != 0)
     {
         LOG_W("Invalid connection string \"{}\", no prefix", connectionString);
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
     }
 
     auto idStr = connectionString.substr(prefixWithDeviceStr.size(), std::string::npos);
@@ -140,7 +132,7 @@ size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionS
     catch (const std::invalid_argument&)
     {
         LOG_W("Invalid connection string \"{}\", no id", connectionString);
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
     }
 
     return id;

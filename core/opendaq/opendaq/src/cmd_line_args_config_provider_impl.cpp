@@ -7,13 +7,12 @@ CmdLineArgsConfigProviderImpl::CmdLineArgsConfigProviderImpl(const ListPtr<IStri
     : cmdLineArgs(cmdLineArgs)
 {
     if (!cmdLineArgs.assigned())
-        throw ArgumentNullException("List of command line args is not assigned");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "List of command line args is not assigned");
 }
 
 ErrCode INTERFACE_FUNC CmdLineArgsConfigProviderImpl::populateOptions(IDict* options) 
 {
-    if (options == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(options);
 
     auto optionsPtr = DictPtr<IString, IBaseObject>::Borrow(options);
 

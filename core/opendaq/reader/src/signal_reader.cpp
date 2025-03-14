@@ -230,7 +230,7 @@ std::unique_ptr<Comparable> SignalReader::readStartDomain()
     DataPacketPtr domainPacket = info.dataPacket.getDomainPacket();
     if (!domainPacket.assigned())
     {
-        throw InvalidStateException("Packet must have a domain packet assigned!");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Packet must have a domain packet assigned!");
     }
 
     return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
@@ -476,19 +476,17 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
                 {
                     invalid = true;
 
-                    return makeErrorInfo(
+                    return DAQ_MAKE_ERROR_INFO(
                         OPENDAQ_ERR_INVALID_DATA,
-                        "Exception occurred while processing a signal descriptor change",
-                        nullptr
+                        "Exception occurred while processing a signal descriptor change"
                     );
                 }
 
                 if (invalid)
                 {
-                    return makeErrorInfo(
+                    return DAQ_MAKE_ERROR_INFO(
                         OPENDAQ_ERR_INVALID_DATA,
-                        "Signal no longer compatible with the reader or other signals",
-                        nullptr
+                        "Signal no longer compatible with the reader or other signals"
                     );
                 }
             }
@@ -532,7 +530,7 @@ void* SignalReader::getValuePacketData(const DataPacketPtr& packet) const
             return packet.getData();
     }
 
-    throw InvalidOperationException("Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
+    DAQ_THROW_EXCEPTION(InvalidOperationException, "Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
 }
 
 bool SignalReader::isSynced() const
@@ -559,10 +557,9 @@ ErrCode SignalReader::readPacketData()
         auto dataPacket = info.dataPacket;
         if (!dataPacket.getDomainPacket().assigned())
         {
-            return makeErrorInfo(
+            return DAQ_MAKE_ERROR_INFO(
                 OPENDAQ_ERR_INVALIDSTATE,
-                "Packets must have an associated domain packets to read domain data.",
-                nullptr
+                "Packets must have an associated domain packets to read domain data."
             );
         }
 

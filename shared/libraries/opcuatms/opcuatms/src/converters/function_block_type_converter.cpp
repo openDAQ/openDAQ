@@ -46,7 +46,7 @@ FunctionBlockTypePtr VariantConverter<IFunctionBlockType>::ToDaqObject(const Opc
     const auto decodedVariant = DecodeIfExtensionObject(variant);
 
     if (!decodedVariant.isType<UA_FunctionBlockInfoStructure>())
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     const auto tmsStruct = static_cast<UA_FunctionBlockInfoStructure*>(decodedVariant->data);
     return StructConverter<IFunctionBlockType, UA_FunctionBlockInfoStructure>::ToDaqObject(*tmsStruct);
@@ -62,7 +62,7 @@ OpcUaVariant VariantConverter<IFunctionBlockType>::ToVariant(const FunctionBlock
     if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_FUNCTIONBLOCKINFOSTRUCTURE])
         variant.setScalar(*StructConverter<IFunctionBlockType, UA_FunctionBlockInfoStructure>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -84,7 +84,7 @@ OpcUaVariant VariantConverter<IFunctionBlockType>::ToArrayVariant(const ListPtr<
     if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_FUNCTIONBLOCKINFOSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IFunctionBlockType, UA_FunctionBlockInfoStructure>(list);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

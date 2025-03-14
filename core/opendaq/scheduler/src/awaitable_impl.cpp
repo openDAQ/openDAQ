@@ -42,10 +42,7 @@ ErrCode AwaitableImpl<TReturn>::wait()
 template <typename TReturn>
 ErrCode AwaitableImpl<TReturn>::getResult(IBaseObject** result)
 {
-    if (result == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(result);
 
     if (!completed && !future.valid())
     {
@@ -79,8 +76,7 @@ ErrCode AwaitableImpl<TReturn>::getResult(IBaseObject** result)
 template <typename TReturn>
 ErrCode AwaitableImpl<TReturn>::hasCompleted(Bool* finished)
 {
-    if (finished == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(finished);
 
     if (!future.valid())
         *finished = this->completed.load();

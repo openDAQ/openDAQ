@@ -89,45 +89,29 @@ void PermissionsBuilderImpl::assign(IString* groupId, Int permissionFlags)
 {
     StringPtr groupIdPtr = groupId;
 
-    InsertOrReplace(groupIdPtr, permissionFlags, assigned);
-    InsertOrReplace(groupIdPtr, permissionFlags, allowed);
-    InsertOrReplace(groupIdPtr, 0, denied);
+    assigned[groupIdPtr] = permissionFlags;
+    allowed[groupIdPtr] = permissionFlags;
+    denied[groupIdPtr] = 0;
 }
 
 void PermissionsBuilderImpl::allow(IString* groupId, Int permissionFlags)
 {
     StringPtr groupIdPtr = groupId;
-    Int allowMask = allowed.count(groupId) ? allowed.at(groupId) : 0;
-    Int denyMask = denied.count(groupId) ? denied.at(groupId) : 0;
+    Int& allowMask = allowed[groupIdPtr];
+    Int& denyMask = denied[groupIdPtr];
 
     allowMask |= permissionFlags;
     denyMask &= ~permissionFlags;
-    
-    InsertOrReplace(groupIdPtr, denyMask, denied);
-    InsertOrReplace(groupIdPtr, allowMask, allowed);
 }
 
 void PermissionsBuilderImpl::deny(IString* groupId, Int permissionFlags)
 {
     StringPtr groupIdPtr = groupId;
-    Int denyMask = denied.count(groupId) ? denied.at(groupId) : 0;
-    Int allowMask = allowed.count(groupId) ? allowed.at(groupId) : 0;
+    Int& allowMask = allowed[groupIdPtr];
+    Int& denyMask = denied[groupIdPtr];
 
     denyMask |= permissionFlags;
     allowMask &= ~permissionFlags;
-
-    InsertOrReplace(groupIdPtr, denyMask, denied);
-    InsertOrReplace(groupIdPtr, allowMask, allowed);
-}
-
-void PermissionsBuilderImpl::InsertOrReplace(const StringPtr& groupId,
-                                             Int permissionFlag,
-                                             std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& map)
-{
-    if (map.count(groupId))
-        map[groupId] = permissionFlag;
-    else
-        map.insert(std::make_pair(groupId, permissionFlag));
 }
 
 // Factory

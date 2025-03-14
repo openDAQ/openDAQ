@@ -71,8 +71,7 @@ ErrCode CoercerImpl::coerceNoLock(IBaseObject* propObj, IBaseObject* value, IBas
 
 ErrCode CoercerImpl::getEval(IString** eval)
 {
-    if (eval == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(eval);
 
     *eval = this->eval.addRefAndReturn();
     return OPENDAQ_SUCCESS;

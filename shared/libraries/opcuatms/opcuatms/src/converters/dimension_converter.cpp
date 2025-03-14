@@ -62,7 +62,7 @@ DimensionPtr VariantConverter<IDimension>::ToDaqObject(const OpcUaVariant& varia
     const auto decodedVariant = DecodeIfExtensionObject(variant);
 
     if (!decodedVariant.isType<UA_DimensionDescriptorStructure>())
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     const auto tmsStruct = static_cast<UA_DimensionDescriptorStructure*>(decodedVariant->data);
     return StructConverter<IDimension, UA_DimensionDescriptorStructure>::ToDaqObject(*tmsStruct);
@@ -77,7 +77,7 @@ OpcUaVariant VariantConverter<IDimension>::ToVariant(const DimensionPtr& object,
     if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_DIMENSIONDESCRIPTORSTRUCTURE])
         variant.setScalar(*StructConverter<IDimension, UA_DimensionDescriptorStructure>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -99,7 +99,7 @@ OpcUaVariant VariantConverter<IDimension>::ToArrayVariant(const ListPtr<IDimensi
     if (targetType == nullptr || targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_DIMENSIONDESCRIPTORSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDimension, UA_DimensionDescriptorStructure>(list);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/errorinfo.h>
 #include <coretypes/freezable.h>
+#include <coretypes/listobject.h>
 #include <coretypes/intfs.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -29,30 +30,37 @@ public:
 
     ErrCode INTERFACE_FUNC setMessage(IString* message) override;
     ErrCode INTERFACE_FUNC getMessage(IString** message) override;
-    ErrCode INTERFACE_FUNC getSource(IString** source) override;
     ErrCode INTERFACE_FUNC setSource(IString* source) override;
-
+    ErrCode INTERFACE_FUNC getSource(IString** source) override;
+    ErrCode INTERFACE_FUNC setFileName(ConstCharPtr fileName) override;
+    ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) override;
+    ErrCode INTERFACE_FUNC setFileLine(Int line) override;
+    ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
+    
     ErrCode INTERFACE_FUNC freeze() override;
     ErrCode INTERFACE_FUNC isFrozen(Bool* frozen) const override;
 
 private:
     IString* message;
     IString* source;
+    ConstCharPtr fileName;
+    Int line;
     Bool frozen;
 };
 
 class ErrorInfoHolder
 {
 public:
-    ErrorInfoHolder();
+    ErrorInfoHolder() = default;
 #ifndef __MINGW32__
     ~ErrorInfoHolder();
 #endif
 
     void setErrorInfo(IErrorInfo* errorInfo);
     IErrorInfo* getErrorInfo() const;
+    IList* getErrorInfoList();
 private:
-    IErrorInfo* errorInfo;
+    IList* errorInfoList;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -169,8 +169,8 @@ public:
             return errCode;
 
         ComponentTypePtr type;
-        if (types.assigned() && types.hasKey(id))
-            type = types.get(id);
+        if (types.assigned())
+            type = types.getOrDefault(id);
 
         FunctionBlockPtr block;
         errCode = wrapHandlerReturn(this, &Module::onCreateFunctionBlock, block, id, parent, localId, mergeConfig(config, type));
@@ -219,8 +219,8 @@ public:
             return errCode;
         
         ComponentTypePtr type;
-        if (types.assigned() && types.hasKey(serverTypeId))
-            type = types.get(serverTypeId);
+        if (types.assigned())
+            type = types.getOrDefault(serverTypeId);
 
         ServerPtr serverInstance;
         errCode = wrapHandlerReturn(this, &Module::onCreateServer, serverInstance, serverTypeId, mergeConfig(config, type), rootDevice);
@@ -349,7 +349,7 @@ public:
      */
     virtual FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
     {
-        throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
     }
 
     /*!

@@ -50,8 +50,7 @@ void setRef(T*& obj, T* newObj)
 template <class Interface, class Impl, class... Params>
 ErrCode createObjectForwarding(Interface** intf, Params... params)
 {
-    if (!intf)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(intf);
 
     Impl* impl;
     try
@@ -60,8 +59,7 @@ ErrCode createObjectForwarding(Interface** intf, Params... params)
     }
     catch (const DaqException& e)
     {
-        setErrorInfoWithSource(nullptr, e.what());
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (const std::bad_alloc&)
     {
@@ -89,8 +87,7 @@ ErrCode createObjectForwarding(Interface** intf, Params... params)
 template <class Interface, class Impl, class... Params>
 ErrCode createObject(Interface** intf, Params... params)
 {
-    if (!intf)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(intf);
 
     Impl* impl;
     try
@@ -99,8 +96,7 @@ ErrCode createObject(Interface** intf, Params... params)
     }
     catch (const DaqException& e)
     {
-        setErrorInfoWithSource(nullptr, e.what());
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (const std::bad_alloc&)
     {
@@ -161,8 +157,8 @@ struct ObjectCreator
 template <class T, class ImplT>
 static ErrCode GetSingletonObject(T** singletonStorage, T** resIntf)
 {
-    if (singletonStorage == nullptr || resIntf == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(singletonStorage);
+    OPENDAQ_PARAM_NOT_NULL(resIntf);
 
     if (*singletonStorage == nullptr)
     {

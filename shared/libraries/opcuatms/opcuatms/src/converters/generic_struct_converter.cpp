@@ -32,7 +32,7 @@ StructPtr VariantConverter<IStruct>::ToDaqObject(const OpcUaVariant& variant, co
         return nullptr;
 
     if (!context.assigned() || !context.getTypeManager().assigned())
-        throw ConversionFailedException{"Generic struct conversion requires the TypeManager."};
+        DAQ_THROW_EXCEPTION(ConversionFailedException, "Generic struct conversion requires the TypeManager.");
 
     const auto typeManager = context.getTypeManager();
 
@@ -143,7 +143,7 @@ OpcUaVariant VariantConverter<IStruct>::ToVariant(const StructPtr& object, const
 {
     const auto type = GetUAStructureDataTypeByName(object.getStructType().getName());
     if (type == nullptr)
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     const UA_DataTypeMember* members = type->members;
     const UA_UInt32 membersSize = type->membersSize;
@@ -152,7 +152,7 @@ OpcUaVariant VariantConverter<IStruct>::ToVariant(const StructPtr& object, const
     const auto daqMembers = object.getAsDictionary();
 
     if (membersSize != daqMembers.getCount())
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     auto dst = reinterpret_cast<uintptr_t>(data);
     for (SizeT i = 0; i < membersSize; ++i)
@@ -161,7 +161,7 @@ OpcUaVariant VariantConverter<IStruct>::ToVariant(const StructPtr& object, const
         const UA_DataType* memberType = member->memberType;
 
         if (!daqMembers.hasKey(member->memberName))
-            throw ConversionFailedException{};
+            DAQ_THROW_EXCEPTION(ConversionFailedException);
 
         auto daqMember = daqMembers.get(member->memberName);
         dst += member->padding;
@@ -176,12 +176,12 @@ OpcUaVariant VariantConverter<IStruct>::ToVariant(const StructPtr& object, const
                 continue;
             }
 
-            throw ConversionFailedException{};
+            DAQ_THROW_EXCEPTION(ConversionFailedException);
         }
 
         OpcUaVariant variant = VariantConverter<IBaseObject>::ToVariant(daqMember, memberType, context);
         if (variant->type != memberType && !(variant->data == UA_EMPTY_ARRAY_SENTINEL && variant->arrayLength == 0))
-            throw ConversionFailedException{};
+            DAQ_THROW_EXCEPTION(ConversionFailedException);
 
         void* src = variant->data;
 
@@ -263,7 +263,7 @@ OpcUaVariant VariantConverter<IStruct>::ToArrayVariant(const ListPtr<IStruct>& l
     {
         auto convertedStruct = ToVariant(list[i], nullptr, context);
         if (convertedStruct->type != type)
-            throw ConversionFailedException{};
+            DAQ_THROW_EXCEPTION(ConversionFailedException);
 
         UA_copy(convertedStruct->data, reinterpret_cast<void*>(dst), convertedStruct->type);
         dst += convertedStruct->type->memSize;

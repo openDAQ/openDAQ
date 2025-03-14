@@ -18,6 +18,7 @@
 #include <coretypes/common.h>
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
+#include <coretypes/listobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,7 +37,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * in case of an error, it can check if `IErrorInfo` is stored in thread-local storage using `daqGetErrorInfo` for
  * additional error information.
  *
- * `makeErrorInfo` automatically creates IErrorInfo and calls `daqSetErrorInfo`. In case of an error, `checkErrorInfo`
+ * `DAQ_MAKE_ERROR_INFO` automatically creates IErrorInfo and calls `daqSetErrorInfo`. In case of an error, `checkErrorInfo`
  * calls `daqGetErrorInfo` to get extended error information and throws an exception.
  *
  * Example:
@@ -44,7 +45,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * ErrCode ISomeInterface::checkValue(Int value)
  * {
  *     if (value < 0)
- *         return makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter should be >= 0", nullptr);
+ *         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Parameter should be >= 0");
  *     return OPENDAQ_SUCCESS;
  * };
  *
@@ -75,6 +76,30 @@ DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
      * @param source Error source.
      */
     virtual ErrCode INTERFACE_FUNC getSource(IString** source) = 0;
+
+    /*!
+     * @brief Sets the file name where the error occurred.
+     * @param fileName File name.
+     */
+    virtual ErrCode INTERFACE_FUNC setFileName(ConstCharPtr fileName) = 0;
+
+    /*!
+     * @brief Gets the file name where the error occurred.
+     * @param fileName File name.
+     */
+    virtual ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) = 0;
+
+    /*!
+     * @brief Sets the line number in the file where the error occurred.
+     * @param fileLine Line number.
+     */
+    virtual ErrCode INTERFACE_FUNC setFileLine(Int fileLine) = 0;
+
+    /*!
+     * @brief Gets the line number in the file where the error occurred.
+     * @param fileLine Line number.
+     */
+    virtual ErrCode INTERFACE_FUNC getFileLine(Int* fileLine) = 0;
 };
 
 /*!@}*/
@@ -85,4 +110,5 @@ END_NAMESPACE_OPENDAQ
 
 extern "C" void PUBLIC_EXPORT daqSetErrorInfo(daq::IErrorInfo* errorInfo);
 extern "C" void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo);
+extern "C" void PUBLIC_EXPORT daqGetErrorInfoList(daq::IList** errorInfoList);
 extern "C" void PUBLIC_EXPORT daqClearErrorInfo();

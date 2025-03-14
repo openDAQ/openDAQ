@@ -23,8 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 template <>
 inline ErrCode OrdinalObjectImpl<Float, IFloat, INumber>::toBool(Bool* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     if (value != 0.0)
         *val = True;
@@ -37,8 +36,7 @@ inline ErrCode OrdinalObjectImpl<Float, IFloat, INumber>::toBool(Bool* val)
 template <>
 inline ErrCode OrdinalObjectImpl<Float, IFloat, INumber>::serialize(ISerializer* serializer)
 {
-    if (serializer == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(serializer);
 
     serializer->writeFloat(value);
 

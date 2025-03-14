@@ -44,11 +44,11 @@ public:
         }
         catch (const DaqException& e)
         {
-            return errorFromException(e);
+            return errorFromException(e, this->getThisAsBaseObject());
         }
-        catch (const std::exception&)
+        catch (const std::exception& e)
         {
-            return OPENDAQ_ERR_GENERALERROR;
+            return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
         }
 
         return OPENDAQ_SUCCESS;
@@ -58,7 +58,7 @@ public:
     {
         if (hashCode == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Can not return by a null pointer.");
         }
 
         *hashCode = subscription.hashCode;

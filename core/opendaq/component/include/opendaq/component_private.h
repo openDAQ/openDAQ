@@ -17,6 +17,7 @@
 #pragma once
 
 #include <coretypes/listobject.h>
+#include <opendaq/component.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -61,6 +62,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
      * @param args The arguments of the core event.
      */
     virtual ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) = 0;
+
+    /*!
+     * @brief Notifies component about the change of the operation mode.
+     * @param modeType The new operation mode.
+     */
+    virtual ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

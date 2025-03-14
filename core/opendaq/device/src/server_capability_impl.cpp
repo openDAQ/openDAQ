@@ -246,8 +246,7 @@ ErrCode ServerCapabilityConfigImpl::addAddress(IString* address)
 
 ErrCode ServerCapabilityConfigImpl::getInterfaceIds(SizeT* idCount, IntfID** ids)
 {
-    if (idCount == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(idCount);
 
     *idCount = InterfaceIds::Count() + 1;
     if (ids == nullptr)

@@ -93,7 +93,7 @@ void TmsClient::getRootDeviceNodeAttributes(OpcUaNodeId& nodeIdOut, std::string&
     const auto& references = tmsClientContext->getReferenceBrowser()->browseFiltered(rootNodeId, filter);
 
     if (references.byNodeId.empty())
-        throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
 
     nodeIdOut = OpcUaNodeId(references.byBrowseName.begin().value()->nodeId.nodeId);
     browseNameOut = references.byBrowseName.begin().key();
@@ -112,9 +112,9 @@ void TmsClient::createAndConectClient()
         {
             case UA_STATUSCODE_BADUSERACCESSDENIED:
             case UA_STATUSCODE_BADIDENTITYTOKENINVALID:
-                throw AuthenticationFailedException(e.what());
+                DAQ_THROW_EXCEPTION(AuthenticationFailedException, e.what());
             default:
-                throw NotFoundException(e.what());
+                DAQ_THROW_EXCEPTION(NotFoundException, e.what());
         }
     }
 }

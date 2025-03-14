@@ -40,8 +40,7 @@ UnitImpl::UnitImpl(IUnitBuilder* unitBuilder)
 
 ErrCode UnitImpl::getId(Int* id)
 {
-    if (!id)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     *id = this->fields.get("Id");
     return OPENDAQ_SUCCESS;
@@ -49,8 +48,7 @@ ErrCode UnitImpl::getId(Int* id)
 
 ErrCode UnitImpl::getSymbol(IString** symbol)
 {
-    if (!symbol)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(symbol);
 
     auto symbolPtr = this->fields.get("Symbol");
     if (!symbolPtr.assigned())
@@ -62,8 +60,7 @@ ErrCode UnitImpl::getSymbol(IString** symbol)
 
 ErrCode UnitImpl::getName(IString** name)
 {
-    if (!name)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     auto namePtr = this->fields.get("Name");
     if (!namePtr.assigned())
@@ -75,8 +72,7 @@ ErrCode UnitImpl::getName(IString** name)
 
 ErrCode UnitImpl::getQuantity(IString** quantity)
 {
-    if (!quantity)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(quantity);
 
     auto quantityPtr = this->fields.get("Quantity");
     if (!quantityPtr.assigned())

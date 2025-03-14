@@ -77,7 +77,7 @@ UnitPtr VariantConverter<IUnit>::ToDaqObject(const OpcUaVariant& variant, const 
     if (decodedVariant.isType<UA_EUInformation>())
         return StructConverter<IUnit, UA_EUInformation>::ToDaqObject(*static_cast<UA_EUInformation*>(decodedVariant->data));
 
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -90,7 +90,7 @@ OpcUaVariant VariantConverter<IUnit>::ToVariant(const UnitPtr& object, const UA_
     else if (targetType == &UA_TYPES[UA_TYPES_EUINFORMATION])
         variant.setScalar(*StructConverter<IUnit, UA_EUInformation>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -105,7 +105,7 @@ ListPtr<IUnit> VariantConverter<IUnit>::ToDaqList(const OpcUaVariant& variant, c
     if (variant.isType<UA_EUInformation>())
         return ListConversionUtils::VariantToList<IUnit, UA_EUInformation>(variant);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -118,7 +118,7 @@ OpcUaVariant VariantConverter<IUnit>::ToArrayVariant(const ListPtr<IUnit>& list,
     if (targetType == &UA_TYPES[UA_TYPES_EUINFORMATION])
         return ListConversionUtils::ToArrayVariant<IUnit, UA_EUInformation>(list);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

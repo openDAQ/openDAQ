@@ -23,8 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 template <>
 inline ErrCode OrdinalObjectImpl<Int, IInteger, INumber>::serialize(ISerializer* serializer)
 {
-    if (serializer == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(serializer);
 
     serializer->writeInt(value);
 

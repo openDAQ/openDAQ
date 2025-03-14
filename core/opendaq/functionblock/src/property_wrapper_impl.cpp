@@ -116,7 +116,7 @@ ErrCode PropertyWrapperImpl::getSelectionValues(IBaseObject** values)
         return OPENDAQ_SUCCESS;
     }
 
-    return makeErrorInfo(OPENDAQ_ERR_INVALIDPROPERTY, "Property selection list is of wrong type");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, "Property selection list is of wrong type");
 }
 
 ErrCode PropertyWrapperImpl::getReferencedProperty(IProperty** property)

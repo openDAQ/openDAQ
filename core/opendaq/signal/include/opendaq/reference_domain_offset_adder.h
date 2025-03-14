@@ -36,7 +36,7 @@ public:
     {
         void* output = std::malloc(sampleCount * sizeof(T));
         if (!output)
-            throw NoMemoryException("Memory allocation failed.");
+            DAQ_THROW_EXCEPTION(NoMemoryException, "Memory allocation failed.");
 
         T* typedOutput = static_cast<T*>(output);
         T* typedInput = static_cast<T*>(input);
@@ -100,7 +100,7 @@ inline ReferenceDomainOffsetAdder* createReferenceDomainOffsetAdderTyped(SampleT
             break;
     }
 
-    throw InvalidSampleTypeException{"Reference Domain Offset: Output type is not supported."};
+    DAQ_THROW_EXCEPTION(InvalidSampleTypeException, "Reference Domain Offset: Output type is not supported.");
 }
 
 END_NAMESPACE_OPENDAQ

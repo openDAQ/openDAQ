@@ -22,6 +22,8 @@ BEGIN_NAMESPACE_OPENDAQ
 class PacketReaderImpl : public ImplementationOfWeak<IPacketReader, IInputPortNotifications>
 {
 public:
+    using Super = ImplementationOfWeak<IPacketReader, IInputPortNotifications>;
+
     explicit PacketReaderImpl(const SignalPtr& signal);
     explicit PacketReaderImpl(IInputPortConfig* port);
     ~PacketReaderImpl() override;
@@ -38,6 +40,10 @@ public:
     ErrCode INTERFACE_FUNC disconnected(IInputPort* port) override;
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
     ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
+
+    // IBaseObject
+    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
+    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
 
 private:
     std::mutex mutex;

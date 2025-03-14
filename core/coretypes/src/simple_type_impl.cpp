@@ -25,8 +25,7 @@ ErrCode SimpleTypeImpl::serialize(ISerializer* serializer)
 
 ErrCode SimpleTypeImpl::getSerializeId(ConstCharPtr* id) const
 {
-    if (!id)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     *id = SerializeId();
     return OPENDAQ_SUCCESS;
@@ -63,7 +62,7 @@ ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     }
     catch (const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (...)
     {

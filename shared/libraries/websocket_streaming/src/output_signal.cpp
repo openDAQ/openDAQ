@@ -170,7 +170,7 @@ void OutputValueSignalBase::writeValueDescriptorChanges(const DataDescriptorPtr&
     }
     else
     {
-        throw ConversionFailedException("Unassigned value descriptor");
+        DAQ_THROW_EXCEPTION(ConversionFailedException, "Unassigned value descriptor");
     }
 }
 
@@ -196,7 +196,7 @@ void OutputValueSignalBase::writeDomainDescriptorChanges(const DataDescriptorPtr
     }
     else
     {
-        throw ConversionFailedException("Unassigned domain descriptor");
+        DAQ_THROW_EXCEPTION(ConversionFailedException, "Unassigned domain descriptor");
     }
 }
 
@@ -247,17 +247,17 @@ OutputDomainSignalBase::OutputDomainSignalBase(daq::streaming_protocol::BaseDoma
 
 void OutputDomainSignalBase::writeDaqDataPacket(const DataPacketPtr& packet)
 {
-    throw InvalidOperationException("Streaming-lt: explicit streaming of domain signals is not supported");
+    DAQ_THROW_EXCEPTION(InvalidOperationException, "Streaming-lt: explicit streaming of domain signals is not supported");
 }
 
 void OutputDomainSignalBase::writeDomainDescriptorChanges(const DataDescriptorPtr& valueDescriptor)
 {
-    throw InvalidOperationException("Streaming-lt: explicit streaming of domain signals is not supported");
+    DAQ_THROW_EXCEPTION(InvalidOperationException, "Streaming-lt: explicit streaming of domain signals is not supported");
 }
 
 void OutputDomainSignalBase::writeValueDescriptorChanges(const DataDescriptorPtr& domainDescriptor)
 {
-    throw InvalidOperationException("Streaming-lt: explicit streaming of domain signals is not supported");
+    DAQ_THROW_EXCEPTION(InvalidOperationException, "Streaming-lt: explicit streaming of domain signals is not supported");
 }
 
 uint64_t OutputDomainSignalBase::calcStartTimeOffset(uint64_t dataPacketTimeStamp)
@@ -385,11 +385,11 @@ LinearTimeSignalPtr OutputLinearDomainSignal::createSignalStream(
     daq::SampleType daqSampleType = descriptor.getSampleType();
     if (daqSampleType != daq::SampleType::Int64 &&
         daqSampleType != daq::SampleType::UInt64)
-        throw InvalidParameterException("Unsupported domain signal sample type - only 64bit integer types are supported");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Unsupported domain signal sample type - only 64bit integer types are supported");
 
     auto dataRule = descriptor.getRule();
     if (dataRule.getType() != DataRuleType::Linear)
-        throw InvalidParameterException("Invalid domain signal data rule - linear rule only is supported");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid domain signal data rule - linear rule only is supported");
 
     auto unit = descriptor.getUnit();
     if (!unit.assigned() ||
@@ -397,9 +397,9 @@ LinearTimeSignalPtr OutputLinearDomainSignal::createSignalStream(
         unit.getSymbol() != "s" ||
         unit.getQuantity() != "time")
     {
-        throw InvalidParameterException(
-            "Domain signal unit parameters: {}, does not match the predefined values for linear time signal",
-            unit.assigned() ? unit.toString() : "not assigned");
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            "Domain signal unit parameters: {}, does not match the predefined values for linear time signal",
+                            unit.assigned() ? unit.toString() : "not assigned");
     }
 
     // from streaming library side, output rate is defined as nanoseconds between two samples
@@ -470,7 +470,7 @@ BaseSynchronousSignalPtr OutputSyncValueSignal::createSignalStream(
         case daq::SampleType::RangeInt64:
         case daq::SampleType::Struct:
         default:
-            throw InvalidTypeException("Unsupported data signal sample type - only real numeric types are supported");
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Unsupported data signal sample type - only real numeric types are supported");
     }
 
     SignalDescriptorConverter::ToStreamedValueSignal(signal, syncStream, getSignalProps(signal));
@@ -598,7 +598,7 @@ BaseConstantSignalPtr OutputConstValueSignal::createSignalStream(
         case daq::SampleType::RangeInt64:
         case daq::SampleType::Struct:
         default:
-            throw InvalidTypeException("Unsupported data signal sample type - only real numeric types are supported");
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Unsupported data signal sample type - only real numeric types are supported");
     }
 
     SignalDescriptorConverter::ToStreamedValueSignal(signal, constStream, getSignalProps(signal));

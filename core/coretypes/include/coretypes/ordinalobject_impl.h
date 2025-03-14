@@ -80,7 +80,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equals(IBaseObject* other, Bool* 
 {
     if (equal == nullptr)
     {
-        return daq::makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
     }
 
     *equal = false;
@@ -104,8 +104,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equals(IBaseObject* other, Bool* 
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::getValue(V* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = value;
     return OPENDAQ_SUCCESS;
@@ -115,7 +114,7 @@ template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equalsValue(const V val, Bool* equals)
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals parameter must not be null.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals parameter must not be null.");
 
     *equals = value == val;
     return OPENDAQ_SUCCESS;
@@ -124,8 +123,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equalsValue(const V val, Bool* eq
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::getHashCode(SizeT* hashCode)
 {
-    if (hashCode == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(hashCode);
 
 #if UINTPTR_MAX == UINT64_MAX
     *hashCode = static_cast<SizeT>(value);
@@ -138,8 +136,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::getHashCode(SizeT* hashCode)
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toString(CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     std::ostringstream os;
     CoreTypeHelper<V>::Print(os, value);
@@ -150,8 +147,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toString(CharPtr* str)
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toFloat(Float* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = static_cast<Float>(value);
     return OPENDAQ_SUCCESS;
@@ -160,8 +156,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toFloat(Float* val)
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toInt(Int* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = static_cast<Int>(value);
     return OPENDAQ_SUCCESS;
@@ -170,8 +165,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toInt(Int* val)
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toBool(Bool* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = value;
 
@@ -181,8 +175,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toBool(Bool* val)
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::getCoreType(CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = CoreTypeHelper<V>::GetCoreType();
     return OPENDAQ_SUCCESS;
@@ -191,8 +184,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::getCoreType(CoreType* coreType)
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
 {
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     V otherValue;
 
@@ -233,8 +225,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::serialize(ISerializer* serializer
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::queryInterface(const IntfID& id, void** intf)
 {
-    if (intf == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(intf);
 
     if (id == Intf::Id)
     {

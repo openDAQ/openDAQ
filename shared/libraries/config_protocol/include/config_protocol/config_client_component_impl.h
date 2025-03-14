@@ -45,6 +45,7 @@ public:
     ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
@@ -125,6 +126,12 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Description", description); 
     });
+}
+
+template <class Impl>
+ErrCode ConfigClientComponentBaseImpl<Impl>::updateOperationMode(OperationModeType)
+{
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -222,12 +229,7 @@ void ConfigClientComponentBaseImpl<Impl>::remoteUpdateStatuses(const SerializedO
 
         for (const auto& [name, value] : statusDict)
         {
-            StringPtr msg;
-            if (messagesDict.hasKey(name))
-                msg = messagesDict.get(name);
-            else
-                msg = String("");
-
+            StringPtr msg = messagesDict.getOrDefault(name, "");
             if (statuses.hasKey(name))
                 statusContainerPrivate.setStatusWithMessage(name, value, msg);
             else
@@ -334,17 +336,15 @@ void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& 
     ComponentStatusContainerPtr statusContainer;
     checkErrorInfo(Impl::getStatusContainer(&statusContainer));
 
-    auto msg = String("");
     const DictPtr<IString, IBaseObject> params = args.getParameters();
-    if (params.hasKey("Message"))
-        msg = params.get("Message");
+    StringPtr msg = params.getOrDefault("Message", "");
 
-    for (const auto& st : params)
+    for (const auto& [key, value] : params)
     {
-        if (st.second.getCoreType() == CoreType::ctEnumeration)
+        if (value.getCoreType() == CoreType::ctEnumeration)
         {
-            statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage(
-                st.first, st.second.asPtr<IEnumeration>(true), msg);
+            statusContainer.template asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage(
+                key, value.template asPtr<IEnumeration>(true), msg);
             msg = String("");
         }
     }

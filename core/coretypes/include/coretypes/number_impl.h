@@ -47,8 +47,7 @@ NumberImpl<V, Intf>::NumberImpl(V value)
 template<class V, class Intf>
 ErrCode NumberImpl<V, Intf>::getFloatValue(Float* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = static_cast<Float>(this->value);
     return OPENDAQ_SUCCESS;
@@ -57,8 +56,7 @@ ErrCode NumberImpl<V, Intf>::getFloatValue(Float* val)
 template<class V, class Intf>
 ErrCode NumberImpl<V, Intf>::getIntValue(Int* val)
 {
-    if (val == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(val);
 
     *val = static_cast<Int>(this->value);
     return OPENDAQ_SUCCESS;

@@ -26,11 +26,12 @@ BEGIN_NAMESPACE_OPENDAQ
 class PermissionsImpl : public ImplementationOf<IPermissions, IPermissionsInternal>
 {
 public:
+    using PermissionTable = std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>;
     explicit PermissionsImpl();
     explicit PermissionsImpl(Bool inherited,
-                             const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& allowed,
-                             const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& denied,
-                             const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& assigned);
+                             const PermissionTable& allowed,
+                             const PermissionTable& denied,
+                             const PermissionTable& assigned);
 
     ErrCode INTERFACE_FUNC getInherited(Bool* inherited) override;
     ErrCode INTERFACE_FUNC getAllowed(IDict** permissions) override;
@@ -40,7 +41,7 @@ public:
     ErrCode INTERFACE_FUNC getAssigned(IDict** permissions) override;
 
 private:
-    static void CopyToTarget(const std::unordered_map<StringPtr, Int, StringHash, StringEqualTo>& dict, DictPtr<IString, Int>& target);
+    static DictPtr<IString, Int> CopyPermissionTable(const PermissionTable& dict);
 
     Bool inherited;
     DictPtr<IString, Int> allowed;

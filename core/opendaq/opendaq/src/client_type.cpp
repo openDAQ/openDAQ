@@ -38,7 +38,7 @@ ClientType ClientTypeTools::IntToClientType(Int value)
             return ClientType::ViewOnly;
     }
 
-    throw InvalidValueException("Client type value invalid");
+    DAQ_THROW_EXCEPTION(InvalidValueException, "Client type value invalid");
 }
 
 StringPtr ClientTypeTools::ClientTypeToString(ClientType value)

@@ -38,9 +38,9 @@
 #include <coreobjects/permission_manager_internal_ptr.h>
 #include <coreobjects/errors.h>
 #include <coreobjects/permission_mask_builder_factory.h>
+#include <coreobjects/property_object_protected.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 namespace details
 {
     static const std::unordered_map<IntfID, CoreType> intfIdToCoreTypeMap = {
@@ -827,7 +827,7 @@ public:
 	    return getStructTypeInternal(structType, false);
     }
 
-    ErrCode getStructTypeInternal(IStructType** structType, bool lock)
+    ErrCode INTERFACE_FUNC getStructTypeInternal(IStructType** structType, bool lock)
     {
 	    OPENDAQ_PARAM_NOT_NULL(structType);
 
@@ -844,6 +844,14 @@ public:
                 *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
 		        return OPENDAQ_SUCCESS;
 	        });
+    }
+    
+    ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue)  override
+    {
+        defaultValue = newDefaultValue;
+        if (defaultValue.supportsInterface<IFreezable>() && !defaultValue.isFrozen())
+            defaultValue.freeze();
+        return OPENDAQ_SUCCESS;
     }
 
     ErrCode INTERFACE_FUNC getClassOnPropertyValueWrite(IEvent** event) override
@@ -917,6 +925,14 @@ public:
         return owner.getRef()->setPropertyValue(this->name, value);
     }
 
+    ErrCode INTERFACE_FUNC setValueProtected(IBaseObject* newValue) override
+    {
+        if (!owner.assigned() || !owner.getRef().assigned())
+            return OPENDAQ_ERR_NO_OWNER;
+
+        return owner.getRef().asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(this->name, newValue);
+    }
+
     ErrCode INTERFACE_FUNC validate()
     {
         if (!name.assigned() || name == "opendaq_unassigned")
@@ -946,7 +962,7 @@ public:
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Property {} is missing its default value)", name));
         }
 
-        if (defaultValue.assigned())
+        if (defaultValue.assigned() && valueType != ctObject)
         {
             if (const auto freezable = defaultValue.asPtrOrNull<IFreezable>(); freezable.assigned())
             {

@@ -1,4 +1,4 @@
-#include "test_utils.h"
+#include "opendaq/mock/advanced_components_setup_utils.h"
 #include "coreobjects/argument_info_factory.h"
 #include "coreobjects/callable_info_factory.h"
 #include "coreobjects/coercer_factory.h"
@@ -13,7 +13,7 @@
 #include "opendaq/mock/mock_device_module.h"
 #include "opendaq/mock/mock_physical_device.h"
 
-namespace daq::config_protocol::test_utils
+namespace daq::test_utils
 {
 
 DevicePtr createTestDevice(const std::string& localId)
@@ -118,7 +118,7 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     return component;
 }
 
-static PropertyObjectPtr createMockNestedPropertyObject()
+PropertyObjectPtr createMockNestedPropertyObject()
 {
     PropertyObjectPtr parent = PropertyObject();
     PropertyObjectPtr child1 = PropertyObject();

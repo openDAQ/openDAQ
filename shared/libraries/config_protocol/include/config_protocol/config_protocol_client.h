@@ -383,7 +383,12 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
 
     if (restoreClientConfigOnReconnect)
     {
-        const auto serializer = JsonSerializer();
+        SerializerPtr serializer;
+        if (getProtocolVersion() < 10)
+            serializer = JsonSerializerWithVersion(1);
+        else
+            serializer = JsonSerializerWithVersion(2);
+
         rootDevice.asPtr<IUpdatable>().serializeForUpdate(serializer);
         StringPtr serializedClientRootDevice = serializer.getOutput();
 

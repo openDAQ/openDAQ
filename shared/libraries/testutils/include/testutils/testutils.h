@@ -64,7 +64,8 @@
     }                                                                                               \
     catch (const EXCEPTION_TYPE& e)                                                                 \
     {                                                                                               \
-        ASSERT_EQ(message, e.what()) << " Exception message is incorrect";                          \
+        ASSERT_TRUE(std::string(e.what()).find(message) == 0) << "Expected exception " << message << std::endl  \
+                                                              << "Actually throws " << e.what() << ".";         \
     }                                                                                               \
     catch (const std::exception& e)                                                                 \
     {                                                                                               \

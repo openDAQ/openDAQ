@@ -21,18 +21,18 @@ StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<I
     this->types.freeze();
 
     if (this->names.getCount() != this->defaultValues.getCount() || this->names.getCount() != this->types.getCount())
-        throw InvalidParameterException{"StructType parameters are of different sizes."};
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "StructType parameters are of different sizes.");
 
     for(const StringPtr& fieldName : this->names)
     {
         if (!daq::validateTypeName(fieldName.getCharPtr()))
-            throw InvalidParameterException{"Struct field names contain some incorrect ones."};
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Struct field names contain some incorrect ones.");
     }
 
     for (const TypePtr& type: this->types)
     {
         if (!detail::structAcceptedCoreTypes.count(type.getCoreType()))
-            throw InvalidParameterException{"Struct fields cannot be ctObject, ctUndefined, ctFunc, ctProc, ctBinaryData"};
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Struct fields cannot be ctObject, ctUndefined, ctFunc, ctProc, ctBinaryData");
     }
 }
 
@@ -48,25 +48,24 @@ StructTypeImpl::StructTypeImpl(StringPtr name, ListPtr<IString> names, ListPtr<I
         this->types.freeze();
 
     if (this->names.getCount() != this->types.getCount())
-        throw InvalidParameterException{"StructType parameters are of different sizes."};
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "StructType parameters are of different sizes.");
 
     for(const StringPtr& fieldName : this->names)
     {
         if (!daq::validateTypeName(fieldName.getCharPtr()))
-            throw InvalidParameterException{"Struct field names contain some incorrect ones."};
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Struct field names contain some incorrect ones.");
     }
 
     for (const TypePtr& type: this->types)
     {
         if (!detail::structAcceptedCoreTypes.count(type.getCoreType()))
-            throw InvalidParameterException{"Struct fields cannot be ctObject, ctFunc, ctProc, ctBinaryData"};
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Struct fields cannot be ctObject, ctFunc, ctProc, ctBinaryData");
     }
 }
 
 ErrCode StructTypeImpl::getFieldNames(IList** names)
 {
-    if (names == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(names);
 
     *names = this->names.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -74,8 +73,7 @@ ErrCode StructTypeImpl::getFieldNames(IList** names)
 
 ErrCode StructTypeImpl::getFieldDefaultValues(IList** defaultValues)
 {
-    if (defaultValues == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(defaultValues);
 
     *defaultValues = this->defaultValues.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -83,8 +81,7 @@ ErrCode StructTypeImpl::getFieldDefaultValues(IList** defaultValues)
 
 ErrCode StructTypeImpl::getFieldTypes(IList** types)
 {
-    if (types == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(types);
 
     *types = this->types.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -93,7 +90,7 @@ ErrCode StructTypeImpl::getFieldTypes(IList** types)
 ErrCode StructTypeImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equal = false;
     if (other == nullptr)
@@ -172,8 +169,7 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
 
 ErrCode StructTypeImpl::getSerializeId(ConstCharPtr* id) const
 {
-    if (!id)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     *id = SerializeId();
 
@@ -229,7 +225,7 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     }
     catch (const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (...)
     {

@@ -287,10 +287,7 @@ inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatusWithMessage(
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
-    const StringPtr statusNameAlias =
-        statusNameAliases.hasKey(connectionStringObj)
-            ? statusNameAliases.get(connectionStringObj)
-            : nullptr;
+    const StringPtr statusNameAlias = statusNameAliases.getOrDefault(connectionStringObj);
 
     const IntegerPtr connectionType =
         (statusNameAlias != ConfigurationConnectionStatusAlias)

@@ -22,7 +22,7 @@ NumberPtr VariantConverter<INumber>::ToDaqObject(const OpcUaVariant& variant, co
     if (decodedVariant.isDouble())
         return VariantConverter<IFloat>::ToDaqObject(decodedVariant);
 
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -36,13 +36,13 @@ OpcUaVariant VariantConverter<INumber>::ToVariant(const NumberPtr& object, const
         if (object.getCoreType() == ctFloat)
             return VariantConverter<IFloat>::ToVariant(object.getFloatValue());
 
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
     }
 
     //TODO: Add if statements for target types of int and float
 
 
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -61,7 +61,7 @@ OpcUaVariant VariantConverter<INumber>::ToArrayVariant(const ListPtr<INumber>& l
     
     //TODO: Add if statements for target types of int and float
 
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

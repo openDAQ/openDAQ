@@ -197,7 +197,7 @@ inline InputSignalBasePtr InputSignal(const std::string& signalId,
         if (dataRuleType == daq::DataRuleType::Linear)
             return std::make_shared<InputDomainSignal>(signalId, tabledId, signalInfo, logCb);
         else
-            throw ConversionFailedException("Unsupported input domain signal rule");
+            DAQ_THROW_EXCEPTION(ConversionFailedException, "Unsupported input domain signal rule");
     }
     else
     {
@@ -206,7 +206,7 @@ inline InputSignalBasePtr InputSignal(const std::string& signalId,
         else if (dataRuleType == daq::DataRuleType::Constant)
             return std::make_shared<InputConstantDataSignal>(signalId, tabledId, signalInfo, domainSignal, logCb, constRuleStartValueMeta);
         else
-            throw ConversionFailedException("Unsupported input data signal rule");
+            DAQ_THROW_EXCEPTION(ConversionFailedException, "Unsupported input data signal rule");
     }
 }
 

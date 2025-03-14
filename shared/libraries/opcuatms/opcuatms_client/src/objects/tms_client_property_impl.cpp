@@ -46,7 +46,7 @@ TmsClientPropertyImpl::TmsClientPropertyImpl(const ContextPtr& daqContext, const
     : TmsClientObjectImpl(daqContext, ctx, nodeId)
 {
     if (!this->daqContext.getLogger().assigned())
-        throw ArgumentNullException("Logger must not be null");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Logger must not be null");
 
     this->loggerComponent = this->daqContext.getLogger().getOrAddComponent("TmsClientPropertyImpl");
     this->name = propertyName;
@@ -190,7 +190,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                             if (clientContext->getReferenceBrowser()->isSubtypeOf(dataType, enumerationTypeId))
                             {
                                 if (value->type != &UA_TYPES[UA_TYPES_INT32])
-                                    throw ConversionFailedException{"Enumeration node data type is not uint32_t"};
+                                    DAQ_THROW_EXCEPTION(ConversionFailedException, "Enumeration node data type is not uint32_t");
 
                                 const auto enumBrowseName = client->readBrowseName(dataType);
                                 const auto enumType = GetUAEnumerationDataTypeByName(enumBrowseName);
@@ -201,7 +201,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                             else
                                 this->defaultValue = VariantConverter<IBaseObject>::ToDaqObject(value, daqContext);
 
-                            if (this->defaultValue.assigned() && this->defaultValue.supportsInterface<IFreezable>())
+                            if (this->defaultValue.supportsInterface<IFreezable>())
                                 this->defaultValue.freeze();
 
                             break;
@@ -225,7 +225,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                         {
                             this->suggestedValues =
                                 VariantConverter<IBaseObject>::ToDaqList(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE), daqContext);
-                            if (this->suggestedValues.assigned() && this->suggestedValues.supportsInterface<IFreezable>())
+                            if (this->suggestedValues.supportsInterface<IFreezable>())
                                 this->suggestedValues.freeze();
                             break;
                         }
@@ -233,7 +233,7 @@ void TmsClientPropertyImpl::configurePropertyFields()
                         {
                             this->selectionValues =
                                 SelectionVariantConverter::ToDaqObject(reader->getValue(childNodeId, UA_ATTRIBUTEID_VALUE));
-                            if (this->selectionValues.assigned() && this->selectionValues.supportsInterface<IFreezable>())
+                            if (this->selectionValues.supportsInterface<IFreezable>())
                                 this->selectionValues.freeze();
                             break;
                         }

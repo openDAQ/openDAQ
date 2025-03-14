@@ -93,7 +93,7 @@ template <class Impl>
 void TmsClientPropertyObjectBaseImpl<Impl>::init()
 {
     if (!this->daqContext.getLogger().assigned())
-        throw ArgumentNullException("Logger must not be null");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Logger must not be null");
 
     this->loggerComponent = this->daqContext.getLogger().getOrAddComponent("TmsClientPropertyObject");
     clientContext->readObjectAttributes(nodeId);

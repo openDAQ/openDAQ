@@ -568,8 +568,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
     return DAQ_MAKE_ERROR_INFO(
         OPENDAQ_ERR_NOTFOUND,
-        "Device with given connection string and config is not available [{}]",
-        connectionString
+        fmt::format("Device with given connection string and config is not available [{}]", StringPtr::Borrow(connectionString))
     );
 }
 

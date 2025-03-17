@@ -34,10 +34,10 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IConnectedClientInfo, IPropertyObject)
 {
     /*!
-     * @brief Gets the client URL string.
-     * @param[out] url The client URL string.
+     * @brief Gets the client address string.
+     * @param[out] address The client address string.
      */
-    virtual ErrCode INTERFACE_FUNC getUrl(IString** url) = 0;
+    virtual ErrCode INTERFACE_FUNC getAddress(IString** address) = 0;
 
     /*!
      * @brief Gets the type of protocol used by the client.
@@ -74,7 +74,7 @@ DECLARE_OPENDAQ_INTERFACE(IConnectedClientInfo, IPropertyObject)
 
 /*!
  * @brief Creates a Connected client info using the provided parameters.
- * @param url The URL of connected client.
+ * @param address The address of connected client.
  * @param protocolType The type of the protocol type used by the client.
  * @param protocolName The name of the protocol name used by the client.
  * @param clientType The configuration connection client type name.
@@ -82,7 +82,7 @@ DECLARE_OPENDAQ_INTERFACE(IConnectedClientInfo, IPropertyObject)
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, ConnectedClientInfo, IConnectedClientInfo,
-    IString*, url,
+    IString*, address,
     ProtocolType, protocolType,
     IString*, protocolName,
     IString*, clientType,

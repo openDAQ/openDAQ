@@ -2,11 +2,11 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-const char* Url = "Url";
+const char* ClientAddress = "Address";
 const char* ClientProtocolTypeName = "ProtocolType";
 const char* ClientProtocolName = "ProtocolName";
 const char* ClientTypeName = "ClientType";
-const char* HostName = "HostName";
+const char* ClientHostName = "HostName";
 
 StringPtr ConnectedClientInfoImpl::ProtocolTypeToString(ProtocolType type)
 {
@@ -43,34 +43,34 @@ typename InterfaceToSmartPtr<T>::SmartPtr ConnectedClientInfoImpl::getTypedPrope
 ConnectedClientInfoImpl::ConnectedClientInfoImpl()
     : Super()
 {
-    Super::addProperty(StringProperty(Url, ""));
+    Super::addProperty(StringProperty(ClientAddress, ""));
     Super::addProperty(StringProperty(ClientProtocolTypeName, ""));
     Super::addProperty(StringProperty(ClientProtocolName, ""));
     Super::addProperty(StringProperty(ClientTypeName, ""));
-    Super::addProperty(StringProperty(HostName, ""));
+    Super::addProperty(StringProperty(ClientHostName, ""));
 }
 
-ConnectedClientInfoImpl::ConnectedClientInfoImpl(const StringPtr& url,
+ConnectedClientInfoImpl::ConnectedClientInfoImpl(const StringPtr& address,
                                                  ProtocolType protocolType,
                                                  const StringPtr& protocolName,
                                                  const StringPtr& clientType,
                                                  const StringPtr& hostName)
     : ConnectedClientInfoImpl()
 {
-    Super::setPropertyValue(String(Url), url);
+    Super::setPropertyValue(String(ClientAddress), address);
     Super::setPropertyValue(String(ClientProtocolTypeName), ProtocolTypeToString(protocolType));
     Super::setPropertyValue(String(ClientProtocolName), protocolName);
     Super::setPropertyValue(String(ClientTypeName), clientType);
-    Super::setPropertyValue(String(HostName), hostName);
+    Super::setPropertyValue(String(ClientHostName), hostName);
 }
 
-ErrCode ConnectedClientInfoImpl::getUrl(IString** url)
+ErrCode ConnectedClientInfoImpl::getAddress(IString** address)
 {
-    OPENDAQ_PARAM_NOT_NULL(url);
+    OPENDAQ_PARAM_NOT_NULL(address);
 
     return daqTry([&]()
     {
-        *url = getTypedProperty<IString>(Url).detach();
+        *address = getTypedProperty<IString>(ClientAddress).detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -108,7 +108,7 @@ ErrCode ConnectedClientInfoImpl::getHostName(IString** hostName)
 
     return daqTry([&]()
     {
-        *hostName = getTypedProperty<IString>(HostName).detach();
+        *hostName = getTypedProperty<IString>(ClientHostName).detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -193,13 +193,13 @@ ErrCode ConnectedClientInfoImpl::clone(IPropertyObject** cloned)
 
 extern "C"
     ErrCode PUBLIC_EXPORT createConnectedClientInfo(IConnectedClientInfo** objTmp,
-                              IString* url,
+                              IString* address,
                               ProtocolType protocolType,
                               IString* protocolName,
                               IString* clientType,
                               IString* hostName)
 {
-    return daq::createObject<IConnectedClientInfo, ConnectedClientInfoImpl>(objTmp, url, protocolType, protocolName, clientType, hostName);
+    return daq::createObject<IConnectedClientInfo, ConnectedClientInfoImpl>(objTmp, address, protocolType, protocolName, clientType, hostName);
 }
 
 #endif

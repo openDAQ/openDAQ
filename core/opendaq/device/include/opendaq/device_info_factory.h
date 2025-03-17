@@ -51,13 +51,13 @@ inline ServerCapabilityConfigPtr ServerCapability(const StringPtr& protocolId, c
     return obj;
 }
 
-inline ConnectedClientInfoPtr ConnectedClientInfo(const StringPtr& url,
+inline ConnectedClientInfoPtr ConnectedClientInfo(const StringPtr& address,
                                                   ProtocolType protocolType,
                                                   const StringPtr& protocolName,
                                                   const StringPtr& clientType,
                                                   const StringPtr& hostName)
 {
-    ConnectedClientInfoPtr obj(ConnectedClientInfo_Create(url, protocolType, protocolName, clientType, hostName));
+    ConnectedClientInfoPtr obj(ConnectedClientInfo_Create(address, protocolType, protocolName, clientType, hostName));
     return obj;
 }
 

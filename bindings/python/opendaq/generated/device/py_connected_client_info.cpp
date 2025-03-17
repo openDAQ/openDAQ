@@ -45,14 +45,14 @@ void defineIConnectedClientInfo(pybind11::module_ m, PyDaqIntf<daq::IConnectedCl
     }, py::arg("url"), py::arg("protocol_type"), py::arg("protocol_name"), py::arg("client_type"), py::arg("host_name"));
 
 
-    cls.def_property_readonly("url",
+    cls.def_property_readonly("address",
         [](daq::IConnectedClientInfo *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ConnectedClientInfoPtr::Borrow(object);
-            return objectPtr.getUrl().toStdString();
+            return objectPtr.getAddress().toStdString();
         },
-        "Gets the client URL string.");
+        "Gets the client address string.");
     cls.def_property_readonly("protocol_type",
         [](daq::IConnectedClientInfo *object)
         {

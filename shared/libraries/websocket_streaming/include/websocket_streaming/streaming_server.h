@@ -44,7 +44,7 @@ public:
     using OnAcceptCallback = std::function<ListPtr<ISignal>(const daq::streaming_protocol::StreamWriterPtr& writer)>;
     using OnStartSignalsReadCallback = std::function<void(const ListPtr<ISignal>& signal)>;
     using OnStopSignalsReadCallback = std::function<void(const ListPtr<ISignal>& signal)>;
-    using OnClientConnectedCallback = std::function<void(const std::string& clientId, const std::string& url)>;
+    using OnClientConnectedCallback = std::function<void(const std::string& clientId, const std::string& address)>;
     using OnClientDisconnectedCallback = std::function<void(const std::string& clientId)>;
 
     StreamingServer(const ContextPtr& context);

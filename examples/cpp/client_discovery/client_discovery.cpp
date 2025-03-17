@@ -36,8 +36,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Create an Instance, loading modules at MODULE_PATH
     const InstancePtr instance = Instance(MODULE_PATH);
 
-    // Discover all available devices, filter out all of which connection strings
-    // do not start with "daq.opcua://" or "daq.lt://" or "daq.ns://"
+    // Discover all available devices
     const auto deviceInfo = instance.getAvailableDevices();
     auto devices = List<IDevice>();
     for (const auto& info : deviceInfo)

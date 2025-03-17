@@ -714,7 +714,7 @@ void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(
 
     for (const auto& [_, sessionHandler] : sessionHandlers)
     {
-        if (currentSessionHandler == sessionHandler)
+        if (currentSessionHandler == sessionHandler || !sessionHandler->isConfigProtocolUsed())
             continue;
 
         switch (sessionHandler->getClientType())

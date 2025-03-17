@@ -579,14 +579,17 @@ void GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomObjectValues(con
     serializeFolder(serializer, signals, "Sig", forUpdate);
     serializeFolder(serializer, functionBlocks, "FB", forUpdate);
 
-    PropertyObjectPtr componentConfig = this->componentConfig;
-    if (!componentConfig.assigned())
-        getComponentConfig(&componentConfig);
-
-    if (componentConfig.assigned())
+    if (forUpdate)
     {
-        serializer.key("config");
-        componentConfig.serialize(serializer);
+        PropertyObjectPtr componentConfig = this->componentConfig;
+        if (!componentConfig.assigned())
+            getComponentConfig(&componentConfig);
+
+        if (componentConfig.assigned())
+        {
+            serializer.key("config");
+            componentConfig.serialize(serializer);
+        }
     }
 }
 

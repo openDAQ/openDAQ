@@ -1414,9 +1414,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkFor
 template <typename PropObjInterface, typename... Interfaces>
 PropertyObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::cloneChildPropertyObject(const PropertyPtr& prop)
 {
-    const auto defaultValue = prop.getDefaultValue();
-    const auto propName = prop.getName();
-    const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+    const auto cloneable = prop.getDefaultValue().asPtrOrNull<IPropertyObjectInternal>();
 
     if (!cloneable.assigned())
         return nullptr;

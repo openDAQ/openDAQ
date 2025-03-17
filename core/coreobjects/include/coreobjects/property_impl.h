@@ -730,11 +730,9 @@ public:
         return daqTry([&]()
         {
             *isReferenced = false;
-	        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
-
-            if (owner.assigned())
+            if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
             {
-                const auto ownerInternal = owner.getRef().asPtr<IPropertyObjectInternal>();
+                const auto ownerInternal = ownerPtr.asPtr<IPropertyObjectInternal>();
                 *isReferenced = lock ? ownerInternal.checkForReferences(propPtr) : ownerInternal.checkForReferencesNoLock(propPtr);
             }
 
@@ -849,7 +847,7 @@ public:
     ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue)  override
     {
         defaultValue = newDefaultValue;
-        if (defaultValue.supportsInterface<IFreezable>() && !defaultValue.isFrozen())
+        if (defaultValue.supportsInterface<IFreezable>())
             defaultValue.freeze();
         return OPENDAQ_SUCCESS;
     }
@@ -871,8 +869,7 @@ public:
         {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
         }
-        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
         {
             return ownerPtr->getOnPropertyValueWrite(this->name, event);
         }
@@ -899,8 +896,7 @@ public:
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
         }
 
-        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
         {
             return ownerPtr->getOnPropertyValueRead(this->name, event);
         }
@@ -911,26 +907,24 @@ public:
 
     ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override
     {
-        if (!owner.assigned() || !owner.getRef().assigned())
-            return OPENDAQ_ERR_NO_OWNER;
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
+            return ownerPtr->getPropertyValue(this->name, value);
 
-        return owner.getRef()->getPropertyValue(this->name, value);
+        return OPENDAQ_ERR_NO_OWNER;
     }
 
     ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override
     {
-        if (!owner.assigned() || !owner.getRef().assigned())
-            return OPENDAQ_ERR_NO_OWNER;
-
-        return owner.getRef()->setPropertyValue(this->name, value);
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
+            return ownerPtr->setPropertyValue(this->name, value);
+        return OPENDAQ_ERR_NO_OWNER;
     }
 
     ErrCode INTERFACE_FUNC setValueProtected(IBaseObject* newValue) override
     {
-        if (!owner.assigned() || !owner.getRef().assigned())
-            return OPENDAQ_ERR_NO_OWNER;
-
-        return owner.getRef().asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(this->name, newValue);
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
+            return ownerPtr.asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(this->name, newValue);
+        return OPENDAQ_ERR_NO_OWNER;
     }
 
     ErrCode INTERFACE_FUNC validate()
@@ -1327,7 +1321,7 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(clonedProperty);
         
-        if (this->owner.assigned() && owner == this->owner.getRef())
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned() && owner == ownerPtr)
         {
             this->addRef();
             *clonedProperty = this;
@@ -1498,7 +1492,11 @@ public:
 
         if (this->defaultValue.assigned())
         {
-            const auto parentManager = this->owner.getRef().getPermissionManager();
+            PermissionManagerPtr parentManager;
+            ErrCode err = owner->getPermissionManager(&parentManager);
+            if (OPENDAQ_FAILED(err))
+                return err;
+
             const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>();
 
             if (defaultValueObj.assigned())
@@ -1531,6 +1529,13 @@ protected:
     PermissionManagerPtr defaultPermissionManager;
 
 private:
+
+    PropertyObjectPtr getOwner() const
+    {
+        if (owner.assigned())
+            return owner.getRef();
+        return nullptr;
+    }
 
     PropertyPtr bindAndGetRefProp(bool lock)
     {

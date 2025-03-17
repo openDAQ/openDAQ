@@ -1,61 +1,90 @@
 set(LIB_NAME copendaq)
 set_cmake_folder_context(TARGET_FOLDER_NAME copendaq)
 
-set(SRC_Headers
+set(SRC_CoreTypes_Headers
     ${CMAKE_CURRENT_LIST_DIR}/include/copendaq.h
     ${CMAKE_CURRENT_LIST_DIR}/include/ccommon.h
-    # ${CMAKE_CURRENT_LIST_DIR}/include/base_object.h
 
-    # ${CMAKE_CURRENT_LIST_DIR}/include/integer.h
-    # ${CMAKE_CURRENT_LIST_DIR}/include/list.h
-    # ${CMAKE_CURRENT_LIST_DIR}/include/number.h
-    # ${CMAKE_CURRENT_LIST_DIR}/include/str.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/base_object.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/boolean.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/complex_number.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/dictobject.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/float1.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/integer1.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/iterable.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/iterator.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/listobject.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/number1.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/ratio.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/stringobject.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/base_object.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/binarydata.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/boolean.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/complex_number.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/convertible.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/dictobject.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/enumeration.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/enumeration_type.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/event.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/event_args.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/event_handler.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/float.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/freezable.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/function.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/integer.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/iterable.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/iterator.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/listobject.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/number.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/procedure.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/ratio.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/serializable.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/serialized_list.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/serialized_object.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/serializer.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/simple_type.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/stringobject.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/struct.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/struct_type.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/type.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/type_manager.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/updatable.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/version_info.h
 )
 
-set(SRC_Cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/base_object.cpp
-
-    ${CMAKE_CURRENT_LIST_DIR}/src/boolean.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/complex_number.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/dictobject.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/float1.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/integer1.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/iterable.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/iterator.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/listobject.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/number1.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/ratio.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/stringobject.cpp
-
-    # ${CMAKE_CURRENT_LIST_DIR}/src/integer.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/src/list.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/src/number.cpp
-    # ${CMAKE_CURRENT_LIST_DIR}/src/str.cpp
+set(SRC_CoreTypes_Cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/base_object.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/binarydata.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/boolean.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/complex_number.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/convertible.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/dictobject.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/enumeration.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/enumeration_type.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/event.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/event_args.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/event_handler.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/float.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/freezable.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/function.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/integer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/iterable.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/iterator.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/listobject.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/number.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/procedure.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/ratio.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/serializable.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/serialized_list.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/serialized_object.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/serializer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/simple_type.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/stringobject.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/struct.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/struct_type.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/type.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/type_manager.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/updatable.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/version_info.cpp
 )
 
-add_library(${LIB_NAME} SHARED ${SRC_Headers} ${SRC_Cpp})
+add_library(${LIB_NAME} SHARED ${SRC_CoreTypes_Headers} ${SRC_CoreTypes_Cpp})
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
 target_link_libraries(${LIB_NAME}
-    PUBLIC
+    PRIVATE
+        daq::coretypes
+        daq::coreobjects
         daq::opendaq
 )
-
-# if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
-#     set_target_properties(${LIB_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
-# endif()
 
 target_include_directories(${LIB_NAME}
     PUBLIC
@@ -64,7 +93,7 @@ target_include_directories(${LIB_NAME}
 
 target_compile_definitions(${LIB_NAME} PRIVATE BUILDING_SHARED_LIBRARY)
 
-set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_Headers}")
+set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_CoreTypes_Headers}")
 
 install(TARGETS ${LIB_NAME}
         LIBRARY
@@ -76,4 +105,6 @@ install(TARGETS ${LIB_NAME}
             COMPONENT ${SDK_NAME}_${BASE_NAME}_Development
 )
 
-add_subdirectory(test_app)
+if (OPENDAQ_ENABLE_TESTS)
+    add_subdirectory(tests)
+endif()

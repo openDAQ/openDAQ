@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#733](https://github.com/openDAQ/openDAQ/pull/733) Introduces serializer versioning; openDAQ list objects are now serialized as objects instead of JSON arrays.
 - [#718](https://github.com/openDAQ/openDAQ/pull/718) Adds new Native Configuration Protocol RPCs for handling sub-function blocks (function blocks that are children of other FBs.
 - [#642](https://github.com/openDAQ/openDAQ/pull/642) Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
 - [#638](https://github.com/openDAQ/openDAQ/pull/638) Adds a tick tolerance option to the `MultiReader`, allowing for the limitation of inter-sample offsets between read signals.

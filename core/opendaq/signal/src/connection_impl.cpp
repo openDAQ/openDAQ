@@ -525,6 +525,8 @@ ErrCode ConnectionImpl::dequeueUpTo(IPacket** packetPtr, SizeT* count)
                 ptr++;
                 packets.pop_front();
             }
+
+            countPackets();
             return OPENDAQ_SUCCESS;
         });
 }
@@ -693,6 +695,25 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
     else if (packet.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
     {
         throw InvalidOperationException("Gap packets should not be inserted into connection queue from outside.");
+    }
+}
+
+void ConnectionImpl::countPackets()
+{
+    eventPacketsCnt = 0;
+    samplesCnt = 0;
+    for (const auto& packet : packets)
+    {
+        const auto packetType = packet.getType();
+        if (packetType == PacketType::Data)
+        {
+            auto dataPacket = packet.asPtr<IDataPacket>(true);
+            samplesCnt += dataPacket.getSampleCount();
+        }
+        else if (packetType == PacketType::Event)
+        {
+            eventPacketsCnt++;
+        }
     }
 }
 

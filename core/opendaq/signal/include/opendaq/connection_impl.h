@@ -123,6 +123,7 @@ private:
     void beginGapCheck(const DataPacketPtr& domainPacket);
     bool doGapCheck(const DataPacketPtr& domainPacket, DomainValue& diff);
     void initGapCheck(const EventPacketPtr& packet);
+    void countPackets();
 
     DomainValue numberToDomainValue(const NumberPtr& number);
 

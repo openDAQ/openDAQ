@@ -13,6 +13,7 @@
 - [#606](https://github.com/openDAQ/openDAQ/pull/606) Mechanism for retrieving and monitoring the device's connection statuses, enabling tracking of streaming connections.
 - [#605](https://github.com/openDAQ/openDAQ/pull/605) Add support for View Only client to the openDAQ Native configuration protocol.
 - [#704](https://github.com/openDAQ/openDAQ/pull/704) Support setting operation mode for the device which notifies all sub components
+- [#730](https://github.com/openDAQ/openDAQ/pull/730) Provide list of connected clients info via DeviceInfo.
 
 ## Python
 

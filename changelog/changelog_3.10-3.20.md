@@ -29,6 +29,7 @@
 
 ## Bug fixes
 
+- [#733](https://github.com/openDAQ/openDAQ/pull/733) Fixes list/dictionary deserialization not containing key/value/item interface IDs. Requires server-side update.
 - [#719](https://github.com/openDAQ/openDAQ/pull/719) Fixes error when accessing selection property values using "dot" notation (eg. `getPropertySelectionValue("child.val")`).
 - [#703](https://github.com/openDAQ/openDAQ/pull/703) Fixes invalid response of openDAQ mDNS wrapper for unicast queries.
 - [#696](https://github.com/openDAQ/openDAQ/pull/696) Set of LT bugfixes. Keeping sessions alive, raw json values for linear rules, default start value for constant signals, fix IPv4/6 control connection address handling. 

@@ -18,6 +18,7 @@ set(MOCK_HEADERS mock_device_module.h
                  default_mocks_factory.h
                  mock_fb_dynamic_input_ports.h
                  mock_fb_dynamic_output_ports.h
+                 advanced_components_setup_utils.h
 )
 
 opendaq_prepend_path(include/${SDK_TARGET_NAME}/mock MOCK_HEADERS)
@@ -34,6 +35,7 @@ set(MOCK_SOURCES mock_device_module.cpp
                  default_mocks.cpp
                  mock_fb_dynamic_input_ports.cpp
                  mock_fb_dynamic_output_ports.cpp
+                 advanced_components_setup_utils.cpp
 )
 
 source_group("mock" FILES ${MOCK_HEADERS}

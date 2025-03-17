@@ -7,13 +7,13 @@ extern "C"
 
 #include "ccommon.h"
 
-    void EXPORTED BaseObject_addRef(void* self);
-    void EXPORTED BaseObject_releaseRef(void* self);
-    void EXPORTED BaseObject_dispose(void* self);
-    void EXPORTED BaseObject_getHashCode(void* self, SizeT* hashCode);
-    void EXPORTED BaseObject_equals(void* self, void* other, Bool* equal);
-    void EXPORTED BaseObject_toString(void* self, CharPtr* str);
-    void EXPORTED BaseObject_create(BaseObject** baseObject);
+    ErrCode EXPORTED BaseObject_addRef(BaseObject* self);
+    ErrCode EXPORTED BaseObject_releaseRef(BaseObject* self);
+    ErrCode EXPORTED BaseObject_dispose(BaseObject* self);
+    ErrCode EXPORTED BaseObject_getHashCode(BaseObject* self, SizeT* hashCode);
+    ErrCode EXPORTED BaseObject_equals(BaseObject* self, BaseObject* other, Bool* equal);
+    ErrCode EXPORTED BaseObject_toString(BaseObject* self, CharPtr* str);
+    ErrCode EXPORTED BaseObject_create(BaseObject** baseObject);
 
 #ifdef __cplusplus
 }

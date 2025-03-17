@@ -110,6 +110,8 @@ public:
     void setOperationModeRecursive(const std::string& globalId, const StringPtr& modeType);
     StringPtr getOperationMode(const std::string& globalId);
 
+    PropertyObjectPtr getComponentConfig(const std::string& globalId);
+
     bool getConnected() const;
     ContextPtr getDaqContext();
 

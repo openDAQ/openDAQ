@@ -47,6 +47,7 @@ public:
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
 protected:
     FolderConfigPtr signals;
@@ -578,7 +579,11 @@ void GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomObjectValues(con
     serializeFolder(serializer, signals, "Sig", forUpdate);
     serializeFolder(serializer, functionBlocks, "FB", forUpdate);
 
-    if (forUpdate && componentConfig.assigned())
+    PropertyObjectPtr componentConfig = this->componentConfig;
+    if (!componentConfig.assigned())
+        getComponentConfig(&componentConfig);
+
+    if (componentConfig.assigned())
     {
         serializer.key("config");
         componentConfig.serialize(serializer);
@@ -688,6 +693,14 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(Operatio
             return errCode;
     }
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::getComponentConfig(IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = componentConfig.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

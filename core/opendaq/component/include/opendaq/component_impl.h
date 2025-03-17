@@ -104,6 +104,7 @@ public:
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -687,6 +688,12 @@ ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType mod
 {
     auto lock = this->getRecursiveConfigLock();
     return wrapHandler(this, &Self::onOperationModeChanged, modeType);
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getComponentConfig(IPropertyObject** config)
+{
+    return OPENDAQ_IGNORED;
 }
 
 template <class Intf, class ... Intfs>

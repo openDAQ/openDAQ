@@ -110,6 +110,8 @@ void StatisticsFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("Overlap") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
 
+    objPtr.addProperty(BoolPropertyBuilder("UseMultiThreadedScheduler", packetReadyNotification != PacketReadyNotification::SameThread).setReadOnly(true).build());
+
     readProperties();
 }
 

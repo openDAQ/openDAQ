@@ -442,7 +442,6 @@ TEST_F(ListObjectTest, SerializeDeserializeV2)
     ASSERT_EQ(id, IString::Id);
 }
 
-
 TEST_F(ListObjectTest, FromVectorInt)
 {
     std::vector<int> vec = { 1, 2, 3, 4, 5, 6 };

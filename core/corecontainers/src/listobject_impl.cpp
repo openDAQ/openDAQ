@@ -508,7 +508,7 @@ ConstCharPtr ListImpl::SerializeId()
 
 ErrCode INTERFACE_FUNC deserializeList(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
-    Bool hasKey;
+    Bool hasKey = false;
     IntfID id = IUnknown::Id;
     ser->hasKey(String("itemIntfID"), &hasKey);
     if (hasKey)

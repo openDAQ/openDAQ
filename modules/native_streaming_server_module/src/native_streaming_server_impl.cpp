@@ -336,15 +336,15 @@ void NativeStreamingServerImpl::prepareServerHandler()
     if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         rootDeviceSignals = rootDevice.getSignals(search::Recursive(search::Any()));
 
-    auto clientConnectedHandler = [this](const std::string& clientId, const std::string& url, bool isStreamingConnection, ClientType clientType, const std::string& hostName)
+    auto clientConnectedHandler = [this](const std::string& clientId, const std::string& address, bool isStreamingConnection, ClientType clientType, const std::string& hostName)
     {
         if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr;
             rootDevice.assigned() && !rootDevice.isRemoved())
         {
             const auto clientInfo =
                 isStreamingConnection
-                    ? ConnectedClientInfo(url, ProtocolType::Streaming, "OpenDAQNativeStreaming", "", hostName)
-                    : ConnectedClientInfo(url, ProtocolType::Configuration, "OpenDAQNativeConfiguration", ClientTypeTools::ClientTypeToString(clientType), hostName);
+                    ? ConnectedClientInfo(address, ProtocolType::Streaming, "OpenDAQNativeStreaming", "", hostName)
+                    : ConnectedClientInfo(address, ProtocolType::Configuration, "OpenDAQNativeConfiguration", ClientTypeTools::ClientTypeToString(clientType), hostName);
             rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(clientId, clientInfo);
         }
         registeredClientIds.insert(clientId);

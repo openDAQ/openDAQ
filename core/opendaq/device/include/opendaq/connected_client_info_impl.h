@@ -28,13 +28,13 @@ public:
     using Super = GenericPropertyObjectImpl<IConnectedClientInfo>;
 
     explicit ConnectedClientInfoImpl();
-    explicit ConnectedClientInfoImpl(const StringPtr& url,
+    explicit ConnectedClientInfoImpl(const StringPtr& address,
                                      ProtocolType protocolType,
                                      const StringPtr& protocolName,
                                      const StringPtr& clientType,
                                      const StringPtr& hostName);
 
-    ErrCode INTERFACE_FUNC getUrl(IString** url) override;
+    ErrCode INTERFACE_FUNC getAddress(IString** address) override;
     ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) override;
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC getClientTypeName(IString** type) override;

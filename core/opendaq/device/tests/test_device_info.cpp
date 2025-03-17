@@ -328,7 +328,7 @@ TEST_F(DeviceInfoTest, ConnectedClientsInfo)
 
     internalInfo.removeConnectedClient("id3");
     ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 2u);
-    ASSERT_EQ(info.getConnectedClientsInfo()[0].getUrl(), clientInfo1.getPropertyValue("Url"));
+    ASSERT_EQ(info.getConnectedClientsInfo()[0].getAddress(), clientInfo1.getPropertyValue("Address"));
 
     internalInfo.removeConnectedClient("id2");
     internalInfo.removeConnectedClient("id1");

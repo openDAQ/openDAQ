@@ -55,13 +55,13 @@ void WebsocketStreamingServer::start()
     streamingServer.onStartSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.startReadSignals(signals); } );
     streamingServer.onStopSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.stopReadSignals(signals); } );
     streamingServer.onClientConnected(
-        [this](const std::string& clientId, const std::string& url)
+        [this](const std::string& clientId, const std::string& address)
         {
             if (device.assigned() && !device.isRemoved())
             {
                 device.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
                     clientId,
-                    ConnectedClientInfo(url, ProtocolType::Streaming, "OpenDAQLTStreaming", "", ""));
+                    ConnectedClientInfo(address, ProtocolType::Streaming, "OpenDAQLTStreaming", "", ""));
             }
             registeredClientIds.insert(clientId);
         }

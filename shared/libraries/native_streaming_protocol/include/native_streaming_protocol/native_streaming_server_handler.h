@@ -34,7 +34,7 @@ static const SizeT UNLIMITED_CONFIGURATION_CONNECTIONS = 0;
 using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
 using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
 
-using OnClientConnectedCallback = std::function<void(const std::string& clientId, const std::string& url, bool isStreamingConnection, ClientType clientType, const std::string& hostName)>;
+using OnClientConnectedCallback = std::function<void(const std::string& clientId, const std::string& address, bool isStreamingConnection, ClientType clientType, const std::string& hostName)>;
 using OnClientDisconnectedCallback = std::function<void(const std::string& clientId)>;
 
 using ConfigServerCallbacks = std::pair<ProcessConfigProtocolPacketCb, OnPacketBufferReceivedCallback>;

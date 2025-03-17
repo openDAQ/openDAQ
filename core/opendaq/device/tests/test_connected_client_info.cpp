@@ -15,7 +15,7 @@ TEST_F(ConnectedClientInfoTest, Factory)
                             "Protocol name",
                             "ExclusiveControl",
                             "Host name");
-    ASSERT_EQ(clientInfo.getUrl(), "url");
+    ASSERT_EQ(clientInfo.getAddress(), "url");
     ASSERT_EQ(clientInfo.getProtocolName(), "Protocol name");
     ASSERT_EQ(clientInfo.getClientTypeName(), "ExclusiveControl");
     ASSERT_EQ(clientInfo.getProtocolType(), ProtocolType::Configuration);
@@ -76,7 +76,7 @@ TEST_F(ConnectedClientInfoTest, SerializeDeserialize)
 
     const ConnectedClientInfoPtr newClientInfo = deserializer.deserialize(serializedClientInfo, nullptr, nullptr);
 
-    ASSERT_EQ(newClientInfo.getUrl(), "url");
+    ASSERT_EQ(newClientInfo.getAddress(), "url");
     ASSERT_EQ(newClientInfo.getProtocolName(), "Protocol name");
     ASSERT_EQ(newClientInfo.getClientTypeName(), "ExclusiveControl");
     ASSERT_EQ(newClientInfo.getProtocolType(), ProtocolType::Configuration);

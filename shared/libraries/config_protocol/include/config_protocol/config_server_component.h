@@ -19,9 +19,10 @@
 #include <coreobjects/property_object_protected.h>
 #include <config_protocol/config_server_access_control.h>
 #include <opendaq/update_parameters_factory.h>
+#include <opendaq/component_private_ptr.h>
 
-#include "opendaq/component_holder_factory.h"
-#include "opendaq/search_filter_factory.h"
+#include <opendaq/component_holder_factory.h>
+#include <opendaq/search_filter_factory.h>
 
 namespace daq::config_protocol
 {
@@ -42,6 +43,7 @@ public:
     static BaseObjectPtr getAvailableFunctionBlockTypes(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr addFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr removeFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr getComponentConfig(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
 
 private:
     static void applyProps(uint16_t protocolVersion, const PropertyObjectPtr& obj, const ListPtr<IDict>& props);
@@ -382,5 +384,15 @@ inline BaseObjectPtr ConfigServerComponent::removeFunctionBlock(const RpcContext
     return nullptr;
 }
 
+inline BaseObjectPtr ConfigServerComponent::getComponentConfig(const RpcContext& context,
+                                                               const ComponentPtr& component,
+                                                               const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(component, context.user, Permission::Read);
+
+    if (const auto & componentPrivate = component.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+        return componentPrivate.getComponentConfig();
+    return nullptr;
+}
 
 }

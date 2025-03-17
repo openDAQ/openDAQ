@@ -319,6 +319,11 @@ StringPtr ConfigProtocolClientComm::getOperationMode(const std::string& globalId
     return sendComponentCommand(globalId, ClientCommand("GetOperationMode", 9));
 }
 
+PropertyObjectPtr ConfigProtocolClientComm::getComponentConfig(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetComponentConfig", 10));
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
 {
     auto dict = Dict<IString, IBaseObject>();

@@ -81,6 +81,8 @@ private:
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
     void connectionStatusChanged(const CoreEventArgsPtr& args);
     bool handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args);
+    bool handleDeviceInfoPropertyAdded(const CoreEventArgsPtr& args);
+    bool handleDeviceInfoPropertyRemoved(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -320,9 +322,19 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
                 return;
             break;
         }
-        case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::PropertyAdded:
+        {
+            if (handleDeviceInfoPropertyAdded(args))
+                return;
+            break;
+        }
         case CoreEventId::PropertyRemoved:
+        {
+            if (handleDeviceInfoPropertyRemoved(args))
+                return;
+            break;
+        }
+        case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::SignalConnected:
         case CoreEventId::SignalDisconnected:
         case CoreEventId::DataDescriptorChanged:
@@ -501,6 +513,64 @@ bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyValueCh
 
     ScopedRemoteUpdate update(this->deviceInfo);
     this->deviceInfo.setPropertyValue(propName, val);
+    return true;
+}
+
+template <class TDeviceBase>
+bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyAdded(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    std::string path = params.get("Path");
+
+    const std::string prefix = "DaqDeviceInfo";
+    if (path.find(prefix) == std::string::npos)
+        return false;
+
+    PropertyObjectPtr propObjPtr;
+    if (path.size() != prefix.size())
+    {
+        path = path.substr(prefix.size() + 1);
+        propObjPtr = this->deviceInfo.getPropertyValue(path);
+    }
+    else
+    {
+        propObjPtr = this->deviceInfo;
+    }
+    const PropertyPtr prop = params.get("Property");
+    if (propObjPtr.hasProperty(prop.getName()))
+        return true;
+
+    //ScopedRemoteUpdate update(propObjPtr); // fixme - nested prop obj does not impl IConfigClientObject iface
+    propObjPtr.addProperty(prop);
+    return true;
+}
+
+template <class TDeviceBase>
+bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyRemoved(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    std::string path = params.get("Path");
+
+    const std::string prefix = "DaqDeviceInfo";
+    if (path.find(prefix) == std::string::npos)
+        return false;
+
+    PropertyObjectPtr propObjPtr;
+    if (path.size() != prefix.size())
+    {
+        path = path.substr(prefix.size() + 1);
+        propObjPtr = this->deviceInfo.getPropertyValue(path);
+    }
+    else
+    {
+        propObjPtr = this->deviceInfo;
+    }
+    const std::string propName = params.get("Name");
+    if (!propObjPtr.hasProperty(propName))
+        return true;
+
+    //ScopedRemoteUpdate update(propObjPtr); // fixme - nested prop obj does not impl IConfigClientObject iface
+    propObjPtr.removeProperty(propName);
     return true;
 }
 

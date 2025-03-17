@@ -715,7 +715,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
 
     CoreType type;
     property->getValueType(&type);
-    if (static_cast<int>(type) > 3 && name != "serverCapabilities")
+    if (static_cast<int>(type) > 3 && name != "serverCapabilities" && name != "connectedClientsInfo")
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Only String, Int, Bool, or Float-type properties can be added to Device Info.");
 
     BaseObjectPtr selValues;
@@ -1127,7 +1127,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         parent.getContext()->getOnCoreEvent(&coreEvent);
         ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMethod(args); };
         this->setCoreEventTrigger(procedure);
-        this->coreEventMuted = false;
+        this->enableCoreEventTrigger(); // enables core event trigger for nested property objects
     }
 
     if (parent.supportsInterface<IMirroredDevice>())

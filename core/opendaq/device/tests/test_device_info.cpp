@@ -183,6 +183,9 @@ TEST_F(DeviceInfoTest, Freezable)
 
     auto deviceType = DeviceType("test", "", "", "prefix");
     ASSERT_THROW(deviceInfoConfig.setDeviceType(deviceType), FrozenException);
+
+    auto connectedClientInfo = ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name");
+    ASSERT_NO_THROW(deviceInfoConfig.asPtr<IDeviceInfoInternal>().addConnectedClient("id2", connectedClientInfo));
 }
 
 TEST_F(DeviceInfoTest, CustomProperties)

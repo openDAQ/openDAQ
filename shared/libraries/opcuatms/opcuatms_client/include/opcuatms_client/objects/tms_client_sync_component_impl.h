@@ -34,10 +34,6 @@ public:
                                const opcua::OpcUaNodeId& nodeId)
         : Super(ctx, parent, localId, clientContext, nodeId)
     {
-        StringPtr propertyName = "Interfaces";
-        BaseObjectPtr interfacesValue;
-        checkErrorInfo(getPropertyValue(propertyName, &interfacesValue));
-        checkErrorInfo(Impl::setProtectedPropertyValue(propertyName, interfacesValue));
     }
 
     ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) override

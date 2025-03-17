@@ -88,7 +88,7 @@ BEGIN_NAMESPACE_OPENDAQ
 #ifdef NDEBUG
     #define DAQ_THROW_EXCEPTION(OpendaqException, ...) throw OpendaqException(__VA_ARGS__)
 #else
-    #define DAQ_THROW_EXCEPTION(OpendaqException, ...) throw OpendaqException(__LINE__, __FILE__, __VA_ARGS__)
+    #define DAQ_THROW_EXCEPTION(OpendaqException, ...) throw OpendaqException(__LINE__, __FILE__, ##__VA_ARGS__)
 #endif
 
 /*

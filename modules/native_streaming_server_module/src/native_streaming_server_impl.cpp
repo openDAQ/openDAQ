@@ -457,12 +457,13 @@ void NativeStreamingServerImpl::startReadThread()
 
                 if (read)
                     serverHandler->processStreamingPackets(packetIndices, packetBuf);
+
+                clearIndices();
             }
 
             if (read)
                 serverHandler->sendAvailableStreamingPackets();
 
-            clearIndices();
         }
 
         std::this_thread::sleep_for(readThreadSleepTime);

@@ -344,6 +344,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObject* config)
 {
+    if (this->componentConfig.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Device configuration already set.");
+
     this->componentConfig = config;
     return OPENDAQ_SUCCESS;
 }

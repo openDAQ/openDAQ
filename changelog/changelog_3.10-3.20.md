@@ -47,6 +47,7 @@
 
 ## Misc
 
+- [#725](https://github.com/openDAQ/openDAQ/pull/725) Optimizes packet reading in the openDAQ Native Streaming server. Adds method of dequeuing packets directly into preallocated packet list. 
 - [#714](https://github.com/openDAQ/openDAQ/pull/714) Set of permission manager optimizations that reduce the number of Dictionary object creations on Property/PropertyObject construction.
 - [#706](https://github.com/openDAQ/openDAQ/pull/706) Limit reference device channel count to min/max values.
 - [#702](https://github.com/openDAQ/openDAQ/pull/702) Native streaming packet transmission performance optimizations.

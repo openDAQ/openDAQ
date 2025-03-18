@@ -75,16 +75,19 @@ void StreamingManager::processPackets(const std::unordered_map<std::string, Pack
             {
                 auto packet = PacketPtr::Adopt(packets[i]);
                 
-                if (packet.getType() == daq::PacketType::Event)
+                if (packet.getType() == PacketType::Event)
                 {
                     const auto eventPacket = packet.asPtr<IEventPacket>(true);
-                    const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                    const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+                    {
+                        const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                        const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
 
-                    if (dataDescriptorParam.assigned())
-                        registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
-                    if (domainDescriptorParam.assigned())
-                        registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
+                        if (dataDescriptorParam.assigned())
+                            registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
+                        if (domainDescriptorParam.assigned())
+                            registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
+                    }
                 }
 
                 if (auto it2 = registeredSignal.subscribedClientsIds.begin(); it2 != registeredSignal.subscribedClientsIds.end())

@@ -15,9 +15,9 @@
 
 #include <boost/asio/dispatch.hpp>
 #include <opendaq/input_port_factory.h>
+#include <opendaq/thread_name.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
-
 using namespace daq;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
@@ -158,6 +158,7 @@ void NativeStreamingServerImpl::startTransportOperations()
     transportThread = std::thread(
         [this]()
         {
+            daqNameThread("NatSrvStreamTrans");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*transportIOContextPtr);
             transportIOContextPtr->run();
@@ -191,6 +192,8 @@ void NativeStreamingServerImpl::startProcessingOperations()
     processingThread = std::thread(
         [this]()
         {
+            daqNameThread("NatSrvProc");
+
             using namespace boost::asio;
             auto workGuard = make_work_guard(processingIOContext);
             processingIOContext.run();
@@ -409,6 +412,7 @@ void NativeStreamingServerImpl::startReading()
     readThreadActive = true;
     this->readThread = std::thread([this]()
     {
+        daqNameThread("NatSrvStreamRead");
         this->startReadThread();
         LOG_I("Reading thread finished");
     });

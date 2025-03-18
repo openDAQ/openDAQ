@@ -1,5 +1,6 @@
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/thread_name.h>
 
 namespace daq::config_protocol
 {
@@ -142,7 +143,8 @@ void ConfigProtocolStreamingProducer::stopReadSignal(StreamedSignal& streamedSig
 
 void ConfigProtocolStreamingProducer::readerThreadFunc()
 {
-    LOG_D("Streaming producer thread started");
+    daqNameThread("CfgProtoStreamProd");
+    LOG_D("Streaming producer thread started")
     while (readThreadRunning)
     {
         {

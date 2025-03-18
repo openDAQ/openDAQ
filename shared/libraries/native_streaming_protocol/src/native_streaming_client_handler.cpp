@@ -7,9 +7,9 @@
 
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/thread_name.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
-
 using namespace daq::native_streaming;
 
 NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
@@ -579,6 +579,8 @@ void NativeStreamingClientHandler::startTransportOperations()
     ioThread =
         std::thread([this]()
                     {
+                        daqNameThread("NatCliTransIO");
+
                         using namespace boost::asio;
                         executor_work_guard<io_context::executor_type> workGuard(ioContextPtr->get_executor());
                         ioContextPtr->run();

@@ -22,7 +22,8 @@ using namespace daq;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
-constexpr size_t MAX_PACKET_READ_COUNT = 10000;
+static constexpr size_t DEFAULT_MAX_PACKET_READ_COUNT = 5000;
+static constexpr size_t DEFAULT_POLLING_PERIOD = 20;
 
 NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice,
                                                      const PropertyObjectPtr& config,
@@ -69,7 +70,9 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
 
     const uint16_t pollingPeriod = config.getPropertyValue("StreamingDataPollingPeriod");
     readThreadSleepTime = std::chrono::milliseconds(pollingPeriod);
-    packetBuf.resize(MAX_PACKET_READ_COUNT);
+
+    maxPacketReadCount = config.getPropertyValue("MaxPacketReadCount");
+    packetBuf.resize(maxPacketReadCount);
     startReading();
 }
 
@@ -356,7 +359,7 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
 {
     auto defaultConfig = NativeStreamingServerHandler::createDefaultConfig();
 
-    const auto pollingPeriodProp = IntPropertyBuilder("StreamingDataPollingPeriod", 20)
+    const auto pollingPeriodProp = IntPropertyBuilder("StreamingDataPollingPeriod", DEFAULT_POLLING_PERIOD)
                                        .setMinValue(1)
                                        .setMaxValue(65535)
                                        .setDescription("Polling period in milliseconds "
@@ -364,6 +367,15 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
                                                        "subscribed signals' data to clients")
                                        .build();
     defaultConfig.addProperty(pollingPeriodProp);
+
+    const auto maxPacketReadCountProp = IntPropertyBuilder("MaxPacketReadCount", DEFAULT_MAX_PACKET_READ_COUNT)
+                                                .setMinValue(1)
+                                                .setDescription("Specifies the size of a pre-allocated packet buffer into "
+                                                                "which packets are dequeued. The size determines the amount of "
+                                                                "packets that can be read in one polling period. Should be greater "
+                                                                "than the amount of packets generated per polling period.")
+                                                .build();
+    defaultConfig.addProperty(maxPacketReadCountProp);
 
     populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
@@ -440,11 +452,13 @@ void NativeStreamingServerImpl::startReadThread()
 {
     while (readThreadActive)
     {
+        bool repeatRead = false;
+        do
         {
             SizeT read = 0;
             {
                 std::scoped_lock lock(readersSync);
-                SizeT count = MAX_PACKET_READ_COUNT;
+                SizeT count = maxPacketReadCount;
                 for (const auto& [_, signalGlobalId, port, connection] : signalReaders)
                 {
                     connection->dequeueUpTo(packetBuf.data() + read, &count);
@@ -452,7 +466,14 @@ void NativeStreamingServerImpl::startReadThread()
                     packetData.index = static_cast<int>(read);
                     packetData.count = static_cast<int>(count);
                     read += count;
-                    count = MAX_PACKET_READ_COUNT - read;
+                    count = maxPacketReadCount - read;
+
+                    // Max packet read count exceeded; Send packets and re-read to not drop data.
+                    if (count == 0)
+                    {
+                        repeatRead = true;
+                        break;
+                    }
                 }
 
                 if (read)
@@ -463,8 +484,8 @@ void NativeStreamingServerImpl::startReadThread()
 
             if (read)
                 serverHandler->sendAvailableStreamingPackets();
-
         }
+        while (repeatRead);
 
         std::this_thread::sleep_for(readThreadSleepTime);
     }

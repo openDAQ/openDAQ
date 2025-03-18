@@ -30,16 +30,19 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 struct PacketBufferData
 {
-    PacketBufferData() = default;   
+    PacketBufferData()
+    {
+        reset();
+    }
 
     void reset()
     {
         index = -1;
-        count = 0;
+        count = -1;
     }
 
-    int index = -1;
-    int count = 0;
+    int index;
+    int count;
 };
 
 using SendPacketBufferCallback = std::function<void(const std::string& subscribedClientId,

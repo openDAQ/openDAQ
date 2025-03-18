@@ -372,8 +372,9 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
                                                 .setMinValue(1)
                                                 .setDescription("Specifies the size of a pre-allocated packet buffer into "
                                                                 "which packets are dequeued. The size determines the amount of "
-                                                                "packets that can be read in one polling period. Should be greater "
-                                                                "than the amount of packets generated per polling period.")
+                                                                "packets that can be read in one dequeue call. Should be greater "
+                                                                "than the amount of packets generated per polling period for best "
+                                                                "performance.")
                                                 .build();
     defaultConfig.addProperty(maxPacketReadCountProp);
 

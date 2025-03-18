@@ -376,40 +376,8 @@ TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    auto newClient = CreateClientInstance();
 
     auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
-    ASSERT_EQ(serverSideClientsInfo.getCount(), 4u);
-    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQNativeConfiguration");
-    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "Control");
-    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
-    ASSERT_EQ(serverSideClientsInfo[1].getProtocolName(), "OpenDAQNativeStreaming");
-    ASSERT_EQ(serverSideClientsInfo[1].getClientTypeName(), "");
-    ASSERT_EQ(serverSideClientsInfo[1].getProtocolType(), ProtocolType::Streaming);
-    ASSERT_EQ(serverSideClientsInfo[2].getProtocolName(), "OpenDAQNativeConfiguration");
-    ASSERT_EQ(serverSideClientsInfo[2].getClientTypeName(), "Control");
-    ASSERT_EQ(serverSideClientsInfo[2].getProtocolType(), ProtocolType::Configuration);
-    ASSERT_EQ(serverSideClientsInfo[3].getProtocolName(), "OpenDAQNativeStreaming");
-    ASSERT_EQ(serverSideClientsInfo[3].getClientTypeName(), "");
-    ASSERT_EQ(serverSideClientsInfo[3].getProtocolType(), ProtocolType::Streaming);
-
-    auto clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
-    ASSERT_EQ(clientSideClientsInfo.getCount(), 4u);
-    ASSERT_EQ(clientSideClientsInfo[0].getProtocolName(), "OpenDAQNativeConfiguration");
-    ASSERT_EQ(clientSideClientsInfo[0].getClientTypeName(), "Control");
-    ASSERT_EQ(clientSideClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
-    ASSERT_EQ(clientSideClientsInfo[1].getProtocolName(), "OpenDAQNativeStreaming");
-    ASSERT_EQ(clientSideClientsInfo[1].getClientTypeName(), "");
-    ASSERT_EQ(clientSideClientsInfo[1].getProtocolType(), ProtocolType::Streaming);
-    ASSERT_EQ(clientSideClientsInfo[2].getProtocolName(), "OpenDAQNativeConfiguration");
-    ASSERT_EQ(clientSideClientsInfo[2].getClientTypeName(), "Control");
-    ASSERT_EQ(clientSideClientsInfo[2].getProtocolType(), ProtocolType::Configuration);
-    ASSERT_EQ(clientSideClientsInfo[3].getProtocolName(), "OpenDAQNativeStreaming");
-    ASSERT_EQ(clientSideClientsInfo[3].getClientTypeName(), "");
-    ASSERT_EQ(clientSideClientsInfo[3].getProtocolType(), ProtocolType::Streaming);
-
-    newClient.release();
-    serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
     ASSERT_EQ(serverSideClientsInfo.getCount(), 2u);
     ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQNativeConfiguration");
     ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "Control");
@@ -418,7 +386,7 @@ TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
     ASSERT_EQ(serverSideClientsInfo[1].getClientTypeName(), "");
     ASSERT_EQ(serverSideClientsInfo[1].getProtocolType(), ProtocolType::Streaming);
 
-    clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
+    auto clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
     ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
     ASSERT_EQ(clientSideClientsInfo[0].getProtocolName(), "OpenDAQNativeConfiguration");
     ASSERT_EQ(clientSideClientsInfo[0].getClientTypeName(), "Control");
@@ -426,6 +394,36 @@ TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
     ASSERT_EQ(clientSideClientsInfo[1].getProtocolName(), "OpenDAQNativeStreaming");
     ASSERT_EQ(clientSideClientsInfo[1].getClientTypeName(), "");
     ASSERT_EQ(clientSideClientsInfo[1].getProtocolType(), ProtocolType::Streaming);
+
+    auto newClient = CreateClientInstance();
+    serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 4u);
+    ASSERT_EQ(serverSideClientsInfo[2].getProtocolName(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(serverSideClientsInfo[2].getClientTypeName(), "Control");
+    ASSERT_EQ(serverSideClientsInfo[2].getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(serverSideClientsInfo[3].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(serverSideClientsInfo[3].getClientTypeName(), "");
+    ASSERT_EQ(serverSideClientsInfo[3].getProtocolType(), ProtocolType::Streaming);
+    auto clientInfo2 = serverSideClientsInfo[2];
+    auto clientInfo3 = serverSideClientsInfo[3];
+
+    clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(clientSideClientsInfo.getCount(), 4u);
+    ASSERT_EQ(clientSideClientsInfo[2].getProtocolName(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(clientSideClientsInfo[2].getClientTypeName(), "Control");
+    ASSERT_EQ(clientSideClientsInfo[2].getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(clientSideClientsInfo[3].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(clientSideClientsInfo[3].getClientTypeName(), "");
+    ASSERT_EQ(clientSideClientsInfo[3].getProtocolType(), ProtocolType::Streaming);
+
+    client.release();
+    serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 2u);
+    ASSERT_EQ(serverSideClientsInfo[0], clientInfo2);
+    ASSERT_EQ(serverSideClientsInfo[1], clientInfo3);
+
+    clientSideClientsInfo = newClient.getDevices()[0].getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
 }
 
 TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)

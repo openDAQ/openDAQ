@@ -545,7 +545,7 @@ void ConnectionImpl::checkForGaps(const PacketPtr& packet)
         case PacketType::Data:
         {
             if (gapCheckState == GapCheckState::uninitialized)
-                throw InvalidStateException("No event packet received.");
+                DAQ_THROW_EXCEPTION(InvalidStateException, "No event packet received.");
 
             if (gapCheckState != GapCheckState::not_available)
             {
@@ -694,7 +694,7 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
     }
     else if (packet.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
     {
-        throw InvalidOperationException("Gap packets should not be inserted into connection queue from outside.");
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Gap packets should not be inserted into connection queue from outside.");
     }
 }
 
@@ -798,7 +798,7 @@ ConnectionImpl::DomainValue ConnectionImpl::numberToDomainValue(const NumberPtr&
             dv.valueDouble = number;
             break;
         default:
-            throw InvalidParameterException("Cannot convert number.");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot convert number.");
     }
     return dv;
 }

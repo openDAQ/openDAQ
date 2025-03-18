@@ -41,18 +41,40 @@ public:
         return defaultMsg;
     }
 
+    [[nodiscard]]
+    ConstCharPtr getFileName() const
+    {
+        return fileName;
+    }
+
+    [[nodiscard]]
+    Int getFileLine() const
+    {
+        return fileLine;
+    }
+
 protected:
     template <typename... Params>
-    explicit DaqException(bool defaultMsg, ErrCode errCode, const std::string& msg)
+    explicit DaqException(bool defaultMsg, ErrCode errCode, const std::string& msg, ConstCharPtr fileName = nullptr, Int fileLine = -1)
         : runtime_error(msg)
         , errCode(errCode)
         , defaultMsg(defaultMsg)
+        , fileName(fileName)
+        , fileLine(fileLine)
+    {
+    }
+
+    template <typename... Params>
+    explicit DaqException(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& format, Params&&... params)
+        : DaqException(false, errCode, fmt::format(format, std::forward<Params>(params)...), fileName, fileLine)
     {
     }
 
 private:
     ErrCode errCode;
     bool defaultMsg;
+    ConstCharPtr fileName;
+    Int fileLine;
 };
 
 END_NAMESPACE_OPENDAQ

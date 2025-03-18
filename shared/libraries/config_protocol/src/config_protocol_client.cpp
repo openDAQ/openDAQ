@@ -120,6 +120,20 @@ void ConfigProtocolClientComm::clearPropertyValue(
     parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
+void ConfigProtocolClientComm::clearProtectedPropertyValue(const std::string& globalId, const std::string& propertyName)
+{
+    requireMinServerVersion(ClientCommand("ClearProtectedPropertyValue", 10));
+
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    dict.set("PropertyName", String(propertyName));
+    auto clearPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "ClearProtectedPropertyValue", dict);
+    const auto clearPropertyValueRpcReplyPacketBuffer = sendRequestCallback(clearPropertyValueRpcRequestPacketBuffer);
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
+}
+
 void ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path)
 {
     auto dict = Dict<IString, IBaseObject>();
@@ -412,16 +426,11 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
     const ErrCode errCode = reply["ErrorCode"];
     if (OPENDAQ_FAILED(errCode))
     {
-        std::string msg;
-        if (reply.hasKey("ErrorMessage"))
-            msg = static_cast<std::string>(reply.get("ErrorMessage"));
+        std::string msg = reply.getOrDefault("ErrorMessage", "");
         throwExceptionFromErrorCode(errCode, msg);
     }
 
-    if (reply.hasKey("ReturnValue"))
-        return reply.get("ReturnValue");
-
-    return {};
+    return reply.getOrDefault("ReturnValue");
 }
 
 BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringPtr& typeId,
@@ -577,7 +586,7 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPort(const Sign
 {
     const auto streamingProducer = streamingProducerRef.lock();
     if (!streamingProducer)
-        throw NotAssignedException("StreamingProducer is not assigned.");
+        DAQ_THROW_EXCEPTION(NotAssignedException, "StreamingProducer is not assigned.");
 
     auto domainSignal = signal.getDomainSignal();
     const auto [domainSignalNumericId, domainSignalGlobalId, serializedDomainSignal] =
@@ -608,7 +617,7 @@ void ConfigProtocolClientComm::requireMinServerVersion(const ClientCommand& comm
               command.getMinServerVersion(),
               protocolVersion);
 
-        throw ServerVersionTooLowException();
+        DAQ_THROW_EXCEPTION(ServerVersionTooLowException);
     }
 }
 
@@ -803,7 +812,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Clien
     const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
 
     std::string remoteGlobalId{};
-    if (parentComponent.assigned() && parentComponent.supportsInterface<IConfigClientObject>())
+    if (parentComponent.supportsInterface<IConfigClientObject>())
     {
         const auto configClientObject = parentComponent.asPtr<IConfigClientObject>(true);
         StringPtr temp;
@@ -860,7 +869,7 @@ SignalPtr ConfigProtocolClientComm::findSignalByRemoteGlobalIdWithComponent(cons
 SignalPtr ConfigProtocolClientComm::findSignalByRemoteGlobalId(const DevicePtr& device, const std::string& remoteGlobalId)
 {
     if (remoteGlobalId.find("/") != 0)
-        throw InvalidParameterException("Global id must start with /");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Global id must start with /");
 
     const std::string globalIdWithoutSlash = remoteGlobalId.substr(1);
 

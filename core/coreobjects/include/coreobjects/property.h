@@ -193,9 +193,10 @@ struct IPropertyBuilder;
  * the child Property Object to be modified. The same behaviour is applied when a Property Object 
  * is created from a Property Object Class - all Object-type properties of the class are cloned.
  *
- * Notably, a object-type property cannot be replaced via `set property value` (unless using `set protected property value`), but calling
- * `clear property value` will reset all of its properties to their default values. `clear property value`
- * cannot be called of the object-type property is read-only.
+ * Notably, a object-type property cannot be replaced via `set property value` (unless using
+ * `set protected property value`), but calling `clear property value` will call `clear property value`
+ * on all of the object's properties. `clear property value` cannot be called of the object-type
+ * property is read-only.
  *
  * @subsection objects_property_containers Container-type properties
  *

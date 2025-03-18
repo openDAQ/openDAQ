@@ -4,6 +4,7 @@
 #include <coreobjects/property_object_class_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/property_object_internal.h>
 
 using namespace daq;
 
@@ -38,16 +39,28 @@ protected:
         child2.addProperty(ObjectProperty("child2_1", child2_1));
         
         parentObj1 = PropertyObject();
-        parentObj1.addProperty(ObjectProperty("child1", child1));
-        parentObj1.addProperty(ObjectProperty("child2", child2));
+
+        PropertyObjectPtr clone1;
+        child1.asPtr<IPropertyObjectInternal>()->clone(&clone1);
+        parentObj1.addProperty(ObjectProperty("child1", clone1));
+
+        child2.asPtr<IPropertyObjectInternal>()->clone(&clone1);
+        parentObj1.addProperty(ObjectProperty("child2", clone1));
 
         parentObj2 = PropertyObject();
-        parentObj2.addProperty(ObjectProperty("child1", child1));
-        parentObj2.addProperty(ObjectProperty("child2", child2));
 
+        child1.asPtr<IPropertyObjectInternal>()->clone(&clone1);
+        parentObj2.addProperty(ObjectProperty("child1", clone1));
+
+        child2.asPtr<IPropertyObjectInternal>()->clone(&clone1);
+        parentObj2.addProperty(ObjectProperty("child2", clone1));
+
+        PropertyObjectPtr clone2;
+        child1.asPtr<IPropertyObjectInternal>()->clone(&clone1);
+        child2.asPtr<IPropertyObjectInternal>()->clone(&clone2);
         PropertyObjectClassPtr objClass = PropertyObjectClassBuilder("TestClass")
-                                              .addProperty(ObjectProperty("child1", child1))
-                                              .addProperty(ObjectProperty("child2", child2))
+                                              .addProperty(ObjectProperty("child1", clone1))
+                                              .addProperty(ObjectProperty("child2", clone2))
                                               .build();
 
         typeManager = TypeManager();

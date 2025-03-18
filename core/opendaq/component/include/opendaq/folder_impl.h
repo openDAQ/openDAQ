@@ -472,7 +472,7 @@ template <class Intf, class... Intfs>
 bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
 {
     if (!component.supportsInterface(itemId))
-        throw InvalidParameterException("Type of item not allowed in the folder");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Type of item not allowed in the folder");
 
     const auto res = items.emplace(component.getLocalId(), component);
     

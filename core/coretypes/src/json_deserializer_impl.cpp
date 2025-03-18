@@ -170,10 +170,7 @@ ErrCode JsonDeserializerImpl::Deserialize(JsonValue& document, IBaseObject* cont
 
 ErrCode JsonDeserializerImpl::deserialize(IString* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** object)
 {
-    if (serialized == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(serialized);
 
     SizeT length;
     serialized->getLength(&length);
@@ -211,10 +208,8 @@ ErrCode JsonDeserializerImpl::deserialize(IString* serialized, IBaseObject* cont
 
 ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized, IBaseObject* config)
 {
-    if (serialized == nullptr || updatable == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(updatable);
+    OPENDAQ_PARAM_NOT_NULL(serialized);
 
     SizeT length;
     ErrCode err = serialized->getLength(&length);
@@ -262,10 +257,8 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized,
 
 ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IString* serialized)
 {
-    if (serialized == nullptr || customDeserialize == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(customDeserialize);
+    OPENDAQ_PARAM_NOT_NULL(serialized);
 
     SizeT length;
     ErrCode err = serialized->getLength(&length);
@@ -319,10 +312,7 @@ ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IStr
 
 ErrCode JsonDeserializerImpl::toString(CharPtr* str)
 {
-    if (str == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     return daqDuplicateCharPtr("JsonDeserializer", str);
 }
@@ -357,8 +347,7 @@ CoreType JsonDeserializerImpl::GetCoreType(const JsonValue& value) noexcept
 extern "C"
 ErrCode PUBLIC_EXPORT createJsonDeserializer(IDeserializer** jsonDeserializer)
 {
-    if (!jsonDeserializer)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(jsonDeserializer);
 
     IDeserializer* object = new(std::nothrow) JsonDeserializerImpl();
 

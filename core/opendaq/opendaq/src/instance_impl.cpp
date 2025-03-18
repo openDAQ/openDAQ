@@ -349,16 +349,16 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
     const auto connectionStringPtr = StringPtr::Borrow(connectionString);
 
     if (rootDeviceSet)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Root device already set.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Root device already set.");
 
     if (rootDevice.getFunctionBlocks().getCount() > 0)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if function blocks already added");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if function blocks already added");
 
     if (rootDevice.getDevices().getCount() > 0)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if devices are already added");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if devices are already added");
 
     if (rootDevice.getServers().getCount() > 0)
-        return makeErrorInfo(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
     const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
 
@@ -766,7 +766,7 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
 
 ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
-    return this->makeErrorInfo(OPENDAQ_ERR_INVALID_OPERATION, "UpdateInternal is not permitted for Instance. Use update instead.");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "UpdateInternal is not permitted for Instance. Use update instead.");
 }
 
 ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
@@ -780,7 +780,7 @@ ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
         const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
         const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
         if (rootDeviceWrapperKeysPtr.getCount() != 1)
-            throw InvalidValueException("Invalid root device object");
+            DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid root device object");
 
         const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
         rootDevicePtr.checkObjectType("Device");

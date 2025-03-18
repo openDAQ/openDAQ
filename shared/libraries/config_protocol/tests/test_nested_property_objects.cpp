@@ -16,7 +16,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/sync_component_ptr.h>
 #include <opendaq/sync_component_private_ptr.h>
-#include "test_utils.h"
+#include <opendaq/mock/advanced_components_setup_utils.h>
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"
@@ -179,7 +179,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClear)
     clientDevice.setPropertyValue("ObjectProperty.child1.child1_2.Int", 2);
     clientDevice.setPropertyValue("ObjectProperty.child2.child2_1.Ratio", Ratio(1, 5));
 
-    clientDevice.clearPropertyValue("ObjectProperty");
+    clientDevice.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue("ObjectProperty");
 
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
@@ -196,7 +196,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClear)
     clientDevice.setPropertyValue("ObjectProperty.child1.child1_2.Int", 2);
     clientDevice.setPropertyValue("ObjectProperty.child2.child2_1.Ratio", Ratio(1, 5));
     
-    clientDevice.clearPropertyValue("ObjectProperty.child1");
+    clientDevice.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue("ObjectProperty.child1");
 
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
@@ -267,7 +267,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearObject)
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 2);
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 5));
 
-    serverDevice.clearPropertyValue("ObjectProperty");
+    serverDevice.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue("ObjectProperty");
 
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
@@ -279,7 +279,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearObject)
     serverDevice.setPropertyValue("ObjectProperty.child1.child1_2.Int", 2);
     serverDevice.setPropertyValue("ObjectProperty.child2.child2_1.Ratio", Ratio(1, 5));
 
-    serverDevice.clearPropertyValue("ObjectProperty.child1");
+    serverDevice.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue("ObjectProperty.child1");
     
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
@@ -617,7 +617,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackFailed)
     serverDevice.getOnPropertyValueWrite("EditableProperty") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
     {
         if ((Int)arg.getValue() > 0)
-            throw InvalidParameterException("Invalid value");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid value");
     };
 
     ASSERT_EQ(clientDevice.getPropertyValue("EditableProperty"), 0);
@@ -633,7 +633,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SetSelectionPropertyValueCallbackFailed)
         if ((Int)arg.getValue() > 0)
         {
             ASSERT_NE(obj.getPropertySelectionValue("EditableProperty"), "defaultValue");
-            throw InvalidParameterException("Invalid value");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid value");
         }
     };
 
@@ -723,7 +723,7 @@ TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackDependencies)
     {
         if ((Int)arg.getValue() < 0)
         {
-            throw OutOfRangeException("Ones");
+            DAQ_THROW_EXCEPTION(OutOfRangeException, "Ones");
         }
         if ((Int)arg.getValue() > 9)
         {
@@ -740,9 +740,9 @@ TEST_F(ConfigNestedPropertyObjectTest, SetPropertyValueCallbackDependencies)
     serverDevice.getOnPropertyValueWrite("Tens") += [](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& arg) 
     {
         if ((Int)arg.getValue() < 0)
-            throw OutOfRangeException("Tens");
+            DAQ_THROW_EXCEPTION(OutOfRangeException, "Tens");
         if ((Int)arg.getValue() > 9)
-            throw OutOfRangeException("Tens");
+            DAQ_THROW_EXCEPTION(OutOfRangeException, "Tens");
     };
 
     ASSERT_EQ(clientDevice.getPropertyValue("Number"), 0);
@@ -779,7 +779,7 @@ TEST_F(ConfigNestedPropertyObjectTest, ThrowExeptionRestoringValuePartialy)
     {
         obj.setPropertyValue("param2", arg.getValue());
         if ((Int)arg.getValue() < 0)
-            throw OutOfRangeException("param 1 value is negative");
+            DAQ_THROW_EXCEPTION(OutOfRangeException, "param 1 value is negative");
     };
 
     ASSERT_EQ(clientDevice.getPropertyValue("param1"), 0);

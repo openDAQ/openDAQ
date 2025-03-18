@@ -45,7 +45,7 @@ ComponentPtr ComponentFinderRootDevice::findComponentInternal(const ComponentPtr
 ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalId)
 {         
     if (globalId.find("/") != 0)
-        throw InvalidParameterException("Global id must start with /");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Global id must start with /");
 
     const std::string globalIdWithoutSlash = globalId.substr(1);
 
@@ -113,7 +113,7 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         const auto component = findComponent(componentGlobalId);
 
         if (!component.assigned())
-            throw NotFoundException("Component not found");
+            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
 
         const auto componentPtr = component.asPtr<typename SmartPtr::DeclaredInterface>();
         return handler(context, componentPtr, params);
@@ -135,6 +135,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
     addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
     addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
+    addHandler<ComponentPtr>("ClearProtectedPropertyValue", &ConfigServerComponent::clearProtectedPropertyValue);
     addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty);
     addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate);
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
@@ -293,9 +294,7 @@ StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         const auto funcName = dictObj.get("Name");
-        ParamsDictPtr funcParams;
-        if (dictObj.hasKey("Params"))
-            funcParams = dictObj.get("Params");
+        ParamsDictPtr funcParams = dictObj.getOrDefault("Params");
 
         const auto retValue = callRpc(funcName, funcParams);
 
@@ -339,9 +338,7 @@ void ConfigProtocolServer::processNoReplyRpc(const StringPtr& jsonStr)
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         funcName = dictObj.get("Name");
-        ParamsDictPtr funcParams;
-        if (dictObj.hasKey("Params"))
-            funcParams = dictObj.get("Params");
+        ParamsDictPtr funcParams = dictObj.getOrDefault("Params");
 
         callRpc(funcName, funcParams);
     }
@@ -377,7 +374,7 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
     const auto component = findComponent(componentGlobalId);
 
     if (!component.assigned())
-        throw NotFoundException("Component not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
 
     ConfigServerAccessControl::protectObject(component, user, Permission::Read);
     return ComponentHolder(component);
@@ -398,7 +395,7 @@ BaseObjectPtr ConfigProtocolServer::connectSignal(const RpcContext& context, con
     const StringPtr signalId = params.get("SignalId");
     const SignalPtr signal = findComponent(signalId);
     if (signal.assigned() && streamingConsumer.isExternalSignal(signal))
-        throw InvalidParameterException("Mirrored external signal cannot be connected to server input port");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Mirrored external signal cannot be connected to server input port");
     return ConfigServerInputPort::connect(context, inputPort, signal, params);
 }
 

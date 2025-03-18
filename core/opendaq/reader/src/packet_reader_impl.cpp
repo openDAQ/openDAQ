@@ -9,7 +9,7 @@ BEGIN_NAMESPACE_OPENDAQ
 PacketReaderImpl::PacketReaderImpl(const SignalPtr& signal)
 {
     if (!signal.assigned())
-        throw ArgumentNullException("Signal must not be null.");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Signal must not be null.");
 
     port = InputPort(signal.getContext(), nullptr, "readsignal");
     this->internalAddRef();
@@ -31,7 +31,7 @@ PacketReaderImpl::PacketReaderImpl(const SignalPtr& signal)
 PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
 {
     if (!port)
-        throw ArgumentNullException("Input port must not be null.");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Input port must not be null.");
 
     this->port = port;
 

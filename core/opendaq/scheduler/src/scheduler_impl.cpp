@@ -56,8 +56,8 @@ ErrCode SchedulerImpl::stop()
 
 ErrCode SchedulerImpl::checkAndPrepare(const IBaseObject* work, IAwaitable** awaitable)
 {
-    if (work == nullptr || awaitable == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(work);
+    OPENDAQ_PARAM_NOT_NULL(awaitable);
 
     if (stopped)
         return OPENDAQ_ERR_SCHEDULER_STOPPED;
@@ -120,10 +120,7 @@ ErrCode SchedulerImpl::scheduleGraph(ITaskGraph* graph, IAwaitable** awaitable)
 
 ErrCode SchedulerImpl::isMultiThreaded(Bool* multiThreaded)
 {
-    if (multiThreaded == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(multiThreaded);
 
     *multiThreaded = executor->num_workers() > 1;
     return OPENDAQ_SUCCESS;

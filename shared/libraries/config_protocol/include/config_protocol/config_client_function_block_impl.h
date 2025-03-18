@@ -129,7 +129,7 @@ template <class Impl>
 void ConfigClientBaseFunctionBlockImpl<Impl>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (!functionBlock.assigned())
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
     this->clientComm->removeFunctionBlock(this->remoteGlobalId, functionBlock.getLocalId(), true);
 
     if (this->functionBlocks.hasItem(functionBlock.getLocalId()))

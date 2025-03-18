@@ -66,7 +66,7 @@ ErrCode LoggerSinkBase<Interfaces...>::getLevel(LogLevel* level)
 {
     if (level == nullptr)
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
     }
 
     *level = static_cast<LogLevel>(sink->level());
@@ -78,7 +78,7 @@ ErrCode LoggerSinkBase<Interfaces...>::shouldLog(LogLevel level, Bool* willLog)
 {
     if (willLog == nullptr)
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot save return value to a null pointer.");
     }
 
     *willLog = sink->should_log(static_cast<spdlog::level::level_enum>(level));
@@ -88,10 +88,7 @@ ErrCode LoggerSinkBase<Interfaces...>::shouldLog(LogLevel level, Bool* willLog)
 template <typename... Interfaces>
 ErrCode LoggerSinkBase<Interfaces...>::setPattern(IString* pattern)
 {
-    if (pattern == nullptr)
-    {
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "The pattern can not be null.");
-    }
+    OPENDAQ_PARAM_NOT_NULL(pattern);
 
     try
     {
@@ -99,11 +96,11 @@ ErrCode LoggerSinkBase<Interfaces...>::setPattern(IString* pattern)
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (const std::exception& e)
     {
-        return errorFromException(e);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;
@@ -118,11 +115,11 @@ ErrCode LoggerSinkBase<Interfaces...>::flush()
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (const std::exception& e)
     {
-        return errorFromException(e);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;
@@ -132,7 +129,7 @@ template <typename... Interfaces>
 ErrCode LoggerSinkBase<Interfaces...>::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (other == nullptr)
@@ -148,7 +145,7 @@ template <typename... Interfaces>
 ErrCode LoggerSinkBase<Interfaces...>::getSinkImpl(typename LoggerSinkBase<Interfaces...>::SinkPtr* sinkImp)
 {
     if (sinkImp == nullptr)
-       return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "SinkImp out-parameter must not be null");
+       return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "SinkImp out-parameter must not be null");
     *sinkImp = sink;
     return OPENDAQ_SUCCESS;
 }

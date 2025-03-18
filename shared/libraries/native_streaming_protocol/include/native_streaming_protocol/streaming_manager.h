@@ -19,9 +19,9 @@
 #include <native_streaming_protocol/server_session_handler.h>
 
 #include <opendaq/context_ptr.h>
-#include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/signal_ptr.h>
+#include <tsl/ordered_map.h>
 
 #include <packet_streaming/packet_streaming_server.h>
 #include <packet_streaming/packet_streaming_client.h>
@@ -71,7 +71,7 @@ public:
     /// @param packetIndices A map of signal ID and information on buffer index/count where the packets of said signals are located in the `packets` vector.
     /// @param packets The openDAQ packets to be processed.
     /// @throw NativeStreamingProtocolException if any signal in the packetIndices map is not registered.
-    void processPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices, const std::vector<IPacket*>& packets);
+    void processPackets(const tsl::ordered_map<std::string, PacketBufferData>& packetIndices, const std::vector<IPacket*>& packets);
 
     /// Gets the packet streaming server for streaming client registered under provided id.
     /// @param clientId The unique string ID provided by the client or automatically assigned by the server.

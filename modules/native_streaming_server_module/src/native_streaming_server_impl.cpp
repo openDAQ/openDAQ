@@ -453,12 +453,14 @@ void NativeStreamingServerImpl::startReadThread()
 {
     while (readThreadActive)
     {
-        bool repeatRead = false;
-        do
+        bool sendData = false;
+
         {
             SizeT read = 0;
+            bool repeatRead = false;
+            std::scoped_lock lock(readersSync);
+            do
             {
-                std::scoped_lock lock(readersSync);
                 SizeT count = maxPacketReadCount;
                 for (const auto& [_, signalGlobalId, port, connection] : signalReaders)
                 {
@@ -480,13 +482,14 @@ void NativeStreamingServerImpl::startReadThread()
                 if (read)
                     serverHandler->processStreamingPackets(packetIndices, packetBuf);
 
+                sendData = sendData || read;
                 clearIndices();
             }
-
-            if (read)
-                serverHandler->sendAvailableStreamingPackets();
+            while (repeatRead);
         }
-        while (repeatRead);
+
+        if (sendData)
+            serverHandler->sendAvailableStreamingPackets();
 
         std::this_thread::sleep_for(readThreadSleepTime);
     }
@@ -536,8 +539,9 @@ void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 
 void NativeStreamingServerImpl::clearIndices()
 {
-    for (auto& [_, data] : packetIndices)
+    for (auto& [signalId, _] : packetIndices)
     {
+        auto& data = packetIndices[signalId];
         data.reset();
     }
 }

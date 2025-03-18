@@ -60,7 +60,7 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
     }
 }
 
-void StreamingManager::processPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices,
+void StreamingManager::processPackets(const tsl::ordered_map<std::string, PacketBufferData>& packetIndices,
                                       const std::vector<IPacket*>& packets)
 {
     std::scoped_lock lock(sync);

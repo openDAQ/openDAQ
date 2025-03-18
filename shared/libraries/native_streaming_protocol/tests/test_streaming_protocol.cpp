@@ -813,7 +813,7 @@ TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
     // process and then send all data packets within a single transport operation
     
     std::vector<IPacket*> packetBuf;
-    std::unordered_map<std::string, opendaq_native_streaming_protocol::PacketBufferData> packetIndices;
+    tsl::ordered_map<std::string, opendaq_native_streaming_protocol::PacketBufferData> packetIndices;
     packetBuf.resize(serverDataPackets.getCount());
 
     for (size_t i = 0; i < serverDataPackets.getCount(); ++i)

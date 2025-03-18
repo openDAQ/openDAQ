@@ -23,6 +23,7 @@
 #include <coretypes/intfs.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <opendaq/connection_internal.h>
+#include <tsl/ordered_map.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
@@ -72,7 +73,7 @@ protected:
     std::chrono::milliseconds readThreadSleepTime;
     std::vector<std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnectionInternal>>> signalReaders;
     std::vector<IPacket*> packetBuf;
-    std::unordered_map<std::string, opendaq_native_streaming_protocol::PacketBufferData> packetIndices;
+    tsl::ordered_map<std::string, opendaq_native_streaming_protocol::PacketBufferData> packetIndices;
 
     std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
     std::thread transportThread;

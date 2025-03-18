@@ -375,7 +375,13 @@ BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, 
 StringPtr ConfigProtocolClientComm::createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params)
 {
     const auto obj = createRpcRequest(name, params);
-    auto serializer = JsonSerializer();
+
+    SerializerPtr serializer;
+    if (getProtocolVersion() < 10)
+        serializer = JsonSerializerWithVersion(1);
+    else
+        serializer = JsonSerializerWithVersion(2);
+
     obj.serialize(serializer);
     return serializer.getOutput();
 }
@@ -556,7 +562,12 @@ std::tuple<uint32_t, StringPtr, StringPtr> ConfigProtocolClientComm::getExternal
     const SignalPtr& signal,
     const ConfigProtocolStreamingProducerPtr& streamingProducer)
 {
-    auto serializer = JsonSerializer();
+    SerializerPtr serializer;
+    if (getProtocolVersion() < 10)
+        serializer = JsonSerializerWithVersion(1);
+    else
+        serializer = JsonSerializerWithVersion(2);
+
     signal.serialize(serializer);
 
     return std::make_tuple(streamingProducer->registerOrUpdateSignal(signal),

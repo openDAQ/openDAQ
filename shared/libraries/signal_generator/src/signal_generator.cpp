@@ -18,7 +18,7 @@ SignalGenerator::SignalGenerator(const SignalConfigPtr& signal,
     calculateSampleSize();
     calculateResolutionAndOutputRate();
     calculateAbsStartTick(absTime);
-    packetBuff = std::make_unique<PacketBuffer>(daq::SignalGenerator::signal.getDescriptor().getRawSampleSize(), (size_t)1024);
+    packetBuff = std::make_unique<PacketBuffer>(daq::SignalGenerator::signal.getDescriptor().getRawSampleSize(), (size_t)16384);
 }
 
 void SignalGenerator::setFunction(GenerateSampleFunc function)
@@ -50,8 +50,20 @@ void SignalGenerator::generatePacket(uint64_t startTick, size_t sampleCount)
     auto dataDescriptor = signal.getDescriptor();
     auto domainDescriptor = signal.getDomainSignal().getDescriptor();
     auto domainPacket = DataPacket(domainDescriptor, sampleCount, (Int) packetOffset);
-    //auto dataPacket = DataPacketWithDomain(domainPacket, dataDescriptor, sampleCount);
-    auto dataPacket = packetBuff->createPacket(&sampleCount, dataDescriptor, domainPacket);
+    daq::DataPacketPtr dataPacket;
+    if (false)
+    {
+        dataPacket = DataPacketWithDomain(domainPacket, dataDescriptor, sampleCount);
+    }
+    else
+    {
+        dataPacket = packetBuff->createPacket(&sampleCount, dataDescriptor, domainPacket);
+    }
+
+    if (dataPacket == nullptr)
+    {
+        std::cout << "Empty packet." << std::endl;
+    }
 
 
     uint8_t* currentSample = (uint8_t*) dataPacket.getRawData();

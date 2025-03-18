@@ -2,11 +2,18 @@
 
 using namespace daq;
 
-PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr desc, size_t sA, enum EnumAdjustSize eAdjust)
-    : desc(desc)
-    , sampleAmount(sA)
-    , sizeAdjustment(eAdjust)
+PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, EnumAdjustSize eAdjust, size_t sA)
 {
+    desc = description;
+    sizeAdjustment = eAdjust;
+    sampleAmount = sA;
+    bUsingBuffer = true;
+    if (sA == 0)
+    {
+        auto r = desc.getTickResolution();
+        auto newSampleAmount = 2 * (1 / r.getNumerator() / r.getDenominator());  // 2s worth of packets for the buffer
+        sampleAmount = newSampleAmount;
+    }
 }
 
 
@@ -41,7 +48,7 @@ PacketBuffer::~PacketBuffer()
     free(data);
 }
 
-PacketBuffer::PacketBuffer(const PUBLIC_EXPORT PacketBufferInit& instructions)
+PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
 {
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleAmount;
@@ -243,7 +250,7 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     sizeOfSample = dataDescriptor.getRawSampleSize();
     void* startOfSpace = nullptr;
     // Here the should be a lock for creation
-    std::cout << "Packet was created. " << std::endl;
+    //std::cout << "Packet was created. " << std::endl;
     int ret = this->WriteSample(sampleCount, &startOfSpace);
     ff = [&, sampleCnt = *sampleCount, startOfSpace = startOfSpace](void*)
          {
@@ -275,7 +282,11 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
         // This needs to be checked
         // (This might even throw (or in other way explain that this does not work fine))
         // If we get stuck here, it means the allocation of memory failed
-        throw 1;
+        std::cerr << "You are trying to create an empty packet (or you are trying to create a packet while the buffer is full)." \
+                     " \r\n We have returned an empty packet, therefore wherever this is called, this needs to be checked for"\
+                     "\r\n" << std::endl; 
+
+        return daq::DataPacketPtr();
     }
 }
 
@@ -339,7 +350,7 @@ Packet PacketBuffer::cP(size_t* sampleCount, size_t dataDescriptor)
     }
 }
 
-void PacketBuffer::resize(const PUBLIC_EXPORT PacketBufferInit& instructions)
+void PacketBuffer::resize(const PacketBufferInit& instructions)
 {
     // If I were to give a new PacketBufferInit into here then a new malloc could be called
     // similarly to the way buffer gets created in the constructor, we can create a new version in this function

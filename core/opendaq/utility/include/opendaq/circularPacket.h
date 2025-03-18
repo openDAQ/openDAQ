@@ -19,13 +19,25 @@ BEGIN_NAMESPACE_OPENDAQ
 
 // Think about what needs also to be included in here...
 
-struct PUBLIC_EXPORT PacketBufferInit
+struct PacketBufferInit
 {
-    PacketBufferInit(daq::DataDescriptorPtr desc, size_t sA, enum EnumAdjustSize eAdjust);
+    enum EnumAdjustSize sizeAdjustment;
+
+    PUBLIC_EXPORT PacketBufferInit(daq::DataDescriptorPtr description, EnumAdjustSize eAdjust, size_t sA = 0);
 
     daq::DataDescriptorPtr desc;
     size_t sampleAmount;
-    enum EnumAdjustSize sizeAdjustment;
+
+    // sampleAmount will be relative to the acqloop and the amount of time that is required
+    // to go through the aquisition loop of data.
+    bool bUsingBuffer;
+
+    // Check on the return codes and allow them to be
+    // handled how the user wants them to be handled
+
+    // I need to add a bool that can be used to change between packetBuffer and
+    // malloc packet aquisition
+
 };
 
 enum EnumAdjustSize
@@ -52,30 +64,32 @@ private:
 };
 
 
-class PUBLIC_EXPORT PacketBuffer
+class PacketBuffer
 {
     // When reset is invoked the WriteSample functionality should be locked,
     // we must not lock the entire PacketBuffer itself
 
 public:
-    PacketBuffer();
+    PUBLIC_EXPORT PacketBuffer();
 
-    PacketBuffer(size_t sampleSize, size_t memSize);
+    PUBLIC_EXPORT PacketBuffer(size_t sampleSize, size_t memSize);
 
-    PacketBuffer(const PUBLIC_EXPORT PacketBufferInit& instructions);
+    PUBLIC_EXPORT PacketBuffer(const PacketBufferInit& instructions);
 
-    ~PacketBuffer();
+    PUBLIC_EXPORT ~PacketBuffer();
 
-    void resize(const PUBLIC_EXPORT PacketBufferInit& instructions);
+    PUBLIC_EXPORT void resize(const PacketBufferInit& instructions);
 
     // int => return code
     int WriteSample(size_t* sampleCount, void** memPos);
 
     int ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount);
 
-    size_t getAvailableSampleCount();
+    PUBLIC_EXPORT size_t getAvailableSampleCount();
 
-    daq::DataPacketPtr createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket);
+    PUBLIC_EXPORT daq::DataPacketPtr createPacket(size_t* sampleCount,
+                                                 daq::DataDescriptorPtr dataDescriptor,
+                                                 daq::DataPacketPtr& domainPacket);
 
     Packet cP(size_t* sampleCount, size_t dataDescriptor);
 
@@ -95,6 +109,12 @@ public:
     bool getIsFull();
 
     size_t getAdjustedSize();
+
+    // Notes on compiling to release versions:
+    // 1.) Advanced datatypes (like std::condition_variable and std::priority_queue) need to have
+    //     dll-interface that has to be provided
+    // 2.) Despite all the above I found 13 test that are not marked as unstable failing and
+    //     I have severe doubts that my ring buffer made them fail
 
     std::mutex flip;
     std::condition_variable cv;

@@ -58,7 +58,10 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
 
 void RefChannelImpl::packetBufferSetup()
 {
-    pb = std::make_unique<daq::PacketBuffer>((size_t) packetSize, (size_t)1024);
+    // I should make the buffer size dynamic, but where can I find approximate sizes
+    //init = PacketBufferInit()
+    std::cout << (globalSampleRate) << std::endl;
+    pb = std::make_unique<daq::PacketBuffer>((size_t) packetSize, (size_t)16384);
 }
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
@@ -351,9 +354,20 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
     }
     else
     {
-        //dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+        if (false)
+        {
+            dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+        }
+        else
+        {
+            dataPacket = pb->createPacket(&newSamples, valueSignal.getDescriptor(), domainPacket);
+        }
 
-        dataPacket = pb->createPacket(&newSamples, valueSignal.getDescriptor(), domainPacket);
+        if (dataPacket == nullptr)
+        {
+            std::cerr << "We have created an empty packet, OH NO " << std::endl;
+            throw;
+        }
 
         double* buffer;
 

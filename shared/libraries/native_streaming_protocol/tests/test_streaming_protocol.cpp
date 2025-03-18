@@ -810,12 +810,23 @@ TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
         );
     }
 
-    // process and then send all data packets within a signle transport operation
-    for (auto&& serverDataPacket : serverDataPackets)
+    // process and then send all data packets within a single transport operation
+    
+    std::vector<IPacket*> packetBuf;
+    std::unordered_map<std::string, opendaq_native_streaming_protocol::PacketBufferData> packetIndices;
+    packetBuf.resize(serverDataPackets.getCount());
+
+    for (size_t i = 0; i < serverDataPackets.getCount(); ++i)
     {
-        sentDataPackets.pushBack(serverDataPacket);
-        serverHandler->processStreamingPacket(serverSignal.getGlobalId().toStdString(), std::move(serverDataPacket));
+        packetBuf[i] = serverDataPackets[i].detach();
     }
+
+    auto packetBufferData = PacketBufferData();
+    packetBufferData.index = 0;
+    packetBufferData.count = static_cast<int>(packetBuf.size());
+    packetIndices.insert(std::make_pair(serverSignal.getGlobalId().toStdString(), packetBufferData));
+
+    serverHandler->processStreamingPackets(packetIndices, packetBuf);
     serverHandler->sendAvailableStreamingPackets();
 
     for (size_t i = 0; i < clients.size(); ++i)
@@ -824,7 +835,7 @@ TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
         ASSERT_EQ(receivedPacketFutures[i]->wait_for(timeout), std::future_status::ready);
         auto [signalId, packets] = receivedPacketFutures[i]->get();
         ASSERT_EQ(signalId, serverSignal.getGlobalId());
-        ASSERT_EQ(sentDataPackets, packets);
+        ASSERT_EQ(serverDataPackets, packets);
     }
 }
 

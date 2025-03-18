@@ -67,12 +67,10 @@ public:
                                  PacketPtr&& packet,
                                  const SendPacketBufferCallback& sendPacketBufferCb);
 
-    /// Pushes a packet associated with a specified signal ID to the packet streaming servers
-    /// associated with clients subscribed to this signal.
-    /// @param signalStringId The unique string ID of the signal.
-    /// @param packet The openDAQ packet to be processed.
-    /// @throw NativeStreamingProtocolException if the signal is not registered.
-    void processPacket(const std::string& signalStringId, PacketPtr&& packet);
+    /// Pushes packets the packet streaming servers associated with clients subscribed to signals.
+    /// @param packetIndices A map of signal ID and information on buffer index/count where the packets of said signals are located in the `packets` vector.
+    /// @param packets The openDAQ packets to be processed.
+    /// @throw NativeStreamingProtocolException if any signal in the packetIndices map is not registered.
     void processPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices, const std::vector<IPacket*>& packets);
 
     /// Gets the packet streaming server for streaming client registered under provided id.

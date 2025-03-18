@@ -60,44 +60,6 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
     }
 }
 
-void StreamingManager::processPacket(const std::string& signalStringId, PacketPtr&& packet)
-{
-    std::scoped_lock lock(sync);
-
-    if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
-    {
-        auto& registeredSignal = iter->second;
-
-        if (packet.getType() == PacketType::Event)
-        {
-            auto eventPacket = packet.asPtr<IEventPacket>();
-            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-            {
-                const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-                if (dataDescriptorParam.assigned())
-                    registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
-                if (domainDescriptorParam.assigned())
-                    registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
-            }
-        }
-
-        if (auto it = registeredSignal.subscribedClientsIds.begin(); it != registeredSignal.subscribedClientsIds.end())
-        {
-            while (std::next(it) != registeredSignal.subscribedClientsIds.end())
-            {
-                packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, PacketPtr(packet));
-                ++it;
-            }
-            pushToPacketStreamingServer(packetStreamingServers.at(*it), std::move(packet), registeredSignal.numericId);
-        }
-    }
-    else
-    {
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
-    }
-}
-
 void StreamingManager::processPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices,
                                       const std::vector<IPacket*>& packets)
 {

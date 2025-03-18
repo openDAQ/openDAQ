@@ -243,11 +243,6 @@ void NativeStreamingServerHandler::sendPacket(const std::string& signalId, Packe
     );
 }
 
-void NativeStreamingServerHandler::processStreamingPacket(const std::string& signalId, PacketPtr&& packet)
-{
-    streamingManager.processPacket(signalId, std::move(packet));
-}
-
 void NativeStreamingServerHandler::processStreamingPackets(const std::unordered_map<std::string, PacketBufferData>& packetIndices,
                                                            const std::vector<IPacket*>& packets)
 {

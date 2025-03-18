@@ -248,20 +248,20 @@ TEST_F(CircularPacketTest, TestPacketImprovementTest)
 
     daq::PacketBuffer pb;
     size_t sampleCount = 100;
-    void* mid_point = NULL;
-    void* save_point = NULL;
+    //void* mid_point = NULL;
+    //void* save_point = NULL;
 
     {
         std::cout << "WritePoint before creation: " << pb.getWritePos() << std::endl;
         auto old_created = pb.createPacket(&sampleCount, descriptor, domain);
         std::cout << "WritePoint after outer scope creation: " << pb.getWritePos() << std::endl;
         std::cout << "ReadPoint after outer scopecreation: " << pb.getReadPos() << std::endl;
-        save_point = pb.getReadPos();
-        mid_point = pb.getWritePos();
+        //save_point = pb.getReadPos();
+        //mid_point = pb.getWritePos();
         {
             auto new_packet = pb.createPacket(&sampleCount, descriptor, domain);
-            mid_point = pb.getWritePos();
-            std::cout << "WritePoint after inner scope creation: " << pb.getWritePos() << std::endl;
+            //mid_point = pb.getWritePos();
+            //std::cout << "WritePoint after inner scope creation: " << pb.getWritePos() << std::endl;
         }
         std::cout << "ReadPoint after going out of inner scope: " << pb.getReadPos() << std::endl;
     }

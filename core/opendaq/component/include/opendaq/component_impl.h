@@ -691,7 +691,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType mod
 }
 
 template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::getComponentConfig(IPropertyObject** config)
+ErrCode ComponentImpl<Intf, Intfs...>::getComponentConfig(IPropertyObject** /* config */)
 {
     return OPENDAQ_IGNORED;
 }

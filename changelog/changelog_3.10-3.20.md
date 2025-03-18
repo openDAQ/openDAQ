@@ -31,6 +31,7 @@
 ## Bug fixes
 
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Fixes list/dictionary deserialization not containing key/value/item interface IDs. Requires server-side update.
+- [#731](https://github.com/openDAQ/openDAQ/pull/731) Fixes nested object access over OPC UA. Object properties original PropertyObject is now stored in PropertyObjectImpl; PropertyImpl now contains the clone.
 - [#719](https://github.com/openDAQ/openDAQ/pull/719) Fixes error when accessing selection property values using "dot" notation (eg. `getPropertySelectionValue("child.val")`).
 - [#703](https://github.com/openDAQ/openDAQ/pull/703) Fixes invalid response of openDAQ mDNS wrapper for unicast queries.
 - [#696](https://github.com/openDAQ/openDAQ/pull/696) Set of LT bugfixes. Keeping sessions alive, raw json values for linear rules, default start value for constant signals, fix IPv4/6 control connection address handling. 
@@ -64,6 +65,27 @@
 - [#723](https://github.com/openDAQ/openDAQ/pull/723) Data path optimizations: no heap allocations on `sendPacket()`, remove dynamic casts on packet reader, use acquisition lock instead of recursive config lock on input port active getter, optimize packet construction, support for manual last value.
 
 ## Required application changes
+
+### [#731](https://github.com/openDAQ/openDAQ/pull/731)
+
+`IPropertyObject::clearPropertyValue(IString* name)` when invoked on an Object-type property, no longer removes the property object and restores it to the default, but instead calls `clearPropertyValue` recursively on the object's properties.
+
+
+```cpp
+auto propObj1 = PropertyObject();
+auto propObj2 = PropertyObject();
+
+propObj1.addProperty(ObjectProperty("Child", propObj2));
+
+auto propObj3 = PropertyObject();
+propObj3.addProperty(IntProperty("IntProp", 0));
+propObj3.setPropertyValue("IntProp", 1);
+propObj1.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", propObj3);
+
+// The below code does not restore "Child" to `propObj2`.
+// It instead sets "Child.IntProp" to its default value of "1".
+propObj1.clearPropertyValue("Child");
+```
 
 ### [#609](https://github.com/openDAQ/openDAQ/pull/609) Relocated module info functions
 

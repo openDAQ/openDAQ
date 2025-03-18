@@ -33,6 +33,7 @@ public:
     static BaseObjectPtr setPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr clearProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr callProperty(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr beginUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr endUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
@@ -130,6 +131,23 @@ inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(const RpcContext&
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
 
     component.clearPropertyValue(propertyName);
+
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerComponent::clearProtectedPropertyValue(const RpcContext& context,
+                                                                        const ComponentPtr& component,
+                                                                        const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
+
+    component.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue(propertyName);
 
     return nullptr;
 }

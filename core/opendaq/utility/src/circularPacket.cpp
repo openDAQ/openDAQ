@@ -2,7 +2,7 @@
 
 using namespace daq;
 
-PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, EnumAdjustSize eAdjust, size_t sA)
+PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, daq::EnumAdjustSize eAdjust, size_t sA)
 {
     desc = description;
     sizeAdjustment = eAdjust;
@@ -244,7 +244,7 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     if (bUnderReset)
     {
         std::cerr << "Under ongoing reset, cannot create new packets" << std::endl;
-        cv.wait(loa, [&] { return !bUnderReset; });
+        this->cv.wait(loa, [&] { return !bUnderReset; });
         return daq::DataPacketPtr();
     }
     sizeOfSample = dataDescriptor.getRawSampleSize();
@@ -294,7 +294,7 @@ int PacketBuffer::reset()
 {
     std::unique_lock<std::mutex> lock(flip);
     bUnderReset = true;
-    cv.wait(lock, [&]
+    this->cv.wait(lock, [&]
             {
                 std::cerr << "Calling the check in reset. " << std::endl;
             return ((readPos == writePos) && (!bIsFull)); });

@@ -194,13 +194,17 @@ TEST_F(CircularPacketTest, TestFillingUpBuffer)
                 for (int i = 0; i < 1000; i++)
                 {
                     auto new_pck = pb.createPacket(&sampleCount, desc, dom);
+                    if (new_pck == nullptr)
+                    {
+                        throw 1;
+                    }
                     a_group.push_back(new_pck);
                 }
                 ASSERT_FALSE(true);
             }
             catch (...)
             {
-                ASSERT_ANY_THROW(pb.createPacket(&sampleCount, desc, dom));
+                ASSERT_EQ(pb.createPacket(&sampleCount, desc, dom), nullptr);
             }
     }
 

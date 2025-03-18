@@ -7,6 +7,7 @@
 #include <opendaq/deleter_impl.h>
 #include <iostream>
 #include <mutex>
+#include <condition_variable>
 #include <vector>
 #include <queue>
 #include <memory>
@@ -18,15 +19,22 @@ BEGIN_NAMESPACE_OPENDAQ
 
 
 // Think about what needs also to be included in here...
+enum EnumAdjustSize
+{
+    Invalid = 0,
+    AdjustOnEnd,
+    Fragment,
+    PreMadePackets
+};
 
 struct PacketBufferInit
 {
-    enum EnumAdjustSize sizeAdjustment;
 
     PUBLIC_EXPORT PacketBufferInit(daq::DataDescriptorPtr description, EnumAdjustSize eAdjust, size_t sA = 0);
 
     daq::DataDescriptorPtr desc;
     size_t sampleAmount;
+    EnumAdjustSize sizeAdjustment;
 
     // sampleAmount will be relative to the acqloop and the amount of time that is required
     // to go through the aquisition loop of data.
@@ -40,13 +48,6 @@ struct PacketBufferInit
 
 };
 
-enum EnumAdjustSize
-{
-    Invalid = 0,
-    AdjustOnEnd,
-    Fragment,
-    PreMadePackets
-};
 
 class PacketBuffer;
 

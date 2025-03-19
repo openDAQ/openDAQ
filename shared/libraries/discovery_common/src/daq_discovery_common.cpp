@@ -124,9 +124,9 @@ TxtProperties DiscoveryUtils::connectedClientsInfoToTxt(const PropertyObjectPtr&
     TxtProperties result;
 
     size_t index = 0;
-    for (const auto& property : connectedClientsInfo.getAllProperties())
+    for (const auto& clientInfoProperty : connectedClientsInfo.getAllProperties())
     {
-        const PropertyObjectPtr connectedClientPropObject = property.getValue();
+        const PropertyObjectPtr connectedClientPropObject = clientInfoProperty.getValue();
 
         // replace client ID string with simple index
         std::string keyPrefix = std::string(CONNECTED_CLIENT_INFO_KEY_PREFIX) + std::to_string(index) + "--";

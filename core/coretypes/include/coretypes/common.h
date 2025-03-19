@@ -244,6 +244,9 @@ daq::ErrCode PUBLIC_EXPORT daqDuplicateCharPtr(daq::ConstCharPtr source,
 extern "C"
 daq::ErrCode PUBLIC_EXPORT daqInterfaceIdToString(const daq::IntfID& iid, daq::CharPtr dest);
 
+extern "C"
+daq::ErrCode PUBLIC_EXPORT daqStringToInterfaceId(const std::string& guidStr, daq::IntfID& iid);
+
 #define OPENDAQ_TYPE_TOSTRING                                             \
     static daq::ErrCode OpenDaqType(daq::CharPtr* str)                    \
     {                                                                     \

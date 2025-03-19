@@ -404,6 +404,29 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 {
     serializer->startTaggedObject(this);
 
+    Int version;
+    serializer->getVersion(&version);
+    if (version > 1)
+    {
+        if (!(keyId == IUnknown::Id))
+        {
+            serializer->key("keyIntfID");
+            
+            char iidString[39];
+            daqInterfaceIdToString(keyId, iidString);
+            serializer->writeString(iidString, 38);
+        }
+
+        if (!(valueId == IUnknown::Id))
+        {
+            serializer->key("valueIntfID");
+            
+            char iidString[39];
+            daqInterfaceIdToString(valueId, iidString);
+            serializer->writeString(iidString, 38);
+        }
+    }
+
     serializer->key("values");
     serializer->startList();
 
@@ -466,13 +489,33 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 
 ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
+    Bool hasKey = false;
+    IntfID keyId = IUnknown::Id;
+    ser->hasKey(String("keyIntfID"), &hasKey);
+    if (hasKey)
+    {
+        StringPtr str;
+        ser->readString(String("keyIntfID"), &str);
+        daqStringToInterfaceId(str, keyId);
+    }
+    
+    hasKey = false;
+    IntfID valueId = IUnknown::Id;
+    ser->hasKey(String("valueIntfID"), &hasKey);
+    if (hasKey)
+    {
+        StringPtr str;
+        ser->readString(String("valueIntfID"), &str);
+        daqStringToInterfaceId(str, valueId);
+    }
+
     SerializedListPtr list = nullptr;
     ser->readSerializedList(String("values"), &list);
 
     SizeT length;
     list->getCount(&length);
-
-    DictObjectPtr<IDict, IBaseObject, IBaseObject> dict = Dict_Create();
+    
+    DictObjectPtr<IDict, IBaseObject, IBaseObject> dict = createWithImplementation<IDict, DictImpl>(keyId, valueId);
 
     for (SizeT i = 0; i < length; i++)
     {

@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#733](https://github.com/openDAQ/openDAQ/pull/733) Introduces serializer versioning; openDAQ list objects are now serialized as objects instead of JSON arrays.
 - [#718](https://github.com/openDAQ/openDAQ/pull/718) Adds new Native Configuration Protocol RPCs for handling sub-function blocks (function blocks that are children of other FBs.
 - [#642](https://github.com/openDAQ/openDAQ/pull/642) Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
 - [#638](https://github.com/openDAQ/openDAQ/pull/638) Adds a tick tolerance option to the `MultiReader`, allowing for the limitation of inter-sample offsets between read signals.
@@ -30,6 +31,7 @@
 
 ## Bug fixes
 
+- [#733](https://github.com/openDAQ/openDAQ/pull/733) Fixes list/dictionary deserialization not containing key/value/item interface IDs. Requires server-side update.
 - [#731](https://github.com/openDAQ/openDAQ/pull/731) Fixes nested object access over OPC UA. Object properties original PropertyObject is now stored in PropertyObjectImpl; PropertyImpl now contains the clone.
 - [#719](https://github.com/openDAQ/openDAQ/pull/719) Fixes error when accessing selection property values using "dot" notation (eg. `getPropertySelectionValue("child.val")`).
 - [#703](https://github.com/openDAQ/openDAQ/pull/703) Fixes invalid response of openDAQ mDNS wrapper for unicast queries.
@@ -51,6 +53,7 @@
 ## Misc
 
 - [#728](https://github.com/openDAQ/openDAQ/pull/728) Add timeout on to re-scan after for available devices after 5s in the module manager call `createDevice`.
+- [#725](https://github.com/openDAQ/openDAQ/pull/725) Optimizes packet reading in the openDAQ Native Streaming server. Adds method of dequeuing packets directly into preallocated packet list. 
 - [#714](https://github.com/openDAQ/openDAQ/pull/714) Set of permission manager optimizations that reduce the number of Dictionary object creations on Property/PropertyObject construction.
 - [#706](https://github.com/openDAQ/openDAQ/pull/706) Limit reference device channel count to min/max values.
 - [#702](https://github.com/openDAQ/openDAQ/pull/702) Native streaming packet transmission performance optimizations.

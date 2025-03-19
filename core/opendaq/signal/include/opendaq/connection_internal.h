@@ -32,6 +32,7 @@ DECLARE_OPENDAQ_INTERFACE(IConnectionInternal, IBaseObject)
      * @brief Enqueues an event packet with the last descriptor at the front of the queue.
      */
     virtual ErrCode INTERFACE_FUNC enqueueLastDescriptor() = 0;
+	virtual ErrCode INTERFACE_FUNC dequeueUpTo(IPacket** packetPtr, SizeT* count) = 0;
 };
 
 /*!@}*/

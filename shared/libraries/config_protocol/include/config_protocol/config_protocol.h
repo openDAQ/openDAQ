@@ -177,9 +177,17 @@ public:
     ClientType connectionType = ClientType::Control;
 };
 
+inline std::set<uint16_t> createListOfSupportedVersions(uint16_t maxVersion)
+{
+    std::set<uint16_t> supportedVersions;
+    for (uint16_t i = 0; i <= maxVersion; ++i)
+        supportedVersions.insert(i);
+    return supportedVersions;
+}
+
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    return {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    return createListOfSupportedVersions(10);
 }
 
 inline constexpr uint16_t GetLatestConfigProtocolVersion()

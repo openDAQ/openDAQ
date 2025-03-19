@@ -1,6 +1,8 @@
 #include <discovery_common/daq_discovery_common.h>
 #include <cctype>
 #include <map>
+#include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/property_object_internal_ptr.h>
 
 BEGIN_NAMESPACE_DISCOVERY_COMMON
 
@@ -67,38 +69,6 @@ size_t DiscoveryUtils::getTxtRecordsCount(const void* buffer, size_t size, size_
     return count;
 }
 
-// Accepts only stripped JSON
-TxtProperties DiscoveryUtils::jsonToTxt(const std::string& serialized, const std::string& name)
-{
-    // TODO verify value strings from json for restricted symbols
-    assert(!std::any_of(serialized.begin(), serialized.end(),
-                        [](unsigned char c) { return c == '=' || !std::isprint(c); }));
-//    const char* Backspace = "BACKSPACE";                // \x08
-//    const char* Tab = "TAB";                            // \x09
-//    const char* NewLine = "NEW-LINE";                   // \x0A
-//    const char* CarriageReturn = "CARRIAGE-RETURN";     // \x0D
-//    const char* Escape = "ESCAPE";                      // \x1B
-//    const char* EqualSign = "EQUAL-SIGN";               // '='
-
-    auto result = TxtProperties();
-
-    // split serialized string into chunks suitable for TXT record key-value pair restrictions
-    for (size_t keyValuePairIndex = 0, pos = 0; pos < serialized.size(); ++keyValuePairIndex)
-    {
-        std::string key = name + SERIALIZED_PROPERTY_SUFFIX + std::to_string(keyValuePairIndex);
-
-        size_t startPos = pos;
-        size_t endPos = 254 - key.size() + pos;
-        std::string value = serialized.substr(startPos, (endPos > serialized.size()) ? std::string::npos : endPos - startPos);
-
-        result.insert({key, value});
-
-        pos += value.size();
-    }
-
-    return result;
-}
-
 TxtProperties DiscoveryUtils::readTxtRecord(size_t size, const void* buffer, size_t rdata_offset, size_t rdata_length)
 {
     size_t recordsCount = getTxtRecordsCount(buffer, size, rdata_offset, rdata_length);
@@ -149,42 +119,86 @@ std::string DiscoveryUtils::toTxtValue(const char* source, size_t length)
     return result;
 }
 
-TxtProperties DiscoveryUtils::serializeObjectToTxtProperty(const BaseObjectPtr& object, const StringPtr& propertyName)
+TxtProperties DiscoveryUtils::connectedClientsInfoToTxt(const PropertyObjectPtr& connectedClientsInfo)
 {
-    auto jsonSerializer = JsonSerializer(False);
-    object.serialize(jsonSerializer);
-    const auto serializedToJson = jsonSerializer.getOutput();
+    TxtProperties result;
 
-    return jsonToTxt(serializedToJson, propertyName);
+    size_t index = 0;
+    for (const auto& property : connectedClientsInfo.getAllProperties())
+    {
+        const PropertyObjectPtr connectedClientPropObject = property.getValue();
+
+        // replace client ID string with simple index
+        std::string keyPrefix = std::string(CONNECTED_CLIENT_INFO_KEY_PREFIX) + std::to_string(index) + "--";
+        ++index;
+
+        for (const auto& property : connectedClientPropObject.getAllProperties())
+        {
+            if (property.getValueType() == CoreType::ctString)
+            {
+                std::string propName = property.getName().toStdString();
+                bool invalidTxtKey = std::any_of(propName.begin(), propName.end(),
+                                                 [](unsigned char c) { return c == '=' || !std::isprint(c); });
+                if (invalidTxtKey)
+                    continue;
+                std::string key = keyPrefix + propName;
+                if (key.size() < 254) // insert if at least first symbol of value fits into TXT record
+                {
+                    std::string propValue = property.getValue().asPtr<IString>().toStdString();
+                    std::string txtValue = toTxtValue(propValue.c_str(), 254 - key.size());
+                    result.insert({key, txtValue});
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
-BaseObjectPtr DiscoveryUtils::deserializeObjectFromTxtProperties(const TxtProperties& txtKeyValuePairs,
-                                                                 const StringPtr& propertyName)
+void DiscoveryUtils::populateConnectedClientsInfo(PropertyObjectPtr& deviceInfo,
+                                                  const PropertyObjectPtr& defaultClientInfo,
+                                                  const TxtProperties& txtKeyValuePairs)
 {
-    // get related key-value pairs in order
-    std::string prefix = propertyName.toStdString() + SERIALIZED_PROPERTY_SUFFIX;
-    auto comparator = [prefixSize = prefix.size()](const std::string& stringA, const std::string& stringB)
+    if (!defaultClientInfo.assigned() || !deviceInfo.assigned())
+        return;
+
+    const auto setProtectedPropertyValue = [](PropertyObjectPtr propertyObject,
+                                              const StringPtr& propertyName,
+                                              const BaseObjectPtr& propertyValue)
     {
-        return std::stoi(stringA.substr(prefixSize)) < std::stoi(stringB.substr(prefixSize));
+        if (auto protectedObj = propertyObject.asPtrOrNull<IPropertyObjectProtected>(); protectedObj.assigned())
+            protectedObj.setProtectedPropertyValue(propertyName, propertyValue);
+        else
+            propertyObject->setPropertyValue(propertyName, propertyValue); // Ignore errors
     };
-    std::map<std::string, std::string, std::function<bool(const std::string&, const std::string&)>> orderedValueStrings(comparator);
 
-    for (const auto& [key, value] : txtKeyValuePairs)
-        if (key.find(prefix) == 0)
-            orderedValueStrings.insert({key, value});
-    if (orderedValueStrings.empty())
-        return nullptr;
+    PropertyObjectPtr clientsInfo = deviceInfo.getPropertyValue("connectedClientsInfo");
+    for (const auto& [txtKey, txtValue] : txtKeyValuePairs)
+    {
+        std::string prefix(CONNECTED_CLIENT_INFO_KEY_PREFIX);
+        if (txtKey.find(prefix) == std::string::npos)
+            continue;
 
-    // prepare full string
-    std::string serializedPropertyObject;
-    for (const auto& [key, value] : orderedValueStrings)
-        serializedPropertyObject += value;
-    if (serializedPropertyObject.empty())
-        return nullptr;
+        auto prefixSize = prefix.size();
+        if (const auto pos = txtKey.find("--", prefixSize); pos != std::string::npos && pos < (txtKey.size() - 2))
+        {
+            std::string clientId = txtKey.substr(prefixSize, pos - prefixSize);
+            std::string propName = txtKey.substr(pos + 2);
 
-    // deserialize
-    auto deserializer = JsonDeserializer();
-    return deserializer.deserialize(String(serializedPropertyObject));
+            if (!clientsInfo.hasProperty(clientId))
+                clientsInfo.addProperty(ObjectProperty(clientId, defaultClientInfo.asPtr<IPropertyObjectInternal>().clone()));
+
+            PropertyObjectPtr clientInfo = clientsInfo.getPropertyValue(clientId);
+            if (clientInfo.hasProperty(propName))
+                setProtectedPropertyValue(clientInfo, String(propName), static_cast<daq::BaseObjectPtr>(txtValue));
+            else
+                clientInfo.addProperty(StringPropertyBuilder(propName, txtValue).setReadOnly(true).build());
+
+            setProtectedPropertyValue(clientsInfo, String(clientId), clientInfo);
+        }
+    }
+
+    setProtectedPropertyValue(deviceInfo, "connectedClientsInfo", clientsInfo);
 }
 
 END_NAMESPACE_DISCOVERY_COMMON

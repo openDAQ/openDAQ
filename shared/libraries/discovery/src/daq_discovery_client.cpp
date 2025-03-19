@@ -71,11 +71,6 @@ void addInfoProperty(PropertyObjectPtr& info, std::string propName, T propValue)
         {
             builder = BoolProperty(propName, propValue);
         }
-        else if constexpr (std::is_same_v<T, BaseObjectPtr>)
-        {
-            builder = PropertyBuilder(propName);
-            builder.setDefaultValue(propValue);
-        }
 
         if (builder.assigned())
         {
@@ -85,40 +80,16 @@ void addInfoProperty(PropertyObjectPtr& info, std::string propName, T propValue)
     }
 }
 
-void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info, const MdnsDiscoveredDevice& device)
+void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info,
+                                                       const MdnsDiscoveredDevice& device,
+                                                       const PropertyObjectPtr& defaultConnectedClientInfo)
 {
-    std::unordered_set<std::string> deserializedPropNames;
     for (const auto& prop : device.properties)
     {
-        if (const auto pos = prop.first.find(discovery_common::DiscoveryUtils::SERIALIZED_PROPERTY_SUFFIX);
-            pos != std::string::npos)
-        {
-            std::string propertyName = prop.first.substr(0, pos);
-            if (deserializedPropNames.find(propertyName) == deserializedPropNames.end())
-            {
-                populateDiscoveredInfoSerializedProperty(info, device, propertyName);
-                deserializedPropNames.insert(propertyName);
-            }
-        }
-        else
-        {
+        if (prop.first.find(discovery_common::DiscoveryUtils::CONNECTED_CLIENT_INFO_KEY_PREFIX) == std::string::npos)
             addInfoProperty(info, prop.first, prop.second);
-        }
     }
-}
-
-void DiscoveryClient::populateDiscoveredInfoSerializedProperty(PropertyObjectPtr& info,
-                                                               const MdnsDiscoveredDevice& device,
-                                                               const std::string& propertyName)
-{
-    try
-    {
-        const auto objectProperty =
-            discovery_common::DiscoveryUtils::deserializeObjectFromTxtProperties(device.properties, propertyName);
-        if (objectProperty.assigned())
-            addInfoProperty(info, propertyName, objectProperty);
-    }
-    catch (...) {}
+    discovery_common::DiscoveryUtils::populateConnectedClientsInfo(info, defaultConnectedClientInfo, device.properties);
 }
 
 ErrCode DiscoveryClient::applyIpConfiguration(const StringPtr& manufacturer,

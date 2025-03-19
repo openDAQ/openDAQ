@@ -73,6 +73,11 @@ DECLARE_OPENDAQ_INTERFACE(IConnectedClientInfo, IPropertyObject)
  */
 
 /*!
+ * @brief Creates a Connected client with no parameters configured.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, ConnectedClientInfo, IConnectedClientInfo)
+
+/*!
  * @brief Creates a Connected client info using the provided parameters.
  * @param address The address of connected client.
  * @param protocolType The type of the protocol type used by the client.
@@ -81,7 +86,7 @@ DECLARE_OPENDAQ_INTERFACE(IConnectedClientInfo, IPropertyObject)
  * @param hostName The host name of connected client.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, ConnectedClientInfo, IConnectedClientInfo,
+    LIBRARY_FACTORY, ConnectedClientInfoWithParams, IConnectedClientInfo,
     IString*, address,
     ProtocolType, protocolType,
     IString*, protocolName,

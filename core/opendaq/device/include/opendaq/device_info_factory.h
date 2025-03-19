@@ -57,7 +57,13 @@ inline ConnectedClientInfoPtr ConnectedClientInfo(const StringPtr& address,
                                                   const StringPtr& clientType,
                                                   const StringPtr& hostName)
 {
-    ConnectedClientInfoPtr obj(ConnectedClientInfo_Create(address, protocolType, protocolName, clientType, hostName));
+    ConnectedClientInfoPtr obj(ConnectedClientInfoWithParams_Create(address, protocolType, protocolName, clientType, hostName));
+    return obj;
+}
+
+inline ConnectedClientInfoPtr ConnectedClientInfo()
+{
+    ConnectedClientInfoPtr obj(ConnectedClientInfo_Create());
     return obj;
 }
 

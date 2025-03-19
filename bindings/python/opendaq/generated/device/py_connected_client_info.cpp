@@ -40,9 +40,10 @@ void defineIConnectedClientInfo(pybind11::module_ m, PyDaqIntf<daq::IConnectedCl
 {
     cls.doc() = "";
 
-    m.def("ConnectedClientInfo", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& url, daq::ProtocolType protocolType, std::variant<daq::IString*, py::str, daq::IEvalValue*>& protocolName, std::variant<daq::IString*, py::str, daq::IEvalValue*>& clientType, std::variant<daq::IString*, py::str, daq::IEvalValue*>& hostName){
-        return daq::ConnectedClientInfo_Create(getVariantValue<daq::IString*>(url), protocolType, getVariantValue<daq::IString*>(protocolName), getVariantValue<daq::IString*>(clientType), getVariantValue<daq::IString*>(hostName));
-    }, py::arg("url"), py::arg("protocol_type"), py::arg("protocol_name"), py::arg("client_type"), py::arg("host_name"));
+    m.def("ConnectedClientInfo", &daq::ConnectedClientInfo_Create);
+    m.def("ConnectedClientInfoWithParams", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& address, daq::ProtocolType protocolType, std::variant<daq::IString*, py::str, daq::IEvalValue*>& protocolName, std::variant<daq::IString*, py::str, daq::IEvalValue*>& clientType, std::variant<daq::IString*, py::str, daq::IEvalValue*>& hostName){
+        return daq::ConnectedClientInfoWithParams_Create(getVariantValue<daq::IString*>(address), protocolType, getVariantValue<daq::IString*>(protocolName), getVariantValue<daq::IString*>(clientType), getVariantValue<daq::IString*>(hostName));
+    }, py::arg("address"), py::arg("protocol_type"), py::arg("protocol_name"), py::arg("client_type"), py::arg("host_name"));
 
 
     cls.def_property_readonly("address",

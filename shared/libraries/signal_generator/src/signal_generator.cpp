@@ -11,7 +11,6 @@ BEGIN_NAMESPACE_OPENDAQ
 SignalGenerator::SignalGenerator(const SignalConfigPtr& signal,
                                  std::chrono::time_point<std::chrono::system_clock> absTime)
     : signal(signal)
-    , bUseOfBuffer(false)
     , tick(0)
 {
     generateFunc = [](uint64_t tick, void* valueOut) {};

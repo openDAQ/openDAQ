@@ -89,7 +89,7 @@ private:
     uint64_t packetSize;
     StringPtr referenceDomainId;
     std::unique_ptr<daq::PacketBuffer> pb;
-    bool bUseOfBuffer;
+    bool bUseOfBuffer = false;
     daq::IdsParser* idp;
 
     void packetBufferSetup();

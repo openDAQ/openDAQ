@@ -41,7 +41,6 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     , samplesGenerated(0)
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
-    , bUseOfBuffer(false)
     , referenceDomainId(init.referenceDomainId)
     //, pb(PacketBuffer((size_t) packetSize, (size_t)1024))
 {

@@ -57,7 +57,7 @@ protected:
     RatioPtr resolution;
     uint64_t absStartTick = 0;
     std::unique_ptr<PacketBuffer> packetBuff;
-    bool bUseOfBuffer;
+    bool bUseOfBuffer = false;
 };
 
 END_NAMESPACE_OPENDAQ

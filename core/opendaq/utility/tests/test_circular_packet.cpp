@@ -365,13 +365,13 @@ TEST_F(CircularPacketTest, TestReset)
     std::condition_variable start_up_assurance;
     auto [descriptor, domain] = generate_building_blocks();
 
-    std::thread th1(createAndWaitPacket, &pb, descriptor, domain, &start_up_assurance);
+    std::thread th1(createAndWaitPacket, (& pb, descriptor, domain, &start_up_assurance));
 
-    std::thread th2(createAndWaitPacket, &pb, descriptor, domain, &start_up_assurance);
+    std::thread th2(createAndWaitPacket, (&pb, descriptor, domain, &start_up_assurance));
 
-    std::thread th3(createAndWaitPacket, &pb, descriptor, domain, &start_up_assurance);
+    std::thread th3(createAndWaitPacket, (& pb, descriptor, domain, &start_up_assurance));
 
-    std::thread th4(createAndWaitPacket, &pb, descriptor, domain, &start_up_assurance);
+    std::thread th4(createAndWaitPacket, (& pb, descriptor, domain, &start_up_assurance));
 
     std::mutex gh;
     std::unique_lock<std::mutex> rezan(gh);

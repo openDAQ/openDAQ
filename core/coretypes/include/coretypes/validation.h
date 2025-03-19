@@ -31,7 +31,7 @@
 
 #ifdef NDEBUG
     #define OPENDAQ_PARAM_NOT_NULL(param) \
-        do { if (nullptr == (param)) return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter %s must not be null in the function \"%s\"", #param, OPENDAQ_CURRENT_FUNCTION); } while (0)
+        do { if (nullptr == (param)) return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter %s must not be null in the function \"%s\"", #param, __func__); } while (0)
 #else
     #define OPENDAQ_PARAM_NOT_NULL(param) \
         do { if (nullptr == (param)) return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter %s must not be null", #param); } while (0)

@@ -13,7 +13,7 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
                                    const ComponentPtr& parent,
                                    const StringPtr& localId,
                                    const PropertyObjectPtr& config)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+    : FunctionBlock(CreateType(), ctx, parent, localId, nullptr, config)
 {
     initComponentStatus();
     initProperties();
@@ -109,8 +109,6 @@ void StatisticsFbImpl::initProperties()
     objPtr.addProperty(overlapProperty);
     objPtr.getOnPropertyValueWrite("Overlap") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(); };
-
-    objPtr.addProperty(BoolPropertyBuilder("UseMultiThreadedScheduler", packetReadyNotification != PacketReadyNotification::SameThread).setReadOnly(true).build());
 
     readProperties();
 }

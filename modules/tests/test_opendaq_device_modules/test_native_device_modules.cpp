@@ -101,7 +101,6 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
     auto instance = InstanceCustom(context, "clientLocal");
 
     auto config = instance.createDefaultAddDeviceConfig();
-    config.addProperty(StringProperty("TestKey", "TestValue"));
 
     PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
@@ -2642,6 +2641,10 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
     {
         auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
         auto client = CreateClientInstance();
+        
+        auto deviceConfig = client.createDefaultAddDeviceConfig();
+        deviceConfig.addProperty(StringProperty("TestKey", "TestValue"));
+        client.getDevices()[0].addDevice("daqref://device1", deviceConfig);
         config = client.saveConfiguration();
     }
 
@@ -2650,7 +2653,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
     auto restoredClient = Instance();
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
 
-    auto devices = restoredClient.getDevices();
+    auto devices = restoredClient.getDevices()[0].getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto deviceConfig = devices[0].asPtr<IDevicePrivate>().getDeviceConfig();
@@ -2669,7 +2672,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
         auto clientRoot = client.getDevices()[0];
 
         auto fbConfig = PropertyObject();
-        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
 
         auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
         config = client.saveConfiguration();
@@ -2687,7 +2690,10 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
     ASSERT_EQ(clientRoot.getFunctionBlocks().getCount(), 1u);
 
     auto fb = clientRoot.getFunctionBlocks()[0];
-    ASSERT_TRUE(fb.getPropertyValue("UseMultiThreadedScheduler"));
+    auto fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(fbConfig.assigned());
+    ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+    ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)

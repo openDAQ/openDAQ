@@ -10,7 +10,7 @@ namespace Trigger
 {
 
 TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+    : FunctionBlock(CreateType(), ctx, parent, localId, nullptr, config)
 {
     initComponentStatus();
 

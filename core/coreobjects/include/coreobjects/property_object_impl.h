@@ -718,6 +718,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
                                                                                            bool isUpdating)
 {
     const auto name = prop.getName();
+    const auto defaultValue = prop.getDefaultValue();
 
     if (!updatePropertyStack.registerPropertyUpdating(name, newValue))
         return OPENDAQ_IGNORED;
@@ -737,11 +738,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
         daqClearErrorInfo();
-        oldValue = prop.getDefaultValue();
+        oldValue = defaultValue;
     }
     errCode = OPENDAQ_SUCCESS;
 
-    auto args = PropertyValueEventArgs(prop, newValue, oldValue, changeType, isUpdating);
+    PropertyValueEventArgsPtr args;
+    if (changeType == PropertyEventType::Clear)
+        args = PropertyValueEventArgs(prop, defaultValue, oldValue, changeType, isUpdating);
+    else
+        args = PropertyValueEventArgs(prop, newValue, oldValue, changeType, isUpdating);
+
     if (!localProperties.count(name))
     {
         const PropertyValueEventEmitter propEvent{prop.asPtr<IPropertyInternal>(true).getClassOnPropertyValueWrite()};
@@ -768,6 +774,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     if (shouldUpdate)
     {
         // setting the final value is only done in the top level of the stack
+        if (changeType == PropertyEventType::Clear && args.getValue() == defaultValue)
+            return OPENDAQ_SUCCESS;
+
         if (newValue == args.getValue())
             return OPENDAQ_SUCCESS;
         

@@ -192,12 +192,18 @@ ErrCode ConnectedClientInfoImpl::clone(IPropertyObject** cloned)
 #if !defined(BUILDING_STATIC_LIBRARY)
 
 extern "C"
-    ErrCode PUBLIC_EXPORT createConnectedClientInfo(IConnectedClientInfo** objTmp,
-                              IString* address,
-                              ProtocolType protocolType,
-                              IString* protocolName,
-                              IString* clientType,
-                              IString* hostName)
+    ErrCode PUBLIC_EXPORT createConnectedClientInfo(IConnectedClientInfo** objTmp)
+{
+    return daq::createObject<IConnectedClientInfo, ConnectedClientInfoImpl>(objTmp);
+}
+
+extern "C"
+    ErrCode PUBLIC_EXPORT createConnectedClientInfoWithParams(IConnectedClientInfo** objTmp,
+                                                              IString* address,
+                                                              ProtocolType protocolType,
+                                                              IString* protocolName,
+                                                              IString* clientType,
+                                                              IString* hostName)
 {
     return daq::createObject<IConnectedClientInfo, ConnectedClientInfoImpl>(objTmp, address, protocolType, protocolName, clientType, hostName);
 }

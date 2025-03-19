@@ -104,7 +104,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                                  nodeId,
                                  {{"UserName", "userName"}, {"Location", "location"}})
     , logger(ctx.getLogger())
-    , loggerComponent( this->logger.assigned()
+    , loggerComponent(this->logger.assigned()
                           ? this->logger.getOrAddComponent("TmsClientDevice")
                           : throw ArgumentNullException("Logger must not be null"))
 {
@@ -119,6 +119,8 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
     findAndCreateSyncComponent();
+    // just to remove information about the device configuration property
+    findAndCreateComponentConfig();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
@@ -142,7 +144,6 @@ ErrCode TmsClientDeviceImpl::getAvailableOperationModes(IList** availableOpModes
     *availableOpModes = opModesNodeStrList.detach();
 
     return OPENDAQ_SUCCESS;
-
 }
 
 ErrCode TmsClientDeviceImpl::setOperationMode(IString* modeType)

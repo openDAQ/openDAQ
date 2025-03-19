@@ -76,7 +76,7 @@ public:
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
-    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
+    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
 
     virtual ListPtr<IDeviceInfo> onGetAvailableDevices();
     virtual DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes();
@@ -1448,8 +1448,13 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObject** config)
 {
     OPENDAQ_PARAM_NOT_NULL(config);
-    *config = this->componentConfig.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    if (this->componentConfig.assigned())
+    {
+        *config = this->componentConfig.detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+    return this->getComponentConfig(config);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -1776,7 +1781,10 @@ void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::st
         else
             config = PropertyObject();
 
-        config.addProperty(StringProperty("LocalId", fbId));
+        if (!config.hasProperty("LocalId"))
+            config.addProperty(StringProperty("LocalId", fbId));
+        else
+            config.setPropertyValue("LocalId", fbId);
 
         auto fb = onAddFunctionBlock(typeId, config);
         updatableFb = fb.template asPtr<IUpdatable>(true);

@@ -70,7 +70,7 @@ TmsServerComponent<Ptr>::TmsServerComponent(const ComponentPtr& object, const Op
     , selfChange(false)
 {
     tmsPropertyObject = std::make_unique<TmsServerPropertyObject>(this->object, this->server, this->daqContext, this->tmsContext, std::unordered_set<std::string>{"Name", "Description"});
-    if (auto componentPrivate = this->object.template asPtr<IComponentPrivate>(true); componentPrivate.assigned())
+    if (auto componentPrivate = this->object.template asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
     {
         auto componentConfig = componentPrivate.getComponentConfig();
         if (componentConfig.assigned())

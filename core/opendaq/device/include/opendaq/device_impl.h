@@ -76,7 +76,7 @@ public:
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
-    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
+    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     virtual ListPtr<IDeviceInfo> onGetAvailableDevices();
     virtual DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes();

@@ -213,7 +213,7 @@ PropertyObjectPtr TmsClientComponentBaseImpl<Impl>::findAndCreateComponentConfig
     PropertyObjectPtr componentConfig;
     if (const auto& objIt = this->objectTypeIdMap.find("ComponentConfig"); objIt != this->objectTypeIdMap.cend())
     {
-        componentConfig = TmsClientPropertyObject(daqContext, clientContext, objIt->second);
+        componentConfig = TmsClientPropertyObject(this->daqContext, this->clientContext, objIt->second);
         this->objectTypeIdMap.erase(objIt);
     }
     return componentConfig;

@@ -41,6 +41,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     , samplesGenerated(0)
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
+    , bUseOfBuffer(false)
     , referenceDomainId(init.referenceDomainId)
     //, pb(PacketBuffer((size_t) packetSize, (size_t)1024))
 {
@@ -60,6 +61,8 @@ void RefChannelImpl::packetBufferSetup()
 {
     // I should make the buffer size dynamic, but where can I find approximate sizes
     //init = PacketBufferInit()
+
+    //auto init = daq::PacketBufferInit()
     std::cout << (globalSampleRate) << std::endl;
     pb = std::make_unique<daq::PacketBuffer>((size_t) packetSize, (size_t)16384);
 }
@@ -354,13 +357,13 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
     }
     else
     {
-        if (false)
+        if (bUseOfBuffer) // Here I need to create a PacketBufferInit that will allow to correctly toggle
         {
-            dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+            dataPacket = pb->createPacket(&newSamples, valueSignal.getDescriptor(), domainPacket);
         }
         else
         {
-            dataPacket = pb->createPacket(&newSamples, valueSignal.getDescriptor(), domainPacket);
+            dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
         }
 
         if (dataPacket == nullptr)

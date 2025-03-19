@@ -35,11 +35,11 @@ TEST_F(ConnectedClientInfoTest, CustomProperties)
     clientInfo.addProperty(StringProperty("Location", "Office"));
     ASSERT_EQ(clientInfo.getPropertyValue("Location"), "Office");
 
-    ASSERT_NO_THROW(clientInfo.addProperty(IntProperty("ElapsedTime", 999)));
-    ASSERT_NO_THROW(clientInfo.addProperty(FloatProperty("SomeMetric", 172.4)));
-    ASSERT_NO_THROW(clientInfo.addProperty(BoolProperty("IsActive", true)));
+    ASSERT_ANY_THROW(clientInfo.addProperty(IntProperty("ElapsedTime", 999)));
+    ASSERT_ANY_THROW(clientInfo.addProperty(FloatProperty("SomeMetric", 172.4)));
+    ASSERT_ANY_THROW(clientInfo.addProperty(BoolProperty("IsActive", true)));
 
-    ASSERT_EQ(clientInfo.getAllProperties().getCount(), 4u + defaultPropertiesCnt);
+    ASSERT_EQ(clientInfo.getAllProperties().getCount(), 1u + defaultPropertiesCnt);
 }
 
 TEST_F(ConnectedClientInfoTest, Freezable)
@@ -64,9 +64,6 @@ TEST_F(ConnectedClientInfoTest, SerializeDeserialize)
                             "Host name");
 
     clientInfo.addProperty(StringProperty("Location", "Office"));
-    clientInfo.addProperty(IntProperty("ElapsedTime", 999));
-    clientInfo.addProperty(FloatProperty("SomeMetric", 172.4));
-    clientInfo.addProperty(BoolProperty("IsActive", true));
 
     const auto serializer = JsonSerializer();
     clientInfo.serialize(serializer);

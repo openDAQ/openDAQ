@@ -131,6 +131,25 @@ ErrCode ConnectedClientInfoImpl::getInterfaceIds(SizeT* idCount, IntfID** ids)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ConnectedClientInfoImpl::addProperty(IProperty* property)
+{
+    OPENDAQ_PARAM_NOT_NULL(property);
+
+    StringPtr name;
+    property->getName(&name);
+
+    CoreType type;
+    property->getValueType(&type);
+    if (type != CoreType::ctString)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Only String properties can be added to Connected Client Info.");
+
+    BaseObjectPtr selValues;
+    if (property->getSelectionValues(&selValues); selValues.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Selection-type properties cannot be added to Connected Client Info.");
+
+    return Super::addProperty(property);
+}
+
 ErrCode ConnectedClientInfoImpl::getSerializeId(ConstCharPtr* id) const
 {
     *id = SerializeId();

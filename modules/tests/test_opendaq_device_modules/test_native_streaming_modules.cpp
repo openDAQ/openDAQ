@@ -741,8 +741,8 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
     auto serverSignals = server.getSignalsRecursive(search::Any());
     ASSERT_EQ(serverSignals.getCount(), 5u);
 
-    serverSignals[0].getPermissionManager().setPermissions(permissions);
-    serverSignals[1].getPermissionManager().setPermissions(permissions);
+    serverSignals[2].getPermissionManager().setPermissions(permissions);
+    serverSignals[3].getPermissionManager().setPermissions(permissions);
 
     {
         auto client = CreateClientInstance("admin", "admin");
@@ -754,8 +754,8 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
         auto client = CreateClientInstance("opendaq", "opendaq");
         auto clientSignals = client.getSignalsRecursive(search::Any());
         ASSERT_EQ(clientSignals.getCount(), 3u);
-        ASSERT_EQ(clientSignals[0].getName(), "AI1");
-        ASSERT_EQ(clientSignals[1].getName(), "AI1Time");
+        ASSERT_EQ(clientSignals[0].getName(), "AI0");
+        ASSERT_EQ(clientSignals[1].getName(), "AI0Time");
     }
 }
 

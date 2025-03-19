@@ -1,6 +1,7 @@
 #include <discovery_common/daq_discovery_common.h>
 #include <cctype>
 #include <map>
+#include <set>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
 
@@ -123,13 +124,19 @@ TxtProperties DiscoveryUtils::connectedClientsInfoToTxt(const PropertyObjectPtr&
 {
     TxtProperties result;
 
+    const auto zeroPadNumber =
+        [width = std::to_string(connectedClientsInfo.getAllProperties().getCount() - 1).size()](size_t index)
+        {
+            return std::string(width - std::to_string(index).size(), '0') + std::to_string(index);
+        };
+
     size_t index = 0;
     for (const auto& clientInfoProperty : connectedClientsInfo.getAllProperties())
     {
         const PropertyObjectPtr connectedClientPropObject = clientInfoProperty.getValue();
 
-        // replace client ID string with simple index
-        std::string keyPrefix = std::string(CONNECTED_CLIENT_INFO_KEY_PREFIX) + std::to_string(index) + "--";
+        // replace client ID string with lexicographically ordered index string
+        std::string keyPrefix = std::string(CONNECTED_CLIENT_INFO_KEY_PREFIX) + zeroPadNumber(index) + "--";
         ++index;
 
         for (const auto& property : connectedClientPropObject.getAllProperties())
@@ -172,6 +179,7 @@ void DiscoveryUtils::populateConnectedClientsInfo(PropertyObjectPtr& deviceInfo,
             propertyObject->setPropertyValue(propertyName, propertyValue); // Ignore errors
     };
 
+    std::set<std::string> orderedClientIds;
     PropertyObjectPtr clientsInfo = deviceInfo.getPropertyValue("connectedClientsInfo");
     for (const auto& [txtKey, txtValue] : txtKeyValuePairs)
     {
@@ -186,7 +194,10 @@ void DiscoveryUtils::populateConnectedClientsInfo(PropertyObjectPtr& deviceInfo,
             std::string propName = txtKey.substr(pos + 2);
 
             if (!clientsInfo.hasProperty(clientId))
+            {
+                orderedClientIds.insert(clientId);
                 clientsInfo.addProperty(ObjectProperty(clientId, defaultClientInfo.asPtr<IPropertyObjectInternal>().clone()));
+            }
 
             PropertyObjectPtr clientInfo = clientsInfo.getPropertyValue(clientId);
             if (clientInfo.hasProperty(propName))
@@ -197,6 +208,12 @@ void DiscoveryUtils::populateConnectedClientsInfo(PropertyObjectPtr& deviceInfo,
             setProtectedPropertyValue(clientsInfo, String(clientId), clientInfo);
         }
     }
+
+    // restore lexicographical order to match the original server order
+    auto propertyOrder = List<IString>();
+    for (const auto& clientId : orderedClientIds)
+        propertyOrder.pushBack(String(clientId));
+    clientsInfo.setPropertyOrder(propertyOrder);
 
     setProtectedPropertyValue(deviceInfo, "connectedClientsInfo", clientsInfo);
 }

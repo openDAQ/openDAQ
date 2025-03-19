@@ -54,6 +54,8 @@ public:
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
     ErrCode INTERFACE_FUNC getInputPort(IInputPort** inputPort) override;
 
+    ErrCode INTERFACE_FUNC dequeueUpTo(IPacket** packetPtr, SizeT* count) override;
+
     ErrCode INTERFACE_FUNC getAvailableSamples(SizeT* samples) override;
     ErrCode INTERFACE_FUNC getSamplesUntilNextDescriptor(SizeT* samples) override;
     ErrCode INTERFACE_FUNC getSamplesUntilNextEventPacket(SizeT* samples) override;
@@ -121,6 +123,7 @@ private:
     void beginGapCheck(const DataPacketPtr& domainPacket);
     bool doGapCheck(const DataPacketPtr& domainPacket, DomainValue& diff);
     void initGapCheck(const EventPacketPtr& packet);
+    void countPackets();
 
     DomainValue numberToDomainValue(const NumberPtr& number);
 

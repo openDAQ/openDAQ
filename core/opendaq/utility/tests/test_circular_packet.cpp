@@ -334,9 +334,8 @@ TEST_F(CircularPacketTest, TestMultiThread)
 // in the test thread itself
 int t = 0;
 
-void createAndWaitPacket(daq::PacketBuffer *pb, daq::DataDescriptorPtr desc, daq::DataPacketPtr &dom, std::condition_variable *cv)
+int createAndWaitPacket(daq::PacketBuffer *pb, daq::DataDescriptorPtr desc, daq::DataPacketPtr &dom, std::condition_variable *cv)
 {
-    
     size_t n = 100;
     auto r = pb->createPacket(&n, desc, dom);
     std::mutex re;
@@ -351,6 +350,7 @@ void createAndWaitPacket(daq::PacketBuffer *pb, daq::DataDescriptorPtr desc, daq
     cv->notify_all();
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     std::cout << "Packet was created. " << std::endl;
+    return 1;
 }
 
  void cb(daq::PacketBuffer* pb)
@@ -365,13 +365,13 @@ TEST_F(CircularPacketTest, TestReset)
     std::condition_variable start_up_assurance;
     auto [descriptor, domain] = generate_building_blocks();
 
-    std::thread th1(createAndWaitPacket, (& pb, descriptor, domain, &start_up_assurance));
+    std::thread th1 = std::thread(createAndWaitPacket,&pb, descriptor, domain, &start_up_assurance);
 
-    std::thread th2(createAndWaitPacket, (&pb, descriptor, domain, &start_up_assurance));
+    std::thread th2 = std::thread(createAndWaitPacket,&pb, descriptor, domain, &start_up_assurance);
 
-    std::thread th3(createAndWaitPacket, (& pb, descriptor, domain, &start_up_assurance));
+    std::thread th3 = std::thread(createAndWaitPacket,&pb, descriptor, domain, &start_up_assurance);
 
-    std::thread th4(createAndWaitPacket, (& pb, descriptor, domain, &start_up_assurance));
+    std::thread th4 = std::thread(createAndWaitPacket,&pb, descriptor, domain, &start_up_assurance);
 
     std::mutex gh;
     std::unique_lock<std::mutex> rezan(gh);

@@ -456,11 +456,12 @@ void NativeStreamingServerImpl::startReadThread()
         bool sendData = false;
 
         {
-            SizeT read = 0;
-            bool repeatRead = false;
             std::scoped_lock lock(readersSync);
+            bool repeatRead;
             do
             {
+                repeatRead = false;
+                SizeT read = 0;
                 SizeT count = maxPacketReadCount;
                 for (const auto& [_, signalGlobalId, port, connection] : signalReaders)
                 {

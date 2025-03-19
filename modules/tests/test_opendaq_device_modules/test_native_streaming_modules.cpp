@@ -3,6 +3,7 @@
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/user_factory.h>
+#include <opendaq/mock/mock_device_module.h>
 
 using NativeStreamingModulesTest = testing::Test;
 
@@ -834,11 +835,53 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalUnsubscribeDenied)
     auto serverSignal = server.getSignalsRecursive()[0];
     serverSignal.getPermissionManager().setPermissions(permissionsDenyAll);
 
-    // try to unsibscibe
+    // try to unsubscribe
     std::promise<StringPtr> signalUnsubscribePromise;
     std::future<StringPtr> signalUnsubscribeFuture;
     test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     reader.release();
     ASSERT_FALSE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture, std::chrono::seconds(1)));
+}
+
+TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
+{
+    auto server = Instance();
+    auto moduleManager = server.getModuleManager();
+    const ModulePtr deviceModule(MockDeviceModule_Create(server.getContext()));
+    moduleManager.addModule(deviceModule);
+
+    const auto serverDevice = server.addDevice("daqmock://phys_device");
+
+    auto config = PropertyObject();
+    config.addProperty(IntProperty("MaxPacketReadCount", 1));
+    server.addServer("OpenDAQNativeStreaming", config);
+
+    auto client = Instance();
+    auto clientDevice = client.addDevice("daq.nd://127.0.0.1");
+    
+    auto clientSignal = clientDevice.getSignals(search::Recursive(search::LocalId("ByteStep")))[0];
+    auto serverSignal = serverDevice.getSignals(search::Recursive(search::LocalId("ByteStep")))[0];
+
+    auto mirroredSignalPtr = clientSignal.asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture;
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+
+    auto serverReader = PacketReader(serverSignal);
+    auto clientReader = PacketReader(clientSignal);
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
+
+    const size_t packetsToGenerate = 50;
+    const size_t packetsToRead = packetsToGenerate + 1;
+
+    serverDevice.setPropertyValue("GeneratePackets", packetsToGenerate); 
+
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
+
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }

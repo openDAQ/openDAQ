@@ -29,7 +29,7 @@ TmsClientFunctionBlockBaseImpl<Impl>::TmsClientFunctionBlockBaseImpl(
     findAndCreateFunctionBlocks();
     findAndCreateSignals();
     findAndCreateInputPorts();
-    this->componentConfig = findAndCreateComponentConfig();
+    this->componentConfig = this->findAndCreateComponentConfig();
 }
 
 template <typename Impl>

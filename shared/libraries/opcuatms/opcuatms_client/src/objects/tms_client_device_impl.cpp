@@ -120,7 +120,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateCustomComponents();
     findAndCreateSyncComponent();
     // just to remove information about the device configuration property
-    findAndCreateComponentConfig();
+    this->findAndCreateComponentConfig();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)

@@ -96,6 +96,12 @@ TEST_F(JsonDeserializerTest, floatInf)
     ASSERT_TRUE(std::isinf(deserialized.getValue<Float>(-1)));
 }
 
+TEST_F(JsonDeserializerTest, DeserializeScientificNotationFloat)
+{
+    FloatPtr deserialized = deserializer.deserialize("5e-7");
+    ASSERT_EQ(deserialized.getValue<Float>(-1), 5e-7);
+}
+
 TEST_F(JsonDeserializerTest, intZero)
 {
     IntPtr deserialized = deserializer.deserialize("0");

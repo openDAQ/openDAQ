@@ -202,7 +202,7 @@ ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* contex
 {
     TypeManagerPtr typeManager;
     if (context == nullptr || OPENDAQ_FAILED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager))))
-        return OPENDAQ_ERR_NO_TYPE_MANAGER;
+        return OPENDAQ_MAKE_ERROR(OPENDAQ_ERR_NO_TYPE_MANAGER, "Type manager must be assigned on Enumeration object creation.");
 
     StringPtr typeName;
     ErrCode errCode = ser->readString("typeName"_daq, &typeName);

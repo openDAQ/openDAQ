@@ -509,6 +509,28 @@ ErrCode ConnectionImpl::getInputPort(IInputPort** inputPort)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ConnectionImpl::dequeueUpTo(IPacket** packetPtr, SizeT* count)
+{
+    OPENDAQ_PARAM_NOT_NULL(packetPtr);
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    return withLock(
+        [&packetPtr, &count, this]()
+        {
+            auto ptr = packetPtr;
+            *count = std::min(*count, packets.size());
+            for (size_t i = 0; i < *count; ++i)
+            {
+                *ptr = packets.front().detach();
+                ptr++;
+                packets.pop_front();
+            }
+
+            countPackets();
+            return OPENDAQ_SUCCESS;
+        });
+}
+
 const std::deque<PacketPtr>& ConnectionImpl::getPackets() const noexcept
 {
     return packets;
@@ -523,7 +545,7 @@ void ConnectionImpl::checkForGaps(const PacketPtr& packet)
         case PacketType::Data:
         {
             if (gapCheckState == GapCheckState::uninitialized)
-                throw InvalidStateException("No event packet received.");
+                DAQ_THROW_EXCEPTION(InvalidStateException, "No event packet received.");
 
             if (gapCheckState != GapCheckState::not_available)
             {
@@ -672,7 +694,26 @@ void ConnectionImpl::initGapCheck(const EventPacketPtr& packet)
     }
     else if (packet.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
     {
-        throw InvalidOperationException("Gap packets should not be inserted into connection queue from outside.");
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Gap packets should not be inserted into connection queue from outside.");
+    }
+}
+
+void ConnectionImpl::countPackets()
+{
+    eventPacketsCnt = 0;
+    samplesCnt = 0;
+    for (const auto& packet : packets)
+    {
+        const auto packetType = packet.getType();
+        if (packetType == PacketType::Data)
+        {
+            auto dataPacket = packet.asPtr<IDataPacket>(true);
+            samplesCnt += dataPacket.getSampleCount();
+        }
+        else if (packetType == PacketType::Event)
+        {
+            eventPacketsCnt++;
+        }
     }
 }
 
@@ -757,7 +798,7 @@ ConnectionImpl::DomainValue ConnectionImpl::numberToDomainValue(const NumberPtr&
             dv.valueDouble = number;
             break;
         default:
-            throw InvalidParameterException("Cannot convert number.");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot convert number.");
     }
     return dv;
 }

@@ -14,7 +14,6 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
                           : throw ArgumentNullException("Logger must not be null"))
 {
     this->name = "OpenDAQClient";
-    this->isRootDevice = !parent.assigned();
     this->deviceInfo = deviceInfo;
 
     auto syncComponentPrivate = this->syncComponent.asPtr<IComponentPrivate>(true);
@@ -38,19 +37,17 @@ bool ClientImpl::allowAddFunctionBlocksFromModules()
     return true;
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY,
-    Client,
-    IDevice,
-    createClient,
-    IContext*,
-    ctx,
-    IString*,
-    localId,
-    IDeviceInfo*,
-    defaultDeviceInfo,
-    IComponent*,
-    parent
+std::set<daq::OperationModeType> ClientImpl::onGetAvailableOperationModes() 
+{ 
+    return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation}; 
+}
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC (
+    LIBRARY_FACTORY, Client, IDevice, createClient,
+    IContext*, ctx,
+    IString*, localId,
+    IDeviceInfo*, defaultDeviceInfo,
+    IComponent*, parent
     )
 
 END_NAMESPACE_OPENDAQ

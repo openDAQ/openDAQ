@@ -107,7 +107,6 @@ void TmsServerDevice::bindCallbacks()
         if (!deviceDomain.assigned())
             return OpcUaVariant{};
 
-        const auto functionBlockNodeId = getChildNodeId("Domain");
         try
         {
             OpcUaObject<UA_DeviceDomainStructure> uaDeviceDomain;
@@ -264,6 +263,39 @@ void TmsServerDevice::populateDeviceInfo()
                 return UA_STATUSCODE_GOOD;
             });
         }
+    }
+
+    {
+        const auto opModeOptions = ListProperty("OperationModeOptions", List<IString>(), false);
+        const auto tmsOpModeOptions = std::make_shared<TmsServerProperty>(opModeOptions, server, daqContext, tmsContext, "OperationModeOptions");
+        tmsOpModeOptions->registerOpcUaNode(this->nodeId);
+        deviceInfoProperties.push_back(tmsOpModeOptions);
+        this->addReadCallback(tmsOpModeOptions->getNodeId(), [this]
+        {
+            const auto opMode = object.getAvailableOperationModes();
+            return VariantConverter<IString>::ToArrayVariant(opMode, nullptr, daqContext);
+        });
+
+        const auto opMode = StringProperty("OperationMode", "", false);
+        const auto tmsOpMode = std::make_shared<TmsServerProperty>(opMode, server, daqContext, tmsContext, "OperationMode");
+        tmsOpMode->registerOpcUaNode(this->nodeId);
+        deviceInfoProperties.push_back(tmsOpMode);
+
+        this->addReadCallback(tmsOpMode->getNodeId(), [this]
+        {
+            const auto opMode = object.getOperationMode();
+            return VariantConverter<IString>::ToVariant(opMode, nullptr, daqContext);
+        });
+
+        this->addWriteCallback(tmsOpMode->getNodeId(), [this](const OpcUaVariant& variant)
+        {
+            const auto strValue = VariantConverter<IBaseObject>::ToDaqObject(variant).asPtr<IString>().toStdString();
+            if (strValue.find("Recursive") == 0)
+                this->object.setOperationModeRecursive(strValue.substr(9));
+            else
+                this->object.setOperationMode(strValue);
+            return UA_STATUSCODE_GOOD;
+        });
     }
 }
 

@@ -28,10 +28,12 @@ public:
     ClientImpl(ContextPtr ctx, const StringPtr& localId, const DeviceInfoPtr& deviceInfo, const ComponentPtr& parent = nullptr);
 
     // Device
-
     DeviceInfoPtr onGetInfo() override;
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;
+
+protected:
+    std::set<daq::OperationModeType> onGetAvailableOperationModes() override;
 
 private:
     ModuleManagerPtr manager;

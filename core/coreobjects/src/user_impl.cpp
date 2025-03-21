@@ -91,7 +91,10 @@ ErrCode INTERFACE_FUNC UserImpl::serialize(ISerializer* serializer)
     if (groups.assigned())
     {
         serializer->key("groups");
-        groups.serialize(serializer);
+        serializer->startList();
+        for (const auto& group : groups)
+            group.serialize(serializer);
+        serializer->endList();
     }
 
     serializer->endObject();

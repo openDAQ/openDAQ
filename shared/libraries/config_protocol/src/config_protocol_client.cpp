@@ -120,6 +120,20 @@ void ConfigProtocolClientComm::clearPropertyValue(
     parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
+void ConfigProtocolClientComm::clearProtectedPropertyValue(const std::string& globalId, const std::string& propertyName)
+{
+    requireMinServerVersion(ClientCommand("ClearProtectedPropertyValue", 10));
+
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    dict.set("PropertyName", String(propertyName));
+    auto clearPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "ClearProtectedPropertyValue", dict);
+    const auto clearPropertyValueRpcReplyPacketBuffer = sendRequestCallback(clearPropertyValueRpcRequestPacketBuffer);
+
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
+}
+
 void ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path)
 {
     auto dict = Dict<IString, IBaseObject>();
@@ -192,24 +206,28 @@ void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std:
     parseRpcOrRejectReply(setPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
-DictPtr<IString, IFunctionBlockType> ConfigProtocolClientComm::getAvailableFunctionBlockTypes(const std::string& globalId)
+DictPtr<IString, IFunctionBlockType> ConfigProtocolClientComm::getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb)
 {
-    return sendComponentCommand(globalId, ClientCommand("GetAvailableFunctionBlockTypes"));
+    auto command = isFb ? ClientCommand("GetAvailableFunctionBlockTypes", 9) : ClientCommand("GetAvailableFunctionBlockTypes");
+    return sendComponentCommand(globalId, command);
 }
 
 ComponentHolderPtr ConfigProtocolClientComm::addFunctionBlock(const std::string& globalId,
                                                               const StringPtr& typeId,
                                                               const PropertyObjectPtr& config,
-                                                              const ComponentPtr& parentComponent)
+                                                              const ComponentPtr& parentComponent,
+                                                              bool isFb)
 {
+    auto command = isFb ? ClientCommand("AddFunctionBlock", 9) : ClientCommand("AddFunctionBlock");
     auto params = Dict<IString, IBaseObject>({{"TypeId", typeId}, {"Config", config}});
-    return sendComponentCommand(globalId, ClientCommand("AddFunctionBlock"), params, parentComponent);
+    return sendComponentCommand(globalId, command, params, parentComponent);
 }
 
-void ConfigProtocolClientComm::removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId)
+void ConfigProtocolClientComm::removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId, bool isFb)
 {
+    auto command = isFb ? ClientCommand("RemoveFunctionBlock", 9) : ClientCommand("RemoveFunctionBlock");
     auto params = Dict<IString, IBaseObject>({{"LocalId", functionBlockLocalId}});
-    sendComponentCommand(globalId, ClientCommand("RemoveFunctionBlock"), params);
+    sendComponentCommand(globalId, command, params);
 }
 
 uint64_t ConfigProtocolClientComm::getTicksSinceOrigin(const std::string& globalId)
@@ -279,6 +297,28 @@ StringPtr ConfigProtocolClientComm::getLog(const std::string& globalId, const St
     return sendComponentCommand(globalId, ClientCommand("GetLog", 5), params);
 }
 
+ListPtr<IString> ConfigProtocolClientComm::getAvailableOperationModes(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetAvailableOperationModes", 9));
+}
+
+void ConfigProtocolClientComm::setOperationMode(const std::string& globalId, const StringPtr& modeType)
+{
+    auto params = Dict<IString, IBaseObject>({{"ModeType", modeType}});
+    sendComponentCommand(globalId, ClientCommand("SetOperationMode", 9), params);
+}
+
+void ConfigProtocolClientComm::setOperationModeRecursive(const std::string& globalId, const StringPtr& modeType)
+{
+    auto params = Dict<IString, IBaseObject>({{"ModeType", modeType}});
+    sendComponentCommand(globalId, ClientCommand("SetOperationModeRecursive", 9), params);
+}
+
+StringPtr ConfigProtocolClientComm::getOperationMode(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetOperationMode", 9));
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
 {
     auto dict = Dict<IString, IBaseObject>();
@@ -335,7 +375,13 @@ BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, 
 StringPtr ConfigProtocolClientComm::createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params)
 {
     const auto obj = createRpcRequest(name, params);
-    auto serializer = JsonSerializer();
+
+    SerializerPtr serializer;
+    if (getProtocolVersion() < 10)
+        serializer = JsonSerializerWithVersion(1);
+    else
+        serializer = JsonSerializerWithVersion(2);
+
     obj.serialize(serializer);
     return serializer.getOutput();
 }
@@ -386,16 +432,11 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
     const ErrCode errCode = reply["ErrorCode"];
     if (OPENDAQ_FAILED(errCode))
     {
-        std::string msg;
-        if (reply.hasKey("ErrorMessage"))
-            msg = static_cast<std::string>(reply.get("ErrorMessage"));
+        std::string msg = reply.getOrDefault("ErrorMessage", "");
         throwExceptionFromErrorCode(errCode, msg);
     }
 
-    if (reply.hasKey("ReturnValue"))
-        return reply.get("ReturnValue");
-
-    return {};
+    return reply.getOrDefault("ReturnValue");
 }
 
 BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringPtr& typeId,
@@ -521,7 +562,12 @@ std::tuple<uint32_t, StringPtr, StringPtr> ConfigProtocolClientComm::getExternal
     const SignalPtr& signal,
     const ConfigProtocolStreamingProducerPtr& streamingProducer)
 {
-    auto serializer = JsonSerializer();
+    SerializerPtr serializer;
+    if (getProtocolVersion() < 10)
+        serializer = JsonSerializerWithVersion(1);
+    else
+        serializer = JsonSerializerWithVersion(2);
+
     signal.serialize(serializer);
 
     return std::make_tuple(streamingProducer->registerOrUpdateSignal(signal),
@@ -551,7 +597,7 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPort(const Sign
 {
     const auto streamingProducer = streamingProducerRef.lock();
     if (!streamingProducer)
-        throw NotAssignedException("StreamingProducer is not assigned.");
+        DAQ_THROW_EXCEPTION(NotAssignedException, "StreamingProducer is not assigned.");
 
     auto domainSignal = signal.getDomainSignal();
     const auto [domainSignalNumericId, domainSignalGlobalId, serializedDomainSignal] =
@@ -582,7 +628,7 @@ void ConfigProtocolClientComm::requireMinServerVersion(const ClientCommand& comm
               command.getMinServerVersion(),
               protocolVersion);
 
-        throw ServerVersionTooLowException();
+        DAQ_THROW_EXCEPTION(ServerVersionTooLowException);
     }
 }
 
@@ -777,7 +823,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Clien
     const auto sendCommandRpcReplyPacketBuffer = sendRequestCallback(sendCommandRpcRequestPacketBuffer);
 
     std::string remoteGlobalId{};
-    if (parentComponent.assigned() && parentComponent.supportsInterface<IConfigClientObject>())
+    if (parentComponent.supportsInterface<IConfigClientObject>())
     {
         const auto configClientObject = parentComponent.asPtr<IConfigClientObject>(true);
         StringPtr temp;
@@ -834,7 +880,7 @@ SignalPtr ConfigProtocolClientComm::findSignalByRemoteGlobalIdWithComponent(cons
 SignalPtr ConfigProtocolClientComm::findSignalByRemoteGlobalId(const DevicePtr& device, const std::string& remoteGlobalId)
 {
     if (remoteGlobalId.find("/") != 0)
-        throw InvalidParameterException("Global id must start with /");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Global id must start with /");
 
     const std::string globalIdWithoutSlash = remoteGlobalId.substr(1);
 

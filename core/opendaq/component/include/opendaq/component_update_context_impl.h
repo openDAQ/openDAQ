@@ -96,8 +96,9 @@ inline std::string ComponentUpdateContextImpl::GetRootDeviceId(const std::string
 
 inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
 {
-    if (!parentId || !portId || !signalId)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(parentId);
+    OPENDAQ_PARAM_NOT_NULL(portId);
+    OPENDAQ_PARAM_NOT_NULL(signalId);
 
     DictPtr<IString, IString> ports;
     
@@ -118,26 +119,17 @@ inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* paren
 
 inline ErrCode ComponentUpdateContextImpl::getInputPortConnections(IString* parentId, IDict** connections)
 {
-    if (!parentId || !connections)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(parentId);
+    OPENDAQ_PARAM_NOT_NULL(connections);
 
-    DictPtr<IString, IBaseObject> ports;
-    if (!this->connections.hasKey(parentId))
-    {
-        ports = Dict<IString, IBaseObject>();
-    }
-    else
-    {
-        ports = this->connections.get(parentId);
-    }
+    DictPtr<IString, IBaseObject> ports = this->connections.getOrDefault(parentId, Dict<IString, IBaseObject>());
     *connections = ports.detach();
     return OPENDAQ_SUCCESS;
 }
 
 inline ErrCode ComponentUpdateContextImpl::removeInputPortConnection(IString* parentId)
 {
-    if (!parentId)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(parentId);
 
     connections->deleteItem(parentId);
     return OPENDAQ_SUCCESS;
@@ -145,8 +137,7 @@ inline ErrCode ComponentUpdateContextImpl::removeInputPortConnection(IString* pa
 
 inline ErrCode ComponentUpdateContextImpl::getRootComponent(IComponent** rootComponent)
 {
-    if (!rootComponent)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(rootComponent);
 
     *rootComponent = this->rootComponent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -154,12 +145,9 @@ inline ErrCode ComponentUpdateContextImpl::getRootComponent(IComponent** rootCom
 
 inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString* portId, ISignal** signal)
 {
-    if (parentId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    if (portId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    if (signal == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(parentId);
+    OPENDAQ_PARAM_NOT_NULL(portId);
+    OPENDAQ_PARAM_NOT_NULL(signal);
 
     *signal = nullptr;
 
@@ -223,10 +211,8 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
 
 inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId, IString* parentId)
 {
-    if (signalId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    if (parentId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(signalId);
+    OPENDAQ_PARAM_NOT_NULL(parentId);
 
     signalDependencies.set(signalId, parentId);
     return OPENDAQ_SUCCESS;

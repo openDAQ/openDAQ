@@ -33,9 +33,15 @@
 #include <opendaq/client_type.h>
 #include <opendaq/network_interface_factory.h>
 
+#include "opendaq/thread_name.h"
+
 BEGIN_NAMESPACE_OPENDAQ
+
+using namespace std::chrono_literals;
+
 static OrphanedModules orphanedModules;
 
+static constexpr std::chrono::milliseconds DefaultrescanTimer = 5000ms;
 static constexpr char createModuleFactory[] = "createModule";
 static constexpr char checkDependenciesFunc[] = "checkDependencies";
 
@@ -44,6 +50,7 @@ static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerCompo
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
     , work(ioContext.get_executor())
+    , rescanTimer(DefaultrescanTimer)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -53,6 +60,10 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     {
         paths.insert(paths.end(), pathList.begin(), pathList.end());
     }
+    else
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+    }
 
     std::size_t numThreads = 2;
     pool.reserve(numThreads);
@@ -61,12 +72,13 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     {
         pool.emplace_back([this]
         {
+            daqNameThread("ModuleManager");
             ioContext.run();
         });
     }
 
     if (paths.empty())
-        throw InvalidParameterException{"No valid paths provided!"};
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "No valid paths provided!");
 
     discoveryClient.initMdnsClient(List<IString>(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME));
 }
@@ -94,8 +106,7 @@ ModuleManagerImpl::~ModuleManagerImpl()
 
 ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 {
-    if (availableModules == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(availableModules);
     
     auto list = List<IModule>();
     for (auto& library : libraries)
@@ -109,8 +120,7 @@ ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 
 ErrCode ModuleManagerImpl::addModule(IModule* module)
 {
-    if (module == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(module);
     
     orphanedModules.tryUnload();
 
@@ -136,10 +146,20 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     if (modulesLoaded)
         return OPENDAQ_SUCCESS;
     
-    const auto contextPtr = ContextPtr::Borrow(context);
-    logger = contextPtr.getLogger();
+    this->context = ContextPtr::Borrow(context);
+    logger = this->context.getLogger();
     if (!logger.assigned())
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
+
+    auto options = this->context.getOptions();
+    if (options.hasKey("ModuleManager"))
+    {
+        DictPtr<IString, IBaseObject> inner = options.get("ModuleManager");
+        if (inner.hasKey("AddDeviceRescanTimer"))
+        {
+            this->rescanTimer = std::chrono::milliseconds(static_cast<int>(inner.get("AddDeviceRescanTimer")));
+        }
+    }
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
@@ -212,8 +232,6 @@ struct DevicePing
 
 void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 {
-    using namespace std::chrono_literals;
-
     std::vector<DevicePing> statuses;
     std::map<std::string, bool> ipv4Addresses;
     std::map<std::string, bool> ipv6Addresses;
@@ -439,6 +457,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     *availableDevices = availableDevicesPtr.detach();
 
     availableDevicesGroup = groupedDevices;
+    lastScanTime = std::chrono::steady_clock::now();
     return OPENDAQ_SUCCESS;
 }
 
@@ -490,15 +509,15 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         auto connectionStringPtr = String(pureConnectionString);
 
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
-            return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
-        // Scan for devices if not yet done so
-        // TODO: Should we re-scan after a timeout?
-        if (!availableDevicesGroup.assigned())
+        // Scan for devices if not yet done so, or timeout is exceeded
+        auto currentTime = std::chrono::steady_clock::now();
+        if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
         {
             const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
             if (OPENDAQ_FAILED(errCode))
-                return this->makeErrorInfo(errCode, "Failed getting available devices");
+                return DAQ_MAKE_ERROR_INFO(errCode, "Failed getting available devices");
         }
 
         // Connection strings with the "daq" prefix automatically choose the best method of connection
@@ -536,18 +555,18 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (const std::exception& e)
     {
-        return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what(), nullptr);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
         return OPENDAQ_ERR_GENERALERROR;
     }
 
-    return this->makeErrorInfo(
+    return DAQ_MAKE_ERROR_INFO(
         OPENDAQ_ERR_NOTFOUND,
         "Device with given connection string and config is not available [{}]",
         connectionString
@@ -745,7 +764,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
     }
 
-    return this->makeErrorInfo(
+    return DAQ_MAKE_ERROR_INFO(
         OPENDAQ_ERR_NOTFOUND,
         fmt::format(R"(Function block with given uid and config is not available [{}])", typeId)
     );
@@ -912,13 +931,13 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
 DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const
 {
     if (!availableDevicesGroup.assigned())
-        throw NotFoundException("Device scan has not yet been initiated.");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device scan has not yet been initiated.");
 
     if (useSmartConnection)
     {
         if (availableDevicesGroup.hasKey(inputConnectionString))
             return availableDevicesGroup.get(inputConnectionString);
-        throw NotFoundException(fmt::format("Device with connection string \"{}\" not found", inputConnectionString));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" not found", inputConnectionString);
     }
 
     for (const auto & [_, info] : availableDevicesGroup)
@@ -951,7 +970,7 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
 {
     const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
     if (capabilities.getCount() == 0)
-        throw NotFoundException(fmt::format("Device with connection string \"{}\" has no available server capabilities", inputConnectionString));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" has no available server capabilities", inputConnectionString);
 
     ServerCapabilityPtr selectedCapability = capabilities[0];
     auto selectedPriority = getServerCapabilityPriority(selectedCapability);
@@ -1467,7 +1486,7 @@ std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManag
         return std::make_pair(strs1[0], tsl::ordered_map<std::string, BaseObjectPtr> {});
 
     if (strs1.size() != 2)
-        throw InvalidParameterException("Invalid connection string");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string");
 
     std::vector<std::string> options;
     boost::split(options, strs1[1], boost::is_any_of("&"));
@@ -1478,7 +1497,7 @@ std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManag
         std::vector<std::string> keyAndValue;
         boost::split(keyAndValue, option, boost::is_any_of("="));
         if (keyAndValue.size() != 2)
-            throw InvalidParameterException("Invalid connection string");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string");
 
         BaseObjectPtr value = EvalValue(keyAndValue[1]);
         optionsMap.insert({keyAndValue[0], value});
@@ -1639,10 +1658,10 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
     std::error_code errCode;
     if (!fs::exists(searchFolder, errCode))
-        throw InvalidParameterException("The specified path \"%s\" does not exist.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" does not exist.", searchFolder.c_str());
 
     if (!fs::is_directory(searchFolder, errCode))
-        throw InvalidParameterException("The specified path \"%s\" is not a folder.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" is not a folder.", searchFolder.c_str());
 
     fs::recursive_directory_iterator dirIterator(searchFolder);
 
@@ -1707,6 +1726,16 @@ static void printAvailableTypes(const ModulePtr& module, const LoggerComponentPt
     printComponentTypes([&module]{ return module.getAvailableServerTypes(); }, "SRV", loggerComponent);
 }
 
+static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
+{
+#if defined(__linux__) || defined(linux) || defined(__linux)
+    // boost does not propagate `dlopen()` error messages
+    return dlerror();
+#else
+    return libraryErrCode.message();
+#endif
+}
+
 ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
 {
     auto currDir = fs::current_path();
@@ -1718,16 +1747,11 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
 
     if (libraryErrCode)
     {
-        throw ModuleLoadFailedException(
-            "Module \"{}\" failed to load. Error: {} [{}]",
-            relativePath,
-            libraryErrCode.value(),
-#if defined(__linux__) || defined(linux) || defined(__linux)
-            // boost does not propagate `dlopen()` error messages
-            dlerror()
-#else
-            libraryErrCode.message()
-#endif
+        DAQ_THROW_EXCEPTION(ModuleLoadFailedException,
+                            "Module \"{}\" failed to load. Error: {} [{}]",
+                            relativePath,
+                            libraryErrCode.value(),
+                            GetMessageFromLibraryErrCode(libraryErrCode)
         );
     }
 
@@ -1744,11 +1768,11 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
         {
             LOG_T("Failed to check dependencies for \"{}\".", relativePath);
 
-            throw ModuleIncompatibleDependenciesException(
-                "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
-                relativePath,
-                errCode,
-                errMsg
+            DAQ_THROW_EXCEPTION(ModuleIncompatibleDependenciesException,
+                                "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
+                                relativePath,
+                                errCode,
+                                errMsg
             );
         }
     }
@@ -1757,7 +1781,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
     {
         LOG_T("Module \"{}\" has no exported module factory.", relativePath);
 
-        throw ModuleNoEntryPointException("Module \"{}\" has no exported module factory.", relativePath);
+        DAQ_THROW_EXCEPTION(ModuleNoEntryPointException, "Module \"{}\" has no exported module factory.", relativePath);
     }
 
     using ModuleFactory = ErrCode(IModule**, IContext*);
@@ -1771,7 +1795,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
     {
         LOG_T("Failed creating module from \"{}\".", relativePath);
 
-        throw ModuleEntryPointFailedException("Library \"{}\" failed to create a Module.", relativePath);
+        DAQ_THROW_EXCEPTION(ModuleEntryPointFailedException, "Library \"{}\" failed to create a Module.", relativePath);
     }
 
     if (auto version = module.getModuleInfo().getVersionInfo(); version.assigned())

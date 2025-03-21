@@ -63,7 +63,7 @@ ComplexNumberPtr VariantConverter<IComplexNumber>::ToDaqObject(const OpcUaVarian
         return StructConverter<IComplexNumber, UA_ComplexNumberType>::ToDaqObject(
             *static_cast<UA_ComplexNumberType*>(decodedVariant->data));
 
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -78,7 +78,7 @@ OpcUaVariant VariantConverter<IComplexNumber>::ToVariant(const ComplexNumberPtr&
     else if (targetType == &UA_TYPES[UA_TYPES_COMPLEXNUMBERTYPE])
         variant.setScalar(*StructConverter<IComplexNumber, UA_ComplexNumberType>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
     return variant;
 }
 
@@ -90,7 +90,7 @@ ListPtr<IComplexNumber> VariantConverter<IComplexNumber>::ToDaqList(const OpcUaV
     if (variant.isType<UA_ComplexNumberType>())
         return ListConversionUtils::VariantToList<IComplexNumber, UA_ComplexNumberType>(variant);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -103,7 +103,7 @@ OpcUaVariant VariantConverter<IComplexNumber>::ToArrayVariant(const ListPtr<ICom
     if (targetType == nullptr || targetType == &UA_TYPES[UA_TYPES_COMPLEXNUMBERTYPE])
         return ListConversionUtils::ToArrayVariant<IComplexNumber, UA_ComplexNumberType>(list);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

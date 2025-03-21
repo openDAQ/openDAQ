@@ -24,6 +24,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/signal_ptr.h>
 
+#include <tsl/ordered_map.h>
 #include <native_streaming/server.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
@@ -55,7 +56,7 @@ public:
     void removeComponentSignals(const StringPtr& componentId);
 
     void sendPacket(const std::string& signalId, PacketPtr&& packet);
-    void processStreamingPacket(const std::string& signalId, PacketPtr&& packet);
+    void processStreamingPackets(const tsl::ordered_map<std::string, PacketBufferData>& packetIndices, const std::vector<IPacket*>& packets);
     void sendAvailableStreamingPackets();
 
     static PropertyObjectPtr createDefaultConfig();

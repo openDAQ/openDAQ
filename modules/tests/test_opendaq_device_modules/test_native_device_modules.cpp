@@ -136,7 +136,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 8);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 10);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -2588,7 +2588,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreClientConnectedToServer)
     ASSERT_EQ(signal.getGlobalId(), clientRoot.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
 }
 
-TEST_F(NativeDeviceModulesTest, DISABLED_lientSaveLoadRestoreServerConnectedToClient)
+TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToClient)
 {
     StringPtr config;
     {
@@ -2732,6 +2732,63 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
             }
         }
     }
+}
+
+TEST_F(NativeDeviceModulesTest, SettingOperationMode)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    test_helpers::checkDeviceOperationMode(server, "Operation");
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+
+    ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
+    ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
+
+    // setting the operation mode for server root device
+    ASSERT_NO_THROW(server.setOperationModeRecursive("Idle"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+
+    // setting the operation mode for server sub device
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive("SafeOperation"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "SafeOperation", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "SafeOperation");
+
+    // setting the operation mode for client sub device
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive("Operation"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+
+    // setting the operation mode for client device not recursively
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode("SafeOperation"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "SafeOperation", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "SafeOperation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+
+    // setting the operation mode for client device
+    ASSERT_NO_THROW(client.setOperationModeRecursive("Idle"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
 }
 
 TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
@@ -3037,4 +3094,23 @@ TEST_F(NativeC2DStreamingTest, StreamingData)
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(clientReceivedPackets, serverReceivedPackets));
+}
+
+TEST_F(NativeDeviceModulesTest, AddNestedFB)
+{
+    const auto server = CreateServerInstance();
+
+    const auto client = Instance();
+    auto dev = client.addDevice("daq.nd://127.0.0.1");
+    auto fb = dev.addFunctionBlock("RefFBModuleStatistics");
+
+    ASSERT_TRUE(fb.getAvailableFunctionBlockTypes().hasKey("RefFBModuleTrigger"));
+
+    FunctionBlockPtr nestedFb;
+    ASSERT_NO_THROW(nestedFb = fb.addFunctionBlock("RefFBModuleTrigger"));
+    ASSERT_TRUE(nestedFb.assigned());
+
+    ASSERT_NO_THROW(fb.removeFunctionBlock(nestedFb));
+    ASSERT_TRUE(nestedFb.isRemoved());
+    ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
 }

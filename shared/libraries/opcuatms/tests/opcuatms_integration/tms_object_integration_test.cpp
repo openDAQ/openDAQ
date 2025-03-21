@@ -30,10 +30,10 @@ void TmsObjectIntegrationTest::SetUp()
 LastMessageLoggerSinkPrivatePtr TmsObjectIntegrationTest::getPrivateSink()
 {
     if(!debugSink.assigned())
-        throw ArgumentNullException("Sink must not be null");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Sink must not be null");
     auto sinkPtr = debugSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
     if (sinkPtr == nullptr)
-        throw InvalidTypeException("Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
+        DAQ_THROW_EXCEPTION(InvalidTypeException, "Wrong sink. GetLastMessage supports only by LastMessageLoggerSink");
     return sinkPtr;
 }
 

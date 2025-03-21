@@ -29,6 +29,7 @@ class JsonSerializerImpl : public ImplementationOf<ISerializer>
 {
 public:
     JsonSerializerImpl();
+    JsonSerializerImpl(Int version);
 
     ErrCode INTERFACE_FUNC startList() override;
     ErrCode INTERFACE_FUNC endList() override;
@@ -60,10 +61,13 @@ public:
     ErrCode INTERFACE_FUNC getUser(IBaseObject** user) override;
     ErrCode INTERFACE_FUNC setUser(IBaseObject* user) override;
 
+    ErrCode INTERFACE_FUNC getVersion(Int* version) override;
+
 protected:
     rapidjson::StringBuffer buffer;
     TWriter writer;
     BaseObjectPtr userContext;
+    Int version;
 };
 
 template <typename TWriter>

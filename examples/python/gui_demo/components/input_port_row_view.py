@@ -88,7 +88,7 @@ class InputPortRowView(ttk.Frame):
             AttributesDialog(self, 'Attributes', self.input_port, self.context).show()
 
     def handle_connect_clicked(self):
-        if (self.selection == 'none'):
+        if self.selection == 'none':
             self.input_port.disconnect()
             self.event_port.emit()
         elif self.selection != '':

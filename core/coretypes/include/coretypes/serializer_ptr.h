@@ -51,7 +51,7 @@ public:
     void startObject() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->startObject();
         checkErrorInfo(errCode);
@@ -60,7 +60,7 @@ public:
     void startTaggedObject(const SerializablePtr& objPtr) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->startTaggedObject(objPtr);
         checkErrorInfo(errCode);
@@ -69,7 +69,7 @@ public:
     void endObject() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->endObject();
         checkErrorInfo(errCode);
@@ -78,7 +78,7 @@ public:
     void startList() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->startList();
         checkErrorInfo(errCode);
@@ -87,7 +87,7 @@ public:
     void endList() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->endList();
         checkErrorInfo(errCode);
@@ -96,7 +96,7 @@ public:
     StringPtr getOutput() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         StringPtr serialized;
         ErrCode errCode = object->getOutput(&serialized);
@@ -108,7 +108,7 @@ public:
     void key(const StringPtr& name) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->keyStr(name);
         checkErrorInfo(errCode);
@@ -117,7 +117,7 @@ public:
     void key(ConstCharPtr name) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->key(name);
         checkErrorInfo(errCode);
@@ -126,7 +126,7 @@ public:
     void key(ConstCharPtr name, SizeT length) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->keyRaw(name, length);
         checkErrorInfo(errCode);
@@ -135,7 +135,7 @@ public:
     void writeInt(Int integer) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeInt(integer);
         checkErrorInfo(errCode);
@@ -144,7 +144,7 @@ public:
     void writeBool(Bool bolean) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeBool(bolean);
         checkErrorInfo(errCode);
@@ -153,7 +153,7 @@ public:
     void writeFloat(Float real) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeFloat(real);
         checkErrorInfo(errCode);
@@ -162,7 +162,7 @@ public:
     void writeNull() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeNull();
         checkErrorInfo(errCode);
@@ -171,7 +171,7 @@ public:
     void writeString(const StringPtr& string) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         SizeT length;
         string->getLength(&length);
@@ -186,7 +186,7 @@ public:
     void writeString(const std::string& str) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeString(str.data(), str.size());
         checkErrorInfo(errCode);
@@ -195,7 +195,7 @@ public:
     void writeString(ConstCharPtr string) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeString(string, strlen(string));
         checkErrorInfo(errCode);
@@ -204,7 +204,7 @@ public:
     void writeString(ConstCharPtr string, SizeT length) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeString(string, length);
         checkErrorInfo(errCode);
@@ -213,7 +213,7 @@ public:
     Bool isComplete() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Bool complete;
         ErrCode errCode = object->isComplete(&complete);
@@ -225,7 +225,7 @@ public:
     void reset() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->reset();
         checkErrorInfo(errCode);
@@ -234,7 +234,7 @@ public:
     BaseObjectPtr getUser() const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         BaseObjectPtr userObject;
         ErrCode errCode = object->getUser(&userObject);
@@ -242,13 +242,25 @@ public:
         return userObject;
     }
 
-    void setUser(const BaseObjectPtr& user)
+    void setUser(const BaseObjectPtr& user) const
     {
         if (!object)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->setUser(user);
         checkErrorInfo(errCode);
+    }
+
+    Int getVersion() const
+    {
+        if (!object)
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+        Int version;
+        ErrCode errCode = object->getVersion(&version);
+        checkErrorInfo(errCode);
+
+        return version;
     }
 };
 

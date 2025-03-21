@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <opendaq/instance_factory.h>
 
-#include "test_utils.h"
+#include <opendaq/mock/advanced_components_setup_utils.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
 #include <config_protocol/config_client_device_impl.h>

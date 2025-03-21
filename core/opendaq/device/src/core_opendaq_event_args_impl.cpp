@@ -75,6 +75,12 @@ extern "C" ErrCode PUBLIC_EXPORT createCoreEventArgsDeviceLockStateChanged(ICore
     return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::DeviceLockStateChanged, dict);
 }
 
+extern "C" ErrCode PUBLIC_EXPORT createCoreEventArgsDeviceOperationModeChanged(ICoreEventArgs** objTmp, Int operationMode)
+{
+    const auto dict = Dict<IString, IBaseObject>({{"OperationMode", operationMode}});
+    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::DeviceOperationModeChanged, dict);
+}
+
 #endif
 
 END_NAMESPACE_OPENDAQ

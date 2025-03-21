@@ -10,6 +10,7 @@
 using TaskInternalsTest = testing::Test;
 
 using namespace daq;
+using namespace std::chrono_literals;
 
 TEST_F(TaskInternalsTest, TaskFlowFutureDestructorDoesNotBlock)
 {
@@ -19,7 +20,7 @@ TEST_F(TaskInternalsTest, TaskFlowFutureDestructorDoesNotBlock)
     tf::Executor e;
     {
         auto future = e.async([&finished] {
-            std::this_thread::sleep_for(2s);
+            std::this_thread::sleep_for(std::chrono::seconds(2));
 
             finished = true;
             return 3;
@@ -27,6 +28,6 @@ TEST_F(TaskInternalsTest, TaskFlowFutureDestructorDoesNotBlock)
     }
     std::cout << "After" << std::endl;
 
-    std::this_thread::sleep_for(3s);
+    std::this_thread::sleep_for(std::chrono::seconds(3));
     EXPECT_TRUE(finished);
 }

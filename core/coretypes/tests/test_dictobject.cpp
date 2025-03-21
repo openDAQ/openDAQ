@@ -327,7 +327,25 @@ TEST_F(DictObjectTest, SerializeJson)
     deserialized->releaseRef();
 }
 
-TEST_F(DictObjectTest, SerializeJsonNullValue)
+TEST_F(DictObjectTest, SerializeJsonNullValueV1)
+{
+    auto dict = Dict<IBaseObject, IBaseObject>();
+    dict.set(L"Test0", nullptr);
+
+    SerializerPtr ser = JsonSerializerWithVersion(1);
+    dict.serialize(ser);
+
+    StringPtr str;
+    ser->getOutput(&str);
+
+    const auto expected = R"({"__type":")"
+                          + std::string(dict.getSerializeId())
+                          + R"(","values":[{"key":"Test0","value":null}]})";
+
+    ASSERT_EQ(str.toStdString(), expected);
+}
+
+TEST_F(DictObjectTest, SerializeJsonNullValueV2)
 {
     auto dict = Dict<IBaseObject, IBaseObject>();
     dict.set(L"Test0", nullptr);
@@ -338,9 +356,8 @@ TEST_F(DictObjectTest, SerializeJsonNullValue)
     StringPtr str;
     ser->getOutput(&str);
 
-    const auto expected = R"({"__type":")"
-                          + std::string(dict.getSerializeId())
-                          + R"(","values":[{"key":"Test0","value":null}]})";
+    const auto expected =
+        R"({"__type":"Dict","keyIntfID":"{9C911F6D-1664-5AA2-97BD-90FE3143E881}","valueIntfID":"{9C911F6D-1664-5AA2-97BD-90FE3143E881}","values":[{"key":"Test0","value":null}]})";
 
     ASSERT_EQ(str.toStdString(), expected);
 }
@@ -354,6 +371,57 @@ TEST_F(DictObjectTest, SerializeJsonDictValueNotSerializable)
     ASSERT_THROW(dict.serialize(ser), NotSerializableException);
 }
 
+TEST_F(DictObjectTest, SerializeWithKeyAndValueId)
+{
+    auto dict = Dict<IString, IInteger>();
+    dict.set("Test0", 1);
+    dict.set("Test1", 2);
+    
+    SerializerPtr ser = JsonSerializer();
+    dict.serialize(ser);
+
+    const auto expected =
+        R"({"__type":"Dict","keyIntfID":"{D2ED1120-F7FF-556F-A98D-3F3EDF1A3874}","valueIntfID":"{B5C52F78-45F9-5C54-9BC1-CA65A46472CB}","values":[{"key":"Test0","value":1},{"key":"Test1","value":2}]})";
+    const auto str = ser.getOutput();
+
+    ASSERT_EQ(expected, str);
+}
+
+TEST_F(DictObjectTest, DeserializeWithKeyAndValueIdV1)
+{
+    const auto str = R"({"__type":"Dict","values":[{"key":"Test0","value":null}]})";
+    auto deserializer = JsonDeserializer();
+    DictPtr<IBaseObject, IBaseObject> dict = deserializer.deserialize(str);
+    ObjectPtr<IDictElementType> type = dict.asPtr<IDictElementType>();
+
+    IntfID keyType;
+    IntfID valueType;
+
+    type->getKeyInterfaceId(&keyType);
+    type->getValueInterfaceId(&valueType);
+
+    ASSERT_EQ(IUnknown::Id, keyType);
+    ASSERT_EQ(IUnknown::Id, valueType);
+}
+
+TEST_F(DictObjectTest, DeserializeWithKeyAndValueIdV2)
+{
+    const auto str =
+        R"({"__type":"Dict","keyIntfID":"{D2ED1120-F7FF-556F-A98D-3F3EDF1A3874}","valueIntfID":"{B5C52F78-45F9-5C54-9BC1-CA65A46472CB}","values":[{"key":"Test0","value":1},{"key":"Test1","value":2}]})";
+    auto deserializer = JsonDeserializer();
+    DictPtr<IBaseObject, IBaseObject> dict = deserializer.deserialize(str);
+    ObjectPtr<IDictElementType> type = dict.asPtr<IDictElementType>();
+
+    IntfID keyType;
+    IntfID valueType;
+
+    type->getKeyInterfaceId(&keyType);
+    type->getValueInterfaceId(&valueType);
+
+    ASSERT_EQ(IString::Id, keyType);
+    ASSERT_EQ(IInteger::Id, valueType);
+}
+
 TEST_F(DictObjectTest, SerializeJsonDictKeyNotSerializable)
 {
     auto dict = Dict<IBaseObject, IBaseObject>();
@@ -363,9 +431,9 @@ TEST_F(DictObjectTest, SerializeJsonDictKeyNotSerializable)
     ASSERT_THROW(dict.serialize(ser), NotSerializableException);
 }
 
-TEST_F(DictObjectTest, SerializeJsonEmptyDictionary)
+TEST_F(DictObjectTest, SerializeJsonEmptyDictionaryV1)
 {
-    SerializerPtr serializer = JsonSerializer();
+    SerializerPtr serializer = JsonSerializerWithVersion(1);
 
     auto dictionary = Dict<IBaseObject, IBaseObject>();
     dictionary.serialize(serializer);
@@ -377,6 +445,20 @@ TEST_F(DictObjectTest, SerializeJsonEmptyDictionary)
               std::string(dictionary.getSerializeId()) +
               R"(","values":[]})"
     );
+}
+
+TEST_F(DictObjectTest, SerializeJsonEmptyDictionaryV2)
+{
+    SerializerPtr serializer = JsonSerializer();
+
+    auto dictionary = Dict<IBaseObject, IBaseObject>();
+    dictionary.serialize(serializer);
+
+    std::string serialized = serializer.getOutput().toStdString();
+    std::string expected =
+        R"({"__type":"Dict","keyIntfID":"{9C911F6D-1664-5AA2-97BD-90FE3143E881}","valueIntfID":"{9C911F6D-1664-5AA2-97BD-90FE3143E881}","values":[]})";
+
+    ASSERT_EQ(serialized, expected);
 }
 
 TEST_F(DictObjectTest, DeserializeJson)

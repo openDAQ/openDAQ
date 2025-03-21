@@ -20,8 +20,7 @@ ArgumentInfoImpl::ArgumentInfoImpl(StringPtr name, CoreType type)
 
 ErrCode ArgumentInfoImpl::getName(IString** argName)
 {
-    if (argName == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(argName);
 
     *argName = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -29,10 +28,8 @@ ErrCode ArgumentInfoImpl::getName(IString** argName)
 
 ErrCode ArgumentInfoImpl::getType(CoreType* type)
 {
-    if (type == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(type);
+
     *type = argType;
     return OPENDAQ_SUCCESS;
 }
@@ -41,7 +38,7 @@ ErrCode ArgumentInfoImpl::equals(IBaseObject* other, Bool* equal) const
 {
     return daqTry([this, &other, &equal]() {
         if (equal == nullptr)
-            return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
         *equal = false;
         if (!other)

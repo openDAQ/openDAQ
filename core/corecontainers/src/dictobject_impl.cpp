@@ -3,6 +3,7 @@
 #include <coretypes/impl.h>
 #include <coretypes/dict_ptr.h>
 #include <coretypes/dictobject_iterable_impl.h>
+#include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -16,7 +17,7 @@ ErrCode DictImpl::getKeyInterfaceId(IntfID* id)
 {
     if (id == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
     }
 
     *id = keyId;
@@ -27,7 +28,7 @@ ErrCode DictImpl::getValueInterfaceId(IntfID* id)
 {
     if (id == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
     }
 
     *id = valueId;
@@ -41,8 +42,8 @@ void DictImpl::internalDispose(bool)
 
 ErrCode DictImpl::get(IBaseObject* key, IBaseObject** value)
 {
-    if (key == nullptr || value == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(key);
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     auto item = hashTable.find(key);
     if (item == hashTable.end())
@@ -62,8 +63,7 @@ ErrCode DictImpl::set(IBaseObject* key, IBaseObject* value)
         return OPENDAQ_ERR_FROZEN;
     }
 
-    if (key == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(key);
 
     auto oldItem = hashTable.find(key);
     if (oldItem == hashTable.end())
@@ -93,8 +93,8 @@ ErrCode DictImpl::remove(IBaseObject* key, IBaseObject** value)
         return OPENDAQ_ERR_FROZEN;
     }
 
-    if (key == nullptr || value == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(key);
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     auto item = hashTable.find(key);
     if (item == hashTable.end())
@@ -118,8 +118,7 @@ ErrCode DictImpl::deleteItemInternal(IBaseObject* key, IBaseObject** obj, bool& 
         return OPENDAQ_ERR_FROZEN;
     }
 
-    if (key == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(key);
 
     auto item = hashTable.find(key);
     if (item == hashTable.end())
@@ -164,8 +163,7 @@ ErrCode DictImpl::clear()
 
 ErrCode DictImpl::getCount(SizeT* count)
 {
-    if (count == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(count);
 
     *count = hashTable.size();
     return OPENDAQ_SUCCESS;
@@ -180,9 +178,8 @@ ErrCode DictImpl::hasKey(IBaseObject* key, Bool* hasKey)
 
 ErrCode DictImpl::enumerate(const std::function<IBaseObject*(const BaseObjectPair&)>& chooseElement, IList** list)
 {
-    if (list == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(list);
+    
     auto errCode = createList(list);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
@@ -216,27 +213,24 @@ ErrCode DictImpl::getValueList(IList** values)
 
 ErrCode DictImpl::getKeys(IIterable** iterable)
 {
-    if (iterable == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(iterable);
+    
     // have to pass with std::cref so it doesn't create a dangling copy without perfect-forwarding
     return createObject<IIterable, DictKeyIterableImpl>(iterable, this, std::cref(keyId));
 }
 
 ErrCode DictImpl::getValues(IIterable** iterable)
 {
-    if (iterable == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(iterable);
+    
     // have to pass with std::cref so it doesn't create a dangling copy without perfect-forwarding
     return createObject<IIterable, DictValueIterableImpl>(iterable, this, std::cref(valueId));
 }
 
 ErrCode DictImpl::createStartIterator(IIterator** iterator)
 {
-    if (iterator == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(iterator);
+    
     *iterator = new (std::nothrow) DictIterator<decltype(hashTable)>(
         borrowInterface<IBaseObject>(),
         hashTable.begin(),
@@ -255,8 +249,7 @@ ErrCode DictImpl::createStartIterator(IIterator** iterator)
 
 ErrCode DictImpl::createEndIterator(IIterator** iterator)
 {
-    if (iterator == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(iterator);
 
     *iterator = new(std::nothrow) DictIterator<decltype(hashTable)>(
         borrowInterface<IBaseObject>(),
@@ -316,10 +309,7 @@ ErrCode DictImpl::getSerializeId(ConstCharPtr* id) const
 
 ErrCode DictImpl::clone(IBaseObject** cloned)
 {
-    if (cloned == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(cloned);
 
     DictImpl* lst = new(std::nothrow) DictImpl(keyId, valueId);
     if (lst == nullptr)
@@ -369,7 +359,7 @@ ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
     {
-        return daq::makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.", nullptr);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
     }
 
     *equal = false;
@@ -413,6 +403,29 @@ ConstCharPtr DictImpl::SerializeId()
 ErrCode DictImpl::serialize(ISerializer* serializer)
 {
     serializer->startTaggedObject(this);
+
+    Int version;
+    serializer->getVersion(&version);
+    if (version > 1)
+    {
+        if (!(keyId == IUnknown::Id))
+        {
+            serializer->key("keyIntfID");
+            
+            char iidString[39];
+            daqInterfaceIdToString(keyId, iidString);
+            serializer->writeString(iidString, 38);
+        }
+
+        if (!(valueId == IUnknown::Id))
+        {
+            serializer->key("valueIntfID");
+            
+            char iidString[39];
+            daqInterfaceIdToString(valueId, iidString);
+            serializer->writeString(iidString, 38);
+        }
+    }
 
     serializer->key("values");
     serializer->startList();
@@ -476,13 +489,33 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 
 ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
+    Bool hasKey = false;
+    IntfID keyId = IUnknown::Id;
+    ser->hasKey(String("keyIntfID"), &hasKey);
+    if (hasKey)
+    {
+        StringPtr str;
+        ser->readString(String("keyIntfID"), &str);
+        daqStringToInterfaceId(str, keyId);
+    }
+    
+    hasKey = false;
+    IntfID valueId = IUnknown::Id;
+    ser->hasKey(String("valueIntfID"), &hasKey);
+    if (hasKey)
+    {
+        StringPtr str;
+        ser->readString(String("valueIntfID"), &str);
+        daqStringToInterfaceId(str, valueId);
+    }
+
     SerializedListPtr list = nullptr;
     ser->readSerializedList(String("values"), &list);
 
     SizeT length;
     list->getCount(&length);
-
-    DictObjectPtr<IDict, IBaseObject, IBaseObject> dict = Dict_Create();
+    
+    DictObjectPtr<IDict, IBaseObject, IBaseObject> dict = createWithImplementation<IDict, DictImpl>(keyId, valueId);
 
     for (SizeT i = 0; i < length; i++)
     {

@@ -6,7 +6,7 @@
 #include <gmock/gmock.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
-#include "test_utils.h"
+#include <opendaq/mock/advanced_components_setup_utils.h>
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/context_factory.h>
@@ -342,6 +342,23 @@ TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlock)
     ASSERT_EQ(fb.getSignals()[2].asPtr<IConfigClientObject>().getRemoteGlobalId(),
               serverSubDevice.getFunctionBlocks()[1].getSignals()[2].getGlobalId());
     ASSERT_EQ(fb.getSignals()[0].getDomainSignal(), fb.getSignals()[2]);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, FunctionBlocksNested)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+    const auto config = PropertyObject();
+    config.addProperty(StringPropertyBuilder("Param", "Value").build());
+
+    const auto fb = clientSubDevice.addFunctionBlock("mockfb1", config);
+    auto types = fb.getAvailableFunctionBlockTypes();
+    auto nestedFb = fb.addFunctionBlock(types.getKeyList()[0], config);
+    ASSERT_TRUE(nestedFb.assigned());
+    fb.removeFunctionBlock(nestedFb);
+
+    ASSERT_TRUE(nestedFb.isRemoved());
+    ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, AddFunctionBlockWithEvent)

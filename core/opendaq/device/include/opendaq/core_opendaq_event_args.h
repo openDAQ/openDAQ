@@ -149,6 +149,17 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     Bool, isLocked
 )
 
+/*!
+ * @brief Creates Core event args that are passed as argument when the device operation mode changes.
+ * @param operationMode The new operation mode of the device.
+ *
+ * The ID of the event is 180, and the event name is "DeviceOperationModeChanged".
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, CoreEventArgsDeviceOperationModeChanged, ICoreEventArgs,
+    Int, operationMode
+)
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

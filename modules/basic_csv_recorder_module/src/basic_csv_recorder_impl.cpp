@@ -8,6 +8,7 @@
 #include <opendaq/opendaq.h>
 
 #include <basic_csv_recorder_module/basic_csv_recorder_impl.h>
+#include <basic_csv_recorder_module/basic_csv_recorder_thread.h>
 #include <basic_csv_recorder_module/common.h>
 
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
@@ -88,12 +89,12 @@ void BasicCsvRecorderImpl::activeChanged()
 
 void BasicCsvRecorderImpl::onPacketReceived(const InputPortPtr& port)
 {
-    auto signal = findSignal(port);
+    auto thread = findThreadForSignal(port);
 
     PacketPtr packet;
     while ((packet = port.getConnection().dequeue()).assigned())
-        if (signal)
-            signal->onPacketReceived(packet);
+        if (thread)
+            thread->post(packet);
 }
 
 void BasicCsvRecorderImpl::addProperties()
@@ -133,24 +134,24 @@ void BasicCsvRecorderImpl::reconfigure()
                 SignalPtr signal = connection.getSignal();
 
                 // If we don't yet have a BasicCsvRecorderSignal object for this port, create one.
-                auto it = signals.find(inputPort.getObject());
-                if (it == signals.end())
-                    signals.emplace(
+                auto it = threads.find(inputPort.getObject());
+                if (it == threads.end())
+                    threads.emplace(
                         inputPort.getObject(),
-                        std::make_shared<BasicCsvRecorderSignal>(path, signal));
+                        std::make_shared<BasicCsvRecorderThread>(path, signal, loggerComponent));
             }
         }
 
         // Now make another pass, and destroy BasicCsvRecorderSignal
         // objects for ports that are gone or no longer connected.
-        decltype(signals)::iterator it = signals.begin();
-        while (it != signals.end())
+        decltype(threads)::iterator it = threads.begin();
+        while (it != threads.end())
         {
             if (ports.find(it->first) == ports.end())
             {
                 auto jt = it;
                 ++jt;
-                signals.erase(it);
+                threads.erase(it);
                 it = jt;
             }
 
@@ -167,14 +168,14 @@ void BasicCsvRecorderImpl::reconfigure()
     }
 }
 
-std::shared_ptr<BasicCsvRecorderSignal> BasicCsvRecorderImpl::findSignal(IInputPort *port)
+std::shared_ptr<BasicCsvRecorderThread> BasicCsvRecorderImpl::findThreadForSignal(IInputPort *port)
 {
-    std::shared_ptr<BasicCsvRecorderSignal> signal;
+    std::shared_ptr<BasicCsvRecorderThread> thread;
     auto lock = getRecursiveConfigLock();
-    auto it = signals.find(port);
-    if (it != signals.end())
-        signal = it->second;
-    return signal;
+    auto it = threads.find(port);
+    if (it != threads.end())
+        thread = it->second;
+    return thread;
 }
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

@@ -45,8 +45,7 @@ public:
                       const ContextPtr& context,
                       const ComponentPtr& parent,
                       const StringPtr& localId,
-                      const StringPtr& className = nullptr,
-                      const PropertyObjectPtr& config = nullptr);
+                      const StringPtr& className = nullptr);
 
     ErrCode INTERFACE_FUNC getFunctionBlockType(IFunctionBlockType** type) override;
 
@@ -134,9 +133,8 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
                                                                 const ContextPtr& context,
                                                                 const ComponentPtr& parent,
                                                                 const StringPtr& localId,
-                                                                const StringPtr& className,
-                                                                const PropertyObjectPtr& config)
-    : Super(context, parent, localId, className, nullptr)
+                                                                const StringPtr& className)
+    : Super(context, parent, localId, className)
     , type(type)
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))

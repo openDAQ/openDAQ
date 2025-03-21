@@ -2630,6 +2630,67 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
     ASSERT_EQ(signal.getGlobalId(), clientRefDevice.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
 }
 
+TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto client = CreateClientInstance();
+        
+        auto deviceConfig = client.createDefaultAddDeviceConfig();
+        deviceConfig.addProperty(StringProperty("TestKey", "TestValue"));
+        client.getDevices()[0].addDevice("daqref://device1", deviceConfig);
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices()[0].getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto deviceConfig = devices[0].asPtr<IDevicePrivate>(true).getDeviceConfig();
+    ASSERT_TRUE(deviceConfig.assigned());
+    ASSERT_TRUE(deviceConfig.hasProperty("TestKey"));
+    ASSERT_EQ(deviceConfig.getPropertyValue("TestKey"), "TestValue");
+}
+
+
+TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0];
+
+        auto fbConfig = PropertyObject();
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+
+        auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+    auto clientRoot = devices[0];
+
+    ASSERT_EQ(clientRoot.getFunctionBlocks().getCount(), 1u);
+
+    auto fb = clientRoot.getFunctionBlocks()[0];
+    auto fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(fbConfig.assigned());
+    ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+    ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
+}
+
 StringPtr getFileLastModifiedTime(const std::string& path)
 {
     auto ftime = fs::last_write_time(path);

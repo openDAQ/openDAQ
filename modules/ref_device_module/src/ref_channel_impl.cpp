@@ -358,7 +358,7 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
     {
         if (bUseOfBuffer) // Here I need to create a PacketBufferInit that will allow to correctly toggle
         {
-            dataPacket = pb->createPacket(&newSamples, valueSignal.getDescriptor(), domainPacket);
+            dataPacket = pb->createPacket((size_t*) &newSamples, valueSignal.getDescriptor(), domainPacket);
         }
         else
         {

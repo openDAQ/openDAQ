@@ -38,6 +38,9 @@ struct PacketBufferInit
 
     // sampleAmount will be relative to the acqloop and the amount of time that is required
     // to go through the aquisition loop of data.
+
+    // This boolean below is supposed to be a switch for using either a buffer
+    // or 'classic malloc' when creating new packets
     bool bUsingBuffer;
 
     // Check on the return codes and allow them to be

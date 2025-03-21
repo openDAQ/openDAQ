@@ -22,7 +22,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/opendaq.h>
 
-#include <basic_csv_recorder_module/basic_csv_recorder_signal.h>
+#include <basic_csv_recorder_module/basic_csv_recorder_thread.h>
 #include <basic_csv_recorder_module/common.h>
 
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
@@ -152,9 +152,9 @@ class BasicCsvRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRec
 
         bool recordingActive = false;
 
-        std::shared_ptr<BasicCsvRecorderSignal> findSignal(IInputPort *port);
+        std::shared_ptr<BasicCsvRecorderThread> findThreadForSignal(IInputPort *port);
 
-        std::map<IInputPort *, std::shared_ptr<BasicCsvRecorderSignal>> signals;
+        std::map<IInputPort *, std::shared_ptr<BasicCsvRecorderThread>> threads;
 
         unsigned portCount = 0;
 };

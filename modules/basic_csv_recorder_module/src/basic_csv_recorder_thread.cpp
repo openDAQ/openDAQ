@@ -4,15 +4,17 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 
 #include <boost/algorithm/string.hpp>
 
+#include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/opendaq.h>
 
-#include <basic_csv_recorder_module/basic_csv_recorder_signal.h>
+#include <basic_csv_recorder_module/basic_csv_recorder_thread.h>
 #include <basic_csv_recorder_module/common.h>
 #include <basic_csv_recorder_module/csv_writer.h>
 
@@ -138,12 +140,57 @@ static std::string getValueName(const DataDescriptorPtr& descriptor)
     return stream.str();
 }
 
-BasicCsvRecorderSignal::BasicCsvRecorderSignal(std::filesystem::path path, const SignalPtr& signal)
-    : writer(std::make_unique<CsvWriter>(path / getFilename(path, signal)))
+BasicCsvRecorderThread::BasicCsvRecorderThread(
+        std::filesystem::path path,
+        const SignalPtr& signal,
+        const LoggerComponentPtr& loggerComponent)
+    : loggerComponent(loggerComponent)
+    , writer(std::make_unique<CsvWriter>(path / getFilename(path, signal)))
+    , thread([this]() { threadMain(); })
 {
 }
 
-void BasicCsvRecorderSignal::onPacketReceived(const PacketPtr& packet)
+BasicCsvRecorderThread::~BasicCsvRecorderThread()
+{
+    post(nullptr);
+    thread.join();
+}
+
+void BasicCsvRecorderThread::post(const PacketPtr& packet)
+{
+    std::unique_lock lock(mutex);
+    queue.emplace(packet);
+    lock.unlock();
+    cv.notify_all();
+}
+
+void BasicCsvRecorderThread::threadMain()
+{
+    while (true)
+    {
+        std::unique_lock lock(mutex);
+        cv.wait(lock, [this]() { return !queue.empty(); });
+        auto packet = queue.front();
+        queue.pop();
+        lock.unlock();
+
+        if (!packet.assigned())
+            return;
+
+        try
+        {
+            onPacketReceived(packet);
+        }
+
+        catch (const std::exception& ex)
+        {
+            LOG_E("BasicCsvRecorder failed to write packet; closing CSV file: {}", ex.what());
+            writer.reset();
+        }
+    }
+}
+
+void BasicCsvRecorderThread::onPacketReceived(const PacketPtr& packet)
 {
     switch (packet.getType())
     {
@@ -225,7 +272,7 @@ void writeSamples(DataPacketPtr packet, CsvWriter& writer)
     }
 }
 
-void BasicCsvRecorderSignal::onEventPacketReceived(EventPacketPtr packet)
+void BasicCsvRecorderThread::onEventPacketReceived(EventPacketPtr packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
@@ -235,7 +282,7 @@ void BasicCsvRecorderSignal::onEventPacketReceived(EventPacketPtr packet)
     }
 }
 
-void BasicCsvRecorderSignal::onDataPacketReceived(DataPacketPtr packet)
+void BasicCsvRecorderThread::onDataPacketReceived(DataPacketPtr packet)
 {
     auto descriptor = packet.getDataDescriptor();
     if (!descriptor.assigned())
@@ -268,7 +315,7 @@ void BasicCsvRecorderSignal::onDataPacketReceived(DataPacketPtr packet)
     }
 }
 
-void BasicCsvRecorderSignal::tryWriteHeaders(const DataDescriptorPtr& descriptor, const DataDescriptorPtr& domainDescriptor)
+void BasicCsvRecorderThread::tryWriteHeaders(const DataDescriptorPtr& descriptor, const DataDescriptorPtr& domainDescriptor)
 {
     if (headersWritten)
     {

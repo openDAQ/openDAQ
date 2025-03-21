@@ -12,8 +12,8 @@
 
 BEGIN_NAMESPACE_UTILS
 
-TimerThread::TimerThread(const std::string& name, int intervalMs, CallbackFunction callback, int delayMs, TimerMode timerMode)
-    : TimerThread(name, std::chrono::milliseconds(static_cast<int64_t>(intervalMs)),
+TimerThread::TimerThread(int intervalMs, CallbackFunction callback, int delayMs, TimerMode timerMode)
+    : TimerThread(std::chrono::milliseconds(static_cast<int64_t>(intervalMs)),
                   std::move(callback),
                   delayMs == -1 ? std::chrono::milliseconds(static_cast<int64_t>(intervalMs))
                                 : std::chrono::milliseconds(static_cast<int64_t>(delayMs)),
@@ -21,13 +21,11 @@ TimerThread::TimerThread(const std::string& name, int intervalMs, CallbackFuncti
 {
 }
 
-TimerThread::TimerThread(const std::string& name,
-                         std::chrono::microseconds interval,
+TimerThread::TimerThread(std::chrono::microseconds interval,
                          CallbackFunction callback,
                          std::optional<std::chrono::microseconds> delay,
                          TimerMode timerMode)
-    : name(name)
-    ,intervalMcs{interval}
+    : intervalMcs{interval}
     , delayMcs(delay.has_value() ? delay.value() : interval)
     , timerMode(timerMode)
     , callback{std::move(callback)}
@@ -112,6 +110,8 @@ int64_t TimerThread::getNoOfCallbacks() const
 
 void TimerThread::execute()
 {
+    threadEnter();
+
 #ifndef __linux__
     auto locked = std::unique_lock<std::mutex>(terminateMutex);
 
@@ -181,12 +181,43 @@ void TimerThread::execute()
     }
     pthread_mutex_unlock(terminateMutex.native_handle());
 #endif
+    threadLeave();
 }
 
 void TimerThread::executeTimerCallback()
 {
     if (callback)
         callback();
+}
+
+void TimerThread::threadEnter()
+{
+}
+
+void TimerThread::threadLeave()
+{
+}
+
+NamedTimerThread::NamedTimerThread(std::string name, int intervalMs, CallbackFunction callback, int delayMs, TimerMode timerMode)
+    : TimerThread(intervalMs, std::move(callback), delayMs, timerMode)
+    , name{std::move(name)}
+{
+}
+
+NamedTimerThread::NamedTimerThread(std::string name,
+                                   std::chrono::microseconds interval,
+                                   CallbackFunction callback,
+                                   std::optional<std::chrono::microseconds> delay,
+                                   TimerMode timerMode)
+    : TimerThread(interval, std::move(callback), delay, timerMode)
+    , name{std::move(name)}
+{
+}
+
+void NamedTimerThread::threadEnter()
+{
+    if (!name.empty())
+        setThreadName(name.c_str());
 }
 
 END_NAMESPACE_UTILS

@@ -18,6 +18,9 @@
 #include <discovery_server/mdnsdiscovery_server.h>
 #include <discovery_common/daq_discovery_common.h>
 #include <stdexcept>
+#include <opendaq/utils/thread_name.h>
+
+
 #ifdef _WIN32
     #define _CRT_SECURE_NO_WARNINGS 1
 #endif
@@ -330,6 +333,8 @@ MDNSDiscoveryServer::~MDNSDiscoveryServer(void)
 
 void MDNSDiscoveryServer::serviceLoop()
 {
+    utils::setThreadName("MDNSDiscovery");
+
     auto callback = [this](int sock,
                            const sockaddr* from,
                            size_t addrlen,

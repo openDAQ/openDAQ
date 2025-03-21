@@ -223,3 +223,20 @@ this->connectionStatusContainer.addConfigurationConnectionStatus(connectionStrin
 // ... and to update status:
 this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), value, nullptr);
 ```
+
+### [#730](https://github.com/openDAQ/openDAQ/pull/730) Provide list of connected clients info via DeviceInfo.
+
+Updates the openDAQ discovery client API, making it necessary to pass a default-constructed `ConnectedClientInfoPtr` object as an additional parameter into `DiscoveryClient::populateDiscoveredInfoProperties`.
+
+Therefore, the following module implementation snippet should be modified as follows:
+
+```diff
+DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
+{
+    PropertyObjectPtr deviceInfo = DeviceInfo("");
+-   DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
++   DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice, ConnectedClientInfo());
+    ...
+    return deviceInfo;
+}
+```

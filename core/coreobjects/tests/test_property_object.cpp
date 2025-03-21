@@ -1002,6 +1002,33 @@ TEST_F(PropertyObjectTest, OnValueChangeClear)
     ASSERT_EQ(numCallbacks, 2);
 }
 
+TEST_F(PropertyObjectTest, OnValueChangeClearDefaultValue)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    Int numCallbacks = 0;
+
+    propObj.getOnPropertyValueWrite("FloatProperty") +=
+        [&numCallbacks](PropertyObjectPtr& /*sender*/, PropertyValueEventArgsPtr& args)
+        {
+            if (args.getPropertyEventType() == PropertyEventType::Clear)
+            {
+                if (numCallbacks == 0)
+                {
+                    ASSERT_EQ(args.getValue(), args.getProperty().getDefaultValue());
+                    args.setValue(50.0);
+                }
+                numCallbacks++;
+            }
+        };
+
+    propObj.setPropertyValue("FloatProperty", 2.0);
+    propObj.clearPropertyValue("FloatProperty");
+    ASSERT_DOUBLE_EQ(propObj.getPropertyValue("FloatProperty"), 50.0);
+    propObj.clearPropertyValue("FloatProperty");
+    ASSERT_DOUBLE_EQ(propObj.getPropertyValue("FloatProperty"), 1.0);
+    ASSERT_EQ(numCallbacks, 2);
+}
+
 TEST_F(PropertyObjectTest, OnValueChangePropertyEvent)
 {
     auto propObj = PropertyObject(objManager, "Test");

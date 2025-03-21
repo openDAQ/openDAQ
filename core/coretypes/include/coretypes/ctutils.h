@@ -140,7 +140,7 @@ inline ErrCode errorFromException(const std::exception& e, IBaseObject* source =
 template <typename... Params>
 void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
 {
-    IErrorInfo* errorInfo;
+    IErrorInfo* errorInfo = nullptr;
     auto err = createErrorInfoObjectWithSource(&errorInfo, source, message, params...);
     if (OPENDAQ_FAILED(err))
         return;

@@ -13,7 +13,7 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
                                    const ComponentPtr& parent,
                                    const StringPtr& localId,
                                    const PropertyObjectPtr& config)
-    : FunctionBlock(CreateType(), ctx, parent, localId, nullptr, config)
+    : FunctionBlock(CreateType(), ctx, parent, localId)
 {
     initComponentStatus();
     initProperties();

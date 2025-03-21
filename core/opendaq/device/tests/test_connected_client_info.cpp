@@ -7,7 +7,17 @@ using ConnectedClientInfoTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
 
-TEST_F(ConnectedClientInfoTest, Factory)
+TEST_F(ConnectedClientInfoTest, FactoryNoParams)
+{
+    ConnectedClientInfoPtr clientInfo = ConnectedClientInfo();
+    ASSERT_EQ(clientInfo.getAddress(), "");
+    ASSERT_EQ(clientInfo.getProtocolName(), "");
+    ASSERT_EQ(clientInfo.getClientTypeName(), "");
+    ASSERT_EQ(clientInfo.getProtocolType(), ProtocolType::Unknown);
+    ASSERT_EQ(clientInfo.getHostName(), "");
+}
+
+TEST_F(ConnectedClientInfoTest, FactoryWithParams)
 {
     ConnectedClientInfoPtr clientInfo =
         ConnectedClientInfo("url",
@@ -84,6 +94,24 @@ TEST_F(ConnectedClientInfoTest, SerializeDeserialize)
     const auto newSerializedClientInfo = serializer.getOutput();
 
     ASSERT_EQ(serializedClientInfo, newSerializedClientInfo);
+}
+
+TEST_F(ConnectedClientInfoTest, SerializeForOlderVersion)
+{
+    ConnectedClientInfoPtr clientInfo = ConnectedClientInfo();
+
+    clientInfo.addProperty(StringProperty("Location", "Office"));
+
+    const auto serializer = JsonSerializerWithVersion(2);
+    clientInfo.serialize(serializer);
+    const auto serializedClientInfo = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const BaseObjectPtr newClientInfo = deserializer.deserialize(serializedClientInfo, nullptr, nullptr);
+    ASSERT_FALSE(newClientInfo.supportsInterface<IConnectedClientInfo>());
+    ASSERT_TRUE(newClientInfo.supportsInterface<IPropertyObject>());
+    ASSERT_EQ(newClientInfo.asPtr<IPropertyObject>().getAllProperties().getCount(), 0u);
 }
 
 END_NAMESPACE_OPENDAQ

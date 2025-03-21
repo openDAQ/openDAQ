@@ -540,7 +540,8 @@ bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyAdded(c
     if (propObjPtr.hasProperty(prop.getName()))
         return true;
 
-    //ScopedRemoteUpdate update(propObjPtr); // fixme - nested prop obj does not impl IConfigClientObject iface
+    // fixme - nested property objects of DeviceInfo do not support IConfigClientObject interface
+    //ScopedRemoteUpdate update(propObjPtr);
     propObjPtr.addProperty(prop);
     return true;
 }
@@ -569,7 +570,8 @@ bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyRemoved
     if (!propObjPtr.hasProperty(propName))
         return true;
 
-    //ScopedRemoteUpdate update(propObjPtr); // fixme - nested prop obj does not impl IConfigClientObject iface
+    // fixme - nested property objects of DeviceInfo do not support IConfigClientObject interface
+    //ScopedRemoteUpdate update(propObjPtr);
     propObjPtr.removeProperty(propName);
     return true;
 }

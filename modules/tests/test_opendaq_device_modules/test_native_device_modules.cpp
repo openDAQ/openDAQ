@@ -136,7 +136,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 10);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 11);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -214,7 +214,6 @@ TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionLocationUsername)
     server.detach();
 }
 
-
 TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 {
     SKIP_TEST_MAC_CI;
@@ -237,7 +236,6 @@ TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
     ASSERT_THROW(client.getDevices()[0].getAvailableDevices(), ServerVersionTooLowException);
     ASSERT_THROW(client.getDevices()[0].getAvailableDeviceTypes(), ServerVersionTooLowException);
 }
-
 
 TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
 {
@@ -424,6 +422,24 @@ TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
 
     clientSideClientsInfo = newClient.getDevices()[0].getInfo().getConnectedClientsInfo();
     ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
+}
+
+TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionConnectedClientsInfo)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(10);
+
+    ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
+
+    // connected clients info is not propogated via older protocol version
+    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
+
+    auto newClient = CreateClientInstance();
+    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
+    ASSERT_EQ(newClient.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 4u);
+
+    newClient.release();
+    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
 }
 
 TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)

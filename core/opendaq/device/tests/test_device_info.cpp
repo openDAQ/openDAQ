@@ -250,6 +250,31 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     ASSERT_EQ(serializedDeviceInfo, newSerializedDeviceInfo);
 }
 
+TEST_F(DeviceInfoTest, SerializeDeserializeForOlderVersion)
+{
+    DeviceInfoConfigPtr info = DeviceInfo("", "");
+
+    info.asPtr<IDeviceInfoInternal>().addConnectedClient(
+        "id1",
+        ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", "", "Host name")
+    );
+    info.asPtr<IDeviceInfoInternal>().addConnectedClient(
+        "id2",
+        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name")
+    );
+
+    const auto serializer = JsonSerializerWithVersion(2);
+    info.serialize(serializer);
+    const auto serializedDeviceInfo = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const DeviceInfoPtr newDeviceInfo = deserializer.deserialize(serializedDeviceInfo, nullptr, nullptr);
+
+    // default value of "connectedClientsInfo" constains no nested properties
+    ASSERT_EQ(newDeviceInfo.getConnectedClientsInfo().getCount(), 0u);
+}
+
 TEST_F(DeviceInfoTest, ServerCapabilities)
 {
     auto context = NullContext();

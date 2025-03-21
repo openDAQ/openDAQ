@@ -399,6 +399,7 @@ protected:
 
     virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
     virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
+    virtual ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer);
 
     static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
                                           const BaseObjectPtr& context,
@@ -2881,6 +2882,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 }
 
 template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeProperty(const PropertyPtr& property, ISerializer* serializer)
+{
+    return daqTry([&property, &serializer]
+    {
+        property.serialize(serializer);
+        return OPENDAQ_SUCCESS;
+    });
+
+}
+
+template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer)
 {
     auto serializerPtr = SerializerPtr::Borrow(serializer);
@@ -2952,7 +2964,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
             if (!hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
                 continue;
 
-            prop.second.serialize(serializer);
+            checkErrorInfo(serializeProperty(prop.second, serializer));
         }
         checkErrorInfo(serializer->endList());
 

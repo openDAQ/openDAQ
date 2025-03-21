@@ -152,6 +152,8 @@ protected:
     void triggerCoreEventMethod(const CoreEventArgsPtr& args);
 
     virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
+    ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer) override;
+    ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
 
     std::set<std::string> changeableDefaultPropertyNames;
     DeviceTypePtr deviceType;
@@ -716,11 +718,17 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
     CoreType type;
     property->getValueType(&type);
     if (static_cast<int>(type) > 3 && name != "serverCapabilities" && name != "connectedClientsInfo")
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Only String, Int, Bool, or Float-type properties can be added to Device Info.");
+        return DAQ_MAKE_ERROR_INFO(
+            OPENDAQ_ERR_INVALIDPARAMETER,
+            fmt::format(R"(Failed adding property {}: only String, Int, Bool, or Float-type properties can be added to Device Info.)", name)
+        );
 
     BaseObjectPtr selValues;
     if (property->getSelectionValues(&selValues); selValues.assigned())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Selection-type properties cannot be added to Device Info.");
+        return DAQ_MAKE_ERROR_INFO(
+            OPENDAQ_ERR_INVALIDPARAMETER,
+            fmt::format(R"(Failed adding property {}: selection-type properties cannot be added to Device Info.)", name)
+        );
 
     return Super::addProperty(property);
 }
@@ -1064,6 +1072,34 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setValueInternal(IStrin
         return Super::setPropertyValue(propertyName, value);
 
     return Super::setProtectedPropertyValue(propertyName, value);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer)
+{
+    Int version;
+    ErrCode err = serializer->getVersion(&version);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    // skip object-type property which cannot be properly handled by older version
+    if (name == "connectedClientsInfo" && version < 3)
+        return OPENDAQ_IGNORED;
+    return Super::serializePropertyValue(name, value, serializer);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const PropertyPtr& property, ISerializer* serializer)
+{
+    Int version;
+    ErrCode err = serializer->getVersion(&version);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    // skip object-type property which cannot be properly handled by older version
+    if (property.getName() == "connectedClientsInfo" && version < 3)
+        return OPENDAQ_IGNORED;
+    return Super::serializeProperty(property, serializer);
 }
 
 template <typename TInterface, typename ... Interfaces>

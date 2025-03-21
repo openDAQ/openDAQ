@@ -150,6 +150,24 @@ ErrCode ConnectedClientInfoImpl::addProperty(IProperty* property)
     return Super::addProperty(property);
 }
 
+ErrCode ConnectedClientInfoImpl::serialize(ISerializer* serializer)
+{
+    Int version;
+    ErrCode err = serializer->getVersion(&version);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    if (version < 3)
+    {
+        // serialize as empty PropertyObject for older versions
+        // as type id "ConnectedClientInfo" might not be known by deserializer
+        serializer->startTaggedObject(PropertyObject().asPtr<ISerializable>());
+        serializer->endObject();
+        return OPENDAQ_SUCCESS;
+    }
+    return Super::serialize(serializer);
+}
+
 ErrCode ConnectedClientInfoImpl::getSerializeId(ConstCharPtr* id) const
 {
     *id = SerializeId();

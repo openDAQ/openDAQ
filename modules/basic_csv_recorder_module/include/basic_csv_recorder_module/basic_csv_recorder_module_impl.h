@@ -24,7 +24,7 @@
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
 /*!
- * @brief An openDAQ module which exposes a single `FunctionBlock` object, BasicCsvRecorderImpl.
+ * @brief An openDAQ module which exposes a single `Recorder` object, BasicCsvRecorderImpl.
  */
 class BasicCsvRecorderModule final : public Module
 {

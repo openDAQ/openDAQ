@@ -136,7 +136,7 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
                                                                 const StringPtr& localId,
                                                                 const StringPtr& className,
                                                                 const PropertyObjectPtr& config)
-    : Super(context, parent, localId, className, nullptr, config)
+    : Super(context, parent, localId, className, nullptr)
     , type(type)
     , loggerComponent(this->context.getLogger().assigned() ? this->context.getLogger().getOrAddComponent(this->globalId)
                                                            : throw ArgumentNullException("Logger must not be null"))

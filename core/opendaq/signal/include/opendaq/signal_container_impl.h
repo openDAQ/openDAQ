@@ -38,8 +38,7 @@ public:
                                const ComponentPtr& parent,
                                const StringPtr& localId,
                                const StringPtr& className = nullptr,
-                               const StringPtr& name = nullptr,
-                               const PropertyObjectPtr& config = nullptr);
+                               const StringPtr& name = nullptr);
     
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
@@ -47,7 +46,6 @@ public:
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
-    ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
 protected:
     FolderConfigPtr signals;
@@ -121,9 +119,6 @@ protected:
 private:
     template <class Component>
     void swapComponent(Component& origComponent, const Component& newComponent);
-
-protected:
-    PropertyObjectPtr componentConfig;
 };
 
 template <class Intf = IComponent, class... Intfs>
@@ -137,8 +132,7 @@ public:
                         const ComponentPtr& parent,
                         const StringPtr& localId,
                         const StringPtr& className = nullptr,
-                        const StringPtr& name = nullptr,
-                        const PropertyObjectPtr& config = nullptr);
+                        const StringPtr& name = nullptr);
     
     // IComponent
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
@@ -154,14 +148,12 @@ GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const Con
                                                                        const ComponentPtr& parent,
                                                                        const StringPtr& localId,
                                                                        const StringPtr& className,
-                                                                       const StringPtr& name,
-                                                                       const PropertyObjectPtr& config)
+                                                                       const StringPtr& name)
     : Super(context, parent, localId, className, name)
     , allowNonDefaultComponents(false)
     , signalContainerLoggerComponent(
         context.getLogger().assigned() ? context.getLogger().getOrAddComponent("GenericSignalContainerImpl")
             : throw ArgumentNullException{"Logger not assigned!"})
-    , componentConfig(config)
 {
     defaultComponents.insert("Sig");
     defaultComponents.insert("FB");
@@ -206,9 +198,8 @@ SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& conte
                                                          const ComponentPtr& parent,
                                                          const StringPtr& localId,
                                                          const StringPtr& className,
-                                                         const StringPtr& name,
-                                                         const PropertyObjectPtr& config)
-    : Super(context, parent, localId, className, name, config)
+                                                         const StringPtr& name)
+    : Super(context, parent, localId, className, name)
 {
 }
 
@@ -585,19 +576,6 @@ void GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomObjectValues(con
     Super::serializeCustomObjectValues(serializer, forUpdate);
     serializeFolder(serializer, signals, "Sig", forUpdate);
     serializeFolder(serializer, functionBlocks, "FB", forUpdate);
-
-    if (forUpdate)
-    {
-        PropertyObjectPtr componentConfig = this->componentConfig;
-        if (!componentConfig.assigned())
-            getComponentConfig(&componentConfig);
-
-        if (componentConfig.assigned())
-        {
-            serializer.key("config");
-            componentConfig.serialize(serializer);
-        }
-    }
 }
 
 template <class Intf, class... Intfs>
@@ -704,14 +682,6 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(Operatio
             return errCode;
     }
 
-    return OPENDAQ_SUCCESS;
-}
-
-template <class Intf, class... Intfs>
-ErrCode GenericSignalContainerImpl<Intf, Intfs...>::getComponentConfig(IPropertyObject** config)
-{
-    OPENDAQ_PARAM_NOT_NULL(config);
-    *config = componentConfig.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

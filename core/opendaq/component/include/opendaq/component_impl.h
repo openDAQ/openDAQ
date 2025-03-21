@@ -104,6 +104,7 @@ public:
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
     // IRemovable
@@ -157,6 +158,7 @@ protected:
     StringPtr name;
     StringPtr description;
     ComponentStatusContainerPtr statusContainer;
+    PropertyObjectPtr componentConfig;
 
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
@@ -691,9 +693,21 @@ ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType mod
 }
 
 template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::getComponentConfig(IPropertyObject** /* config */)
+ErrCode ComponentImpl<Intf, Intfs...>::setComponentConfig(IPropertyObject* config)
 {
-    return OPENDAQ_IGNORED;
+    if (componentConfig.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Component config already set");
+
+    componentConfig = config;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getComponentConfig(IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = componentConfig.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>
@@ -1038,7 +1052,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /* forUpdate */)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     if (!active)
     {
@@ -1074,6 +1088,19 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
     {
         serializer.key("statuses");
         statusContainer.serialize(serializer);
+    }
+
+    if (forUpdate)
+    {
+        PropertyObjectPtr componentConfig = this->componentConfig;
+        if (!componentConfig.assigned())
+            this->getComponentConfig(&componentConfig);
+
+        if (componentConfig.assigned())
+        {
+            serializer.key("ComponentConfig");
+            componentConfig.serialize(serializer);
+        }
     }
 }
 

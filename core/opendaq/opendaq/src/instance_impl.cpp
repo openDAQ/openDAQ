@@ -50,8 +50,6 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     if (connectionString.assigned() && connectionString.getLength())
     {
         rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, rootDeviceConfig);
-        if (rootDevice.assigned() && rootDeviceConfig.assigned())
-            rootDevice.asPtr<IDevicePrivate>()->setDeviceConfig(rootDeviceConfig);
         LOG_I("Root device set to {}", connectionString)
         rootDeviceSet = true;
     }

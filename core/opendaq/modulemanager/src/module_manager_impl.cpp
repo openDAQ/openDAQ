@@ -23,7 +23,7 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <optional>
 #include <map>
-#include "opendaq/logger_factory.h"
+#include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
@@ -32,8 +32,9 @@
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/network_interface_factory.h>
+#include <opendaq/component_private_ptr.h>
 
-#include "opendaq/thread_name.h"
+#include <opendaq/thread_name.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -539,15 +540,21 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             checkErrorInfo(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
-            if (devicePtr.assigned() && devicePtr.getInfo().assigned())
+            if (devicePtr.assigned())
             {
-                replaceSubDeviceOldProtocolIds(devicePtr);
-                mergeDiscoveryAndDeviceCapabilities(devicePtr, discoveredDeviceInfo);
-                completeServerCapabilities(devicePtr);
+                if (devicePtr.getInfo().assigned())
+                {
+                    replaceSubDeviceOldProtocolIds(devicePtr);
+                    mergeDiscoveryAndDeviceCapabilities(devicePtr, discoveredDeviceInfo);
+                    completeServerCapabilities(devicePtr);
+                }
 
                 // automatically skips streaming connection for local and pseudo (streaming) devices
                 if (const auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>(true); mirroredDeviceConfigPtr.assigned())
                     configureStreamings(mirroredDeviceConfigPtr, config);
+
+                if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+                    componentPrivate.setComponentConfig(config);
             }
 
             return err;

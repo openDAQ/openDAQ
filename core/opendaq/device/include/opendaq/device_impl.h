@@ -344,11 +344,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObject* config)
 {
-    if (this->componentConfig.assigned())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Device configuration already set.");
-
-    this->componentConfig = config;
-    return OPENDAQ_SUCCESS;
+    return this->setComponentConfig(config);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1315,8 +1311,6 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::onAddDevice(const StringPtr&
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     auto device = managerUtils.createDevice(connectionString, devices, config);
-    if (device.assigned() && config.assigned())
-        device.template asPtr<IDevicePrivate>()->setDeviceConfig(config);
     addSubDevice(device);
 
     return device;
@@ -1450,10 +1444,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObjec
     OPENDAQ_PARAM_NOT_NULL(config);
     if (this->componentConfig.assigned())
     {
-        *config = this->componentConfig.detach();
+        *config = this->componentConfig.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
-
     return this->getComponentConfig(config);
 }
 
@@ -1776,8 +1769,8 @@ void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::st
         auto typeId = serializedFunctionBlock.readString("typeId");
 
         PropertyObjectPtr config;
-        if (serializedFunctionBlock.hasKey("config"))
-            config = serializedFunctionBlock.readObject("config");
+        if (serializedFunctionBlock.hasKey("ComponentConfig"))
+            config = serializedFunctionBlock.readObject("ComponentConfig");
         else
             config = PropertyObject();
 
@@ -1820,8 +1813,8 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
         if (serializedDevice.hasKey("deviceConfig"))
             deviceConfig = serializedDevice.readObject("deviceConfig");
-        else if (serializedDevice.hasKey("config"))
-            deviceConfig = serializedDevice.readObject("config");
+        else if (serializedDevice.hasKey("ComponentConfig"))
+            deviceConfig = serializedDevice.readObject("ComponentConfig");
 
         if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
         {

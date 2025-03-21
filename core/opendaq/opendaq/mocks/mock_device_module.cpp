@@ -90,7 +90,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
     }
     else
     {
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Invalid connection string %s", connStr.getCharPtr());
     }
     *device = devicePtr.detach();
 

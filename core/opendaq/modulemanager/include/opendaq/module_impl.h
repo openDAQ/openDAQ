@@ -31,6 +31,7 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/module_info_factory.h>
 #include <opendaq/component_type_private.h>
+#include <opendaq/component_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class Module : public ImplementationOf<IModule>
@@ -174,6 +175,9 @@ public:
 
         FunctionBlockPtr block;
         errCode = wrapHandlerReturn(this, &Module::onCreateFunctionBlock, block, id, parent, localId, mergeConfig(config, type));
+
+        if (const auto & componentPrivate = block.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+            componentPrivate.setComponentConfig(config);
 
         *functionBlock = block.detach();
         return errCode;

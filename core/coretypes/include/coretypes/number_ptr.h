@@ -65,7 +65,7 @@ public:
     Float getFloatValue() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Float value;
         auto errCode = this->object->getFloatValue(&value);
@@ -81,7 +81,7 @@ public:
     Int getIntValue() const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Int value;
         auto errCode = this->object->getIntValue(&value);

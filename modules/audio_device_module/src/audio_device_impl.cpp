@@ -261,13 +261,13 @@ ma_device_id AudioDeviceImpl::getIdFromConnectionString(std::string connectionSt
     std::string prefix = "miniaudio://";
     auto found = connectionString.find(prefix);
     if (found != 0)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     auto backendWithIdStr = connectionString.substr(prefix.size(), std::string::npos);
     std::string slash = "/";
     found = backendWithIdStr.find(slash);
     if (found == std::string::npos)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     auto backendStr = backendWithIdStr.substr(0, found);
     std::string idStr = backendWithIdStr.substr(found + 1, std::string::npos);

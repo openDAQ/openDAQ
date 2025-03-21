@@ -6,9 +6,11 @@
 #include <coretypes/cycle_detector.h>
 #include <coretypes/list_ptr.h>
 #include <coretypes/baseobject_factory.h>
+#include <coretypes/validation.h>
+#include <coretypes/serialization.h>
+#include "coretypes/stringobject_factory.h"
 
 BEGIN_NAMESPACE_OPENDAQ
-
 class ListIteratorImpl : public IteratorBaseImpl<std::vector<IBaseObject*>, IListElementType>
 {
 public:
@@ -35,7 +37,7 @@ ErrCode ListImpl::getElementInterfaceId(IntfID* id)
 {
     if (id == nullptr)
     {
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Interface id used as an out-parameter must not be null");
     }
 
     *id = iid;
@@ -68,10 +70,7 @@ ErrCode ListImpl::toString(CharPtr* str)
 
 ErrCode ListImpl::clone(IBaseObject** cloned)
 {
-    if (cloned == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(cloned);
 
     ListImpl* lst = new(std::nothrow) ListImpl(iid);
     if (lst == nullptr)
@@ -107,7 +106,7 @@ ErrCode ListImpl::clone(IBaseObject** cloned)
 ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null");
 
     if (!other)
     {
@@ -149,9 +148,8 @@ ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const
 
 ErrCode ListImpl::getItemAt(SizeT index, IBaseObject** item)
 {
-    if (item == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(item);
+    
     if (index >= list.size())
         return OPENDAQ_ERR_OUTOFRANGE;
 
@@ -249,9 +247,8 @@ ErrCode ListImpl::popBack(IBaseObject** obj)
         return OPENDAQ_ERR_FROZEN;
     }
 
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    
     if (!list.empty())
     {
         *obj = list.back();
@@ -269,8 +266,7 @@ ErrCode ListImpl::popFront(IBaseObject** obj)
         return OPENDAQ_ERR_FROZEN;
     }
 
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     if (!list.empty())
     {
@@ -361,8 +357,7 @@ ErrCode ListImpl::clear()
 
 ErrCode ListImpl::createStartIterator(IIterator** iterator)
 {
-    if (iterator == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(iterator);
 
     *iterator = new(std::nothrow) ListIteratorImpl(this, list.begin());
     if (*iterator == nullptr)
@@ -375,8 +370,7 @@ ErrCode ListImpl::createStartIterator(IIterator** iterator)
 
 ErrCode ListImpl::createEndIterator(IIterator** iterator)
 {
-    if (iterator == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(iterator);
 
     *iterator = new(std::nothrow) ListIteratorImpl(this, list.end());
     if (*iterator == nullptr)
@@ -389,9 +383,8 @@ ErrCode ListImpl::createEndIterator(IIterator** iterator)
 
 ErrCode ListImpl::getCoreType(CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-
+    OPENDAQ_PARAM_NOT_NULL(coreType);
+    
     *coreType = ctList;
     return OPENDAQ_SUCCESS;
 }
@@ -438,6 +431,28 @@ ErrCode ListImpl::isFrozen(Bool* isFrozen) const
 
 ErrCode ListImpl::serialize(ISerializer* serializer)
 {
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+    Int version;
+    ErrCode err = serializer->getVersion(&version);
+    if (OPENDAQ_FAILED(err))
+        return err;
+
+    if (version > 1)
+    {
+        serializer->startTaggedObject(this);
+
+        if (!(iid == IUnknown::Id))
+        {
+            serializer->key("itemIntfID");
+            
+            char iidString[39];
+            daqInterfaceIdToString(iid, iidString);
+            serializer->writeString(iidString, 38);
+        }
+
+        serializer->key("values");
+    }
+
     serializer->startList();
 
     for (const auto& element : list)
@@ -470,13 +485,50 @@ ErrCode ListImpl::serialize(ISerializer* serializer)
 
     serializer->endList();
 
+    if (version > 1)
+    {
+        serializer->endObject();
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ListImpl::getSerializeId(ConstCharPtr* /*id*/) const
+ErrCode ListImpl::getSerializeId(ConstCharPtr* id) const
 {
-    // Handled directly by the serializer and deserializer
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr ListImpl::SerializeId()
+{
+    return "List";
+}
+
+ErrCode INTERFACE_FUNC deserializeList(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+{
+    Bool hasKey = false;
+    IntfID id = IUnknown::Id;
+    ser->hasKey(String("itemIntfID"), &hasKey);
+    if (hasKey)
+    {
+        StringPtr str;
+        ser->readString(String("itemIntfID"), &str);
+        daqStringToInterfaceId(str, id);
+    }
+
+    SerializedListPtr list = nullptr;
+    ser->readSerializedList(String("values"), &list);
+
+    ListPtr<IBaseObject> listObj = createWithImplementation<IList, ListImpl>(id);
+    for (SizeT i = 0; i < list.getCount(); i++)
+    {
+        listObj.pushBack(list.readObject(context, factoryCallback));
+    }
+
+    *obj = listObj.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ListIteratorImpl::ListIteratorImpl(ListImpl* list, std::vector<IBaseObject*>::iterator it)
@@ -488,7 +540,7 @@ ListIteratorImpl::ListIteratorImpl(ListImpl* list, std::vector<IBaseObject*>::it
 ErrCode ListIteratorImpl::getElementInterfaceId(IntfID* id)
 {
     if (id == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Id output parameter must not be null.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Id output parameter must not be null.");
 
     *id = valueId;
     return OPENDAQ_SUCCESS;

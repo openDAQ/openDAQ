@@ -391,12 +391,6 @@ TEST_F(ListObjectTest, DoubleFreeze)
     ASSERT_EQ(list.asPtr<IFreezable>(true)->freeze(), OPENDAQ_IGNORED);
 }
 
-TEST_F(ListObjectTest, SerializeId)
-{
-    auto list = List<IBaseObject>();
-    ASSERT_THROW(list.getSerializeId(), NotImplementedException);
-}
-
 TEST_F(ListObjectTest, GetItemWithSubscriptionOperator)
 {
     auto list = List<Int>(1, 2, 3);
@@ -413,6 +407,39 @@ TEST_F(ListObjectTest, ElementSmartPointerType)
 
     // element must be StringPtr
     ASSERT_EQ(el.getLength(), 2u);
+}
+
+TEST_F(ListObjectTest, SerializeDeserializeV1)
+{
+    auto ser = JsonSerializerWithVersion(1);
+    auto list = List<IString>("e1", "e2", "e3");
+    list.serialize(ser);
+    auto str = ser.getOutput();
+    ASSERT_EQ(str, "[\"e1\",\"e2\",\"e3\"]");
+
+    auto deser = JsonDeserializer();
+    auto obj = deser.deserialize(str);
+    ASSERT_EQ(obj, list);
+
+    IntfID id;
+    obj.asPtr<IListElementType>()->getElementInterfaceId(&id);
+    ASSERT_EQ(id, IUnknown::Id);
+}
+
+TEST_F(ListObjectTest, SerializeDeserializeV2)
+{
+    auto ser = JsonSerializerWithVersion(2);
+    auto list = List<IString>("e1", "e2", "e3");
+    list.serialize(ser);
+    auto str = ser.getOutput();
+
+    auto deser = JsonDeserializer();
+    auto obj = deser.deserialize(str);
+    ASSERT_EQ(obj, list);
+
+    IntfID id;
+    obj.asPtr<IListElementType>()->getElementInterfaceId(&id);
+    ASSERT_EQ(id, IString::Id);
 }
 
 TEST_F(ListObjectTest, FromVectorInt)

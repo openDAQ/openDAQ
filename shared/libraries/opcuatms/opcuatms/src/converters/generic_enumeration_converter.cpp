@@ -16,7 +16,7 @@ EnumerationPtr VariantConverter<IEnumeration>::ToDaqObject(const OpcUaVariant& v
         return nullptr;
 
     if (!context.assigned() || !context.getTypeManager().assigned())
-        throw ConversionFailedException{"Generic numeration conversion requires the TypeManager."};
+        DAQ_THROW_EXCEPTION(ConversionFailedException, "Generic numeration conversion requires the TypeManager.");
 
     const auto typeManager = context.getTypeManager();
 
@@ -28,7 +28,7 @@ EnumerationPtr VariantConverter<IEnumeration>::ToDaqObject(const OpcUaVariant& v
     if (typeManager.hasType(DataType->typeName))
         Type = typeManager.getType(DataType->typeName);
     else
-        throw ConversionFailedException{"EnumerationType is not present in Type Manager."};
+        DAQ_THROW_EXCEPTION(ConversionFailedException, "EnumerationType is not present in Type Manager.");
 
     DictPtr<IString, IInteger> dictEnumValues = Type.getAsDictionary();
 
@@ -64,7 +64,7 @@ OpcUaVariant VariantConverter<IEnumeration>::ToVariant(const EnumerationPtr& obj
 template <>
 ListPtr<IEnumeration> VariantConverter<IEnumeration>::ToDaqList(const OpcUaVariant& variant, const ContextPtr& context)
 {
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -72,7 +72,7 @@ OpcUaVariant VariantConverter<IEnumeration>::ToArrayVariant(const ListPtr<IEnume
                                                             const UA_DataType* /*targetType*/,
                                                             const ContextPtr& context)
 {
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

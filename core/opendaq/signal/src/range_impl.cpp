@@ -18,13 +18,12 @@ RangeImpl::RangeImpl(NumberPtr lowValue, NumberPtr highValue)
     , high(this->fields.get("HighValue"))
 {
     if (low > high)
-        throw RangeBoundariesInvalidException{};
+        DAQ_THROW_EXCEPTION(RangeBoundariesInvalidException);
 }
 
 ErrCode RangeImpl::getLowValue(INumber** value)
 {
-    if (!value)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     *value = low.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -32,8 +31,7 @@ ErrCode RangeImpl::getLowValue(INumber** value)
 
 ErrCode RangeImpl::getHighValue(INumber** value)
 {
-    if (!value)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     *value = high.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -42,7 +40,7 @@ ErrCode RangeImpl::getHighValue(INumber** value)
 ErrCode RangeImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (other == nullptr)
@@ -103,7 +101,7 @@ ErrCode RangeImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFun
             low = serializedObj.readFloat("low");
             break;
         default:
-            throw InvalidTypeException();
+            DAQ_THROW_EXCEPTION(InvalidTypeException);
     }
     const auto highType = serializedObj.getType("high");
     switch (highType)
@@ -115,7 +113,7 @@ ErrCode RangeImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFun
             high = serializedObj.readFloat("high");
             break;
         default:
-            throw InvalidTypeException();
+            DAQ_THROW_EXCEPTION(InvalidTypeException);
     }
 
     return createObject<IRange, RangeImpl>(reinterpret_cast<IRange**>(obj), low, high);

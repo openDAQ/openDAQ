@@ -12,7 +12,7 @@ public:
 protected:
     void SetUp() override
     {
-        serializer = JsonSerializer();
+        serializer = JsonSerializerWithVersion(1);
     }
 
     void TearDown() override

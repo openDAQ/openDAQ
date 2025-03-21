@@ -25,8 +25,7 @@ public:
 
 inline daq::ErrCode createBoolInternal(IBoolean**objTmp, const Bool value)
 {
-    if (!objTmp)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(objTmp);
 
     if (value)
     {

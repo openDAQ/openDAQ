@@ -1,4 +1,4 @@
-#include "test_utils.h"
+#include "opendaq/mock/advanced_components_setup_utils.h"
 #include "coreobjects/argument_info_factory.h"
 #include "coreobjects/callable_info_factory.h"
 #include "coreobjects/coercer_factory.h"
@@ -13,7 +13,7 @@
 #include "opendaq/mock/mock_device_module.h"
 #include "opendaq/mock/mock_physical_device.h"
 
-namespace daq::config_protocol::test_utils
+namespace daq::test_utils
 {
 
 DevicePtr createTestDevice(const std::string& localId)
@@ -118,7 +118,7 @@ ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const Compon
     return component;
 }
 
-static PropertyObjectPtr createMockNestedPropertyObject()
+PropertyObjectPtr createMockNestedPropertyObject()
 {
     PropertyObjectPtr parent = PropertyObject();
     PropertyObjectPtr child1 = PropertyObject();
@@ -142,7 +142,7 @@ static PropertyObjectPtr createMockNestedPropertyObject()
     ProcedurePtr procCallback = Procedure(
         [&](const IntegerPtr& intVal) {
             if (intVal < Integer(1))
-                throw InvalidParameterException{};
+                DAQ_THROW_EXCEPTION(InvalidParameterException);
         });
 
     child1_2_1.addProperty(StringProperty("String", "String"));
@@ -181,6 +181,40 @@ MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
     sig2.setDomainSignal(sigDomain);
 
     createAndAddInputPort("ip", PacketReadyNotification::None);
+}
+
+DictPtr<IString, IFunctionBlockType> MockFb1Impl::onGetAvailableFunctionBlockTypes()
+{
+       auto fbTypes = Dict<IString, IFunctionBlockType>({{"mockfb1", FunctionBlockType("mockfb1", "MockFB1", "Mock FB1", nullptr)}});
+
+    auto componentTypePrivate = fbTypes.get("mockfb1").asPtr<IComponentTypePrivate>();
+    componentTypePrivate->setModuleInfo(ModuleInfo(VersionInfo(5, 6, 7), "module_name", "module_id"));
+
+    return fbTypes;
+}
+
+FunctionBlockPtr MockFb1Impl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    if (typeId == "mockfb1")
+    {
+        if (!config.assigned())
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+        const StringPtr param = config.getPropertyValue("Param");
+        if (param != "Value")
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+        const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(context, this->functionBlocks, "newFb");
+        addNestedFunctionBlock(fb);
+        return fb;
+    }
+
+    DAQ_THROW_EXCEPTION(NotFoundException);
+}
+
+void MockFb1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    removeNestedFunctionBlock(functionBlock);
 }
 
 MockFb2Impl::MockFb2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
@@ -249,17 +283,17 @@ FunctionBlockPtr MockDevice1Impl::onAddFunctionBlock(const StringPtr& typeId, co
     if (typeId == "mockfb1")
     {
         if (!config.assigned())
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const StringPtr param = config.getPropertyValue("Param");
         if (param != "Value")
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(context, this->functionBlocks, "newFb");
         addNestedFunctionBlock(fb);
         return fb;
     }
-    throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
 }
 
 void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)

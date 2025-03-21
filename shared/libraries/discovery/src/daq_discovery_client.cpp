@@ -122,19 +122,17 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
 
     if (OPENDAQ_SUCCEEDED(errCode))
     {
-        errCode = daqTry(
-            [&]()
+        errCode = daqTry([&]()
+        {
+            if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
+                responseProperties["serialNumber"] != serialNumber.toStdString() ||
+                responseProperties["ifaceName"] != ifaceName.toStdString())
             {
-                if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
-                    responseProperties["serialNumber"] != serialNumber.toStdString() ||
-                    responseProperties["ifaceName"] != ifaceName.toStdString())
-                {
-                    return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response", nullptr);
-                }
-                config = IpModificationUtils::populateIpConfigProperties(responseProperties);
-                return OPENDAQ_SUCCESS;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response");
             }
-        );
+            config = IpModificationUtils::populateIpConfigProperties(responseProperties);
+            return OPENDAQ_SUCCESS;
+        });
     }
 
     return errCode;

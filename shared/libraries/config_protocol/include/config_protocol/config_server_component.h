@@ -20,6 +20,9 @@
 #include <config_protocol/config_server_access_control.h>
 #include <opendaq/update_parameters_factory.h>
 
+#include "opendaq/component_holder_factory.h"
+#include "opendaq/search_filter_factory.h"
+
 namespace daq::config_protocol
 {
 
@@ -30,11 +33,15 @@ public:
     static BaseObjectPtr setPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr clearProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr callProperty(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr beginUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr endUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setAttributeValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr update(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr getAvailableFunctionBlockTypes(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr addFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr removeFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
 
 private:
     static void applyProps(uint16_t protocolVersion, const PropertyObjectPtr& obj, const ListPtr<IDict>& props);
@@ -128,14 +135,29 @@ inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(const RpcContext&
     return nullptr;
 }
 
+inline BaseObjectPtr ConfigServerComponent::clearProtectedPropertyValue(const RpcContext& context,
+                                                                        const ComponentPtr& component,
+                                                                        const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
+
+    component.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue(propertyName);
+
+    return nullptr;
+}
+
 inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& context,
                                                          const ComponentPtr& component,
                                                          const ParamsDictPtr& params)
 {
     const auto propertyName = static_cast<std::string>(params["PropertyName"]);
-    BaseObjectPtr callParams;
-    if (params.hasKey("Params"))
-        callParams = params.get("Params");
+    BaseObjectPtr callParams = params.getOrDefault("Params");
 
     const auto prop = component.getProperty(propertyName);
     const auto propValue = component.getPropertyValue(propertyName);
@@ -151,7 +173,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
         case CoreType::ctFunc:
             break;
         default:
-            throw InvalidPropertyException("Property not callable");
+            DAQ_THROW_EXCEPTION(InvalidPropertyException, "Property not callable");
     }
 
     if (!prop.getCallableInfo().isConst())
@@ -206,7 +228,7 @@ inline BaseObjectPtr ConfigServerComponent::endUpdate(const RpcContext& context,
     if (params.hasKey("Props"))
     {
         if (context.protocolVersion < 1)
-            throw NotSupportedException();
+            DAQ_THROW_EXCEPTION(NotSupportedException);
 
         const ListPtr<IDict> props = params.get("Props");
         applyProps(context.protocolVersion, obj, props);
@@ -234,7 +256,7 @@ inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const RpcContext& 
     else if (attributeName == "Active")
         component.setActive(attributeValue);
     else
-        throw InvalidParameterException("Attribute not available or not supported via native config protocol");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Attribute not available or not supported via native config protocol");
 
     return nullptr;
 }
@@ -280,5 +302,85 @@ inline void ConfigServerComponent::applyProps(uint16_t protocolVersion, const Pr
             obj.clearPropertyValue(name);
     }
 }
+
+inline BaseObjectPtr ConfigServerComponent::getAvailableFunctionBlockTypes(const RpcContext& context,
+                                                                           const ComponentPtr& component,
+                                                                           const ParamsDictPtr& /*params*/)
+{
+    ConfigServerAccessControl::protectObject(component, context.user, Permission::Read);
+
+    BaseObjectPtr fbTypes;
+    if (const auto device = component.asPtrOrNull<IDevice>(true); device.assigned())
+        fbTypes = device.getAvailableFunctionBlockTypes();
+    else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
+        fbTypes = fb.getAvailableFunctionBlockTypes();
+    else
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device or function block");
+
+    return fbTypes;
+}
+
+inline BaseObjectPtr ConfigServerComponent::addFunctionBlock(const RpcContext& context,
+                                                             const ComponentPtr& component,
+                                                             const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto fbTypeId = params.get("TypeId");
+    PropertyObjectPtr config = params.getOrDefault("Config");
+
+    BaseObjectPtr fbNested;
+    if (const auto device = component.asPtrOrNull<IDevice>(true); device.assigned())
+        fbNested = device.addFunctionBlock(fbTypeId, config);
+    else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
+        fbNested = fb.addFunctionBlock(fbTypeId, config);
+    else
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device or function block");
+
+    return ComponentHolder(fbNested);
+}
+
+inline BaseObjectPtr ConfigServerComponent::removeFunctionBlock(const RpcContext& context,
+                                                                const ComponentPtr& component,
+                                                                const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto localId = params.get("LocalId");
+
+    const auto checkFb = [](const ListPtr<IFunctionBlock>& fbs)
+    {
+        auto fbsCount = fbs.getCount();
+        if (fbsCount == 0)
+            DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
+
+        if (fbsCount > 1)
+            DAQ_THROW_EXCEPTION(InvalidStateException, "Duplicate function block");
+    };
+
+    ListPtr<IFunctionBlock> fbs;
+    if (const auto device = component.asPtrOrNull<IDevice>(true); device.assigned())
+    {
+        fbs = device.getFunctionBlocks(search::LocalId(localId));
+        checkFb(fbs);
+        device.removeFunctionBlock(fbs[0]);
+        
+    }
+    else if (const auto fb = component.asPtrOrNull<IFunctionBlock>(true); fb.assigned())
+    {
+        fbs = fb.getFunctionBlocks(search::LocalId(localId));
+        checkFb(fbs);
+        fb.removeFunctionBlock(fbs[0]);
+    }
+    else
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Component is not a device or function block");
+
+    return nullptr;
+}
+
 
 }

@@ -394,7 +394,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
         std::this_thread::get_id() != reconnectionProcessingThreadId)
     {
         unregisterConfigRequest(reqId);
-        throw ConnectionLostException();
+        DAQ_THROW_EXCEPTION(ConnectionLostException);
     }
 
     // send packet using a temporary copy of the transport client
@@ -406,7 +406,7 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
     else
     {
         unregisterConfigRequest(reqId);
-        throw ComponentRemovedException();
+        DAQ_THROW_EXCEPTION(ComponentRemovedException);
     }
 
     if (future.wait_for(configProtocolRequestTimeout) == std::future_status::ready)
@@ -418,9 +418,9 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
         unregisterConfigRequest(reqId);
         LOG_E("Native configuration protocol request id {} timed out", reqId);
         if (connectionStatus == "Connected")
-            throw GeneralErrorException("Native configuration protocol request id {} timed out", reqId);
+            DAQ_THROW_EXCEPTION(GeneralErrorException, "Native configuration protocol request id {} timed out", reqId);
         else
-            throw ConnectionLostException("Native configuration protocol request id {} timed out due to disconnection", reqId);
+            DAQ_THROW_EXCEPTION(ConnectionLostException, "Native configuration protocol request id {} timed out due to disconnection", reqId);
     }
 }
 
@@ -494,7 +494,7 @@ void NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& 
     if (connectionStatus != "Connected" &&
         std::this_thread::get_id() != reconnectionProcessingThreadId)
     {
-        throw ConnectionLostException();
+        DAQ_THROW_EXCEPTION(ConnectionLostException);
     }
 
     // send packet using a temporary copy of the transport client
@@ -502,7 +502,7 @@ void NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& 
     if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
         transportClientHandlerTemp->sendConfigRequest(reqPacket);
     else
-        throw ComponentRemovedException();
+        DAQ_THROW_EXCEPTION(ComponentRemovedException);
 }
 
 NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCommPtr& configProtocolClientComm,

@@ -114,6 +114,8 @@ protected:
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
+    void onOperationModeChanged(OperationModeType modeType) override;
+
     template <class Impl>
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
                                                   const BaseObjectPtr& context,
@@ -146,8 +148,7 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlockType(IFunctionBlockType** type)
 {
-    if (type == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = this->type.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -255,8 +256,7 @@ ListPtr<IInputPort> FunctionBlockImpl<TInterface, Interfaces...>::getInputPortsR
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getStatusSignal(ISignal** statusSignal)
 {
-    if (statusSignal == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(statusSignal);
 
     SignalPtr statusSig;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetStatusSignal, statusSig);
@@ -297,30 +297,41 @@ template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
     ComponentUpdateContextPtr contextPtr = context.asPtr<IComponentUpdateContext>(true);
+    std::vector<std::pair<StringPtr, StringPtr>> unresolvedConnections;
+
     for (const auto & [portId, signalId] : contextPtr.getInputPortConnections(inputPorts.getGlobalId()))
     {
-        InputPortPtr inputPort;
-        if (!inputPorts.hasItem(portId))
+        if (inputPorts.hasItem(portId))
         {
-            LOG_W("Input port {} not found. The connection order might be incorrect", portId);
-            for (const auto& ip : inputPorts.getItems(search::Any()))
-            {
-                inputPort = ip.template asPtr<IInputPort>(true);
-                if (!inputPort.getSignal().assigned())
-                {
-                    LOG_W("Using input port {}", inputPort.getLocalId());
-                    break;
-                }
-            }
-            if (!inputPort.assigned())
-                continue;
+            InputPortPtr inputPort = inputPorts.getItem(portId);
+            inputPort.asPtr<IUpdatable>(true).updateEnded(contextPtr);
         }
         else
         {
-            inputPort = inputPorts.getItem(portId);
+            unresolvedConnections.push_back(std::make_pair(portId, signalId));
         }
-        inputPort.asPtr<IUpdatable>(true).updateEnded(contextPtr);
     }
+
+    for (const auto & [portId, signalId] : unresolvedConnections)
+    {
+        bool availablePortFound = false;
+        LOG_W("Input port {} not found for the signal {}. The connection order might be incorrect", portId, signalId);
+        for (const auto& ip : inputPorts.getItems(search::Any()))
+        {
+            InputPortPtr inputPort = ip.template asPtr<IInputPort>(true);
+            if (!inputPort.getSignal().assigned())
+            {
+                LOG_W("Using input port {}", inputPort.getLocalId());
+                contextPtr.setInputPortConnection(inputPorts.getGlobalId(), inputPort.getLocalId(), signalId);
+                inputPort.asPtr<IUpdatable>(true).updateEnded(contextPtr);
+                availablePortFound = true;
+                break;
+            }
+        }
+        if (!availablePortFound)
+            break;
+    }
+
     contextPtr.removeInputPortConnection(inputPorts.getGlobalId());
     Super::onUpdatableUpdateEnd(context);
 }
@@ -409,8 +420,7 @@ ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctio
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
-    if (functionBlockTypes == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
 
     DictPtr<IString, IFunctionBlockType> dict;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableFunctionBlockTypes, dict);
@@ -428,10 +438,8 @@ DictPtr<IString, IFunctionBlockType> FunctionBlockImpl<TInterface, Interfaces...
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
 {
-    if (functionBlock == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    if (typeId == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(functionBlock);
+    OPENDAQ_PARAM_NOT_NULL(typeId);
 
     FunctionBlockPtr functionBlockPtr;
     const auto typeIdPtr = StringPtr::Borrow(typeId);
@@ -445,14 +453,13 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunction
 template <typename TInterface, typename... Interfaces>
 FunctionBlockPtr FunctionBlockImpl<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
 {
-    throw NotSupportedException("Function block does not support adding nested function blocks");
+    DAQ_THROW_EXCEPTION(NotSupportedException, "Function block does not support adding nested function blocks");
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
 {
-    if (functionBlock == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(functionBlock);
 
     const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
@@ -470,8 +477,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const F
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
 {
-    if (accept == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(accept);
 
     Bool accepted;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAcceptsSignal, accepted, port, signal);
@@ -534,7 +540,7 @@ template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::addInputPort(const InputPortPtr& inputPort)
 {
     if (inputPort.getParent() != inputPorts)
-        throw InvalidParameterException("Invalid parent of input port");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid parent of input port");
 
     try
     {
@@ -542,7 +548,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::addInputPort(const InputPortP
     }
     catch (DuplicateItemException&)
     {
-        throw DuplicateItemException("Input port with the same ID already exists");
+        DAQ_THROW_EXCEPTION(DuplicateItemException, "Input port with the same ID already exists");
     }
 }
 
@@ -660,6 +666,14 @@ BaseObjectPtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionB
 }
 
 template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
+{
+    bool active = modeType != OperationModeType::Idle;
+    for (const auto& signal : this->signals.getItems())
+        signal.setActive(active);
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
     IBaseObject* context,
     IFunction* factoryCallback,
@@ -667,11 +681,10 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObj
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeFunctionBlock<FunctionBlock>(serialized, context, factoryCallback).detach();
-        });
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        *obj = DeserializeFunctionBlock<FunctionBlock>(serialized, context, factoryCallback).detach();
+    });
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlock)

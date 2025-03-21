@@ -243,9 +243,10 @@ void NativeStreamingServerHandler::sendPacket(const std::string& signalId, Packe
     );
 }
 
-void NativeStreamingServerHandler::processStreamingPacket(const std::string& signalId, PacketPtr&& packet)
+void NativeStreamingServerHandler::processStreamingPackets(const tsl::ordered_map<std::string, PacketBufferData>& packetIndices,
+                                                           const std::vector<IPacket*>& packets)
 {
-    streamingManager.processPacket(signalId, std::move(packet));
+    streamingManager.processPackets(packetIndices, packets);
 }
 
 void NativeStreamingServerHandler::sendAvailableStreamingPackets()
@@ -713,10 +714,10 @@ void NativeStreamingServerHandler::releaseOtherControlConnectionsInternal(
 ClientType NativeStreamingServerHandler::parseClientTypeProp(const PropertyObjectPtr& propertyObject)
 {
     if (!propertyObject.hasProperty("ClientType"))
-        throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
 
     if (propertyObject.getProperty("ClientType").getValueType() != ctInt)
-        throw InvalidValueException();
+        DAQ_THROW_EXCEPTION(InvalidValueException);
 
     const Int clientTypeInt = propertyObject.getPropertyValue("ClientType");
     return ClientTypeTools::IntToClientType(clientTypeInt);
@@ -725,10 +726,10 @@ ClientType NativeStreamingServerHandler::parseClientTypeProp(const PropertyObjec
 bool NativeStreamingServerHandler::parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject)
 {
     if (!propertyObject.hasProperty("ExclusiveControlDropOthers"))
-        throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
 
     if (propertyObject.getProperty("ExclusiveControlDropOthers").getValueType() != ctBool)
-        throw InvalidValueException();
+        DAQ_THROW_EXCEPTION(InvalidValueException);
 
     return propertyObject.getPropertyValue("ExclusiveControlDropOthers");
 }

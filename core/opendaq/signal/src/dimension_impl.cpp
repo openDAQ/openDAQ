@@ -40,7 +40,7 @@ DimensionImpl::DimensionImpl(const DimensionRulePtr& rule, const UnitPtr& unit, 
     , rule(rule)
 {
     if (!rule.assigned())
-        throw ConfigurationIncompleteException{"Dimension rule is not assigned."};
+        DAQ_THROW_EXCEPTION(ConfigurationIncompleteException, "Dimension rule is not assigned.");
 }
 
 DimensionImpl::DimensionImpl(IDimensionBuilder* dimensionBuilder)
@@ -52,14 +52,13 @@ DimensionImpl::DimensionImpl(IDimensionBuilder* dimensionBuilder)
     this->rule = builderPtr.getRule();
 
     if (!rule.assigned())
-        throw ConfigurationIncompleteException{"Dimension rule is not assigned."};
+        DAQ_THROW_EXCEPTION(ConfigurationIncompleteException, "Dimension rule is not assigned.");
 }
 
 
 ErrCode DimensionImpl::getName(IString** name)
 {
-    if (!name)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     *name = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -67,14 +66,13 @@ ErrCode DimensionImpl::getName(IString** name)
 
 ErrCode DimensionImpl::getSize(SizeT* size)
 {
-    if (!size)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(size);
 
     if (!rule.assigned())
-        return makeErrorInfo(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Dimension rule is not assigned.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Dimension rule is not assigned.");
 
     if (rule.getType() == DimensionRuleType::Other)
-        return makeErrorInfo(OPENDAQ_ERR_UNKNOWN_RULE_TYPE, R"(Rule type is set to "other" and cannot be parse by openDAQ)");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_UNKNOWN_RULE_TYPE, R"(Rule type is set to "other" and cannot be parse by openDAQ)");
 
     ErrCode err = rule.asPtr<IRulePrivate>()->verifyParameters();
     if (OPENDAQ_FAILED(err))
@@ -97,8 +95,7 @@ ErrCode DimensionImpl::getSize(SizeT* size)
 
 ErrCode DimensionImpl::getUnit(IUnit** unit)
 {
-    if (!unit)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(unit);
     
     *unit = this->unit.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -106,8 +103,7 @@ ErrCode DimensionImpl::getUnit(IUnit** unit)
 
 ErrCode DimensionImpl::getRule(IDimensionRule** rule)
 {
-    if (!rule)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(rule);
 
     *rule = this->rule.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -115,14 +111,13 @@ ErrCode DimensionImpl::getRule(IDimensionRule** rule)
 
 ErrCode DimensionImpl::getLabels(IList** labels)
 {
-    if (!labels)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(labels);
 
     if (!rule.assigned())
-        return makeErrorInfo(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Dimension rule is not assigned.");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CONFIGURATION_INCOMPLETE, "Dimension rule is not assigned.");
 
     if (rule.getType() == DimensionRuleType::Other)
-        return makeErrorInfo(OPENDAQ_ERR_UNKNOWN_RULE_TYPE, R"(Rule type is set to "other" and cannot be parsed by openDAQ)");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_UNKNOWN_RULE_TYPE, R"(Rule type is set to "other" and cannot be parsed by openDAQ)");
 
     ErrCode err = rule.asPtr<IRulePrivate>()->verifyParameters();
     if (OPENDAQ_FAILED(err))
@@ -139,7 +134,7 @@ ErrCode DimensionImpl::getLabels(IList** labels)
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     
     return OPENDAQ_SUCCESS;
@@ -148,7 +143,7 @@ ErrCode DimensionImpl::getLabels(IList** labels)
 ErrCode DimensionImpl::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
-        return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
     *equals = false;
     if (!other)

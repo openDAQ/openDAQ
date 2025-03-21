@@ -15,7 +15,7 @@ StreamingManager::StreamingManager(const ContextPtr& context)
 {
     auto logger = this->context.getLogger();
     if (!logger.assigned())
-        throw ArgumentNullException("Logger must not be null");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Logger must not be null");
     loggerComponent = logger.getOrAddComponent("NativeStreamingSubscribers");
 }
 
@@ -60,41 +60,52 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
     }
 }
 
-void StreamingManager::processPacket(const std::string& signalStringId, PacketPtr&& packet)
+void StreamingManager::processPackets(const tsl::ordered_map<std::string, PacketBufferData>& packetIndices,
+                                      const std::vector<IPacket*>& packets)
 {
     std::scoped_lock lock(sync);
 
-    if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
+    for (auto& [signalStringId, packetData] : packetIndices)
     {
-        auto& registeredSignal = iter->second;
-
-        if (packet.getType() == PacketType::Event)
+        if (auto it1 = registeredSignals.find(signalStringId); it1 != registeredSignals.end())
         {
-            auto eventPacket = packet.asPtr<IEventPacket>();
-            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            auto& registeredSignal = it1->second;
+
+            for (int i = packetData.index; i < packetData.index + packetData.count; ++i)
             {
-                const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-                if (dataDescriptorParam.assigned())
-                    registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
-                if (domainDescriptorParam.assigned())
-                    registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
+                auto packet = PacketPtr::Adopt(packets[i]);
+                
+                if (packet.getType() == PacketType::Event)
+                {
+                    const auto eventPacket = packet.asPtr<IEventPacket>(true);
+                    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+                    {
+                        const DataDescriptorPtr dataDescriptorParam = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                        const DataDescriptorPtr domainDescriptorParam = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+
+                        if (dataDescriptorParam.assigned())
+                            registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
+                        if (domainDescriptorParam.assigned())
+                            registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
+                    }
+                }
+
+                if (auto it2 = registeredSignal.subscribedClientsIds.begin(); it2 != registeredSignal.subscribedClientsIds.end())
+                {
+                    while (std::next(it2) != registeredSignal.subscribedClientsIds.end())
+                    {
+                        packetStreamingServers.at(*it2)->addDaqPacket(registeredSignal.numericId, packet);
+                        ++it2;
+                    }
+        
+                    pushToPacketStreamingServer(packetStreamingServers.at(*it2), std::move(packet), registeredSignal.numericId);
+                }
             }
         }
-
-        if (auto it = registeredSignal.subscribedClientsIds.begin(); it != registeredSignal.subscribedClientsIds.end())
+        else
         {
-            while (std::next(it) != registeredSignal.subscribedClientsIds.end())
-            {
-                packetStreamingServers.at(*it)->addDaqPacket(registeredSignal.numericId, PacketPtr(packet));
-                ++it;
-            }
-            pushToPacketStreamingServer(packetStreamingServers.at(*it), std::move(packet), registeredSignal.numericId);
+            throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
         }
-    }
-    else
-    {
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
     }
 }
 

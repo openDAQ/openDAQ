@@ -21,10 +21,10 @@ DimensionRulePtr StructConverter<IDimensionRule, UA_LinearRuleDescriptionStructu
     const UA_LinearRuleDescriptionStructure& tmsStruct, const ContextPtr& /*context*/)
 {
     if (tmsStruct.type != "linear")
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     if (tmsStruct.size == nullptr)
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     const SizeT size = *tmsStruct.size;
     const NumberPtr delta = VariantConverter<INumber>::ToDaqObject(tmsStruct.delta);
@@ -58,7 +58,7 @@ DimensionRulePtr StructConverter<IDimensionRule, UA_LogRuleDescriptionStructure>
     const UA_LogRuleDescriptionStructure& tmsStruct, const ContextPtr& /*context*/)
 {
     if (tmsStruct.type != "log")
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
     
     const NumberPtr delta = VariantConverter<INumber>::ToDaqObject(tmsStruct.delta);
     const NumberPtr start = VariantConverter<INumber>::ToDaqObject(tmsStruct.start);
@@ -92,11 +92,11 @@ DimensionRulePtr StructConverter<IDimensionRule, UA_ListRuleDescriptionStructure
     const UA_ListRuleDescriptionStructure& tmsStruct, const ContextPtr& /*context*/)
 {
     if (tmsStruct.type != "List")
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     const SizeT elementsSize = tmsStruct.elementsSize;
     if (elementsSize == 0)
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     ListPtr<INumber> list = List<INumber>();
     for (SizeT i = 0; i < elementsSize; i++)
@@ -130,7 +130,7 @@ DimensionRulePtr StructConverter<IDimensionRule, UA_CustomRuleDescriptionStructu
     const UA_CustomRuleDescriptionStructure& tmsStruct, const ContextPtr& context)
 {
     if (tmsStruct.type != "custom")
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     auto params = Dict<IString, IBaseObject>();
     for (size_t i = 0; i < tmsStruct.parametersSize; i++)
@@ -209,7 +209,7 @@ DimensionRulePtr VariantConverter<IDimensionRule>::ToDaqObject(const OpcUaVarian
         return StructConverter<IDimensionRule, UA_ListRuleDescriptionStructure>::ToDaqObject(*tmsRuleDescription);
     }
 
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -254,7 +254,7 @@ OpcUaVariant VariantConverter<IDimensionRule>::ToVariant(const DimensionRulePtr&
     else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IDimensionRule, UA_CustomRuleDescriptionStructure>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -273,7 +273,7 @@ ListPtr<IDimensionRule> VariantConverter<IDimensionRule>::ToDaqList(const OpcUaV
     if (variant.isType<UA_CustomRuleDescriptionStructure>())
         return ListConversionUtils::VariantToList<IDimensionRule, UA_CustomRuleDescriptionStructure>(variant);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -292,7 +292,7 @@ OpcUaVariant VariantConverter<IDimensionRule>::ToArrayVariant(const ListPtr<IDim
     if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_CUSTOMRULEDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IDimensionRule, UA_CustomRuleDescriptionStructure>(list);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

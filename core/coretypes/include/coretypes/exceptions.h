@@ -38,21 +38,25 @@ BEGIN_NAMESPACE_OPENDAQ
             : excBase(errCode, msg, std::forward<Params>(params)...)                             \
         {                                                                                        \
         }                                                                                        \
+        explicit excName##Exception(daq::Int fileLine, daq::ConstCharPtr fileName)               \
+            : excBase(true, errCode, excMsg, fileName, fileLine)                                 \
+        {                                                                                        \
+        }                                                                                        \
         template <typename... Params>                                                            \
-        explicit excName##Exception(daq::ErrCode err, const std::string& msg, Params&&... params) \
-            : excBase(errCode, msg, std::forward<Params>(params)...)                             \
+        explicit excName##Exception(daq::Int fileLine, daq::ConstCharPtr fileName, const std::string& msg, Params&&... params) \
+            : excBase(fileName, fileLine, errCode, msg, std::forward<Params>(params)...)         \
         {                                                                                        \
         }                                                                                        \
     };                                                                                           \
     OPENDAQ_REGISTER_ERRCODE_EXCEPTION(errCode, excName##Exception)
 
-#define OPENDAQ_REGISTER_ERRCODE_EXCEPTION(errCode, type)                                                \
+#define OPENDAQ_REGISTER_ERRCODE_EXCEPTION(errCode, type)                                           \
     class Exception##type##Factory                                                                  \
     {                                                                                               \
     public:                                                                                         \
         Exception##type##Factory()                                                                  \
         {                                                                                           \
-            daq::ErrorCodeToException::GetInstance()->registerException<type>(errCode);              \
+            daq::ErrorCodeToException::GetInstance()->registerException<type>(errCode);             \
         }                                                                                           \
     };                                                                                              \
                                                                                                     \
@@ -63,23 +67,29 @@ BEGIN_NAMESPACE_OPENDAQ
 
 #define DEFINE_EXCEPTION(excName, errCode, excMsg) DEFINE_EXCEPTION_BASE(daq::DaqException, excName, errCode, excMsg)
 
-#define OPENDAQ_TRY(expression)            \
-    try                                    \
-    {                                      \
-        expression                         \
-    }                                      \
-    catch (const DaqException& e)          \
-    {                                      \
-        return errorFromException(e);      \
-    }                                      \
-    catch (const std::exception& e)        \
-    {                                      \
-        return errorFromException(e);      \
-    }                                      \
-    catch (...)                            \
-    {                                      \
-        return OPENDAQ_ERR_GENERALERROR;   \
+#define OPENDAQ_TRY(expression)                                         \
+    try                                                                 \
+    {                                                                   \
+        expression                                                      \
+    }                                                                   \
+    catch (const DaqException& e)                                       \
+    {                                                                   \
+        return errorFromException(e);                                   \
+    }                                                                   \
+    catch (const std::exception& e)                                     \
+    {                                                                   \
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);\
+    }                                                                   \
+    catch (...)                                                         \
+    {                                                                   \
+        return OPENDAQ_ERR_GENERALERROR;                                \
     }
+
+#ifdef NDEBUG
+    #define DAQ_THROW_EXCEPTION(OpendaqException, ...) throw OpendaqException(__VA_ARGS__)
+#else
+    #define DAQ_THROW_EXCEPTION(OpendaqException, ...) throw OpendaqException(__LINE__, __FILE__, ##__VA_ARGS__)
+#endif
 
 /*
  * Should be in the order of the error's numerical value

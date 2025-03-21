@@ -21,15 +21,19 @@
 #include <opendaq/channel_impl.h>
 #include <opendaq/server_impl.h>
 
-namespace daq::config_protocol::test_utils
+namespace daq::test_utils
 {
     DevicePtr createTestDevice(const std::string& localId = "root_dev");
     ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    PropertyObjectPtr createMockNestedPropertyObject();
 
     class MockFb1Impl final : public FunctionBlock
     {
     public:
         MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+        DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+        FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
+        void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
     };
 
     class MockFb2Impl final : public FunctionBlock
@@ -127,7 +131,7 @@ namespace daq::config_protocol::test_utils
             return availableDevices;
         }
 
-        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr) override
+        DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/ = nullptr) override
         {
             if (connectionString == "mock://test")
             {

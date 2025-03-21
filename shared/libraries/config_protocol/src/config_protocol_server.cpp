@@ -45,7 +45,7 @@ ComponentPtr ComponentFinderRootDevice::findComponentInternal(const ComponentPtr
 ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalId)
 {         
     if (globalId.find("/") != 0)
-        throw InvalidParameterException("Global id must start with /");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Global id must start with /");
 
     const std::string globalIdWithoutSlash = globalId.substr(1);
 
@@ -109,11 +109,11 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         context.user = this->user;
         context.connectionType = this->connectionType;
 
-        const auto componentGlobalId = static_cast<std::string>(params["ComponentGlobalId"]);
+        const auto componentGlobalId = static_cast<std::string>(params.getOrDefault("ComponentGlobalId", ""));
         const auto component = findComponent(componentGlobalId);
 
         if (!component.assigned())
-            throw NotFoundException("Component not found");
+            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
 
         const auto componentPtr = component.asPtr<typename SmartPtr::DeclaredInterface>();
         return handler(context, componentPtr, params);
@@ -135,16 +135,18 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
     addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
     addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
+    addHandler<ComponentPtr>("ClearProtectedPropertyValue", &ConfigServerComponent::clearProtectedPropertyValue);
     addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty);
     addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate);
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
     addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
     addHandler<ComponentPtr>("Update", &ConfigServerComponent::update);
+    
+    addHandler<ComponentPtr>("GetAvailableFunctionBlockTypes", &ConfigServerComponent::getAvailableFunctionBlockTypes);
+    addHandler<ComponentPtr>("AddFunctionBlock", &ConfigServerComponent::addFunctionBlock);
+    addHandler<ComponentPtr>("RemoveFunctionBlock", &ConfigServerComponent::removeFunctionBlock);
 
     addHandler<DevicePtr>("GetInfo", &ConfigServerDevice::getInfo);
-    addHandler<DevicePtr>("GetAvailableFunctionBlockTypes", &ConfigServerDevice::getAvailableFunctionBlockTypes);
-    addHandler<DevicePtr>("AddFunctionBlock", &ConfigServerDevice::addFunctionBlock);
-    addHandler<DevicePtr>("RemoveFunctionBlock", &ConfigServerDevice::removeFunctionBlock);
     addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);
     addHandler<DevicePtr>("Lock", &ConfigServerDevice::lock);
     addHandler<DevicePtr>("Unlock", &ConfigServerDevice::unlock);
@@ -157,6 +159,10 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("GetAvailableDevices", &ConfigServerDevice::getAvailableDevices);
     addHandler<DevicePtr>("SetPropertyValue", &ConfigServerDevice::setPropertyValue);
     addHandler<DevicePtr>("SetProtectedPropertyValue", &ConfigServerDevice::setProtectedPropertyValue);
+    addHandler<DevicePtr>("GetAvailableOperationModes", &ConfigServerDevice::getAvailableOperationModes);
+    addHandler<DevicePtr>("SetOperationMode", &ConfigServerDevice::setOperationMode);
+    addHandler<DevicePtr>("SetOperationModeRecursive", &ConfigServerDevice::setOperationModeRecursive);
+    addHandler<DevicePtr>("GetOperationMode", &ConfigServerDevice::getOperationMode);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
@@ -288,9 +294,7 @@ StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         const auto funcName = dictObj.get("Name");
-        ParamsDictPtr funcParams;
-        if (dictObj.hasKey("Params"))
-            funcParams = dictObj.get("Params");
+        ParamsDictPtr funcParams = dictObj.getOrDefault("Params");
 
         const auto retValue = callRpc(funcName, funcParams);
 
@@ -334,9 +338,7 @@ void ConfigProtocolServer::processNoReplyRpc(const StringPtr& jsonStr)
         const DictPtr<IString, IBaseObject> dictObj = obj.asPtr<IDict>(true);
 
         funcName = dictObj.get("Name");
-        ParamsDictPtr funcParams;
-        if (dictObj.hasKey("Params"))
-            funcParams = dictObj.get("Params");
+        ParamsDictPtr funcParams = dictObj.getOrDefault("Params");
 
         callRpc(funcName, funcParams);
     }
@@ -368,11 +370,11 @@ ComponentPtr ConfigProtocolServer::findComponent(const std::string& componentGlo
 
 BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) const
 {
-    const auto componentGlobalId = static_cast<std::string>(params["ComponentGlobalId"]);
+    const auto componentGlobalId = static_cast<std::string>(params.getOrDefault("ComponentGlobalId", ""));
     const auto component = findComponent(componentGlobalId);
 
     if (!component.assigned())
-        throw NotFoundException("Component not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
 
     ConfigServerAccessControl::protectObject(component, user, Permission::Read);
     return ComponentHolder(component);
@@ -393,7 +395,7 @@ BaseObjectPtr ConfigProtocolServer::connectSignal(const RpcContext& context, con
     const StringPtr signalId = params.get("SignalId");
     const SignalPtr signal = findComponent(signalId);
     if (signal.assigned() && streamingConsumer.isExternalSignal(signal))
-        throw InvalidParameterException("Mirrored external signal cannot be connected to server input port");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Mirrored external signal cannot be connected to server input port");
     return ConfigServerInputPort::connect(context, inputPort, signal, params);
 }
 

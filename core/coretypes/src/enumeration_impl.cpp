@@ -8,26 +8,25 @@ EnumerationImpl::EnumerationImpl(const StringPtr& name,
                                  const TypeManagerPtr& typeManager)
 {
     if (!typeManager.assigned())
-        throw InvalidParameterException("Type manager must be assigned on Enumeration object creation.");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Type manager must be assigned on Enumeration object creation.");
 
     if (!typeManager.hasType(name))
-        throw InvalidParameterException("Enumeration type {} is not registered in TypeManager.", name.toStdString());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Enumeration type {} is not registered in TypeManager.", name.toStdString());
 
     if (!value.assigned())
-        throw InvalidParameterException("Enumeration object value is not assigned.");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Enumeration object value is not assigned.");
     
     if (const auto strValue = value.asPtrOrNull<IString>(); strValue.assigned())
     {
         if (strValue.toStdString().empty())
-            throw InvalidParameterException("Enumeration object value is not assigned.");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Enumeration object value is not assigned.");
 
         this->enumerationType = typeManager.getType(name);
         if (!this->enumerationType.getAsDictionary().hasKey(strValue))
-            throw InvalidParameterException(
-                fmt::format(R"(Enumeration value "{}" is not part of the Enumeration type "{}")",
-                            strValue.toStdString(),
-                            name.toStdString()
-                )
+            DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                R"(Enumeration value "{}" is not part of the Enumeration type "{}")",
+                                strValue.toStdString(),
+                                name.toStdString()
             );
 
         this->value = value;
@@ -44,7 +43,7 @@ EnumerationImpl::EnumerationImpl(const StringPtr& name,
             }
     }
 
-    throw InvalidParameterException{"Enumeration value must be a string or integer present in the enumeration type."};
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Enumeration value must be a string or integer present in the enumeration type.");
 }
 
 EnumerationImpl::EnumerationImpl(const EnumerationTypePtr& type, const BaseObjectPtr& value)
@@ -53,9 +52,10 @@ EnumerationImpl::EnumerationImpl(const EnumerationTypePtr& type, const BaseObjec
     if (const auto strValue = value.asPtrOrNull<IString>(); strValue.assigned())
     {
         if (!this->enumerationType.getAsDictionary().hasKey(strValue))
-            throw InvalidParameterException(fmt::format(R"(Enumeration value "{}" is not part of the Enumeration type "{}")",
-                                                        strValue.toStdString(),
-                                                        enumerationType.getName().toStdString()));
+            DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                R"(Enumeration value "{}" is not part of the Enumeration type "{}")",
+                                strValue.toStdString(),
+                                enumerationType.getName().toStdString());
         
         this->value = value;
         return;
@@ -71,7 +71,7 @@ EnumerationImpl::EnumerationImpl(const EnumerationTypePtr& type, const BaseObjec
             }
     }
 
-    throw InvalidParameterException{"Enumeration value must be a string or integer present in the enumeration type."};
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Enumeration value must be a string or integer present in the enumeration type.");
 }
 
 ErrCode EnumerationImpl::getHashCode(SizeT* hashCode)

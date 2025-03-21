@@ -26,8 +26,7 @@ UnitBuilderImpl::UnitBuilderImpl(Int id, StringPtr symbol, StringPtr name, Strin
 
 ErrCode UnitBuilderImpl::build(IUnit** unit)
 {
-    if (unit == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(unit);
 
     const auto builderPtr = this->borrowPtr<UnitBuilderPtr>();
 
@@ -46,8 +45,7 @@ ErrCode UnitBuilderImpl::setId(Int id)
 
 ErrCode UnitBuilderImpl::getId(Int* id)
 {
-    if (!id)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     *id = this->id;
     return OPENDAQ_SUCCESS;
@@ -61,8 +59,7 @@ ErrCode UnitBuilderImpl::setSymbol(IString* symbol)
 
 ErrCode UnitBuilderImpl::getSymbol(IString** symbol)
 {
-    if (!symbol)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(symbol);
 
     *symbol = this->symbol.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -76,8 +73,7 @@ ErrCode UnitBuilderImpl::setName(IString* name)
 
 ErrCode UnitBuilderImpl::getName(IString** name)
 {
-    if (!name)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     *name = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -91,8 +87,7 @@ ErrCode UnitBuilderImpl::setQuantity(IString* quantity)
 
 ErrCode UnitBuilderImpl::getQuantity(IString** quantity)
 {
-    if (!quantity)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(quantity);
     
     *quantity = this->quantity.addRefAndReturn();
     return OPENDAQ_SUCCESS;

@@ -39,7 +39,7 @@ public:
     virtual daq::ErrCode INTERFACE_FUNC dispose() override
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         return this->object->dispose();
     }
@@ -47,7 +47,7 @@ public:
     virtual daq::ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) override
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         return this->object->getHashCode(hashCode);
     }
@@ -55,7 +55,7 @@ public:
     virtual daq::ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         return this->object->equals(other, equals);
     }
@@ -63,7 +63,7 @@ public:
     virtual daq::ErrCode INTERFACE_FUNC toString(CharPtr* str) override
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         return this->object->toString(str);
     }
@@ -71,10 +71,9 @@ public:
     virtual daq::ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
-        if (!intf)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(intf);
 
         auto errCode = Super::queryInterface(id, intf);
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
@@ -86,10 +85,9 @@ public:
     virtual daq::ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
-        if (!intf)
-            return OPENDAQ_ERR_ARGUMENT_NULL;
+        OPENDAQ_PARAM_NOT_NULL(intf);
 
         auto errCode = Super::borrowInterface(id, intf);
         if (errCode == OPENDAQ_ERR_NOINTERFACE)

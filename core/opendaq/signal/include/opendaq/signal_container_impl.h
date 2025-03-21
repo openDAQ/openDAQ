@@ -44,6 +44,9 @@ public:
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
 
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+
 protected:
     FolderConfigPtr signals;
     FolderConfigPtr functionBlocks;
@@ -317,7 +320,7 @@ template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::addSignal(const SignalPtr& signal)
 {
     if (signal.getParent() != this->signals)
-        throw InvalidParameterException("Invalid parent of signal");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid parent of signal");
 
     try
     {
@@ -325,7 +328,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::addSignal(const SignalPtr& sign
     }
     catch (DuplicateItemException&)
     {
-        throw DuplicateItemException("Signal with the same local ID already exists.");
+        DAQ_THROW_EXCEPTION(DuplicateItemException, "Signal with the same local ID already exists.");
     }
 }
 
@@ -339,7 +342,7 @@ template <class Intf, class ... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::addNestedFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (functionBlock.getParent() != functionBlocks)
-        throw InvalidParameterException("Invalid parent of function block");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid parent of function block");
 
     try
     {
@@ -347,7 +350,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::addNestedFunctionBlock(const Fu
     }
     catch (DuplicateItemException&)
     {
-        throw DuplicateItemException("Function block with the same local ID already exists.");
+        DAQ_THROW_EXCEPTION(DuplicateItemException, "Function block with the same local ID already exists.");
     }
 }
 
@@ -358,7 +361,7 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
     this->context->getModuleManager(&obj);
 
     if (obj == nullptr)
-        throw NotAssignedException{"Module Manager is not available in the Context."};
+        DAQ_THROW_EXCEPTION(NotAssignedException, "Module Manager is not available in the Context.");
 
     IModuleManagerUtils* managerUtils;
     obj->borrowInterface(IModuleManagerUtils::Id, reinterpret_cast<void**>(&managerUtils));
@@ -385,14 +388,14 @@ void GenericSignalContainerImpl<Intf, Intfs...>::validateComponentNotExists(cons
                            [&localId](const ComponentPtr& component) { return component.getLocalId().toStdString() == localId; });
 
     if (it != this->components.end())
-        throw DuplicateItemException("Duplicate component");
+        DAQ_THROW_EXCEPTION(DuplicateItemException, "Duplicate component");
 }
 
 template <class Intf, class ... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::validateComponentIsDefault(const std::string& localId)
 {
     if (!this->defaultComponents.count(localId))
-        throw InvalidParameterException("Non-default component cannot be added as child!");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Non-default component cannot be added as child!");
 }
 
 template <class Intf, class ... Intfs>
@@ -651,6 +654,27 @@ void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
     }
 
     Super::callEndUpdateOnChildren();
+}
+
+template <class Intf, class... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
+{
+    ErrCode errCode = Super::updateOperationMode(modeType);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+
+    for (const auto& component : components)
+    {
+        auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true);
+        if (!componentPrivate.assigned())
+            continue;
+
+        errCode = componentPrivate->updateOperationMode(modeType);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>

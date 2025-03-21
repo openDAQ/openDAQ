@@ -1002,6 +1002,33 @@ TEST_F(PropertyObjectTest, OnValueChangeClear)
     ASSERT_EQ(numCallbacks, 2);
 }
 
+TEST_F(PropertyObjectTest, OnValueChangeClearDefaultValue)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    Int numCallbacks = 0;
+
+    propObj.getOnPropertyValueWrite("FloatProperty") +=
+        [&numCallbacks](PropertyObjectPtr& /*sender*/, PropertyValueEventArgsPtr& args)
+        {
+            if (args.getPropertyEventType() == PropertyEventType::Clear)
+            {
+                if (numCallbacks == 0)
+                {
+                    ASSERT_EQ(args.getValue(), args.getProperty().getDefaultValue());
+                    args.setValue(50.0);
+                }
+                numCallbacks++;
+            }
+        };
+
+    propObj.setPropertyValue("FloatProperty", 2.0);
+    propObj.clearPropertyValue("FloatProperty");
+    ASSERT_DOUBLE_EQ(propObj.getPropertyValue("FloatProperty"), 50.0);
+    propObj.clearPropertyValue("FloatProperty");
+    ASSERT_DOUBLE_EQ(propObj.getPropertyValue("FloatProperty"), 1.0);
+    ASSERT_EQ(numCallbacks, 2);
+}
+
 TEST_F(PropertyObjectTest, OnValueChangePropertyEvent)
 {
     auto propObj = PropertyObject(objManager, "Test");
@@ -1600,7 +1627,7 @@ TEST_F(PropertyObjectTest, ObjectPropMetadata)
 
     ASSERT_EQ(propObj.getVisibleProperties().getCount(), 0u);
     ASSERT_THROW(propObj.setPropertyValue("child", PropertyObject()), AccessDeniedException);
-    ASSERT_THROW(childObj.setPropertyValue("Foo", "NotBar"), FrozenException);
+    ASSERT_NO_THROW(childObj.setPropertyValue("Foo", "NotBar"));
 }
 
 TEST_F(PropertyObjectTest, DISABLED_SerializeAndDeserializeEmpty)
@@ -1802,7 +1829,7 @@ TEST_F(PropertyObjectTest, Clone)
     ASSERT_NO_THROW(propObj.asPtr<IPropertyObjectInternal>().clone());
 
     propObj.setPropertyValue("child.child.foo", "test");
-    ASSERT_EQ(propObj2.getPropertyValue("foo"), "bar");
+    ASSERT_EQ(propObj2.getPropertyValue("foo"), "test");
     ASSERT_EQ(clonedObj2.getPropertyValue("foo"), "test");
 }
 
@@ -1811,7 +1838,8 @@ TEST_F(PropertyObjectTest, NestedObjectsFrozen)
     const auto propObj = PropertyObject();
     const auto propObj1 = PropertyObject();
     propObj.addProperty(ObjectProperty("Child", propObj1));
-    ASSERT_TRUE(propObj1.isFrozen());
+    ASSERT_FALSE(propObj1.isFrozen());
+    ASSERT_TRUE(propObj.getProperty("Child").getDefaultValue().isFrozen());
 }
 
 TEST_F(PropertyObjectTest, ClonedObjectSet)
@@ -1836,7 +1864,7 @@ TEST_F(PropertyObjectTest, ClonedObjectsClear)
     const auto cloned = propObj.getPropertyValue("Child");
     propObj.setPropertyValue("Child.MyInt", 15);
     propObj.clearPropertyValue("Child");
-    ASSERT_NE(cloned, propObj.getPropertyValue("Child"));
+    ASSERT_EQ(cloned, propObj.getPropertyValue("Child"));
     ASSERT_EQ(propObj.getPropertyValue("Child.MyInt"), 10);
 }
 
@@ -1873,6 +1901,7 @@ TEST_F(PropertyObjectTest, BeginEndUpdateClonedClear)
     const auto oldChild = propObj.getPropertyValue("Child");
     const auto newChild = PropertyObject();
     newChild.addProperty(IntProperty("NewInt", 15));
+    newChild.setPropertyValue("NewInt", 10);
     propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", newChild);
 
     propObj.beginUpdate();
@@ -1882,9 +1911,9 @@ TEST_F(PropertyObjectTest, BeginEndUpdateClonedClear)
 
     propObj.endUpdate();
 
-    ASSERT_NE(propObj.getPropertyValue("Child"), newChild);
+    ASSERT_EQ(propObj.getPropertyValue("Child"), newChild);
     ASSERT_NE(propObj.getPropertyValue("Child"), oldChild);
-    ASSERT_EQ(propObj.getPropertyValue("Child.MyString"), "foo");
+    ASSERT_EQ(propObj.getPropertyValue("Child.NewInt"), 15);
 }
 
 TEST_F(PropertyObjectTest, BeginEndUpdateClonedClassObject)
@@ -1910,9 +1939,9 @@ TEST_F(PropertyObjectTest, BeginEndUpdateClonedClassObject)
 
     propObj.endUpdate();
 
-    ASSERT_NE(propObj.getPropertyValue("Child"), newChild);
+    ASSERT_EQ(propObj.getPropertyValue("Child"), newChild);
     ASSERT_NE(propObj.getPropertyValue("Child"), oldChild);
-    ASSERT_EQ(propObj.getPropertyValue("Child.Child.MyString"), "foo");
+    ASSERT_EQ(propObj.getPropertyValue("Child.NewInt"), 15);
 }
 
 TEST_F(PropertyObjectTest, ClonedClassObjects)

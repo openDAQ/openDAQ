@@ -6,8 +6,7 @@
 extern "C"
 daq::ErrCode PUBLIC_EXPORT createModule(daq::IModule** module)
 {
-    if (module == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(module);
 
     return daq::createObject<daq::IModule, MockModuleImpl>(module);
 }

@@ -1,23 +1,24 @@
-#include <ref_device_module/ref_device_impl.h>
-#include <opendaq/device_info_factory.h>
-#include <coreobjects/unit_factory.h>
-#include <ref_device_module/ref_channel_impl.h>
-#include <ref_device_module/ref_can_channel_impl.h>
-#include <fmt/format.h>
-#include <opendaq/custom_log.h>
-#include <opendaq/device_type_factory.h>
-#include <opendaq/device_domain_factory.h>
-#include <utility>
-#include <opendaq/sync_component_private_ptr.h>
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
-#include <opendaq/log_file_info_factory.h>
+#include <coreobjects/unit_factory.h>
 #include <coretypes/filesystem.h>
-#include <fstream>
-#include <sstream>
-#include <chrono>
-#include <iomanip>
+#include <fmt/format.h>
+#include <opendaq/custom_log.h>
+#include <opendaq/device_domain_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_type_factory.h>
+#include <opendaq/log_file_info_factory.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/sync_component_private_ptr.h>
+#include <ref_device_module/ref_can_channel_impl.h>
+#include <ref_device_module/ref_channel_impl.h>
+#include <ref_device_module/ref_device_impl.h>
+#include <chrono>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <utility>
+#include <opendaq/thread_name.h>
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
 #ifdef __linux__
@@ -27,10 +28,14 @@
 #endif
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
-
 StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
-RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
+RefDeviceImpl::RefDeviceImpl(size_t id,
+                             const PropertyObjectPtr& config,
+                             const ContextPtr& ctx,
+                             const ComponentPtr& parent,
+                             const StringPtr& localId,
+                             const StringPtr& name)
     : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
     , serialNumber(fmt::format("DevSer{}", id))
@@ -49,11 +54,11 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
         serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
     }
 
-    const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
-    if (options.assigned() && options.hasKey("SerialNumber"))
+    if (const auto options = this->context.getModuleOptions(REF_MODULE_NAME); options.assigned())
     {
-        const StringPtr serialTemp = options.get("SerialNumber");
-        serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
+        const StringPtr serialTemp = options.getOrDefault("SerialNumber");
+        if (serialTemp.assigned() && serialTemp.getLength())
+            serialNumber = serialTemp;
     }
 
     initIoFolder();
@@ -209,8 +214,10 @@ void RefDeviceImpl::initSyncComponent()
 
 void RefDeviceImpl::acqLoop()
 {
+    daqNameThread("RefDevice");
+
     using namespace std::chrono_literals;
-    using  milli = std::chrono::milliseconds;
+    using milli = std::chrono::milliseconds;
 
     auto startLoopTime = std::chrono::high_resolution_clock::now();
     const auto loopTime = milli(acqLoopTime);
@@ -225,7 +232,6 @@ void RefDeviceImpl::acqLoop()
         startLoopTime = time;
 
         cv.wait_for(lock, waitTime);
-        if (!stopAcq)
         if (!stopAcq)
         {
             const auto curTime = getMicroSecondsSinceDeviceStart();
@@ -271,26 +277,23 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 
         if (config.hasProperty("EnableProtectedChannel"))
             enableProtectedChannel = config.getPropertyValue("EnableProtectedChannel");
-        
+
         if (config.hasProperty("EnableLogging"))
             loggingEnabled = config.getPropertyValue("EnableLogging");
 
         if (config.hasProperty("LoggingPath"))
             loggingPath = config.getPropertyValue("LoggingPath");
-    } 
-    
+    }
+
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     if (options.assigned())
     {
-        if (options.hasKey("NumberOfChannels"))
-            numberOfChannels = options.get("NumberOfChannels");
-
-        if (options.hasKey("EnableCANChannel"))
-            enableCANChannel = options.get("EnableCANChannel");
+        numberOfChannels = options.getOrDefault("NumberOfChannels", numberOfChannels);
+        enableCANChannel = options.getOrDefault("EnableCANChannel", enableCANChannel);
     }
 
     if (numberOfChannels < 1 || numberOfChannels > 4096)
-        throw InvalidParameterException("Invalid number of channels");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid number of channels");
 
     auto numberOfChannelsProp = IntPropertyBuilder("NumberOfChannels", numberOfChannels)
                                     .setMinValue(1)
@@ -312,9 +315,8 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
         IntPropertyBuilder("AcquisitionLoopTime", 20).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
 
     objPtr.addProperty(acqLoopTimePropInfo);
-    objPtr.getOnPropertyValueWrite("AcquisitionLoopTime") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) {
-        updateAcqLoopTime();
-    };
+    objPtr.getOnPropertyValueWrite("AcquisitionLoopTime") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateAcqLoopTime(); };
 
     objPtr.addProperty(BoolProperty("EnableCANChannel", enableCANChannel));
     objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
@@ -477,7 +479,7 @@ void RefDeviceImpl::enableLogging()
     loggingEnabled = objPtr.getPropertyValue("EnableLogging");
 }
 
-StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint) 
+StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint)
 {
     std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
     std::tm tm = *std::gmtime(&time);  // Use gmtime for UTC
@@ -488,7 +490,7 @@ StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint)
 }
 
 ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
-{    
+{
     {
         auto lock = getAcquisitionLock();
         if (!loggingEnabled)
@@ -535,7 +537,7 @@ StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
         if (id != loggingPath)
             return "";
     }
-    
+
     std::ifstream file(loggingPath.toStdString(), std::ios::binary);
     if (!file.is_open())
         return "";
@@ -559,6 +561,11 @@ StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
     return String(buffer.data(), size);
 }
 
+std::set<OperationModeType> RefDeviceImpl::onGetAvailableOperationModes()
+{
+    return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
+}
+
 void RefDeviceImpl::createSignals()
 {
     timeSignal = createAndAddSignal("Time", nullptr, true);
@@ -576,9 +583,9 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
         if (!dhcp)
         {
             if (gateway.getLength() == 0)
-                throw InvalidParameterException("No gateway address specified");
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "No gateway address specified");
             if (address.getLength() == 0)
-                throw InvalidParameterException("Empty static address specified");
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "Empty static address specified");
         }
     };
 
@@ -609,7 +616,7 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
     // Open the command for reading
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
-        throw GeneralErrorException("Failed to start IP modification");
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to start IP modification");
 
     // Read the output of the command
     while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
@@ -618,7 +625,7 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
     // Get the exit status
     int exitCode = pclose(pipe);
     if (exitCode)
-        throw InvalidParameterException("Invalid IP configuration: {}", result);
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid IP configuration: {}", result);
 
     // The new IP configuration has been successfully verified. Stop the application now
     // to allow it to adopt the updated configuration and reopen network sockets upon relaunch.
@@ -635,7 +642,7 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
     // Open the command for reading
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
-        throw GeneralErrorException("Failed to run retrieve IP configuration script");
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to run retrieve IP configuration script");
 
     // Read the output of the command
     while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
@@ -644,7 +651,7 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
     // Get the exit status
     int exitCode = pclose(pipe);
     if (exitCode)
-        throw GeneralErrorException("Retrieve IP configuration script failed: {}", result);
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Retrieve IP configuration script failed: {}", result);
 
     auto factoryCallback = [](const StringPtr& typeId,
                               const SerializedObjectPtr& serializedObj,
@@ -652,7 +659,7 @@ PropertyObjectPtr RefDeviceImpl::onRetrieveNetworkConfiguration(const StringPtr&
                               const FunctionPtr& factoryCallback)
     {
         if (typeId != "Result")
-            throw DeserializeException("Wrong script result type ID: {}", typeId);
+            DAQ_THROW_EXCEPTION(DeserializeException, "Wrong script result type ID: {}", typeId);
 
         auto config = PropertyObject();
 

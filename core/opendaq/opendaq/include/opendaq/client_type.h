@@ -38,6 +38,7 @@ class ClientTypeTools
 public:
     static void DefineConfigProperties(PropertyObjectPtr& obj);
     static ClientType IntToClientType(Int value);
+    static StringPtr ClientTypeToString(ClientType value);
 };
 
 END_NAMESPACE_OPENDAQ

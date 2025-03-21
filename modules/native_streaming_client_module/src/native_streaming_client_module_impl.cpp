@@ -855,7 +855,7 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
     PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
+    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice, ConnectedClientInfo());
 
     auto cap = ServerCapability(NativeConfigurationDeviceTypeId, "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming);
 
@@ -873,7 +873,7 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
     PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
+    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice, ConnectedClientInfo());
 
     auto cap = ServerCapability(NativeStreamingDeviceTypeId, "OpenDAQNativeStreaming", ProtocolType::Streaming);
 

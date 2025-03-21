@@ -20,6 +20,7 @@
 #include <opendaq/device_type.h>
 #include <opendaq/server_capability.h>
 #include <opendaq/network_interface.h>
+#include <opendaq/connected_client_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -302,12 +303,19 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
 
     /*!
      * @brief Gets the name of the current user of the device.
-     * @param[out] userName The location of the device.
+     * @param[out] userName The name of the current user of the device.
      *
      * If the info object is obtained from a device that is already added (not through discovery),
      * the username string value matches that of the device's "userName" property.
      */
     virtual ErrCode INTERFACE_FUNC getUserName(IString** userName) = 0;
+
+    // [templateType(connectedClientsInfo, IConnectedClientInfo)]
+    /*!
+     * @brief Gets the list of connected client information objects.
+     * @param[out] connectedClientsInfo The list of connected client information objects.
+     */
+    virtual ErrCode INTERFACE_FUNC getConnectedClientsInfo(IList** connectedClientsInfo) = 0;
 };
 /*!@}*/
 

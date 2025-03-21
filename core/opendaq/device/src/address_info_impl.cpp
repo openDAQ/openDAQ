@@ -133,8 +133,8 @@ ErrCode AddressInfoImpl::Deserialize(ISerializedObject* serialized,
                     factoryCallback,
                        [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
                        {
-                           const auto cap = createWithImplementation<IAddressInfo, AddressInfoImpl>();
-                           return cap;
+                           const auto addressInfo = createWithImplementation<IAddressInfo, AddressInfoImpl>();
+                           return addressInfo;
                        }).detach();
         });
 }

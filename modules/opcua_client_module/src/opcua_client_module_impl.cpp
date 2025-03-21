@@ -144,7 +144,7 @@ PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectP
 DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
     PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
+    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice, ConnectedClientInfo());
 
     auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "OpenDAQOPCUA", ProtocolType::Configuration);
     if (!discoveredDevice.ipv4Address.empty())

@@ -99,13 +99,6 @@ ServerTypePtr OpcUaServerImpl::createType(const ContextPtr& context)
 void OpcUaServerImpl::onStopServer()
 {
     server.stop();
-    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
-    {
-        const auto info = rootDevice.getInfo();
-        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("OpenDAQOPCUAConfiguration"))
-            infoInternal.removeServerCapability("OpenDAQOPCUAConfiguration");
-    }
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

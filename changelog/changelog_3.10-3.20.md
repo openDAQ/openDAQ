@@ -13,6 +13,7 @@
 - [#606](https://github.com/openDAQ/openDAQ/pull/606) Mechanism for retrieving and monitoring the device's connection statuses, enabling tracking of streaming connections.
 - [#605](https://github.com/openDAQ/openDAQ/pull/605) Add support for View Only client to the openDAQ Native configuration protocol.
 - [#704](https://github.com/openDAQ/openDAQ/pull/704) Support setting operation mode for the device which notifies all sub components
+- [#730](https://github.com/openDAQ/openDAQ/pull/730) Provide list of connected clients info via DeviceInfo.
 
 ## Python
 
@@ -221,4 +222,21 @@ It now need to be extended to include the new mechanism:
 this->connectionStatusContainer.addConfigurationConnectionStatus(connectionString, statusInitValue);
 // ... and to update status:
 this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), value, nullptr);
+```
+
+### [#730](https://github.com/openDAQ/openDAQ/pull/730) Provide list of connected clients info via DeviceInfo.
+
+Updates the openDAQ discovery client API, making it necessary to pass a default-constructed `ConnectedClientInfoPtr` object as an additional parameter into `DiscoveryClient::populateDiscoveredInfoProperties`.
+
+Therefore, the following module implementation snippet should be modified as follows:
+
+```diff
+DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
+{
+    PropertyObjectPtr deviceInfo = DeviceInfo("");
+-   DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
++   DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice, ConnectedClientInfo());
+    ...
+    return deviceInfo;
+}
 ```

@@ -1430,7 +1430,7 @@ std::pair<StringPtr, DeviceInfoPtr> ModuleManagerImpl::populateDiscoveredDevice(
 {
     auto deviceInfo = DeviceInfo("");
     PropertyObjectPtr info = deviceInfo;
-    discovery::DiscoveryClient::populateDiscoveredInfoProperties(info, discoveredDevice);
+    discovery::DiscoveryClient::populateDiscoveredInfoProperties(info, discoveredDevice, ConnectedClientInfo());
 
     StringPtr manufacturer = deviceInfo.getManufacturer();
     StringPtr serialNumber = deviceInfo.getSerialNumber();

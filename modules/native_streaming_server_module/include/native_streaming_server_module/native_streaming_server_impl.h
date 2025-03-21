@@ -89,6 +89,7 @@ protected:
 
     std::mutex readersSync;
     bool serverStopped;
+    std::unordered_set<std::string> registeredClientIds;
     size_t maxPacketReadCount;
 };
 

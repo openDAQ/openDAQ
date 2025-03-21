@@ -1,11 +1,10 @@
 #include <opendaq/logger_thread_pool_impl.h>
-
+#include <opendaq/thread_name.h>
 #include <coretypes/impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-LoggerThreadPoolImpl::LoggerThreadPoolImpl() :
-    spdlogThreadPool(std::make_shared<ThreadPool>(8192, 1, []{}))
+LoggerThreadPoolImpl::LoggerThreadPoolImpl() : spdlogThreadPool(std::make_shared<ThreadPool>(8192, 1, [] { LoggerThreadPoolImpl::threadStart(); }))
 {
 }
 
@@ -17,6 +16,11 @@ ErrCode LoggerThreadPoolImpl::getThreadPoolImpl(ThreadPoolPtr *impl)
     }
     *impl = spdlogThreadPool;
     return OPENDAQ_SUCCESS;
+}
+
+void LoggerThreadPoolImpl::threadStart()
+{
+    daqNameThread("Logger");
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, LoggerThreadPool)

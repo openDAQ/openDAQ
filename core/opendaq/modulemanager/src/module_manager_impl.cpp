@@ -33,6 +33,8 @@
 #include <opendaq/client_type.h>
 #include <opendaq/network_interface_factory.h>
 
+#include "opendaq/thread_name.h"
+
 BEGIN_NAMESPACE_OPENDAQ
 
 using namespace std::chrono_literals;
@@ -70,6 +72,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     {
         pool.emplace_back([this]
         {
+            daqNameThread("ModuleManager");
             ioContext.run();
         });
     }

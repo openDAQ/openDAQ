@@ -32,6 +32,7 @@
 #include <functional>
 #include <condition_variable>
 #include <optional>
+#include <string>
 
 BEGIN_NAMESPACE_UTILS
 
@@ -51,24 +52,28 @@ public:
 
     /**
      * @brief Initializes a new instance of the TimerThread class with default 1000 milliseconds period.
+     * @param name a thread name.
      * @param intervalMs a interval in milliseconds.
      * @param callback a callback function you want the TimerThread to execute.
      * @param delayMs start delay (amount of time before first execution) in milliseconds. If negative, then the interval time is used for start delay.
      * @param timerMode a timer mode.
      */
-    explicit TimerThread(int intervalMs = 1000,
+    explicit TimerThread(const std::string& name,
+                         int intervalMs = 1000,
                          CallbackFunction callback = nullptr,
                          int delayMs = -1,
                          TimerMode timerMode = TimerMode::FixedDelay);
 
     /**
      * @brief Initializes a new instance of the TimerThread class.
+     * @param name a thread name.
      * @param interval a interval in microseconds.
      * @param callback a callback function you want the TimerThread to execute.
      * @param delay start delay (amount of time before first execution) in microseconds. If empty, then the interval time is used for start delay.
      * @param timerMode a timer mode.
      */
-    explicit TimerThread(std::chrono::microseconds interval,
+    explicit TimerThread(const std::string& name,
+                         std::chrono::microseconds interval,
                          CallbackFunction callback = nullptr,
                          std::optional<std::chrono::microseconds> delay = std::nullopt,
                          TimerMode timerMode = TimerMode::FixedDelay);
@@ -144,6 +149,7 @@ protected:
     virtual void executeTimerCallback();
 
 private:
+    std::string name;
     std::mutex terminateMutex;
     std::condition_variable doTerminate;
     std::atomic<int64_t> noOfCallbacks{0};

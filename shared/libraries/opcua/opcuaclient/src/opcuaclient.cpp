@@ -49,6 +49,7 @@ ClientLockGuard::operator UA_Client*()
 OpcUaClient::OpcUaClient(const OpcUaEndpoint& endpoint)
     : endpoint(endpoint)
     , timerTasks()
+    , iterateThread("OpcUaClient")
 {
     iterateThread.setCallback(std::bind(&OpcUaClient::executeIterateCallback, this));
     initialize();

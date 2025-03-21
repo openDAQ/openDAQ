@@ -15,6 +15,7 @@
 #include <config_protocol/config_protocol_client.h>
 #include <opendaq/address_info_factory.h>
 #include <opendaq/client_type.h>
+#include <opendaq/thread_name.h>
 #include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
@@ -162,6 +163,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     auto processingThread = std::thread(
         [this, processingIOContextPtr]()
         {
+            daqNameThread("NatCliDevCfgProc");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
@@ -173,6 +175,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     auto reconnectionProcessingThread = std::thread(
         [this, reconnectionProcessingIOContextPtr]()
         {
+            daqNameThread("NatCliDevReconnProc");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*reconnectionProcessingIOContextPtr);
             reconnectionProcessingIOContextPtr->run();
@@ -505,6 +508,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
     auto processingThread = std::thread(
         [this, processingIOContextPtr, connectionString]()
         {
+            daqNameThread("NatCliStreamProc");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();

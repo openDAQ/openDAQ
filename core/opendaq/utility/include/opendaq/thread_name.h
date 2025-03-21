@@ -15,26 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/logger_thread_pool.h>
-#include <opendaq/logger_thread_pool_private.h>
-#include <coretypes/intfs.h>
 
-#include <memory>
+#include <coretypes/common.h>
 
-BEGIN_NAMESPACE_OPENDAQ
-
-class LoggerThreadPoolImpl final : public ImplementationOf<ILoggerThreadPool, ILoggerThreadPoolPrivate>
-{
-public:
-    LoggerThreadPoolImpl();
-
-    // ILoggerThreadPoolPrivate
-    ErrCode INTERFACE_FUNC getThreadPoolImpl(ThreadPoolPtr *impl) override;
-
-private:
-    ThreadPoolPtr spdlogThreadPool;
-
-    static void threadStart();
-};
-
-END_NAMESPACE_OPENDAQ
+extern "C" PUBLIC_EXPORT void daqNameThread(const char* name);

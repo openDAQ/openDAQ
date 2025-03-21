@@ -12,8 +12,8 @@
 
 BEGIN_NAMESPACE_UTILS
 
-TimerThread::TimerThread(int intervalMs, CallbackFunction callback, int delayMs, TimerMode timerMode)
-    : TimerThread(std::chrono::milliseconds(static_cast<int64_t>(intervalMs)),
+TimerThread::TimerThread(const std::string& name, int intervalMs, CallbackFunction callback, int delayMs, TimerMode timerMode)
+    : TimerThread(name, std::chrono::milliseconds(static_cast<int64_t>(intervalMs)),
                   std::move(callback),
                   delayMs == -1 ? std::chrono::milliseconds(static_cast<int64_t>(intervalMs))
                                 : std::chrono::milliseconds(static_cast<int64_t>(delayMs)),
@@ -21,11 +21,13 @@ TimerThread::TimerThread(int intervalMs, CallbackFunction callback, int delayMs,
 {
 }
 
-TimerThread::TimerThread(std::chrono::microseconds interval,
+TimerThread::TimerThread(const std::string& name,
+                         std::chrono::microseconds interval,
                          CallbackFunction callback,
                          std::optional<std::chrono::microseconds> delay,
                          TimerMode timerMode)
-    : intervalMcs{interval}
+    : name(name)
+    ,intervalMcs{interval}
     , delayMcs(delay.has_value() ? delay.value() : interval)
     , timerMode(timerMode)
     , callback{std::move(callback)}

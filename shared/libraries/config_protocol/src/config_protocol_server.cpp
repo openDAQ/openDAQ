@@ -261,7 +261,7 @@ PacketBuffer ConfigProtocolServer::processPacketAndGetReply(const PacketBuffer& 
                 uint16_t version;
                 packetBuffer.parseProtocolUpgradeRequest(version);
                 auto reply = PacketBuffer::createUpgradeProtocolReply(requestId, supportedServerVersions.find(version) != supportedServerVersions.end());
-                protocolVersion = version;
+                setProtocolVersion(version);
                 return reply;
             }
         case PacketType::Rpc:
@@ -557,6 +557,15 @@ uint16_t ConfigProtocolServer::getProtocolVersion() const
 void ConfigProtocolServer::setProtocolVersion(uint16_t protocolVersion)
 {
     this->protocolVersion = protocolVersion;
+
+    // downgrade serializers
+    if (protocolVersion < 11)
+    {
+        serializer = JsonSerializerWithVersion(2);
+        notificationSerializer = JsonSerializerWithVersion(2);
+        serializer.setUser(user);
+        notificationSerializer.setUser(user);
+    }
 }
 
 }

@@ -51,6 +51,7 @@
 
 ## Misc
 
+- [#738](https://github.com/openDAQ/openDAQ/pull/738) When clearing a property value, the PropertyValueArgs object obtained in the onWrite callback now contains the default value instead of an empty ptr.
 - [#728](https://github.com/openDAQ/openDAQ/pull/728) Add timeout on to re-scan after for available devices after 5s in the module manager call `createDevice`.
 - [#714](https://github.com/openDAQ/openDAQ/pull/714) Set of permission manager optimizations that reduce the number of Dictionary object creations on Property/PropertyObject construction.
 - [#706](https://github.com/openDAQ/openDAQ/pull/706) Limit reference device channel count to min/max values.

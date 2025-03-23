@@ -247,7 +247,7 @@ void NativeStreamingServerImpl::stopServerInternal()
         if (info.hasServerCapability("OpenDAQNativeConfiguration"))
             infoInternal.removeServerCapability("OpenDAQNativeConfiguration");
         for (const auto& clientId : registeredClientIds)
-            rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(clientId);
+            infoInternal.removeConnectedClient(clientId);
     }
     registeredClientIds.clear();
 

@@ -438,7 +438,7 @@ bool ConfigProtocolServer::isForwardedCoreEvent(ComponentPtr& component, CoreEve
 
     if (coreEventId == CoreEventId::ConnectionStatusChanged)
     {
-        // do not propogate streaming connection statuses change
+        // do not propagate streaming connection statuses change
         if (eventArgs.getParameters().get("StatusName") != "ConfigurationStatus")
             return false;
     }

@@ -431,7 +431,7 @@ TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionConnectedClientsInfo)
 
     ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
-    // connected clients info is not propogated via older protocol version
+    // connected clients info is not propagated via older protocol version
     ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
 
     auto newClient = CreateClientInstance();

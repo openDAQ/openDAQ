@@ -41,7 +41,7 @@ DECLARE_OPENDAQ_INTERFACE(IConnectedClientInfo, IPropertyObject)
 
     /*!
      * @brief Gets the type of protocol used by the client.
-     * @param[out] type The type of protocol (Enumeration value reflecting protocol type: "ConfigurationAndStreaming", "Configuration", "Streaming", "ServerStreaming", "Unknown").
+     * @param[out] type The type of protocol (Enumeration value reflecting protocol type: "ConfigurationAndStreaming", "Configuration", "Streaming", "Unknown").
      */
     virtual ErrCode INTERFACE_FUNC getProtocolType(ProtocolType* type) = 0;
 

@@ -294,6 +294,56 @@ TEST_P(ConfigPacketsTest, ClientToServerPackets)
     }
 }
 
+TEST_P(ConfigPacketsTest, ConfigClientConnectDisconnectCallbacks)
+{
+    std::string clientId;
+    bool clientConnected{false};
+    bool clientDisconnected{false};
+    auto clientConnectedHandler =
+        [&clientId, &clientConnected](const std::string& id,
+                                      const std::string& address,
+                                      bool isStreamingConnection,
+                                      ClientType /*clientType*/,
+                                      const std::string& hostName)
+    {
+        ASSERT_FALSE(isStreamingConnection);
+        ASSERT_NE(address, "");
+        ASSERT_NE(hostName, "");
+        clientConnected = true;
+        clientId = id;
+    };
+    auto clientDisconnectedHandler =
+        [&clientId, &clientConnected, &clientDisconnected](const std::string& id)
+    {
+        if (clientConnected && id == clientId)
+            clientDisconnected = true;
+    };
+
+    startIoOperations();
+    serverHandler = std::make_shared<NativeStreamingServerHandler>(
+        serverContext,
+        ioContextPtrServer,
+        List<ISignal>(),
+        [](const SignalPtr&){},
+        [](const SignalPtr&){},
+        setUpConfigProtocolServerCb,
+        clientConnectedHandler,
+        clientDisconnectedHandler
+    );
+    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+
+    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    triggerConfigProtocolSetUp();
+    ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
+
+    ASSERT_TRUE(clientConnected);
+    ASSERT_NE(clientId, "");
+
+    client.clientHandler.reset(); // disconnect
+
+    ASSERT_TRUE(clientDisconnected);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     ProtocolTestGroup,
     ConfigPacketsTest,

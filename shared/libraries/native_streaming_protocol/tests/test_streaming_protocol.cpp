@@ -294,7 +294,6 @@ TEST_P(StreamingProtocolTest, StreamingClientConnectDisconnectCallbacks)
 {
     std::string clientId;
     bool clientConnected{false};
-    bool clientDisconnected{false};
     auto clientConnectedHandler =
         [&clientId, &clientConnected](const std::string& id,
                                       const std::string& address,
@@ -308,11 +307,13 @@ TEST_P(StreamingProtocolTest, StreamingClientConnectDisconnectCallbacks)
         clientConnected = true;
         clientId = id;
     };
+    std::promise<bool> clientDisconnectedPromise;
+    std::future<bool> clientDisconnectedFuture = clientDisconnectedPromise.get_future();
     auto clientDisconnectedHandler =
-        [&clientId, &clientConnected, &clientDisconnected](const std::string& id)
+        [&clientId, &clientConnected, &clientDisconnectedPromise](const std::string& id)
     {
         if (clientConnected && id == clientId)
-            clientDisconnected = true;
+            clientDisconnectedPromise.set_value(true);
     };
 
     startIoOperations();
@@ -338,8 +339,8 @@ TEST_P(StreamingProtocolTest, StreamingClientConnectDisconnectCallbacks)
     ASSERT_NE(clientId, "");
 
     client.clientHandler.reset(); // disconnect
-
-    ASSERT_TRUE(clientDisconnected);
+    ASSERT_EQ(clientDisconnectedFuture.wait_for(std::chrono::milliseconds(1000)), std::future_status::ready);
+    ASSERT_TRUE(clientDisconnectedFuture.get());
 }
 
 TEST_P(StreamingProtocolTest, Reconnection)

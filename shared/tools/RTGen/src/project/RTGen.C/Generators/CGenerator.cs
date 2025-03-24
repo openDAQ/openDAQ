@@ -4,7 +4,6 @@ using RTGen.Interfaces;
 using RTGen.Types;
 using RTGen.Util;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -146,6 +145,24 @@ namespace RTGen.C.Generators
 
         //Overriden end
 
+        protected string GetIntfIDDeclaration()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(base.Indentation + $"EXPORTED extern const IntfID {RtFile.CurrentClass.Type.NonInterfaceName.ToLowerSnakeCase().ToUpper()}_INTF_ID;");
+            return sb.ToString();
+        }
+
+        protected string GetIntfIDDefinition()
+        {
+            StringBuilder sb = new StringBuilder();
+            string ns = RtFile.CurrentClass.Type.Namespace.ToString();
+            string iface = RtFile.CurrentClass.Type.Name;
+
+            sb.Append($"const IntfID {RtFile.CurrentClass.Type.NonInterfaceName.ToLowerSnakeCase().ToUpper()}_INTF_ID = ");
+            sb.AppendLine($"{{ {ns}::{iface}::Id.Data1, {ns}::{iface}::Id.Data2, {ns}::{iface}::Id.Data3, {ns}::{iface}::Id.Data4_UInt64 }};");
+            return sb.ToString();
+        }
+
         protected string GetTypedefs()
         {
             StringBuilder sb = new StringBuilder();
@@ -155,7 +172,7 @@ namespace RTGen.C.Generators
                 {
                     continue;
                 }
-                sb.AppendLine($"typedef struct {type} {type};");
+                sb.AppendLine(base.Indentation + $"typedef struct {type} {type};");
             }
             return sb.ToString();
         }
@@ -265,6 +282,7 @@ namespace RTGen.C.Generators
             Variables["Methods"] = methods.ToString();
             Variables["headers"] = GetIncludes(RtFile);
             Variables["typedefs"] = GetTypedefs();
+            Variables["intfid_declaration"] = GetIntfIDDeclaration();
 
             GenerateOutput(RtFile.CurrentClass, templatePath, outputPath);
         }
@@ -278,6 +296,7 @@ namespace RTGen.C.Generators
 
             Variables["Methods"] = methods.ToString();
             Variables["headers"] = GetIncludes(RtFile);
+            Variables["intfid_definition"] = GetIntfIDDefinition();
 
             GenerateOutput(RtFile.CurrentClass, templatePath, outputPath);
         }

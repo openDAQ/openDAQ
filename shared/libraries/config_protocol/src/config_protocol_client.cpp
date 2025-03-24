@@ -321,7 +321,7 @@ StringPtr ConfigProtocolClientComm::getOperationMode(const std::string& globalId
 
 PropertyObjectPtr ConfigProtocolClientComm::getComponentConfig(const std::string& globalId)
 {
-    return sendComponentCommand(globalId, ClientCommand("GetComponentConfig", 10));
+    return sendComponentCommand(globalId, ClientCommand("GetComponentConfig", 12));
 }
 
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)

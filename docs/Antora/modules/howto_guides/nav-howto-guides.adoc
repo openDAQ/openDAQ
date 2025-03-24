@@ -8,6 +8,7 @@
 ** xref:howto_configure_instance_providers.adoc[Configure Instance Provider]
 ** xref:howto_configure_streaming.adoc[]
 ** xref:howto_measure_single_value.adoc[]
+** xref:howto_save_load_configuration.adoc[]
 // ** xref:howto_configure_a_device.adoc[Configure a Device]
 // ** Configure a Signal
 // *** xref:howto_create_a_signal.adoc[]
@@ -20,7 +21,6 @@
 *** xref:howto_read_with_timestamps.adoc[Absolute time-stamps]
 *** xref:howto_read_with_timeouts.adoc[Time-outs]
 *** xref:howto_read_aligned_signals.adoc[Align multiple Signals]
-** xref:howto_save_load_configuration.adoc[]
 ** Access control
 *** xref:howto_access_control_introduction.adoc[Introduction]
 *** xref:howto_access_control_connect.adoc[]

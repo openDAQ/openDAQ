@@ -20,6 +20,8 @@ extern "C"
 
 typedef struct FloatObject FloatObject;
 
+    EXPORTED extern const IntfID FLOAT_OBJECT_INTF_ID;
+
     ErrCode EXPORTED FloatObject_getValue(FloatObject* self, Float* value);
     ErrCode EXPORTED FloatObject_equalsValue(FloatObject* self, Float value, Bool* equals);
     ErrCode EXPORTED FloatObject_createFloat(FloatObject** obj, Float value);

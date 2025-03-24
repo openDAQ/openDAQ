@@ -13,6 +13,8 @@
 
 #include <opendaq/opendaq.h>
 
+const IntfID INTEGER_INTF_ID = { daq::IInteger::Id.Data1, daq::IInteger::Id.Data2 , daq::IInteger::Id.Data3, daq::IInteger::Id.Data4_UInt64 };
+
 ErrCode Integer_getValue(Integer* self, Int* value)
 {
     return reinterpret_cast<daq::IInteger*>(self)->getValue(value);

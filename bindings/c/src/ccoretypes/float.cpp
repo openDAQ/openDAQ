@@ -13,6 +13,8 @@
 
 #include <opendaq/opendaq.h>
 
+const IntfID FLOAT_OBJECT_INTF_ID = { daq::IFloat::Id.Data1, daq::IFloat::Id.Data2 , daq::IFloat::Id.Data3, daq::IFloat::Id.Data4_UInt64 };
+
 ErrCode FloatObject_getValue(FloatObject* self, Float* value)
 {
     return reinterpret_cast<daq::IFloat*>(self)->getValue(value);

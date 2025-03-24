@@ -1,7 +1,5 @@
 #include <copendaq.h>
 #include <gtest/gtest.h>
-#include "ccommon.h"
-#include "ccoretypes/base_object.h"
 
 using CCoretypesTest = testing::Test;
 
@@ -63,7 +61,19 @@ TEST_F(CCoretypesTest, ComplexNumber)
 
 TEST_F(CCoretypesTest, Convertible)
 {
-    // TODO: add later, cannot test now
+    String* s = nullptr;
+    Convertible* c = nullptr;
+    ErrCode err = 0;
+    Float f = 0.0;
+
+    err = String_createString(&s, "1.5");
+    ASSERT_EQ(err, 0);
+    err = BaseObject_borrowInterface(s, CONVERTIBLE_INTF_ID, reinterpret_cast<BaseObject**>(&c));
+    ASSERT_EQ(err, 0);
+    err = Convertible_toFloat(c, &f);
+    ASSERT_EQ(err, 0);
+    ASSERT_FLOAT_EQ(f, 1.5);
+    BaseObject_releaseRef(s);
 }
 
 TEST_F(CCoretypesTest, Dictobject)
@@ -292,6 +302,20 @@ TEST_F(CCoretypesTest, Listobject)
 TEST_F(CCoretypesTest, Number)
 {
     // TODO: add later, cannot test now
+    FloatObject* f1 = nullptr;
+    Float f = 2.2;
+    ErrCode err = 0;
+    Number* n1 = nullptr;
+    Int i = 0;
+
+    err = FloatObject_createFloat(&f1, f);
+    ASSERT_EQ(err, 0);
+    err = BaseObject_borrowInterface(f1, NUMBER_INTF_ID, reinterpret_cast<BaseObject**>(&n1));
+    ASSERT_EQ(err, 0);
+    Number_getIntValue(n1, &i);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(i, 2);
+    BaseObject_releaseRef(f1);
 }
 
 typedef ErrCode (*ProcCall)(BaseObject*);

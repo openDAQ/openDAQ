@@ -218,14 +218,12 @@ int PacketBuffer::ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount
         // Therefore we only need to check for wraparound and adjust the that
 
         if ((uint8_t*) readPos + sizeOfSample * sampleCount >= (uint8_t*) data + sizeOfSample * sizeOfMem)
-            readPos = (void*) ((uint8_t*) data +
-                               ((uint8_t*) readPos + sizeOfSample * sampleCount - ((uint8_t*) data + sizeOfSample * sizeOfMem)));
+            readPos = (void*) (((uint8_t*) readPos + sizeOfSample * sampleCount - (sizeOfSample * sizeOfMem)));
         else
             readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
 
         bIsFull = false;
     }
-    //std::cout << "We messing with memory... " << std::endl;
     cv.notify_all();
     return 0;
     

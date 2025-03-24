@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:30.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/dictobject.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID DICT_INTF_ID = { daq::IDict::Id.Data1, daq::IDict::Id.Data2, daq::IDict::Id.Data3, daq::IDict::Id.Data4_UInt64 };
 
 ErrCode Dict_get(Dict* self, BaseObject* key, BaseObject** value)
 {

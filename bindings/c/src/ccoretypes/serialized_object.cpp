@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:25.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/serialized_object.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID SERIALIZED_OBJECT_INTF_ID = { daq::ISerializedObject::Id.Data1, daq::ISerializedObject::Id.Data2, daq::ISerializedObject::Id.Data3, daq::ISerializedObject::Id.Data4_UInt64 };
 
 ErrCode SerializedObject_readSerializedObject(SerializedObject* self, String* key, SerializedObject** plainObj)
 {

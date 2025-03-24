@@ -5,14 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 12.03.2025 16:31:02.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/procedure.h"
 
 #include <opendaq/opendaq.h>
-#include "coretypes/procedure.h"
+
+const IntfID PROCEDURE_INTF_ID = { daq::IProcedure::Id.Data1, daq::IProcedure::Id.Data2, daq::IProcedure::Id.Data3, daq::IProcedure::Id.Data4_UInt64 };
 
 ErrCode Procedure_dispatch(Procedure* self, BaseObject* params)
 {

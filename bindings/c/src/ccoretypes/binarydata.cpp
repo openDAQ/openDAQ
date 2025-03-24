@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:14.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:21.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/binarydata.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID BINARY_DATA_INTF_ID = { daq::IBinaryData::Id.Data1, daq::IBinaryData::Id.Data2, daq::IBinaryData::Id.Data3, daq::IBinaryData::Id.Data4_UInt64 };
 
 ErrCode BinaryData_getAddress(BinaryData* self, void** data)
 {

@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:27.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/struct.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID STRUCT_INTF_ID = { daq::IStruct::Id.Data1, daq::IStruct::Id.Data2, daq::IStruct::Id.Data3, daq::IStruct::Id.Data4_UInt64 };
 
 ErrCode Struct_getStructType(Struct* self, StructType** type)
 {

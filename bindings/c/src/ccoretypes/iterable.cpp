@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:22.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:29.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/iterable.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID ITERABLE_INTF_ID = { daq::IIterable::Id.Data1, daq::IIterable::Id.Data2, daq::IIterable::Id.Data3, daq::IIterable::Id.Data4_UInt64 };
 
 ErrCode Iterable_createStartIterator(Iterable* self, Iterator** iterator)
 {

@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:26.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:34.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/simple_type.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID SIMPLE_TYPE_INTF_ID = { daq::ISimpleType::Id.Data1, daq::ISimpleType::Id.Data2, daq::ISimpleType::Id.Data3, daq::ISimpleType::Id.Data4_UInt64 };
 
 ErrCode SimpleType_createSimpleType(SimpleType** obj, CoreType coreType)
 {

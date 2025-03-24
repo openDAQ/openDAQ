@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:31.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:40.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/listobject.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID LIST_INTF_ID = { daq::IList::Id.Data1, daq::IList::Id.Data2, daq::IList::Id.Data3, daq::IList::Id.Data4_UInt64 };
 
 ErrCode List_getItemAt(List* self, SizeT index, BaseObject** obj)
 {

@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:18.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:24.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/enumeration_type.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID ENUMERATION_TYPE_INTF_ID = { daq::IEnumerationType::Id.Data1, daq::IEnumerationType::Id.Data2, daq::IEnumerationType::Id.Data3, daq::IEnumerationType::Id.Data4_UInt64 };
 
 ErrCode EnumerationType_getEnumeratorNames(EnumerationType* self, List** names)
 {

@@ -1,8 +1,8 @@
 #include <exception>
-#include <filesystem>
 #include <memory>
 #include <mutex>
 
+#include <coretypes/filesystem.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/opendaq.h>
@@ -13,7 +13,7 @@
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
 BasicCsvRecorderThread::BasicCsvRecorderThread(
-        std::filesystem::path path,
+        fs::path path,
         const SignalPtr& signal,
         const LoggerComponentPtr& loggerComponent)
     : loggerComponent(loggerComponent)

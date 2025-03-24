@@ -2,7 +2,6 @@
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -10,6 +9,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <coretypes/filesystem.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/opendaq.h>
@@ -35,7 +35,7 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
  *
  * @returns A filename, including a ".csv" extension.
  */
-static std::string getFilename(const std::filesystem::path& path, const SignalPtr& signal)
+static std::string getFilename(const fs::path& path, const SignalPtr& signal)
 {
     std::string id = signal.getGlobalId();
 
@@ -51,7 +51,7 @@ static std::string getFilename(const std::filesystem::path& path, const SignalPt
     unsigned sequence = 0;
     std::string name = id + ".csv";
 
-    while (std::filesystem::exists(path / name))
+    while (fs::exists(path / name))
         name = id + " (" + std::to_string(++sequence) + ").csv";
 
     return name;
@@ -141,7 +141,7 @@ static std::string getValueName(const DataDescriptorPtr& descriptor)
 }
 
 BasicCsvRecorderSignal::BasicCsvRecorderSignal(
-        std::filesystem::path path,
+    fs::path path,
         const SignalPtr& signal)
     : writer(path / getFilename(path, signal))
 {

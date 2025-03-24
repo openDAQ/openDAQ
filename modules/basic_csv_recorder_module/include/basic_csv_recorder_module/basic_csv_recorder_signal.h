@@ -16,8 +16,7 @@
 
 #pragma once
 
-#include <filesystem>
-
+#include <coretypes/filesystem.h>
 #include <opendaq/opendaq.h>
 
 #include <basic_csv_recorder_module/common.h>
@@ -46,7 +45,7 @@ class BasicCsvRecorderSignal
          * @throws std::ios_base::failure The CSV file could not be opened.
          */
         BasicCsvRecorderSignal(
-            std::filesystem::path path,
+            fs::path path,
             const SignalPtr& signal);
 
         /*!

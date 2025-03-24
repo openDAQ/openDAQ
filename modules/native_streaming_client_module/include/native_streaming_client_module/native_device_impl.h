@@ -71,7 +71,8 @@ private:
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
-    void enableStreamingForComponent(const ComponentPtr& component);
+    void enableStreamingForNewComponent(const ComponentPtr& component);
+    void enableStreamingForExistingComponent(const ComponentPtr& component);
     void tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming);
     void setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming);
     void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);

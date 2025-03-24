@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:15.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:22.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/boolean.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID BOOLEAN_INTF_ID = { daq::IBoolean::Id.Data1, daq::IBoolean::Id.Data2, daq::IBoolean::Id.Data3, daq::IBoolean::Id.Data4_UInt64 };
 
 ErrCode Boolean_getValue(Boolean* self, Bool* value)
 {

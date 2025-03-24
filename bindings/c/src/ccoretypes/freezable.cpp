@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:21.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:27.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/freezable.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID FREEZABLE_INTF_ID = { daq::IFreezable::Id.Data1, daq::IFreezable::Id.Data2, daq::IFreezable::Id.Data3, daq::IFreezable::Id.Data4_UInt64 };
 
 ErrCode Freezable_freeze(Freezable* self)
 {

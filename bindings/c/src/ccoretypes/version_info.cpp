@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:30.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/version_info.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID VERSION_INFO_INTF_ID = { daq::IVersionInfo::Id.Data1, daq::IVersionInfo::Id.Data2, daq::IVersionInfo::Id.Data3, daq::IVersionInfo::Id.Data4_UInt64 };
 
 ErrCode VersionInfo_getMajor(VersionInfo* self, SizeT* major)
 {

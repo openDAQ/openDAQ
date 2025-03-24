@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:27.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/struct_type.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID STRUCT_TYPE_INTF_ID = { daq::IStructType::Id.Data1, daq::IStructType::Id.Data2, daq::IStructType::Id.Data3, daq::IStructType::Id.Data4_UInt64 };
 
 ErrCode StructType_getFieldNames(StructType* self, List** names)
 {

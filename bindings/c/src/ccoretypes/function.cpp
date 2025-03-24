@@ -5,14 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 12.03.2025 16:30:59.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:28.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/function.h"
 
 #include <opendaq/opendaq.h>
-#include "coretypes/function.h"
+
+const IntfID FUNCTION_INTF_ID = { daq::IFunction::Id.Data1, daq::IFunction::Id.Data2, daq::IFunction::Id.Data3, daq::IFunction::Id.Data4_UInt64 };
 
 ErrCode Function_call(Function* self, BaseObject* params, BaseObject** result)
 {

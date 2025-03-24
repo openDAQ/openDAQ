@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:15.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:23.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/complex_number.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID COMPLEX_NUMBER_INTF_ID = { daq::IComplexNumber::Id.Data1, daq::IComplexNumber::Id.Data2, daq::IComplexNumber::Id.Data3, daq::IComplexNumber::Id.Data4_UInt64 };
 
 /*
 ErrCode ComplexNumber_getValue(ComplexNumber* self, ComplexFloat64* value)

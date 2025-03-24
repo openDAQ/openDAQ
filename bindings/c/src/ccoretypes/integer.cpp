@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:21.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:28.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -13,7 +13,7 @@
 
 #include <opendaq/opendaq.h>
 
-const IntfID INTEGER_INTF_ID = { daq::IInteger::Id.Data1, daq::IInteger::Id.Data2 , daq::IInteger::Id.Data3, daq::IInteger::Id.Data4_UInt64 };
+const IntfID INTEGER_INTF_ID = { daq::IInteger::Id.Data1, daq::IInteger::Id.Data2, daq::IInteger::Id.Data3, daq::IInteger::Id.Data4_UInt64 };
 
 ErrCode Integer_getValue(Integer* self, Int* value)
 {

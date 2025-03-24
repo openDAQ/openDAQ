@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:23.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/ratio.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID RATIO_INTF_ID = { daq::IRatio::Id.Data1, daq::IRatio::Id.Data2, daq::IRatio::Id.Data3, daq::IRatio::Id.Data4_UInt64 };
 
 ErrCode Ratio_getNumerator(Ratio* self, Int* numerator)
 {

@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:28.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:37.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/type.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID TYPE_INTF_ID = { daq::IType::Id.Data1, daq::IType::Id.Data2, daq::IType::Id.Data3, daq::IType::Id.Data4_UInt64 };
 
 ErrCode Type_getName(Type* self, String** typeName)
 {

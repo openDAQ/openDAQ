@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 13.03.2025 21:47:29.
+//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/updatable.h"
 
 #include <opendaq/opendaq.h>
+
+const IntfID UPDATABLE_INTF_ID = { daq::IUpdatable::Id.Data1, daq::IUpdatable::Id.Data2, daq::IUpdatable::Id.Data3, daq::IUpdatable::Id.Data4_UInt64 };
 
 ErrCode Updatable_update(Updatable* self, SerializedObject* update, BaseObject* config)
 {

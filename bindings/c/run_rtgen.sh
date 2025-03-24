@@ -63,13 +63,13 @@ run_rtgen ccoretypes coretypes coretypes convertible convertible
 # run_rtgen ccoretypes coretypes coretypes coretype coretype
 # run_rtgen ccoretypes coretypes coretypes coretype_traits coretype_traits
 # run_rtgen ccoretypes coretypes coretypes coretype_utils coretype_utils
-run_rtgen ccoretypes coretypes coretypes coretypes coretypes
+# run_rtgen ccoretypes coretypes coretypes coretypes coretypes
 # run_rtgen coretypes coretypes coretypes coretypes_configc.h coretypes_config.h
 # run_rtgen ccoretypes coretypes coretypes ctutils ctutils
 # run_rtgen ccoretypes coretypes coretypes customalloc customalloc
 # run_rtgen ccoretypes coretypes coretypes cycle_detector cycle_detector
 # run_rtgen ccoretypes coretypes coretypes delegate delegate
-run_rtgen ccoretypes coretypes coretypes deserializer deserializer
+# run_rtgen ccoretypes coretypes coretypes deserializer deserializer
 # run_rtgen ccoretypes coretypes coretypes deserializer_ptr deserializer_ptr
 # run_rtgen ccoretypes coretypes coretypes dict_element_type dict_element_type
 run_rtgen ccoretypes coretypes coretypes enumeration enumeration

@@ -20,6 +20,8 @@ extern "C"
 
 typedef struct Number Number;
 
+    EXPORTED const extern IntfID NUMBER_INTF_ID;
+
     ErrCode EXPORTED Number_getFloatValue(Number* self, Float* value);
     ErrCode EXPORTED Number_getIntValue(Number* self, Int* value);
 

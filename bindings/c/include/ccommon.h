@@ -54,6 +54,13 @@ extern "C"
     typedef ErrCode (*FuncCall)(BaseObject*, BaseObject**);
     typedef ErrCode (*ProcCall)(BaseObject*);
 
+    typedef struct IntfID {
+        uint32_t Data1;
+        uint16_t Data2;
+        uint16_t Data3;
+        uint64_t Data4;
+    } IntfID;
+
 #ifdef __cplusplus
 }
 #endif

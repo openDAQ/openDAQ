@@ -13,6 +13,8 @@
 
 #include <opendaq/opendaq.h>
 
+const IntfID CONVERTIBLE_INTF_ID = { daq::IConvertible::Id.Data1, daq::IConvertible::Id.Data2 , daq::IConvertible::Id.Data3, daq::IConvertible::Id.Data4_UInt64 };
+
 ErrCode Convertible_toFloat(Convertible* self, Float* val)
 {
     return reinterpret_cast<daq::IConvertible*>(self)->toFloat(val);

@@ -20,6 +20,8 @@ extern "C"
 
 typedef struct Convertible Convertible;
 
+    EXPORTED extern const IntfID CONVERTIBLE_INTF_ID;
+
     ErrCode EXPORTED Convertible_toFloat(Convertible* self, Float* val);
     ErrCode EXPORTED Convertible_toInt(Convertible* self, Int* val);
     ErrCode EXPORTED Convertible_toBool(Convertible* self, Bool* val);

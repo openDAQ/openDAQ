@@ -20,6 +20,8 @@ extern "C"
 
 typedef struct Integer Integer;
 
+    EXPORTED extern const IntfID INTEGER_INTF_ID;
+
     ErrCode EXPORTED Integer_getValue(Integer* self, Int* value);
     ErrCode EXPORTED Integer_equalsValue(Integer* self, Int value, Bool* equals);
     ErrCode EXPORTED Integer_createInteger(Integer** obj, Int value);

@@ -1,9 +1,9 @@
-#include <filesystem>
 #include <functional>
 #include <memory>
 #include <set>
 #include <string>
 
+#include <coretypes/filesystem.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/opendaq.h>
 
@@ -110,7 +110,7 @@ void BasicCsvRecorderImpl::addInputPort()
 
 void BasicCsvRecorderImpl::reconfigure()
 {
-    std::filesystem::path path = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
+    fs::path path = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
 
     if (recordingActive)
     {

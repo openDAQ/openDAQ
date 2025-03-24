@@ -17,10 +17,10 @@
 #pragma once
 
 #include <cstddef>
-#include <filesystem>
 #include <fstream>
 #include <sstream>
 
+#include <coretypes/filesystem.h>
 #include <opendaq/opendaq.h>
 
 #include <basic_csv_recorder_module/common.h>
@@ -53,10 +53,10 @@ class CsvWriter
          *
          * @throws std::ios_base::failure The file could not be opened.
          */
-        CsvWriter(const std::filesystem::path& filename)
+        CsvWriter(const fs::path& filename)
         {
             if (filename.has_parent_path())
-                std::filesystem::create_directories(filename.parent_path());
+            fs::create_directories(filename.parent_path());
 
             file.exceptions(std::ios::failbit | std::ios::badbit);
             file.open(filename);

@@ -19,29 +19,29 @@ BEGIN_NAMESPACE_OPENDAQ
 
 
 // Think about what needs also to be included in here...
-enum EnumAdjustSize
+/* enum EnumAdjustSize
 {
     Invalid = 0,
     AdjustOnEnd,
     Fragment,
     PreMadePackets
-};
+};*/
 
 struct PacketBufferInit
 {
 
-    PUBLIC_EXPORT PacketBufferInit(daq::DataDescriptorPtr description, EnumAdjustSize eAdjust, size_t sA = 0);
+    PUBLIC_EXPORT PacketBufferInit(daq::DataDescriptorPtr description, /* EnumAdjustSize eAdjust,*/ size_t sA = 0);
 
     daq::DataDescriptorPtr desc;
     size_t sampleAmount;
-    EnumAdjustSize sizeAdjustment;
+    //EnumAdjustSize sizeAdjustment;
 
     // sampleAmount will be relative to the acqloop and the amount of time that is required
     // to go through the aquisition loop of data.
 
     // This boolean below is supposed to be a switch for using either a buffer
     // or 'classic malloc' when creating new packets
-    bool bUsingBuffer;
+    //bool bUsingBuffer;
 
     // Check on the return codes and allow them to be
     // handled how the user wants them to be handled
@@ -53,6 +53,9 @@ struct PacketBufferInit
 
 
 class PacketBuffer;
+
+// Move this into the test_suite (it isn't required here)
+// (* from here
 
 class Packet
 {
@@ -66,7 +69,7 @@ public:
 private:
     std::function<void(void*, size_t)> cb = 0;
 };
-
+// to here *) 
 
 class PacketBuffer
 {
@@ -113,12 +116,6 @@ public:
     bool getIsFull();
 
     size_t getAdjustedSize();
-
-    // Notes on compiling to release versions:
-    // 1.) Advanced datatypes (like std::condition_variable and std::priority_queue) need to have
-    //     dll-interface that has to be provided
-    // 2.) Despite all the above I found 13 test that are not marked as unstable failing and
-    //     I have severe doubts that my ring buffer made them fail
 
     std::mutex flip;
     std::condition_variable cv;

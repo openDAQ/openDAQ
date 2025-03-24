@@ -2,12 +2,13 @@
 
 using namespace daq;
 
-PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, daq::EnumAdjustSize eAdjust, size_t sA)
+PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, /* daq::EnumAdjustSize eAdjust,*/ size_t sA)
 {
     desc = description;
-    sizeAdjustment = eAdjust;
+    //sizeAdjustment = eAdjust;
     sampleAmount = sA;
-    bUsingBuffer = true;
+    //bUsingBuffer = true;
+    
     if (sA == 0)
     {
         auto r = desc.getTickResolution();

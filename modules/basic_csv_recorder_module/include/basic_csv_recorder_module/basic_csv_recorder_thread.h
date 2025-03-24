@@ -17,12 +17,12 @@
 #pragma once
 
 #include <condition_variable>
-#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <thread>
 
+#include <coretypes/filesystem.h>
 #include <opendaq/opendaq.h>
 
 #include <basic_csv_recorder_module/common.h>
@@ -55,7 +55,7 @@ class BasicCsvRecorderThread
          * @param loggerComponent The openDAQ logger object to use.
          */
         BasicCsvRecorderThread(
-            std::filesystem::path path,
+            fs::path path,
             const SignalPtr& signal,
             const LoggerComponentPtr& loggerComponent);
 

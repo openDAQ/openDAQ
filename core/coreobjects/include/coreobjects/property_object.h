@@ -127,7 +127,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * @retval OPENDAQ_ERR_INVALIDPARAMETER if attempting to get a value at an index of a non-list Property.
      * @retval OPENDAQ_ERR_OUTOFRANGE if attempting to get a value of a list Property at an out-of-bounds index.
      *
-     * The value is retrieved from a local dictionary of Property values where they are stored when set. If a a value is not
+     * The value is retrieved from a local dictionary of Property values where they are stored when set. If a value is not
      * present under the `propertyName` key, the default value of the corresponding Property is returned. If said property
      * is not part of the Property object, an error occurs.
      *

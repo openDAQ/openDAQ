@@ -615,6 +615,13 @@ ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
     });
 }
 
+ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = this->componentConfig.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 void NativeDeviceImpl::removed()
 {
     if (this->deviceHelper)

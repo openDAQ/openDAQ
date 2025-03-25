@@ -126,6 +126,9 @@ public:
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
+
 protected:
     void removed() override;
 

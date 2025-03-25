@@ -226,9 +226,9 @@ void NativeDeviceHelper::enableStreamingForExistingComponent(const ComponentPtr&
     {
         auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
         for (const auto& nestedComponent : nestedComponents)
-            if (auto signal = component.asPtrOrNull<IMirroredSignalConfig>();
-                signal.assigned() && signal.getStreamingSources().getCount() == 0)
-                enableStreamingForNewComponent(signal);
+            if (auto nestedSignal = nestedComponent.asPtrOrNull<IMirroredSignalConfig>();
+                nestedSignal.assigned() && nestedSignal.getStreamingSources().getCount() == 0)
+                enableStreamingForNewComponent(nestedSignal);
     }
 }
 

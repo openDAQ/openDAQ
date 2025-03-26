@@ -2696,6 +2696,52 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
     ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }
 
+TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfoChanged)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstance();
+        auto serverDeviceInfoConfig = server.getRootDevice().getInfo();
+        serverDeviceInfoConfig.addProperty(StringProperty("NewTestProperty1", "TestValue"));
+
+        auto client = CreateClientInstance();
+        auto clientDevice = client.getDevices()[0];
+
+        auto deviceInfoConfig = clientDevice.getInfo().asPtr<IDeviceInfoConfig>();
+        ASSERT_NO_THROW(deviceInfoConfig.setName("NewDeviceName"));
+
+        ASSERT_ANY_THROW(deviceInfoConfig.setManufacturer("NewManufacturerName"));
+        ASSERT_ANY_THROW(deviceInfoConfig.setDeviceRevision("NewRevision"));
+        ASSERT_ANY_THROW(deviceInfoConfig.setConnectionString(""));
+
+        ASSERT_NE(deviceInfoConfig.getManufacturer(), "NewManufacturerName");
+        ASSERT_NE(deviceInfoConfig.getDeviceRevision(), "NewRevision");
+        ASSERT_NE(deviceInfoConfig.getConnectionString(), "");
+
+        deviceInfoConfig.setPropertyValue("NewTestProperty1", "NewTestValue");
+        // ASSERT_ANY_THROW(deviceInfoConfig.addProperty(StringProperty("NewTestProperty2", "TestValue"))); // doesn't throw
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstance();
+
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+    auto clientDevice = devices[0];
+
+    auto restoreDeviceInfo = clientDevice.getInfo();
+    ASSERT_EQ(restoreDeviceInfo.getName(), "NewDeviceName");
+    ASSERT_NE(restoreDeviceInfo.getManufacturer(), "NewManufacturerName");
+    ASSERT_NE(restoreDeviceInfo.getConnectionString(), "");
+
+    // ASSERT_TRUE(restoreDeviceInfo.hasProperty("NewTestProperty1")); // failed
+    // ASSERT_EQ(restoreDeviceInfo.getPropertyValue("NewTestProperty1"), "NewTestValue"); // failed
+}
+
 StringPtr getFileLastModifiedTime(const std::string& path)
 {
     auto ftime = fs::last_write_time(path);

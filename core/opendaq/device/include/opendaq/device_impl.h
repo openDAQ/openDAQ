@@ -1441,12 +1441,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObject** config)
 {
-    OPENDAQ_PARAM_NOT_NULL(config);
-    if (this->componentConfig.assigned())
-    {
-        *config = this->componentConfig.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
     return this->getComponentConfig(config);
 }
 

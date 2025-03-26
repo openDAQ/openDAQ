@@ -217,7 +217,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::ReadSample(void* begin
 
         // Therefore we only need to check for wraparound and adjust the that
 
-        readPos = readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
+        readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
 
         if ((uint8_t*) readPos >= (uint8_t*) data + sizeOfSample * sizeOfMem)
             readPos = (void*) ((uint8_t*) readPos - (sizeOfSample * sizeOfMem));

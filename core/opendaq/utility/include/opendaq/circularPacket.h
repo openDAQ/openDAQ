@@ -14,18 +14,19 @@
 #include <functional>
 #include <opendaq/data_descriptor_ptr.h>
 
+namespace bufferReturnCodes
+{
+    enum class EReturnCodesPacketBuffer : daq::EnumType
+    {
+        Ok = 0,
+        AdjustedSize = 1,
+        OutOfMemory = 2,
+        Failure = 3
+    };
+
+}
 
 BEGIN_NAMESPACE_OPENDAQ
-
-
-// Think about what needs also to be included in here...
-/* enum EnumAdjustSize
-{
-    Invalid = 0,
-    AdjustOnEnd,
-    Fragment,
-    PreMadePackets
-};*/
 
 struct PacketBufferInit
 {
@@ -33,7 +34,7 @@ struct PacketBufferInit
     PUBLIC_EXPORT PacketBufferInit(daq::DataDescriptorPtr description, /* EnumAdjustSize eAdjust,*/ size_t sA = 0);
 
     daq::DataDescriptorPtr desc;
-    size_t sampleAmount;
+    size_t sampleCount;
     //EnumAdjustSize sizeAdjustment;
 
     // sampleAmount will be relative to the acqloop and the amount of time that is required
@@ -51,25 +52,8 @@ struct PacketBufferInit
 
 };
 
-
-class PacketBuffer;
-
-// Move this into the test_suite (it isn't required here)
-// (* from here
-
-class Packet
-{
-public:
-    Packet();
-    Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(void*, size_t)> callback);
-    ~Packet();
-    size_t sampleAmount;
-    void* assignedData;
-
-private:
-    std::function<void(void*, size_t)> cb = 0;
-};
-// to here *) 
+// This is a Testing Mock Packet, it is not intended for actual use
+class Packet;
 
 class PacketBuffer
 {
@@ -77,7 +61,6 @@ class PacketBuffer
     // we must not lock the entire PacketBuffer itself
 
 public:
-    PUBLIC_EXPORT PacketBuffer();
 
     PUBLIC_EXPORT PacketBuffer(size_t sampleSize, size_t memSize);
 
@@ -85,12 +68,10 @@ public:
 
     PUBLIC_EXPORT ~PacketBuffer();
 
+    // When callling resize, reset gets called internally
     PUBLIC_EXPORT void resize(const PacketBufferInit& instructions);
 
     // int => return code
-    int WriteSample(size_t* sampleCount, void** memPos);
-
-    int ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount);
 
     PUBLIC_EXPORT size_t getAvailableSampleCount();
 
@@ -104,7 +85,10 @@ public:
 
     int reset();
 
-//protected:
+protected:
+    bufferReturnCodes::EReturnCodesPacketBuffer WriteSample(size_t* sampleCount, void** memPos);
+
+    bufferReturnCodes::EReturnCodesPacketBuffer ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount);
     // Testing methods
     void setWritePos(size_t offset);
     void setReadPos(size_t offset);
@@ -119,7 +103,7 @@ public:
 
     std::mutex flip;
     std::condition_variable cv;
-private:
+
     bool bIsFull;
     bool bUnderReset;
     size_t sizeOfMem;

@@ -12,6 +12,98 @@
 #include <opendaq/scaling_ptr.h>
 #include <iostream>
 
+class Packetet : public daq::PacketBuffer
+{
+public:
+
+    using PacketBuffer::getReadPos;
+    using PacketBuffer::getWritePos;
+    using PacketBuffer::setWritePos;
+    using PacketBuffer::setReadPos;
+    using PacketBuffer::getIsFull;
+
+
+    bufferReturnCodes::EReturnCodesPacketBuffer callReadSample(void* beginningOfDelegatedSpace, size_t sampleCount)
+    {
+        return ReadSample(beginningOfDelegatedSpace, sampleCount);
+    }
+
+    bufferReturnCodes::EReturnCodesPacketBuffer callWriteSample(size_t* sampleCount, void** memPos)
+    {
+        return WriteSample(sampleCount, memPos);
+    }
+
+    daq::DataPacketPtr callCreatePacket(size_t* sampleCount,
+                                        daq::DataDescriptorPtr dataDescriptor,
+                                        daq::DataPacketPtr& domainPacket)
+    {
+        return createPacket(sampleCount, dataDescriptor, domainPacket);
+    }
+
+    std::mutex* goForLock()
+    {
+        return &flip;
+    }
+
+    Packetet()
+        : PacketBuffer(sizeof(double), 1024)
+    {
+    }
+
+};
+
+class daq::Packet
+{
+public:
+    Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(void*, size_t)> callback)
+    {
+        cb = std::move(callback);
+        // Users code, users memory corruption problems
+        sampleAmount = desiredNumOfSamples;
+        assignedData = beginningOfData;
+    }
+
+    Packet()
+    {
+        // Failed state
+        sampleAmount = 0;
+        assignedData = nullptr;
+    }
+
+    ~Packet()
+    {
+        cb(assignedData, sampleAmount);
+    }
+    size_t sampleAmount;
+    void* assignedData;
+
+private:
+    std::function<void(void*, size_t)> cb;
+};
+
+// This is a test function that was used to help gauge the behaviour of the buffer class
+daq::Packet daq::PacketBuffer::cP(size_t* sampleCount, size_t dataDescriptor)
+{
+    void* startOfSpace = nullptr;
+    bufferReturnCodes::EReturnCodesPacketBuffer ret = this->WriteSample(sampleCount, &startOfSpace);
+    std::function<void(void*, size_t)> cb = std::bind(&PacketBuffer::ReadSample, this, std::placeholders::_1, std::placeholders::_2);
+    if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::Ok)
+    {
+        return Packet(*sampleCount, startOfSpace, cb);
+    }
+    else if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize)
+    {
+        // The argument of the function needs to be changed to reflect the spec details
+        std::cout << "The size of the packet is smaller than requested. It's so JOEVER " << std::endl;
+        return Packet(*sampleCount, startOfSpace, cb);
+    }
+    else
+    {
+        // Maybe throw here, or something else (who knows)
+        return Packet();
+    }
+}
+
 using CircularPacketTest = testing::Test;
 
 void display_write_read_pos(daq::PacketBuffer* pb)
@@ -36,121 +128,124 @@ std::tuple<daq::DataDescriptorPtr, daq::DataPacketPtr> generate_building_blocks(
 
 TEST_F(CircularPacketTest, SanityWritePosCheck)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     void* check;
     size_t bb = 0;
     size_t* delique = &bb;
     *delique = 16;
-    ASSERT_EQ(pb.WriteSample(delique, &check), 0);
+    ASSERT_EQ(pb.callWriteSample(delique, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *delique = 1024;
-    ASSERT_EQ(pb.WriteSample(delique, &check), 2);
+    ASSERT_EQ(pb.callWriteSample(delique, &check), bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize);
 }
 
 TEST_F(CircularPacketTest, WriteFullRangeFill)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     void* check;
     size_t bb = 0;
     size_t* fun = &bb;
     *fun = 512;
-    ASSERT_EQ(pb.WriteSample(fun, &check), 0);
-    ASSERT_EQ(pb.WriteSample(fun, &check), 0);
+    ASSERT_EQ(pb.callWriteSample(fun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callWriteSample(fun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *fun = 2;
-    ASSERT_EQ(pb.WriteSample(fun, &check), 1);       // This one fails because the buffer is full
+    ASSERT_EQ(pb.callWriteSample(fun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory);       // This one fails because the buffer is full
 }
 
 TEST_F(CircularPacketTest, WriteAdjustedSize)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     void* check;
     size_t bb = 0;
     size_t* run = &bb;
     *run = 1000;
-    ASSERT_EQ(pb.WriteSample(run, &check), 0);
+    ASSERT_EQ(pb.callWriteSample(run, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *run = 30;
-    ASSERT_EQ(pb.WriteSample(run, &check), 2);
+    ASSERT_EQ(pb.callWriteSample(run, &check), bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize);
 }
 
 TEST_F(CircularPacketTest, WriteEmptyCall)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     void* check;
     size_t bb = 0;
     size_t* tun = &bb;
     *tun = 0;
-    ASSERT_EQ(pb.WriteSample(tun, &check), 0);
+    ASSERT_EQ(pb.callWriteSample(tun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
 }
 
 
 TEST_F(CircularPacketTest, ReadEmpty)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     size_t bb = 0;
     size_t* gun = &bb;
     *gun = 0;
-    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *gun), 1);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *gun), bufferReturnCodes::EReturnCodesPacketBuffer::Failure);
 }
 
 TEST_F(CircularPacketTest, ReadFromFullBuffer)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     void* check;
     size_t bb = 0;
     size_t* wan = &bb;
     *wan = 1024;
-    pb.WriteSample(wan, &check);
+    pb.callWriteSample(wan, &check);
     *wan = 512;
-    ASSERT_EQ(pb.ReadSample(check, *wan), 0);
+    ASSERT_EQ(pb.callReadSample(check, *wan), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
 }
 
 TEST_F(CircularPacketTest, ReadFullBuffer)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     void* check;
     size_t bb = 0;
     size_t* hun = &bb;
     *hun = 512;
-    pb.WriteSample(hun, &check);
+    pb.callWriteSample(hun, &check);
     *hun = 256;
-    ASSERT_EQ(pb.ReadSample(check, *hun), 0);
+    ASSERT_EQ(pb.callReadSample(check, *hun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *hun = 1000;
-    ASSERT_EQ(pb.WriteSample(hun, &check), 2);
+    ASSERT_EQ(pb.callWriteSample(hun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize);
     *hun = 128;
-    ASSERT_EQ(pb.WriteSample(hun, &check), 0);
+    ASSERT_EQ(pb.callWriteSample(hun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *hun = 800;
-    ASSERT_EQ(pb.ReadSample(check, *hun), 0);
+    ASSERT_EQ(pb.callReadSample(check, *hun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
 }
 
 TEST_F(CircularPacketTest, ReadPartialWorkflow)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     void* check;
     size_t bb = 0;
     size_t* jun = &bb;
-    *jun = 512;
-    pb.WriteSample(jun, &check);
+    *jun = 512; 
+    pb.callWriteSample(jun, &check);
     *jun = 256;
-    ASSERT_EQ(pb.ReadSample(check, *jun), 0);
+    ASSERT_EQ(pb.callReadSample(check, *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *jun = 128;
-    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *jun = 64;
-    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *jun = 32;
-    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *jun = 16;
-    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *jun = 8;
-    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *jun = 4;
-    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
-    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 0);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
     *jun = 1;
-    ASSERT_EQ(pb.ReadSample(pb.getReadPos(), *jun), 1);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Failure);
 }
 
+
+// Considering that Packet is used nowhere but here, there is a good reason to simply get rid of it,
+// for it has no use outside of this custom test
 TEST_F(CircularPacketTest, TestMockPacket)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     size_t st = 8;
 
     {
@@ -165,7 +260,7 @@ TEST_F(CircularPacketTest, TestPacketsWithDescriptorsCreate)
 {
     auto [descriptor, domain] = generate_building_blocks();
 
-    daq::PacketBuffer pb;
+    Packetet pb;
     size_t sampleCount = 100;
     std::cout << pb.getReadPos() << std::endl;
     {
@@ -183,7 +278,7 @@ TEST_F(CircularPacketTest, TestFillingUpBuffer)
 {
     auto [desc, dom] = generate_building_blocks();
 
-    daq::PacketBuffer pb;
+    Packetet pb;
     size_t sampleCount = 100;
     // Here will create a few packets
     {
@@ -214,7 +309,7 @@ TEST_F(CircularPacketTest, TestCleanBufferAfterPacketsDestroyed)
 {
     auto [descriptor, domain] = generate_building_blocks();
 
-    daq::PacketBuffer pb;
+    Packetet pb;
     size_t sampleCount = 100;
     // Here will create a few packets
 
@@ -246,22 +341,16 @@ TEST_F(CircularPacketTest, TestPacketImprovementTest)
 {
     auto [descriptor, domain] = generate_building_blocks();
 
-    daq::PacketBuffer pb;
+    Packetet pb;
     size_t sampleCount = 100;
-    //void* mid_point = NULL;
-    //void* save_point = NULL;
 
     {
         std::cout << "WritePoint before creation: " << pb.getWritePos() << std::endl;
         auto old_created = pb.createPacket(&sampleCount, descriptor, domain);
         std::cout << "WritePoint after outer scope creation: " << pb.getWritePos() << std::endl;
         std::cout << "ReadPoint after outer scopecreation: " << pb.getReadPos() << std::endl;
-        //save_point = pb.getReadPos();
-        //mid_point = pb.getWritePos();
         {
             auto new_packet = pb.createPacket(&sampleCount, descriptor, domain);
-            //mid_point = pb.getWritePos();
-            //std::cout << "WritePoint after inner scope creation: " << pb.getWritePos() << std::endl;
         }
         std::cout << "ReadPoint after going out of inner scope: " << pb.getReadPos() << std::endl;
     }
@@ -273,7 +362,7 @@ TEST_F(CircularPacketTest, TestPacketImprovementTest)
 TEST_F(CircularPacketTest, TestPacketReadPartial)
 {
     auto [descriptor, domain] = generate_building_blocks();
-    daq::PacketBuffer pb;
+    Packetet pb;
     size_t sampleCount = 100;
     {
         std::cout << "WritePos before any declarations: " << pb.getWritePos() << std::endl;
@@ -299,21 +388,20 @@ TEST_F(CircularPacketTest, TestPacketReadPartial)
     ASSERT_EQ(pb.getWritePos(), pb.getReadPos());
 }
 
-void createMultiThreadedPacket(daq::PacketBuffer *pb)
+void createMultiThreadedPacket(Packetet *pb)
 {
     auto [desc, dom] = generate_building_blocks();
     size_t n = 100;
     
     auto r = pb->createPacket(&n, desc, dom);
-    std::lock_guard<std::mutex> lock(pb->flip);
-    std::cout << "WritePos: " << pb->getWritePos() << std::endl;
+    std::lock_guard<std::mutex> lock(*(pb->goForLock()));
     std::cout << "Created in the thread: " << r.getRawDataSize() << std::endl;
 }
 
 
 TEST_F(CircularPacketTest, TestMultiThread)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     auto [descriptor, domain] = generate_building_blocks();
     std::condition_variable cv;
 
@@ -361,7 +449,7 @@ int createAndWaitPacket(daq::PacketBuffer& pb, daq::DataDescriptorPtr& desc, daq
 
 TEST_F(CircularPacketTest, TestReset)
 {
-    daq::PacketBuffer pb;
+    Packetet pb;
     std::condition_variable start_up_assurance;
     auto [descriptor, domain] = generate_building_blocks();
 

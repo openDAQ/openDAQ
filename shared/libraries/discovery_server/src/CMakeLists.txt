@@ -34,6 +34,8 @@ target_link_libraries(${MODULE_NAME}
         mdns::mdns
         daq::discovery_common
         daq::coreobjects
+    PRIVATE
+        daq::opendaq_utils
 )
 
 

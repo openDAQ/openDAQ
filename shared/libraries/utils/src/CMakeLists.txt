@@ -4,6 +4,7 @@ list(APPEND CMAKE_MESSAGE_CONTEXT ${MODULE_NAME})
 set(SOURCE_CPPS function_thread.cpp
                 thread_ex.cpp
                 timer_thread.cpp
+                thread_name.cpp
 )
 
 set(SOURCE_HEADERS finally.h
@@ -11,6 +12,7 @@ set(SOURCE_HEADERS finally.h
                    utils.h
                    thread_ex.h
                    timer_thread.h
+                   thread_name.h
 )
 
 prepend_include(${SDK_TARGET_NAME}/utils SOURCE_HEADERS)

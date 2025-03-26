@@ -630,7 +630,7 @@ ErrCode NativeDeviceImpl::setComponentConfig(IPropertyObject* config)
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
-    if (this->componentConfig.assigned())
+    if (componentConfig.assigned() && componentConfig.hasProperty("General"))
     {
         PropertyObjectPtr generalConfig = componentConfig.getPropertyValue("General");
         if (generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 1)

@@ -123,7 +123,7 @@ size_t PacketBuffer::getAdjustedSize()
     return 0;
 }
 
-bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::WriteSample(size_t* sampleCount, void** memPos)
+bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCount, void** memPos)
 {
     // check if sampleCount is not out of scope (so check if readPos if ahead and check if the size does not reach over the sizeofMem)
 
@@ -190,7 +190,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::WriteSample(size_t* sa
 
 }
 
-bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount)
+bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOfDelegatedSpace, size_t sampleCount)
 {
     {
         std::lock_guard<std::mutex> lock(flip);
@@ -289,10 +289,10 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     void* startOfSpace = nullptr;
     // Here the should be a lock for creation
 
-    bufferReturnCodes::EReturnCodesPacketBuffer ret = this->WriteSample(sampleCount, &startOfSpace);
+    bufferReturnCodes::EReturnCodesPacketBuffer ret = this->Write(sampleCount, &startOfSpace);
     ff = [&, sampleCnt = *sampleCount, startOfSpace = startOfSpace](void*)
          {
-             ReadSample(startOfSpace, sampleCnt);
+             Read(startOfSpace, sampleCnt);
          };
     auto deleter = daq::Deleter(std::move(ff));
     

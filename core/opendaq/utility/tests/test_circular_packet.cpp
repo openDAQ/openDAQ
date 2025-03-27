@@ -27,12 +27,12 @@ public:
 
     bufferReturnCodes::EReturnCodesPacketBuffer callReadSample(void* beginningOfDelegatedSpace, size_t sampleCount)
     {
-        return ReadSample(beginningOfDelegatedSpace, sampleCount);
+        return Read(beginningOfDelegatedSpace, sampleCount);
     }
 
     bufferReturnCodes::EReturnCodesPacketBuffer callWriteSample(size_t* sampleCount, void** memPos)
     {
-        return WriteSample(sampleCount, memPos);
+        return Write(sampleCount, memPos);
     }
 
     daq::DataPacketPtr callCreatePacket(size_t* sampleCount,
@@ -87,8 +87,8 @@ private:
 daq::Packet daq::PacketBuffer::cP(size_t* sampleCount, size_t dataDescriptor)
 {
     void* startOfSpace = nullptr;
-    bufferReturnCodes::EReturnCodesPacketBuffer ret = this->WriteSample(sampleCount, &startOfSpace);
-    std::function<void(void*, size_t)> cb = std::bind(&PacketBuffer::ReadSample, this, std::placeholders::_1, std::placeholders::_2);
+    bufferReturnCodes::EReturnCodesPacketBuffer ret = this->Write(sampleCount, &startOfSpace);
+    std::function<void(void*, size_t)> cb = std::bind(&PacketBuffer::Read, this, std::placeholders::_1, std::placeholders::_2);
     if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::Ok)
     {
         return Packet(*sampleCount, startOfSpace, cb);

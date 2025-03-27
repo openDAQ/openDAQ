@@ -39,20 +39,6 @@ struct PacketBufferInit
     daq::DataDescriptorPtr desc;
     size_t sampleCount;
     LoggerPtr logger;
-    //EnumAdjustSize sizeAdjustment;
-
-    // sampleAmount will be relative to the acqloop and the amount of time that is required
-    // to go through the aquisition loop of data.
-
-    // This boolean below is supposed to be a switch for using either a buffer
-    // or 'classic malloc' when creating new packets
-    //bool bUsingBuffer;
-
-    // Check on the return codes and allow them to be
-    // handled how the user wants them to be handled
-
-    // I need to add a bool that can be used to change between packetBuffer and
-    // malloc packet aquisition
 
 };
 
@@ -90,9 +76,9 @@ public:
     int reset();
 
 protected:
-    bufferReturnCodes::EReturnCodesPacketBuffer WriteSample(size_t* sampleCount, void** memPos);
+    bufferReturnCodes::EReturnCodesPacketBuffer Write(size_t* sampleCount, void** memPos);
 
-    bufferReturnCodes::EReturnCodesPacketBuffer ReadSample(void* beginningOfDelegatedSpace, size_t sampleCount);
+    bufferReturnCodes::EReturnCodesPacketBuffer Read(void* beginningOfDelegatedSpace, size_t sampleCount);
     // Testing methods
     void setWritePos(size_t offset);
     void setReadPos(size_t offset);

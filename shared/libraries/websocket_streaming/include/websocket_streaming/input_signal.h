@@ -65,6 +65,9 @@ public:
     void setSubscribed(bool subscribed);
     bool getSubscribed();
 
+    const DataPacketPtr& getLastPacket() const noexcept;
+    void setLastPacket(const DataPacketPtr& packet);
+
 protected:
     const std::string signalId;
     const std::string tableId;

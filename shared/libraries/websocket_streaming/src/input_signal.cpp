@@ -101,6 +101,16 @@ bool InputSignalBase::getSubscribed()
     return subscribed;
 }
 
+const DataPacketPtr& InputSignalBase::getLastPacket() const noexcept
+{
+    return lastPacket;
+}
+
+void InputSignalBase::setLastPacket(const DataPacketPtr& packet)
+{
+    lastPacket = packet;
+}
+
 InputDomainSignal::InputDomainSignal(const std::string& signalId,
                                      const std::string& tabledId,
                                      const SubscribedSignalInfo& signalInfo,
@@ -119,7 +129,7 @@ DataPacketPtr InputDomainSignal::generateDataPacket(const NumberPtr& packetOffse
 
     if (!lastDomainPacket.assigned() || lastDomainPacket.getOffset() != packetOffset)
     {
-        lastDomainPacket = DataPacket(currentDataDescriptor, 0, packetOffset);
+        lastDomainPacket = DataPacket(currentDataDescriptor, sampleCount, packetOffset);
     }
 
     return lastDomainPacket;

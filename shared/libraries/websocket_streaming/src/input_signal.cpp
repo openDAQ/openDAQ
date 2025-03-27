@@ -1,5 +1,3 @@
-#include <iostream> // XXX TODO
-
 #include <websocket_streaming/input_signal.h>
 #include <streaming_protocol/SubscribedSignal.hpp>
 #include <websocket_streaming/signal_descriptor_converter.h>
@@ -162,22 +160,15 @@ DataPacketPtr InputExplicitDataSignal::generateDataPacket(const NumberPtr& /*pac
 {
     std::scoped_lock lock(descriptorsSync);
 
-    // XXX TODO don't generate DataPacketWithDomain if no domain packet!
-//    std::cout << "[ws] InputExplicitDataSignal::generateDataPacket() signalId=" << signalId << ", dataSize=" << dataSize << ", sampleCount=" << sampleCount << ", domainPacket=" << domainPacket.assigned() << std::endl;
-
     auto dataPacket = DataPacketWithDomain(domainPacket, currentDataDescriptor, sampleCount);
     if (dataSize == dataPacket.getRawDataSize())
         std::memcpy(dataPacket.getRawData(), data, dataSize);
     else
-        // XXX TODO: replace with STREAMING_PROTOCOL_LOG_E
-        //STREAMING_PROTOCOL_LOG_E("Provided streaming protocol packet data for signal {} has the wrong size: {} instead of {} (sample count: {})",
-        //    signalId,
-        //    dataSize,
-        //    dataPacket.getRawDataSize(),
-        //    sampleCount);
-        std::cout << "Provided streaming protocol packet data for signal " << signalId
-            << " has the wrong size: " << dataSize << " instead of "
-            << dataPacket.getRawDataSize() << "(sample count: " << sampleCount << ")" << std::endl;
+        STREAMING_PROTOCOL_LOG_E("Provided streaming protocol packet data for signal {} has the wrong size: {} instead of {} (sample count: {})",
+            signalId,
+            dataSize,
+            dataPacket.getRawDataSize(),
+            sampleCount);
     return dataPacket;
 }
 

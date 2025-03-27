@@ -440,7 +440,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
                                 const uint8_t* data,
                                 size_t valueCount)
 {
-    std::cout << "onMessage(" << subscribedSignal.signalId() << ") data=" << (void *) data << ", valueCount=" << valueCount << std::endl;
+//    std::cout << "onMessage(" << subscribedSignal.signalId() << ") data=" << (void *) data << ", valueCount=" << valueCount << std::endl;
     std::string id = subscribedSignal.signalId();
     std::size_t dataSize = subscribedSignal.dataValueSize() * valueCount;
 
@@ -456,21 +456,21 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
         !isPlaceHolderSignal(inputSignal) &&
         inputSignal->hasDescriptors())
     {
-        std::cout << "have signal, is not placeholder, has descriptors" << std::endl;
+//        std::cout << "have signal, is not placeholder, has descriptors" << std::endl;
         if (inputSignal->isCountable())
         {
-            std::cout << "is countable" << std::endl;
+//            std::cout << "is countable" << std::endl;
             DataPacketPtr domainPacket;
             if (inputSignal->isDomainSignal())
             {
-                std::cout << "is domain signal" << std::endl;
+//                std::cout << "is domain signal" << std::endl;
                 domainPacket = inputSignal->generateDataPacket(domainValue, data, dataSize, valueCount, nullptr);
                 if (domainPacket.assigned())
                     onPacketCallback(id, domainPacket);
             }
             else
             {
-                std::cout << "is NOT domain signal" << std::endl;
+//                std::cout << "is NOT domain signal" << std::endl;
 
                 // XXX TODO - For linear-rule domain signals, we need to artificially generate
                 // the domain packet here when we get data for the value signal. But for
@@ -491,10 +491,10 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
             // trigger packet generation for each related signal which is not countable (is implicit)
             for (auto& relatedSignal : relatedDataSignals)
             {
-                std::cout << "checking related signal" << std::endl;
+//                std::cout << "checking related signal" << std::endl;
                 if (!relatedSignal->isCountable())
                 {
-                    std::cout << "checking related signal - is not countable" << std::endl;
+//                    std::cout << "checking related signal - is not countable" << std::endl;
                     auto packet = relatedSignal->generateDataPacket(domainValue, nullptr, 0, valueCount, domainPacket);
                     if (packet.assigned() && relatedSignal->getSubscribed())
                         onPacketCallback(relatedSignal->getSignalId(), packet);
@@ -503,14 +503,14 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
         }
         else
         {
-            std::cout << "is NOT countable, passing in data at " << (void *) data << std::endl;
+//            std::cout << "is NOT countable, passing in data at " << (void *) data << std::endl;
             inputSignal->processSamples(domainValue, data, valueCount);
         }
     }
 
     else
     {
-        std::cout << "NOT (have signal, is not placeholder, has descriptors)" << std::endl;
+//        std::cout << "NOT (have signal, is not placeholder, has descriptors)" << std::endl;
     }
 }
 

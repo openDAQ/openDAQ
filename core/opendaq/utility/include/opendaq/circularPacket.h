@@ -5,6 +5,7 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/deleter_factory.h>
 #include <opendaq/deleter_impl.h>
+#include <opendaq/context_ptr.h>
 #include <iostream>
 #include <mutex>
 #include <condition_variable>
@@ -13,6 +14,8 @@
 #include <memory>
 #include <functional>
 #include <opendaq/data_descriptor_ptr.h>
+//#include <opendaq/logger_ptr.h>
+#include <opendaq/logger_factory.h>
 
 namespace bufferReturnCodes
 {
@@ -31,10 +34,11 @@ BEGIN_NAMESPACE_OPENDAQ
 struct PacketBufferInit
 {
 
-    PUBLIC_EXPORT PacketBufferInit(daq::DataDescriptorPtr description, /* EnumAdjustSize eAdjust,*/ size_t sA = 0);
+    PUBLIC_EXPORT PacketBufferInit(daq::DataDescriptorPtr description, size_t sA = 0, ContextPtr ctx = nullptr);
 
     daq::DataDescriptorPtr desc;
     size_t sampleCount;
+    LoggerPtr logger;
     //EnumAdjustSize sizeAdjustment;
 
     // sampleAmount will be relative to the acqloop and the amount of time that is required
@@ -62,7 +66,7 @@ class PacketBuffer
 
 public:
 
-    PUBLIC_EXPORT PacketBuffer(size_t sampleSize, size_t memSize);
+    PUBLIC_EXPORT PacketBuffer(size_t sampleSize, size_t memSize, ContextPtr ctx);
 
     PUBLIC_EXPORT PacketBuffer(const PacketBufferInit& instructions);
 
@@ -115,7 +119,8 @@ protected:
     std::vector<std::weak_ptr<daq::DataPacketPtr>> dd; // This is one of the ways
     std::function<void(void*)> ff;
 
-
+    daq::LoggerPtr logger;
+    daq::LoggerComponentPtr logComp;
     // This is a temporary solution for
     // situation of the sampleCount being to big to fit
     size_t sizeAdjusted;

@@ -12,6 +12,8 @@
 #include <opendaq/scaling_ptr.h>
 #include <iostream>
 
+
+
 class Packetet : public daq::PacketBuffer
 {
 public:
@@ -46,7 +48,7 @@ public:
     }
 
     Packetet()
-        : PacketBuffer(sizeof(double), 1024)
+        : PacketBuffer(sizeof(double), 1024, nullptr)
     {
     }
 

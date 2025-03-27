@@ -2,8 +2,17 @@
 
 using namespace daq;
 
-PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, /* daq::EnumAdjustSize eAdjust,*/ size_t sA)
+PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, size_t sA, const ContextPtr ctx)
 {
+    if (ctx != nullptr)
+    {
+        logger = ctx.getLogger();
+    }
+    else
+    {
+        logger = Logger();
+    }
+
     if (description == nullptr)
     {
         throw;
@@ -23,8 +32,18 @@ PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, /* daq::E
     }
 }
 
-PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize)
+PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize, const ContextPtr ctx)
 {
+    if (ctx == nullptr)
+    {
+        logger = Logger(); // For testing (????)
+    }
+    else
+    {
+        logger = ctx.getLogger();
+    }
+
+    logComp = logger.getOrAddComponent("CircularBuffer");
     sizeOfMem = memSize;
     sizeOfSample = sampleSize;
     data = malloc(sizeOfMem * sizeOfSample);
@@ -38,11 +57,14 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize)
 
 PacketBuffer::~PacketBuffer()
 {
+    logger.removeComponent("CircularBuffer");
     free(data);
 }
 
 PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
 {
+    logger = instructions.logger;
+    logComp = logger.getOrAddComponent("CircularBuffer");
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleCount;
     data = malloc(sizeOfMem * sizeOfSample);
@@ -258,7 +280,8 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     std::unique_lock<std::mutex> loa(flip);
     if (bUnderReset)
     {
-        std::cerr << "Under ongoing reset, cannot create new packets" << std::endl;
+        DAQLOG_D(logComp, "Under ongoing reset, cannot create new packets\r\n")
+        //std::cerr << "Under ongoing reset, cannot create new packets" << std::endl;
         //this->cv.wait(loa, [&] { return !bUnderReset; });
         return daq::DataPacketPtr();
     }
@@ -276,16 +299,23 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     if (ret < bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory)
     {
         if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize)
-            std::cout << "The size of the packet is smaller than requested. It's so JOEVER " << std::endl;
+        {
+            DAQLOG_D(logComp, "The size of the packet is smaller than requested. It's so JOEVER\r\n")
+        }
+            //std::cout << "The size of the packet is smaller than requested. It's so JOEVER " << std::endl;
 
         return daq::DataPacketWithExternalMemory(domainPacket, dataDescriptor, (uint64_t) *sampleCount, startOfSpace, deleter);
     }
     else
     {
         if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory)
-            std::cerr << "We ran out of memory...\r\n" << std::endl;
+        {
+            DAQLOG_W(logComp, "We ran out of memory...\r\n")
+        }
         else
-            std::cerr << "Something went very wrong... \r\n" << std::endl;
+        {
+            DAQLOG_W(logComp, "Something went very wrong... \r\n")
+        }
         return daq::DataPacketPtr();
     }
 }
@@ -296,8 +326,10 @@ int PacketBuffer::reset()
     bUnderReset = true;
     this->cv.wait(lock, [&]
             {
+                DAQLOG_W(logComp, "Calling the check in reset. \r\n")
                 std::cerr << "Calling the check in reset. " << std::endl;
-            return ((readPos == writePos) && (!bIsFull)); });
+                return ((readPos == writePos) && (!bIsFull));
+            });
 
     bUnderReset = false;
     cv.notify_all();

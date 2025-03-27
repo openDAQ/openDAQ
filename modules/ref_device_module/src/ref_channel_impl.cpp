@@ -42,7 +42,6 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
     , referenceDomainId(init.referenceDomainId)
-    //, pb(PacketBuffer((size_t) packetSize, (size_t)1024))
 {
     initProperties();
     waveformChangedInternal();
@@ -52,18 +51,12 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     createSignals();
     buildSignalDescriptors();
     packetBufferSetup();
-    //idp = new IdsParser();
-
 }
 
 void RefChannelImpl::packetBufferSetup()
 {
-    // I should make the buffer size dynamic, but where can I find approximate sizes
-    //init = PacketBufferInit()
-
-    //auto init = daq::PacketBufferInit()
     std::cout << (globalSampleRate) << std::endl;
-    pb = std::make_unique<daq::PacketBuffer>((size_t) packetSize, (size_t)16384);
+    pb = std::make_unique<daq::PacketBuffer>((size_t) packetSize, (size_t)16384, nullptr);
 }
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)

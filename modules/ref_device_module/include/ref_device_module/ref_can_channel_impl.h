@@ -78,6 +78,8 @@ private:
     void createSignals();
     void generateSamples(int64_t curTime, uint64_t duration, size_t newSamples);
     void buildSignalDescriptors();
+    unsigned CNT = 0;
+    std::chrono::steady_clock::time_point LST = std::chrono::steady_clock::time_point::min();
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

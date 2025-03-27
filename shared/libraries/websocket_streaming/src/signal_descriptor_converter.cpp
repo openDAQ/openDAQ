@@ -47,7 +47,7 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(
         dataDescriptorBuilder.setTickResolution(resolution);
     }
 
-    std::cout << "[ws] SignalDescriptorConverter::ToDataDescriptor() subscribedSignal.dataValueType() = " << (unsigned) subscribedSignal.dataValueType() << std::endl;
+//    std::cout << "[ws] SignalDescriptorConverter::ToDataDescriptor() subscribedSignal.dataValueType() = " << (unsigned) subscribedSignal.dataValueType() << std::endl;
     daq::streaming_protocol::SampleType streamingSampleType = subscribedSignal.dataValueType();
     daq::SampleType daqSampleType = Convert(streamingSampleType);
     dataDescriptorBuilder.setSampleType(daqSampleType);
@@ -55,7 +55,7 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(
     if (daqSampleType == daq::SampleType::Struct)
     {
         const auto& details = subscribedSignal.datatypeDetails();
-        std::cout << "[ws] STRUCT FOUND: " << details.dump() << std::endl;
+//        std::cout << "[ws] STRUCT FOUND: " << details.dump() << std::endl;
         auto fields = List<daq::IDataDescriptor>();
 
         auto fieldNames = List<daq::IString>();
@@ -63,7 +63,7 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(
 
         for (const auto& field : details)
         {
-            std::cout << "[ws] field: " << field.dump() << std::endl;
+//            std::cout << "[ws] field: " << field.dump() << std::endl;
             auto fieldBuilder = DataDescriptorBuilder();
             fieldBuilder.setName(field.at("name"));
             fieldBuilder.setSampleType(ConvertSampleTypeString(field.value("dataType", "")));
@@ -103,7 +103,7 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(
 
         dataDescriptorBuilder.setStructFields(fields);
 
-        std::cout << "[ws] name = " << dataDescriptorBuilder.getName() << std::endl;
+//        std::cout << "[ws] name = " << dataDescriptorBuilder.getName() << std::endl;
         context.getTypeManager().addType(
             StructType(
                 "CAN", // dataDescriptorBuilder.getName(), // XXX TODO
@@ -192,7 +192,7 @@ void SignalDescriptorConverter::ToStreamedValueSignal(const daq::SignalPtr& valu
     if (dataDescriptor.getPostScaling().assigned())
         daqSampleType = dataDescriptor.getPostScaling().getInputSampleType();
 
-    std::cout << "[ws] SignalDescriptorConverter::ToStreamedValueSignal()" << std::endl;
+//    std::cout << "[ws] SignalDescriptorConverter::ToStreamedValueSignal()" << std::endl;
     daq::streaming_protocol::SampleType requestedSampleType = Convert(daqSampleType);
     if (requestedSampleType != valueStream->getSampleType())
         DAQ_THROW_EXCEPTION(ConversionFailedException, "Sample type has been changed");
@@ -245,7 +245,7 @@ void SignalDescriptorConverter::ToStreamedLinearSignal(const daq::SignalPtr& dom
 
     // streaming-lt supports only 64bit domain values
     daq::SampleType daqSampleType = domainDescriptor.getSampleType();
-    std::cout << "[ws] SignalDescriptorConverter::ToStreamedLinearSignal()" << std::endl;
+//    std::cout << "[ws] SignalDescriptorConverter::ToStreamedLinearSignal()" << std::endl;
     daq::streaming_protocol::SampleType requestedSampleType = Convert(daqSampleType);
     if (requestedSampleType != daq::streaming_protocol::SampleType::SAMPLETYPE_S64 &&
         requestedSampleType != daq::streaming_protocol::SampleType::SAMPLETYPE_U64)
@@ -325,7 +325,7 @@ void SignalDescriptorConverter::SetLinearTimeRule(const daq::DataRulePtr& rule, 
  */
 daq::SampleType SignalDescriptorConverter::Convert(daq::streaming_protocol::SampleType dataType)
 {
-    std::cout << "[ws] SignalDescriptorConverter::Convert()" << std::endl;
+//    std::cout << "[ws] SignalDescriptorConverter::Convert()" << std::endl;
     switch (dataType)
     {
         case daq::streaming_protocol::SampleType::SAMPLETYPE_S8:

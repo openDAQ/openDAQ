@@ -34,7 +34,9 @@ public:
      *  @param subscribedSignal The object holding everything about thee signal on the consumer side
      *  @throws ConversionFailedException
      */
-    static SubscribedSignalInfo ToDataDescriptor(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
+    static SubscribedSignalInfo ToDataDescriptor(
+        const daq::streaming_protocol::SubscribedSignal& subscribedSignal,
+        const daq::ContextPtr& context);
     /**
      *  @throws ConversionFailedException
      */
@@ -51,6 +53,7 @@ private:
     static daq::DataRulePtr GetRule(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
     static void SetLinearTimeRule(const daq::DataRulePtr& rule, daq::streaming_protocol::LinearTimeSignalPtr linearStream);
     static daq::SampleType Convert(daq::streaming_protocol::SampleType dataType);
+    static daq::SampleType ConvertSampleTypeString(const std::string& sampleType);
     static daq::streaming_protocol::SampleType Convert(daq::SampleType sampleType);
     static daq::RangePtr CreateDefaultRange(daq::SampleType sampleType);
     static void DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptorBuilder);

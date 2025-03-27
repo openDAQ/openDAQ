@@ -1,3 +1,5 @@
+#include <iostream> // XXX TODO
+
 #include <websocket_streaming/input_signal.h>
 #include <streaming_protocol/SubscribedSignal.hpp>
 #include <websocket_streaming/signal_descriptor_converter.h>
@@ -109,6 +111,7 @@ InputDomainSignal::InputDomainSignal(const std::string& signalId,
 
 DataPacketPtr InputDomainSignal::generateDataPacket(const NumberPtr& packetOffset,
                                                     const uint8_t* /*data*/,
+                                                    size_t dataSize,
                                                     size_t sampleCount,
                                                     const DataPacketPtr& /*domainPacket*/)
 {
@@ -116,7 +119,7 @@ DataPacketPtr InputDomainSignal::generateDataPacket(const NumberPtr& packetOffse
 
     if (!lastDomainPacket.assigned() || lastDomainPacket.getOffset() != packetOffset)
     {
-        lastDomainPacket = DataPacket(currentDataDescriptor, sampleCount, packetOffset);
+        lastDomainPacket = DataPacket(currentDataDescriptor, 0, packetOffset);
     }
 
     return lastDomainPacket;
@@ -143,24 +146,30 @@ InputExplicitDataSignal::InputExplicitDataSignal(const std::string& signalId,
 
 DataPacketPtr InputExplicitDataSignal::generateDataPacket(const NumberPtr& /*packetOffset*/,
                                                           const uint8_t* data,
+                                                          size_t dataSize,
                                                           size_t sampleCount,
                                                           const DataPacketPtr& domainPacket)
 {
     std::scoped_lock lock(descriptorsSync);
 
-    auto sampleType = currentDataDescriptor.getSampleType();
-    if (currentDataDescriptor.getPostScaling().assigned())
-        sampleType = currentDataDescriptor.getPostScaling().getInputSampleType();
+    // XXX TODO don't generate DataPacketWithDomain if no domain packet!
+    std::cout << "[ws] InputExplicitDataSignal::generateDataPacket() signalId=" << signalId << " domainPacket assigned? " << domainPacket.assigned() << std::endl;
 
     auto dataPacket = DataPacketWithDomain(domainPacket, currentDataDescriptor, sampleCount);
-    const auto sampleSize = getSampleSize(sampleType);
-    std::memcpy(dataPacket.getRawData(), data, sampleCount * sampleSize);
+    if (dataSize == dataPacket.getRawDataSize())
+        std::memcpy(dataPacket.getRawData(), data, dataSize);
+    else
+        STREAMING_PROTOCOL_LOG_E("Provided streaming protocol packet data for signal {} has the wrong size: {} instead of {} (sample count: {})",
+            signalId,
+            dataSize,
+            dataPacket.getRawDataSize(),
+            sampleCount);
     return dataPacket;
 }
 
 bool InputExplicitDataSignal::isDomainSignal() const
 {
-    return false;
+    return !inputDomainSignal;
 }
 
 bool InputExplicitDataSignal::isCountable() const
@@ -299,6 +308,7 @@ InputConstantDataSignal::CachedSignalValues::iterator InputConstantDataSignal::i
 
 DataPacketPtr InputConstantDataSignal::generateDataPacket(const NumberPtr& /*packetOffset*/,
                                                           const uint8_t* /*data*/,
+                                                          size_t /*dataSize*/,
                                                           size_t sampleCount,
                                                           const DataPacketPtr& domainPacket)
 {
@@ -485,6 +495,7 @@ bool InputNullSignal::hasDescriptors() const
 
 DataPacketPtr InputNullSignal::generateDataPacket(const NumberPtr& /*packetOffset*/,
                                                   const uint8_t* /*data*/,
+                                                  size_t /*dataSize*/,
                                                   size_t /*sampleCount*/,
                                                   const DataPacketPtr& /*domainPacket*/)
 {

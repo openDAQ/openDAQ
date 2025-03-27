@@ -1,3 +1,4 @@
+#include <iostream> // XXX TODO
 #include <ref_device_module/ref_can_channel_impl.h>
 #include <coreobjects/eval_value_factory.h>
 #include <coretypes/procedure_factory.h>
@@ -111,8 +112,21 @@ void RefCANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size
     }
 
 
-    valueSignal.sendPacket(dataPacket);
     timeSignal.sendPacket(domainPacket);
+    valueSignal.sendPacket(dataPacket);
+
+    ++CNT;
+    auto now = std::chrono::steady_clock::now();
+    while (now >= LST + std::chrono::seconds(1)) {
+        LST = now;
+        std::cout << "CAN channel has sent " << CNT << " packets" << std::endl;
+
+        std::cout << "raw size = " << dataPacket.getRawDataSize() << std::endl;
+        const auto *p = static_cast<const std::uint8_t *>(dataPacket.getRawData());
+        for (unsigned i = 0; i < dataPacket.getRawDataSize(); ++i)
+            std::cout << ' ' << std::hex << (unsigned) p[i] << std::dec;
+        std::cout << std::endl;
+    }
 }
 
 void RefCANChannelImpl::buildSignalDescriptors()

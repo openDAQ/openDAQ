@@ -296,8 +296,8 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
                 const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
                 auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
 
-                valueSignal.sendPacket(std::move(dataPacket));
                 timeSignal.sendPacket(std::move(domainPacket));
+                valueSignal.sendPacket(std::move(dataPacket));
             }
 
             samplesGenerated = samplesSinceStart;
@@ -322,8 +322,8 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 
 			if (!packets.empty())
             {           
-                valueSignal.sendPackets(std::move(packets));
                 timeSignal.sendPackets(std::move(domainPackets));
+                valueSignal.sendPackets(std::move(packets));
             }
         }
     }

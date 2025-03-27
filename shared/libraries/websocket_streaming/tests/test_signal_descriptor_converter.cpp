@@ -229,7 +229,7 @@ TEST(SignalConverter, subscribedDataSignal)
     ASSERT_EQ(result, 0);
     ASSERT_FALSE(subscribedSignal.isTimeSignal());
 
-    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
     ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 
@@ -267,7 +267,7 @@ TEST(SignalConverter, subscribedDataSignal)
     result = subscribedSignal.processSignalMetaInformation(method, signalParamsToParse);
     ASSERT_EQ(result, 0);
 
-    subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     dataDescriptor = subscribedSignalInfo.dataDescriptor;
 
     range = dataDescriptor.getValueRange();
@@ -322,7 +322,7 @@ TEST(SignalConverter, subscribedBitfieldSignal)
     result = subscribedSignal.processSignalMetaInformation(method, signalParamsToParse);
     ASSERT_EQ(result, 0);
     ASSERT_FALSE(subscribedSignal.isTimeSignal());
-    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
     ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 
@@ -389,7 +389,7 @@ TEST(SignalConverter, subscribedTimeSignal)
     ASSERT_EQ(result, 0);
     ASSERT_TRUE(subscribedSignal.isTimeSignal());
 
-    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
     ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 
@@ -464,7 +464,7 @@ TEST(SignalConverter, FloatDeltaOfLinearSignal)
     ASSERT_EQ(result, 0);
     ASSERT_TRUE(subscribedSignal.isTimeSignal());
 
-    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
     ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 

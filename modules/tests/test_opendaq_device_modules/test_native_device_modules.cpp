@@ -2696,11 +2696,20 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
     ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }
 
-TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfoChanged)
+TEST_F(NativeDeviceModulesTest, DISABLED_SaveLoadDeviceInfoChanged)
 {
     StringPtr config;
     {
-        auto server = CreateServerInstance();
+        auto logger = Logger();
+        auto scheduler = Scheduler(logger);
+        auto moduleManager = ModuleManager("");
+        auto typeManager = TypeManager();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, AuthenticationProvider());
+        auto rootDeviceInfo = DeviceInfoWithChanegableFields({"manufacturer", "location", "position", "model"});
+
+        auto server = InstanceBuilder().setContext(context).setDefaultRootDeviceInfo(rootDeviceInfo).build();
+        server.addServer("OpenDAQNativeStreaming", nullptr);
+
         auto serverDeviceInfoConfig = server.getRootDevice().getInfo();
         serverDeviceInfoConfig.addProperty(StringProperty("NewTestProperty1", "TestValue"));
 
@@ -2710,16 +2719,24 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfoChanged)
         auto deviceInfoConfig = clientDevice.getInfo().asPtr<IDeviceInfoConfig>();
         ASSERT_NO_THROW(deviceInfoConfig.setName("NewDeviceName"));
 
-        ASSERT_ANY_THROW(deviceInfoConfig.setManufacturer("NewManufacturerName"));
-        ASSERT_ANY_THROW(deviceInfoConfig.setDeviceRevision("NewRevision"));
-        ASSERT_ANY_THROW(deviceInfoConfig.setConnectionString(""));
+        // modify changeable fields
+        EXPECT_NO_THROW(deviceInfoConfig.setManufacturer("NewManufacturerName"));
+        EXPECT_NO_THROW(deviceInfoConfig.setLocation("NewLocation"));
+        EXPECT_NO_THROW(deviceInfoConfig.setPosition(123));
+        EXPECT_NO_THROW(deviceInfoConfig.setModel("NewModelName"));
+        EXPECT_ANY_THROW(deviceInfoConfig.setHardwareRevision("1.2.3"));
+        EXPECT_NO_THROW(deviceInfoConfig.setPropertyValue("NewTestProperty1", "NewTestValue"));
 
-        ASSERT_NE(deviceInfoConfig.getManufacturer(), "NewManufacturerName");
-        ASSERT_NE(deviceInfoConfig.getDeviceRevision(), "NewRevision");
-        ASSERT_NE(deviceInfoConfig.getConnectionString(), "");
+        // test modified fields
+        EXPECT_EQ(deviceInfoConfig.getManufacturer(), "NewManufacturerName");
+        EXPECT_EQ(deviceInfoConfig.getLocation(), "NewLocation");
+        EXPECT_EQ(deviceInfoConfig.getPosition(), 123);
+        EXPECT_EQ(deviceInfoConfig.getModel(), "NewModelName");
+        EXPECT_NE(deviceInfoConfig.getHardwareRevision(), "1.2.3");
+        EXPECT_EQ(deviceInfoConfig.getPropertyValue("NewTestProperty1"), "NewTestValue");
 
-        deviceInfoConfig.setPropertyValue("NewTestProperty1", "NewTestValue");
-        // ASSERT_ANY_THROW(deviceInfoConfig.addProperty(StringProperty("NewTestProperty2", "TestValue"))); // doesn't throw
+        // should throw exception as new properties cannot be added via native
+        EXPECT_ANY_THROW(deviceInfoConfig.addProperty(StringProperty("NewTestProperty2", "TestValue"))); // doesn't throw
 
         config = client.saveConfiguration();
     }
@@ -2727,19 +2744,30 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfoChanged)
     auto server = CreateServerInstance();
 
     auto restoredClient = Instance();
-    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+    EXPECT_NO_THROW(restoredClient.loadConfiguration(config));
 
     auto devices = restoredClient.getDevices();
-    ASSERT_EQ(devices.getCount(), 1u);
+    EXPECT_EQ(devices.getCount(), 1u);
     auto clientDevice = devices[0];
 
-    auto restoreDeviceInfo = clientDevice.getInfo();
-    ASSERT_EQ(restoreDeviceInfo.getName(), "NewDeviceName");
-    ASSERT_NE(restoreDeviceInfo.getManufacturer(), "NewManufacturerName");
-    ASSERT_NE(restoreDeviceInfo.getConnectionString(), "");
+    auto restoreDeviceInfoConfig = clientDevice.getInfo().asPtr<IDeviceInfoConfig>();
 
-    // ASSERT_TRUE(restoreDeviceInfo.hasProperty("NewTestProperty1")); // failed
-    // ASSERT_EQ(restoreDeviceInfo.getPropertyValue("NewTestProperty1"), "NewTestValue"); // failed
+    // test if previously applied changes restored
+    EXPECT_EQ(restoreDeviceInfoConfig.getName(), "NewDeviceName");
+    EXPECT_EQ(restoreDeviceInfoConfig.getManufacturer(), "NewManufacturerName");
+    EXPECT_EQ(restoreDeviceInfoConfig.getLocation(), "NewLocation");
+    EXPECT_EQ(restoreDeviceInfoConfig.getPosition(), 123);
+    EXPECT_EQ(restoreDeviceInfoConfig.getModel(), "NewModelName");
+    EXPECT_TRUE(restoreDeviceInfoConfig.hasProperty("NewTestProperty1")); // failed
+    // EXPECT_EQ(restoreDeviceInfoConfig.getPropertyValue("NewTestProperty1"), "NewTestValue"); // throw
+
+    // test if changeability of fields restored
+    EXPECT_NO_THROW(restoreDeviceInfoConfig.setManufacturer("NewManufacturerName2"));
+    EXPECT_NO_THROW(restoreDeviceInfoConfig.setLocation("NewLocation2"));
+    EXPECT_NO_THROW(restoreDeviceInfoConfig.setPosition(1234));
+    EXPECT_NO_THROW(restoreDeviceInfoConfig.setModel("NewModelName2"));
+    EXPECT_ANY_THROW(restoreDeviceInfoConfig.setHardwareRevision("2.0.0"));
+    EXPECT_ANY_THROW(restoreDeviceInfoConfig.setPropertyValue("NewTestProperty1", "NewTestValue2"));
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)

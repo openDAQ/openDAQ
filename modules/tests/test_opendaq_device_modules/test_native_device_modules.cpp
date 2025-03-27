@@ -2624,6 +2624,33 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfigurationWithAnotherDevice)
     ASSERT_EQ(serverDevices[0].getInfo().getConnectionString(), "daqref://device0");
 }
 
+TEST_F(NativeDeviceModulesTest, ConnectedClientsInfoNotSavedLoaded)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstance();
+        auto client = CreateClientInstance();
+        auto client2 = CreateClientInstance();
+
+        auto clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
+        ASSERT_EQ(clientSideClientsInfo.getCount(), 4u);
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstance();
+
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto clientSideClientsInfo = restoredClient.getDevices()[0].getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
+
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 2u);
+    ASSERT_EQ(serverSideClientsInfo[0].getAddress(), clientSideClientsInfo[0].getAddress());
+    ASSERT_EQ(serverSideClientsInfo[1].getAddress(), clientSideClientsInfo[1].getAddress());
+}
 
 InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPath)
 {

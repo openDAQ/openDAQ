@@ -465,6 +465,7 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
             {
 //                std::cout << "is domain signal" << std::endl;
                 domainPacket = inputSignal->generateDataPacket(domainValue, data, dataSize, valueCount, nullptr);
+                inputSignal->setLastPacket(domainPacket);
                 if (domainPacket.assigned())
                     onPacketCallback(id, domainPacket);
             }
@@ -472,16 +473,30 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
             {
 //                std::cout << "is NOT domain signal" << std::endl;
 
-                // XXX TODO - For linear-rule domain signals, we need to artificially generate
-                // the domain packet here when we get data for the value signal. But for
-                // explicit-rule signals, we will get packets on the domain signal, and need
-                // to cache those so they can be accessed here.
+                // If the domain signal is linear-rule, we artificially generate a packet here
+                // using the timestamp reported by streaming-protocol-lt. If the domain signal
+                // is explicit-rule, we must (by requirement) already have received and cached
+                // the domain packet above, and we use that instead.
+                DataRuleType domainRuleType = DataRuleType::Other;
+                auto domainSignal = inputSignal->getInputDomainSignal();
+                if (domainSignal)
+                    if (auto domainDescriptor = domainSignal->getSignalDescriptor(); domainDescriptor.assigned())
+                        if (auto domainRule = domainDescriptor.getRule(); domainRule.assigned())
+                            domainRuleType = domainRule.getType();
+                if (domainRuleType == DataRuleType::Explicit)
+                {
+                    domainPacket = inputSignal->getInputDomainSignal()->getLastPacket();
+                }
+                else
+                {
+                    domainPacket =
+                        inputSignal->getInputDomainSignal()->generateDataPacket(domainValue, data, dataSize, valueCount, nullptr);
+                    if (domainPacket.assigned())
+                        onPacketCallback(inputSignal->getInputDomainSignal()->getSignalId(), domainPacket);
+                }
 
-                domainPacket =
-                    inputSignal->getInputDomainSignal()->generateDataPacket(domainValue, data, dataSize, valueCount, nullptr);
-                if (domainPacket.assigned())
-                    onPacketCallback(inputSignal->getInputDomainSignal()->getSignalId(), domainPacket);
                 auto packet = inputSignal->generateDataPacket(domainValue, data, dataSize, valueCount, domainPacket);
+                inputSignal->setLastPacket(packet);
                 if (packet.assigned())
                     onPacketCallback(id, packet);
             }

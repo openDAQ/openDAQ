@@ -13,9 +13,9 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/ids_parser.cpp
     )
 
-    source_group("utility//circularPacket" FILES
-        ${SDK_HEADERS_DIR}/circularPacket.h
-        ${SDK_SRC_DIR}/circularPacket.cpp
+    source_group("utility//circular_packet" FILES
+        ${SDK_HEADERS_DIR}/circular_packet.h
+        ${SDK_SRC_DIR}/circular_packet.cpp
     )
     
     source_group("utility" FILES 
@@ -29,7 +29,7 @@ endfunction()
 
 set(SRC_Cpp_Component 
     ids_parser.cpp
-    circularPacket.cpp
+    circular_packet.cpp
     thread_name.cpp
     utility.natvis
     PARENT_SCOPE
@@ -39,7 +39,7 @@ set(SRC_PublicHeaders_Component
     utility_errors.h
     utility_exceptions.h
     ids_parser.h
-    circularPacket.h
+    circular_packet.h
     mem_pool_allocator.h
     thread_name.h
     PARENT_SCOPE

@@ -19,7 +19,7 @@
 #include <opendaq/signal_factory.h>
 #include <chrono>
 
-#include <opendaq/circularPacket.h>
+#include <opendaq/circular_packet.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

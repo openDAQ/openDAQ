@@ -5,7 +5,7 @@
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/unit_factory.h>
 #include <coretypes/procedure_factory.h>
-#include <opendaq/circularPacket.h>
+#include <opendaq/circular_packet.h>
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/data_rule_factory.h>

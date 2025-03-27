@@ -19,7 +19,7 @@
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
 
-#include <opendaq/circularPacket.h>
+#include <opendaq/circular_packet.h>
 #include <opendaq/ids_parser.h>
 
 #include <optional>

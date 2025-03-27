@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <opendaq/circularPacket.h>
+#include <opendaq/circular_packet.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/dimension_factory.h>

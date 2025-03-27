@@ -1,4 +1,4 @@
-#include <opendaq/circularPacket.h>
+#include <opendaq/circular_packet.h>
 
 using namespace daq;
 

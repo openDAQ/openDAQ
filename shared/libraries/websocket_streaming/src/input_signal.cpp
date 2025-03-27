@@ -153,17 +153,21 @@ DataPacketPtr InputExplicitDataSignal::generateDataPacket(const NumberPtr& /*pac
     std::scoped_lock lock(descriptorsSync);
 
     // XXX TODO don't generate DataPacketWithDomain if no domain packet!
-    std::cout << "[ws] InputExplicitDataSignal::generateDataPacket() signalId=" << signalId << " domainPacket assigned? " << domainPacket.assigned() << std::endl;
+//    std::cout << "[ws] InputExplicitDataSignal::generateDataPacket() signalId=" << signalId << ", dataSize=" << dataSize << ", sampleCount=" << sampleCount << ", domainPacket=" << domainPacket.assigned() << std::endl;
 
     auto dataPacket = DataPacketWithDomain(domainPacket, currentDataDescriptor, sampleCount);
     if (dataSize == dataPacket.getRawDataSize())
         std::memcpy(dataPacket.getRawData(), data, dataSize);
     else
-        STREAMING_PROTOCOL_LOG_E("Provided streaming protocol packet data for signal {} has the wrong size: {} instead of {} (sample count: {})",
-            signalId,
-            dataSize,
-            dataPacket.getRawDataSize(),
-            sampleCount);
+        // XXX TODO: replace with STREAMING_PROTOCOL_LOG_E
+        //STREAMING_PROTOCOL_LOG_E("Provided streaming protocol packet data for signal {} has the wrong size: {} instead of {} (sample count: {})",
+        //    signalId,
+        //    dataSize,
+        //    dataPacket.getRawDataSize(),
+        //    sampleCount);
+        std::cout << "Provided streaming protocol packet data for signal " << signalId
+            << " has the wrong size: " << dataSize << " instead of "
+            << dataPacket.getRawDataSize() << "(sample count: " << sampleCount << ")" << std::endl;
     return dataPacket;
 }
 

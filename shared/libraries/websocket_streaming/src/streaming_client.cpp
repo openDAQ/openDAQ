@@ -1,3 +1,5 @@
+#include <iostream> // XXX TODO
+
 #include "websocket_streaming/streaming_client.h"
 #include <websocket_streaming/signal_descriptor_converter.h>
 #include <regex>
@@ -19,7 +21,8 @@ static const std::regex RegexIpv6Hostname(R"(^(.+://)?(?:\[([a-fA-F0-9:]+(?:\%[a
 static const std::regex RegexIpv4Hostname(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
 StreamingClient::StreamingClient(const ContextPtr& context, const std::string& connectionString, bool useRawTcpConnection)
-    : logger(context.getLogger())
+    : context(context)
+    , logger(context.getLogger())
     , loggerComponent( logger.assigned() ? logger.getOrAddComponent("StreamingClient") : throw ArgumentNullException("Logger must not be null") )
     , logCallback( [this](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg) {
         this->loggerComponent.logMessage(SourceLocation{location.filename, location.line, location.funcname}, msg, static_cast<LogLevel>(level));
@@ -437,7 +440,9 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
                                 const uint8_t* data,
                                 size_t valueCount)
 {
+    std::cout << "onMessage(" << subscribedSignal.signalId() << ") data=" << (void *) data << ", valueCount=" << valueCount << std::endl;
     std::string id = subscribedSignal.signalId();
+    std::size_t dataSize = subscribedSignal.dataValueSize() * valueCount;
 
     NumberPtr domainValue = static_cast<Int>(timeStamp);
     InputSignalBasePtr inputSignal = nullptr;
@@ -449,25 +454,34 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
 
     if (inputSignal &&
         !isPlaceHolderSignal(inputSignal) &&
-        inputSignal->hasDescriptors() &&
-        inputSignal->getSignalDescriptor().getSampleType() != daq::SampleType::Struct)
+        inputSignal->hasDescriptors())
     {
+        std::cout << "have signal, is not placeholder, has descriptors" << std::endl;
         if (inputSignal->isCountable())
         {
+            std::cout << "is countable" << std::endl;
             DataPacketPtr domainPacket;
             if (inputSignal->isDomainSignal())
             {
-                domainPacket = inputSignal->generateDataPacket(domainValue, data, valueCount, nullptr);
+                std::cout << "is domain signal" << std::endl;
+                domainPacket = inputSignal->generateDataPacket(domainValue, data, dataSize, valueCount, nullptr);
                 if (domainPacket.assigned())
                     onPacketCallback(id, domainPacket);
             }
             else
             {
+                std::cout << "is NOT domain signal" << std::endl;
+
+                // XXX TODO - For linear-rule domain signals, we need to artificially generate
+                // the domain packet here when we get data for the value signal. But for
+                // explicit-rule signals, we will get packets on the domain signal, and need
+                // to cache those so they can be accessed here.
+
                 domainPacket =
-                    inputSignal->getInputDomainSignal()->generateDataPacket(domainValue, nullptr, valueCount, nullptr);
+                    inputSignal->getInputDomainSignal()->generateDataPacket(domainValue, data, dataSize, valueCount, nullptr);
                 if (domainPacket.assigned())
                     onPacketCallback(inputSignal->getInputDomainSignal()->getSignalId(), domainPacket);
-                auto packet = inputSignal->generateDataPacket(domainValue, data, valueCount, domainPacket);
+                auto packet = inputSignal->generateDataPacket(domainValue, data, dataSize, valueCount, domainPacket);
                 if (packet.assigned())
                     onPacketCallback(id, packet);
             }
@@ -477,9 +491,11 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
             // trigger packet generation for each related signal which is not countable (is implicit)
             for (auto& relatedSignal : relatedDataSignals)
             {
+                std::cout << "checking related signal" << std::endl;
                 if (!relatedSignal->isCountable())
                 {
-                    auto packet = relatedSignal->generateDataPacket(domainValue, nullptr, valueCount, domainPacket);
+                    std::cout << "checking related signal - is not countable" << std::endl;
+                    auto packet = relatedSignal->generateDataPacket(domainValue, nullptr, 0, valueCount, domainPacket);
                     if (packet.assigned() && relatedSignal->getSubscribed())
                         onPacketCallback(relatedSignal->getSignalId(), packet);
                 }
@@ -487,14 +503,22 @@ void StreamingClient::onMessage(const daq::streaming_protocol::SubscribedSignal&
         }
         else
         {
+            std::cout << "is NOT countable, passing in data at " << (void *) data << std::endl;
             inputSignal->processSamples(domainValue, data, valueCount);
         }
     }
+
+    else
+    {
+        std::cout << "NOT (have signal, is not placeholder, has descriptors)" << std::endl;
+    }
 }
 
-void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal)
+void StreamingClient::setDataSignal(
+    const daq::streaming_protocol::SubscribedSignal& subscribedSignal,
+    const daq::ContextPtr& context)
 {
-    auto sInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto sInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, context);
     const auto signalId = subscribedSignal.signalId();
     const auto tableId = subscribedSignal.tableId();
     bool available = false;
@@ -546,9 +570,11 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
     }
 }
 
-void StreamingClient::setTimeSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal)
+void StreamingClient::setTimeSignal(
+    const daq::streaming_protocol::SubscribedSignal& subscribedSignal,
+    const daq::ContextPtr& context)
 {
-    auto sInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto sInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, context);
     const std::string tableId = subscribedSignal.tableId();
     const std::string timeSignalId = subscribedSignal.signalId();
     bool available = false;
@@ -673,11 +699,11 @@ void StreamingClient::onSignal(const daq::streaming_protocol::SubscribedSignal& 
 
         if (subscribedSignal.isTimeSignal())
         {
-            setTimeSignal(subscribedSignal);
+            setTimeSignal(subscribedSignal, context);
         }
         else
         {
-            setDataSignal(subscribedSignal);
+            setDataSignal(subscribedSignal, context);
         }
     }
     catch (const DaqException& e)

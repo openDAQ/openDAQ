@@ -80,7 +80,11 @@ daq::ErrCode daq::ws_streaming::WebSocketSignalListenerImpl::packetReceived(daq:
                         continue;
                     }
 
-                    if (domain_packet.assigned() && domain_listener
+                    if (domain_packet.assigned()
+                        && domain_listener
+                        && domain_packet.getDataDescriptor().assigned()
+                        && domain_packet.getDataDescriptor().getRule().assigned()
+                        && domain_packet.getDataDescriptor().getRule().getType() == daq::DataRuleType::Linear
                         && data.getDataDescriptor().getRule().assigned()
                         && data.getDataDescriptor().getRule().getType() == daq::DataRuleType::Explicit)
                     {
@@ -207,7 +211,6 @@ bool daq::ws_streaming::WebSocketSignalListenerImpl::addClient(
 
     try
     {
-        std::cout << "generating metadata..." << std::endl;
         metadata = to_metadata(id, signal.getDescriptor(), description, domain_signal_id);
     }
 

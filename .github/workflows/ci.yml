@@ -214,7 +214,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON
+            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             apt_packages: g++-12
             cc: gcc-12
             cxx: g++-12
@@ -231,7 +231,7 @@ jobs:
             image: ubuntu:20.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             apt_packages: g++-7
             cc: gcc-7
             cxx: g++-7
@@ -239,6 +239,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             apt_packages: clang++-14
             cc: clang-14
             cxx: clang++-14
@@ -255,6 +256,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev
             cc: gcc
             cxx: g++

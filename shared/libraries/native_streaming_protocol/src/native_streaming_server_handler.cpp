@@ -760,7 +760,7 @@ bool NativeStreamingServerHandler::parseExclusiveControlDropOthersProp(const Pro
 
 void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
 {
-    LOG_I("New connection accepted by server, client endpoint: {}", session->getEndpointAddress());
+    LOG_I("New connection accepted by server, client endpoint: {}:{}", session->getEndpointAddress(), session->getEndpointPortNumber());
 
     auto findSignalHandler = [thisWeakPtr = this->weak_from_this()](const std::string& signalId)
     {

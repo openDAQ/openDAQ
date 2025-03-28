@@ -125,68 +125,66 @@ size_t PacketBuffer::getAdjustedSize()
 
 bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCount, void** memPos)
 {
-    // check if sampleCount is not out of scope (so check if readPos if ahead and check if the size does not reach over the sizeofMem)
-
     // We lock the thread outside in createPacket
 
-    //size_t full_space = sizeOfSample * *sampleCount;
-    //auto availableCheck = getAvailableSampleCount();
+    auto writePosVirtuallyAdjusted = ((uint8_t*) writePos + sizeOfSample * *sampleCount);
 
+    auto endOfBuffer = ((uint8_t*) data + sizeOfSample * sizeOfMem);
 
+    auto readPosWritePosDiff = ((uint8_t*) writePos - (uint8_t*) readPos)/(int)sizeOfSample;
+    auto writePosEndBufferDiff = (endOfBuffer - (uint8_t*) writePos)/(int)sizeOfSample;
 
-    if (writePos >= readPos)
+    size_t availableSamples;
+    bool bSizeAdjusted = false;
+
+    if (readPosWritePosDiff < 0)
     {
-        if (writePos == readPos && bIsFull)
-        {
-            return bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory;
-        }
-        // Here the writePos also needs to be moved
-        // (check if the wanted size does not fit try putting it at the beginning)
-        if (((uint8_t*) writePos + sizeOfSample * *sampleCount) < ((uint8_t*) data + sizeOfSample * sizeOfMem))
-        {
-            *memPos = writePos;
-            writePos = (void*) ((uint8_t*) writePos + sizeOfSample * *sampleCount);
-            if (writePos == readPos)
-            {
-                bIsFull = true;
-            }
-            return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
-        }
-        else if (((uint8_t*) writePos + sizeOfSample * *sampleCount) == ((uint8_t*) data + sizeOfSample * sizeOfMem))
-        {
-            *memPos = writePos;
-            writePos = data;
-            if (writePos == readPos)
-            {
-                bIsFull = true;
-            }
-            return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
-        }
-        else
-        {
-            // The amount has been changed (be careful)
-            *memPos = writePos;
-            bAdjustedSize = true;
-            *sampleCount = ((sizeOfSample * *sampleCount) - (((uint8_t*) writePos + sizeOfSample * *sampleCount) - ((uint8_t*) data + sizeOfSample * sizeOfMem))) / sizeOfSample;
-            sizeAdjusted = *sampleCount;
-            writePos = data;
-            if (writePos == readPos)
-            {
-                bIsFull = true;
-            }
-            return bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize;
-        }
+        availableSamples = (size_t) std::abs(readPosWritePosDiff);
     }
     else
     {
-        if (((uint8_t*) writePos + sizeOfSample * *sampleCount) < (uint8_t*)readPos)
-        {
-            *memPos = writePos;
-            writePos = (void*) ((uint8_t*) writePos + sizeOfSample * *sampleCount);
-            return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
-        }
-        return bufferReturnCodes::EReturnCodesPacketBuffer::Failure;
+        if (bIsFull && readPosWritePosDiff == 0)
+            return bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory;
+
+        availableSamples = (size_t) writePosEndBufferDiff;
     }
+
+    if (availableSamples < *sampleCount)
+    {
+        // Adjust size
+        *memPos = writePos;
+        *sampleCount = availableSamples;
+        writePos = (void*) ((uint8_t*) writePos + sizeOfSample * availableSamples);
+        bSizeAdjusted = true;
+    }
+    else
+    {
+        *memPos = writePos;
+        writePos = writePosVirtuallyAdjusted;
+    }
+
+    if (writePos == readPos)
+    {
+        bIsFull = true;
+
+        if (bSizeAdjusted)
+            return bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize;
+
+        return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
+    }
+    if (writePos == (void*) endOfBuffer)
+    {
+        writePos = data;
+        if (readPos == writePos)
+            bIsFull = true;
+
+        if (bSizeAdjusted)
+            return bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize;
+
+        return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
+    }
+
+    return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
 
 }
 

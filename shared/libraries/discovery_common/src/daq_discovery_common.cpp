@@ -180,7 +180,7 @@ void DiscoveryUtils::populateConnectedClientsInfo(PropertyObjectPtr& deviceInfo,
     };
 
     std::set<std::string> orderedClientIds;
-    PropertyObjectPtr clientsInfo = deviceInfo.getPropertyValue("connectedClientsInfo");
+    PropertyObjectPtr clientsInfo = deviceInfo.getPropertyValue("establishedConnections");
     for (const auto& [txtKey, txtValue] : txtKeyValuePairs)
     {
         std::string prefix(CONNECTED_CLIENT_INFO_KEY_PREFIX);
@@ -215,7 +215,7 @@ void DiscoveryUtils::populateConnectedClientsInfo(PropertyObjectPtr& deviceInfo,
         propertyOrder.pushBack(String(clientId));
     clientsInfo.setPropertyOrder(propertyOrder);
 
-    setProtectedPropertyValue(deviceInfo, "connectedClientsInfo", clientsInfo);
+    setProtectedPropertyValue(deviceInfo, "establishedConnections", clientsInfo);
 }
 
 END_NAMESPACE_DISCOVERY_COMMON

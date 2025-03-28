@@ -271,7 +271,7 @@ TEST_F(DeviceInfoTest, SerializeDeserializeForOlderVersion)
 
     const DeviceInfoPtr newDeviceInfo = deserializer.deserialize(serializedDeviceInfo, nullptr, nullptr);
 
-    // default value of "connectedClientsInfo" constains no nested properties
+    // default value of "establishedConnections" constains no nested properties
     ASSERT_EQ(newDeviceInfo.getConnectedClientsInfo().getCount(), 0u);
 }
 

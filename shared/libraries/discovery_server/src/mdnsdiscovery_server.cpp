@@ -61,7 +61,7 @@ size_t MdnsDiscoveredService::updateConnectedClientsAndGetPropsCount() const
 {
     using namespace discovery_common;
 
-    const PropertyObjectPtr connectedClientsInfo = deviceInfo.getPropertyValue("connectedClientsInfo");
+    const PropertyObjectPtr connectedClientsInfo = deviceInfo.getPropertyValue("establishedConnections");
     if (connectedClientsInfo.getAllProperties().getCount() != 0)
         connectedClientsProperties = DiscoveryUtils::connectedClientsInfoToTxt(connectedClientsInfo);
     else

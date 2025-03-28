@@ -194,7 +194,7 @@ namespace deviceInfoDetails
         "userName",
         "serverCapabilities",
         "configurationConnectionInfo",
-        "connectedClientsInfo"
+        "establishedConnections"
     };
 }
 
@@ -218,7 +218,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
 
     Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
-    Super::addProperty(ObjectPropertyBuilder("connectedClientsInfo", PropertyObject()).setReadOnly(true).build());
+    Super::addProperty(ObjectPropertyBuilder("establishedConnections", PropertyObject()).setReadOnly(true).build());
 
     this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
     {
@@ -717,7 +717,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
 
     CoreType type;
     property->getValueType(&type);
-    if (static_cast<int>(type) > 3 && name != "serverCapabilities" && name != "connectedClientsInfo")
+    if (static_cast<int>(type) > 3 && name != "serverCapabilities" && name != "establishedConnections")
         return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_INVALIDPARAMETER,
             fmt::format(R"(Failed adding property {}: only String, Int, Bool, or Float-type properties can be added to Device Info.)", name)
@@ -1011,7 +1011,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addConnectedClient(IStr
     OPENDAQ_PARAM_NOT_NULL(clientInfo);
 
     BaseObjectPtr clientsInfoProperty;
-    auto propertyName = String("connectedClientsInfo");
+    auto propertyName = String("establishedConnections");
     ErrCode err = this->getPropertyValue(propertyName, &clientsInfoProperty);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -1026,7 +1026,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeConnectedClient(I
     OPENDAQ_PARAM_NOT_NULL(id);
 
     BaseObjectPtr clientsInfoProperty;
-    auto propertyName = String("connectedClientsInfo");
+    auto propertyName = String("establishedConnections");
     const ErrCode err = this->getPropertyValue(propertyName, &clientsInfoProperty);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -1042,7 +1042,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConnectedClientsInfo
     ListPtr<IConnectedClientInfo> clientsInfoList = List<IConnectedClientInfo>();
 
     BaseObjectPtr obj;
-    auto propertyName = String("connectedClientsInfo");
+    auto propertyName = String("establishedConnections");
     ErrCode err = this->getPropertyValue(propertyName, &obj);
     if (OPENDAQ_FAILED(err))
         return err;
@@ -1083,7 +1083,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(
         return err;
 
     // skip object-type property which cannot be properly handled by older version
-    if (name == "connectedClientsInfo" && version < 3)
+    if (name == "establishedConnections" && version < 3)
         return OPENDAQ_IGNORED;
     return Super::serializePropertyValue(name, value, serializer);
 }
@@ -1097,7 +1097,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const
         return err;
 
     // skip object-type property which cannot be properly handled by older version
-    if (property.getName() == "connectedClientsInfo" && version < 3)
+    if (property.getName() == "establishedConnections" && version < 3)
         return OPENDAQ_IGNORED;
     return Super::serializeProperty(property, serializer);
 }

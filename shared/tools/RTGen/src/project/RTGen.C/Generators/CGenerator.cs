@@ -27,7 +27,6 @@ namespace RTGen.C.Generators
 
         protected static ISet<string> ForbiddenTypes => new HashSet<string>
         {
-            "IntfID",
             "ComplexFloat64"
         };
 
@@ -40,7 +39,7 @@ namespace RTGen.C.Generators
         public override IVersionInfo Version => new VersionInfo
         {
             Major = 0,
-            Minor = 1,
+            Minor = 5,
             Patch = 0
         };
 
@@ -108,6 +107,8 @@ namespace RTGen.C.Generators
                 sb.AppendLine($"#include \"{header}\"");
                 sb.AppendLine();
                 sb.AppendLine("#include <opendaq/opendaq.h>");
+                sb.AppendLine();
+                sb.AppendLine("#include \"copendaq_private.h\"");
             }
             return sb.ToString();
         }
@@ -252,6 +253,10 @@ namespace RTGen.C.Generators
                             {
                                 sb.Append($"reinterpret_cast<{arg.Type.Namespace}::{arg.Type.Name}{arg.Type.Modifiers}>({arg.Name})");
                             }
+                        }
+                        else if (arg.Type.Name == "IntfID")
+                        {
+                            sb.Append($"copendaq::utils::toDaqIntfId({arg.Name})");
                         }
                         else
                         {

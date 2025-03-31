@@ -174,7 +174,7 @@ run_rtgen ccoretypes coretypes coretypes stringobject stringobject
 # run_rtgen ccoretypes coretypes coretypes stringobject_factory stringobject_factory
 # run_rtgen ccoretypes coretypes coretypes stringobject_impl stringobject_impl
 run_rtgen ccoretypes coretypes coretypes struct struct
-# run_rtgen ccoretypes coretypes coretypes struct_builder struct_builder
+run_rtgen ccoretypes coretypes coretypes struct_builder struct_builder
 # run_rtgen ccoretypes coretypes coretypes struct_builder_impl struct_builder_impl
 # run_rtgen ccoretypes coretypes coretypes struct_builder_ptr struct_builder_ptr
 # run_rtgen ccoretypes coretypes coretypes struct_factory struct_factory

@@ -57,6 +57,8 @@ extern "C"
 #include "ccoretypes/updatable.h"
 #include "ccoretypes/version_info.h"
 
+#include "ccoretypes/factories.h"
+
 
 #ifdef __cplusplus
 }

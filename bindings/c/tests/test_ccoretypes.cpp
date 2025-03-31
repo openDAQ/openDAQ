@@ -6,9 +6,12 @@ using CCoretypesTest = testing::Test;
 TEST_F(CCoretypesTest, BaseObject)
 {
     BaseObject* obj = nullptr;
-    BaseObject_create(&obj);
+    ErrCode err = 0;
+    err = BaseObject_create(&obj);
+    ASSERT_EQ(err, 0);
     ASSERT_NE(obj, nullptr);
-    BaseObject_releaseRef(obj);
+    err = BaseObject_releaseRef(obj);
+    ASSERT_EQ(err, 0);
 }
 
 TEST_F(CCoretypesTest, Binarydata)
@@ -25,7 +28,6 @@ TEST_F(CCoretypesTest, Binarydata)
     err = BinaryData_getSize(data, &size);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(size, 10);
-    // TODO: add err
     BaseObject_releaseRef(data);
 }
 
@@ -159,12 +161,36 @@ TEST_F(CCoretypesTest, Enumerations)
 
 TEST_F(CCoretypesTest, Event)
 {
-    // TODO: add later, cannot test now
+    Event* e = nullptr;
+    ErrCode err = 0;
+    err = Event_createEvent(&e);
+    ASSERT_EQ(err, 0);
+
+    SizeT count = 1;
+    Event_getSubscriberCount(e, &count);
+    ASSERT_EQ(count, 0);
+    BaseObject_releaseRef(e);
 }
 
 TEST_F(CCoretypesTest, EventArgs)
 {
-    // TODO: add later, cannot test now
+    ErrCode err = 0;
+    EventArgs* args = nullptr;
+    String* name = nullptr;
+    String_createString(&name, "test_event");
+    err = EventArgs_createEventArgs(&args, 10, name);
+    ASSERT_EQ(err, 0);
+    Int id = 0;
+    EventArgs_getEventId(args, &id);
+    ASSERT_EQ(id, 10);
+    String* name2 = nullptr;
+    EventArgs_getEventName(args, &name2);
+    ConstCharPtr str = nullptr;
+    String_getCharPtr(name2, &str);
+    ASSERT_STREQ(str, "test_event");
+    BaseObject_releaseRef(name2);
+    BaseObject_releaseRef(name);
+    BaseObject_releaseRef(args);
 }
 
 TEST_F(CCoretypesTest, EventHandler)
@@ -187,7 +213,27 @@ TEST_F(CCoretypesTest, Float)
 
 TEST_F(CCoretypesTest, Freezable)
 {
-    // TODO: add later, cannot test now
+    List* list = nullptr;
+    Freezable* f = nullptr;
+    ErrCode err = 0;
+    err = List_createList(&list);
+    ASSERT_EQ(err, 0);
+    Bool isFrozen = False;
+    err = BaseObject_borrowInterface(list, FREEZABLE_INTF_ID, reinterpret_cast<BaseObject**>(&f));
+    ASSERT_EQ(err, 0);
+
+    err = Freezable_isFrozen(f, &isFrozen);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(isFrozen, False);
+
+    err = Freezable_freeze(f);
+    ASSERT_EQ(err, 0);
+
+    err = Freezable_isFrozen(f, &isFrozen);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(isFrozen, True);
+
+    BaseObject_releaseRef(list);
 }
 
 static Bool b = False;
@@ -234,12 +280,63 @@ TEST_F(CCoretypesTest, Integer)
 
 TEST_F(CCoretypesTest, Iterable)
 {
-    // TODO: add later, cannot test now
-}
+    // filling list
+    ErrCode err = 0;
+    List* list = nullptr;
+    err = List_createList(&list);
+    ASSERT_EQ(err, 0);
 
-TEST_F(CCoretypesTest, Iterator)
-{
-    // TODO: add later, cannot test now
+    Integer* i1 = nullptr;
+    Integer* i2 = nullptr;
+    Integer_createInteger(&i1, 3);
+    Integer_createInteger(&i2, 4);
+
+    List_moveBack(list, i1);
+    List_moveBack(list, i2);
+
+    // cast to iterable
+    Iterable* iter = nullptr;
+    err = BaseObject_borrowInterface(list, ITERABLE_INTF_ID, reinterpret_cast<BaseObject**>(&iter));
+    ASSERT_EQ(err, 0);
+
+    // create iterators
+    Iterator* itb = nullptr;
+    Iterator* ite = nullptr;
+    err = Iterable_createStartIterator(iter, &itb);
+    ASSERT_EQ(err, 0);
+    err = Iterable_createEndIterator(iter, &ite);
+    ASSERT_EQ(err, 0);
+
+    // iterate
+    Bool eq = False;
+    int i = 0;
+    int a[2] = {3, 4};
+    Iterator_moveNext(itb);  // iterator needs to be moved for the first use
+    BaseObject_equals(itb, ite, &eq);
+    while (eq == False)
+    {
+        Integer* tmp = nullptr;
+        err = Iterator_getCurrent(itb, (BaseObject**) &tmp);
+        ASSERT_EQ(err, 0);
+
+        Int val = 0;
+        err = Integer_getValue(tmp, &val);
+
+        ASSERT_EQ(err, 0);
+        ASSERT_EQ(val, a[i++]);
+
+        Iterator_moveNext(itb);
+        BaseObject_equals(itb, ite, &eq);
+    }
+
+    // clean up
+    int refc = 0;
+    refc = BaseObject_releaseRef(itb);
+    ASSERT_EQ(refc, 0);
+    refc = BaseObject_releaseRef(ite);
+    ASSERT_EQ(refc, 0);
+    refc = BaseObject_releaseRef(list);
+    ASSERT_EQ(refc, 0);
 }
 
 TEST_F(CCoretypesTest, Listobject)
@@ -301,7 +398,6 @@ TEST_F(CCoretypesTest, Listobject)
 
 TEST_F(CCoretypesTest, Number)
 {
-    // TODO: add later, cannot test now
     FloatObject* f1 = nullptr;
     Float f = 2.2;
     ErrCode err = 0;
@@ -361,7 +457,30 @@ TEST_F(CCoretypesTest, Ratio)
 
 TEST_F(CCoretypesTest, Serializable)
 {
-    // TODO: add later, cannot test now
+    List* list = nullptr;
+    Serializable* s = nullptr;
+    Serializer* serializer = nullptr;
+    ErrCode err = 0;
+
+    err = Serializer_createJsonSerializer(&serializer, False);
+    ASSERT_EQ(err, 0);
+    err = List_createList(&list);
+    ASSERT_EQ(err, 0);
+    err = BaseObject_borrowInterface(list, SERIALIZABLE_INTF_ID, reinterpret_cast<BaseObject**>(&s));
+    ASSERT_EQ(err, 0);
+    err = Serializable_serialize(s, serializer);
+
+    String* serialized = nullptr;
+    err = Serializer_getOutput(serializer, &serialized);
+    ASSERT_EQ(err, 0);
+    ConstCharPtr str = nullptr;
+    err = String_getCharPtr(serialized, &str);
+    ASSERT_EQ(err, 0);
+    ASSERT_STREQ(str, "[]");
+
+    BaseObject_releaseRef(serialized);
+    BaseObject_releaseRef(serializer);
+    BaseObject_releaseRef(list);
 }
 
 TEST_F(CCoretypesTest, SerializedList)
@@ -381,7 +500,11 @@ TEST_F(CCoretypesTest, Serializer)
 
 TEST_F(CCoretypesTest, SimpleType)
 {
-    // TODO: add later, cannot test now
+    SimpleType* st = nullptr;
+    ErrCode err = 0;
+    err = SimpleType_createSimpleType(&st, CoreType::ctBool);
+    ASSERT_EQ(err, 0);
+    BaseObject_releaseRef(st);
 }
 
 TEST_F(CCoretypesTest, Stringobject)

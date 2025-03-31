@@ -25,8 +25,8 @@ extern "C"
 
     EXPORTED extern const IntfID BASE_OBJECT_INTF_ID;
 
-    ErrCode EXPORTED BaseObject_addRef(BaseObject* self);
-    ErrCode EXPORTED BaseObject_releaseRef(BaseObject* self);
+    int EXPORTED BaseObject_addRef(BaseObject* self);
+    int EXPORTED BaseObject_releaseRef(BaseObject* self);
     ErrCode EXPORTED BaseObject_dispose(BaseObject* self);
     ErrCode EXPORTED BaseObject_getHashCode(BaseObject* self, SizeT* hashCode);
     ErrCode EXPORTED BaseObject_equals(BaseObject* self, BaseObject* other, Bool* equal);

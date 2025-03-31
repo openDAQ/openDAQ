@@ -5,6 +5,8 @@ set(SRC_CoreTypes_Headers
     ${CMAKE_CURRENT_LIST_DIR}/include/copendaq.h
     ${CMAKE_CURRENT_LIST_DIR}/include/ccommon.h
 
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/factories.h
+
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/base_object.h
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/binarydata.h
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/boolean.h
@@ -40,7 +42,14 @@ set(SRC_CoreTypes_Headers
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/version_info.h
 )
 
+set(SRC_Private_Headers
+    ${CMAKE_CURRENT_LIST_DIR}/include/copendaq_private.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/private/utils.h
+)
+
 set(SRC_CoreTypes_Cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/factories.cpp
+
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/base_object.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/binarydata.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/boolean.cpp
@@ -76,7 +85,11 @@ set(SRC_CoreTypes_Cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/version_info.cpp
 )
 
-add_library(${LIB_NAME} SHARED ${SRC_CoreTypes_Headers} ${SRC_CoreTypes_Cpp})
+set(SRC_Private_Cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/private/utils.cpp
+)
+
+add_library(${LIB_NAME} SHARED ${SRC_CoreTypes_Headers} ${SRC_CoreTypes_Cpp} ${SRC_Private_Headers} ${SRC_Private_Cpp})
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
 target_link_libraries(${LIB_NAME}

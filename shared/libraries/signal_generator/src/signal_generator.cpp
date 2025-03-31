@@ -12,6 +12,7 @@ SignalGenerator::SignalGenerator(const SignalConfigPtr& signal,
                                  std::chrono::time_point<std::chrono::system_clock> absTime)
     : signal(signal)
     , tick(0)
+    , bUseOfBuffer(false)
 {
     generateFunc = [](uint64_t tick, void* valueOut) {};
     updateFunc = [](SignalGenerator& generator, uint64_t tick) {};

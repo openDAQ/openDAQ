@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:38.
+//     RTGen (CGenerator v0.5.0) on 31.03.2025 16:56:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/updatable.h"
 
 #include <opendaq/opendaq.h>
+
+#include "copendaq_private.h"
 
 const IntfID UPDATABLE_INTF_ID = { daq::IUpdatable::Id.Data1, daq::IUpdatable::Id.Data2, daq::IUpdatable::Id.Data3, daq::IUpdatable::Id.Data4_UInt64 };
 

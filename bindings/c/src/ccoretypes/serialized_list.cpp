@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:32.
+//     RTGen (CGenerator v0.5.0) on 31.03.2025 16:56:29.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/serialized_list.h"
 
 #include <opendaq/opendaq.h>
+
+#include "copendaq_private.h"
 
 const IntfID SERIALIZED_LIST_INTF_ID = { daq::ISerializedList::Id.Data1, daq::ISerializedList::Id.Data2, daq::ISerializedList::Id.Data3, daq::ISerializedList::Id.Data4_UInt64 };
 

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:39.
+//     RTGen (CGenerator v0.5.0) on 31.03.2025 16:56:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -55,9 +55,7 @@ extern "C"
     ErrCode EXPORTED List_createStartIterator(List* self, Iterator** iterator);
     ErrCode EXPORTED List_createEndIterator(List* self, Iterator** iterator);
     ErrCode EXPORTED List_createList(List** obj);
-/*
     ErrCode EXPORTED List_createListWithElementType(List** obj, IntfID id);
-*/
 
 #ifdef __cplusplus
 }

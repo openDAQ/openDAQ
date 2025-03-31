@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:40.
+//     RTGen (CGenerator v0.5.0) on 31.03.2025 16:56:37.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/listobject.h"
 
 #include <opendaq/opendaq.h>
+
+#include "copendaq_private.h"
 
 const IntfID LIST_INTF_ID = { daq::IList::Id.Data1, daq::IList::Id.Data2, daq::IList::Id.Data3, daq::IList::Id.Data4_UInt64 };
 
@@ -98,12 +100,10 @@ ErrCode List_createList(List** obj)
     return err;
 }
 
-/*
 ErrCode List_createListWithElementType(List** obj, IntfID id)
 {
     daq::IList* ptr = nullptr;
-    ErrCode err = daq::createListWithElementType(&ptr, id);
+    ErrCode err = daq::createListWithElementType(&ptr, copendaq::utils::toDaqIntfId(id));
     *obj = reinterpret_cast<List*>(ptr);
     return err;
 }
-*/

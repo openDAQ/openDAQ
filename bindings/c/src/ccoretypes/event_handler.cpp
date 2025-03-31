@@ -5,13 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:26.
+//     RTGen (CGenerator v0.5.0) on 31.03.2025 16:56:25.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 #include "ccoretypes/event_handler.h"
 
 #include <opendaq/opendaq.h>
+
+#include "copendaq_private.h"
 
 const IntfID EVENT_HANDLER_INTF_ID = { daq::IEventHandler::Id.Data1, daq::IEventHandler::Id.Data2, daq::IEventHandler::Id.Data3, daq::IEventHandler::Id.Data4_UInt64 };
 

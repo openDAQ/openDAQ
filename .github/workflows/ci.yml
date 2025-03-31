@@ -457,6 +457,7 @@ jobs:
             image: quay.io/pypa/manylinux_2_28_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             additional_packages:
             cc: gcc
             cxx: g++

@@ -48,6 +48,7 @@
 - [#615](https://github.com/openDAQ/openDAQ/pull/615) Add missing component `active` flag serialization.
 - [#590](https://github.com/openDAQ/openDAQ/pull/590) [#593](https://github.com/openDAQ/openDAQ/pull/593) Adds missing bcrypt installation and export rules.
 - [#669](https://github.com/openDAQ/openDAQ/pull/659) Fix building openDAQ on android, by removing multiple coping of loaded library to the final vector in ModuleManager constructor.
+- [#744](https://github.com/openDAQ/openDAQ/pull/744) Fix leaf device streaming misconfiguration on reconnection
 
 ## Misc
 

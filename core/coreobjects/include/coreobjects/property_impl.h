@@ -312,8 +312,12 @@ public:
 
     void initDefaultPermissionManager()
     {
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
         defaultPermissionManager = PermissionManager();
         defaultPermissionManager.setPermissions(permissions::DefaultPermissions);
+#else
+        defaultPermissionManager = DisabledPermissionManager();
+#endif
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override

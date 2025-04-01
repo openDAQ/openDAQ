@@ -57,23 +57,27 @@ void WebsocketStreamingServer::start()
     streamingServer.onClientConnected(
         [this](const std::string& clientId, const std::string& address)
         {
+            SizeT clientNumber = 0;
             if (device.assigned() && !device.isRemoved())
             {
                 device.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
-                    clientId,
+                    &clientNumber,
                     ConnectedClientInfo(address, ProtocolType::Streaming, "OpenDAQLTStreaming", "", ""));
             }
-            registeredClientIds.insert(clientId);
+            registeredClientIds.insert({clientId, clientNumber});
         }
     );
     streamingServer.onClientDisconnected(
         [this](const std::string& clientId)
         {
-            if (device.assigned() && !device.isRemoved())
+            if (auto it = registeredClientIds.find(clientId); it != registeredClientIds.end())
             {
-                device.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(clientId);
+                if (device.assigned() && !device.isRemoved() && it->second != 0)
+                {
+                    device.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(it->second);
+                }
+                registeredClientIds.erase(it);
             }
-            registeredClientIds.erase(clientId);
         }
     );
     streamingServer.start(streamingPort, controlPort);
@@ -103,8 +107,11 @@ void WebsocketStreamingServer::stop()
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
         if (info.hasServerCapability("OpenDAQLTStreaming"))
             infoInternal.removeServerCapability("OpenDAQLTStreaming");
-        for (const auto& clientId : registeredClientIds)
-            infoInternal.removeConnectedClient(clientId);
+        for (const auto& [_, clientNumber] : registeredClientIds)
+        {
+            if (clientNumber != 0)
+                infoInternal.removeConnectedClient(clientNumber);
+        }
     }
     registeredClientIds.clear();
 

@@ -128,8 +128,8 @@ public:
     ErrCode INTERFACE_FUNC getNetworkInterfaces(IDict** interfaces) override;
     ErrCode INTERFACE_FUNC getNetworkInterface(IString* interfaceName, INetworkInterface** interface) override;
 
-    ErrCode INTERFACE_FUNC addConnectedClient(IString* id, IConnectedClientInfo* clientInfo) override;
-    ErrCode INTERFACE_FUNC removeConnectedClient(IString* id) override;
+    ErrCode INTERFACE_FUNC addConnectedClient(SizeT* clientNumber, IConnectedClientInfo* clientInfo) override;
+    ErrCode INTERFACE_FUNC removeConnectedClient(SizeT clientNumber) override;
     ErrCode INTERFACE_FUNC getConnectedClientsInfo(IList** connectedClientsInfo) override;
 
     // IPropertyObject
@@ -162,6 +162,7 @@ protected:
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
     PropertyObjectPtr getOwnerOfProperty(const StringPtr& propertyName);
     // bool isLocal;
+    SizeT totalCountOfConnectedClientsEverRegistered;
 };
 
 namespace deviceInfoDetails
@@ -210,6 +211,7 @@ template <typename TInterface, typename ... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     : Super()
     , networkInterfaces(Dict<IString, INetworkInterface>())
+    , totalCountOfConnectedClientsEverRegistered(0)
 {
     this->path = "DaqDeviceInfo";
     createAndSetStringProperty("name", "");
@@ -1005,9 +1007,9 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getNetworkInterface(ISt
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addConnectedClient(IString* id, IConnectedClientInfo* clientInfo)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addConnectedClient(SizeT* clientNumber, IConnectedClientInfo* clientInfo)
 {
-    OPENDAQ_PARAM_NOT_NULL(id);
+    OPENDAQ_PARAM_NOT_NULL(clientNumber);
     OPENDAQ_PARAM_NOT_NULL(clientInfo);
 
     BaseObjectPtr clientsInfoProperty;
@@ -1016,14 +1018,18 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addConnectedClient(IStr
     if (OPENDAQ_FAILED(err))
         return err;
 
+    if (*clientNumber == 0 || *clientNumber > totalCountOfConnectedClientsEverRegistered)
+        *clientNumber = ++totalCountOfConnectedClientsEverRegistered;
+    const auto id = String(std::to_string(*clientNumber));
+
     const auto clientsInfoPropretyObject = clientsInfoProperty.asPtr<IPropertyObject>(true);
     return clientsInfoPropretyObject->addProperty(ObjectProperty(id, clientInfo));
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeConnectedClient(IString* id)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeConnectedClient(SizeT clientNumber)
 {
-    OPENDAQ_PARAM_NOT_NULL(id);
+    const auto id = String(std::to_string(clientNumber));
 
     BaseObjectPtr clientsInfoProperty;
     auto propertyName = String("establishedConnections");

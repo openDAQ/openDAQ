@@ -59,19 +59,22 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC addNetworkInteface(IString* name, INetworkInterface* networkInterface) = 0;
 
-
+    // [arrayArg(clientNumber, 1)]
     /*!
-     * @brief Adds new connected client info when it is connected
-     * @param id The id of newly connected client.
+     * @brief Registers a newly connected client or re-registers a reconnected client.
+     * @param[in,out] clientNumber If provided, represents the original ordinal number of the re-registered client.
+     * If unassigned or exceeding the total number of clients ever registered (including those that were later deregistered),
+     * it is set to the incremented total count; otherwise, the client is registered under the specified number.
      * @param clientInfo The connected client information object.
+     * @return OPENDAQ_ERR_ALREADYEXISTS if a client with the specified number already registered.
      */
-    virtual ErrCode INTERFACE_FUNC addConnectedClient(IString* id, IConnectedClientInfo* clientInfo) = 0;
+    virtual ErrCode INTERFACE_FUNC addConnectedClient(SizeT* clientNumber, IConnectedClientInfo* clientInfo) = 0;
 
     /*!
-     * @brief Removes previously added connected client info on client disconnection.
-     * @param id The id of disconnected client.
+     * @brief Unregisters a previously connected client upon disconnection.
+     * @param clientNumber The number identifying the disconnected client.
      */
-    virtual ErrCode INTERFACE_FUNC removeConnectedClient(IString* id) = 0;
+    virtual ErrCode INTERFACE_FUNC removeConnectedClient(SizeT clientNumber) = 0;
 };
 /*!@}*/
 

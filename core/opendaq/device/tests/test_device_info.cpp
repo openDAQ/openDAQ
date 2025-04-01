@@ -184,8 +184,10 @@ TEST_F(DeviceInfoTest, Freezable)
     auto deviceType = DeviceType("test", "", "", "prefix");
     ASSERT_THROW(deviceInfoConfig.setDeviceType(deviceType), FrozenException);
 
-    auto connectedClientInfo = ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name");
-    ASSERT_NO_THROW(deviceInfoConfig.asPtr<IDeviceInfoInternal>().addConnectedClient("id2", connectedClientInfo));
+    SizeT clientNumber = 0;
+    auto connectedClientInfo = ConnectedClientInfo("url", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name");
+    ASSERT_NO_THROW(deviceInfoConfig.asPtr<IDeviceInfoInternal>().addConnectedClient(&clientNumber, connectedClientInfo));
+    ASSERT_EQ(clientNumber, 1u);
 }
 
 TEST_F(DeviceInfoTest, CustomProperties)
@@ -221,12 +223,14 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     info.setRevisionCounter(1);
     info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id1", "test", ProtocolType::Streaming));
     info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id2", "test", ProtocolType::Configuration));
+    SizeT client1Number = 0;
     info.asPtr<IDeviceInfoInternal>().addConnectedClient(
-        "id1",
+        &client1Number,
         ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", "", "Host name")
     );
+    SizeT client2Number = 0;
     info.asPtr<IDeviceInfoInternal>().addConnectedClient(
-        "id2",
+        &client2Number,
         ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name")
     );
 
@@ -254,12 +258,14 @@ TEST_F(DeviceInfoTest, SerializeDeserializeForOlderVersion)
 {
     DeviceInfoConfigPtr info = DeviceInfo("", "");
 
+    SizeT client1Number = 0;
     info.asPtr<IDeviceInfoInternal>().addConnectedClient(
-        "id1",
+        &client1Number,
         ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", "", "Host name")
     );
+    SizeT client2Number = 0;
     info.asPtr<IDeviceInfoInternal>().addConnectedClient(
-        "id2",
+        &client2Number,
         ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name")
     );
 
@@ -338,29 +344,44 @@ TEST_F(DeviceInfoTest, ConnectedClientsInfo)
     DeviceInfoPtr info = DeviceInfo("", "");
     DeviceInfoInternalPtr internalInfo = info;
 
+    SizeT client1Number = 0;
     auto clientInfo1 =
         ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", "", "Host name");
+
+    SizeT client2Number = 0;
     auto clientInfo2 =
         ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name");
+
+    SizeT client3Number = 10;
     auto clientInfo3 =
         ConnectedClientInfo("url3", ProtocolType::ConfigurationAndStreaming, "Protocol name", "ViewOnly", "Host name");
 
-    internalInfo.addConnectedClient("id1", clientInfo1);
-    internalInfo.addConnectedClient("id2", clientInfo2);
-    internalInfo.addConnectedClient("id3", clientInfo3);
-    ASSERT_THROW(internalInfo.addConnectedClient("id3", clientInfo3), AlreadyExistsException);
+    internalInfo.addConnectedClient(&client1Number, clientInfo1);
+    ASSERT_EQ(client1Number, 1u);
+    internalInfo.addConnectedClient(&client2Number, clientInfo2);
+    ASSERT_EQ(client2Number, 2u);
+    internalInfo.addConnectedClient(&client3Number, clientInfo3);
+    ASSERT_EQ(client3Number, 3u);
+    ASSERT_THROW(internalInfo.addConnectedClient(&client3Number, clientInfo3), AlreadyExistsException);
 
     ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 3u);
 
-    ASSERT_THROW(internalInfo.removeConnectedClient("id4"), NotFoundException);
+    ASSERT_THROW(internalInfo.removeConnectedClient(4), NotFoundException);
 
-    internalInfo.removeConnectedClient("id3");
+    internalInfo.removeConnectedClient(3);
     ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 2u);
     ASSERT_EQ(info.getConnectedClientsInfo()[0].getAddress(), clientInfo1.getPropertyValue("Address"));
 
-    internalInfo.removeConnectedClient("id2");
-    internalInfo.removeConnectedClient("id1");
+    internalInfo.removeConnectedClient(2);
+    internalInfo.removeConnectedClient(1);
     ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 0u);
+
+    internalInfo.addConnectedClient(&client3Number, clientInfo3);
+    ASSERT_EQ(client3Number, 3u);
+    internalInfo.addConnectedClient(&client2Number, clientInfo2);
+    ASSERT_EQ(client2Number, 2u);
+    internalInfo.addConnectedClient(&client1Number, clientInfo1);
+    ASSERT_EQ(client1Number, 1u);
 }
 
 TEST_F(DeviceInfoTest, OwnerName)

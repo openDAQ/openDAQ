@@ -195,7 +195,6 @@ TEST_F(CCoretypesTest, EventArgs)
 
 TEST_F(CCoretypesTest, EventHandler)
 {
-    // TODO: add later, cannot test now
 }
 
 TEST_F(CCoretypesTest, Float)
@@ -485,17 +484,10 @@ TEST_F(CCoretypesTest, Serializable)
 
 TEST_F(CCoretypesTest, SerializedList)
 {
-    // TODO: add later, cannot test now
 }
 
 TEST_F(CCoretypesTest, SerializedObject)
 {
-    // TODO: add later, cannot test now
-}
-
-TEST_F(CCoretypesTest, Serializer)
-{
-    // TODO: add later, cannot test now
 }
 
 TEST_F(CCoretypesTest, SimpleType)
@@ -522,27 +514,111 @@ TEST_F(CCoretypesTest, Stringobject)
 
 TEST_F(CCoretypesTest, Struct)
 {
-    // TODO: add later, cannot test now
-}
+    ErrCode err = 0;
 
-TEST_F(CCoretypesTest, StructType)
-{
-    // TODO: add later, cannot test now
-}
+    List * fieldNames = nullptr;
+    List_createList(&fieldNames);
 
-TEST_F(CCoretypesTest, Type)
-{
-    // TODO: add later, cannot test now
+    List * fieldTypes = nullptr;
+    List_createList(&fieldTypes);
+
+    String* fieldName = nullptr;
+    String_createString(&fieldName, "int");
+    
+    SimpleType* st = nullptr;
+    SimpleType_createSimpleType(&st, CoreType::ctInt);
+
+    Integer* i = nullptr;
+    Integer_createInteger(&i, 10);
+    
+    List_pushBack(fieldTypes, st);
+    List_pushBack(fieldNames, fieldName);
+
+    StructType* type = nullptr;
+    String* typeName = nullptr;
+    String_createString(&typeName, "test");
+    StructType_createStructTypeNoDefaults(&type, typeName, fieldNames, fieldTypes);
+
+    TypeManager* manager = nullptr;
+    TypeManager_createTypeManager(&manager);
+    TypeManager_addType(manager, reinterpret_cast<Type*>(type));
+
+    StructBuilder* sb = nullptr;
+    err = StructBuilder_createStructBuilder(&sb, typeName, manager);
+    StructBuilder_set(sb, fieldName, i);
+
+    Struct* s = nullptr;
+    err = StructBuilder_build(sb, &s);
+    ASSERT_EQ(err, 0);
+
+    Integer* i2 = nullptr;
+    Struct_get(s, fieldName, (BaseObject**) &i2);
+    Int value = 0;
+    err = Integer_getValue(i2, &value);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(value, 10);
+
+    BaseObject_releaseRef(i2);
+    BaseObject_releaseRef(i);
+
+    BaseObject_releaseRef(s);
+    BaseObject_releaseRef(sb);
+
+    BaseObject_releaseRef(manager);
+    BaseObject_releaseRef(type);
+    BaseObject_releaseRef(typeName);
+
+    BaseObject_releaseRef(fieldNames);
+    BaseObject_releaseRef(fieldTypes);
+
+    BaseObject_releaseRef(fieldName);
+    BaseObject_releaseRef(st);
 }
 
 TEST_F(CCoretypesTest, TypeManager)
 {
-    // TODO: add later, cannot test now
+    ErrCode err = 0;
+
+    List* fieldNames = nullptr;
+    List* fieldTypes = nullptr;
+
+    err = List_createList(&fieldNames);
+    err = List_createList(&fieldTypes);
+  
+    String* fieldName = nullptr;
+    err = String_createString(&fieldName, "int");
+    
+    SimpleType* st = nullptr;
+    err = SimpleType_createSimpleType(&st, CoreType::ctInt);
+    
+    err = List_pushBack(fieldTypes, st);
+    err = List_pushBack(fieldNames, fieldName);
+    
+    String* typeName = nullptr;
+    err = String_createString(&typeName, "test");
+    
+    StructType* type = nullptr;
+    err = StructType_createStructTypeNoDefaults(&type, typeName, fieldNames, fieldTypes);
+
+    TypeManager* manager = nullptr;
+    err = TypeManager_createTypeManager(&manager);
+    ASSERT_EQ(err, 0);
+    err = TypeManager_addType(manager, reinterpret_cast<Type*>(type));
+    ASSERT_EQ(err, 0);
+    err = TypeManager_removeType(manager, typeName);
+    ASSERT_EQ(err, 0);
+
+    BaseObject_releaseRef(fieldNames);
+    BaseObject_releaseRef(fieldTypes);
+    BaseObject_releaseRef(fieldName);
+    BaseObject_releaseRef(typeName);
+    BaseObject_releaseRef(st);
+    BaseObject_releaseRef(type);
+    BaseObject_releaseRef(manager);
 }
 
 TEST_F(CCoretypesTest, Updatable)
 {
-    // TODO: add later, cannot test now
 }
 
 TEST_F(CCoretypesTest, VersionInfo)

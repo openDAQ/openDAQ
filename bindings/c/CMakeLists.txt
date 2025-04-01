@@ -34,6 +34,7 @@ set(SRC_CoreTypes_Headers
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/serializer.h
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/simple_type.h
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/stringobject.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/struct_builder.h
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/struct.h
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/struct_type.h
     ${CMAKE_CURRENT_LIST_DIR}/include/ccoretypes/type.h
@@ -77,6 +78,7 @@ set(SRC_CoreTypes_Cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/serializer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/simple_type.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/stringobject.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/struct_builder.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/struct.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/struct_type.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ccoretypes/type.cpp

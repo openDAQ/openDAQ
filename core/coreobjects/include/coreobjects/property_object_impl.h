@@ -2174,6 +2174,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
         return OPENDAQ_ERR_FROZEN;
     }
 
+    auto lock = getRecursiveConfigLock();
+
     if (localProperties.find(propertyName) == localProperties.cend())
     {
         StringPtr namePtr = propertyName;

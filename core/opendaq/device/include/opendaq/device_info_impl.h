@@ -162,7 +162,7 @@ protected:
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
     PropertyObjectPtr getOwnerOfProperty(const StringPtr& propertyName);
     // bool isLocal;
-    SizeT totalCountOfConnectedClientsEverRegistered;
+    std::atomic<SizeT> totalCountOfConnectedClientsEverRegistered;
 };
 
 namespace deviceInfoDetails

@@ -735,7 +735,7 @@ StringPtr NativeStreamingClientModule::GetHostType(const StringPtr& url)
 {
 	std::string urlString = url.toStdString();
 
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
     auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
 	std::smatch match;
 
@@ -750,7 +750,7 @@ StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
 
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
     auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
     std::smatch match;
 

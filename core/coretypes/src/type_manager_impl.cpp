@@ -38,7 +38,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
     std::string typeStr = typeName;
     std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), [](char c) { return std::tolower(c); });
     if (reservedTypeNames.count(typeStr))
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return OPENDAQ_ERR_RESERVED_TYPE_NAME;
 
     if (!daq::validateTypeName(typeName.getCharPtr()))
         return OPENDAQ_ERR_VALIDATE_FAILED;

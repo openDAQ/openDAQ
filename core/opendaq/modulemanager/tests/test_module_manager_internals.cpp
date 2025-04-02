@@ -7,6 +7,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/logger_factory.h>
 
+#include <chrono>
 #include <thread>
 
 using namespace daq;

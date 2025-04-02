@@ -13,7 +13,7 @@
 #include <opendaq/custom_log.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/argument_info_factory.h>
-
+#include <chrono>
 
 #define PI 3.141592653589793
 

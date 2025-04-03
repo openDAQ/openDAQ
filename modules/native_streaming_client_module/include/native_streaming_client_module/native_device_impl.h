@@ -58,7 +58,6 @@ public:
     void unsubscribeFromCoreEvent(const ContextPtr& context);
 
     void closeConnectionOnRemoval();
-    void enableMinHopsStreamingHeuristic();
 
 private:
     void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
@@ -70,15 +69,9 @@ private:
     void cancelPendingConfigRequests(const DaqException& e);
     void processConfigPacket(config_protocol::PacketBuffer&& packet);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
-    void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
-    void enableStreamingForAddedComponent(const ComponentPtr& addedComponent);
-    void enableStreamingForUpdatedComponent(const ComponentPtr& updatedComponent);
-    void tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming);
-    void setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming);
     void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
     void tryConfigProtocolReconnect();
-    void completeStreamingConnections(const ComponentPtr& component);
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
@@ -89,7 +82,6 @@ private:
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
     std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;
-    bool minHopsStreamingHeuristicEnabled{false};
     EnumerationPtr connectionStatus;
     bool acceptNotificationPackets;
     std::chrono::milliseconds configProtocolRequestTimeout;
@@ -128,10 +120,6 @@ public:
 
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
-
-    // IComponentPrivate
-    ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
-    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
 
 protected:
     void removed() override;

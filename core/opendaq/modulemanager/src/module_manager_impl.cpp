@@ -522,9 +522,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
         // Connection strings with the "daq" prefix automatically choose the best method of connection
         const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
-        const auto discoveredDeviceInfo = getDiscoveredDeviceInfo(connectionStringPtr, useSmartConnection);
+        DeviceInfoPtr discoveredDeviceInfo;
         if (useSmartConnection)
+        {
+            discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
             connectionStringPtr = resolveSmartConnectionString(connectionStringPtr, discoveredDeviceInfo, config, loggerComponent);
+        }
 
         for (const auto& library : libraries)
         {
@@ -542,6 +545,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             if (devicePtr.assigned() && devicePtr.getInfo().assigned())
             {
                 replaceSubDeviceOldProtocolIds(devicePtr);
+                discoveredDeviceInfo = discoveredDeviceInfo.assigned() ? discoveredDeviceInfo : getDiscoveredDeviceInfo(devicePtr.getInfo());
                 mergeDiscoveryAndDeviceCapabilities(devicePtr, discoveredDeviceInfo);
                 completeServerCapabilities(devicePtr);
 
@@ -928,39 +932,37 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     return 0;
 }
 
-DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const
+DeviceInfoPtr ModuleManagerImpl::getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const
 {
     if (!availableDevicesGroup.assigned())
         DAQ_THROW_EXCEPTION(NotFoundException, "Device scan has not yet been initiated.");
 
-    if (useSmartConnection)
-    {
         if (availableDevicesGroup.hasKey(inputConnectionString))
             return availableDevicesGroup.get(inputConnectionString);
         DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" not found", inputConnectionString);
-    }
+}
 
+DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const
+{
+    auto serialNumber = deviceInfo.getSerialNumber();
+    auto manufacturer = deviceInfo.getManufacturer();
+
+    if (!serialNumber.getLength() || !manufacturer.getLength())
+        return nullptr;
+    
+    DeviceInfoPtr localInfo; 
     for (const auto & [_, info] : availableDevicesGroup)
     {
-        if (info.getServerCapabilities().getCount() == 0)
+        if (manufacturer == info.getManufacturer() && serialNumber == info.getSerialNumber())
         {
-            if (info.getConnectionString() == inputConnectionString)
+            if (info.getServerCapabilities().getCount())
                 return info;
-        }
-        else
-        {
-            for(const auto & capability : info.getServerCapabilities())
-            {
-                for (const auto & connection: capability.getConnectionStrings())
-                {
-                    if (connection == inputConnectionString)
-                        return info;
-                }
-            }
+            
+            localInfo = info;
         }
     }
 
-    return nullptr;
+    return localInfo;
 }
 
 StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,

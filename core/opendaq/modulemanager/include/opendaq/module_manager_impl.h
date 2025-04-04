@@ -69,7 +69,8 @@ private:
     std::string getPrefixFromConnectionString(std::string connectionString) const;
     static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> splitConnectionStringAndOptions(const std::string& connectionString);
 
-    DeviceInfoPtr getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const;
+    DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
+    DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
     static StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                                   const DeviceInfoPtr& discoveredDeviceInfo,
                                                   const PropertyObjectPtr& config,

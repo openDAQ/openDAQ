@@ -30,6 +30,7 @@
 
 ## Bug fixes
 
+- [#757](https://github.com/openDAQ/openDAQ/pull/757) Device info obtained from device and discovery matching is changed from checking for connection string equality to SN + manufacturer equality.
 - [#754](https://github.com/openDAQ/openDAQ/pull/754) Treat duplicate OPC-UA properties, with names that differ only in case, as warnings instead of fatal errors.
 - [#740](https://github.com/openDAQ/openDAQ/pull/740) Fixes restoring connection signals to dynamic input ports of a function block while loading the configuration when the name of the new input does not match the old one.
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Fixes list/dictionary deserialization not containing key/value/item interface IDs. Requires server-side update.

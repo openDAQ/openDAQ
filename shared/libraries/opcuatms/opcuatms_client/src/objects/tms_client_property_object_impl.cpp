@@ -538,8 +538,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
         auto ec = Impl::addProperty(prop);
         if (ec != OPENDAQ_ERR_ALREADYEXISTS)
             return ec;
-        LOG_W("TMS server exposes two properties with the same name \"{}\" differing only in case. The duplicate property will be ignored.",
-            prop.getName());
+        LOG_W("OPC UA exposes two properties with the same name \"{}\". The duplicate property will be ignored.", prop.getName())
         return OPENDAQ_SUCCESS;
     };
 

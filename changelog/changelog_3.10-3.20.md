@@ -29,6 +29,8 @@
 - [#596](https://github.com/openDAQ/openDAQ/pull/596) Adds a device info popup the the Python GUI application "Add device" dialog.
 
 ## Bug fixes
+
+- [#754](https://github.com/openDAQ/openDAQ/pull/754) Treat duplicate OPC-UA properties, with names that differ only in case, as warnings instead of fatal errors.
 - [#740](https://github.com/openDAQ/openDAQ/pull/740) Fixes restoring connection signals to dynamic input ports of a function block while loading the configuration when the name of the new input does not match the old one.
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Fixes list/dictionary deserialization not containing key/value/item interface IDs. Requires server-side update.
 - [#731](https://github.com/openDAQ/openDAQ/pull/731) Fixes nested object access over OPC UA. Object properties original PropertyObject is now stored in PropertyObjectImpl; PropertyImpl now contains the clone.

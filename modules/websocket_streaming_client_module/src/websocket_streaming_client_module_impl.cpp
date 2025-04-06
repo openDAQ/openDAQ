@@ -19,7 +19,6 @@ static std::string OldWebsocketDevicePrefix = "daq.ws";
 
 static const std::regex RegexIpv6Hostname(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
 static const std::regex RegexIpv4Hostname(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
-static const std::regex RegexConnectionString(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -99,7 +98,15 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     auto port = -1;
     {
         std::smatch match;
-        if (std::regex_search(str, match, RegexConnectionString))
+
+        bool parsed = false;
+        parsed = std::regex_search(str, match, RegexIpv6Hostname);
+        if (!parsed)
+        {
+            parsed = std::regex_search(str, match, RegexIpv4Hostname);
+        }
+
+        if (parsed)
         {
             host = match[2].str();
             port = 7414;

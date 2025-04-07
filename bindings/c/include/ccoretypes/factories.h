@@ -24,8 +24,10 @@ extern "C"
 #include "ccommon.h"
 
     typedef struct Serializer Serializer;
+    typedef struct EventHandler EventHandler;
 
     ErrCode EXPORTED Serializer_createJsonSerializer(Serializer** obj, Bool pretty);
+    ErrCode EXPORTED EventHandler_createEventHandler(EventHandler** obj, EventCall call);
 
 #ifdef __cplusplus
 }

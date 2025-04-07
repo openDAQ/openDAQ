@@ -33,6 +33,8 @@ extern "C"
 #include <stddef.h>
 #include <stdint.h>
 
+#include "ccoreobjects/common.h"
+
     typedef uint32_t ErrCode;
     typedef uint8_t Bool;
     typedef int64_t Int;
@@ -69,6 +71,7 @@ extern "C"
 
     typedef ErrCode (*FuncCall)(BaseObject*, BaseObject**);
     typedef ErrCode (*ProcCall)(BaseObject*);
+    typedef void (*EventCall)(BaseObject*, BaseObject*);
 
     typedef struct IntfID {
         uint32_t Data1;

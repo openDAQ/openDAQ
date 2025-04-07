@@ -2,6 +2,8 @@
 
 #include <opendaq/opendaq.h>
 
+#include "copendaq_private.h"
+
 const IntfID BASE_OBJECT_INTF_ID = { daq::IBaseObject::Id.Data1, daq::IBaseObject::Id.Data2 , daq::IBaseObject::Id.Data3, daq::IBaseObject::Id.Data4_UInt64 };
 
 int BaseObject_addRef(BaseObject* self)
@@ -42,12 +44,10 @@ ErrCode BaseObject_create(BaseObject** baseObject)
 
 ErrCode BaseObject_queryInterface(BaseObject* self, IntfID intfId, BaseObject** interfacePtr)
 {
-    daq::IntfID id { intfId.Data1, intfId.Data2, intfId.Data3, { .Data4_UInt64 = intfId.Data4 } };
-    return static_cast<daq::IBaseObject*>(self)->queryInterface(id, interfacePtr);
+    return static_cast<daq::IBaseObject*>(self)->queryInterface(copendaq::utils::toDaqIntfId(intfId), interfacePtr);
 }
 
 ErrCode BaseObject_borrowInterface(BaseObject* self, IntfID intfId, BaseObject** interfacePtr)
 {
-    daq::IntfID id { intfId.Data1, intfId.Data2, intfId.Data3, { .Data4_UInt64 = intfId.Data4 } };
-    return static_cast<daq::IBaseObject*>(self)->borrowInterface(id, interfacePtr);
+    return static_cast<daq::IBaseObject*>(self)->borrowInterface(copendaq::utils::toDaqIntfId(intfId), interfacePtr);
 }

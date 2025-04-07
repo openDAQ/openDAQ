@@ -226,3 +226,10 @@ this->connectionStatusContainer.addConfigurationConnectionStatus(connectionStrin
 // ... and to update status:
 this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), value, nullptr);
 ```
+
+Following methods of base streaming implementation moved from protected to private scope:
+
+```cpp
+    void startReconnection();
+    void completeReconnection();
+```

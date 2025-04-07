@@ -722,7 +722,7 @@ TEST_F(NativeStreamingModulesTest, RemoveSignals)
     ASSERT_EQ(clientSignals.getCount(), 3u);
 }
 
-TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
+TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -740,6 +740,27 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPort(), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://127.0.0.1/");
+}
+
+TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv6)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.ns://[::1]", nullptr);
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://[::1]");
 }
 
 TEST_F(NativeStreamingModulesTest, ProtectedSignals)

@@ -22,6 +22,9 @@ static const char* DaqOpcUaDeviceTypeId = "OpenDAQOPCUAConfiguration";
 static const char* DaqOpcUaDevicePrefix = "daq.opcua";
 static const char* OpcUaScheme = "opc.tcp";
 
+static const std::regex RegexIpv6Hostname(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+
 using namespace discovery;
 using namespace daq::opcua;
 
@@ -197,9 +200,6 @@ DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDe
 StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port, std::string& hostType)
 {
     std::string urlString = connectionString.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
     std::string prefix = "";
@@ -215,12 +215,12 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     }
 
     bool parsed = false;
-    parsed = std::regex_search(urlString, match, regexIpv6Hostname);
+    parsed = std::regex_search(urlString, match, RegexIpv6Hostname);
     hostType = "IPv6";
 
     if (!parsed)
     {
-        parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+        parsed = std::regex_search(urlString, match, RegexIpv4Hostname);
         hostType = "IPv4";
     }
 

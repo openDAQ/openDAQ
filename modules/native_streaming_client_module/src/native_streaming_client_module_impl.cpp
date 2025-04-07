@@ -23,6 +23,10 @@ using namespace discovery;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
+static const std::regex RegexIpv6Hostname(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.*://)([^:/\s]+))");
+static const std::regex RegexPort(":(\\d+)");
+
 NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     : Module("OpenDAQNativeStreamingClientModule",
             VersionInfo(NATIVE_STREAM_CL_MODULE_MAJOR_VERSION,
@@ -734,14 +738,11 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
 StringPtr NativeStreamingClientModule::GetHostType(const StringPtr& url)
 {
 	std::string urlString = url.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
 	std::smatch match;
 
-	if (std::regex_search(urlString, match, regexIpv6Hostname))
+    if (std::regex_search(urlString, match, RegexIpv6Hostname))
 		return String("IPv6");
-	if (std::regex_search(urlString, match, regexIpv4Hostname))
+    if (std::regex_search(urlString, match, RegexIpv4Hostname))
 		return String("IPv4");
 	DAQ_THROW_EXCEPTION(InvalidParameterException, "Host type not found in url: {}", url);
 }
@@ -749,14 +750,11 @@ StringPtr NativeStreamingClientModule::GetHostType(const StringPtr& url)
 StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
     std::smatch match;
 
-    if (std::regex_search(urlString, match, regexIpv6Hostname))
+    if (std::regex_search(urlString, match, RegexIpv6Hostname))
         return String(match[2]);
-    if (std::regex_search(urlString, match, regexIpv4Hostname))
+    if (std::regex_search(urlString, match, RegexIpv4Hostname))
         return String(match[2]);
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
 }
@@ -765,14 +763,12 @@ StringPtr NativeStreamingClientModule::GetPort(const StringPtr& url, const Prope
 {
     std::string outPort;
     std::string urlString = url.toStdString();
-
-    auto regexPort = std::regex(":(\\d+)");
     std::smatch match;
 
     std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
-    if (std::regex_search(suffix, match, regexPort))
+    if (std::regex_search(suffix, match, RegexPort))
         outPort = match[1];
     else
         outPort = "7420";

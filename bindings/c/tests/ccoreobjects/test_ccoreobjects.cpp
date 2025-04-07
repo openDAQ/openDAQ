@@ -181,8 +181,6 @@ TEST_F(CCoreobjectsTest, EndUpdateEventArgs)
 
 TEST_F(CCoreobjectsTest, EvalValue)
 {
-    ErrCode err = 0;
-
     PropertyObject* propObj = nullptr;
     PropertyObject_createPropertyObject(&propObj);
 
@@ -275,12 +273,10 @@ TEST_F(CCoreobjectsTest, Permissions)
     PermissionManager_createPermissionManager(&manager, nullptr);
 
     PermissionMaskBuilder* maskBuilder = nullptr;
-    Int adminPermissionMask = 0;
     PermissionMaskBuilder_createPermissionMaskBuilder(&maskBuilder);
     PermissionMaskBuilder_read(maskBuilder);
     PermissionMaskBuilder_write(maskBuilder);
     
-    Permissions* permissions = nullptr;
     PermissionsBuilder* permissionsBuilder = nullptr;
     PermissionsBuilder_createPermissionsBuilder(&permissionsBuilder);
     PermissionsBuilder_assign(permissionsBuilder, adminName, maskBuilder);
@@ -636,8 +632,6 @@ TEST_F(CCoreobjectsTest, Unit)
 
 TEST_F(CCoreobjectsTest, User)
 {
-    ErrCode err = 0;
-
     String* username = nullptr;
     String_createString(&username, "test_user");
     String* passwordHash = nullptr;

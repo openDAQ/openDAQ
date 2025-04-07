@@ -15,7 +15,7 @@ ErrCode Serializer_createJsonSerializer(Serializer** obj, Bool pretty)
 ErrCode EventHandler_createEventHandler(EventHandler** obj, EventCall call)
 {
     daq::IEventHandler* ptr = nullptr;
-    ErrCode err = daq::createObjectForwarding<class daq::IEventHandler, daq::CEventHandlerImpl>(&ptr, call);
+    ErrCode err = daq::createObjectForwarding<daq::IEventHandler, daq::CEventHandlerImpl>(&ptr, call);
     *obj = reinterpret_cast<EventHandler*>(ptr);
     return err;
 }

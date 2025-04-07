@@ -533,10 +533,19 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
         addMethodProperties(nodeId, orderedProperties, unorderedProperties, functionPropValues);
     }
 
+    auto addPropertyIgnoreDuplicates = [this](const daq::PropertyPtr& prop)
+    {
+        auto ec = Impl::addProperty(prop);
+        if (ec != OPENDAQ_ERR_ALREADYEXISTS)
+            return ec;
+        LOG_W("OPC UA exposes two properties with the same name \"{}\". The duplicate property will be ignored.", prop.getName())
+        return OPENDAQ_SUCCESS;
+    };
+
     for (const auto& val : orderedProperties)
-        daq::checkErrorInfo(Impl::addProperty(val.second));
+        daq::checkErrorInfo(addPropertyIgnoreDuplicates(val.second));
     for (const auto& val : unorderedProperties)
-        daq::checkErrorInfo(Impl::addProperty(val));
+        daq::checkErrorInfo(addPropertyIgnoreDuplicates(val));
     for (const auto& val : functionPropValues)
         daq::checkErrorInfo(Impl::setProtectedPropertyValue(String(val.first), val.second));
 

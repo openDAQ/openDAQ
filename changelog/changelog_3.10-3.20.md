@@ -29,6 +29,10 @@
 - [#596](https://github.com/openDAQ/openDAQ/pull/596) Adds a device info popup the the Python GUI application "Add device" dialog.
 
 ## Bug fixes
+
+- [#754](https://github.com/openDAQ/openDAQ/pull/754) Treat duplicate OPC-UA properties, with names that differ only in case, as warnings instead of fatal errors.
+- [#751](https://github.com/openDAQ/openDAQ/pull/751) Fix IPv6 addresses discovering on Windows, improve regex parsing of connection strings, fix LT pseudo-device IPv6 connection info
+- [#744](https://github.com/openDAQ/openDAQ/pull/744) Fix leaf device streaming misconfiguration on reconnection
 - [#740](https://github.com/openDAQ/openDAQ/pull/740) Fixes restoring connection signals to dynamic input ports of a function block while loading the configuration when the name of the new input does not match the old one.
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Fixes list/dictionary deserialization not containing key/value/item interface IDs. Requires server-side update.
 - [#731](https://github.com/openDAQ/openDAQ/pull/731) Fixes nested object access over OPC UA. Object properties original PropertyObject is now stored in PropertyObjectImpl; PropertyImpl now contains the clone.
@@ -48,10 +52,10 @@
 - [#615](https://github.com/openDAQ/openDAQ/pull/615) Add missing component `active` flag serialization.
 - [#590](https://github.com/openDAQ/openDAQ/pull/590) [#593](https://github.com/openDAQ/openDAQ/pull/593) Adds missing bcrypt installation and export rules.
 - [#669](https://github.com/openDAQ/openDAQ/pull/659) Fix building openDAQ on android, by removing multiple coping of loaded library to the final vector in ModuleManager constructor.
-- [#744](https://github.com/openDAQ/openDAQ/pull/744) Fix leaf device streaming misconfiguration on reconnection
 
 ## Misc
 
+- [#747](https://github.com/openDAQ/openDAQ/pull/747) Fixes CMake 4.0.0 compatibility, fixes ctutils library compilation yielding a Warning for lack of nullptr initialization, adds a CMake option to disable access control at compile time
 - [#738](https://github.com/openDAQ/openDAQ/pull/738) When clearing a property value, the PropertyValueArgs object obtained in the onWrite callback now contains the default value instead of an empty ptr.
 - [#728](https://github.com/openDAQ/openDAQ/pull/728) Add timeout on to re-scan after for available devices after 5s in the module manager call `createDevice`.
 - [#725](https://github.com/openDAQ/openDAQ/pull/725) Optimizes packet reading in the openDAQ Native Streaming server. Adds method of dequeuing packets directly into preallocated packet list. 
@@ -66,7 +70,6 @@
 - [#630](https://github.com/openDAQ/openDAQ/pull/630) The internal `Device` implementation function `ongetLogFileInfos()` was renamed to `onGetLogFileInfos()`. 
 - [#720](https://github.com/openDAQ/openDAQ/pull/720) Introduces additional performance optimizations for native streaming packet transmitting.
 - [#723](https://github.com/openDAQ/openDAQ/pull/723) Data path optimizations: no heap allocations on `sendPacket()`, remove dynamic casts on packet reader, use acquisition lock instead of recursive config lock on input port active getter, optimize packet construction, support for manual last value.
-- [#747](https://github.com/openDAQ/openDAQ/pull/747) Fixes CMake 4.0.0 compatibility, fixes ctutils library compilation yielding a Warning for lack of nullptr initialization, adds a CMake option to disable access control at compile time
 
 ## Required application changes
 
@@ -223,4 +226,11 @@ It now need to be extended to include the new mechanism:
 this->connectionStatusContainer.addConfigurationConnectionStatus(connectionString, statusInitValue);
 // ... and to update status:
 this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), value, nullptr);
+```
+
+Following methods of base streaming implementation moved from protected to private scope:
+
+```cpp
+    void startReconnection();
+    void completeReconnection();
 ```

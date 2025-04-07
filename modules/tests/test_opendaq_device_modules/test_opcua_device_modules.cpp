@@ -1366,3 +1366,39 @@ TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
 }
+
+TEST_F(OpcuaDeviceModulesTest, SaveLoadFunctionBlockConfig)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstance();
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0].getDevices()[0];
+
+        PropertyObjectPtr fbConfig = PropertyObject();
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+
+        auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
+
+        fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+        ASSERT_TRUE(fbConfig.assigned());
+        ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+        ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstance();
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto clientRoot = restoredClient.getDevices()[0].getDevices()[0];
+    
+    ASSERT_EQ(clientRoot.getFunctionBlocks().getCount(), 1u);
+
+    auto fb = clientRoot.getFunctionBlocks()[0];
+    auto fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(fbConfig.assigned());
+    ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+    ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
+}

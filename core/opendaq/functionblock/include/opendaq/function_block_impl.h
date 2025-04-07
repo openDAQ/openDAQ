@@ -83,7 +83,7 @@ public:
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
-    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
+    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 

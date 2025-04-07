@@ -136,7 +136,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 10);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 12);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -2633,6 +2633,141 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
     auto signal = fb.getInputPorts()[0].getSignal();
     ASSERT_TRUE(signal.assigned());
     ASSERT_EQ(signal.getGlobalId(), clientRefDevice.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
+}
+
+TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto client = CreateClientInstance();
+        
+        auto deviceConfig = client.createDefaultAddDeviceConfig();
+        deviceConfig.addProperty(StringProperty("TestKey", "TestValue"));
+        client.getDevices()[0].addDevice("daqref://device1", deviceConfig);
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices()[0].getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto deviceConfig = devices[0].asPtr<IDevicePrivate>(true).getDeviceConfig();
+    ASSERT_TRUE(deviceConfig.assigned());
+    ASSERT_TRUE(deviceConfig.hasProperty("TestKey"));
+    ASSERT_EQ(deviceConfig.getPropertyValue("TestKey"), "TestValue");
+}
+
+
+TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0];
+
+        auto fbConfig = PropertyObject();
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+
+        auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+    auto clientRoot = devices[0];
+
+    ASSERT_EQ(clientRoot.getFunctionBlocks().getCount(), 1u);
+
+    auto fb = clientRoot.getFunctionBlocks()[0];
+    auto fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(fbConfig.assigned());
+    ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+    ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
+}
+
+TEST_F(NativeDeviceModulesTest, DISABLED_SaveLoadDeviceInfoChanged)
+{
+    StringPtr config;
+    {
+        auto logger = Logger();
+        auto scheduler = Scheduler(logger);
+        auto moduleManager = ModuleManager("");
+        auto typeManager = TypeManager();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, AuthenticationProvider());
+        auto rootDeviceInfo = DeviceInfoWithChanegableFields({"manufacturer", "location", "position", "model"});
+
+        auto server = InstanceBuilder().setContext(context).setDefaultRootDeviceInfo(rootDeviceInfo).build();
+        server.addServer("OpenDAQNativeStreaming", nullptr);
+
+        auto serverDeviceInfoConfig = server.getRootDevice().getInfo();
+        serverDeviceInfoConfig.addProperty(StringProperty("NewTestProperty1", "TestValue"));
+
+        auto client = CreateClientInstance();
+        auto clientDevice = client.getDevices()[0];
+
+        auto deviceInfoConfig = clientDevice.getInfo().asPtr<IDeviceInfoConfig>();
+        ASSERT_NO_THROW(deviceInfoConfig.setName("NewDeviceName"));
+
+        // modify changeable fields
+        EXPECT_NO_THROW(deviceInfoConfig.setManufacturer("NewManufacturerName"));
+        EXPECT_NO_THROW(deviceInfoConfig.setLocation("NewLocation"));
+        EXPECT_NO_THROW(deviceInfoConfig.setPosition(123));
+        EXPECT_NO_THROW(deviceInfoConfig.setModel("NewModelName"));
+        EXPECT_ANY_THROW(deviceInfoConfig.setHardwareRevision("1.2.3"));
+        EXPECT_NO_THROW(deviceInfoConfig.setPropertyValue("NewTestProperty1", "NewTestValue"));
+
+        // test modified fields
+        EXPECT_EQ(deviceInfoConfig.getManufacturer(), "NewManufacturerName");
+        EXPECT_EQ(deviceInfoConfig.getLocation(), "NewLocation");
+        EXPECT_EQ(deviceInfoConfig.getPosition(), 123);
+        EXPECT_EQ(deviceInfoConfig.getModel(), "NewModelName");
+        EXPECT_NE(deviceInfoConfig.getHardwareRevision(), "1.2.3");
+        EXPECT_EQ(deviceInfoConfig.getPropertyValue("NewTestProperty1"), "NewTestValue");
+
+        // should throw exception as new properties cannot be added via native
+        EXPECT_ANY_THROW(deviceInfoConfig.addProperty(StringProperty("NewTestProperty2", "TestValue"))); // doesn't throw
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstance();
+
+    auto restoredClient = Instance();
+    EXPECT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    EXPECT_EQ(devices.getCount(), 1u);
+    auto clientDevice = devices[0];
+
+    auto restoreDeviceInfoConfig = clientDevice.getInfo().asPtr<IDeviceInfoConfig>();
+
+    // test if previously applied changes restored
+    EXPECT_EQ(restoreDeviceInfoConfig.getName(), "NewDeviceName");
+    EXPECT_EQ(restoreDeviceInfoConfig.getManufacturer(), "NewManufacturerName");
+    EXPECT_EQ(restoreDeviceInfoConfig.getLocation(), "NewLocation");
+    EXPECT_EQ(restoreDeviceInfoConfig.getPosition(), 123);
+    EXPECT_EQ(restoreDeviceInfoConfig.getModel(), "NewModelName");
+    EXPECT_TRUE(restoreDeviceInfoConfig.hasProperty("NewTestProperty1")); // failed
+    // EXPECT_EQ(restoreDeviceInfoConfig.getPropertyValue("NewTestProperty1"), "NewTestValue"); // throw
+
+    // test if changeability of fields restored
+    EXPECT_NO_THROW(restoreDeviceInfoConfig.setManufacturer("NewManufacturerName2"));
+    EXPECT_NO_THROW(restoreDeviceInfoConfig.setLocation("NewLocation2"));
+    EXPECT_NO_THROW(restoreDeviceInfoConfig.setPosition(1234));
+    EXPECT_NO_THROW(restoreDeviceInfoConfig.setModel("NewModelName2"));
+    EXPECT_ANY_THROW(restoreDeviceInfoConfig.setHardwareRevision("2.0.0"));
+    EXPECT_ANY_THROW(restoreDeviceInfoConfig.setPropertyValue("NewTestProperty1", "NewTestValue2"));
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)

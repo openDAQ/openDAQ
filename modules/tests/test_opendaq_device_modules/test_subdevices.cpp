@@ -361,3 +361,80 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::WebsocketStreaming, StreamingProtocolType::NativeStreaming)
     )
 );
+
+class SubDevicesReconnectionTest : public SubDevicesTest
+{
+};
+
+TEST_P(SubDevicesReconnectionTest, LeafStreamingToClientAfterReconnect)
+{
+    SKIP_TEST_MAC_CI;
+    auto subdevice1 = CreateSubdeviceInstance(1u);
+    auto subdevice2 = CreateSubdeviceInstance(2u);
+    auto gateway = CreateGatewayInstance();
+    auto client = CreateClientInstance(MIN_HOPS);
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+
+    auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
+    auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
+    ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
+
+    for (size_t index = 0; index < clientSignals.getCount(); ++index)
+    {
+        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u);
+        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
+        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
+        ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
+                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
+    }
+    gatewaySignals.clear();
+
+    std::promise<StringPtr> reconnectionStatusPromise;
+    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged &&
+            args.getParameters().get("StatusName") == "ConfigurationStatus")
+            reconnectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
+    };
+
+    gateway.release();
+
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Reconnecting");
+
+    // reset future / promise
+    reconnectionStatusPromise = std::promise<StringPtr>();
+    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+
+    // recreate gateway and auto-reconnect
+    gateway = CreateGatewayInstance();
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+
+    // test streaming sources again
+    gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
+    for (size_t index = 0; index < clientSignals.getCount(); ++index)
+    {
+        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u);
+        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
+        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
+        ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
+                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    SubDevicesReconnectionTestGroup,
+    SubDevicesReconnectionTest,
+    testing::Values(
+        std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::NativeStreaming, StreamingProtocolType::NativeStreaming)
+    )
+);

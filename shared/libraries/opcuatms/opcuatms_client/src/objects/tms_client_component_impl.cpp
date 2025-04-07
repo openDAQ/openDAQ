@@ -1,12 +1,12 @@
 #include <opcuatms_client/objects/tms_client_component_impl.h>
 #include <opcuatms_client/objects/tms_client_tags_factory.h>
+#include <opcuatms_client/objects/tms_client_property_object_factory.h>
 #include <opendaq/mirrored_device_impl.h>
 #include <opendaq/folder_impl.h>
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/mirrored_signal_impl.h>
 #include <opendaq/input_port_impl.h>
 #include <opendaq/sync_component_impl.h>
-
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 using namespace daq::opcua;
@@ -205,6 +205,18 @@ bool TmsClientComponentBaseImpl<Impl>::isChildComponent(const ComponentPtr& comp
     } while (currentComponent.assigned());
 
     return false;
+}
+
+template <class Impl>
+PropertyObjectPtr TmsClientComponentBaseImpl<Impl>::findAndCreateComponentConfig()
+{
+    PropertyObjectPtr componentConfig;
+    if (const auto& objIt = this->objectTypeIdMap.find("ComponentConfig"); objIt != this->objectTypeIdMap.cend())
+    {
+        componentConfig = TmsClientPropertyObject(this->daqContext, this->clientContext, objIt->second);
+        this->objectTypeIdMap.erase(objIt);
+    }
+    return componentConfig;
 }
 
 template class TmsClientComponentBaseImpl<ComponentImpl<IComponent, ITmsClientComponent>>;

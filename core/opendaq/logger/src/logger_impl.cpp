@@ -129,7 +129,7 @@ ErrCode LoggerImpl::addComponent(IString* name, ILoggerComponent** component)
         {
             return DAQ_MAKE_ERROR_INFO(
                 OPENDAQ_ERR_ALREADYEXISTS,
-                ("Can't add LoggerComponent with already existsted name ["+toStdString(name)+"]").c_str()
+                "Can't add LoggerComponent with already existent name [" + toStdString(name) + "]"
             );
         }
     }

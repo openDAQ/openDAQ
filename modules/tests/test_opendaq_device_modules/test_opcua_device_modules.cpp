@@ -231,7 +231,11 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
         GTEST_SKIP() << "Ipv6 is disabled";
     }
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo).addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discoveryReachabilityAfterConnectIPv6/";
     serverConfig.setPropertyValue("Path", path);
@@ -299,7 +303,11 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         GTEST_SKIP() << "Ipv6 is disabled";
     }
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo).addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discoveryReachabilityAfterConnect/";
     serverConfig.setPropertyValue("Path", path);

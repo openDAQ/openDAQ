@@ -835,7 +835,11 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     if (test_helpers::Ipv6IsDisabled())
         return;
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceInfo(deviceInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configurator/discovery_reachability_after_connect_ipv6/";
     serverConfig.setPropertyValue("Path", path);
@@ -906,7 +910,11 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
     if (test_helpers::Ipv6IsDisabled())
         return;
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo).addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configurator/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);

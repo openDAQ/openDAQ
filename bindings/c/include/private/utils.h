@@ -18,6 +18,8 @@
 
 #include "ccommon.h"
 
+#include <opendaq/opendaq.h>
+
 namespace daq
 {
 struct IntfID;
@@ -26,4 +28,6 @@ struct IntfID;
 namespace copendaq::utils
 {
 daq::IntfID toDaqIntfId(IntfID id);
+daq::PropertyEventType toDaqPropertyEventType(PropertyEventType type);
+PropertyEventType toCPropertyEventType(daq::PropertyEventType type);
 }

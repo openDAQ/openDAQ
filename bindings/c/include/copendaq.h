@@ -60,6 +60,31 @@ extern "C"
 
 #include "ccoretypes/factories.h"
 
+#include "ccoreobjects/argument_info.h"
+#include "ccoreobjects/authentication_provider.h"
+#include "ccoreobjects/callable_info.h"
+#include "ccoreobjects/coercer.h"
+#include "ccoreobjects/common.h"
+#include "ccoreobjects/core_event_args.h"
+#include "ccoreobjects/end_update_event_args.h"
+#include "ccoreobjects/eval_value.h"
+#include "ccoreobjects/ownable.h"
+#include "ccoreobjects/permission_manager.h"
+#include "ccoreobjects/permission_mask_builder.h"
+#include "ccoreobjects/permissions.h"
+#include "ccoreobjects/permissions_builder.h"
+#include "ccoreobjects/property.h"
+#include "ccoreobjects/property_builder.h"
+#include "ccoreobjects/property_object.h"
+#include "ccoreobjects/property_object_class.h"
+#include "ccoreobjects/property_object_class_builder.h"
+#include "ccoreobjects/property_object_protected.h"
+#include "ccoreobjects/property_value_event_args.h"
+#include "ccoreobjects/unit.h"
+#include "ccoreobjects/unit_builder.h"
+#include "ccoreobjects/user.h"
+#include "ccoreobjects/validator.h"
+
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,9 @@
 #include <copendaq.h>
 #include <gtest/gtest.h>
+#include "ccommon.h"
+#include "ccoretypes/base_object.h"
+#include "ccoretypes/event.h"
+#include "ccoretypes/event_handler.h"
 
 using CCoretypesTest = testing::Test;
 
@@ -193,8 +197,28 @@ TEST_F(CCoretypesTest, EventArgs)
     BaseObject_releaseRef(args);
 }
 
+static Bool eventCalled = False;
+static void onEvent(BaseObject* sender, BaseObject* args)
+{
+    eventCalled = True;
+    BaseObject_releaseRef(sender);
+    BaseObject_releaseRef(args);
+}
+
 TEST_F(CCoretypesTest, EventHandler)
 {
+    EventHandler* eh = nullptr;
+    BaseObject* sender = nullptr;
+    BaseObject_create(&sender);
+    BaseObject* args = nullptr;
+    BaseObject_create(&args);
+    EventHandler_createEventHandler(&eh, onEvent);
+    EventHandler_handleEvent(eh, sender, (EventArgs*)args);
+    ASSERT_EQ(eventCalled, True);
+
+    BaseObject_releaseRef(sender);
+    BaseObject_releaseRef(args);
+    BaseObject_releaseRef(eh);
 }
 
 TEST_F(CCoretypesTest, Float)

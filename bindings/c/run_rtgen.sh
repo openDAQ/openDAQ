@@ -222,6 +222,100 @@ run_rtgen ccoretypes corecontainers coretypes listobject listobject
 # run_rtgen ccoretypes corecontainers coretypes listobject_impl listobject_impl
 # run_rtgen ccoretypes corecontainers coretypes listptr listptr
 
+#core objects
+
+run_rtgen ccoreobjects coreobjects coreobjects argument_info argument_info
+# run_rtgen ccoreobjects coreobjects coreobjects argument_info_factory argument_info_factory
+# run_rtgen ccoreobjects coreobjects coreobjects argument_info_impl argument_info_impl
+run_rtgen ccoreobjects coreobjects coreobjects authentication_provider authentication_provider
+# run_rtgen ccoreobjects coreobjects coreobjects authentication_provider_factory authentication_provider_factory
+# run_rtgen ccoreobjects coreobjects coreobjects authentication_provider_impl authentication_provider_impl
+run_rtgen ccoreobjects coreobjects coreobjects callable_info callable_info
+# run_rtgen ccoreobjects coreobjects coreobjects callable_info_factory callable_info_factory
+# run_rtgen ccoreobjects coreobjects coreobjects callable_info_impl callable_info_impl
+run_rtgen ccoreobjects coreobjects coreobjects coercer coercer
+# run_rtgen ccoreobjects coreobjects coreobjects coercer_factory coercer_factory
+# run_rtgen ccoreobjects coreobjects coreobjects coercer_impl coercer_impl
+run_rtgen ccoreobjects coreobjects coreobjects core_event_args core_event_args
+# run_rtgen ccoreobjects coreobjects coreobjects core_event_args_factory core_event_args_factory
+# run_rtgen ccoreobjects coreobjects coreobjects core_event_args_ids core_event_args_ids
+# run_rtgen ccoreobjects coreobjects coreobjects core_event_args_impl core_event_args_impl
+# run_rtgen ccoreobjects coreobjects coreobjects coreobjects coreobjects !!!!!
+# run_rtgen ccoreobjects coreobjects coreobjects coreobjects_config.h. coreobjects_config.h. !!!!
+run_rtgen ccoreobjects coreobjects coreobjects end_update_event_args end_update_event_args
+# run_rtgen ccoreobjects coreobjects coreobjects end_update_event_args_factory end_update_event_args_factory
+# run_rtgen ccoreobjects coreobjects coreobjects end_update_event_args_impl end_update_event_args_impl
+# run_rtgen ccoreobjects coreobjects coreobjects errors errors !!!!!!
+# run_rtgen ccoreobjects coreobjects coreobjects eval_nodes eval_nodes
+run_rtgen ccoreobjects coreobjects coreobjects eval_value eval_value
+# run_rtgen ccoreobjects coreobjects coreobjects eval_value_factory eval_value_factory
+# run_rtgen ccoreobjects coreobjects coreobjects eval_value_helpers eval_value_helpers
+# run_rtgen ccoreobjects coreobjects coreobjects eval_value_impl eval_value_impl
+# run_rtgen ccoreobjects coreobjects coreobjects eval_value_lexer eval_value_lexer
+# run_rtgen ccoreobjects coreobjects coreobjects eval_value_parser eval_value_parser
+# run_rtgen ccoreobjects coreobjects coreobjects exceptions exceptions
+# run_rtgen ccoreobjects coreobjects coreobjects object_keys object_keys
+# run_rtgen ccoreobjects coreobjects coreobjects object_lock_guard object_lock_guard
+run_rtgen ccoreobjects coreobjects coreobjects ownable ownable
+# run_rtgen ccoreobjects coreobjects coreobjects owning_dict_factory owning_dict_factory
+# run_rtgen ccoreobjects coreobjects coreobjects owning_dict_impl owning_dict_impl
+# run_rtgen ccoreobjects coreobjects coreobjects owning_list_factory owning_list_factory
+# run_rtgen ccoreobjects coreobjects coreobjects owning_list_impl owning_list_impl
+run_rtgen ccoreobjects coreobjects coreobjects permission_manager permission_manager
+# run_rtgen ccoreobjects coreobjects coreobjects permission_manager_factory permission_manager_factory
+# run_rtgen ccoreobjects coreobjects coreobjects permission_manager_impl permission_manager_impl
+# run_rtgen ccoreobjects coreobjects coreobjects permission_manager_internal permission_manager_internal
+run_rtgen ccoreobjects coreobjects coreobjects permission_mask_builder permission_mask_builder
+# run_rtgen ccoreobjects coreobjects coreobjects permission_mask_builder_factory permission_mask_builder_factory
+# run_rtgen ccoreobjects coreobjects coreobjects permission_mask_builder_impl permission_mask_builder_impl
+run_rtgen ccoreobjects coreobjects coreobjects permissions permissions
+run_rtgen ccoreobjects coreobjects coreobjects permissions_builder permissions_builder
+# run_rtgen ccoreobjects coreobjects coreobjects permissions_builder_factory permissions_builder_factory
+# run_rtgen ccoreobjects coreobjects coreobjects permissions_builder_impl permissions_builder_impl
+# run_rtgen ccoreobjects coreobjects coreobjects permissions_impl permissions_impl
+# run_rtgen ccoreobjects coreobjects coreobjects permissions_internal permissions_internal
+run_rtgen ccoreobjects coreobjects coreobjects property property
+run_rtgen ccoreobjects coreobjects coreobjects property_builder property_builder
+# run_rtgen ccoreobjects coreobjects coreobjects property_builder_impl property_builder_impl
+# run_rtgen ccoreobjects coreobjects coreobjects property_factory property_factory
+# run_rtgen ccoreobjects coreobjects coreobjects property_impl property_impl
+# run_rtgen ccoreobjects coreobjects coreobjects property_internal property_internal
+run_rtgen ccoreobjects coreobjects coreobjects property_object property_object
+run_rtgen ccoreobjects coreobjects coreobjects property_object_class property_object_class
+run_rtgen ccoreobjects coreobjects coreobjects property_object_class_builder property_object_class_builder
+# run_rtgen ccoreobjects coreobjects coreobjects property_object_class_builder_impl property_object_class_builder_impl
+# run_rtgen ccoreobjects coreobjects coreobjects property_object_class_factory property_object_class_factory
+# run_rtgen ccoreobjects coreobjects coreobjects property_object_class_impl property_object_class_impl
+# run_rtgen ccoreobjects coreobjects coreobjects property_object_factory property_object_factory
+# run_rtgen ccoreobjects coreobjects coreobjects property_object_impl property_object_impl
+# run_rtgen ccoreobjects coreobjects coreobjects property_object_internal property_object_internal
+run_rtgen ccoreobjects coreobjects coreobjects property_object_protected property_object_protected
+# run_rtgen ccoreobjects coreobjects coreobjects property_object_ptr.custom property_object_ptr.custom
+# run_rtgen ccoreobjects coreobjects coreobjects property_ptr.fwd_declare property_ptr.fwd_declare
+# run_rtgen ccoreobjects coreobjects coreobjects property_value property_value
+
+# enum collisions should be manually converted
+# run_rtgen ccoreobjects coreobjects coreobjects property_value_event_args property_value_event_args  
+
+# run_rtgen ccoreobjects coreobjects coreobjects property_value_event_args_factory property_value_event_args_factory
+# run_rtgen ccoreobjects coreobjects coreobjects property_value_event_args_impl property_value_event_args_impl
+# run_rtgen ccoreobjects coreobjects coreobjects serialization_utils serialization_utils
+# run_rtgen ccoreobjects coreobjects coreobjects serializer_factory serializer_factory
+run_rtgen ccoreobjects coreobjects coreobjects unit unit
+run_rtgen ccoreobjects coreobjects coreobjects unit_builder unit_builder
+# run_rtgen ccoreobjects coreobjects coreobjects unit_builder_impl unit_builder_impl
+# run_rtgen ccoreobjects coreobjects coreobjects unit_factory unit_factory
+# run_rtgen ccoreobjects coreobjects coreobjects unit_impl unit_impl
+run_rtgen ccoreobjects coreobjects coreobjects user user
+# run_rtgen ccoreobjects coreobjects coreobjects user_factory user_factory
+# run_rtgen ccoreobjects coreobjects coreobjects user_impl user_impl
+# run_rtgen ccoreobjects coreobjects coreobjects user_internal user_internal
+# run_rtgen ccoreobjects coreobjects coreobjects util util
+run_rtgen ccoreobjects coreobjects coreobjects validator validator
+# run_rtgen ccoreobjects coreobjects coreobjects validator_factory validator_factory
+# run_rtgen ccoreobjects coreobjects coreobjects validator_impl validator_impl
+# run_rtgen ccoreobjects coreobjects coreobjects version version
+
 
 
 

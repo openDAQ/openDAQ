@@ -974,7 +974,7 @@ TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
     }
 }
 
-TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
+TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -992,6 +992,27 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPort(), 4840);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://127.0.0.1");
+}
+
+TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.opcua://[::1]");
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQOPCUAConfiguration");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQOPCUA");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
+    ASSERT_EQ(connectionInfo.getPort(), 4840);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://[::1]");
 }
 
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)

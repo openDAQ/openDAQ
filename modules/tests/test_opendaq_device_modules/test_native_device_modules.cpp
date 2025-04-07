@@ -2073,11 +2073,12 @@ TEST_F(NativeDeviceModulesTest, Update)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
+TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = Instance();
+    client.addDevice("daq.nd://127.0.0.1", nullptr);
 
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
@@ -2091,6 +2092,27 @@ TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPort(), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://127.0.0.1");
+}
+
+TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.nd://[::1]", nullptr);
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://[::1]");
 }
 
 TEST_F(NativeDeviceModulesTest, TestAddressInfoIPv4)

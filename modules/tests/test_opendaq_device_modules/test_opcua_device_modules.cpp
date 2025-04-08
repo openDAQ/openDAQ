@@ -235,7 +235,10 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     deviceInfo.setManufacturer("openDAQ");
     deviceInfo.setSerialNumber("TestSerial");
 
-    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo).addDiscoveryServer("mdns").build();
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo)
+                                     .addDiscoveryServer("mdns")
+                                     .build();
+
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discoveryReachabilityAfterConnectIPv6/";
     serverConfig.setPropertyValue("Path", path);
@@ -244,7 +247,8 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
     auto client = Instance();
     // client.getAvailableDevices();
-    DevicePtr device = client.addDevice(std::string("daq.opcua://[::1]") + path);
+    StringPtr deviceConnectionString = std::string("daq.opcua://[::1]") + path;
+    DevicePtr device = client.addDevice(deviceConnectionString);
 
     ASSERT_TRUE(device.assigned());
 
@@ -258,20 +262,20 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
         ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
 
-        for (const auto & info : capability.getAddressInfo())
+        auto addresses = capability.getAddresses();
+        for (size_t i = 0; i < addresses.getCount(); ++i)
         {
+            const auto& info = capability.getAddressInfo()[i];
             if (info.getType() != "IPv6")
                 continue;
-
-            ASSERT_EQ(info.getConnectionString(), capability.getConnectionStrings()[0]);
-            ASSERT_EQ(info.getAddress(), capability.getAddresses()[0]);
-
+            
+            ASSERT_EQ(info.getConnectionString(), deviceConnectionString);
             ASSERT_EQ(info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-
+            ASSERT_EQ(info.getConnectionString(), capability.getConnectionStrings()[i]);
             return;
         }
     }
-    ASSERT_TRUE(false) << "OpcUa server capability with ipv6 address not found"; 
+    ASSERT_TRUE(false) << "OpcUa server capability with ipv6 address not found";
 }
 
 #endif

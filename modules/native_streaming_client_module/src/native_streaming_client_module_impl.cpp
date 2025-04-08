@@ -425,6 +425,17 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
                   .addAddressInfo(addressInfo)
                   .freeze();
 
+    for (const auto& capability : device.getInfo().getServerCapabilities())
+    {
+        if (capability.getProtocolId() == protocolId)
+        {
+            auto capConf = capability.asPtr<IServerCapabilityConfig>(true);
+            capConf.addAddressInfo(addressInfo);
+            capConf.addConnectionString(connectionString);
+            break;
+        }
+    }
+
     return device;
 }
 

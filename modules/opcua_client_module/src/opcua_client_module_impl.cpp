@@ -131,6 +131,7 @@ void OpcUaClientModule::completeServerCapabilities(const DevicePtr& device, cons
             if (capability.getProtocolId() == DaqOpcUaDeviceTypeId)
             {
                 capConf.addAddressInfo(deviceAddress);
+                capConf.addConnectionString(deviceAddress.getConnectionString());
             }
         }
     }

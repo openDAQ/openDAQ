@@ -849,7 +849,8 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     auto client = Instance();
     // client.getAvailableDevices(); // TODO: won't work with prefix which is not `daq://`
     // daq://[::1]/path.../ wont work as well because will be found daq://127.0.0.1/path.../ or similar
-    DevicePtr device = client.addDevice(std::string("daq.nd://[::1]") + path);
+    StringPtr deviceConnectionString = std::string("daq.nd://[::1]") + path;
+    DevicePtr device = client.addDevice(deviceConnectionString);
 
     ASSERT_TRUE(device.assigned());
 
@@ -863,26 +864,25 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
         if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
         {
-            const auto ipv6Info = capability.getAddressInfo()[0];
-            // ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-            
-            // ASSERT_EQ(ipv4Info.getType(), "IPv4");
-            ASSERT_EQ(ipv6Info.getType(), "IPv6");
-
-            // ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[0]);
-            
-            // ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[0]);
-            return;
+            auto addresses = capability.getAddresses();
+            for (size_t i = 0; i < addresses.getCount(); ++i)
+            {
+                const auto& info = capability.getAddressInfo()[i];
+                if (info.getType() != "IPv6")
+                    continue;
+                
+                ASSERT_EQ(info.getConnectionString(), deviceConnectionString);
+                ASSERT_EQ(info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                ASSERT_EQ(info.getConnectionString(), capability.getConnectionStrings()[i]);
+                return;
+            }
         }
         else
         {
             ASSERT_EQ(capability.getProtocolName(), "OpenDAQNativeStreaming");
         }
     }
-    ASSERT_TRUE(false) << "Device not found";
+    ASSERT_TRUE(false) << "Native streaming server capability with ipv6 address not found";
 }
 
 #endif

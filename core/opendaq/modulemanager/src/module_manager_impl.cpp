@@ -1616,6 +1616,32 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const S
             continue;
         }
 
+        if (name == "ConnectionStrings")
+        {
+            auto mergedConnectionStrings = merged.getConnectionStrings();
+            for (const auto& connectionString : discoveryCap.getConnectionStrings())
+            {
+                bool found = false;
+                for (const auto& mergedConnectionString : mergedConnectionStrings)
+                {
+                    if (connectionString == mergedConnectionString)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    merged.addConnectionString(connectionString);
+            }
+            continue;
+        }
+
+        if (name == "PrimaryConnectionString")
+        {
+            if (merged.getConnectionString().getLength() != 0)
+                continue;
+        }
+
         const auto val = discoveryCap.getPropertyValue(name);
         if (val == prop.getDefaultValue())
             continue;

@@ -82,7 +82,7 @@ void addInfoProperty(PropertyObjectPtr& info, std::string propName, T propValue)
 
 void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info,
                                                        const MdnsDiscoveredDevice& device,
-                                                       const PropertyObjectPtr& defaultConnectedClientInfo)
+                                                       const PropertyObjectPtr& defaultConnectedClientInfo = nullptr)
 {
     for (const auto& prop : device.properties)
     {

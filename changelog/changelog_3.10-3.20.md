@@ -237,17 +237,25 @@ Following methods of base streaming implementation moved from protected to priva
 
 ### [#730](https://github.com/openDAQ/openDAQ/pull/730) Provide list of connected clients info via DeviceInfo.
 
-Updates the openDAQ discovery client API, making it necessary to pass a default-constructed `ConnectedClientInfoPtr` object as an additional parameter into `DiscoveryClient::populateDiscoveredInfoProperties`.
+Updates the openDAQ discovery client API and base Module implementation, providing helper method populateDiscoveredDeviceInfo to create discovered DeviceInfo and populate its properties.
 
 Therefore, the following module implementation snippet should be modified as follows:
 
 ```diff
 DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
+-   PropertyObjectPtr deviceInfo = DeviceInfo("");
 -   DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-+   DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice, ConnectedClientInfo());
+
+    auto cap = ServerCapability(...);
     ...
-    return deviceInfo;
+
+-   deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+-   deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
+-   deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
+
+-   return deviceInfo;
+
++   return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
 ```

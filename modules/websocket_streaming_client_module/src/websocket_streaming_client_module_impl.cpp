@@ -8,7 +8,6 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <regex>
-#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
@@ -289,9 +288,6 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 
 DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice, ConnectedClientInfo());
-
     auto cap = ServerCapability(WebsocketDeviceTypeId, "OpenDAQLTStreaming", ProtocolType::Streaming);
 
     if (!discoveredDevice.ipv4Address.empty())
@@ -335,11 +331,7 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType(false));
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createWebsocketDeviceType(false));
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE

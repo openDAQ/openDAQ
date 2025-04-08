@@ -243,8 +243,8 @@ void StreamingClient::parseConnectionString(const std::string& url)
     std::smatch match;
 
     // parsing connection string to four groups: prefix, host, port, path
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(?:\[([a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?)\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.+://)(\[[a-fA-F0-9:]+(?:%.+)?\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
     bool parsed = false;
     parsed = std::regex_search(url, match, regexIpv6Hostname);

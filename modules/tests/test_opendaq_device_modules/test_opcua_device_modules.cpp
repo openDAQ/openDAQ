@@ -257,23 +257,21 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
             break;
 
         ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
-        // const auto ipv4Info = capability.getAddressInfo()[0];
-        const auto ipv6Info = capability.getAddressInfo()[0];
 
-        // ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-        ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-        
-        // ASSERT_EQ(ipv4Info.getType(), "IPv4");
-        ASSERT_EQ(ipv6Info.getType(), "IPv6");
+        for (const auto & info : capability.getAddressInfo())
+        {
+            if (info.getType() != "IPv6")
+                continue;
 
-        // ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-        ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[0]);
-        
-        // ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-        ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[0]);
-        return;
+            ASSERT_EQ(info.getConnectionString(), capability.getConnectionStrings()[0]);
+            ASSERT_EQ(info.getAddress(), capability.getAddresses()[0]);
+
+            ASSERT_EQ(info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+
+            return;
+        }
     }
-    ASSERT_TRUE(false) << "Device not found"; 
+    ASSERT_TRUE(false) << "OpcUa server capability with ipv6 address not found"; 
 }
 
 #endif

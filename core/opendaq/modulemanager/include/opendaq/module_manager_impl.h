@@ -96,8 +96,8 @@ private:
     static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
     AddressInfoPtr findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
-                                              const AddressInfoPtr& deviceConnectionAddress,
-                                              const StringPtr& primaryAddressType);
+                                        const AddressInfoPtr& deviceConnectionAddress,
+                                        StringPtr primaryAddressType);
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
     static bool isValidConnectionAddressType(const StringPtr& connectionAddressType);
     void configureStreamings(const MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);

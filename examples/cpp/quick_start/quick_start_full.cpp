@@ -18,8 +18,19 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         if (deviceInfo.getName() == "Reference device simulator")
         {
-            device = instance.addDevice(deviceInfo.getConnectionString());
-            break; 
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                for (const auto& address : capability.getAddressInfo())
+                {
+                    if (address.getType() == "IPv6")
+                    {
+                        std::cout << "Connecting to " << address.getConnectionString() << std::endl;
+                        device = instance.addDevice(address.getConnectionString());
+                        break; 
+                    }
+                }
+            }
+            
         }        
     }
 

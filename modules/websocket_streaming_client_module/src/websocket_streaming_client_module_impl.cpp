@@ -242,17 +242,13 @@ PropertyObjectPtr WebsocketStreamingClientModule::createDefaultConfig()
 
 StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    if (!config.assigned() || !config.hasProperty("Port"))
-        return connectionString;
-
-    int port = config.getPropertyValue("Port");
-    if (port == 7414)
-        return connectionString;
+    int port = 7414;   
+    if (config.assigned() && config.hasProperty("Port"))
+        port = config.getPropertyValue("Port");
 
     std::string urlString = connectionString.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.+://)(\[[a-fA-F0-9:]+(?:%.+)?\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
     std::string host = "";
@@ -270,7 +266,10 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
     {
         prefix = match[1];
         host = match[2];
-        
+
+        if (match[3].matched)
+            port = std::stoi(match[3]);
+
         if (match[4].matched)
             path = match[4];
 

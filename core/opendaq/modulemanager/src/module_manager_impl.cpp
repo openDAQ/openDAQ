@@ -23,17 +23,17 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <optional>
 #include <map>
-#include "opendaq/logger_factory.h"
+#include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/property_internal_ptr.h>
-#include <coreobjects/property_object_internal.h>
+#include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/network_interface_factory.h>
 
-#include "opendaq/thread_name.h"
+#include <opendaq/thread_name.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -1017,9 +1017,9 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
     if (!types.assigned())
         return nullptr;
 
-    for (auto const& [typeId, type] : types)
+    for (auto const& [_, type] : types)
     {
-        if (type.getConnectionStringPrefix()== prefix)
+        if (type.getConnectionStringPrefix() == prefix)
             return type;
     }
 
@@ -1086,18 +1086,16 @@ AddressInfoPtr ModuleManagerImpl::getDeviceConnectionAddress(const DevicePtr& de
 
 AddressInfoPtr ModuleManagerImpl::findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
                                                        const AddressInfoPtr& deviceConnectionAddress,
-                                                       const StringPtr& primaryAddressType)
+                                                       StringPtr primaryAddressType)
 {
+    // if primaryAddressType is not set, use the device connection address type
+    if (!isValidConnectionAddressType(primaryAddressType) && deviceConnectionAddress.assigned())
+    {
+        primaryAddressType = deviceConnectionAddress.getType(); 
+    }
+
     if (isValidConnectionAddressType(primaryAddressType)) // restrict by connection address type
     {
-        // Attempt to reuse the address of device connection if it meets type constraints
-        if (deviceConnectionAddress.assigned() && deviceConnectionAddress.getType() == primaryAddressType)
-        {
-            for (const auto& addressInfo : availableAddresses)
-                if (addressInfo.getAddress() == deviceConnectionAddress.getAddress())
-                    return addressInfo;
-        }
-
         // If the device connection address is unavailable for streaming, search for any address matching type constraints
         for (const auto& addressInfo : availableAddresses)
         {
@@ -1154,14 +1152,14 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
     // connect via all allowed streaming protocols
     for (const auto& cap : device.getInfo().getServerCapabilities())
     {
-        LOG_D("Device {} has capability: name [{}] id [{}] string [{}] prefix [{}]",
+        LOG_I("Device {} has capability: name [{}] id [{}] string [{}] prefix [{}]",
               device.getGlobalId(),
               cap.getProtocolName(),
               cap.getProtocolId(),
               cap.getConnectionString(),
               cap.getPrefix());
 
-        const StringPtr protocolId = cap.getPropertyValue("protocolId");
+        const StringPtr protocolId = cap.getProtocolId();
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
@@ -1564,24 +1562,65 @@ ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabil
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
                                                                          const ServerCapabilityPtr& deviceCap)
 {
-    auto merged = ServerCapability(deviceCap.getProtocolId(), deviceCap.getProtocolName(), deviceCap.getProtocolType());
-    const auto caps = List<IServerCapability>(deviceCap, discoveryCap);
+    ServerCapabilityConfigPtr merged = deviceCap.asPtr<IPropertyObjectInternal>(true).clone();
 
-    for (const auto& cap : caps)
-        for (const auto& prop : cap.getAllProperties())
+    auto c = deviceCap.getAddressInfo();
+    
+    for (const auto& prop : discoveryCap.getAllProperties())
+    {
+        const auto name = prop.getName();
+
+        if (!merged.hasProperty(name))
         {
-            const auto name = prop.getName();
-            const auto val = cap.getPropertyValue(name);
-            const bool hasProp = merged.hasProperty(name);
-            
-            if (val == prop.getDefaultValue() && hasProp)
-                continue;
-
-            if (hasProp)
-                merged.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, val);
-            else
-                merged.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+            merged.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+            continue;
         }
+
+        if (name == "Addresses")
+        {
+            auto mergedAddresses = merged.getAddresses();
+            for (const auto& address : discoveryCap.getAddresses())
+            {
+                bool found = false;
+                for (const auto& mergedAddress : mergedAddresses)
+                {
+                    if (address == mergedAddress)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    merged.addAddress(address);
+            }
+            continue;
+        }
+
+        if (name == "AddressInfo")
+        {
+            auto mergedAddressInfos = merged.getAddressInfo();
+            for (const auto& addressInfo : discoveryCap.getAddressInfo())
+            {
+                bool found = false;
+                for (const auto& mergedAddressInfo : mergedAddressInfos)
+                {
+                    if (addressInfo.getAddress() == mergedAddressInfo.getAddress())
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    merged.addAddressInfo(addressInfo);
+            }
+            continue;
+        }
+
+        const auto val = discoveryCap.getPropertyValue(name);
+        if (val == prop.getDefaultValue())
+            continue;
+        merged.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(name, val);
+    }
 
     merged.freeze();
     return merged.detach();

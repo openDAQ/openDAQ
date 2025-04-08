@@ -88,7 +88,6 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
 
     TmsClient client(context, parent, endpoint);
     auto device = client.connect();
-    completeServerCapabilities(device, host);
 
     // Set the connection info for the device
     DeviceInfoPtr deviceInfo = device.getInfo();
@@ -112,18 +111,27 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                   .addAddressInfo(addressInfo)
                   .freeze();
 
+    completeServerCapabilities(device, addressInfo);
+
     return device;
 }
 
-void OpcUaClientModule::completeServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress)
+void OpcUaClientModule::completeServerCapabilities(const DevicePtr& device, const AddressInfoPtr& deviceAddress)
 {
     auto deviceInfo = device.getInfo();
-    if (deviceInfo.assigned())
+    if (!deviceInfo.assigned())
+        return;
+
+    for (const auto& capability : deviceInfo.getServerCapabilities())
     {
-        for (const auto& capability : deviceInfo.getServerCapabilities())
+        if (capability.getConnectionType() == "TCP/IP")
         {
-            if (capability.getConnectionType() == "TCP/IP")
-                capability.asPtr<IServerCapabilityConfig>(true).addAddress(deviceAddress);
+            auto capConf = capability.asPtr<IServerCapabilityConfig>(true);
+            capConf.addAddress(deviceAddress.getAddress());
+            if (capability.getProtocolId() == DaqOpcUaDeviceTypeId)
+            {
+                capConf.addAddressInfo(deviceAddress);
+            }
         }
     }
 }
@@ -198,8 +206,8 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
 {
     std::string urlString = connectionString.toStdString();
 
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+    auto regexIpv6Hostname = std::regex(R"(^(.+://)(\[[a-fA-F0-9:]+(?:%.+)?\])(?::(\d+))?(/.*)?$)");
+    auto regexIpv4Hostname = std::regex(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
     std::string prefix = "";
@@ -229,7 +237,7 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
         prefix = match[1];
         host = match[2];
 
-        if (match[3].matched && port == 4840)
+        if (match[3].matched)
             port = std::stoi(match[3]);
 
         if (match[4].matched)
@@ -248,10 +256,7 @@ bool OpcUaClientModule::acceptsConnectionParameters(const StringPtr& connectionS
 {
     std::string connStr = connectionString;
     auto found = connStr.find(std::string(DaqOpcUaDevicePrefix) + "://");
-    if (found == 0)
-        return true;
-    else
-        return false;
+    return found == 0;
 }
 
 Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)

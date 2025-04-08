@@ -644,7 +644,7 @@ for (int i = 0; i < 40; i++)
 
 Running the example, we can see very high numbers for the domain values. This is due to them being relative to the domain signal's origin. Above, we read and output the domain signal origin, noting that it equates to the UNIX epoch of `"1970-01-01T00:00:00Z"`. The domain values read are thus relative to the UNIX epoch.
 
-===== Using a Time Reader
+==== Using a Time Reader
 :iso-8601-url: https://www.iso.org/iso-8601-date-and-time-format.html
 
 To read time-domain signal data, a Time Reader can be used to perform the conversion from `ticks` to system wall-clock time.

@@ -9,6 +9,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <opendaq/mirrored_device_config.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
 
@@ -361,6 +362,9 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
     const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
+
+    if (newRootDevice.supportsInterface<IMirroredDeviceConfig>())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Cannot set mirrored device as root device");
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;

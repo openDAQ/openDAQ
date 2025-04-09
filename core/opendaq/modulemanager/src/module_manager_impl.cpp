@@ -1560,12 +1560,10 @@ ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabil
 }
 
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
-                                                                         const ServerCapabilityPtr& deviceCap)
+    const ServerCapabilityPtr& deviceCap)
 {
     ServerCapabilityConfigPtr merged = deviceCap.asPtr<IPropertyObjectInternal>(true).clone();
 
-    auto c = deviceCap.getAddressInfo();
-    
     for (const auto& prop : discoveryCap.getAllProperties())
     {
         const auto name = prop.getName();
@@ -1581,16 +1579,16 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const S
             auto mergedAddresses = merged.getAddresses();
             for (const auto& address : discoveryCap.getAddresses())
             {
-                bool found = false;
-                for (const auto& mergedAddress : mergedAddresses)
+                bool exists = false;
+                for (const auto& existing : mergedAddresses)
                 {
-                    if (address == mergedAddress)
+                    if (address == existing)
                     {
-                        found = true;
+                        exists = true;
                         break;
                     }
                 }
-                if (!found)
+                if (!exists)
                     merged.addAddress(address);
             }
             continue;
@@ -1599,19 +1597,19 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const S
         if (name == "AddressInfo")
         {
             auto mergedAddressInfos = merged.getAddressInfo();
-            for (const auto& addressInfo : discoveryCap.getAddressInfo())
+            for (const auto& info : discoveryCap.getAddressInfo())
             {
-                bool found = false;
-                for (const auto& mergedAddressInfo : mergedAddressInfos)
+                bool exists = false;
+                for (const auto& existing : mergedAddressInfos)
                 {
-                    if (addressInfo.getAddress() == mergedAddressInfo.getAddress())
+                    if (info.getAddress() == existing.getAddress())
                     {
-                        found = true;
+                        exists = true;
                         break;
                     }
                 }
-                if (!found)
-                    merged.addAddressInfo(addressInfo);
+                if (!exists)
+                    merged.addAddressInfo(info);
             }
             continue;
         }
@@ -1619,19 +1617,19 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const S
         if (name == "ConnectionStrings")
         {
             auto mergedConnectionStrings = merged.getConnectionStrings();
-            for (const auto& connectionString : discoveryCap.getConnectionStrings())
+            for (const auto& conn : discoveryCap.getConnectionStrings())
             {
-                bool found = false;
-                for (const auto& mergedConnectionString : mergedConnectionStrings)
+                bool exists = false;
+                for (const auto& existing : mergedConnectionStrings)
                 {
-                    if (connectionString == mergedConnectionString)
+                    if (conn == existing)
                     {
-                        found = true;
+                        exists = true;
                         break;
                     }
                 }
-                if (!found)
-                    merged.addConnectionString(connectionString);
+                if (!exists)
+                    merged.addConnectionString(conn);
             }
             continue;
         }
@@ -1643,9 +1641,10 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const S
         }
 
         const auto val = discoveryCap.getPropertyValue(name);
-        if (val == prop.getDefaultValue())
-            continue;
-        merged.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(name, val);
+        if (val != prop.getDefaultValue())
+        {
+            merged.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(name, val);
+        }
     }
 
     merged.freeze();

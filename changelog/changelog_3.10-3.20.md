@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#753](https://github.com/openDAQ/openDAQ/pull/753) Fixes crash when deserializing struct types that have a type name that's present in the list of protected type names.
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Introduces serializer versioning; openDAQ list objects are now serialized as objects instead of JSON arrays.
 - [#718](https://github.com/openDAQ/openDAQ/pull/718) Adds new Native Configuration Protocol RPCs for handling sub-function blocks (function blocks that are children of other FBs.
 - [#642](https://github.com/openDAQ/openDAQ/pull/642) Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
@@ -51,6 +52,7 @@
 - [#615](https://github.com/openDAQ/openDAQ/pull/615) Add missing component `active` flag serialization.
 - [#590](https://github.com/openDAQ/openDAQ/pull/590) [#593](https://github.com/openDAQ/openDAQ/pull/593) Adds missing bcrypt installation and export rules.
 - [#669](https://github.com/openDAQ/openDAQ/pull/659) Fix building openDAQ on android, by removing multiple coping of loaded library to the final vector in ModuleManager constructor.
+- [#751](https://github.com/openDAQ/openDAQ/pull/751) Fix IPv6 addresses discovering on Windows, improve regex parsing of connection strings, fix LT pseudo-device IPv6 connection info
 
 ## Misc
 
@@ -225,4 +227,11 @@ It now need to be extended to include the new mechanism:
 this->connectionStatusContainer.addConfigurationConnectionStatus(connectionString, statusInitValue);
 // ... and to update status:
 this->connectionStatusContainer.updateConnectionStatus(deviceInfo.getConnectionString(), value, nullptr);
+```
+
+Following methods of base streaming implementation moved from protected to private scope:
+
+```cpp
+    void startReconnection();
+    void completeReconnection();
 ```

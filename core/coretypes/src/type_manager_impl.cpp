@@ -38,7 +38,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
     std::string typeStr = typeName;
     std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), [](char c) { return std::tolower(c); });
     if (reservedTypeNames.count(typeStr))
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_RESERVED_TYPE_NAME, fmt::format(R"(""Type {} is in the list of protected type names.")", typeStr));
 
     if (!daq::validateTypeName(typeName.getCharPtr()))
         return OPENDAQ_ERR_VALIDATE_FAILED;

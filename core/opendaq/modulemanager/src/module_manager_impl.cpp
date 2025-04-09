@@ -1152,7 +1152,7 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
     // connect via all allowed streaming protocols
     for (const auto& cap : device.getInfo().getServerCapabilities())
     {
-        LOG_I("Device {} has capability: name [{}] id [{}] string [{}] prefix [{}]",
+        LOG_D("Device {} has capability: name [{}] id [{}] string [{}] prefix [{}]",
               device.getGlobalId(),
               cap.getProtocolName(),
               cap.getProtocolId(),

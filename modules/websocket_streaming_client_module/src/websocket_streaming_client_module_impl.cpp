@@ -246,6 +246,9 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
     if (config.assigned() && config.hasProperty("Port"))
         port = config.getPropertyValue("Port");
 
+    if (port == 7414)
+        return connectionString;
+
     std::string urlString = connectionString.toStdString();
     auto regexIpv6Hostname = std::regex(R"(^(.+://)(\[[a-fA-F0-9:]+(?:%.+)?\])(?::(\d+))?(/.*)?$)");
     auto regexIpv4Hostname = std::regex(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");

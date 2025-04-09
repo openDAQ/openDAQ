@@ -429,6 +429,14 @@ void NativeDeviceImpl::removed()
     Super::removed();
 }
 
+ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = this->componentConfig.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
 {
     this->deviceHelper = std::move(deviceHelper);

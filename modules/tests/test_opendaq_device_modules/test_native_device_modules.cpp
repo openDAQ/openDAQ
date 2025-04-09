@@ -2345,7 +2345,7 @@ public:
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override
     {
-        std::vector<StringPtr> addresses{"123.123.123.123", "234.234.234.234", "127.0.0.1"};
+        std::map<StringPtr, StringPtr> addresses{{"[::1]", "IPv6"}, {"127.0.0.1", "IPv4"}};
         const auto info = DeviceInfo("daq.nd://127.0.0.1:7420/");
         info.setSerialNumber("DevSer0");
         info.setManufacturer("openDAQ");
@@ -2363,11 +2363,11 @@ public:
         const std::vector caps{streamingCap, configCap};
         for (const auto& cap : caps)
         {
-            for (const auto& address : addresses)
+            for (const auto& [address, type] : addresses)
             {
                 const auto addressInfo = AddressInfoBuilder().setAddress(address)
                                                              .setReachabilityStatus(AddressReachabilityStatus::Reachable)
-                                                             .setType("IPv4")
+                                                             .setType(type)
                                                              .setConnectionString(cap.getPrefix() + "://" + address + ":7420/")
                                                              .build();
                 cap.addAddress(address).addConnectionString(cap.getPrefix() + "://" + address + ":7420/").addAddressInfo(addressInfo);

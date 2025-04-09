@@ -813,7 +813,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
 
         const ServerCapabilityPtr capability = serverCapabilitiesPtr.getPropertyValue(prop.getName());
         if (capability.getProtocolId() == id)
-            return OPENDAQ_ERR_DUPLICATEITEM;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM, fmt::format(R"(Server capability with id "{}" already exists.)", id));
     }
 
     serverCapabilitiesPtr.addProperty(ObjectProperty(id, serverCapability));
@@ -833,7 +833,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
     
     const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>(true);
     if (!serverCapabilitiesPtr.hasProperty(protocolId))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Server capability with id "{}" not found.)", StringPtr::Borrow(protocolId)));
 
     return serverCapabilitiesPtr->removeProperty(protocolId);
 }
@@ -891,7 +891,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapability(ISt
         return err;
 
     if (!hasCap)
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Server capability with id "{}" not found.)", StringPtr::Borrow(protocolId)));
     
     BaseObjectPtr obj;
     StringPtr str = "serverCapabilities";

@@ -340,11 +340,10 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
 
     // runs in parallel with getting avaiable devices from modules
-    std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult =
-        std::async([this]()
-                   {
-                       return this->discoverDevicesWithIpModification();
-                   });
+    std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult = std::async([this]
+    {
+        return this->discoverDevicesWithIpModification();
+    });
 
     for (const auto& library : libraries)
     {

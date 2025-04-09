@@ -63,6 +63,13 @@ TEST_F(OpcuaDeviceModulesTest, ConnectAndDisconnect)
     server.detach();
 }
 
+TEST_F(OpcuaDeviceModulesTest, FailedToSetAsRoot)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    ASSERT_THROW(client.setRootDevice("daq.opcua://127.0.0.1"), InvalidParameterException);
+}
+
 TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 {
     if (test_helpers::Ipv6IsDisabled())

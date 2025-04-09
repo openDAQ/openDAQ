@@ -238,6 +238,12 @@ TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
     ASSERT_THROW(client.getDevices()[0].getAvailableDeviceTypes(), ServerVersionTooLowException);
 }
 
+TEST_F(NativeDeviceModulesTest, FailedToSetAsRoot)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    ASSERT_THROW(client.setRootDevice("daq.nd://127.0.0.1"), InvalidParameterException);
+}
 
 TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
 {

@@ -1271,10 +1271,9 @@ void ModuleManagerImpl::configureStreamings(const MirroredDeviceConfigPtr& topDe
 
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const
 {
-    const bool isDefaultDeviceConfig = isDefaultAddDeviceConfig(config);
     StreamingPtr streaming = nullptr;
-    PropertyObjectPtr generalConfig = isDefaultDeviceConfig ? config.getPropertyValue("General").asPtr<IPropertyObject>() : PropertyObject();
-    PropertyObjectPtr streamingConfig = isDefaultDeviceConfig ? config.getPropertyValue("Streaming").asPtr<IPropertyObject>() : config;
+    PropertyObjectPtr inputConfig;
+    checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
 
     for (const auto& library : libraries)
     {
@@ -1286,35 +1285,37 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         if (!types.assigned())
             continue;
 
-        StringPtr id;
+        StringPtr streamingTypeId;
         for (auto const& [typeId, type] : types)
         {
             if (type.getConnectionStringPrefix() == prefix)
             {
-                id = typeId;
+                streamingTypeId = typeId;
                 break;
             }
         }
 
-        if (!id.assigned())
+        if (!streamingTypeId.assigned())
             continue;
 
-        if (isDefaultDeviceConfig)
+        PropertyObjectPtr streamingTypeConfig;
+        if (isDefaultAddDeviceConfig(inputConfig))
         {
-            if (streamingConfig.hasProperty(id))
-            {
-                streamingConfig = streamingConfig.getPropertyValue(id);
-                // fixme get common props from general
-            }
+            copyCommonGeneralPropValues(inputConfig);
+            PropertyObjectPtr streamingTypesConfig = inputConfig.getPropertyValue("Streaming");
+            if (streamingTypesConfig.hasProperty(streamingTypeId))
+                streamingTypeConfig = streamingTypesConfig.getPropertyValue(streamingTypeId);
             else
-            {
-                streamingConfig = nullptr;
-            }
+                streamingTypeConfig = nullptr;
+        }
+        else
+        {
+            streamingTypeConfig = inputConfig;
         }
 
         try
         {
-            streaming = module.createStreaming(connectionString, streamingConfig);
+            streaming = module.createStreaming(connectionString, streamingTypeConfig);
         }
         catch ([[maybe_unused]] const std::exception& e)
         {

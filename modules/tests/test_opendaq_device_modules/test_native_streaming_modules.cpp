@@ -277,6 +277,20 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(NativeStreamingModulesTest, GetConnectedClientsInfo)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // one streaming connection
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_NE(serverSideClientsInfo[0].getHostName(), "");
+    ASSERT_TRUE(serverSideClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
+}
 
 TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 {

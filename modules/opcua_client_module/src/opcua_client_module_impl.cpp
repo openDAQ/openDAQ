@@ -9,12 +9,8 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/search_filter_factory.h>
 #include <regex>
-#include <opendaq/device_info_config_ptr.h>
-#include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <coreobjects/property_factory.h>
-#include <coreobjects/property_object_protected_ptr.h>
-#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
@@ -146,9 +142,6 @@ PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectP
 
 DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-
     auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "OpenDAQOPCUA", ProtocolType::Configuration);
     if (!discoveredDevice.ipv4Address.empty())
     {
@@ -190,11 +183,7 @@ DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDe
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
 
 StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port, std::string& hostType)

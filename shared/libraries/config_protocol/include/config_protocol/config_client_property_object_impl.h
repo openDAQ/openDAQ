@@ -863,8 +863,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const St
 template <class Impl>
 bool ConfigClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const PropertyObjectPtr& propObj)
 {
-    return !propObj.supportsInterface<IServerCapabilityConfig>() 
-            && !propObj.supportsInterface<IAddressInfo>();
+    return !propObj.supportsInterface<IServerCapabilityConfig>()
+            && !propObj.supportsInterface<IAddressInfo>()
+            && !propObj.supportsInterface<IConnectedClientInfo>();
 }
 
 

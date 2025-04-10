@@ -16,7 +16,6 @@
 #include <opendaq/address_info_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/thread_name.h>
-#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace discovery;
@@ -850,38 +849,24 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-
     auto cap = ServerCapability(NativeConfigurationDeviceTypeId, "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming);
 
     SetupProtocolAddresses(discoveredDevice, cap, "daq.nd");
     cap.setCoreEventsEnabled(true);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-
     auto cap = ServerCapability(NativeStreamingDeviceTypeId, "OpenDAQNativeStreaming", ProtocolType::Streaming);
 
     SetupProtocolAddresses(discoveredDevice, cap, "daq.ns");
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createPseudoDeviceType());
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

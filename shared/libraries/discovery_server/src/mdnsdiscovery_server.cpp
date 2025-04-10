@@ -60,9 +60,17 @@ MdnsDiscoveredService::MdnsDiscoveredService(const std::string& serviceName,
     this->recordSize = staticRecordSize;
 }
 
-size_t MdnsDiscoveredService::size() const
+size_t MdnsDiscoveredService::updateConnectedClientsAndGetPropsCount() const
 {
-    return properties.size() + dynamicProperties.size();
+    using namespace discovery_common;
+
+    const PropertyObjectPtr connectedClientsInfo = deviceInfo.getPropertyValue("activeClientConnections");
+    if (connectedClientsInfo.getAllProperties().getCount() != 0)
+        connectedClientsProperties = DiscoveryUtils::connectedClientsInfoToTxt(connectedClientsInfo);
+    else
+        connectedClientsProperties = TxtProperties();
+
+    return properties.size() + dynamicProperties.size() + connectedClientsProperties.size();
 }
 
 mdns_record_t MdnsDiscoveredService::createTxtRecord(const std::string& key, const std::string& value) const
@@ -88,6 +96,13 @@ void MdnsDiscoveredService::populateRecords(std::vector<mdns_record_t>& records)
     for (auto & [key, value] : dynamicProperties)
     {
         value = (std::string)deviceInfo.getPropertyValue(key);
+        records.push_back(createTxtRecord(key, value));
+        this->recordSize += key.size() + value.size() + 2;
+    }
+
+    // connectedClientsProperties updated earlier
+    for (const auto& [key, value] : connectedClientsProperties)
+    {
         records.push_back(createTxtRecord(key, value));
         this->recordSize += key.size() + value.size() + 2;
     }
@@ -229,7 +244,7 @@ bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredS
     if (success)
     {
         std::vector<mdns_record_t> records;
-        records.reserve(service.size() + 3);
+        records.reserve(service.updateConnectedClientsAndGetPropsCount() + 3);
         records.push_back(createSrvRecord(service));
         if (serviceAddressIpv4.sin_family == AF_INET)
             records.push_back(createARecord(service));
@@ -250,7 +265,7 @@ bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredS
 void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredService& service)
 {
     std::vector<mdns_record_t> records;
-    records.reserve(service.size() + 3);
+    records.reserve(service.updateConnectedClientsAndGetPropsCount() + 3);
     records.push_back(createSrvRecord(service));
     if (serviceAddressIpv4.sin_family == AF_INET)
         records.push_back(createARecord(service));
@@ -800,7 +815,7 @@ int MDNSDiscoveryServer::discoveryCallback(
                 mdns_record_t answer = createPtrRecord(service);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(service.size() + 3);
+                records.reserve(service.updateConnectedClientsAndGetPropsCount() + 3);
 
                 records.push_back(createSrvRecord(service));
                 if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
@@ -820,7 +835,7 @@ int MDNSDiscoveryServer::discoveryCallback(
                 mdns_record_t answer = createSrvRecord(service);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(service.size() + 2);
+                records.reserve(service.updateConnectedClientsAndGetPropsCount() + 2);
 
                 if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
                     records.push_back(createARecord(service));
@@ -839,7 +854,7 @@ int MDNSDiscoveryServer::discoveryCallback(
                 mdns_record_t answer = createARecord(service);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(service.size() + 1);
+                records.reserve(service.updateConnectedClientsAndGetPropsCount() + 1);
 
                 records.push_back(answer);
                 service.populateRecords(records);
@@ -852,7 +867,7 @@ int MDNSDiscoveryServer::discoveryCallback(
                 mdns_record_t answer = createAaaaRecord(service);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(service.size() + 1);
+                records.reserve(service.updateConnectedClientsAndGetPropsCount() + 1);
 
                 records.push_back(answer);
                 service.populateRecords(records);

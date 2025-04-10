@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:07.
+//     RTGen (CGenerator v0.5.0) on 10.04.2025 17:07:07.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -14,7 +14,6 @@
 #include <opendaq/opendaq.h>
 
 #include "copendaq_private.h"
-#include "coreobjects/permission_mask_builder.h"
 
 const IntfID PERMISSION_MANAGER_INTF_ID = { daq::IPermissionManager::Id.Data1, daq::IPermissionManager::Id.Data2, daq::IPermissionManager::Id.Data3, daq::IPermissionManager::Id.Data4_UInt64 };
 

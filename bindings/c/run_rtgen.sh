@@ -5,11 +5,6 @@ export CORE_DIR="$PWD/../../core"
 export BINDINGS_DIR="$PWD"
 #${RTGEN} --help
 
-# 1: library name (CamelCase)
-# 2: library/subdir
-# 3: library
-# 4: destination for python bindings
-# 5: name
 function run_rtgen {
     lib_name=$1
     lib_dir1=$2
@@ -34,315 +29,317 @@ function run_rtgen {
     $command_cpp
 }
 
-# run_rtgen ccoretypes coretypes coretypes anonymous_variable anonymous_variable
-# run_rtgen ccoretypes coretypes coretypes arguments arguments
-# run_rtgen ccoretypes coretypes coretypes baseobject baseobject
-# run_rtgen ccoretypes coretypes coretypes baseobject_factory baseobject_factory
-# run_rtgen ccoretypes coretypes coretypes baseobject_impl baseobject_impl
-# run_rtgen ccoretypes coretypes coretypes bb_exception bb_exception
-# run_rtgen ccoretypes coretypes coretypes binary_data_ptr binary_data_ptr
 run_rtgen ccoretypes coretypes coretypes binarydata binarydata
-# run_rtgen ccoretypes coretypes coretypes binarydata_factory binarydata_factory
-# run_rtgen ccoretypes coretypes coretypes binarydata_impl binarydata_impl
-# run_rtgen ccoretypes coretypes coretypes binarydata_ptr binarydata_ptr
 run_rtgen ccoretypes coretypes coretypes boolean boolean
-# run_rtgen ccoretypes coretypes coretypes boolean_factory boolean_factory
-# run_rtgen ccoretypes coretypes coretypes boolean_impl boolean_impl
-# run_rtgen ccoretypes coretypes coretypes callback callback
-# run_rtgen ccoretypes coretypes coretypes cloneable cloneable
-# run_rtgen ccoretypes coretypes coretypes common common
-# run_rtgen ccoretypes coretypes coretypes comparable comparable
+run_rtgen ccoretypes coretypes coretypes cloneable cloneable
+run_rtgen ccoretypes coretypes coretypes comparable comparable
 run_rtgen ccoretypes coretypes coretypes complex_number complex_number
-# run_rtgen ccoretypes coretypes coretypes complex_number_factory complex_number_factory
-# run_rtgen ccoretypes coretypes coretypes complex_number_impl complex_number_impl
-# run_rtgen ccoretypes coretypes coretypes complex_number_ptr complex_number_ptr
-# run_rtgen ccoretypes coretypes coretypes complex_number_type complex_number_type
-# run_rtgen ccoretypes coretypes coretypes constexpr_string constexpr_string
-# run_rtgen ccoretypes coretypes coretypes constexpr_utils constexpr_utils
 run_rtgen ccoretypes coretypes coretypes convertible convertible
-# run_rtgen ccoretypes coretypes coretypes coretype coretype
-# run_rtgen ccoretypes coretypes coretypes coretype_traits coretype_traits
-# run_rtgen ccoretypes coretypes coretypes coretype_utils coretype_utils
-# run_rtgen ccoretypes coretypes coretypes coretypes coretypes
-# run_rtgen coretypes coretypes coretypes coretypes_configc.h coretypes_config.h
-# run_rtgen ccoretypes coretypes coretypes ctutils ctutils
-# run_rtgen ccoretypes coretypes coretypes customalloc customalloc
-# run_rtgen ccoretypes coretypes coretypes cycle_detector cycle_detector
-# run_rtgen ccoretypes coretypes coretypes delegate delegate
-# run_rtgen ccoretypes coretypes coretypes deserializer deserializer
-# run_rtgen ccoretypes coretypes coretypes deserializer_ptr deserializer_ptr
-# run_rtgen ccoretypes coretypes coretypes dict_element_type dict_element_type
+# run_rtgen ccoretypes coretypes coretypes coretype coretype # once, name collision
+# run_rtgen ccoretypes coretypes coretypes cycle_detector cycle_detector # funcs could be added manually
+# run_rtgen ccoretypes coretypes coretypes deserializer deserializer #need to be generated once
+run_rtgen ccoretypes coretypes coretypes dict_element_type dict_element_type
 run_rtgen ccoretypes coretypes coretypes enumeration enumeration
-# run_rtgen ccoretypes coretypes coretypes enumeration_factory enumeration_factory
-# run_rtgen ccoretypes coretypes coretypes enumeration_impl enumeration_impl
-# run_rtgen ccoretypes coretypes coretypes enumeration_ptr enumeration_ptr
 run_rtgen ccoretypes coretypes coretypes enumeration_type enumeration_type
-# run_rtgen ccoretypes coretypes coretypes enumeration_type_factory enumeration_type_factory
-# run_rtgen ccoretypes coretypes coretypes enumeration_type_impl enumeration_type_impl
-# run_rtgen ccoretypes coretypes coretypes enumeration_type_ptr enumeration_type_ptr
-# run_rtgen ccoretypes coretypes coretypes error_code_to_exception error_code_to_exception
-# run_rtgen ccoretypes coretypes coretypes errorinfo errorinfo
-# run_rtgen ccoretypes coretypes coretypes errorinfo_factory errorinfo_factory
-# run_rtgen ccoretypes coretypes coretypes errorinfo_impl errorinfo_impl
-# run_rtgen ccoretypes coretypes coretypes errors errors
+# run_rtgen ccoretypes coretypes coretypes errorinfo errorinfo #need to be generated once and funcs added manually
+# run_rtgen ccoretypes coretypes coretypes errors errors #contains error codes
 run_rtgen ccoretypes coretypes coretypes event event
 run_rtgen ccoretypes coretypes coretypes event_args event_args
-# run_rtgen ccoretypes coretypes coretypes event_args_factory event_args_factory
-# run_rtgen ccoretypes coretypes coretypes event_args_impl event_args_impl
-# run_rtgen ccoretypes coretypes coretypes event_args_ptr event_args_ptr
-# run_rtgen ccoretypes coretypes coretypes event_emitter event_emitter
-# run_rtgen ccoretypes coretypes coretypes event_factory event_factory
 run_rtgen ccoretypes coretypes coretypes event_handler event_handler
-# run_rtgen ccoretypes coretypes coretypes event_handler_impl event_handler_impl
-# run_rtgen ccoretypes coretypes coretypes event_handler_ptr event_handler_ptr
-# run_rtgen ccoretypes coretypes coretypes event_impl event_impl
-# run_rtgen ccoretypes coretypes coretypes event_ptr event_ptr
-# run_rtgen ccoretypes coretypes coretypes event_wrapper event_wrapper
-# run_rtgen ccoretypes coretypes coretypes exceptions exceptions
-# run_rtgen ccoretypes coretypes coretypes factory factory
-# run_rtgen ccoretypes coretypes coretypes factoryselectors factoryselectors
-# run_rtgen ccoretypes coretypes coretypes filesystem filesystem
 # run_rtgen ccoretypes coretypes coretypes float float
-# run_rtgen ccoretypes coretypes coretypes float_factory float_factory
-# run_rtgen ccoretypes coretypes coretypes float_impl float_impl
-# run_rtgen ccoretypes coretypes coretypes formatter formatter
 run_rtgen ccoretypes coretypes coretypes freezable freezable
 # run_rtgen ccoretypes coretypes coretypes function function
-# run_rtgen ccoretypes coretypes coretypes function_custom_impl function_custom_impl
-# run_rtgen ccoretypes coretypes coretypes function_factory function_factory
-# run_rtgen ccoretypes coretypes coretypes function_impl function_impl
-# run_rtgen ccoretypes coretypes coretypes function_ptr function_ptr
-# run_rtgen ccoretypes coretypes coretypes function_traits function_traits
-# run_rtgen ccoretypes coretypes coretypes impl impl
 # run_rtgen ccoretypes coretypes coretypes inspectable inspectable
-# run_rtgen ccoretypes coretypes coretypes inspectable_ptr inspectable_ptr
 run_rtgen ccoretypes coretypes coretypes integer integer
-# run_rtgen ccoretypes coretypes coretypes integer_factory integer_factory
-# run_rtgen ccoretypes coretypes coretypes integer_impl integer_impl
-# run_rtgen ccoretypes coretypes coretypes intfid intfid
-# run_rtgen ccoretypes coretypes coretypes intfs intfs
 run_rtgen ccoretypes coretypes coretypes iterable iterable
-# run_rtgen ccoretypes coretypes coretypes iterable_ptr iterable_ptr
 run_rtgen ccoretypes coretypes coretypes iterator iterator
-# run_rtgen ccoretypes coretypes coretypes iterator_base_impl iterator_base_impl
-# run_rtgen ccoretypes coretypes coretypes iterator_helper iterator_helper
-# run_rtgen ccoretypes coretypes coretypes iterator_support iterator_support
 # run_rtgen ccoretypes coretypes coretypes json_deserializer json_deserializer
-# run_rtgen ccoretypes coretypes coretypes json_deserializer_factory json_deserializer_factory
-# run_rtgen ccoretypes coretypes coretypes json_deserializer_impl json_deserializer_impl
-# run_rtgen ccoretypes coretypes coretypes json_serialized_list json_serialized_list
-# run_rtgen ccoretypes coretypes coretypes json_serialized_object json_serialized_object
-# run_rtgen ccoretypes coretypes coretypes json_serializer json_serializer
-# run_rtgen ccoretypes coretypes coretypes json_serializer_factory json_serializer_factory
-# run_rtgen ccoretypes coretypes coretypes json_serializer_impl json_serializer_impl
-# run_rtgen ccoretypes coretypes coretypes list_element_type list_element_type
-# run_rtgen ccoretypes coretypes coretypes macro_utils macro_utils
-# run_rtgen ccoretypes coretypes coretypes mem mem
-# run_rtgen ccoretypes coretypes coretypes multi_ptr multi_ptr
-run_rtgen ccoretypes coretypes coretypes number number
-# run_rtgen ccoretypes coretypes coretypes number_impl number_impl
-# run_rtgen ccoretypes coretypes coretypes number_ptr number_ptr
-# run_rtgen ccoretypes coretypes coretypes object_decorator object_decorator
-# run_rtgen ccoretypes coretypes coretypes objectptr objectptr
-# run_rtgen ccoretypes coretypes coretypes ordinalobject_impl ordinalobject_impl
+run_rtgen ccoretypes coretypes coretypes list_element_type list_element_type
+# run_rtgen ccoretypes coretypes coretypes mem mem #could be added manually
+run_rtgen ccoretypes coretypes coretypes number number #disable because of float
 # run_rtgen ccoretypes coretypes coretypes procedure procedure
-# run_rtgen ccoretypes coretypes coretypes procedure_custom_impl procedure_custom_impl
-# run_rtgen ccoretypes coretypes coretypes procedure_factory procedure_factory
-# run_rtgen ccoretypes coretypes coretypes procedure_impl procedure_impl
-# run_rtgen ccoretypes coretypes coretypes procedure_ptr procedure_ptr
 run_rtgen ccoretypes coretypes coretypes ratio ratio
-# run_rtgen ccoretypes coretypes coretypes ratio_factory ratio_factory
-# run_rtgen ccoretypes coretypes coretypes ratio_impl ratio_impl
-# run_rtgen ccoretypes coretypes coretypes ratio_ptr ratio_ptr
 run_rtgen ccoretypes coretypes coretypes serializable serializable
-# run_rtgen ccoretypes coretypes coretypes serializable_ptr serializable_ptr
-# run_rtgen ccoretypes coretypes coretypes serialization serialization
 run_rtgen ccoretypes coretypes coretypes serialized_list serialized_list
-# run_rtgen ccoretypes coretypes coretypes serialized_list_ptr serialized_list_ptr
 run_rtgen ccoretypes coretypes coretypes serialized_object serialized_object
-# run_rtgen ccoretypes coretypes coretypes serialized_object_ptr serialized_object_ptr
-# run_rtgen ccoretypes coretypes coretypes serializer serializer
-# run_rtgen ccoretypes coretypes coretypes serializer_ptr serializer_ptr
-# run_rtgen ccoretypes coretypes coretypes sha1 sha1
+# run_rtgen ccoretypes coretypes coretypes serializer serializer #generated once
 run_rtgen ccoretypes coretypes coretypes simple_type simple_type
-# run_rtgen ccoretypes coretypes coretypes simple_type_factory simple_type_factory
-# run_rtgen ccoretypes coretypes coretypes simple_type_impl simple_type_impl
-# run_rtgen ccoretypes coretypes coretypes simplified_ratio_ptr simplified_ratio_ptr
-# run_rtgen ccoretypes coretypes coretypes span span
-# run_rtgen ccoretypes coretypes coretypes string_ptr string_ptr
 run_rtgen ccoretypes coretypes coretypes stringobject stringobject
-# run_rtgen ccoretypes coretypes coretypes stringobject_factory stringobject_factory
-# run_rtgen ccoretypes coretypes coretypes stringobject_impl stringobject_impl
 run_rtgen ccoretypes coretypes coretypes struct struct
 run_rtgen ccoretypes coretypes coretypes struct_builder struct_builder
-# run_rtgen ccoretypes coretypes coretypes struct_builder_impl struct_builder_impl
-# run_rtgen ccoretypes coretypes coretypes struct_builder_ptr struct_builder_ptr
-# run_rtgen ccoretypes coretypes coretypes struct_factory struct_factory
-# run_rtgen ccoretypes coretypes coretypes struct_impl struct_impl
-# run_rtgen ccoretypes coretypes coretypes struct_ptr struct_ptr
 run_rtgen ccoretypes coretypes coretypes struct_type struct_type
-# run_rtgen ccoretypes coretypes coretypes struct_type_factory struct_type_factory
-# run_rtgen ccoretypes coretypes coretypes struct_type_impl struct_type_impl
-# run_rtgen ccoretypes coretypes coretypes struct_type_ptr struct_type_ptr
 run_rtgen ccoretypes coretypes coretypes type type
-# run_rtgen ccoretypes coretypes coretypes type_impl type_impl
 run_rtgen ccoretypes coretypes coretypes type_manager type_manager
-# run_rtgen ccoretypes coretypes coretypes type_manager_factory type_manager_factory
-# run_rtgen ccoretypes coretypes coretypes type_manager_impl type_manager_impl
-# run_rtgen ccoretypes coretypes coretypes type_manager_private type_manager_private
-# run_rtgen ccoretypes coretypes coretypes type_manager_ptr type_manager_ptr
-# run_rtgen ccoretypes coretypes coretypes type_name type_name
-# run_rtgen ccoretypes coretypes coretypes type_name_detail type_name_detail
-# run_rtgen ccoretypes coretypes coretypes type_ptr type_ptr
+run_rtgen ccoretypes coretypes coretypes type_manager_private type_manager_private #once probably
 run_rtgen ccoretypes coretypes coretypes updatable updatable
-# run_rtgen ccoretypes coretypes coretypes updatable_ptr updatable_ptr
-# run_rtgen ccoretypes coretypes coretypes utility_sync utility_sync
-# run_rtgen ccoretypes coretypes coretypes validation validation
-# run_rtgen ccoretypes coretypes coretypes version version
+# run_rtgen ccoretypes coretypes coretypes version version #functions should be added manually
 run_rtgen ccoretypes coretypes coretypes version_info version_info
-# run_rtgen ccoretypes coretypes coretypes version_info_factory version_info_factory
-# run_rtgen ccoretypes coretypes coretypes version_info_impl version_info_impl
-# run_rtgen ccoretypes coretypes coretypes version_info_ptr version_info_ptr
-# run_rtgen ccoretypes coretypes coretypes weakref weakref
-# run_rtgen ccoretypes coretypes coretypes weakref_impl weakref_impl
-# run_rtgen ccoretypes coretypes coretypes weakrefobj weakrefobj
-# run_rtgen ccoretypes coretypes coretypes weakrefptr weakrefptr
 
-# run_rtgen ccoretypes corecontainers coretypes dict_ptr dict_ptr
 run_rtgen ccoretypes corecontainers coretypes dictobject dictobject
-# run_rtgen ccoretypes corecontainers coretypes dictobject_factory dictobject_factory
-# run_rtgen ccoretypes corecontainers coretypes dictobject_impl dictobject_impl
-# run_rtgen ccoretypes corecontainers coretypes dictobject_iterable_impl dictobject_iterable_impl
-# run_rtgen ccoretypes corecontainers coretypes dictobject_iterator_impl dictobject_iterator_impl
-# run_rtgen ccoretypes corecontainers coretypes dictptr dictptr
-# run_rtgen ccoretypes corecontainers coretypes list_factory list_factory
-# run_rtgen ccoretypes corecontainers coretypes list_ptr list_ptr
 run_rtgen ccoretypes corecontainers coretypes listobject listobject
-# run_rtgen ccoretypes corecontainers coretypes listobject_factory listobject_factory
-# run_rtgen ccoretypes corecontainers coretypes listobject_impl listobject_impl
-# run_rtgen ccoretypes corecontainers coretypes listptr listptr
 
-#core objects
+# core objects
 
 run_rtgen ccoreobjects coreobjects coreobjects argument_info argument_info
-# run_rtgen ccoreobjects coreobjects coreobjects argument_info_factory argument_info_factory
-# run_rtgen ccoreobjects coreobjects coreobjects argument_info_impl argument_info_impl
 run_rtgen ccoreobjects coreobjects coreobjects authentication_provider authentication_provider
-# run_rtgen ccoreobjects coreobjects coreobjects authentication_provider_factory authentication_provider_factory
-# run_rtgen ccoreobjects coreobjects coreobjects authentication_provider_impl authentication_provider_impl
 run_rtgen ccoreobjects coreobjects coreobjects callable_info callable_info
-# run_rtgen ccoreobjects coreobjects coreobjects callable_info_factory callable_info_factory
-# run_rtgen ccoreobjects coreobjects coreobjects callable_info_impl callable_info_impl
 run_rtgen ccoreobjects coreobjects coreobjects coercer coercer
-# run_rtgen ccoreobjects coreobjects coreobjects coercer_factory coercer_factory
-# run_rtgen ccoreobjects coreobjects coreobjects coercer_impl coercer_impl
 run_rtgen ccoreobjects coreobjects coreobjects core_event_args core_event_args
-# run_rtgen ccoreobjects coreobjects coreobjects core_event_args_factory core_event_args_factory
-# run_rtgen ccoreobjects coreobjects coreobjects core_event_args_ids core_event_args_ids
-# run_rtgen ccoreobjects coreobjects coreobjects core_event_args_impl core_event_args_impl
-# run_rtgen ccoreobjects coreobjects coreobjects coreobjects coreobjects !!!!!
-# run_rtgen ccoreobjects coreobjects coreobjects coreobjects_config.h. coreobjects_config.h. !!!!
 run_rtgen ccoreobjects coreobjects coreobjects end_update_event_args end_update_event_args
-# run_rtgen ccoreobjects coreobjects coreobjects end_update_event_args_factory end_update_event_args_factory
-# run_rtgen ccoreobjects coreobjects coreobjects end_update_event_args_impl end_update_event_args_impl
-# run_rtgen ccoreobjects coreobjects coreobjects errors errors !!!!!!
-# run_rtgen ccoreobjects coreobjects coreobjects eval_nodes eval_nodes
+# run_rtgen ccoreobjects coreobjects coreobjects errors errors # contains error codes
 run_rtgen ccoreobjects coreobjects coreobjects eval_value eval_value
-# run_rtgen ccoreobjects coreobjects coreobjects eval_value_factory eval_value_factory
-# run_rtgen ccoreobjects coreobjects coreobjects eval_value_helpers eval_value_helpers
-# run_rtgen ccoreobjects coreobjects coreobjects eval_value_impl eval_value_impl
-# run_rtgen ccoreobjects coreobjects coreobjects eval_value_lexer eval_value_lexer
-# run_rtgen ccoreobjects coreobjects coreobjects eval_value_parser eval_value_parser
-# run_rtgen ccoreobjects coreobjects coreobjects exceptions exceptions
-# run_rtgen ccoreobjects coreobjects coreobjects object_keys object_keys
-# run_rtgen ccoreobjects coreobjects coreobjects object_lock_guard object_lock_guard
 run_rtgen ccoreobjects coreobjects coreobjects ownable ownable
-# run_rtgen ccoreobjects coreobjects coreobjects owning_dict_factory owning_dict_factory
-# run_rtgen ccoreobjects coreobjects coreobjects owning_dict_impl owning_dict_impl
-# run_rtgen ccoreobjects coreobjects coreobjects owning_list_factory owning_list_factory
-# run_rtgen ccoreobjects coreobjects coreobjects owning_list_impl owning_list_impl
 run_rtgen ccoreobjects coreobjects coreobjects permission_manager permission_manager
-# run_rtgen ccoreobjects coreobjects coreobjects permission_manager_factory permission_manager_factory
-# run_rtgen ccoreobjects coreobjects coreobjects permission_manager_impl permission_manager_impl
-# run_rtgen ccoreobjects coreobjects coreobjects permission_manager_internal permission_manager_internal
 run_rtgen ccoreobjects coreobjects coreobjects permission_mask_builder permission_mask_builder
-# run_rtgen ccoreobjects coreobjects coreobjects permission_mask_builder_factory permission_mask_builder_factory
-# run_rtgen ccoreobjects coreobjects coreobjects permission_mask_builder_impl permission_mask_builder_impl
 run_rtgen ccoreobjects coreobjects coreobjects permissions permissions
 run_rtgen ccoreobjects coreobjects coreobjects permissions_builder permissions_builder
-# run_rtgen ccoreobjects coreobjects coreobjects permissions_builder_factory permissions_builder_factory
-# run_rtgen ccoreobjects coreobjects coreobjects permissions_builder_impl permissions_builder_impl
-# run_rtgen ccoreobjects coreobjects coreobjects permissions_impl permissions_impl
-# run_rtgen ccoreobjects coreobjects coreobjects permissions_internal permissions_internal
 run_rtgen ccoreobjects coreobjects coreobjects property property
 run_rtgen ccoreobjects coreobjects coreobjects property_builder property_builder
-# run_rtgen ccoreobjects coreobjects coreobjects property_builder_impl property_builder_impl
-# run_rtgen ccoreobjects coreobjects coreobjects property_factory property_factory
-# run_rtgen ccoreobjects coreobjects coreobjects property_impl property_impl
-# run_rtgen ccoreobjects coreobjects coreobjects property_internal property_internal
 run_rtgen ccoreobjects coreobjects coreobjects property_object property_object
 run_rtgen ccoreobjects coreobjects coreobjects property_object_class property_object_class
 run_rtgen ccoreobjects coreobjects coreobjects property_object_class_builder property_object_class_builder
-# run_rtgen ccoreobjects coreobjects coreobjects property_object_class_builder_impl property_object_class_builder_impl
-# run_rtgen ccoreobjects coreobjects coreobjects property_object_class_factory property_object_class_factory
-# run_rtgen ccoreobjects coreobjects coreobjects property_object_class_impl property_object_class_impl
-# run_rtgen ccoreobjects coreobjects coreobjects property_object_factory property_object_factory
-# run_rtgen ccoreobjects coreobjects coreobjects property_object_impl property_object_impl
-# run_rtgen ccoreobjects coreobjects coreobjects property_object_internal property_object_internal
 run_rtgen ccoreobjects coreobjects coreobjects property_object_protected property_object_protected
-# run_rtgen ccoreobjects coreobjects coreobjects property_object_ptr.custom property_object_ptr.custom
-# run_rtgen ccoreobjects coreobjects coreobjects property_ptr.fwd_declare property_ptr.fwd_declare
-# run_rtgen ccoreobjects coreobjects coreobjects property_value property_value
-
 # enum collisions should be manually converted
 # run_rtgen ccoreobjects coreobjects coreobjects property_value_event_args property_value_event_args  
-
-# run_rtgen ccoreobjects coreobjects coreobjects property_value_event_args_factory property_value_event_args_factory
-# run_rtgen ccoreobjects coreobjects coreobjects property_value_event_args_impl property_value_event_args_impl
-# run_rtgen ccoreobjects coreobjects coreobjects serialization_utils serialization_utils
-# run_rtgen ccoreobjects coreobjects coreobjects serializer_factory serializer_factory
 run_rtgen ccoreobjects coreobjects coreobjects unit unit
 run_rtgen ccoreobjects coreobjects coreobjects unit_builder unit_builder
-# run_rtgen ccoreobjects coreobjects coreobjects unit_builder_impl unit_builder_impl
-# run_rtgen ccoreobjects coreobjects coreobjects unit_factory unit_factory
-# run_rtgen ccoreobjects coreobjects coreobjects unit_impl unit_impl
 run_rtgen ccoreobjects coreobjects coreobjects user user
-# run_rtgen ccoreobjects coreobjects coreobjects user_factory user_factory
-# run_rtgen ccoreobjects coreobjects coreobjects user_impl user_impl
-# run_rtgen ccoreobjects coreobjects coreobjects user_internal user_internal
-# run_rtgen ccoreobjects coreobjects coreobjects util util
+# run_rtgen ccoreobjects coreobjects coreobjects util util #function could be added manually
 run_rtgen ccoreobjects coreobjects coreobjects validator validator
-# run_rtgen ccoreobjects coreobjects coreobjects validator_factory validator_factory
-# run_rtgen ccoreobjects coreobjects coreobjects validator_impl validator_impl
-# run_rtgen ccoreobjects coreobjects coreobjects version version
+# run_rtgen ccoreobjects coreobjects coreobjects version version #function should be added manually
 
+# opendaq component
 
+run_rtgen copendaq/component opendaq/component opendaq component component
+run_rtgen copendaq/component opendaq/component opendaq component_deserialize_context component_deserialize_context
+run_rtgen copendaq/component opendaq/component opendaq component_errors component_errors
+run_rtgen copendaq/component opendaq/component opendaq component_exceptions component_exceptions
+run_rtgen copendaq/component opendaq/component opendaq component_holder component_holder
+run_rtgen copendaq/component opendaq/component opendaq component_keys component_keys
+run_rtgen copendaq/component opendaq/component opendaq component_private component_private
+run_rtgen copendaq/component opendaq/component opendaq component_ptr.custom component_ptr.custom
+run_rtgen copendaq/component opendaq/component opendaq component_status_container component_status_container
+run_rtgen copendaq/component opendaq/component opendaq component_status_container_private component_status_container_private
+run_rtgen copendaq/component opendaq/component opendaq component_type component_type
+run_rtgen copendaq/component opendaq/component opendaq component_type_builder component_type_builder
+run_rtgen copendaq/component opendaq/component opendaq component_type_private component_type_private
+run_rtgen copendaq/component opendaq/component opendaq component_update_context component_update_context
+run_rtgen copendaq/component opendaq/component opendaq deserialize_component deserialize_component
+run_rtgen copendaq/component opendaq/component opendaq folder folder
+run_rtgen copendaq/component opendaq/component opendaq folder_config folder_config
+run_rtgen copendaq/component opendaq/component opendaq recursive_search recursive_search
+run_rtgen copendaq/component opendaq/component opendaq removable removable
+run_rtgen copendaq/component opendaq/component opendaq search_filter search_filter
+run_rtgen copendaq/component opendaq/component opendaq tags tags
+run_rtgen copendaq/component opendaq/component opendaq tags_private tags_private
+run_rtgen copendaq/component opendaq/component opendaq update_parameters update_parameters
 
+# opendaq context
 
-# run_rtgen copendaq coretypes coretypes base_object base 
+run_rtgen copendaq/context opendaq/context opendaq context context
+run_rtgen copendaq/context opendaq/context opendaq context_ptr.fwd_declare context_ptr.fwd_declare
 
+# opendaq device
 
-# #
-# # core types
-# #
-# core_type_files=(
-# # "event"
-# # "event_args"
-# # "event_handler"
-# "simple_type"
-# #"struct"
-# "struct_type"
-# "type"
-# #"type_manager"
-# "struct_builder"
-# #"enumeration"
-# #"enumeration_type"
-# )
-# for file in "${core_type_files[@]}" 
-# do
-#     run_rtgen CoreTypes coretypes coretypes core_types/generated ${file}
-# done
+run_rtgen copendaq/device opendaq/device opendaq address_info address_info
+run_rtgen copendaq/device opendaq/device opendaq address_info_builder address_info_builder
+run_rtgen copendaq/device opendaq/device opendaq address_info_private address_info_private
+run_rtgen copendaq/device opendaq/device opendaq connection_status_container_private connection_status_container_private
+run_rtgen copendaq/device opendaq/device opendaq core_opendaq_event_args core_opendaq_event_args
+run_rtgen copendaq/device opendaq/device opendaq device device
+run_rtgen copendaq/device opendaq/device opendaq device_domain device_domain
+run_rtgen copendaq/device opendaq/device opendaq device_errors device_errors
+run_rtgen copendaq/device opendaq/device opendaq device_exceptions device_exceptions
+run_rtgen copendaq/device opendaq/device opendaq device_info device_info
+run_rtgen copendaq/device opendaq/device opendaq device_info_config device_info_config
+run_rtgen copendaq/device opendaq/device opendaq device_info_internal device_info_internal
+run_rtgen copendaq/device opendaq/device opendaq device_network_config device_network_config
+run_rtgen copendaq/device opendaq/device opendaq device_private device_private
+run_rtgen copendaq/device opendaq/device opendaq device_type device_type
+run_rtgen copendaq/device opendaq/device opendaq io_folder_config io_folder_config
+run_rtgen copendaq/device opendaq/device opendaq log_file_info log_file_info
+run_rtgen copendaq/device opendaq/device opendaq log_file_info_builder log_file_info_builder
+run_rtgen copendaq/device opendaq/device opendaq network_interface network_interface
+run_rtgen copendaq/device opendaq/device opendaq server_capability server_capability
+run_rtgen copendaq/device opendaq/device opendaq server_capability_config server_capability_config
+run_rtgen copendaq/device opendaq/device opendaq user_lock user_lock
 
-# run_rtgen CoreTypes coretypes coretypes core_types/generated version_info 
- 
- 
+# opendaq functionblock
+
+run_rtgen copendaq/functionblock opendaq/functionblock opendaq channel channel
+run_rtgen copendaq/functionblock opendaq/functionblock opendaq channel_impl channel_impl
+run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block function_block
+run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_errors function_block_errors
+run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_type function_block_type
+run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_wrapper function_block_wrapper
+
+# opendaq logger
+
+run_rtgen copendaq/logger opendaq/logger opendaq custom_log custom_log
+run_rtgen copendaq/logger opendaq/logger opendaq log log
+run_rtgen copendaq/logger opendaq/logger opendaq log_level log_level
+run_rtgen copendaq/logger opendaq/logger opendaq logger logger
+run_rtgen copendaq/logger opendaq/logger opendaq logger_component logger_component
+run_rtgen copendaq/logger opendaq/logger opendaq logger_errors logger_errors
+run_rtgen copendaq/logger opendaq/logger opendaq logger_sink logger_sink
+run_rtgen copendaq/logger opendaq/logger opendaq logger_sink_base_private logger_sink_base_private
+run_rtgen copendaq/logger opendaq/logger opendaq logger_sink_last_message_private logger_sink_last_message_private
+run_rtgen copendaq/logger opendaq/logger opendaq logger_thread_pool logger_thread_pool
+run_rtgen copendaq/logger opendaq/logger opendaq logger_thread_pool_private logger_thread_pool_private
+run_rtgen copendaq/logger opendaq/logger opendaq source_location source_location
+
+# opendaq modulemanager
+
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq context_internal context_internal
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq discovery_server discovery_server
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq format format
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq icmp_header icmp_header
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq icmp_ping icmp_ping
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq ipv4_header ipv4_header
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module module
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_check_dependencies module_check_dependencies
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_exports module_exports
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_info module_info
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_library module_library
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager module_manager
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager_errors module_manager_errors
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager_exceptions module_manager_exceptions
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager_init module_manager_init
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager_utils module_manager_utils
+run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq orphaned_modules orphaned_modules
+
+# opendaq opendaq
+
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq client_type client_type
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq config_provider config_provider
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq create_device create_device
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq errors errors
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq exceptions exceptions
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq instance instance
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq instance_builder instance_builder
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq opendaq opendaq
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq opendaq_config.h opendaq_config.h
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq opendaq_init opendaq_init
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq path_tool path_tool
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq version version
+
+# opendaq reader
+
+run_rtgen copendaq/reader opendaq/reader opendaq block_reader block_reader
+run_rtgen copendaq/reader opendaq/reader opendaq block_reader_builder block_reader_builder
+run_rtgen copendaq/reader opendaq/reader opendaq block_reader_status block_reader_status
+run_rtgen copendaq/reader opendaq/reader opendaq multi_reader multi_reader
+run_rtgen copendaq/reader opendaq/reader opendaq multi_reader_builder multi_reader_builder
+run_rtgen copendaq/reader opendaq/reader opendaq multi_reader_status multi_reader_status
+run_rtgen copendaq/reader opendaq/reader opendaq multi_typed_reader multi_typed_reader
+run_rtgen copendaq/reader opendaq/reader opendaq packet_reader packet_reader
+run_rtgen copendaq/reader opendaq/reader opendaq read_info read_info
+run_rtgen copendaq/reader opendaq/reader opendaq reader reader
+run_rtgen copendaq/reader opendaq/reader opendaq reader_config reader_config
+run_rtgen copendaq/reader opendaq/reader opendaq reader_domain_info reader_domain_info
+run_rtgen copendaq/reader opendaq/reader opendaq reader_errors reader_errors
+run_rtgen copendaq/reader opendaq/reader opendaq reader_exceptions reader_exceptions
+run_rtgen copendaq/reader opendaq/reader opendaq reader_status reader_status
+run_rtgen copendaq/reader opendaq/reader opendaq reader_utils reader_utils
+run_rtgen copendaq/reader opendaq/reader opendaq sample_reader sample_reader
+run_rtgen copendaq/reader opendaq/reader opendaq signal_reader signal_reader
+run_rtgen copendaq/reader opendaq/reader opendaq stream_reader stream_reader
+run_rtgen copendaq/reader opendaq/reader opendaq stream_reader_builder stream_reader_builder
+run_rtgen copendaq/reader opendaq/reader opendaq tail_reader tail_reader
+run_rtgen copendaq/reader opendaq/reader opendaq tail_reader_builder tail_reader_builder
+run_rtgen copendaq/reader opendaq/reader opendaq tail_reader_status tail_reader_status
+run_rtgen copendaq/reader opendaq/reader opendaq time_reader time_reader
+run_rtgen copendaq/reader opendaq/reader opendaq typed_reader typed_reader
+
+# opendaq scheduler
+
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq awaitable awaitable
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq graph_visualization graph_visualization
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq scheduler scheduler
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq scheduler_errors scheduler_errors
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq scheduler_exceptions scheduler_exceptions
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq task task
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_flow task_flow
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_graph task_graph
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_internal task_internal
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_ptr.custom task_ptr.custom
+run_rtgen copendaq/scheduler opendaq/scheduler opendaq work work
+
+# opendaq server
+
+run_rtgen copendaq/server opendaq/server opendaq server server
+run_rtgen copendaq/server opendaq/server opendaq server_type server_type
+
+# opendaq signal
+
+run_rtgen copendaq/signal opendaq/signal opendaq allocator allocator
+run_rtgen copendaq/signal opendaq/signal opendaq binary_data_packet binary_data_packet
+run_rtgen copendaq/signal opendaq/signal opendaq connection connection
+run_rtgen copendaq/signal opendaq/signal opendaq connection_internal connection_internal
+run_rtgen copendaq/signal opendaq/signal opendaq data_descriptor data_descriptor
+run_rtgen copendaq/signal opendaq/signal opendaq data_descriptor_builder data_descriptor_builder
+run_rtgen copendaq/signal opendaq/signal opendaq data_packet data_packet
+run_rtgen copendaq/signal opendaq/signal opendaq data_rule data_rule
+run_rtgen copendaq/signal opendaq/signal opendaq data_rule_builder data_rule_builder
+run_rtgen copendaq/signal opendaq/signal opendaq data_rule_calc data_rule_calc
+run_rtgen copendaq/signal opendaq/signal opendaq data_rule_calc_private data_rule_calc_private
+run_rtgen copendaq/signal opendaq/signal opendaq deleter deleter
+run_rtgen copendaq/signal opendaq/signal opendaq dimension dimension
+run_rtgen copendaq/signal opendaq/signal opendaq dimension_builder dimension_builder
+run_rtgen copendaq/signal opendaq/signal opendaq dimension_rule dimension_rule
+run_rtgen copendaq/signal opendaq/signal opendaq dimension_rule_builder dimension_rule_builder
+run_rtgen copendaq/signal opendaq/signal opendaq event_packet event_packet
+run_rtgen copendaq/signal opendaq/signal opendaq event_packet_ids event_packet_ids
+run_rtgen copendaq/signal opendaq/signal opendaq event_packet_params event_packet_params
+run_rtgen copendaq/signal opendaq/signal opendaq event_packet_utils event_packet_utils
+run_rtgen copendaq/signal opendaq/signal opendaq input_port input_port
+run_rtgen copendaq/signal opendaq/signal opendaq input_port_config input_port_config
+run_rtgen copendaq/signal opendaq/signal opendaq input_port_config_ptr.custom input_port_config_ptr.custom
+run_rtgen copendaq/signal opendaq/signal opendaq input_port_notifications input_port_notifications
+run_rtgen copendaq/signal opendaq/signal opendaq input_port_private input_port_private
+run_rtgen copendaq/signal opendaq/signal opendaq packet packet
+run_rtgen copendaq/signal opendaq/signal opendaq packet_destruct_callback packet_destruct_callback
+run_rtgen copendaq/signal opendaq/signal opendaq range range
+run_rtgen copendaq/signal opendaq/signal opendaq range_type range_type
+run_rtgen copendaq/signal opendaq/signal opendaq reference_domain_info reference_domain_info
+run_rtgen copendaq/signal opendaq/signal opendaq reference_domain_info_builder reference_domain_info_builder
+run_rtgen copendaq/signal opendaq/signal opendaq reference_domain_offset_adder reference_domain_offset_adder
+run_rtgen copendaq/signal opendaq/signal opendaq reusable_data_packet reusable_data_packet
+run_rtgen copendaq/signal opendaq/signal opendaq rule_private rule_private
+run_rtgen copendaq/signal opendaq/signal opendaq sample_type sample_type
+run_rtgen copendaq/signal opendaq/signal opendaq sample_type_traits sample_type_traits
+run_rtgen copendaq/signal opendaq/signal opendaq scaling scaling
+run_rtgen copendaq/signal opendaq/signal opendaq scaling_builder scaling_builder
+run_rtgen copendaq/signal opendaq/signal opendaq scaling_calc scaling_calc
+run_rtgen copendaq/signal opendaq/signal opendaq scaling_calc_private scaling_calc_private
+run_rtgen copendaq/signal opendaq/signal opendaq signal signal
+run_rtgen copendaq/signal opendaq/signal opendaq signal_config signal_config
+run_rtgen copendaq/signal opendaq/signal opendaq signal_errors signal_errors
+run_rtgen copendaq/signal opendaq/signal opendaq signal_events signal_events
+run_rtgen copendaq/signal opendaq/signal opendaq signal_exceptions signal_exceptions
+run_rtgen copendaq/signal opendaq/signal opendaq signal_private signal_private
+run_rtgen copendaq/signal opendaq/signal opendaq signal_utils signal_utils
+
+# opendaq streaming
+
+run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_device mirrored_device
+run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_device_config mirrored_device_config
+run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_signal_config mirrored_signal_config
+run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_signal_private mirrored_signal_private
+run_rtgen copendaq/streaming opendaq/streaming opendaq streaming streaming
+run_rtgen copendaq/streaming opendaq/streaming opendaq streaming_private streaming_private
+run_rtgen copendaq/streaming opendaq/streaming opendaq streaming_type streaming_type
+run_rtgen copendaq/streaming opendaq/streaming opendaq subscription_event_args subscription_event_args
+
+# opendaq synchronization
+
+run_rtgen copendaq/synchronization opendaq/synchronization opendaq sync_component sync_component
+run_rtgen copendaq/synchronization opendaq/synchronization opendaq sync_component_private sync_component_private
+
+# opendaq utility
+
+run_rtgen copendaq/utility opendaq/utility opendaq ids_parser ids_parser
+run_rtgen copendaq/utility opendaq/utility opendaq mem_pool_allocator mem_pool_allocator
+run_rtgen copendaq/utility opendaq/utility opendaq utility_errors utility_errors
+run_rtgen copendaq/utility opendaq/utility opendaq utility_exceptions utility_exceptions
+

@@ -649,6 +649,11 @@ void TmsClientDeviceImpl::removed()
     Super::removed();
 }
 
+bool TmsClientDeviceImpl::isAddedToLocalComponentTree()
+{
+    return this->clientContext->getRootDevice() == this->thisPtr<DevicePtr>();
+}
+
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
 {
     std::map<uint32_t, ComponentPtr> orderedComponents;

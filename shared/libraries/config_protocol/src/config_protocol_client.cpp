@@ -416,15 +416,35 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
     ParamsDictPtr reply;
     try
     {
-        ComponentDeserializeCallback customDeviceDeserilazeCallback = isGetRootDeviceReply ? rootDeviceDeserializeCallback : nullptr;
         const auto deserializer = JsonDeserializer();
-        reply = deserializer.deserialize(
-            jsonReply,
-            context,
-            [this, &customDeviceDeserilazeCallback](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
-            {
-                return deserializeConfigComponent(typeId, object, context, factoryCallback, customDeviceDeserilazeCallback);
-            });
+        if (isGetRootDeviceReply && this->rootDeviceDeserializeCallback)
+        {
+            bool rootDeviceDeserialized = false;
+            reply = deserializer.deserialize(
+                jsonReply,
+                context,
+                [this, &rootDeviceDeserialized](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
+                {
+                    if (!rootDeviceDeserialized && (typeId == "Device" || typeId == "Instance"))
+                    {
+                        rootDeviceDeserialized = true;
+                        BaseObjectPtr obj;
+                        checkErrorInfo(this->rootDeviceDeserializeCallback(object, context, factoryCallback, &obj));
+                        return obj;
+                    }
+                    return deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                });
+        }
+        else
+        {
+            reply = deserializer.deserialize(
+                jsonReply,
+                context,
+                [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
+                {
+                    return deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                });
+        }
     }
     catch (const std::exception& e)
     {
@@ -448,7 +468,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
                                                                    const SerializedObjectPtr& serObj,
                                                                    const BaseObjectPtr& context,
                                                                    const FunctionPtr& factoryCallback,
-                                                                   ComponentDeserializeCallback deviceDeserialzeCallback)
+                                                                   ComponentDeserializeCallback /*deviceDeserialzeCallback*/)
 {
     if (typeId == "Folder")
     {
@@ -509,10 +529,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     if (typeId == "Device" || typeId == "Instance")
     {
         BaseObjectPtr obj;
-        if (deviceDeserialzeCallback)
-            checkErrorInfo(deviceDeserialzeCallback(serObj, context, factoryCallback, &obj));
-        else
-            checkErrorInfo(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        checkErrorInfo(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 

@@ -408,6 +408,22 @@ TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(channels.getCount(), 2u);
 }
 
+TEST_F(OpcuaDeviceModulesTest, DeviceComponentConfig)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto localOpcuaDevice = client.getDevices()[0];
+    auto nestedOpcuaDevice = localOpcuaDevice.getDevices()[0];
+
+    // config automatically set by local ModuleManager when device created
+    ASSERT_TRUE(localOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    ASSERT_THROW(localOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), AlreadyExistsException);
+
+    // for nested device config cannot be overriden locally
+    ASSERT_THROW(nestedOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), InvalidOperationException);
+}
+
 TEST_F(OpcuaDeviceModulesTest, RemoveDevice)
 {
     auto server = CreateServerInstance();

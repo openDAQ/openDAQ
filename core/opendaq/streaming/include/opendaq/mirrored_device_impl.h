@@ -62,6 +62,8 @@ protected:
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
 
+    virtual bool isAddedToLocalComponentTree();
+
 private:
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
@@ -232,6 +234,13 @@ void MirroredDeviceBase<Interfaces...>::removed()
 template <typename... Interfaces>
 ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* config)
 {
+    if (!this->isAddedToLocalComponentTree())
+    {
+        return DAQ_MAKE_ERROR_INFO(
+            OPENDAQ_ERR_INVALID_OPERATION,
+            "Cannot set config for device added to remote component tree"
+        );
+    }
     ErrCode errCode = Super::setComponentConfig(config);
     if (OPENDAQ_FAILED(errCode))
         return errCode;
@@ -285,6 +294,9 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
 template <typename... Interfaces>
 void MirroredDeviceBase<Interfaces...>::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
 {
+    if (!this->isAddedToLocalComponentTree())
+        return;
+
     switch (static_cast<CoreEventId>(eventArgs.getEventId()))
     {
         case CoreEventId::ComponentAdded:
@@ -307,7 +319,9 @@ void MirroredDeviceBase<Interfaces...>::componentAdded(const ComponentPtr& sende
 
     auto deviceSelfGlobalId = deviceSelf.getGlobalId().toStdString();
     auto addedComponentGlobalId = addedComponent.getGlobalId().toStdString();
-    if (!IdsParser::isNestedComponentId(deviceSelfGlobalId, addedComponentGlobalId))
+
+    if (!IdsParser::isNestedComponentId(deviceSelfGlobalId, addedComponentGlobalId)/* &&
+        addedComponentGlobalId != deviceSelfGlobalId*/)
         return;
 
     DAQLOGF_I(this->loggerComponent, "Added Component: {};", addedComponentGlobalId);
@@ -547,6 +561,12 @@ void MirroredDeviceBase<Interfaces...>::deserializeCustomObjectValues(const Seri
             }
         }
     }
+}
+
+template <typename... Interfaces>
+bool MirroredDeviceBase<Interfaces...>::isAddedToLocalComponentTree()
+{
+    return false;
 }
 
 END_NAMESPACE_OPENDAQ

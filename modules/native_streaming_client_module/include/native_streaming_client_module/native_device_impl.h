@@ -126,6 +126,7 @@ public:
 
 protected:
     void removed() override;
+    bool isAddedToLocalComponentTree() override;
 
 private:
     void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);

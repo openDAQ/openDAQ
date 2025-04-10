@@ -437,6 +437,11 @@ ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
     return OPENDAQ_SUCCESS;
 }
 
+bool NativeDeviceImpl::isAddedToLocalComponentTree()
+{
+    return true;
+}
+
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
 {
     this->deviceHelper = std::move(deviceHelper);

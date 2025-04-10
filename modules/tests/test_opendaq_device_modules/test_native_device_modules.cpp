@@ -1166,6 +1166,23 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(servers.getCount(), 1u);
 }
 
+TEST_F(NativeDeviceModulesTest, DeviceComponentConfig)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto localNativeDevice = client.getDevices()[0];
+    auto nestedDevice = localNativeDevice.getDevices()[0];
+
+    // config automatically set by local ModuleManager when device created
+    ASSERT_TRUE(localNativeDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    ASSERT_THROW(localNativeDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), AlreadyExistsException);
+
+    // for nested device config cannot be overriden locally
+    ASSERT_TRUE(nestedDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    ASSERT_THROW(nestedDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), InvalidOperationException);
+}
+
 TEST_F(NativeDeviceModulesTest, GetStatuses)
 {
     SKIP_TEST_MAC_CI;

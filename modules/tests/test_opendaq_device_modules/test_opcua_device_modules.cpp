@@ -380,6 +380,22 @@ TEST_F(OpcuaDeviceModulesTest, TestProtocolVersion)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(OpcuaDeviceModulesTest, GetConnectedClientsInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // one config connection
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQOPCUA");
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(serverSideClientsInfo[0].getHostName(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getAddress(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
+}
+
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
 {
     SKIP_TEST_MAC_CI;

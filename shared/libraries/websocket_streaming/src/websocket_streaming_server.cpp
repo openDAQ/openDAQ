@@ -58,6 +58,32 @@ void WebsocketStreamingServer::start()
     streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignals(search::Recursive(search::Any())); });
     streamingServer.onStartSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.startReadSignals(signals); } );
     streamingServer.onStopSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.stopReadSignals(signals); } );
+    streamingServer.onClientConnected(
+        [this](const std::string& clientId, const std::string& address)
+        {
+            SizeT clientNumber = 0;
+            if (device.assigned() && !device.isRemoved())
+            {
+                device.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
+                    &clientNumber,
+                    ConnectedClientInfo(address, ProtocolType::Streaming, "OpenDAQLTStreaming", "", ""));
+            }
+            registeredClientIds.insert({clientId, clientNumber});
+        }
+    );
+    streamingServer.onClientDisconnected(
+        [this](const std::string& clientId)
+        {
+            if (auto it = registeredClientIds.find(clientId); it != registeredClientIds.end())
+            {
+                if (device.assigned() && !device.isRemoved() && it->second != 0)
+                {
+                    device.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(it->second);
+                }
+                registeredClientIds.erase(it);
+            }
+        }
+    );
     streamingServer.start(streamingPort, controlPort);
 
     packetReader.setLoopFrequency(50);
@@ -80,13 +106,19 @@ void WebsocketStreamingServer::start()
 
 void WebsocketStreamingServer::stop()
 {
-    if (this->device.assigned())
+    if (device.assigned() && !device.isRemoved())
     {
-         const auto info = this->device.getInfo();
-         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-         if (info.hasServerCapability("OpenDAQLTStreaming"))
-             infoInternal.removeServerCapability("OpenDAQLTStreaming");
+        const auto info = this->device.getInfo();
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("OpenDAQLTStreaming"))
+            infoInternal.removeServerCapability("OpenDAQLTStreaming");
+        for (const auto& [_, clientNumber] : registeredClientIds)
+        {
+            if (clientNumber != 0)
+                infoInternal.removeConnectedClient(clientNumber);
+        }
     }
+    registeredClientIds.clear();
 
     stopInternal();
 }

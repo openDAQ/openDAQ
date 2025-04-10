@@ -587,8 +587,9 @@ PropertyObjectPtr TmsClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyObjec
 template <class Impl>
 bool TmsClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const PropertyObjectPtr& propObj)
 {
-    return !propObj.supportsInterface<IServerCapabilityConfig>() 
-            && !propObj.supportsInterface<IAddressInfo>();
+    return !propObj.supportsInterface<IServerCapabilityConfig>()
+            && !propObj.supportsInterface<IAddressInfo>()
+            && !propObj.supportsInterface<IConnectedClientInfo>();
 }
 
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;

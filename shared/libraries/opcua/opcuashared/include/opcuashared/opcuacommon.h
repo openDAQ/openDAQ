@@ -24,6 +24,7 @@
 #include <opcuashared/opcuaexception.h>
 #include <opcuashared/opcuaobject.h>
 #include <chrono>
+#include <iomanip>
 
 #include "open62541/util.h"
 
@@ -34,6 +35,25 @@ namespace utils
     inline std::string ToStdString(const UA_String& value)
     {
         return std::string((const char*) value.data, value.length);
+    }
+
+    inline std::string GuidToString(const UA_Guid& guid)
+    {
+        std::ostringstream oss;
+        oss << std::hex << std::setfill('0')
+            << std::setw(8) << guid.data1 << "-"
+            << std::setw(4) << guid.data2 << "-"
+            << std::setw(4) << guid.data3 << "-"
+            << std::setw(2) << static_cast<int>(guid.data4[0])
+            << std::setw(2) << static_cast<int>(guid.data4[1]) << "-"
+            << std::setw(2) << static_cast<int>(guid.data4[2])
+            << std::setw(2) << static_cast<int>(guid.data4[3])
+            << std::setw(2) << static_cast<int>(guid.data4[4])
+            << std::setw(2) << static_cast<int>(guid.data4[5])
+            << std::setw(2) << static_cast<int>(guid.data4[6])
+            << std::setw(2) << static_cast<int>(guid.data4[7]);
+
+        return oss.str();
     }
 
     double ToSeconds(const UA_DateTime& time);

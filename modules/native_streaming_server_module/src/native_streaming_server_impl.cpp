@@ -243,7 +243,8 @@ void NativeStreamingServerImpl::stopServerInternal()
     serverStopped = true;
 
     this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
-    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
+    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr;
+        rootDevice.assigned() && !rootDevice.isRemoved())
     {
         const auto info = rootDevice.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
@@ -251,7 +252,14 @@ void NativeStreamingServerImpl::stopServerInternal()
             infoInternal.removeServerCapability("OpenDAQNativeStreaming");
         if (info.hasServerCapability("OpenDAQNativeConfiguration"))
             infoInternal.removeServerCapability("OpenDAQNativeConfiguration");
+        for (const auto& [_, clientNumber] : registeredClientIds)
+        {
+            if (clientNumber != 0)
+                infoInternal.removeConnectedClient(clientNumber);
+        }
     }
+    registeredClientIds.clear();
+    disconnectedClientIds.clear();
 
     stopReading();
     serverHandler->stopServer();
@@ -338,12 +346,51 @@ void NativeStreamingServerImpl::prepareServerHandler()
     if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         rootDeviceSignals = rootDevice.getSignals(search::Recursive(search::Any()));
 
+    auto clientConnectedHandler = [this](const std::string& clientId, const std::string& address, bool isStreamingConnection, ClientType clientType, const std::string& hostName)
+    {
+        SizeT clientNumber = 0;
+        Bool reconnected = False;
+        if (auto it = disconnectedClientIds.find(clientId); it != disconnectedClientIds.end())
+        {
+            reconnected = True;
+            clientNumber = it->second;
+            disconnectedClientIds.erase(it);
+        }
+        if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr;
+            rootDevice.assigned() && !rootDevice.isRemoved())
+        {
+            const auto clientInfo =
+                isStreamingConnection
+                    ? ConnectedClientInfo(address, ProtocolType::Streaming, "OpenDAQNativeStreaming", "", hostName)
+                    : ConnectedClientInfo(address, ProtocolType::Configuration, "OpenDAQNativeConfiguration", ClientTypeTools::ClientTypeToString(clientType), hostName);
+            clientInfo.addProperty(StringProperty("Reconnected", reconnected ? "Yes" : "No"));
+            rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(&clientNumber, clientInfo);
+        }
+        registeredClientIds.insert({clientId, clientNumber});
+    };
+
+    auto clientDisconnectedHandler = [this](const std::string& clientId)
+    {
+        if (auto it = registeredClientIds.find(clientId); it != registeredClientIds.end())
+        {
+            if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr;
+                rootDevice.assigned() && !rootDevice.isRemoved())
+            {
+                rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(it->second);
+            }
+            disconnectedClientIds.emplace(clientId, it->second);
+            registeredClientIds.erase(it);
+        }
+    };
+
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
                                                                    transportIOContextPtr,
                                                                    rootDeviceSignals,
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler,
                                                                    createConfigServerCb,
+                                                                   clientConnectedHandler,
+                                                                   clientDisconnectedHandler,
                                                                    config);
 }
 

@@ -10,6 +10,7 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_native_streaming_modules.cpp
                  test_subdevices.cpp
                  test_streaming.cpp
+                 test_device_discovery.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES}

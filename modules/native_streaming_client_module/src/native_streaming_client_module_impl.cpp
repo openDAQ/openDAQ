@@ -661,32 +661,17 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         LOG_W("Native server capability is missing port. Defaulting to 7420.")
     }
     
-    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "/";
+    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
     const auto targerAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
-        
-        bool addressExists = false;
-        for (const auto& addr : targerAddress)
-        {
-            if (addr == address)
-            {
-                addressExists = true;
-                break;
-            }
-        }
-
-        if (addressExists)
+        if (auto it = std::find(targerAddress.begin(), targerAddress.end(), address); it != targerAddress.end())
             continue;
 
-        StringPtr connectionString = source.getConnectionString();
-        if (!connectionString.getLength())
-        {
-            const auto prefix = source.getPrefix();
-            connectionString = CreateUrlConnectionString(prefix, address, port, path);
-        }
-         
+        const auto prefix = target.getPrefix();
+        StringPtr connectionString = CreateUrlConnectionString(prefix, address, port, path);
+
         const auto targetAddrInfo = AddressInfoBuilder()
                                         .setAddress(address)
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())

@@ -847,9 +847,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
-    // client.getAvailableDevices(); // TODO: won't work with prefix which is not `daq://`
-    // daq://[::1]/path.../ wont work as well because will be found daq://127.0.0.1/path.../ or similar
-    StringPtr deviceConnectionString = std::string("daq.nd://[::1]") + path;
+    StringPtr deviceConnectionString = std::string("daq.nd://[::1]:7420") + path;
     DevicePtr device = client.addDevice(deviceConnectionString);
 
     ASSERT_TRUE(device.assigned());

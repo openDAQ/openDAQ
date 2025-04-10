@@ -1562,7 +1562,7 @@ ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabil
 }
 
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
-    const ServerCapabilityPtr& deviceCap)
+                                                                         const ServerCapabilityPtr& deviceCap)
 {
     ServerCapabilityConfigPtr merged = deviceCap.asPtr<IPropertyObjectInternal>(true).clone();
 

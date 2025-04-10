@@ -162,9 +162,6 @@ Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapa
     if (target.getProtocolId() != "OpenDAQLTStreaming")
         return false;
 
-    if (target.getConnectionString().getLength() != 0)
-        return true;
-
     if (source.getConnectionType() != "TCP/IP")
         return false;
 
@@ -190,11 +187,14 @@ Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapa
     }
 
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    const auto targerAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
-        const auto prefix = WebsocketDevicePrefix;
-        StringPtr connectionString = createUrlConnectionString(address, port,path);
+        if (auto it = std::find(targerAddress.begin(), targerAddress.end(), address); it != targerAddress.end())
+            continue;
+
+        StringPtr connectionString = createUrlConnectionString(address, port, path);
 
         const auto targetAddrInfo = AddressInfoBuilder()
                                         .setAddress(addrInfo.getAddress())

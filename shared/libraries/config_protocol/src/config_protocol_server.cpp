@@ -262,7 +262,7 @@ PacketBuffer ConfigProtocolServer::processPacketAndGetReply(const PacketBuffer& 
                 uint16_t version;
                 packetBuffer.parseProtocolUpgradeRequest(version);
                 auto reply = PacketBuffer::createUpgradeProtocolReply(requestId, supportedServerVersions.find(version) != supportedServerVersions.end());
-                protocolVersion = version;
+                setProtocolVersion(version);
                 return reply;
             }
         case PacketType::Rpc:
@@ -439,15 +439,18 @@ bool ConfigProtocolServer::isForwardedCoreEvent(ComponentPtr& component, CoreEve
 
     if (coreEventId == CoreEventId::ConnectionStatusChanged)
     {
-        if (eventArgs.getParameters().get("StatusName") == "ConfigurationStatus")
-            return true;
-        else
+        // do not propagate streaming connection statuses change
+        if (eventArgs.getParameters().get("StatusName") != "ConfigurationStatus")
             return false;
     }
-    else
+    else if (coreEventId == CoreEventId::PropertyAdded)
     {
-        return streamingConsumer.isForwardedCoreEvent(component, eventArgs);
+        // filter-out the properties which are not supported by older clients
+        if (protocolVersion < 11 &&
+            eventArgs.getParameters().get("Property").asPtr<IProperty>().getValue().supportsInterface<IConnectedClientInfo>())
+            return false;
     }
+    return streamingConsumer.isForwardedCoreEvent(component, eventArgs);
 }
 
 ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
@@ -558,6 +561,15 @@ uint16_t ConfigProtocolServer::getProtocolVersion() const
 void ConfigProtocolServer::setProtocolVersion(uint16_t protocolVersion)
 {
     this->protocolVersion = protocolVersion;
+
+    // downgrade serializers
+    if (protocolVersion < 11)
+    {
+        serializer = JsonSerializerWithVersion(2);
+        notificationSerializer = JsonSerializerWithVersion(2);
+        serializer.setUser(user);
+        notificationSerializer.setUser(user);
+    }
 }
 
 }

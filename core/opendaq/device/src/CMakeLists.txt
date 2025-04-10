@@ -20,6 +20,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ConnectionStatusContainerPrivate connection_status_container_private.h)
     rtgen(SRC_NetworkInterface network_interface.h)
     rtgen(SRC_DeviceNetworkConfig device_network_config.h)
+    rtgen(SRC_ConnectedClientInfo connected_client_info.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Device_PublicHeaders}
@@ -41,6 +42,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_UserLock_PublicHeaders}
         ${SRC_ConnectionStatusContainerPrivate_PublicHeaders}
         ${SRC_NetworkInterface_PublicHeaders}
+        ${SRC_ConnectedClientInfo_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -63,6 +65,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_UserLock_PrivateHeaders}
         ${SRC_ConnectionStatusContainerPrivate_PrivateHeaders}
         ${SRC_NetworkInterface_PrivateHeaders}
+        ${SRC_ConnectedClientInfo_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -85,6 +88,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_UserLock_Cpp}
         ${SRC_ConnectionStatusContainerPrivate_Cpp}
         ${SRC_NetworkInterface_Cpp}
+        ${SRC_ConnectedClientInfo_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -152,6 +156,10 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/address_info_builder_impl.h
         ${SDK_SRC_DIR}/address_info_impl.cpp
         ${SDK_SRC_DIR}/address_info_builder_impl.cpp
+        ${SDK_SRC_DIR}/server_capability_impl.cpp
+        ${SDK_HEADERS_DIR}/connected_client_info.h
+        ${SDK_HEADERS_DIR}/connected_client_info_impl.h
+        ${SDK_SRC_DIR}/connected_client_info_impl.cpp
     )
 
     source_group("device//log_file_info" FILES 
@@ -204,6 +212,7 @@ set(SRC_PublicHeaders_Component
     network_interface.h
     network_interface_factory.h
     device_network_config.h
+    connected_client_info.h
     PARENT_SCOPE
 )
 
@@ -217,6 +226,7 @@ set(SRC_PrivateHeaders_Component
     log_file_info_builder_impl.h
     user_lock_impl.h
     network_interface_impl.h
+    connected_client_info_impl.h
     PARENT_SCOPE
 )
 
@@ -233,6 +243,7 @@ set(SRC_Cpp_Component
     log_file_info_builder_impl.cpp
     user_lock_impl.cpp
     network_interface_impl.cpp
+    connected_client_info_impl.cpp
     device.natvis
     PARENT_SCOPE
 )

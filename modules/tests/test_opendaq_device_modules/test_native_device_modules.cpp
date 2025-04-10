@@ -214,7 +214,6 @@ TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionLocationUsername)
     server.detach();
 }
 
-
 TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
 {
     SKIP_TEST_MAC_CI;
@@ -378,6 +377,78 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     ASSERT_TRUE(device.assigned());
 }
 
+TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 2u);
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "Control");
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(serverSideClientsInfo[1].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(serverSideClientsInfo[1].getClientTypeName(), "");
+    ASSERT_EQ(serverSideClientsInfo[1].getProtocolType(), ProtocolType::Streaming);
+
+    auto clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
+    ASSERT_EQ(clientSideClientsInfo[0].getProtocolName(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(clientSideClientsInfo[0].getClientTypeName(), "Control");
+    ASSERT_EQ(clientSideClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(clientSideClientsInfo[1].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(clientSideClientsInfo[1].getClientTypeName(), "");
+    ASSERT_EQ(clientSideClientsInfo[1].getProtocolType(), ProtocolType::Streaming);
+
+    auto newClient = CreateClientInstance();
+    serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 4u);
+    ASSERT_EQ(serverSideClientsInfo[2].getProtocolName(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(serverSideClientsInfo[2].getClientTypeName(), "Control");
+    ASSERT_EQ(serverSideClientsInfo[2].getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(serverSideClientsInfo[3].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(serverSideClientsInfo[3].getClientTypeName(), "");
+    ASSERT_EQ(serverSideClientsInfo[3].getProtocolType(), ProtocolType::Streaming);
+    auto clientInfo2 = serverSideClientsInfo[2];
+    auto clientInfo3 = serverSideClientsInfo[3];
+
+    clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(clientSideClientsInfo.getCount(), 4u);
+    ASSERT_EQ(clientSideClientsInfo[2].getProtocolName(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(clientSideClientsInfo[2].getClientTypeName(), "Control");
+    ASSERT_EQ(clientSideClientsInfo[2].getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(clientSideClientsInfo[3].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(clientSideClientsInfo[3].getClientTypeName(), "");
+    ASSERT_EQ(clientSideClientsInfo[3].getProtocolType(), ProtocolType::Streaming);
+
+    client.release();
+    serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 2u);
+    ASSERT_EQ(serverSideClientsInfo[0], clientInfo2);
+    ASSERT_EQ(serverSideClientsInfo[1], clientInfo3);
+
+    clientSideClientsInfo = newClient.getDevices()[0].getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
+}
+
+TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionConnectedClientsInfo)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(10);
+
+    ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
+
+    // connected clients info is not propagated via older protocol version
+    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
+
+    auto newClient = CreateClientInstance();
+    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
+    ASSERT_EQ(newClient.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 4u);
+
+    newClient.release();
+    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
+}
+
 TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
 {
     const std::string url = "daq.nd://127.0.0.1";
@@ -388,7 +459,12 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
     auto clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[0].getClientTypeName(), "ExclusiveControl");
+
     ASSERT_THROW(test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl), ControlClientRejectedException);
+
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
     clientInstance = nullptr; // disconnect
     clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
@@ -405,7 +481,13 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlAndControl)
     auto clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
+    // one config and one streaming connection
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[0].getClientTypeName(), "ExclusiveControl");
+
     ASSERT_THROW(test_helpers::connectInstanceWithClientType(url, ClientType::Control), ControlClientRejectedException);
+
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
     clientInstance = nullptr; // disconnect
     clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
@@ -422,7 +504,13 @@ TEST_F(NativeDeviceModulesTest, ClientTypeControlAndExclusiveControl)
     auto clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::Control);
     ASSERT_EQ(clientInstance.getDevices().getCount(), 1u);
 
+    // one config and one streaming connection
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[0].getClientTypeName(), "Control");
+
     ASSERT_THROW(test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl), ControlClientRejectedException);
+
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
     clientInstance = nullptr; // disconnect
     clientInstance = test_helpers::connectInstanceWithClientType(url, ClientType::ExclusiveControl);
@@ -445,6 +533,11 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
     ASSERT_EQ(clientInstance1.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
     ASSERT_EQ(clientInstance2.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
 
+    // two config and two streaming connections
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 4u);
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[0].getClientTypeName(), "Control");
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[2].getClientTypeName(), "Control");
+
     auto clientInstance3 = test_helpers::connectInstanceWithClientType(
         url, ClientType::ExclusiveControl, true);  // should cause all other control clients to disconnect
 
@@ -452,6 +545,9 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOthers)
     ASSERT_NE(clientInstance1.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
     ASSERT_NE(clientInstance2.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
     ASSERT_EQ(clientInstance3.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+
+    // one config and three streaming connections
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 4u);
 }
 
 TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
@@ -466,6 +562,11 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
 
     auto clientInstance2 = test_helpers::connectInstanceWithClientType(url, ClientType::ViewOnly);
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
+
+    // two config and two streaming connections
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 4u);
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[0].getClientTypeName(), "ExclusiveControl");
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[2].getClientTypeName(), "ViewOnly");
 }
 
 TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
@@ -484,6 +585,11 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
     ASSERT_EQ(clientInstance1.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
     ASSERT_EQ(clientInstance2.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
 
+    // two config and two streaming connections
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 4u);
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[0].getClientTypeName(), "Control");
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[2].getClientTypeName(), "ViewOnly");
+
     auto clientInstance3 = test_helpers::connectInstanceWithClientType(
         url, ClientType::ExclusiveControl, true);  // should cause all other control clients to disconnect
 
@@ -491,6 +597,9 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
     ASSERT_NE(clientInstance1.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
     ASSERT_EQ(clientInstance2.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected"); // view-only client should stay connected
     ASSERT_EQ(clientInstance3.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+
+    // two config and three streaming connections
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 5u);
 }
 
 TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveControl)
@@ -505,12 +614,19 @@ TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlDropOtherExclusiveCont
 
     ASSERT_EQ(clientInstance1.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
 
+    // one config and one streaming connection
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo()[0].getClientTypeName(), "ExclusiveControl");
+
     auto clientInstance2 = test_helpers::connectInstanceWithClientType(
         url, ClientType::ExclusiveControl, true);  // should cause first exclusive control client to disconnect
 
     ASSERT_EQ(clientInstance2.getDevices().getCount(), 1u);
     ASSERT_NE(clientInstance1.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
     ASSERT_EQ(clientInstance2.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+
+    // one config and two streaming connections
+    ASSERT_EQ(serverInstance.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 3u);
 }
 
 TEST_F(NativeDeviceModulesTest, PartialSerialization)
@@ -2112,11 +2228,12 @@ TEST_F(NativeDeviceModulesTest, Update)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
+TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = Instance();
+    client.addDevice("daq.nd://127.0.0.1", nullptr);
 
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
@@ -2130,6 +2247,27 @@ TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPort(), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://127.0.0.1");
+}
+
+TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.nd://[::1]", nullptr);
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::ConfigurationAndStreaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.nd://[::1]");
 }
 
 TEST_F(NativeDeviceModulesTest, TestAddressInfoIPv4)
@@ -2553,6 +2691,33 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfigurationWithAnotherDevice)
     ASSERT_EQ(serverDevices[0].getInfo().getConnectionString(), "daqref://device0");
 }
 
+TEST_F(NativeDeviceModulesTest, ConnectedClientsInfoNotSavedLoaded)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstance();
+        auto client = CreateClientInstance();
+        auto client2 = CreateClientInstance();
+
+        auto clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
+        ASSERT_EQ(clientSideClientsInfo.getCount(), 4u);
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstance();
+
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto clientSideClientsInfo = restoredClient.getDevices()[0].getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
+
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 2u);
+    ASSERT_EQ(serverSideClientsInfo[0].getAddress(), clientSideClientsInfo[0].getAddress());
+    ASSERT_EQ(serverSideClientsInfo[1].getAddress(), clientSideClientsInfo[1].getAddress());
+}
 
 InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPath)
 {
@@ -3156,6 +3321,8 @@ TEST_F(NativeC2DStreamingTest, ClientLostConnection)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
+    ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
+
     const auto mirroredDevice = client.getDevices()[0];
     const auto clientRefDevice = client.addDevice("daqref://device0");
     const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
@@ -3182,6 +3349,8 @@ TEST_F(NativeC2DStreamingTest, ClientLostConnection)
 
     // remove server to emulate disconnection
     server.removeServer(server.getServers()[0]);
+    ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 0u);
+
     ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
 
     ASSERT_FALSE(mirroredInputPort.getSignal().assigned());

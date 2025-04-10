@@ -253,6 +253,21 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 
 #endif
 
+TEST_F(WebsocketModulesTest, GetConnectedClientsInfo)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // one streaming connection
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQLTStreaming");
+    ASSERT_EQ(serverSideClientsInfo[0].getHostName(), "");
+    ASSERT_TRUE(serverSideClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
+}
+
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();
@@ -360,7 +375,7 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }
 
-TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
+TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -379,6 +394,28 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1/");
 }
+
+TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv6)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.lt://[::1]", nullptr);
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQLTStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQLTStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
+    ASSERT_EQ(connectionInfo.getPort(), 7414);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://[::1]");
+}
+
 TEST_F(WebsocketModulesTest, AddSignals)
 {
     SKIP_TEST_MAC_CI;

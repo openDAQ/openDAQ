@@ -8,7 +8,6 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <regex>
-#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
 
@@ -16,6 +15,9 @@ static std::string WebsocketDeviceTypeId = "OpenDAQLTStreaming";
 static std::string OldWebsocketDeviceTypeId = "OpenDAQLTStreamingOld";
 static std::string WebsocketDevicePrefix = "daq.lt";
 static std::string OldWebsocketDevicePrefix = "daq.ws";
+
+static const std::regex RegexIpv6Hostname(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -95,8 +97,15 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     auto port = -1;
     {
         std::smatch match;
-        auto regexpConnectionString = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
-        if (std::regex_search(str, match, regexpConnectionString))
+
+        bool parsed = false;
+        parsed = std::regex_search(str, match, RegexIpv6Hostname);
+        if (!parsed)
+        {
+            parsed = std::regex_search(str, match, RegexIpv4Hostname);
+        }
+
+        if (parsed)
         {
             host = match[2].str();
             port = 7414;
@@ -250,9 +259,6 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
         return connectionString;
 
     std::string urlString = connectionString.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
     std::string host = "";
@@ -260,10 +266,10 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
     std::string path = "/";
 
     bool parsed = false;
-    parsed = std::regex_search(urlString, match, regexIpv6Hostname);
+    parsed = std::regex_search(urlString, match, RegexIpv6Hostname);
     if (!parsed)
     {
-        parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+        parsed = std::regex_search(urlString, match, RegexIpv4Hostname);
     }
 
     if (parsed)
@@ -282,9 +288,6 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 
 DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-
     auto cap = ServerCapability(WebsocketDeviceTypeId, "OpenDAQLTStreaming", ProtocolType::Streaming);
 
     if (!discoveredDevice.ipv4Address.empty())
@@ -328,11 +331,7 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createWebsocketDeviceType(false));
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createWebsocketDeviceType(false));
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE

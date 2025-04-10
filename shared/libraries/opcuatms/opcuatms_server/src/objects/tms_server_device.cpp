@@ -234,13 +234,13 @@ void TmsServerDevice::populateDeviceInfo()
         });
     }
 
-    std::map<std::string, std::string> theBestProportiesEver = 
+    std::map<std::string, std::string> deviceInfoFieldsMap = 
     {
         {"userName", "UserName"},
         {"location", "Location"}
     };
 
-    for (const auto& [propName, browseName] : theBestProportiesEver)
+    for (const auto& [propName, browseName] : deviceInfoFieldsMap)
     {
         const auto& prop = deviceInfo.getProperty(propName);
         const auto nodeId = getChildNodeId(browseName);

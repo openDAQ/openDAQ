@@ -49,6 +49,36 @@ void TmsServer::start()
     server = std::make_shared<OpcUaServer>();
     server->setPort(opcUaPort);
     server->setAuthenticationProvider(context.getAuthenticationProvider());
+    server->setClientConnectedHandler(
+        [this](const std::string& clientId)
+        {
+            const auto loggerComponent = context.getLogger().getOrAddComponent("TmsServer");
+            LOG_I("New client connected, ID: {}", clientId);
+            SizeT clientNumber = 0;
+            if (device.assigned() && !device.isRemoved())
+            {
+                device.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
+                    &clientNumber,
+                    ConnectedClientInfo("", ProtocolType::Configuration, "OpenDAQOPCUA", "", ""));
+            }
+            registeredClientIds.insert({clientId, clientNumber});
+        }
+    );
+    server->setClientDisconnectedHandler(
+        [this](const std::string& clientId)
+        {
+            if (auto it = registeredClientIds.find(clientId); it != registeredClientIds.end())
+            {
+                const auto loggerComponent = context.getLogger().getOrAddComponent("TmsServer");
+                LOG_I("Client disconnected, ID: {}", clientId);
+                if (device.assigned() && !device.isRemoved() && it->second != 0)
+                {
+                    device.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(it->second);
+                }
+                registeredClientIds.erase(it);
+            }
+        }
+    );
     server->prepare();
 
     tmsContext = std::make_shared<TmsServerContext>(context, device);
@@ -70,6 +100,20 @@ void TmsServer::start()
 
 void TmsServer::stop()
 {
+    if (device.assigned() && !device.isRemoved())
+    {
+        const auto info = device.getInfo();
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("OpenDAQOPCUAConfiguration"))
+            infoInternal.removeServerCapability("OpenDAQOPCUAConfiguration");
+        for (const auto& [_, clientNumber] : registeredClientIds)
+        {
+            if (clientNumber != 0)
+                infoInternal.removeConnectedClient(clientNumber);
+        }
+    }
+    registeredClientIds.clear();
+
     if (server)
         server->stop();
     

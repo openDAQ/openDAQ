@@ -305,27 +305,27 @@ namespace test_helpers
         auto allPropsA = configA.getAllProperties();
         auto allPropsB = configB.getAllProperties();
         ASSERT_EQ(allPropsA.getCount(), allPropsB.getCount())
-            << "count of properties differs: A - " << allPropsA.getCount() << "; B - " << allPropsB.getCount();
+            << "\"" << path << "\" count of properties differs: A - " << allPropsA.getCount() << "; B - " << allPropsB.getCount();
         for (const auto& propA : allPropsA)
         {
             StringPtr propName = propA.getName();
             ASSERT_TRUE(configB.hasProperty(propName))
-                << path << " A property " << propName << " missing in B";
+                << "\"" << path << "\" A property \"" << propName << "\" missing in B";
             ASSERT_EQ(configB.getProperty(propName).getValueType(), propA.getValueType())
-                << path << " property " << propName << " type in A " << propA.getValueType()
-                << " doesn't equal to type in B " << configB.getProperty(propName).getValueType();
+                << "\"" << path << "\" property \"" << propName << "\" type in A - " << propA.getValueType()
+                << " doesn't equal to type in B - " << configB.getProperty(propName).getValueType();
 
             auto propValueA = propA.getValue();
             auto propValueB = configB.getPropertyValue(propName);
             if (propValueA.supportsInterface<IPropertyObject>())
             {
-                testPropObjsEquality(propValueA, propValueB, path + "." + propName.toStdString());
+                testPropObjsEquality(propValueA, propValueB, path + (path.empty() ? "" : ".") + propName.toStdString());
             }
             else
             {
                 ASSERT_TRUE(BaseObjectPtr::Equals(propValueA, propValueB))
-                    << path << " property " << propName << " value in A " << propValueA
-                    << " doesn't equal to value in B " << propValueB;
+                    << "\"" << path << "\" property \"" << propName << "\" value in A \"" << propValueA
+                    << "\" doesn't equal to value in B \"" << propValueB << "\"";
             }
         }
     }

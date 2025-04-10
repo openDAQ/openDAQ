@@ -27,6 +27,37 @@ TEST_F(ModulesDefaultConfigTest, GeneralConfig)
     ASSERT_TRUE(general.hasProperty("PrimaryAddressType"));
 }
 
+TEST_F(ModulesDefaultConfigTest, AddDeviceWithoutConfig)
+{
+    const auto instance = Instance();
+    const ModulePtr deviceModule(MockDeviceModule_Create(instance.getContext()));
+    instance.getModuleManager().addModule(deviceModule);
+
+    auto device = instance.addDevice("daqmock://phys_device");
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+
+    const auto defaultConfig = instance.createDefaultAddDeviceConfig();
+    test_helpers::testPropObjsEquality(defaultConfig, addedComponentConfig);
+}
+
+TEST_F(ModulesDefaultConfigTest, AddDeviceWithDefConfigFromDeviceType)
+{
+    const auto instance = Instance();
+    const ModulePtr deviceModule(MockDeviceModule_Create(instance.getContext()));
+    instance.getModuleManager().addModule(deviceModule);
+
+    auto deviceTypes = instance.getAvailableDeviceTypes();
+    auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
+
+    auto device = instance.addDevice("daqmock://phys_device", mockDeviceConfig);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+
+    const auto defaultConfig = instance.createDefaultAddDeviceConfig();
+    test_helpers::testPropObjsEquality(defaultConfig, addedComponentConfig);
+}
+
 TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)
 {
     const auto instance = Instance();

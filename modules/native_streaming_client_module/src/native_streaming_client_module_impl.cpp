@@ -81,7 +81,7 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
             protocolPrefix,
             discoveredDevice.ipv4Address,
             discoveredDevice.servicePort,
-            discoveredDevice.getPropertyOrDefault("path", "")
+            discoveredDevice.getPropertyOrDefault("path", "/")
         );
         cap.addConnectionString(connectionStringIpv4);
         cap.addAddress(discoveredDevice.ipv4Address);
@@ -100,7 +100,7 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
             protocolPrefix,
             discoveredDevice.ipv6Address,
             discoveredDevice.servicePort,
-            discoveredDevice.getPropertyOrDefault("path", "")
+            discoveredDevice.getPropertyOrDefault("path", "/")
         );
         cap.addConnectionString(connectionStringIpv6);
         cap.addAddress(discoveredDevice.ipv6Address);
@@ -661,15 +661,19 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     }
     
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
-    const auto targerAddress = target.getAddresses();
+    const auto targetAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
-        if (auto it = std::find(targerAddress.begin(), targerAddress.end(), address); it != targerAddress.end())
+        if (auto it = std::find(targetAddress.begin(), targetAddress.end(), address); it != targetAddress.end())
             continue;
 
         const auto prefix = target.getPrefix();
-        StringPtr connectionString = CreateUrlConnectionString(prefix, address, port, path);
+        StringPtr connectionString;
+        if (source.getPrefix() == prefix)
+            connectionString = addrInfo.getConnectionString();
+        else
+            connectionString = CreateUrlConnectionString(prefix, address, port, path);
 
         const auto targetAddrInfo = AddressInfoBuilder()
                                         .setAddress(address)

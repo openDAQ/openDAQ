@@ -962,7 +962,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
-    StringPtr deviceConnectionString = std::string("daq.nd://[::1]:7420") + path;
+    StringPtr deviceConnectionString = std::string("daq.nd://[::1]") + path;
     DevicePtr device = client.addDevice(deviceConnectionString);
 
     ASSERT_TRUE(device.assigned());

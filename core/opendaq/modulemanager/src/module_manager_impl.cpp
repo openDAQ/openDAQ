@@ -1087,12 +1087,6 @@ AddressInfoPtr ModuleManagerImpl::findStreamingAddress(const ListPtr<IAddressInf
                                                        const AddressInfoPtr& deviceConnectionAddress,
                                                        StringPtr primaryAddressType)
 {
-    // if primaryAddressType is not set, use the device connection address type
-    if (!isValidConnectionAddressType(primaryAddressType) && deviceConnectionAddress.assigned())
-    {
-        primaryAddressType = deviceConnectionAddress.getType(); 
-    }
-
     if (isValidConnectionAddressType(primaryAddressType)) // restrict by connection address type
     {
         // If the device connection address is unavailable for streaming, search for any address matching type constraints

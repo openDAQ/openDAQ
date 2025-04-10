@@ -186,17 +186,20 @@ Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapa
     }
 
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
-    const auto targerAddress = target.getAddresses();
+    const auto targetAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
-        if (auto it = std::find(targerAddress.begin(), targerAddress.end(), address); it != targerAddress.end())
+        if (auto it = std::find(targetAddress.begin(), targetAddress.end(), address); it != targetAddress.end())
             continue;
 
-        StringPtr connectionString = createUrlConnectionString(address, port, path);
-
+        StringPtr connectionString;
+        if (source.getPrefix() == target.getPrefix())
+            connectionString = addrInfo.getConnectionString();
+        else
+            connectionString = createUrlConnectionString(address, port, path);
         const auto targetAddrInfo = AddressInfoBuilder()
-                                        .setAddress(addrInfo.getAddress())
+                                        .setAddress(address)
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
                                         .setType(addrInfo.getType())
                                         .setConnectionString(connectionString)
@@ -260,7 +263,7 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 
     std::string host = "";
     std::string prefix = "";
-    std::string path = "";
+    std::string path = "/";
 
     bool parsed = false;
     parsed = std::regex_search(urlString, match, RegexIpv6Hostname);
@@ -276,6 +279,9 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 
         if (match[3].matched)
             port = std::stoi(match[3]);
+        
+        if (port == 7414)
+            return connectionString;
 
         if (match[4].matched)
             path = match[4];
@@ -295,7 +301,7 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
         auto connectionStringIpv4 = WebsocketStreamingClientModule::createUrlConnectionString(
             discoveredDevice.ipv4Address,
             discoveredDevice.servicePort,
-            discoveredDevice.getPropertyOrDefault("path", "")
+            discoveredDevice.getPropertyOrDefault("path", "/")
             );
         cap.addConnectionString(connectionStringIpv4);
         cap.addAddress(discoveredDevice.ipv4Address);
@@ -312,7 +318,7 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
         auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
             discoveredDevice.ipv6Address,
             discoveredDevice.servicePort,
-            discoveredDevice.getPropertyOrDefault("path", "")
+            discoveredDevice.getPropertyOrDefault("path", "/")
             );
         cap.addConnectionString(connectionStringIpv6);
         cap.addAddress(discoveredDevice.ipv6Address);

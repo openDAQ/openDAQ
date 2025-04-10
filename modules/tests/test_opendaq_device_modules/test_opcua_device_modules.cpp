@@ -246,7 +246,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
 
     auto client = Instance();
-    StringPtr deviceConnectionString = std::string("daq.opcua://[::1]:4840") + path;
+    StringPtr deviceConnectionString = std::string("daq.opcua://[::1]") + path;
     DevicePtr device = client.addDevice(deviceConnectionString);
 
     ASSERT_TRUE(device.assigned());

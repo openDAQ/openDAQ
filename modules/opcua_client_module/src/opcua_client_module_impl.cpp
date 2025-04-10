@@ -121,6 +121,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
 
 void OpcUaClientModule::completeServerCapabilities(const DevicePtr& device, const AddressInfoPtr& deviceAddress)
 {
+    // do we need this ???
     auto deviceInfo = device.getInfo();
     if (!deviceInfo.assigned())
         return;
@@ -129,13 +130,7 @@ void OpcUaClientModule::completeServerCapabilities(const DevicePtr& device, cons
     {
         if (capability.getConnectionType() == "TCP/IP")
         {
-            auto capConf = capability.asPtr<IServerCapabilityConfig>(true);
-            capConf.addAddress(deviceAddress.getAddress());
-            if (capability.getProtocolId() == DaqOpcUaDeviceTypeId)
-            {
-                capConf.addAddressInfo(deviceAddress);
-                capConf.addConnectionString(deviceAddress.getConnectionString());
-            }
+            capability.asPtr<IServerCapabilityConfig>(true).addAddress(deviceAddress.getAddress());
         }
     }
 }
@@ -264,9 +259,6 @@ Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& so
 {
     if (target.getProtocolId() != "OpenDAQOPCUAConfiguration")
         return false;
-
-    if (target.getConnectionString().getLength() != 0)
-        return true;
     
     if (source.getConnectionType() != "TCP/IP")
         return false;
@@ -292,14 +284,34 @@ Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& so
         LOG_W("OPC UA server capability is missing port. Defaulting to 4840.")
     }
 
-    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "/";
+    const auto targerAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
 
-        std::string connectionString = fmt::format("{}://{}:{}/{}", DaqOpcUaDevicePrefix, address, port, path);
+        bool addressExists = false;
+        for (const auto& addr : targerAddress)
+        {
+            if (addr == address)
+            {
+                addressExists = true;
+                break;
+            }
+        }
+
+        if (addressExists)
+            continue;
+
+        StringPtr connectionString = source.getConnectionString();
+        if (!connectionString.getLength())
+        {
+            const auto prefix = source.getPrefix();
+            connectionString = fmt::format("{}://{}:{}/{}", source.getPrefix(), address, port, path);
+        }
+
         const auto targetAddrInfo = AddressInfoBuilder()
-                                        .setAddress(addrInfo.getAddress())
+                                        .setAddress(address)
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
                                         .setType(addrInfo.getType())
                                         .setConnectionString(connectionString)

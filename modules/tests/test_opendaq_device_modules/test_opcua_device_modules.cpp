@@ -262,20 +262,25 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
         ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
 
+        auto addressInfos = capability.getAddressInfo();
         auto addresses = capability.getAddresses();
-        for (size_t i = 0; i < addresses.getCount(); ++i)
+        for (size_t i = 0; i < addressInfos.getCount(); ++i)
         {
-            const auto& info = capability.getAddressInfo()[i];
+            const auto& info = addressInfos[i];
             if (info.getType() != "IPv6")
                 continue;
-            
-            ASSERT_EQ(info.getConnectionString(), deviceConnectionString);
+
+            if (info.getConnectionString() != deviceConnectionString)
+                continue;
+
             ASSERT_EQ(info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
             ASSERT_EQ(info.getConnectionString(), capability.getConnectionStrings()[i]);
+            ASSERT_EQ(info.getAddress(), addresses[i]);
             return;
         }
     }
-    ASSERT_TRUE(false) << "OpcUa server capability with ipv6 address not found";
+
+    ASSERT_TRUE(false) << "OpcUa streaming capability with connection string " << deviceConnectionString << " not found";
 }
 
 #endif

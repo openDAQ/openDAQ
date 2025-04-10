@@ -864,16 +864,20 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
         if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
         {
+            auto addressInfos = capability.getAddressInfo();
             auto addresses = capability.getAddresses();
-            for (size_t i = 0; i < addresses.getCount(); ++i)
+            for (size_t i = 0; i < addressInfos.getCount(); ++i)
             {
-                const auto& info = capability.getAddressInfo()[i];
+                const auto& info = addressInfos[i];
                 if (info.getType() != "IPv6")
                     continue;
-                
-                ASSERT_EQ(info.getConnectionString(), deviceConnectionString);
+
+                if (info.getConnectionString() != deviceConnectionString)
+                    continue;
+
                 ASSERT_EQ(info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
                 ASSERT_EQ(info.getConnectionString(), capability.getConnectionStrings()[i]);
+                ASSERT_EQ(info.getAddress(), addresses[i]);
                 return;
             }
         }
@@ -882,7 +886,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
             ASSERT_EQ(capability.getProtocolName(), "OpenDAQNativeStreaming");
         }
     }
-    ASSERT_TRUE(false) << "Native streaming server capability with ipv6 address not found";
+    ASSERT_TRUE(false) << "Native streaming capability with connection string " << deviceConnectionString << " not found";
 }
 
 #endif

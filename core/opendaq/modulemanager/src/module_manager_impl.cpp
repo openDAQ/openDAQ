@@ -1371,10 +1371,13 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
         {
             if (address == info.getAddress() && addressType == info.getType())
             {
-                info.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(AddressReachabilityStatus::Reachable);
+                info.asPtr<IAddressInfoPrivate>(true).setReachabilityStatusPrivate(AddressReachabilityStatus::Reachable);
             }
         }
     }
+
+    for (const auto& target: targetCaps)
+        target.freeze();
 }
 
 PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
@@ -1573,72 +1576,6 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const S
             continue;
         }
 
-        if (name == "Addresses")
-        {
-            auto mergedAddresses = merged.getAddresses();
-            for (const auto& address : discoveryCap.getAddresses())
-            {
-                bool exists = false;
-                for (const auto& existing : mergedAddresses)
-                {
-                    if (address == existing)
-                    {
-                        exists = true;
-                        break;
-                    }
-                }
-                if (!exists)
-                    merged.addAddress(address);
-            }
-            continue;
-        }
-
-        if (name == "AddressInfo")
-        {
-            auto mergedAddressInfos = merged.getAddressInfo();
-            for (const auto& info : discoveryCap.getAddressInfo())
-            {
-                bool exists = false;
-                for (const auto& existing : mergedAddressInfos)
-                {
-                    if (info.getAddress() == existing.getAddress())
-                    {
-                        exists = true;
-                        break;
-                    }
-                }
-                if (!exists)
-                    merged.addAddressInfo(info);
-            }
-            continue;
-        }
-
-        if (name == "ConnectionStrings")
-        {
-            auto mergedConnectionStrings = merged.getConnectionStrings();
-            for (const auto& conn : discoveryCap.getConnectionStrings())
-            {
-                bool exists = false;
-                for (const auto& existing : mergedConnectionStrings)
-                {
-                    if (conn == existing)
-                    {
-                        exists = true;
-                        break;
-                    }
-                }
-                if (!exists)
-                    merged.addConnectionString(conn);
-            }
-            continue;
-        }
-
-        if (name == "PrimaryConnectionString")
-        {
-            if (merged.getConnectionString().getLength() != 0)
-                continue;
-        }
-
         const auto val = discoveryCap.getPropertyValue(name);
         if (val != prop.getDefaultValue())
         {
@@ -1646,7 +1583,6 @@ ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const S
         }
     }
 
-    merged.freeze();
     return merged.detach();
 }
 

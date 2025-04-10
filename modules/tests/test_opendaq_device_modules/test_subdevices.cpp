@@ -56,6 +56,148 @@ public:
         return String(fmt::format("{}{}:{}/", prefix, ADDRESS, port));
     }
 
+    virtual void addLtServer(InstancePtr& instance, uint16_t streamingPort, uint16_t controlPort)
+    {
+        auto ws_config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
+        ws_config.setPropertyValue("WebsocketStreamingPort", streamingPort);
+        ws_config.setPropertyValue("WebsocketControlPort", controlPort);
+        instance.addServer("OpenDAQLTStreaming", ws_config);
+    }
+
+    virtual void addNativeServer(InstancePtr& instance, uint16_t port)
+    {
+        auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+        ns_config.setPropertyValue("NativeStreamingPort", port);
+        instance.addServer("OpenDAQNativeStreaming", ns_config);
+    }
+
+    virtual void addOpcuaServer(InstancePtr& instance, uint16_t port)
+    {
+        auto ua_config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
+        ua_config.setPropertyValue("Port", port);
+        instance.addServer("OpenDAQOPCUA", ua_config);
+    }
+
+    void testStreamClientSignalFromLeaf(const InstancePtr& client)
+    {
+        auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+        std::promise<StringPtr> clientSignalSubscribePromise;
+        std::future<StringPtr> clientSignalSubscribeFuture;
+        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
+                                               clientSignalSubscribeFuture,
+                                               clientSignal);
+
+        using namespace std::chrono_literals;
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
+
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+            // TODO: needed becuase there are two descriptor changes,
+            // due to reference domain "stuff" only being fully supported over Native
+            // can be deleted once full support is added
+            reader.read(nullptr, &count, 100);
+        }
+
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
+
+    void testStreamGatewayAndClientSignals(const InstancePtr& client, const InstancePtr& gateway)
+    {
+        auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+        std::promise<StringPtr> clientSignalSubscribePromise;
+        std::future<StringPtr> clientSignalSubscribeFuture;
+        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
+                                               clientSignalSubscribeFuture,
+                                               clientSignal);
+
+        auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+        std::promise<StringPtr> gatewaySignalSubscribePromise;
+        std::future<StringPtr> gatewaySignalSubscribeFuture;
+        test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise,
+                                               gatewaySignalSubscribeFuture,
+                                               gatewaySignal);
+
+        using namespace std::chrono_literals;
+        StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
+        StreamReaderPtr gatewayReader = daq::StreamReader<double, uint64_t>(gatewaySignal, ReadTimeoutType::Any);
+
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+
+        {
+            daq::SizeT count = 0;
+            clientReader.read(nullptr, &count, 100);
+            gatewayReader.read(nullptr, &count, 100);
+            // TODO: needed becuase there are two descriptor changes,
+            // due to reference domain "stuff" only being fully supported over Native
+            // can be deleted once full support is added
+            clientReader.read(nullptr, &count, 100);
+            gatewayReader.read(nullptr, &count, 100);
+        }
+
+        double clientSamples[100];
+        double gatewaySamples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT clientSamplesCount = 100;
+            clientReader.read(clientSamples, &clientSamplesCount, 1000);
+            EXPECT_GT(clientSamplesCount, 0u) << "iteration " << i;
+
+            daq::SizeT gatewaySamplesCount = 100;
+            gatewayReader.read(gatewaySamples, &gatewaySamplesCount, 1000);
+            EXPECT_GT(gatewaySamplesCount, 0u) << "iteration " << i;
+        }
+    }
+
+    void testStreamClientSignalViaGateway(const InstancePtr& client, const InstancePtr& gateway)
+    {
+        auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+        std::promise<StringPtr> clientSignalSubscribePromise;
+        std::future<StringPtr> clientSignalSubscribeFuture;
+        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
+                                               clientSignalSubscribeFuture,
+                                               clientSignal);
+
+        auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+        std::promise<StringPtr> gatewaySignalSubscribePromise;
+        std::future<StringPtr> gatewaySignalSubscribeFuture;
+        test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise,
+                                               gatewaySignalSubscribeFuture,
+                                               gatewaySignal);
+
+        using namespace std::chrono_literals;
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
+
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+            // TODO: needed becuase there are two descriptor changes,
+            // due to reference domain "stuff" only being fully supported over Native
+            // can be deleted once full support is added
+            reader.read(nullptr, &count, 100);
+        }
+
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
+
     InstancePtr CreateSubdeviceInstance(uint16_t index)
     {
         auto logger = Logger();
@@ -69,24 +211,10 @@ public:
 
         auto structureProtocolType = std::get<0>(GetParam());
 
-        {
-            auto ws_config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
-            ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT + index);
-            ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT + index);
-            instance.addServer("OpenDAQLTStreaming", ws_config);
-        }
-        {
-            auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
-            ns_config.setPropertyValue("NativeStreamingPort", NATIVE_PORT + index);
-            instance.addServer("OpenDAQNativeStreaming", ns_config);
-        }
-
+        addLtServer(instance, WEBSOCKET_STREAMING_PORT + index, WEBSOCKET_CONTROL_PORT + index);
+        addNativeServer(instance, NATIVE_PORT + index);
         if (structureProtocolType == StructureProtocolType::OpcUa)
-        {
-            auto ua_config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
-            ua_config.setPropertyValue("Port", OPCUA_PORT + index);
-            instance.addServer("OpenDAQOPCUA", ua_config);
-        }
+            addOpcuaServer(instance, OPCUA_PORT + index);
 
         return instance;
     }
@@ -114,24 +242,10 @@ public:
             const auto subDevice = instance.addDevice(createStructureDeviceConnectionString(index), config);
         }
 
-        {
-            auto ws_config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
-            ws_config.setPropertyValue("WebsocketStreamingPort", WEBSOCKET_STREAMING_PORT);
-            ws_config.setPropertyValue("WebsocketControlPort", WEBSOCKET_CONTROL_PORT);
-            instance.addServer("OpenDAQLTStreaming", ws_config);
-        }
-        {
-            auto ns_config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
-            ns_config.setPropertyValue("NativeStreamingPort", NATIVE_PORT);
-            instance.addServer("OpenDAQNativeStreaming", ns_config);
-        }
-
+        addLtServer(instance, WEBSOCKET_STREAMING_PORT, WEBSOCKET_CONTROL_PORT);
+        addNativeServer(instance, NATIVE_PORT);
         if (structureProtocolType == StructureProtocolType::OpcUa)
-        {
-            auto ua_config = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
-            ua_config.setPropertyValue("Port", OPCUA_PORT);
-            instance.addServer("OpenDAQOPCUA", ua_config);
-        }
+            addOpcuaServer(instance, OPCUA_PORT);
 
         return instance;
     }
@@ -158,7 +272,7 @@ public:
     }
 };
 
-TEST_P_UNSTABLE_SKIPPED(SubDevicesTest, RootStreamingToClient)
+TEST_P(SubDevicesTest, RootStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
     auto subdevice1 = CreateSubdeviceInstance(1u);
@@ -181,42 +295,11 @@ TEST_P_UNSTABLE_SKIPPED(SubDevicesTest, RootStreamingToClient)
         ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[1]);
     }
 
-    auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-    std::promise<StringPtr> clientSignalSubscribePromise;
-    std::future<StringPtr> clientSignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
-                                           clientSignalSubscribeFuture,
-                                           clientSignal);
-
-    auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-    std::promise<StringPtr> gatewaySignalSubscribePromise;
-    std::future<StringPtr> gatewaySignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise,
-                                           gatewaySignalSubscribeFuture,
-                                           gatewaySignal);
-
-    using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
-
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
-
-    {
-        daq::SizeT count = 0;
-        reader.read(nullptr, &count, 100);
-        // TODO: needed becuase there are two descriptor changes,
-        // due to reference domain "stuff" only being fully supported over Native
-        // can be deleted once full support is added
-        reader.read(nullptr, &count, 100);
-    }
-
-    double samples[100];
-    for (int i = 0; i < 5; ++i)
-    {
-        daq::SizeT count = 100;
-        reader.read(samples, &count, 1000);
-        EXPECT_GT(count, 0u) << "iteration " << i;
-    }
+#ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
+#ifndef OPENDAQ_SKIP_UNSTABLE_TESTS
+    testStreamClientSignalViaGateway(client, gateway);
+#endif
+#endif
 }
 
 TEST_P(SubDevicesTest, LeafStreamingToClient)
@@ -242,45 +325,14 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
                     clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
     }
 
-    auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-    std::promise<StringPtr> clientSignalSubscribePromise;
-    std::future<StringPtr> clientSignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
-                                           clientSignalSubscribeFuture,
-                                           clientSignal);
-
-    using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
-    
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
-
-    {
-        daq::SizeT count = 0;
-        reader.read(nullptr, &count, 100);
-        // TODO: needed becuase there are two descriptor changes,
-        // due to reference domain "stuff" only being fully supported over Native
-        // can be deleted once full support is added
-        reader.read(nullptr, &count, 100);
-    }
-
-    double samples[100];
-    for (int i = 0; i < 5; ++i)
-    {
-        daq::SizeT count = 100;
-        reader.read(samples, &count, 1000);
-        EXPECT_GT(count, 0u) << "iteration " << i;
-    }
+#ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
+    testStreamClientSignalFromLeaf(client);
+#endif
 }
 
 TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 {
     SKIP_TEST_MAC_CI;
-
-    if (std::get<2>(GetParam()) == StreamingProtocolType::WebsocketStreaming)
-    {
-        GTEST_SKIP();
-    }
-
     auto subdevice1 = CreateSubdeviceInstance(1u);
     auto subdevice2 = CreateSubdeviceInstance(2u);
     auto gateway = CreateGatewayInstance();
@@ -301,50 +353,13 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
                     clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
     }
 
-    auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-    std::promise<StringPtr> clientSignalSubscribePromise;
-    std::future<StringPtr> clientSignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
-                                           clientSignalSubscribeFuture,
-                                           clientSignal);
-
-    auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-    std::promise<StringPtr> gatewaySignalSubscribePromise;
-    std::future<StringPtr> gatewaySignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise,
-                                           gatewaySignalSubscribeFuture,
-                                           gatewaySignal);
-
-    using namespace std::chrono_literals;
-    StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
-    StreamReaderPtr gatewayReader = daq::StreamReader<double, uint64_t>(gatewaySignal, ReadTimeoutType::Any);
-
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
-
+#ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
+    if (std::get<2>(GetParam()) == StreamingProtocolType::WebsocketStreaming)
     {
-        daq::SizeT count = 0;
-        clientReader.read(nullptr, &count, 100);
-        gatewayReader.read(nullptr, &count, 100);
-        // TODO: needed becuase there are two descriptor changes,
-        // due to reference domain "stuff" only being fully supported over Native
-        // can be deleted once full support is added
-        clientReader.read(nullptr, &count, 100);
-        gatewayReader.read(nullptr, &count, 100);
+        GTEST_SKIP();
     }
-
-    double clientSamples[100];
-    double gatewaySamples[100];
-    for (int i = 0; i < 5; ++i)
-    {
-        daq::SizeT clientSamplesCount = 100;
-        clientReader.read(clientSamples, &clientSamplesCount, 1000);
-        EXPECT_GT(clientSamplesCount, 0u) << "iteration " << i;
-        
-        daq::SizeT gatewaySamplesCount = 100;
-        gatewayReader.read(gatewaySamples, &gatewaySamplesCount, 1000);
-        EXPECT_GT(gatewaySamplesCount, 0u) << "iteration " << i;
-    }
+    testStreamGatewayAndClientSignals(client, gateway);
+#endif
 }
 
 INSTANTIATE_TEST_SUITE_P(

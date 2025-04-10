@@ -142,7 +142,7 @@ DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDe
                                                 DaqOpcUaDevicePrefix,
                                                 discoveredDevice.ipv4Address,
                                                 discoveredDevice.servicePort,
-                                                discoveredDevice.getPropertyOrDefault("path", "/"));
+                                                discoveredDevice.getPropertyOrDefault("path", ""));
         cap.addConnectionString(connectionStringIpv4);
         cap.addAddress(discoveredDevice.ipv4Address);
 
@@ -159,7 +159,7 @@ DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDe
                                                 DaqOpcUaDevicePrefix,
                                                 discoveredDevice.ipv6Address,
                                                 discoveredDevice.servicePort,
-                                                discoveredDevice.getPropertyOrDefault("path", "/"));
+                                                discoveredDevice.getPropertyOrDefault("path", ""));
         cap.addConnectionString(connectionStringIpv6);
         cap.addAddress(discoveredDevice.ipv6Address);
 
@@ -189,7 +189,7 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     std::smatch match;
 
     std::string prefix = "";
-    std::string path = "/";
+    std::string path = "";
 
     if (config.assigned() )
     {

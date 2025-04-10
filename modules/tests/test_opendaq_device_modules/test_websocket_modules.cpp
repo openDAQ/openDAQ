@@ -377,7 +377,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv4)
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
     ASSERT_EQ(connectionInfo.getPort(), 7414);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.lt");
-    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1/");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://127.0.0.1");
 }
 
 TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv6)

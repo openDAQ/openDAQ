@@ -256,15 +256,12 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
     if (config.assigned() && config.hasProperty("Port"))
         port = config.getPropertyValue("Port");
 
-    if (port == 7414)
-        return connectionString;
-
     std::string urlString = connectionString.toStdString();
     std::smatch match;
 
     std::string host = "";
     std::string prefix = "";
-    std::string path = "/";
+    std::string path = "";
 
     bool parsed = false;
     parsed = std::regex_search(urlString, match, RegexIpv6Hostname);
@@ -302,7 +299,7 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
         auto connectionStringIpv4 = WebsocketStreamingClientModule::createUrlConnectionString(
             discoveredDevice.ipv4Address,
             discoveredDevice.servicePort,
-            discoveredDevice.getPropertyOrDefault("path", "/")
+            discoveredDevice.getPropertyOrDefault("path", "")
             );
         cap.addConnectionString(connectionStringIpv4);
         cap.addAddress(discoveredDevice.ipv4Address);
@@ -319,7 +316,7 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
         auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
             discoveredDevice.ipv6Address,
             discoveredDevice.servicePort,
-            discoveredDevice.getPropertyOrDefault("path", "/")
+            discoveredDevice.getPropertyOrDefault("path", "")
             );
         cap.addConnectionString(connectionStringIpv6);
         cap.addAddress(discoveredDevice.ipv6Address);

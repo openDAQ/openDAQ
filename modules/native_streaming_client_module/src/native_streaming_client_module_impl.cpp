@@ -82,7 +82,7 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
             protocolPrefix,
             discoveredDevice.ipv4Address,
             discoveredDevice.servicePort,
-            discoveredDevice.getPropertyOrDefault("path", "/")
+            discoveredDevice.getPropertyOrDefault("path", "")
         );
         cap.addConnectionString(connectionStringIpv4);
         cap.addAddress(discoveredDevice.ipv4Address);
@@ -101,7 +101,7 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
             protocolPrefix,
             discoveredDevice.ipv6Address,
             discoveredDevice.servicePort,
-            discoveredDevice.getPropertyOrDefault("path", "/")
+            discoveredDevice.getPropertyOrDefault("path", "")
         );
         cap.addConnectionString(connectionStringIpv6);
         cap.addAddress(discoveredDevice.ipv6Address);

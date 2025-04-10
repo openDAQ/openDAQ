@@ -10,6 +10,7 @@
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/component_exceptions.h>
 #include <opendaq/exceptions.h>
+#include <opendaq/mirrored_device_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -96,53 +97,41 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
     cancelPendingConfigRequests(ComponentRemovedException());
 }
 
-void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& component)
+void NativeDeviceHelper::enableStreamingForAddedComponent(const ComponentPtr& addedComponent)
 {
-    auto device = deviceRef.getRef();
-    if (!device.assigned())
+    auto deviceSelf = deviceRef.getRef();
+    if (!deviceSelf.assigned())
         return;
 
-    // collect all related streaming sources for component by getting sources of all devices
-    // which are ancestors of the component
+    auto isAncestorComponent = Function(
+        [addedComponentId = addedComponent.getGlobalId()](const ComponentPtr& comp)
+        {
+            return IdsParser::isNestedComponentId(comp.getGlobalId(), addedComponentId);
+        }
+    );
+    auto ancestorDevices = deviceSelf.getDevices(search::Recursive(search::Custom(isAncestorComponent)));
+    ancestorDevices.pushFront(deviceSelf);
+
+    // collect all relevant streaming sources for the component by retrieving sources from all its ancestor devices
     auto allStreamingSources = List<IStreaming>();
     StreamingPtr activeStreamingSource;
-    ComponentPtr ancestorComponent = device.asPtr<IComponent>();
 
-    do
+    for (const auto& ancestorDevice : ancestorDevices)
     {
-        auto mirroredDevice = ancestorComponent.asPtrOrNull<IMirroredDevice>();
-        if (mirroredDevice.assigned())
+        if (auto mirroredDevice = ancestorDevice.asPtrOrNull<IMirroredDevice>(); mirroredDevice.assigned())
         {
             auto streamingSources = mirroredDevice.getStreamingSources();
             for (const auto& streaming : streamingSources)
                 allStreamingSources.pushBack(streaming);
 
-            // streaming sources are ordered by priority - cache first to be active
+            // streaming sources were created and ordered by priority on the device connection, cache the highest-priority
+            // source from the deepest in-tree ancestor or top device if no MinHops enabled to be active for signals of new component
             if (!streamingSources.empty())
                 activeStreamingSource = streamingSources[0];
         }
-
-        if (ancestorComponent.supportsInterface<IFolder>())
-        {
-            auto nestedComponents = ancestorComponent.asPtr<IFolder>().getItems();
-            for (const auto& nestedComponent : nestedComponents)
-            {
-                if (IdsParser::isNestedComponentId(nestedComponent.getGlobalId(), component.getGlobalId()) ||
-                    nestedComponent.getGlobalId() == component.getGlobalId())
-                {
-                    ancestorComponent = nestedComponent;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            break;
-        }
     }
-    while(ancestorComponent != component);
 
-    if (!activeStreamingSource.assigned())
+    if (!activeStreamingSource.assigned() || allStreamingSources.empty())
         return;
 
     auto setupStreamingForSignal = [this, allStreamingSources, activeStreamingSource](const SignalPtr& signal)
@@ -152,67 +141,84 @@ void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& compone
         setSignalActiveStreamingSource(signal, activeStreamingSource);
     };
 
-    // setup streaming sources for all signals of the component
-    if (component.supportsInterface<ISignal>())
+    // setup streaming sources for all signals of the new component
+    if (addedComponent.supportsInterface<ISignal>())
     {
-        setupStreamingForSignal(component.asPtr<ISignal>());
+        setupStreamingForSignal(addedComponent.asPtr<ISignal>());
     }
-    else if (component.supportsInterface<IFolder>())
+    else if (addedComponent.supportsInterface<IFolder>())
     {
-        auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
-        for (const auto& nestedComponent : nestedComponents)
-        {
-            if (nestedComponent.supportsInterface<ISignal>())
-            {
-                setupStreamingForSignal(nestedComponent.asPtr<ISignal>());
-            }
-        }
+        ListPtr<ISignal> nestedSignals = addedComponent.asPtr<IFolder>().getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
+        for (const auto& nestedSignal : nestedSignals)
+            setupStreamingForSignal(nestedSignal);
+    }
+}
+
+void NativeDeviceHelper::enableStreamingForUpdatedComponent(const ComponentPtr& updatedComponent)
+{
+    auto deviceSelf = deviceRef.getRef();
+    if (!deviceSelf.assigned())
+        return;
+
+    // assign streaming sources for all signals which do not have any, assuming these are newly added signals
+    if (updatedComponent.supportsInterface<IMirroredSignalConfig>())
+    {
+        if (updatedComponent.asPtr<IMirroredSignalConfig>().getStreamingSources().getCount() == 0)
+            enableStreamingForAddedComponent(updatedComponent);
+    }
+    else if (updatedComponent.supportsInterface<IFolder>())
+    {
+        ListPtr<IMirroredSignalConfig> nestedSignals =
+            updatedComponent.asPtr<IFolder>().getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
+        for (const auto& nestedSignal : nestedSignals)
+            if (nestedSignal.getStreamingSources().getCount() == 0)
+                enableStreamingForAddedComponent(nestedSignal);
     }
 }
 
 void NativeDeviceHelper::componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
 {
-    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
-    if (!device.assigned())
+    auto deviceSelf = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    if (!deviceSelf.assigned())
         return;
 
     ComponentPtr addedComponent = eventArgs.getParameters().get("Component");
 
-    auto deviceGlobalId = device.getGlobalId().toStdString();
+    auto deviceSelfGlobalId = deviceSelf.getGlobalId().toStdString();
     auto addedComponentGlobalId = addedComponent.getGlobalId().toStdString();
-    if (!IdsParser::isNestedComponentId(deviceGlobalId, addedComponentGlobalId))
+    if (!IdsParser::isNestedComponentId(deviceSelfGlobalId, addedComponentGlobalId))
         return;
 
     LOG_I("Added Component: {};", addedComponentGlobalId);
 
-    enableStreamingForComponent(addedComponent);
+    enableStreamingForAddedComponent(addedComponent);
 }
 
 void NativeDeviceHelper::componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
 {
-    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
-    if (!device.assigned())
+    auto deviceSelf = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    if (!deviceSelf.assigned())
         return;
 
     ComponentPtr updatedComponent = sender;
 
-    auto deviceGlobalId = device.getGlobalId().toStdString();
+    auto deviceSelfGlobalId = deviceSelf.getGlobalId().toStdString();
     auto updatedComponentGlobalId = updatedComponent.getGlobalId().toStdString();
-    if (deviceGlobalId == updatedComponentGlobalId ||
-        IdsParser::isNestedComponentId(deviceGlobalId, updatedComponentGlobalId) ||
-        IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceGlobalId))
+    if (deviceSelfGlobalId == updatedComponentGlobalId ||
+        IdsParser::isNestedComponentId(deviceSelfGlobalId, updatedComponentGlobalId) ||
+        IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceSelfGlobalId))
     {
         LOG_I("Updated Component: {};", updatedComponentGlobalId);
 
-        if (deviceGlobalId == updatedComponentGlobalId ||
-            IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceGlobalId))
+        if (deviceSelfGlobalId == updatedComponentGlobalId ||
+            IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceSelfGlobalId))
         {
-            device.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
-            enableStreamingForComponent(device);
+            deviceSelf.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
+            enableStreamingForUpdatedComponent(deviceSelf);
         }
         else
         {
-            enableStreamingForComponent(updatedComponent);
+            enableStreamingForUpdatedComponent(updatedComponent);
         }
     }
 }
@@ -316,10 +322,10 @@ void NativeDeviceHelper::updateConnectionStatus(const EnumerationPtr& status, co
 {
     connectionStatus = status;
 
-    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
-    if (!device.assigned())
+    auto deviceSelf = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    if (!deviceSelf.assigned())
         return;
-    device.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus, statusMessage);
+    deviceSelf.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus, statusMessage);
 }
 
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)

@@ -10,8 +10,12 @@ set(SRC_CoreTypes_Headers
     include/ccoretypes/base_object.h
     include/ccoretypes/binarydata.h
     include/ccoretypes/boolean.h
+    include/ccoretypes/cloneable.h
+    include/ccoretypes/comparable.h
     include/ccoretypes/complex_number.h
     include/ccoretypes/convertible.h
+    include/ccoretypes/coretype.h
+    # include/ccoretypes/dict_element_type.h # IntfID output paramater handling issue
     include/ccoretypes/dictobject.h
     include/ccoretypes/enumeration.h
     include/ccoretypes/enumeration_type.h
@@ -24,6 +28,7 @@ set(SRC_CoreTypes_Headers
     include/ccoretypes/integer.h
     include/ccoretypes/iterable.h
     include/ccoretypes/iterator.h
+    # include/ccoretypes/list_element_type.h # IntfID output paramater handling issue
     include/ccoretypes/listobject.h
     include/ccoretypes/number.h
     include/ccoretypes/procedure.h
@@ -38,6 +43,7 @@ set(SRC_CoreTypes_Headers
     include/ccoretypes/struct.h
     include/ccoretypes/struct_type.h
     include/ccoretypes/type.h
+    # include/ccoretypes/type_manager_private.h # not implemented in daq
     include/ccoretypes/type_manager.h
     include/ccoretypes/updatable.h
     include/ccoretypes/version_info.h
@@ -55,8 +61,12 @@ set(SRC_CoreTypes_Cpp
     src/ccoretypes/base_object.cpp
     src/ccoretypes/binarydata.cpp
     src/ccoretypes/boolean.cpp
+    src/ccoretypes/cloneable.cpp
+    src/ccoretypes/comparable.cpp
     src/ccoretypes/complex_number.cpp
     src/ccoretypes/convertible.cpp
+    src/ccoretypes/coretype.cpp
+    # src/ccoretypes/dict_element_type.cpp
     src/ccoretypes/dictobject.cpp
     src/ccoretypes/enumeration.cpp
     src/ccoretypes/enumeration_type.cpp
@@ -69,6 +79,7 @@ set(SRC_CoreTypes_Cpp
     src/ccoretypes/integer.cpp
     src/ccoretypes/iterable.cpp
     src/ccoretypes/iterator.cpp
+    # src/ccoretypes/list_element_type.cpp
     src/ccoretypes/listobject.cpp
     src/ccoretypes/number.cpp
     src/ccoretypes/procedure.cpp
@@ -83,6 +94,7 @@ set(SRC_CoreTypes_Cpp
     src/ccoretypes/struct.cpp
     src/ccoretypes/struct_type.cpp
     src/ccoretypes/type.cpp
+    # src/ccoretypes/type_manager_private.cpp
     src/ccoretypes/type_manager.cpp
     src/ccoretypes/updatable.cpp
     src/ccoretypes/version_info.cpp

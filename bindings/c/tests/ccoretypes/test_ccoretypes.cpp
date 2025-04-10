@@ -1,9 +1,5 @@
 #include <copendaq.h>
 #include <gtest/gtest.h>
-#include "ccommon.h"
-#include "ccoretypes/base_object.h"
-#include "ccoretypes/event.h"
-#include "ccoretypes/event_handler.h"
 
 using CCoretypesTest = testing::Test;
 
@@ -48,6 +44,48 @@ TEST_F(CCoretypesTest, Boolean)
     BaseObject_releaseRef(b);
 }
 
+TEST_F(CCoretypesTest, Cloneable)
+{
+    List* list = nullptr;
+    List_createList(&list);
+
+    Integer* i1 = nullptr;
+    Integer_createInteger(&i1, 1);
+    Integer* i2 = nullptr;
+    Integer_createInteger(&i2, 2);
+
+    List_pushBack(list, i1);
+
+    Cloneable* c = nullptr;
+    BaseObject_borrowInterface(list, CLONEABLE_INTF_ID, reinterpret_cast<BaseObject**>(&c));
+
+    List* clonedList = nullptr;
+    Cloneable_clone(c, reinterpret_cast<BaseObject**>(&clonedList));
+    ASSERT_NE(clonedList, nullptr);
+
+    Bool eq = False;
+    BaseObject_equals(list, clonedList, &eq);
+    ASSERT_EQ(eq, True);
+
+    List_pushBack(clonedList, i2);
+
+    SizeT count = 0;
+    List_getCount(list, &count);
+    ASSERT_EQ(count, 1);
+
+    BaseObject_equals(list, clonedList, &eq);
+    ASSERT_EQ(eq, False);
+
+    BaseObject_releaseRef(clonedList);
+    BaseObject_releaseRef(list);
+    BaseObject_releaseRef(i1);
+    BaseObject_releaseRef(i2);
+}
+
+TEST_F(CCoretypesTest, Comparable)
+{    
+}
+
 TEST_F(CCoretypesTest, ComplexNumber)
 {
     ComplexNumber* cn = nullptr;
@@ -80,6 +118,22 @@ TEST_F(CCoretypesTest, Convertible)
     ASSERT_EQ(err, 0);
     ASSERT_FLOAT_EQ(f, 1.5);
     BaseObject_releaseRef(s);
+}
+
+TEST_F(CCoretypesTest, CoreType)
+{
+    Integer* i = nullptr;
+    Integer_createInteger(&i, 1);
+
+    CoreTypeObject* coreTypeObj = nullptr;
+    BaseObject_borrowInterface(i, CORE_TYPE_INTF_ID, reinterpret_cast<BaseObject**>(&coreTypeObj));
+
+    CoreType coreType = CoreType::ctUndefined;
+    CoreType_getCoreType(coreTypeObj, &coreType);
+    
+    ASSERT_EQ(coreType, CoreType::ctInt);
+
+    BaseObject_releaseRef(i);
 }
 
 TEST_F(CCoretypesTest, Dictobject)

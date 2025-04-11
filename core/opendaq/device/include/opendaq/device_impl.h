@@ -1703,11 +1703,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     if (!forUpdate)
     {
-        if (deviceInfo.assigned())
-        {
-            serializer.key("deviceInfo");
-            deviceInfo.serialize(serializer);
-        }
         if (deviceDomain.assigned())
         {
             serializer.key("deviceDomain");
@@ -1744,6 +1739,12 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             serializer.key("deviceConfig");
             deviceConfig.serialize(serializer);
         }
+    }
+
+    if (deviceInfo.assigned())
+    {
+        serializer.key("deviceInfo");
+        deviceInfo.serialize(serializer);
     }
 
     if (syncComponent.assigned())
@@ -2008,12 +2009,13 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     }
 
     if (obj.hasKey("deviceDomain"))
-    {
         deviceDomain = obj.readObject("deviceDomain");
-    }
 
     if (obj.hasKey("UserLock"))
         userLock = obj.readObject("UserLock", context);
+
+    if (obj.hasKey("deviceInfo"))
+        deviceInfo = obj.readObject("deviceInfo", context);
 }
 
 template <typename TInterface, typename... Interfaces>

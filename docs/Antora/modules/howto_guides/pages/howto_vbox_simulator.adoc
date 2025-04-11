@@ -1,5 +1,14 @@
 = Set up an openDAQ(TM) VirtualBox Device simulator
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 📥 Download and import the openDAQ(TM) VirtualBox simulator.
+- 🧮 Run one or multiple simulators in VirtualBox.
+====
+
 The openDAQ(TM) VirtualBox image provides a simulated xref:glossary:glossary.adoc#device[Device] that is discoverable by openDAQ(TM), and can be connected to using the openDAQ(TM) client.
 The Device itself outputs two sine wave xref:knowledge_base:signals.adoc[Signal]s, with configurable parameters such as the signal amplitude and frequency.
 

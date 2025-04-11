@@ -1,5 +1,15 @@
 = Instance Configuration with Providers
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 📦 Understand config providers in openDAQ(TM).
+- 🧊 Recognize formatting and data handling rules.
+- 📃 Apply code examples.
+====
+
 :tip-caption: Assumptions
 [TIP]
 ====

@@ -1,5 +1,16 @@
 = Read basic value and Domain data
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 📖 Create Stream Reader for Signal values and Domain data.
+- 🧩 Specify sample types.
+- 🔄 Handle automatic type conversion.
+- 🧑‍💻 Use code examples.
+====
+
 :tip-caption: Assumptions
 [TIP]
 ====

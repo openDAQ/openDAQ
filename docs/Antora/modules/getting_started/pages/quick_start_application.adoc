@@ -2,6 +2,18 @@
 :page-toclevels: 4
 :toclevels: 4
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this tutorial, learners will be able to:
+
+- 🖥️ Set up and simulate Devices — Create and configure a simulated openDAQ(TM) device.
+- 🔍 Discover and connect to Devices — Identify available devices and establish remote connections.
+- 📦 Read and process data —retrieve Device data, handle Packets, and interpret timestamps.
+- ⚙️ Configure and use Function Blocks — Modify properties and manage data flow using function blocks.
+- 🛠️ Develop an openDAQ(TM) client application — Build a complete application with example code.
+====
+
 The openDAQ(TM) SDK allows users to quickly and easily set up an application that can connect to an openDAQ(TM)-compatible device, configure it and read its data. It allows for easy signal processing and routing of signals through blocks that process and manipulate signal data.
 
 This guide illustrates the process of configuring and connecting to Devices, using simulated

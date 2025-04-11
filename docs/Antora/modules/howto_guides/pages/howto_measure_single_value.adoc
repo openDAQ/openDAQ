@@ -1,5 +1,15 @@
 = Measure a single value
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🎯 Retrieve latest signal values.
+- 🧬 Work with complex types like structs and lists.
+- 📄 Use code examples.
+====
+
 openDAQ(TM) offers a variety of solutions for reading Signal values, including Readers. 
 
 However, for developers requiring access to only the most recent value, the Signal interface provides a method for doing just that.

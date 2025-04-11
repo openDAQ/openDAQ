@@ -1,5 +1,15 @@
-
 = Defining a list of users
+
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🏛️ Create an authentication provider.
+- 🧑‍💼 Define users and groups.
+- 🚫 Enable or disable anonymous access.
+- 🧑‍💻 Apply setup code examples.
+====
 
 An openDAQ server instance can accept an `AuthenticationProvider` object, which is responsible for providing a list of all users who can connect to the device.
 For each user, we need to provide a username, password, and the list of groups that the user belongs to. By default, every user is a member of the group `everyone`.

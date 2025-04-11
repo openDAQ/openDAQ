@@ -1,0 +1,2 @@
+add_subdirectory(ccoretypes)
+add_subdirectory(ccoreobjects)

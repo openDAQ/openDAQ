@@ -22,8 +22,8 @@ using namespace discovery;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
-static const std::regex RegexIpv6Hostname(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
-static const std::regex RegexIpv4Hostname(R"(^(.*://)([^:/\s]+))");
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.+://)([^:/\s]+))");
 static const std::regex RegexPort(":(\\d+)");
 
 NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
@@ -635,9 +635,6 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     if (target.getProtocolId() != "OpenDAQNativeStreaming" &&
         target.getProtocolId() != "OpenDAQNativeConfiguration")
         return false;
-    
-    if (target.getConnectionString().getLength() != 0)
-        return true;
 
     if (source.getConnectionType() != "TCP/IP")
         return false;
@@ -664,14 +661,22 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     }
     
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    const auto targetAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
-        const auto prefix = target.getProtocolId() == "OpenDAQNativeStreaming" ? NativeStreamingPrefix : NativeConfigurationDevicePrefix;
-        
-        StringPtr connectionString = CreateUrlConnectionString(prefix, address, port, path);
+        if (auto it = std::find(targetAddress.begin(), targetAddress.end(), address); it != targetAddress.end())
+            continue;
+
+        const auto prefix = target.getPrefix();
+        StringPtr connectionString;
+        if (source.getPrefix() == prefix)
+            connectionString = addrInfo.getConnectionString();
+        else
+            connectionString = CreateUrlConnectionString(prefix, address, port, path);
+
         const auto targetAddrInfo = AddressInfoBuilder()
-                                        .setAddress(addrInfo.getAddress())
+                                        .setAddress(address)
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
                                         .setType(addrInfo.getType())
                                         .setConnectionString(connectionString)

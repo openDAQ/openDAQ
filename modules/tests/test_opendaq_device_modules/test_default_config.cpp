@@ -289,7 +289,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_native"));
 
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
@@ -308,7 +308,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_native", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -328,7 +328,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_native", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -347,7 +347,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_opcua"));
 
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
@@ -366,7 +366,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_opcua", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -387,7 +387,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_opcua", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -407,7 +407,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_lt"));
 
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
@@ -425,7 +425,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_lt", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -440,7 +440,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_lt", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();

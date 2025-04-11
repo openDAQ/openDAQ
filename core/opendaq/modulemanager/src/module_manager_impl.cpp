@@ -23,17 +23,17 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <optional>
 #include <map>
-#include "opendaq/logger_factory.h"
+#include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/property_internal_ptr.h>
-#include <coreobjects/property_object_internal.h>
+#include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/network_interface_factory.h>
 
-#include "opendaq/thread_name.h"
+#include <opendaq/thread_name.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -340,11 +340,10 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
 
     // runs in parallel with getting avaiable devices from modules
-    std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult =
-        std::async([this]()
-                   {
-                       return this->discoverDevicesWithIpModification();
-                   });
+    std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult = std::async([this]
+    {
+        return this->discoverDevicesWithIpModification();
+    });
 
     for (const auto& library : libraries)
     {
@@ -522,9 +521,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
         // Connection strings with the "daq" prefix automatically choose the best method of connection
         const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
-        const auto discoveredDeviceInfo = getDiscoveredDeviceInfo(connectionStringPtr, useSmartConnection);
+        DeviceInfoPtr discoveredDeviceInfo;
         if (useSmartConnection)
+        {
+            discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
             connectionStringPtr = resolveSmartConnectionString(connectionStringPtr, discoveredDeviceInfo, config, loggerComponent);
+        }
 
         for (const auto& library : libraries)
         {
@@ -542,6 +544,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             if (devicePtr.assigned() && devicePtr.getInfo().assigned())
             {
                 replaceSubDeviceOldProtocolIds(devicePtr);
+                discoveredDeviceInfo = discoveredDeviceInfo.assigned() ? discoveredDeviceInfo : getDiscoveredDeviceInfo(devicePtr.getInfo());
                 mergeDiscoveryAndDeviceCapabilities(devicePtr, discoveredDeviceInfo);
                 completeServerCapabilities(devicePtr);
 
@@ -928,39 +931,37 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     return 0;
 }
 
-DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const
+DeviceInfoPtr ModuleManagerImpl::getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const
 {
     if (!availableDevicesGroup.assigned())
         DAQ_THROW_EXCEPTION(NotFoundException, "Device scan has not yet been initiated.");
 
-    if (useSmartConnection)
-    {
         if (availableDevicesGroup.hasKey(inputConnectionString))
             return availableDevicesGroup.get(inputConnectionString);
         DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" not found", inputConnectionString);
-    }
+}
 
+DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const
+{
+    auto serialNumber = deviceInfo.getSerialNumber();
+    auto manufacturer = deviceInfo.getManufacturer();
+
+    if (!serialNumber.getLength() || !manufacturer.getLength())
+        return nullptr;
+    
+    DeviceInfoPtr localInfo; 
     for (const auto & [_, info] : availableDevicesGroup)
     {
-        if (info.getServerCapabilities().getCount() == 0)
+        if (manufacturer == info.getManufacturer() && serialNumber == info.getSerialNumber())
         {
-            if (info.getConnectionString() == inputConnectionString)
+            if (info.getServerCapabilities().getCount())
                 return info;
-        }
-        else
-        {
-            for(const auto & capability : info.getServerCapabilities())
-            {
-                for (const auto & connection: capability.getConnectionStrings())
-                {
-                    if (connection == inputConnectionString)
-                        return info;
-                }
-            }
+            
+            localInfo = info;
         }
     }
 
-    return nullptr;
+    return localInfo;
 }
 
 StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,
@@ -1015,9 +1016,9 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
     if (!types.assigned())
         return nullptr;
 
-    for (auto const& [typeId, type] : types)
+    for (auto const& [_, type] : types)
     {
-        if (type.getConnectionStringPrefix()== prefix)
+        if (type.getConnectionStringPrefix() == prefix)
             return type;
     }
 
@@ -1084,18 +1085,10 @@ AddressInfoPtr ModuleManagerImpl::getDeviceConnectionAddress(const DevicePtr& de
 
 AddressInfoPtr ModuleManagerImpl::findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
                                                        const AddressInfoPtr& deviceConnectionAddress,
-                                                       const StringPtr& primaryAddressType)
+                                                       StringPtr primaryAddressType)
 {
     if (isValidConnectionAddressType(primaryAddressType)) // restrict by connection address type
     {
-        // Attempt to reuse the address of device connection if it meets type constraints
-        if (deviceConnectionAddress.assigned() && deviceConnectionAddress.getType() == primaryAddressType)
-        {
-            for (const auto& addressInfo : availableAddresses)
-                if (addressInfo.getAddress() == deviceConnectionAddress.getAddress())
-                    return addressInfo;
-        }
-
         // If the device connection address is unavailable for streaming, search for any address matching type constraints
         for (const auto& addressInfo : availableAddresses)
         {
@@ -1159,7 +1152,7 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
               cap.getConnectionString(),
               cap.getPrefix());
 
-        const StringPtr protocolId = cap.getPropertyValue("protocolId");
+        const StringPtr protocolId = cap.getProtocolId();
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
@@ -1372,10 +1365,13 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
         {
             if (address == info.getAddress() && addressType == info.getType())
             {
-                info.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(AddressReachabilityStatus::Reachable);
+                info.asPtr<IAddressInfoPrivate>(true).setReachabilityStatusPrivate(AddressReachabilityStatus::Reachable);
             }
         }
     }
+
+    for (const auto& target: targetCaps)
+        target.freeze();
 }
 
 PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
@@ -1562,26 +1558,25 @@ ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabil
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
                                                                          const ServerCapabilityPtr& deviceCap)
 {
-    auto merged = ServerCapability(deviceCap.getProtocolId(), deviceCap.getProtocolName(), deviceCap.getProtocolType());
-    const auto caps = List<IServerCapability>(deviceCap, discoveryCap);
+    ServerCapabilityConfigPtr merged = deviceCap.asPtr<IPropertyObjectInternal>(true).clone();
 
-    for (const auto& cap : caps)
-        for (const auto& prop : cap.getAllProperties())
+    for (const auto& prop : discoveryCap.getAllProperties())
+    {
+        const auto name = prop.getName();
+
+        if (!merged.hasProperty(name))
         {
-            const auto name = prop.getName();
-            const auto val = cap.getPropertyValue(name);
-            const bool hasProp = merged.hasProperty(name);
-            
-            if (val == prop.getDefaultValue() && hasProp)
-                continue;
-
-            if (hasProp)
-                merged.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, val);
-            else
-                merged.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+            merged.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+            continue;
         }
 
-    merged.freeze();
+        const auto val = discoveryCap.getPropertyValue(name);
+        if (val != prop.getDefaultValue())
+        {
+            merged.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(name, val);
+        }
+    }
+
     return merged.detach();
 }
 

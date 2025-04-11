@@ -18,8 +18,8 @@ static const char* DaqOpcUaDeviceTypeId = "OpenDAQOPCUAConfiguration";
 static const char* DaqOpcUaDevicePrefix = "daq.opcua";
 static const char* OpcUaScheme = "opc.tcp";
 
-static const std::regex RegexIpv6Hostname(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
-static const std::regex RegexIpv4Hostname(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
 using namespace discovery;
 using namespace daq::opcua;
@@ -87,7 +87,6 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
 
     TmsClient client(context, parent, endpoint);
     auto device = client.connect();
-    completeServerCapabilities(device, host);
 
     // Set the connection info for the device
     DeviceInfoPtr deviceInfo = device.getInfo();
@@ -112,19 +111,6 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                   .freeze();
 
     return device;
-}
-
-void OpcUaClientModule::completeServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress)
-{
-    auto deviceInfo = device.getInfo();
-    if (deviceInfo.assigned())
-    {
-        for (const auto& capability : deviceInfo.getServerCapabilities())
-        {
-            if (capability.getConnectionType() == "TCP/IP")
-                capability.asPtr<IServerCapabilityConfig>(true).addAddress(deviceAddress);
-        }
-    }
 }
 
 PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectPtr& config)
@@ -218,7 +204,7 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
         prefix = match[1];
         host = match[2];
 
-        if (match[3].matched && port == 4840)
+        if (match[3].matched)
             port = std::stoi(match[3]);
 
         if (match[4].matched)
@@ -237,10 +223,7 @@ bool OpcUaClientModule::acceptsConnectionParameters(const StringPtr& connectionS
 {
     std::string connStr = connectionString;
     auto found = connStr.find(std::string(DaqOpcUaDevicePrefix) + "://");
-    if (found == 0)
-        return true;
-    else
-        return false;
+    return found == 0;
 }
 
 Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
@@ -248,9 +231,6 @@ Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& so
     if (target.getProtocolId() != "OpenDAQOPCUAConfiguration")
         return false;
 
-    if (target.getConnectionString().getLength() != 0)
-        return true;
-    
     if (source.getConnectionType() != "TCP/IP")
         return false;
 
@@ -276,13 +256,22 @@ Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& so
     }
 
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    const auto targetAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
+        if (auto it = std::find(targetAddress.begin(), targetAddress.end(), address); it != targetAddress.end())
+            continue;
 
-        std::string connectionString = fmt::format("{}://{}:{}/{}", DaqOpcUaDevicePrefix, address, port, path);
+        const auto prefix = target.getPrefix();
+        StringPtr connectionString;
+        if (source.getPrefix() == prefix)
+            connectionString = addrInfo.getConnectionString();
+        else
+            connectionString = fmt::format("{}://{}:{}{}", prefix, address, port, path);
+
         const auto targetAddrInfo = AddressInfoBuilder()
-                                        .setAddress(addrInfo.getAddress())
+                                        .setAddress(address)
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
                                         .setType(addrInfo.getType())
                                         .setConnectionString(connectionString)

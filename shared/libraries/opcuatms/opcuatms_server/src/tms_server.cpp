@@ -46,6 +46,10 @@ void TmsServer::start()
     if (!context.assigned())
         DAQ_THROW_EXCEPTION(InvalidStateException, "Context is not set.");
 
+    auto info = device.getInfo();
+    if (info.hasServerCapability("OpenDAQOPCUAConfiguration"))
+        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQOPCUAConfiguration server capability.", info.getName()));
+
     server = std::make_shared<OpcUaServer>();
     server->setPort(opcUaPort);
     server->setAuthenticationProvider(context.getAuthenticationProvider());
@@ -82,14 +86,13 @@ void TmsServer::start()
     server->prepare();
 
     tmsContext = std::make_shared<TmsServerContext>(context, device);
-    auto signals = device.getSignals();
 
     auto serverCapability = ServerCapability("OpenDAQOPCUAConfiguration", "OpenDAQOPCUA", ProtocolType::Configuration);
     serverCapability.setPrefix("daq.opcua");
     serverCapability.setConnectionType("TCP/IP");
     serverCapability.setPort(opcUaPort);
     serverCapability.addProperty(StringProperty("Path", opcUaPath == "/" ? "" : opcUaPath));
-    device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
+    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapability);
 
     tmsDevice = std::make_unique<TmsServerDevice>(device, server, context, tmsContext);
     tmsDevice->registerOpcUaNode(OpcUaNodeId(NAMESPACE_DI, UA_DIID_DEVICESET));

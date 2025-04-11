@@ -51,6 +51,10 @@ void WebsocketStreamingServer::start()
     if (streamingPort == 0 || controlPort == 0)
         return;
 
+    auto info = this->device.getInfo();
+    if (info.hasServerCapability("OpenDAQLTStreaming"))
+        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQLTStreaming server capability.", info.getName()));
+
     streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignals(search::Recursive(search::Any())); });
     streamingServer.onStartSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.startReadSignals(signals); } );
     streamingServer.onStopSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.stopReadSignals(signals); } );
@@ -83,7 +87,8 @@ void WebsocketStreamingServer::start()
     streamingServer.start(streamingPort, controlPort);
 
     packetReader.setLoopFrequency(50);
-    packetReader.onPacket([this](const SignalPtr& signal, const ListPtr<IPacket>& packets) {
+    packetReader.onPacket([this](const SignalPtr& signal, const ListPtr<IPacket>& packets)
+    {
         const auto signalId = signal.getGlobalId();
         for (const auto& packet : packets)
             streamingServer.broadcastPacket(signalId, packet);
@@ -96,7 +101,7 @@ void WebsocketStreamingServer::start()
     serverCapability.setPrefix("daq.lt");
     serverCapability.setPort(streamingPort);
     serverCapability.setConnectionType("TCP/IP");
-    this->device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
+    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapability);
 }
 
 void WebsocketStreamingServer::stop()

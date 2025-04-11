@@ -31,6 +31,7 @@
 
 ## Bug fixes
 
+- [#757](https://github.com/openDAQ/openDAQ/pull/757) Device info obtained from device and discovery matching is changed from checking for connection string equality to SN + manufacturer equality.
 - [#753](https://github.com/openDAQ/openDAQ/pull/753) Fixes crash when deserializing struct types that have a type name that's present in the list of protected type names.
 - [#756](https://github.com/openDAQ/openDAQ/pull/756) With CMake 4.0.0 the Windows builds would no longer find the test executables somehow.
 - [#746](https://github.com/openDAQ/openDAQ/pull/746) Initialized IProcedure objects to default value: `nullptr`. Uninitialized objects cause potential use-before-init errors for certain compilers.

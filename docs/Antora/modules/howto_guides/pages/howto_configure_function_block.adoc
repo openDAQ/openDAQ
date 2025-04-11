@@ -1,5 +1,15 @@
 = Configure Function Block
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- ⚙ List Properties of a Function Block.
+- 📝 Read and modify Property values.
+- 📊 Work with Statistics Function Block as a hands-on example.
+====
+
 openDAQ(TM) provides processing features through xref:knowledge_base:function_blocks.adoc[Function Blocks].
 They can process Signals either on a xref:knowledge_base:device.adoc[Device] or on a host PC where the SDK
 is running.

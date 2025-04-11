@@ -1,5 +1,16 @@
 = Read last N samples
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- ⏲️ Use Tail Reader for latest N samples.
+- 🔧 Configure history size.
+- ⚠️ Handle limited sample availability.
+- 🧑‍💻 Apply code examples.
+====
+
 :tip-caption: Assumptions
 [TIP]
 ====

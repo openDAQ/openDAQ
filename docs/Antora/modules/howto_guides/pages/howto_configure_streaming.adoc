@@ -1,5 +1,16 @@
 = Configure Streaming
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🌐 Understand streaming protocols and server setup.
+- 🧩 Add streaming servers properly.
+- 🪄 Compose streaming connection strings.
+- ⚙️ Apply streaming configuration in code.
+====
+
 [#server_config]
 == Server side Configuration
 

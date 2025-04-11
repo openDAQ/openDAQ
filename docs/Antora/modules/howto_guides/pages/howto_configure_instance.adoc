@@ -1,5 +1,16 @@
 = Instance Configuration
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🧩 Create default and custom-configured Instances.
+- 🧾 Configure using JSON, environment variables, or CLI.
+- 🧮 Set global and component-specific logging levels.
+- 🛠️ Apply configuration snippets.
+====
+
 :tip-caption: Assumptions
 [TIP]
 ====

@@ -1,5 +1,17 @@
 = Add Function Block
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🧱 Understand Function Blocks and their role.
+- 🗒️ List all available Fnction Blocks using the SDK.
+- ➗ Add a Function Block using its ID.
+- 🧷 Access metadata of Function Block instances.
+- 💡 Implement full code examples.
+====
+
 openDAQ(TM) provides processing features through xref:knowledge_base:function_blocks.adoc[Function Blocks].
 They can process Signals either on a xref:knowledge_base:device.adoc[Device] or on a host PC where the SDK
 is running.

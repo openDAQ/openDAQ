@@ -1,5 +1,16 @@
 = Connect to a Device
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🔌 Understand openDAQ(TM) Device discovery and connectivity.
+- 🗂 List and retrieve connection metadata.
+- 🔗 Establish Device connection using the client.
+- 🏷 Understand automatic Device handling by the Instance and root Device.
+====
+
 openDAQ(TM) provides Device connectivity features through Modules. Said Modules contain mechanisms for discovering and connecting to Devices.
 By listing available Devices, Modules are asked to return meta-information about Devices they can connect to.
 This metadata contains an address (connection string) at which the Device is accessible.

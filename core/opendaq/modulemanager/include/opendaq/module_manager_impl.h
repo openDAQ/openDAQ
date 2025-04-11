@@ -93,18 +93,7 @@ private:
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
     static void setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info);
     static PropertyObjectPtr populateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig);
-    static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
-    AddressInfoPtr findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
-                                              const AddressInfoPtr& deviceConnectionAddress,
-                                              const StringPtr& primaryAddressType);
-    static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
-    static bool isValidConnectionAddressType(const StringPtr& connectionAddressType);
-    void configureStreamings(const MirroredDeviceConfigPtr& topDevice);
-    void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
-                                  const PropertyObjectPtr& generalConfig,
-                                  const PropertyObjectPtr& addDeviceConfig,
-                                  const AddressInfoPtr& deviceConnectionAddress);
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;
 
     static PropertyObjectPtr createGeneralConfig();

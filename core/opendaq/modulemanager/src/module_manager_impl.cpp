@@ -566,11 +566,6 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
                     componentPrivate.setComponentConfig(addDeviceConfig);
-
-                // todo move to core event handler of mirrored device
-                // automatically skips streaming connection for local and pseudo (streaming) devices
-                if (const auto mirroredDeviceConfigPtr = devicePtr.asPtrOrNull<IMirroredDeviceConfig>(true); mirroredDeviceConfigPtr.assigned())
-                    configureStreamings(mirroredDeviceConfigPtr);
             }
 
             return err;
@@ -1003,7 +998,7 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
     }
 
     const StringPtr primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
-    if (isValidConnectionAddressType(primaryAddressType))
+    if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
     {
         for (const auto& addrInfo : selectedCapability.getAddressInfo())
         {
@@ -1054,226 +1049,12 @@ PropertyObjectPtr ModuleManagerImpl::populateGeneralConfig(PropertyObjectPtr& ad
     return generalConfig;
 }
 
-ListPtr<IMirroredDeviceConfig> ModuleManagerImpl::getAllDevicesRecursively(const MirroredDeviceConfigPtr& device)
-{
-    auto result = List<IMirroredDeviceConfig>();
-
-    const auto childDevices = device.getDevices();
-    for (const auto& childDevice : childDevices)
-    {
-        auto subDevices = getAllDevicesRecursively(childDevice);
-        for (const auto& subDevice : subDevices)
-        {
-            result.pushBack(subDevice);
-        }
-    }
-
-    result.pushBack(device);
-
-    return result;
-}
-
-AddressInfoPtr ModuleManagerImpl::getDeviceConnectionAddress(const DevicePtr& device)
-{
-    const auto info = device.getInfo();
-    const auto configConnection = info.getConfigurationConnectionInfo();
-    const auto deviceInfoConnectionString = info.getConnectionString();
-
-    if (!configConnection.assigned())
-        return nullptr;
-
-    const auto deviceConnectionString =
-        (deviceInfoConnectionString.assigned() && deviceInfoConnectionString.getLength())
-            ? deviceInfoConnectionString
-            : configConnection.getConnectionString();
-
-    for (const auto& addressInfo : configConnection.getAddressInfo())
-    {
-        if (deviceConnectionString == addressInfo.getConnectionString())
-            return addressInfo;
-    }
-
-    return nullptr;
-}
-
-AddressInfoPtr ModuleManagerImpl::findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
-                                                       const AddressInfoPtr& deviceConnectionAddress,
-                                                       const StringPtr& primaryAddressType)
-{
-    if (isValidConnectionAddressType(primaryAddressType)) // restrict by connection address type
-    {
-        // Attempt to reuse the address of device connection if it meets type constraints
-        if (deviceConnectionAddress.assigned() && deviceConnectionAddress.getType() == primaryAddressType)
-        {
-            for (const auto& addressInfo : availableAddresses)
-                if (addressInfo.getAddress() == deviceConnectionAddress.getAddress())
-                    return addressInfo;
-        }
-
-        // If the device connection address is unavailable for streaming, search for any address matching type constraints
-        for (const auto& addressInfo : availableAddresses)
-        {
-            if (addressInfo.getType() == primaryAddressType)
-                return addressInfo;
-        }
-        LOG_W("Server streaming capability does not provide any addresses of primary {} type", primaryAddressType);
-    }
-
-    // Attempt to reuse the address of device connection
-    for (const auto& addressInfo : availableAddresses)
-    {
-        if (addressInfo.getAddress() == deviceConnectionAddress.getAddress())
-            return addressInfo;
-    }
-
-    return nullptr;
-}
-
-bool ModuleManagerImpl::isValidConnectionAddressType(const StringPtr& connectionAddressType)
-{
-    return connectionAddressType == "IPv4" || connectionAddressType == "IPv6";
-}
-
-void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
-                                                 const PropertyObjectPtr& generalConfig,
-                                                 const PropertyObjectPtr& addDeviceConfig,
-                                                 const AddressInfoPtr& deviceConnectionAddress)
-{
-    auto deviceInfo = device.getInfo();
-    auto signals = device.getSignals(search::Recursive(search::Any()));
-    
-    const ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
-    const ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
-    const StringPtr primaryAddessType = generalConfig.getPropertyValue("PrimaryAddressType");
-
-    // protocol Id as a key, protocol priority as a value
-    std::unordered_set<std::string> allowedProtocolsSet;
-    for (SizeT index = 0; index < allowedStreamingProtocols.getCount(); ++index)
-    {
-        allowedProtocolsSet.insert(allowedStreamingProtocols[index]);
-    }
-
-    // protocol Id as a key, protocol priority as a value
-    std::map<StringPtr, SizeT> prioritizedProtocolsMap;
-    for (SizeT index = 0; index < prioritizedStreamingProtocols.getCount(); ++index)
-    {
-        prioritizedProtocolsMap.insert({prioritizedStreamingProtocols[index], index});
-    }
-
-    // protocol priority as a key, streaming source as a value
-    std::map<SizeT, StreamingPtr> prioritizedStreamingSourcesMap;
-
-    // connect via all allowed streaming protocols
-    for (const auto& cap : device.getInfo().getServerCapabilities())
-    {
-        LOG_D("Device {} has capability: name [{}] id [{}] string [{}] prefix [{}]",
-              device.getGlobalId(),
-              cap.getProtocolName(),
-              cap.getProtocolId(),
-              cap.getConnectionString(),
-              cap.getPrefix());
-
-        const StringPtr protocolId = cap.getPropertyValue("protocolId");
-        if (cap.getProtocolType() != ProtocolType::Streaming)
-            continue;
-
-        if (!allowedProtocolsSet.empty() && !allowedProtocolsSet.count(protocolId))
-            continue;
-
-        const auto protocolIt = prioritizedProtocolsMap.find(protocolId);
-        if (protocolIt == prioritizedProtocolsMap.end())
-            continue;
-        const SizeT protocolPriority = protocolIt->second;
-
-        StreamingPtr streaming;
-        const auto streamingAddress = findStreamingAddress(cap.getAddressInfo(), deviceConnectionAddress, primaryAddessType);
-        StringPtr connectionString = streamingAddress.assigned() ? streamingAddress.getConnectionString() : cap.getConnectionString();
-
-        if (!connectionString.assigned())
-            continue;
-
-        wrapHandlerReturn(this, &ModuleManagerImpl::onCreateStreaming, streaming, connectionString, addDeviceConfig);
-        if (!streaming.assigned())
-            continue;
-
-        prioritizedStreamingSourcesMap.insert_or_assign(protocolPriority, streaming);
-    }
-
-    // add streaming sources ordered by protocol priority
-    for (const auto& [_, streaming] : prioritizedStreamingSourcesMap)
-    {
-        device.addStreamingSource(streaming);
-        LOG_I("Device {} added streaming connection {}", device.getGlobalId(), streaming.getConnectionString());
-
-        streaming.addSignals(signals);
-        streaming.setActive(true);
-    }
-
-    // set the streaming source with the highest priority as active for device signals
-    if (!prioritizedStreamingSourcesMap.empty())
-    {
-        for (const auto& signal : signals)
-        {
-            if (!signal.getPublic())
-                continue;
-
-            MirroredSignalConfigPtr mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
-            if (!mirroredSignalConfigPtr.getActiveStreamingSource().assigned())
-            {
-                auto signalStreamingSources = mirroredSignalConfigPtr.getStreamingSources();
-                for (const auto& [_, streaming] : prioritizedStreamingSourcesMap)
-                {
-                    auto connectionString = streaming.getConnectionString();
-
-                    auto it = std::find(signalStreamingSources.begin(), signalStreamingSources.end(), connectionString);
-                    if (it != signalStreamingSources.end())
-                    {
-                        mirroredSignalConfigPtr.setActiveStreamingSource(connectionString);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-}
-
-void ModuleManagerImpl::configureStreamings(const MirroredDeviceConfigPtr& topDevice)
-{
-    // Get the address used for device connection
-    const auto deviceConnectionAddress = getDeviceConnectionAddress(topDevice);
-
-    auto addDeviceConfig = topDevice.asPtr<IComponentPrivate>().getComponentConfig();
-    if (!addDeviceConfig.assigned())
-        return;
-    PropertyObjectPtr generalConfig = addDeviceConfig.getPropertyValue("General");
-
-    const StringPtr streamingHeuristic = generalConfig.getPropertySelectionValue("StreamingConnectionHeuristic");
-    const bool automaticallyConnectStreaming = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
-    if (!automaticallyConnectStreaming)
-        return;
-
-    if (streamingHeuristic == "MinConnections")
-    {
-        attachStreamingsToDevice(topDevice, generalConfig, addDeviceConfig, deviceConnectionAddress);
-    }
-    else if (streamingHeuristic == "MinHops")
-    {
-        // The order of handling nested devices is important since we need to establish streaming connections
-        // for the leaf devices first. The custom function is used to get the list of sub-devices
-        // recursively, because using the recursive search filter does not guarantee the required order
-        const auto allDevicesInTree = getAllDevicesRecursively(topDevice);
-        for (const auto& device : allDevicesInTree)
-        {
-            attachStreamingsToDevice(device, generalConfig, addDeviceConfig, deviceConnectionAddress);
-        }
-    }
-}
-
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const
 {
     StreamingPtr streaming = nullptr;
     PropertyObjectPtr inputConfig;
-    checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
+    if(config.assigned())
+        checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
 
     for (const auto& library : libraries)
     {

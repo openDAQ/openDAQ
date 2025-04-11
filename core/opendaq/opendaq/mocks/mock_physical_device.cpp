@@ -216,15 +216,19 @@ void MockPhysicalDeviceImpl::registerNetworkConfigProperties()
     if (!config.assigned())
         return;
 
-    if (config.hasProperty("ifaceNames"))
+    if (config.hasProperty("netConfigEnabled") && config.getProperty("netConfigEnabled").getValueType() == CoreType::ctBool)
+    {
+        netConfigEnabled = config.getPropertyValue("netConfigEnabled");
+    }
+    if (config.hasProperty("ifaceNames") && config.getProperty("ifaceNames").getValueType() == CoreType::ctList)
     {
         ifaceNames = config.getPropertyValue("ifaceNames");
     }
-    if (config.hasProperty("onSubmitConfig"))
+    if (config.hasProperty("onSubmitConfig") && config.getProperty("onSubmitConfig").getValueType() == CoreType::ctProc)
     {
         onSubmitConfig = config.getPropertyValue("onSubmitConfig");
     }
-    if (config.hasProperty("onRetrieveConfig"))
+    if (config.hasProperty("onRetrieveConfig") && config.getProperty("onRetrieveConfig").getValueType() == CoreType::ctFunc)
     {
         onRetrieveConfig = config.getPropertyValue("onRetrieveConfig");
     }
@@ -251,7 +255,7 @@ PropertyObjectPtr MockPhysicalDeviceImpl::onRetrieveNetworkConfiguration(const S
 
 Bool MockPhysicalDeviceImpl::onGetNetworkConfigurationEnabled()
 {
-    return True;
+    return netConfigEnabled;
 }
 
 ListPtr<IString> MockPhysicalDeviceImpl::onGetNetworkInterfaceNames()

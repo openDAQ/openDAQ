@@ -36,6 +36,9 @@ BEGIN_NAMESPACE_OPENDAQ_OPCUA
 class OpcUaServer final : public daq::utils::ThreadEx
 {
 public:
+    using OnClientConnectedCallback = std::function<void(const std::string& clientId)>;
+    using OnClientDisconnectedCallback = std::function<void(const std::string& clientId)>;
+
     OpcUaServer();
     ~OpcUaServer();
 
@@ -44,6 +47,8 @@ public:
     uint16_t& getPort();
     void setPort(uint16_t port);
     void setAuthenticationProvider(const AuthenticationProviderPtr& authenticationProvider);
+    void setClientConnectedHandler(const OnClientConnectedCallback& callback);
+    void setClientDisconnectedHandler(const OnClientDisconnectedCallback& callback);
 
     void setSecurityConfig(OpcUaServerSecurityConfig* config);
     const OpcUaServerSecurityConfig* getSecurityConfig() const;
@@ -160,6 +165,8 @@ private:
     std::unordered_set<void*> sessionContext;
     ServerEventManagerPtr eventManager;
     AuthenticationProviderPtr authenticationProvider;
+    OnClientConnectedCallback clientConnectedHandler;
+    OnClientDisconnectedCallback clientDisconnectedHandler;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA

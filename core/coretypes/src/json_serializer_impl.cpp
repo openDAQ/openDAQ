@@ -7,7 +7,7 @@ BEGIN_NAMESPACE_OPENDAQ
 template <typename TWriter>
 JsonSerializerImpl<TWriter>::JsonSerializerImpl()
     : writer(buffer)
-    , version(2)
+    , version(3)
 {
 }
 

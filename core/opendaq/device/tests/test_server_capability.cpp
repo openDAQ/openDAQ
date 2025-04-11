@@ -50,17 +50,16 @@ TEST_F(ServerCapabilityTest, Freezable)
 TEST_F(ServerCapabilityTest, CustomProperties)
 {
    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
-   SizeT defaultProportiesCnt = capability.getAllProperties().getCount();
+   SizeT defaultPropertiesCnt = capability.getAllProperties().getCount();
 
     capability.addProperty(StringProperty("Name", "Chell"));
-    ASSERT_EQ(capability.getPropertyValue("Name"), "Chell");
     ASSERT_EQ(capability.getPropertyValue("Name"), "Chell");
 
     ASSERT_NO_THROW(capability.addProperty(IntProperty("Age", 999)));
     ASSERT_NO_THROW(capability.addProperty(FloatProperty("Height", 172.4)));
     ASSERT_NO_THROW(capability.addProperty(BoolProperty("IsAsleep", true)));
 
-    ASSERT_EQ(capability.getAllProperties().getCount(), 4u + defaultProportiesCnt);
+    ASSERT_EQ(capability.getAllProperties().getCount(), 4u + defaultPropertiesCnt);
 }
 
 END_NAMESPACE_OPENDAQ

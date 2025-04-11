@@ -48,9 +48,15 @@ public:
 class DiscoveryUtils
 {
 public:
+    static constexpr const char* CONNECTED_CLIENT_INFO_KEY_PREFIX = "connectedClient--";
+
     static TxtProperties readTxtRecord(size_t size, const void* buffer, size_t rdata_offset, size_t rdata_length);
     static std::string extractRecordName(const void* buffer, size_t nameOffset, size_t bufferSize);
     static std::string toTxtValue(const char* source, size_t length);
+    static TxtProperties connectedClientsInfoToTxt(const PropertyObjectPtr& object);
+    static void populateConnectedClientsInfo(PropertyObjectPtr& deviceInfo,
+                                             const PropertyObjectPtr& defaultClientInfo,
+                                             const TxtProperties& txtKeyValuePairs);
 
 private:
     static size_t getTxtRecordsCount(const void* buffer, size_t size, size_t offset, size_t length);

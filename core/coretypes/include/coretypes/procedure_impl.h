@@ -311,7 +311,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor* proc)
 template <typename TFunctor>
 IProcedure* ProcedureWrapper_Create(TFunctor proc)
 {
-    IProcedure* obj;
+    IProcedure* obj = nullptr;
     const ErrCode res = createProcedureWrapper<TFunctor>(&obj, std::move(proc));
     checkErrorInfo(res);
 
@@ -323,7 +323,7 @@ IProcedure* ProcedureWrapper_Create(TFunctor proc)
 template <typename TFunctor>
 IProcedure* ProcedureWrapper_Create(TFunctor* proc)
 {
-    IProcedure* obj;
+    IProcedure* obj = nullptr;
     const ErrCode res = createProcedureWrapper<TFunctor>(&obj, proc);
     checkErrorInfo(res);
 

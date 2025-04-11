@@ -26,27 +26,27 @@ public:
 TEST_F(TimerThreadTest, CreateTimer)
 {
     TestCallbackClass callbackFunciton;
-    TimerThread timerThread{"test", 1000, [&callbackFunciton] { callbackFunciton.callback(); }};
+    TimerThread timerThread{1000, [&callbackFunciton] { callbackFunciton.callback(); }};
 }
 
 TEST_F(TimerThreadTest, CreateAndStart)
 {
     TestCallbackClass callbackFunciton;
-    TimerThread timerThread{"test", 1000, [&callbackFunciton] { callbackFunciton.callback(); }};
+    TimerThread timerThread{1000, [&callbackFunciton] { callbackFunciton.callback(); }};
     timerThread.start();
 }
 
 TEST_F(TimerThreadTest, ExecuteTimer)
 {
     TestCallbackClass callbackFunciton;
-    TimerThread timerThread{"test", 1, [&callbackFunciton] { callbackFunciton.callback(); }};
+    TimerThread timerThread{1, [&callbackFunciton] { callbackFunciton.callback(); }};
     ASSERT_EQ(timerThread.getNoOfCallbacks(), callbackFunciton.callbackCalls);
     ASSERT_EQ(callbackFunciton.callbackCalls, 0);
 }
 
 TEST_F(TimerThreadTest, TerminateTimerTest)
 {
-    TimerThread timerThread{"test", 1000, nullptr};
+    TimerThread timerThread{1000, nullptr};
     timerThread.start();
     timerThread.stop();
 }
@@ -54,7 +54,7 @@ TEST_F(TimerThreadTest, TerminateTimerTest)
 TEST_F(TimerThreadTest, ExecuteDelay)
 {
     TestCallbackClass callbackFunciton;
-    TimerThread timerThread{"test", 10000, [&callbackFunciton] { callbackFunciton.callback(); }};
+    TimerThread timerThread{10000, [&callbackFunciton] { callbackFunciton.callback(); }};
     timerThread.start();
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     timerThread.stop();
@@ -67,4 +67,12 @@ TEST_F(TimerThreadTest, ExecuteDelay)
     timerThread.stop();
     ASSERT_EQ(timerThread.getNoOfCallbacks(), callbackFunciton.callbackCalls);
     ASSERT_EQ(timerThread.getNoOfCallbacks(), 1);
+}
+
+TEST_F(TimerThreadTest, NamedTimerThread)
+{
+    TestCallbackClass callbackFunciton;
+    NamedTimerThread timerThread{"Test", 1000, [&callbackFunciton] { callbackFunciton.callback(); }};
+    timerThread.start();
+    timerThread.stop();
 }

@@ -8,11 +8,23 @@
 #include <opendaq/task_internal.h>
 #include <opendaq/task_ptr.h>
 #include <opendaq/work_ptr.h>
-
 #include <coretypes/function_ptr.h>
 #include <coretypes/validation.h>
-
 #include <utility>
+#include <opendaq/thread_name.h>
+
+class CustomWorkerInterface : public tf::WorkerInterface
+{
+public:
+    void scheduler_prologue(tf::Worker& worker) override
+    {
+        daqNameThread(fmt::format("Scheduler{}", worker.id()).c_str());
+    }
+
+    void scheduler_epilogue(tf::Worker& worker, std::exception_ptr ptr) override
+    {
+    };
+};
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -22,9 +34,10 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent("Scheduler")
                           : throw ArgumentNullException("Logger must not be null"))
-    , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers))
+    , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers,
+               std::make_shared<CustomWorkerInterface>()))
 {
-    LOG_T("Starting scheduler with {} workers.", executor->num_workers())
+    LOG_D("Starting scheduler with {} workers.", executor->num_workers())
 }
 
 SchedulerImpl::~SchedulerImpl()

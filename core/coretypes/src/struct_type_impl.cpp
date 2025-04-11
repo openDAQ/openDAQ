@@ -210,8 +210,7 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
             createStructType(&structType, typeName, names.asPtr<IList>(), defaultValues.asPtr<IList>(), types.asPtr<IList>());
         else
             createStructTypeNoDefaults(&structType, typeName, names.asPtr<IList>(), types.asPtr<IList>());
-
-
+        
         TypeManagerPtr typeManager;
         if (context)
         {
@@ -219,7 +218,9 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
         }
         if (typeManager.assigned())
         {
-            typeManager.addType(structType);
+            errCode = typeManager->addType(structType);
+            if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_RESERVED_TYPE_NAME)
+                return errCode;
         }
         *obj = structType.detach();
     }

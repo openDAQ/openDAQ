@@ -348,6 +348,7 @@ public:
 
     friend class AddressInfoImpl;
     friend class ServerCapabilityConfigImpl;
+    friend class ConnectedClientInfoImpl;
 
 protected:
     struct UpdatingAction
@@ -398,6 +399,7 @@ protected:
 
     virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
     virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
+    virtual ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer);
 
     static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
                                           const BaseObjectPtr& context,
@@ -555,15 +557,19 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     , updateCount(0)
     , coreEventMuted(true)
     , path("")
-    , permissionManager(PermissionManager())
     , className(nullptr)
     , objectClass(nullptr)
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+    this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(
         PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
+#else
+    this->permissionManager = DisabledPermissionManager();
+#endif
 
     PropertyValueEventEmitter readEmitter;
     PropertyValueEventEmitter writeEmitter;
@@ -2172,6 +2178,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
         return OPENDAQ_ERR_FROZEN;
     }
 
+    auto lock = getRecursiveConfigLock();
+
     if (localProperties.find(propertyName) == localProperties.cend())
     {
         StringPtr namePtr = propertyName;
@@ -2880,6 +2888,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 }
 
 template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeProperty(const PropertyPtr& property, ISerializer* serializer)
+{
+    return daqTry([&property, &serializer]
+    {
+        property.serialize(serializer);
+        return OPENDAQ_SUCCESS;
+    });
+
+}
+
+template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer)
 {
     auto serializerPtr = SerializerPtr::Borrow(serializer);
@@ -2951,7 +2970,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
             if (!hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
                 continue;
 
-            prop.second.serialize(serializer);
+            checkErrorInfo(serializeProperty(prop.second, serializer));
         }
         checkErrorInfo(serializer->endList());
 

@@ -2689,16 +2689,17 @@ TEST_F(NativeDeviceModulesTest, ConnectedClientsInfoNotSavedLoaded)
     ASSERT_EQ(serverSideClientsInfo[1].getAddress(), clientSideClientsInfo[1].getAddress());
 }
 
-InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPath)
+InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPath = nullptr)
 {
     PropertyObjectPtr config = PropertyObject();
-    config.addProperty(BoolProperty("EnableLogging", true));
-    config.addProperty(StringProperty("LoggingPath", loggerPath));
+    config.addProperty(BoolProperty("EnableLogging", loggerPath.assigned()));
+    config.addProperty(StringProperty("LoggingPath", loggerPath.assigned() ? loggerPath : ""));
     config.addProperty(StringProperty("SerialNumber", "NativeDeviceModulesTestSerial"));
 
-    auto instance = InstanceBuilder().setLogger(Logger(loggerPath))
-                                     .setRootDevice("daqref://device0", config)
-                                     .build();
+    auto instanceBuilder = InstanceBuilder();
+    if (loggerPath.assigned())
+        instanceBuilder.setLogger(Logger(loggerPath));
+    auto instance = instanceBuilder.setRootDevice("daqref://device0", config).build();
     
     instance.addServer("OpenDAQNativeStreaming", nullptr);
     return instance;
@@ -2709,7 +2710,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreServerConfiguration)
     StringPtr config;
 
     {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
         auto client = CreateClientInstance();
         auto clientRoot = client.getDevices()[0];
         auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics");
@@ -2717,7 +2718,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreServerConfiguration)
         config = client.saveConfiguration();
     }
 
-    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
     
     auto restoredClient = Instance();
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
@@ -2740,7 +2741,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreClientConnectedToServer)
     StringPtr config;
 
     {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
         auto client = CreateClientInstance();
         auto clientRoot = client.getDevices()[0];
         auto fb = client.addFunctionBlock("RefFBModuleStatistics");
@@ -2748,7 +2749,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreClientConnectedToServer)
         config = client.saveConfiguration();
     }
 
-    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
     
     auto restoredClient = Instance();
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
@@ -2771,7 +2772,7 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
 {
     StringPtr config;
     {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
         auto client = CreateClientInstance();
         auto clientRefDevice = client.addDevice("daqref://device1");
         auto clientRoot = client.getDevices()[0];
@@ -2780,7 +2781,7 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
         config = client.saveConfiguration();
     }
 
-    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
     
     auto restoredClient = Instance();
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
@@ -2807,6 +2808,51 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
     auto signal = fb.getInputPorts()[0].getSignal();
     ASSERT_TRUE(signal.assigned());
     ASSERT_EQ(signal.getGlobalId(), clientRefDevice.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
+}
+
+TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfo)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
+        
+        auto client = CreateClientInstance();
+        auto device = client.getDevices()[0];
+        auto deviceInfo = device.getInfo();
+
+        server.getInfo().addProperty(StringProperty("ServerCustomProperty", "defaultValue"));
+
+        deviceInfo.setPropertyValue("userName", "testUser");
+        deviceInfo.setPropertyValue("location", "testLocation");
+
+        deviceInfo.setPropertyValue("ServerCustomProperty", "newValue");
+
+        deviceInfo.addProperty(StringProperty("ClientCustomProperty", "defaultValue"));
+        deviceInfo.setPropertyValue("ClientCustomProperty", "newValue");
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto device = devices[0];
+    auto deviceInfo = device.getInfo();
+    ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
+    ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
+
+    ASSERT_TRUE(deviceInfo.hasProperty("ServerCustomProperty"));
+    ASSERT_EQ(deviceInfo.getProperty("ServerCustomProperty").getDefaultValue(), "defaultValue");
+    ASSERT_EQ(deviceInfo.getPropertyValue("ServerCustomProperty"), "newValue");
+
+    ASSERT_TRUE(deviceInfo.hasProperty("ClientCustomProperty"));
+    ASSERT_EQ(deviceInfo.getProperty("ClientCustomProperty").getDefaultValue(), "defaultValue");
+    ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)

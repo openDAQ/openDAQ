@@ -11,7 +11,7 @@ TEST_F(CCoreobjectsTest, ArgumentInfo)
     String_createString(&name, "test_argument");
     ErrCode err = 0;
     err = ArgumentInfo_createArgumentInfo(&argInfo, name, CoreType::ctInt);
-    
+
     String* name2 = nullptr;
     CoreType type = CoreType::ctUndefined;
     err = ArgumentInfo_getName(argInfo, &name2);
@@ -40,7 +40,6 @@ TEST_F(CCoreobjectsTest, AuthenticationProvider)
     String_createString(&passwordHash, "test_hash");
     List_createList(&groups);
     User_createUser(&user, username, passwordHash, groups);
-
 
     List* userList = nullptr;
     List_createList(&userList);
@@ -125,7 +124,7 @@ TEST_F(CCoreobjectsTest, Coercer)
     Integer* value = nullptr;
     Integer_createInteger(&value, 10);
     Integer* coercedValue = nullptr;
-    Coercer_coerce(coercer, nullptr, value, (BaseObject**)&coercedValue);
+    Coercer_coerce(coercer, nullptr, value, (BaseObject**) &coercedValue);
     ASSERT_NE(coercedValue, nullptr);
     Int coercedInt = 0;
     Integer_getValue(coercedValue, &coercedInt);
@@ -144,12 +143,13 @@ TEST_F(CCoreobjectsTest, CoreEventArgs)
 static Bool eventCalled = False;
 static void onPropertyObjectUpdateEnd(BaseObject* sender, BaseObject* args)
 {
-    EndUpdateEventArgs* eventArgs = (EndUpdateEventArgs*)args;
+    EndUpdateEventArgs* eventArgs = (EndUpdateEventArgs*) args;
     List* properties = nullptr;
     EndUpdateEventArgs_getProperties(eventArgs, &properties);
     SizeT count = 0;
     List_getCount(properties, &count);
-    if(count == 0) eventCalled = True;
+    if (count == 0)
+        eventCalled = True;
 
     BaseObject_releaseRef(properties);
     BaseObject_releaseRef(sender);
@@ -163,7 +163,6 @@ TEST_F(CCoreobjectsTest, EndUpdateEventArgs)
 
     Event* event = nullptr;
     PropertyObject_getOnEndUpdate(propObj, &event);
-    
 
     EventHandler* handler = nullptr;
     EventHandler_createEventHandler(&handler, onPropertyObjectUpdateEnd);
@@ -184,7 +183,6 @@ TEST_F(CCoreobjectsTest, EvalValue)
     PropertyObject* propObj = nullptr;
     PropertyObject_createPropertyObject(&propObj);
 
-    
     String* name = nullptr;
     String_createString(&name, "test_property");
     Integer* defaultValue = nullptr;
@@ -193,9 +191,9 @@ TEST_F(CCoreobjectsTest, EvalValue)
     Boolean_createBoolean(&visible, True);
     Property* prop = nullptr;
     Property_createIntProperty(&prop, name, defaultValue, visible);
-    
+
     PropertyObject_addProperty(propObj, prop);
-    
+
     String* refName = nullptr;
     String_createString(&refName, "ref_property");
     String* evalStr = nullptr;
@@ -208,7 +206,7 @@ TEST_F(CCoreobjectsTest, EvalValue)
     PropertyObject_addProperty(propObj, refProp);
 
     Integer* value = nullptr;
-    PropertyObject_getPropertyValue(propObj, refName, (BaseObject**)&value);
+    PropertyObject_getPropertyValue(propObj, refName, (BaseObject**) &value);
     ASSERT_NE(value, nullptr);
     Int intValue = 0;
     Integer_getValue(value, &intValue);
@@ -235,12 +233,12 @@ TEST_F(CCoreobjectsTest, Ownable)
     PropertyObject_createPropertyObject(&parentObj);
 
     Ownable* ownable = nullptr;
-    BaseObject_borrowInterface(propObj, OWNABLE_INTF_ID, (BaseObject**)&ownable);
+    BaseObject_borrowInterface(propObj, OWNABLE_INTF_ID, (BaseObject**) &ownable);
 
     err = Ownable_setOwner(ownable, parentObj);
     ASSERT_EQ(err, 0);
     err = Ownable_setOwner(ownable, nullptr);
-    ASSERT_EQ(err, 0);  
+    ASSERT_EQ(err, 0);
 
     BaseObject_releaseRef(ownable);
     BaseObject_releaseRef(parentObj);
@@ -276,7 +274,7 @@ TEST_F(CCoreobjectsTest, Permissions)
     PermissionMaskBuilder_createPermissionMaskBuilder(&maskBuilder);
     PermissionMaskBuilder_read(maskBuilder);
     PermissionMaskBuilder_write(maskBuilder);
-    
+
     PermissionsBuilder* permissionsBuilder = nullptr;
     PermissionsBuilder_createPermissionsBuilder(&permissionsBuilder);
     PermissionsBuilder_assign(permissionsBuilder, adminName, maskBuilder);
@@ -285,23 +283,23 @@ TEST_F(CCoreobjectsTest, Permissions)
 
     PermissionManager_setPermissions(manager, adminPermissions);
     Bool isAuthorized = False;
-    PermissionManager_isAuthorized(manager, admin, Permission::Read, &isAuthorized);
+    PermissionManager_isAuthorized(manager, admin, Permission::PermissionRead, &isAuthorized);
     ASSERT_EQ(isAuthorized, True);
     isAuthorized = False;
-    PermissionManager_isAuthorized(manager, admin, Permission::Write, &isAuthorized);
+    PermissionManager_isAuthorized(manager, admin, Permission::PermissionWrite, &isAuthorized);
     ASSERT_EQ(isAuthorized, True);
     isAuthorized = False;
-    PermissionManager_isAuthorized(manager, admin, Permission::Execute, &isAuthorized);
+    PermissionManager_isAuthorized(manager, admin, Permission::PermissionExecute, &isAuthorized);
     ASSERT_EQ(isAuthorized, False);
 
     isAuthorized = False;
-    PermissionManager_isAuthorized(manager, guest, Permission::Read, &isAuthorized);
+    PermissionManager_isAuthorized(manager, guest, Permission::PermissionRead, &isAuthorized);
     ASSERT_EQ(isAuthorized, False);
     isAuthorized = False;
-    PermissionManager_isAuthorized(manager, guest, Permission::Write, &isAuthorized);
+    PermissionManager_isAuthorized(manager, guest, Permission::PermissionWrite, &isAuthorized);
     ASSERT_EQ(isAuthorized, False);
     isAuthorized = False;
-    PermissionManager_isAuthorized(manager, guest, Permission::Execute, &isAuthorized);
+    PermissionManager_isAuthorized(manager, guest, Permission::PermissionExecute, &isAuthorized);
     ASSERT_EQ(isAuthorized, False);
 
     BaseObject_releaseRef(manager);
@@ -330,7 +328,7 @@ TEST_F(CCoreobjectsTest, Property)
     err = Property_createIntProperty(&prop, name, defaultValue, visible);
     ASSERT_EQ(err, 0);
     Integer* defaultValueOut = nullptr;
-    Property_getDefaultValue(prop, (BaseObject**)&defaultValueOut);
+    Property_getDefaultValue(prop, (BaseObject**) &defaultValueOut);
     ASSERT_NE(defaultValueOut, nullptr);
     Int value = 0;
     err = Integer_getValue(defaultValueOut, &value);
@@ -347,7 +345,7 @@ TEST_F(CCoreobjectsTest, Property)
     ASSERT_EQ(isVisible, True);
 
     BaseObject_releaseRef(nameOut);
-    BaseObject_releaseRef(name);    
+    BaseObject_releaseRef(name);
     BaseObject_releaseRef(defaultValueOut);
     BaseObject_releaseRef(defaultValue);
     BaseObject_releaseRef(visible);
@@ -374,7 +372,7 @@ TEST_F(CCoreobjectsTest, PropertyBuilder)
     ASSERT_EQ(err, 0);
 
     Integer* defaultValueOut = nullptr;
-    Property_getDefaultValue(property, (BaseObject**)&defaultValueOut);
+    Property_getDefaultValue(property, (BaseObject**) &defaultValueOut);
     ASSERT_NE(defaultValueOut, nullptr);
     Int value = 0;
     err = Integer_getValue(defaultValueOut, &value);
@@ -502,7 +500,7 @@ TEST_F(CCoreobjectsTest, PropertyObjectProtected)
     PropertyObject* propObj = nullptr;
     PropertyObjectProtected* propObjProtected = nullptr;
     PropertyObject_createPropertyObject(&propObj);
-    BaseObject_borrowInterface(propObj, PROPERTY_OBJECT_PROTECTED_INTF_ID, (BaseObject**)&propObjProtected);
+    BaseObject_borrowInterface(propObj, PROPERTY_OBJECT_PROTECTED_INTF_ID, (BaseObject**) &propObjProtected);
 
     PropertyBuilder* propBuilder = nullptr;
     String* name = nullptr;
@@ -525,7 +523,7 @@ TEST_F(CCoreobjectsTest, PropertyObjectProtected)
     err = PropertyObjectProtected_setProtectedPropertyValue(propObjProtected, name, value);
     ASSERT_EQ(err, 0);
     Integer* valueOut = nullptr;
-    PropertyObject_getPropertyValue(propObj, name, (BaseObject**)&valueOut);
+    PropertyObject_getPropertyValue(propObj, name, (BaseObject**) &valueOut);
     ASSERT_NE(valueOut, nullptr);
     Int intValue = 0;
     Integer_getValue(valueOut, &intValue);
@@ -563,19 +561,20 @@ TEST_F(CCoreobjectsTest, PropertyValueEventArgs)
     Integer_createInteger(&value1, 20);
     Integer_createInteger(&value2, 30);
 
-    err = PropertyValueEventArgs_createPropertyValueEventArgs(&eventArgs, prop, value2, value1, PropertyEventType::EventTypeUpdate, False);
+    err = PropertyValueEventArgs_createPropertyValueEventArgs(
+        &eventArgs, prop, value2, value1, PropertyEventType::PropertyEventTypeEventTypeUpdate, False);
     ASSERT_EQ(err, 0);
     ASSERT_NE(eventArgs, nullptr);
 
     Integer* valueOut = nullptr;
-    PropertyValueEventArgs_getValue(eventArgs, (BaseObject**)&valueOut);
+    PropertyValueEventArgs_getValue(eventArgs, (BaseObject**) &valueOut);
     ASSERT_NE(valueOut, nullptr);
     Bool equal = False;
     err = BaseObject_equals(valueOut, value2, &equal);
     ASSERT_EQ(equal, True);
     BaseObject_releaseRef(valueOut);
 
-    PropertyValueEventArgs_getOldValue(eventArgs, (BaseObject**)&valueOut);
+    PropertyValueEventArgs_getOldValue(eventArgs, (BaseObject**) &valueOut);
     ASSERT_NE(valueOut, nullptr);
     err = BaseObject_equals(valueOut, value1, &equal);
     ASSERT_EQ(equal, True);
@@ -640,7 +639,7 @@ TEST_F(CCoreobjectsTest, User)
     List_createList(&groups);
     User* user = nullptr;
     User_createUser(&user, username, passwordHash, groups);
-    
+
     String* usernameOut = nullptr;
     User_getUsername(user, &usernameOut);
 

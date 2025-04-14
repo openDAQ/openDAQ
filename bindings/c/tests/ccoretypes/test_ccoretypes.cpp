@@ -83,7 +83,7 @@ TEST_F(CCoretypesTest, Cloneable)
 }
 
 TEST_F(CCoretypesTest, Comparable)
-{    
+{
 }
 
 TEST_F(CCoretypesTest, ComplexNumber)
@@ -130,7 +130,7 @@ TEST_F(CCoretypesTest, CoreType)
 
     CoreType coreType = CoreType::ctUndefined;
     CoreType_getCoreType(coreTypeObj, &coreType);
-    
+
     ASSERT_EQ(coreType, CoreType::ctInt);
 
     BaseObject_releaseRef(i);
@@ -267,7 +267,7 @@ TEST_F(CCoretypesTest, EventHandler)
     BaseObject* args = nullptr;
     BaseObject_create(&args);
     EventHandler_createEventHandler(&eh, onEvent);
-    EventHandler_handleEvent(eh, sender, (EventArgs*)args);
+    EventHandler_handleEvent(eh, sender, (EventArgs*) args);
     ASSERT_EQ(eventCalled, True);
 
     BaseObject_releaseRef(sender);
@@ -597,21 +597,21 @@ TEST_F(CCoretypesTest, Struct)
 {
     ErrCode err = 0;
 
-    List * fieldNames = nullptr;
+    List* fieldNames = nullptr;
     List_createList(&fieldNames);
 
-    List * fieldTypes = nullptr;
+    List* fieldTypes = nullptr;
     List_createList(&fieldTypes);
 
     String* fieldName = nullptr;
     String_createString(&fieldName, "int");
-    
+
     SimpleType* st = nullptr;
     SimpleType_createSimpleType(&st, CoreType::ctInt);
 
     Integer* i = nullptr;
     Integer_createInteger(&i, 10);
-    
+
     List_pushBack(fieldTypes, st);
     List_pushBack(fieldNames, fieldName);
 
@@ -665,19 +665,19 @@ TEST_F(CCoretypesTest, TypeManager)
 
     err = List_createList(&fieldNames);
     err = List_createList(&fieldTypes);
-  
+
     String* fieldName = nullptr;
     err = String_createString(&fieldName, "int");
-    
+
     SimpleType* st = nullptr;
     err = SimpleType_createSimpleType(&st, CoreType::ctInt);
-    
+
     err = List_pushBack(fieldTypes, st);
     err = List_pushBack(fieldNames, fieldName);
-    
+
     String* typeName = nullptr;
     err = String_createString(&typeName, "test");
-    
+
     StructType* type = nullptr;
     err = StructType_createStructTypeNoDefaults(&type, typeName, fieldNames, fieldTypes);
 

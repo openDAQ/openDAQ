@@ -14,11 +14,11 @@ daq::PropertyEventType toDaqPropertyEventType(PropertyEventType type)
 {
     switch (type)
     {
-        case PropertyEventType::EventTypeClear:
+        case PropertyEventType::PropertyEventTypeEventTypeClear:
             return daq::PropertyEventType::Clear;
-        case PropertyEventType::EventTypeRead:
+        case PropertyEventType::PropertyEventTypeEventTypeRead:
             return daq::PropertyEventType::Read;
-        case PropertyEventType::EventTypeUpdate:
+        case PropertyEventType::PropertyEventTypeEventTypeUpdate:
         default:
             return daq::PropertyEventType::Update; // Default case to avoid compiler warnings
     }
@@ -29,12 +29,12 @@ PropertyEventType toCPropertyEventType(daq::PropertyEventType type)
     switch (type)
     {
         case daq::PropertyEventType::Clear:
-            return PropertyEventType::EventTypeClear;
+            return PropertyEventType::PropertyEventTypeEventTypeClear;
         case daq::PropertyEventType::Read:
-            return PropertyEventType::EventTypeRead;
+            return PropertyEventType::PropertyEventTypeEventTypeRead;
         case daq::PropertyEventType::Update:
         default:
-            return PropertyEventType::EventTypeUpdate; // Default case to avoid compiler warnings
+            return PropertyEventType::PropertyEventTypeEventTypeUpdate; // Default case to avoid compiler warnings
     }
 }
 

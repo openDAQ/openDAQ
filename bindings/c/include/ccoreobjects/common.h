@@ -23,40 +23,40 @@ extern "C"
 
     enum CoreEventId
     {
-        PropertyValueChanged = 0,
-        PropertyObjectUpdateEnd = 10,
-        PropertyAdded = 20,
-        PropertyRemoved = 30,
-        ComponentAdded = 40,
-        ComponentRemoved = 50,
-        SignalConnected = 60,
-        SignalDisconnected = 70,
-        DataDescriptorChanged = 80,
-        ComponentUpdateEnd = 90,
-        AttributeChanged = 100,
-        TagsChanged = 110,
-        StatusChanged = 120,
-        TypeAdded = 130,
-        TypeRemoved = 140,
-        DeviceDomainChanged = 150,
-        DeviceLockStateChanged = 160,
-        ConnectionStatusChanged = 170,
-        DeviceOperationModeChanged = 180,
+        CoreEventIdPropertyValueChanged = 0,
+        CoreEventIdPropertyObjectUpdateEnd = 10,
+        CoreEventIdPropertyAdded = 20,
+        CoreEventIdPropertyRemoved = 30,
+        CoreEventIdComponentAdded = 40,
+        CoreEventIdComponentRemoved = 50,
+        CoreEventIdSignalConnected = 60,
+        CoreEventIdSignalDisconnected = 70,
+        CoreEventIdDataDescriptorChanged = 80,
+        CoreEventIdComponentUpdateEnd = 90,
+        CoreEventIdAttributeChanged = 100,
+        CoreEventIdTagsChanged = 110,
+        CoreEventIdStatusChanged = 120,
+        CoreEventIdTypeAdded = 130,
+        CoreEventIdTypeRemoved = 140,
+        CoreEventIdDeviceDomainChanged = 150,
+        CoreEventIdDeviceLockStateChanged = 160,
+        CoreEventIdConnectionStatusChanged = 170,
+        CoreEventIdDeviceOperationModeChanged = 180,
     };
 
     enum Permission
     {
-        None = 0x0,    // The user has no permissions on the object.
-        Read = 0x1,    // The user can see and read an object.
-        Write = 0x2,   // The user can change or write to the object.
-        Execute = 0x4  // The user can execute an action attached to the object.
+        PermissionNone = 0x0,    // The user has no permissions on the object.
+        PermissionRead = 0x1,    // The user can see and read an object.
+        PermissionWrite = 0x2,   // The user can change or write to the object.
+        PermissionExecute = 0x4  // The user can execute an action attached to the object.
     };
 
     enum PropertyEventType
     {
-        EventTypeUpdate,
-        EventTypeClear,
-        EventTypeRead
+        PropertyEventTypeEventTypeUpdate,
+        PropertyEventTypeEventTypeClear,
+        PropertyEventTypeEventTypeRead
     };
 
 #ifdef __cplusplus

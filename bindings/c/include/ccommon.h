@@ -22,18 +22,15 @@ extern "C"
 #endif
 
 #if !defined(_WIN32)
-    #define EXPORTED __attribute__ ((visibility ("default")))
+#define EXPORTED __attribute__((visibility("default")))
 #elif defined(BUILDING_SHARED_LIBRARY)
-    #define EXPORTED __declspec(dllexport)
+#define EXPORTED __declspec(dllexport)
 #else
-    #define EXPORTED __declspec(dllimport)
+#define EXPORTED __declspec(dllimport)
 #endif
-
 
 #include <stddef.h>
 #include <stdint.h>
-
-#include "ccoreobjects/common.h"
 
     typedef uint32_t ErrCode;
     typedef uint8_t Bool;
@@ -50,7 +47,7 @@ extern "C"
     const Bool True = 1;
     const Bool False = 0;
 
-    enum CoreType : int
+    enum CoreType
     {
         ctBool = 0,             ///< Boolean, True or False
         ctInt,                  ///< 64 bit signed integer
@@ -73,12 +70,30 @@ extern "C"
     typedef ErrCode (*ProcCall)(BaseObject*);
     typedef void (*EventCall)(BaseObject*, BaseObject*);
 
-    typedef struct IntfID {
+    typedef struct IntfID
+    {
         uint32_t Data1;
         uint16_t Data2;
         uint16_t Data3;
         uint64_t Data4;
     } IntfID;
+
+#include "ccoreobjects/common.h"
+
+#include "copendaq/component/common.h"
+#include "copendaq/context/common.h"
+#include "copendaq/device/common.h"
+#include "copendaq/functionblock/common.h"
+#include "copendaq/logger/common.h"
+#include "copendaq/modulemanager/common.h"
+#include "copendaq/opendaq/common.h"
+#include "copendaq/reader/common.h"
+#include "copendaq/scheduler/common.h"
+#include "copendaq/server/common.h"
+#include "copendaq/signal/common.h"
+#include "copendaq/streaming/common.h"
+#include "copendaq/synchronization/common.h"
+#include "copendaq/utility/common.h"
 
 #ifdef __cplusplus
 }

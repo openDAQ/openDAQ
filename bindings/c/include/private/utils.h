@@ -30,4 +30,13 @@ namespace copendaq::utils
 daq::IntfID toDaqIntfId(IntfID id);
 daq::PropertyEventType toDaqPropertyEventType(PropertyEventType type);
 PropertyEventType toCPropertyEventType(daq::PropertyEventType type);
+
+template <typename To, typename From>
+To convertEnum(From value)
+{
+    static_assert(std::is_enum<From>::value, "From must be an enum type");
+    static_assert(std::is_enum<To>::value, "To must be an enum type");
+    return static_cast<To>(value);
+}
+
 }

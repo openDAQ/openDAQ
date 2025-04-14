@@ -10,7 +10,10 @@ set(SDK_OPTION_PREFIX OPENDAQ)
 
 file(READ "opendaq_version" package_version)
 string(STRIP ${package_version} package_version)
-set(OPENDAQ_PACKAGE_VERSION "${package_version}")
+
+string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" package_version_major_minor_patch "${package_version}")
+
+set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}")
 
 set(CMAKE_MESSAGE_CONTEXT ${SDK_NAME})
 set(CMAKE_MESSAGE_CONTEXT_SHOW ON CACHE BOOL "Show CMake message context")

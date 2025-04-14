@@ -1129,7 +1129,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomValues(I
         if (auto parent = Super::getPropertyObjectParent(); parent.assigned())
         {
             auto propertyVal = parent.getPropertyValue(propertyName);
-            auto lock = getRecursiveConfigLock();
+            auto lock = this->getRecursiveConfigLock();
             Super::setPropertyValueNoLock(propertyName, propertyVal);
         }
     }

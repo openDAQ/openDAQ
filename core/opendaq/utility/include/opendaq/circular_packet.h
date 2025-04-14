@@ -30,8 +30,8 @@
 #include <memory>
 #include <functional>
 #include <opendaq/data_descriptor_ptr.h>
-//#include <opendaq/logger_ptr.h>
 #include <opendaq/logger_factory.h>
+#include <opendaq/custom_log.h>
 
 namespace bufferReturnCodes
 {
@@ -50,7 +50,7 @@ BEGIN_NAMESPACE_OPENDAQ
 struct PacketBufferInit
 {
 
-    PUBLIC_EXPORT PacketBufferInit(daq::DataDescriptorPtr description, size_t sA = 0, ContextPtr ctx = nullptr);
+    PUBLIC_EXPORT PacketBufferInit(const daq::DataDescriptorPtr& description, size_t sampleAmount = 0, ContextPtr ctx = nullptr);
 
     daq::DataDescriptorPtr desc;
     size_t sampleCount;
@@ -85,13 +85,14 @@ public:
                                                  daq::DataDescriptorPtr dataDescriptor,
                                                  daq::DataPacketPtr& domainPacket);
 
-    Packet cP(size_t* sampleCount, size_t dataDescriptor);
-
     bool isEmpty();
 
     int reset();
 
 protected:
+    // This is a test function, it has no intended use outside of unit tests for internal logic of the buffer
+    Packet cP(size_t* sampleCount, size_t dataDescriptor);
+
     bufferReturnCodes::EReturnCodesPacketBuffer Write(size_t* sampleCount, void** memPos);
 
     bufferReturnCodes::EReturnCodesPacketBuffer Read(void* beginningOfDelegatedSpace, size_t sampleCount);
@@ -117,12 +118,13 @@ protected:
     void* data;
     void* writePos;
     void* readPos;
+    // Out-of-scope packets (oos abbreviation)
     std::priority_queue<std::pair<void*, size_t>, std::vector<std::pair<void*, size_t>>, std::greater<std::pair<void*, size_t>>> oos_packets;
-    std::vector<std::weak_ptr<daq::DataPacketPtr>> dd; // This is one of the ways
-    std::function<void(void*)> ff;
+    //std::vector<std::weak_ptr<daq::DataPacketPtr>> dd; // This is one of the ways
+    std::function<void(void*)> deleterFunction;
 
     daq::LoggerPtr logger;
-    daq::LoggerComponentPtr logComp;
+    daq::LoggerComponentPtr loggerComponent;
     // This is a temporary solution for
     // situation of the sampleCount being to big to fit
     size_t sizeAdjusted;

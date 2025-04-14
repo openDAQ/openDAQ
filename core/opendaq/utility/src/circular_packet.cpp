@@ -2,7 +2,7 @@
 
 using namespace daq;
 
-PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, size_t sA, const ContextPtr ctx)
+PacketBufferInit::PacketBufferInit(const daq::DataDescriptorPtr& description, size_t sampleAmount, const ContextPtr ctx)
 {
     if (ctx != nullptr)
     {
@@ -17,11 +17,11 @@ PacketBufferInit::PacketBufferInit(daq::DataDescriptorPtr description, size_t sA
     {
         throw;
     }
-    desc = description;
+    desc = *description;
 
-    sampleCount = sA;
+    sampleCount = sampleAmount;
 
-    if (sA == 0)
+    if (sampleAmount == 0)
     {
         if (desc.getUnit().getSymbol() != "s")
             return ;
@@ -43,7 +43,7 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize, const ContextPtr c
         logger = ctx.getLogger();
     }
 
-    logComp = logger.getOrAddComponent("CircularBuffer");
+    loggerComponent = logger.getOrAddComponent("CircularBuffer");
     sizeOfMem = memSize;
     sizeOfSample = sampleSize;
     data = malloc(sizeOfMem * sizeOfSample);
@@ -64,7 +64,7 @@ PacketBuffer::~PacketBuffer()
 PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
 {
     logger = instructions.logger;
-    logComp = logger.getOrAddComponent("CircularBuffer");
+    loggerComponent = logger.getOrAddComponent("CircularBuffer");
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleCount;
     data = malloc(sizeOfMem * sizeOfSample);
@@ -278,7 +278,7 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     std::unique_lock<std::mutex> loa(flip);
     if (bUnderReset)
     {
-        DAQLOG_D(logComp, "Under ongoing reset, cannot create new packets\r\n")
+        LOG_D("Under ongoing reset, cannot create new packets\r\n")
         //std::cerr << "Under ongoing reset, cannot create new packets" << std::endl;
         //this->cv.wait(loa, [&] { return !bUnderReset; });
         return daq::DataPacketPtr();
@@ -288,17 +288,17 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     // Here the should be a lock for creation
 
     bufferReturnCodes::EReturnCodesPacketBuffer ret = this->Write(sampleCount, &startOfSpace);
-    ff = [&, sampleCnt = *sampleCount, startOfSpace = startOfSpace](void*)
+    deleterFunction = [&, sampleCnt = *sampleCount, startOfSpace = startOfSpace](void*)
          {
              Read(startOfSpace, sampleCnt);
          };
-    auto deleter = daq::Deleter(std::move(ff));
+    auto deleter = daq::Deleter(std::move(deleterFunction));
     
     if (ret < bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory)
     {
         if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize)
         {
-            DAQLOG_D(logComp, "The size of the packet is smaller than requested. It's so JOEVER\r\n")
+            LOG_D("The size of the packet is smaller than requested. It's so JOEVER\r\n")
         }
             //std::cout << "The size of the packet is smaller than requested. It's so JOEVER " << std::endl;
 
@@ -308,11 +308,11 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     {
         if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory)
         {
-            DAQLOG_W(logComp, "We ran out of memory...\r\n")
+            LOG_W("We ran out of memory...\r\n")
         }
         else
         {
-            DAQLOG_W(logComp, "Something went very wrong... \r\n")
+            LOG_W("Something went very wrong... \r\n")
         }
         return daq::DataPacketPtr();
     }
@@ -324,7 +324,7 @@ int PacketBuffer::reset()
     bUnderReset = true;
     this->cv.wait(lock, [&]
             {
-                DAQLOG_W(logComp, "Calling the check in reset. \r\n")
+                LOG_W("Calling the check in reset. \r\n")
                 std::cerr << "Calling the check in reset. " << std::endl;
                 return ((readPos == writePos) && (!bIsFull));
             });

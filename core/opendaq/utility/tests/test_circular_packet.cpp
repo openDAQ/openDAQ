@@ -47,6 +47,9 @@ public:
         return &flip;
     }
 
+    daq::Packet getCP(size_t* sampleCount, size_t dataDescriptor);
+
+
     Packetet()
         : PacketBuffer(sizeof(double), 1024, nullptr)
     {
@@ -82,6 +85,13 @@ public:
 private:
     std::function<void(void*, size_t)> cb;
 };
+
+
+daq::Packet Packetet::getCP(size_t* sampleCount, size_t dataDescriptor)
+{
+    return cP(sampleCount, dataDescriptor);
+}
+
 
 // This is a test function that was used to help gauge the behaviour of the buffer class
 daq::Packet daq::PacketBuffer::cP(size_t* sampleCount, size_t dataDescriptor)
@@ -251,8 +261,8 @@ TEST_F(CircularPacketTest, TestMockPacket)
     size_t st = 8;
 
     {
-        daq::Packet pck = pb.cP(&st, 10);
-        daq::Packet pck2 = pb.cP(&st, 100);
+        daq::Packet pck = pb.getCP(&st, 10);
+        daq::Packet pck2 = pb.getCP(&st, 100);
     }
     ASSERT_EQ(pb.getReadPos(), pb.getWritePos());
 

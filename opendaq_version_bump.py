@@ -25,16 +25,16 @@ old_antora_version = parse_yml('docs/Antora/antora.yml', 'version:')
 print('Current Antora version: `' + old_antora_version + '`')
 print()
 new_version = input('New version (`MAJOR.MINOR.PATCH`): ').strip()
-suffix = input('Suffix: Release (none, PRESS ENTER), development (dev0, dev1, dev3, ...), or release candidate (rc0, rc1, rc2, ...)?: ').strip().lower()
+suffix = input('Suffix: Release (none, PRESS ENTER), development (dev), or release candidate (rc)?: ').strip().lower()
 print()
 print('(Release will write "MAJOR.MINOR" in Antora docs version, development  will write "dev", release candidate will write "rc")')
-if suffix[0:3] == 'dev':
+if suffix == 'dev':
     new_antora_version = 'dev' 
-    new_version = new_version + suffix
-elif suffix[0:2] == 'rc':
+    new_version = new_version + 'dev' 
+elif suffix == 'rc':
     new_antora_version = 'rc' 
-    new_version = new_version + suffix
-else: # relelase
+    new_version = new_version + 'rc' 
+else: # release
     new_antora_version = new_version[:new_version.rindex('.')]
 
 new_antora_version = '\"' + new_antora_version + '\"'

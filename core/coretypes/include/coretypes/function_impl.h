@@ -113,7 +113,7 @@ protected:
         }
         catch (...)
         {
-            return OPENDAQ_ERR_CALLFAILED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED, "");
         }
 
         return OPENDAQ_SUCCESS;
@@ -152,7 +152,7 @@ public:
             }
             catch (...)
             {
-                return OPENDAQ_ERR_CALLFAILED;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED, "");
             }
 
             return OPENDAQ_SUCCESS;
@@ -215,7 +215,7 @@ public:
         }
         else
         {
-            return OPENDAQ_ERR_NOTIMPLEMENTED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
         }
     }
 };
@@ -225,7 +225,7 @@ class FunctionNull : public ImplementationOf<ICoreType, IFunction>
 public:
     ErrCode INTERFACE_FUNC call(IBaseObject* /*args*/, IBaseObject** /*result*/) override
     {
-        return OPENDAQ_ERR_NOTASSIGNED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED, "");
     }
 
     ErrCode INTERFACE_FUNC getCoreType(CoreType* coreType) override
@@ -264,11 +264,11 @@ ErrCode createFunctionWrapper(IFunction** obj, [[maybe_unused]] TFunctor func)
     }
     catch (const std::bad_alloc&)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
     }
     catch (const std::exception&)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 
     (*obj)->addRef();
@@ -293,11 +293,11 @@ ErrCode createFunctionWrapper(IFunction** obj, TFunctor func)
     }
     catch (const std::bad_alloc&)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
     }
     catch (const std::exception&)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 
     (*obj)->addRef();
@@ -322,11 +322,11 @@ ErrCode createFunctionWrapper(IFunction** obj, TFunctor* func)
     }
     catch (const std::bad_alloc&)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
     }
     catch (const std::exception&)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 
     (*obj)->addRef();

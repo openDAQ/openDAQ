@@ -355,7 +355,7 @@ ErrCode ServerCapabilityConfigImpl::addAddressInfo(IAddressInfo* addressInfo)
 
         const AddressInfoPtr addr = addressInfoPtr.getPropertyValue(prop.getName());
         if (addr.getAddress() == address)
-            return OPENDAQ_ERR_DUPLICATEITEM;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM, "");
     }
     std::string addressStr = address;
     addressStr.erase(std::remove_if(

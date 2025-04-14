@@ -66,7 +66,7 @@ ErrCode CustomProcedureImpl<F>::dispatch(IBaseObject* params)
     {
         if (!this->proc)
         {
-            return OPENDAQ_ERR_NOTASSIGNED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED, "");
         }
 
         try
@@ -79,12 +79,12 @@ ErrCode CustomProcedureImpl<F>::dispatch(IBaseObject* params)
         }
         catch (...)
         {
-            return OPENDAQ_ERR_CALLFAILED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED, "");
         }
     }
     else
     {
-        return OPENDAQ_ERR_NOTASSIGNED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED, "");
     }
 }
 

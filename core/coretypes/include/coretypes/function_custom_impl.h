@@ -49,7 +49,7 @@ ErrCode CustomFunctionImpl<TFunctor>::call(IBaseObject* params, IBaseObject** re
     OPENDAQ_PARAM_NOT_NULL(result);
 
     if (!functor)
-        return OPENDAQ_ERR_NOTASSIGNED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED, "");
 
     try
     {
@@ -62,7 +62,7 @@ ErrCode CustomFunctionImpl<TFunctor>::call(IBaseObject* params, IBaseObject** re
     }
     catch (...)
     {
-        return OPENDAQ_ERR_CALLFAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED, "");
     }
 }
 

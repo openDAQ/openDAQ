@@ -151,7 +151,7 @@ ErrCode ListImpl::getItemAt(SizeT index, IBaseObject** item)
     OPENDAQ_PARAM_NOT_NULL(item);
     
     if (index >= list.size())
-        return OPENDAQ_ERR_OUTOFRANGE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
 
     IBaseObject* obj = list[index];
     if (obj)
@@ -172,11 +172,11 @@ ErrCode ListImpl::setItemAt(SizeT index, IBaseObject* obj)
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     if (index >= list.size())
-        return OPENDAQ_ERR_OUTOFRANGE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
 
     IBaseObject* oldObj = list[index];
     if (oldObj != nullptr)
@@ -194,7 +194,7 @@ ErrCode ListImpl::pushBack(IBaseObject* obj)
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     list.push_back(obj);
@@ -208,7 +208,7 @@ ErrCode ListImpl::pushFront(IBaseObject* obj)
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     list.insert(list.begin(), obj);
@@ -222,7 +222,7 @@ ErrCode ListImpl::moveBack(IBaseObject* obj)
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     list.push_back(obj);
@@ -233,7 +233,7 @@ ErrCode ListImpl::moveFront(IBaseObject* obj)
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     list.insert(list.begin(), obj);
@@ -244,7 +244,7 @@ ErrCode ListImpl::popBack(IBaseObject** obj)
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     OPENDAQ_PARAM_NOT_NULL(obj);
@@ -256,14 +256,14 @@ ErrCode ListImpl::popBack(IBaseObject** obj)
         return OPENDAQ_SUCCESS;
     }
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 }
 
 ErrCode ListImpl::popFront(IBaseObject** obj)
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     OPENDAQ_PARAM_NOT_NULL(obj);
@@ -275,18 +275,18 @@ ErrCode ListImpl::popFront(IBaseObject** obj)
         return OPENDAQ_SUCCESS;
     }
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 }
 
 ErrCode ListImpl::insertAt(SizeT index, IBaseObject* obj)
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     if (index >= list.size())
-        return OPENDAQ_ERR_OUTOFRANGE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
 
     list.insert(list.begin() + index, obj);
     if (obj)
@@ -299,11 +299,11 @@ ErrCode ListImpl::removeAt(SizeT index, IBaseObject** obj)
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     if (index >= list.size())
-        return OPENDAQ_ERR_OUTOFRANGE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
 
     *obj = list[index];
     list.erase(list.begin() + index);
@@ -317,11 +317,11 @@ ErrCode ListImpl::deleteAtInternal(SizeT index, IBaseObject** removed, bool& del
 
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     if (index >= list.size())
-        return OPENDAQ_ERR_OUTOFRANGE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
 
     IBaseObject* obj = list[index];
     if (obj)
@@ -347,7 +347,7 @@ ErrCode ListImpl::clear()
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     releaseRefOnChildren();
@@ -361,7 +361,7 @@ ErrCode ListImpl::createStartIterator(IIterator** iterator)
 
     *iterator = new(std::nothrow) ListIteratorImpl(this, list.begin());
     if (*iterator == nullptr)
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
 
     (*iterator)->addRef();
 
@@ -374,7 +374,7 @@ ErrCode ListImpl::createEndIterator(IIterator** iterator)
 
     *iterator = new(std::nothrow) ListIteratorImpl(this, list.end());
     if (*iterator == nullptr)
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
 
     (*iterator)->addRef();
 
@@ -468,7 +468,7 @@ ErrCode ListImpl::serialize(ISerializer* serializer)
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            return OPENDAQ_ERR_NOT_SERIALIZABLE;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
         }
 
         if (OPENDAQ_FAILED(errCode))

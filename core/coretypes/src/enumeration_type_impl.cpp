@@ -61,7 +61,7 @@ ErrCode EnumerationTypeImpl::getEnumeratorIntValue(IString* name, Int* value)
     OPENDAQ_PARAM_NOT_NULL(value);
 
     if (!enumerators.hasKey(name))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 
     return enumerators.get(name)->getValue(value);
 }
@@ -108,7 +108,7 @@ ErrCode EnumerationTypeImpl::serialize(ISerializer* serializer)
     ErrCode errCode = this->enumerators->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
 
     if (OPENDAQ_FAILED(errCode))
         return errCode;
@@ -180,7 +180,7 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 
     return OPENDAQ_SUCCESS;

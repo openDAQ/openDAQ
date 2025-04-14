@@ -28,7 +28,7 @@ ErrCode TailReaderBuilderImpl::build(ITailReader** tailReader)
     return daqTry([&]()
     {
         if (used)
-            return OPENDAQ_ERR_CREATE_FAILED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CREATE_FAILED, "");
 
         *tailReader = TailReaderFromBuilder(builderPtr).detach();
         used = true;

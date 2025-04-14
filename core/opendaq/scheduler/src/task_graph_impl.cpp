@@ -52,7 +52,7 @@ ErrCode TaskGraph::then(ITask* continuation)
     auto predecessor = dynamic_cast<SubTask*>(continuation);
     if (predecessor == nullptr)
     {
-        return OPENDAQ_ERR_NOT_SUPPORTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "");
     }
 
     if (predecessor->getTask().empty())

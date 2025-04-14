@@ -121,7 +121,7 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
     ErrCode errCode = this->names->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
 
     if (OPENDAQ_FAILED(errCode))
         return errCode;
@@ -137,7 +137,7 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
         errCode = this->defaultValues->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
-            return OPENDAQ_ERR_NOT_SERIALIZABLE;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
 
         if (OPENDAQ_FAILED(errCode))
             return errCode;
@@ -152,7 +152,7 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
     errCode = this->types->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
 
     if (OPENDAQ_FAILED(errCode))
         return errCode;
@@ -230,7 +230,7 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 
     return OPENDAQ_SUCCESS;

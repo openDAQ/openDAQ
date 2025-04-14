@@ -16,7 +16,7 @@ ErrCode EventImpl::addHandler(IEventHandler* eventHandler)
 
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     handlers.emplace_back(Handler{ eventHandler, false });
@@ -31,7 +31,7 @@ ErrCode EventImpl::removeHandler(IEventHandler* eventHandler)
 
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     SizeT hashCode;
@@ -62,7 +62,7 @@ ErrCode EventImpl::clear()
 
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     handlers.clear();

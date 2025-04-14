@@ -13,7 +13,7 @@ static ErrCode serializedObjectFactory(ISerializedObject*, IBaseObject*, IFuncti
 
 static ErrCode errorFactory(ISerializedObject*, IBaseObject*, IFunction*, IBaseObject**)
 {
-    return OPENDAQ_ERR_GENERALERROR;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
 }
 
 class JsonDeserializerTest : public testing::Test

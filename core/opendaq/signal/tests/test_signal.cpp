@@ -151,12 +151,12 @@ public:
 
     ErrCode INTERFACE_FUNC subscribeForDestructNotification(IPacketDestructCallback* packetDestructCallback) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
     }
 
     ErrCode INTERFACE_FUNC getRefCount(SizeT* refCount) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
     }
 };
 

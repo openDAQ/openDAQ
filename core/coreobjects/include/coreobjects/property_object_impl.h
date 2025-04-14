@@ -1086,7 +1086,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
     OPENDAQ_PARAM_NOT_NULL(value);
 
     if (frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
 
     try
     {
@@ -1122,7 +1122,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
         {
             if (propInternal.getReadOnlyNoLock() && !isChildProp)
             {
-                return OPENDAQ_ERR_ACCESSDENIED;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "");
             }
         }
 
@@ -1153,7 +1153,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             {
                 if (propInternal.getReadOnlyNoLock() || propInternal.getValueTypeNoLock() == ctObject)
                 {
-                    return OPENDAQ_ERR_ACCESSDENIED;
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "");
                 }
             }
 
@@ -1831,7 +1831,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
     OPENDAQ_PARAM_NOT_NULL(name);
 
     if (frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
 
     try
     {
@@ -1866,7 +1866,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
         {
             if (propInternal.getReadOnlyNoLock() && !isChildProp)
             {
-                return OPENDAQ_ERR_ACCESSDENIED;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "");
             }
         }
 
@@ -2057,7 +2057,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 }
 
@@ -2112,7 +2112,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
     OPENDAQ_PARAM_NOT_NULL(property);
 
     if (frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
 
     return daqTry([&]() -> auto {
         const PropertyPtr propPtr = property;
@@ -2175,7 +2175,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
 
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     auto lock = getRecursiveConfigLock();
@@ -2213,7 +2213,7 @@ template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyOrder(IList* orderedPropertyNames)
 {
     if (frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
 
     customOrder.clear();
     if (orderedPropertyNames != nullptr)
@@ -2235,7 +2235,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
     OPENDAQ_PARAM_NOT_NULL(list);
 
     if (!includeInvisible && !bind)
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
 
     std::vector<PropertyPtr> allProperties;
     if (objectClass.assigned())
@@ -2283,9 +2283,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
 
             lookup.insert_or_assign(boundProp.getName(), boundProp);
         }
-        catch (const NotFoundException&)
+        catch (const NotFoundException& e)
         {
-            return OPENDAQ_ERR_NOTFOUND;
+            return errorFromException(e);
         }
         catch (const CalcFailedException&)
         {
@@ -2459,7 +2459,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdateInternal(bool deep)
 {
     if (frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
 
     updateCount++;
 
@@ -2473,7 +2473,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdateInternal(bool deep)
 {
     if (updateCount == 0)
-        return OPENDAQ_ERR_INVALIDSTATE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "");
 
     const auto newUpdateCount = --updateCount;
 
@@ -2670,7 +2670,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 
     return OPENDAQ_SUCCESS;
@@ -2988,7 +2988,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
     if (OPENDAQ_FAILED(serializeErrCode))
         return serializeErrCode;
     if (!hasAccess)
-        return OPENDAQ_ERR_ACCESSDENIED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "");
 
     serializer->startTaggedObject(this);
 
@@ -3415,7 +3415,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 }
 

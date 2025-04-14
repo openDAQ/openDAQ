@@ -27,7 +27,7 @@ ErrCode MockModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 
 ErrCode MockModuleImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
 {
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 }
 
 ErrCode MockModuleImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
@@ -40,12 +40,12 @@ ErrCode MockModuleImpl::getAvailableFunctionBlockTypes(IDict** functionBlockType
 
 ErrCode MockModuleImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, daq::IString* localId, daq::IPropertyObject* config)
 {
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 }
 
 ErrCode MockModuleImpl::getAvailableServerTypes(IDict** serverTypes)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
 }
 
 ErrCode MockModuleImpl::createServer(daq::IServer** server,
@@ -53,7 +53,7 @@ ErrCode MockModuleImpl::createServer(daq::IServer** server,
                                      daq::IDevice* rootDevice,
                                      daq::IPropertyObject* config)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
 }
 
 ErrCode MockModuleImpl::getModuleInfo(IModuleInfo** info)
@@ -69,17 +69,17 @@ ErrCode MockModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                         IString* /*connectionString*/,
                                         IPropertyObject* /*config*/)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
 }
 
 ErrCode MockModuleImpl::completeServerCapability(daq::Bool* /*succeeded*/, daq::IServerCapability* /*source*/, daq::IServerCapabilityConfig* /*target*/)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
 }
 
 daq::ErrCode MockModuleImpl::getAvailableStreamingTypes(daq::IDict** streamingTypes)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockModule, IModule)

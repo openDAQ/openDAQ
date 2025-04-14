@@ -136,7 +136,7 @@ inline ErrCode CoreEventArgsImpl::serialize(ISerializer* serializer)
     ErrCode errCode = this->parameters->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableParams));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
 
     if (OPENDAQ_FAILED(errCode))
         return errCode;
@@ -194,11 +194,11 @@ inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObjec
     }
     catch(const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch(...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while deserializing CoreEventArgs");
     }
 
     return OPENDAQ_SUCCESS;

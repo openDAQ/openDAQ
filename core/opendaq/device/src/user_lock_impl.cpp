@@ -20,7 +20,7 @@ ErrCode INTERFACE_FUNC UserLockImpl::lock(IUser* user)
         userPtr = nullptr;
 
     if (userLock.has_value() && userLock != userPtr)
-        return OPENDAQ_ERR_DEVICE_LOCKED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED, "");
 
     this->userLock = userPtr;
     return OPENDAQ_SUCCESS;
@@ -29,7 +29,7 @@ ErrCode INTERFACE_FUNC UserLockImpl::lock(IUser* user)
 ErrCode INTERFACE_FUNC UserLockImpl::unlock(IUser* user)
 {
     if (userLock.has_value() && userLock != nullptr && userLock != user)
-        return OPENDAQ_ERR_ACCESSDENIED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "");
 
     this->userLock.reset();
     return OPENDAQ_SUCCESS;

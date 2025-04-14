@@ -129,42 +129,41 @@ inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* error
 
 inline void checkErrorInfo(ErrCode errCode)
 {
-    if (OPENDAQ_FAILED(errCode))
+    if (OPENDAQ_SUCCEEDED(errCode))
+        return;
+
+    IList* errorInfoList;
+    daqGetErrorInfoList(&errorInfoList);
+
+    std::ostringstream ss;
+    if (errorInfoList != nullptr)
     {
-        IList* errorInfoList;
-        daqGetErrorInfoList(&errorInfoList);
+        SizeT count = 0;
+        errorInfoList->getCount(&count);
 
-        std::ostringstream ss;
-        if (errorInfoList != nullptr)
+        for (SizeT i = count; i-- > 0;)
         {
-            SizeT count = 0;
-            errorInfoList->getCount(&count);
-    
-            for (SizeT i = count; i-- > 0;)
+            IBaseObject* errorInfoObj;
+            errorInfoList->getItemAt(i, &errorInfoObj);
+
+            IErrorInfo* errorInfo;
+            errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+        
+            if (errorInfo != nullptr)
             {
-                IBaseObject* errorInfoObj;
-                errorInfoList->getItemAt(i, &errorInfoObj);
-
-                IErrorInfo* errorInfo;
-                errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-            
-                if (errorInfo != nullptr)
-                {
-                    ErrorFormat(ss, errorInfo);
-                    if (i != 0)
-                        ss << "\n";
-                }
-                if (errorInfoObj != nullptr)
-                    errorInfoObj->releaseRef();
+                ErrorFormat(ss, errorInfo);
+                if (i != 0)
+                    ss << "\n";
             }
+            if (errorInfoObj != nullptr)
+                errorInfoObj->releaseRef();
         }
-
-        if (errorInfoList != nullptr)
-            errorInfoList->releaseRef();
-
-        throwExceptionFromErrorCode(errCode, ss.str());
     }
-    daqClearErrorInfo();
+
+    if (errorInfoList != nullptr)
+        errorInfoList->releaseRef();
+
+    throwExceptionFromErrorCode(errCode, ss.str());
 }
 
 template <typename... Params>
@@ -409,7 +408,7 @@ ErrCode wrapHandler(Handler handler, Params... params)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
 }
 
@@ -431,7 +430,7 @@ ErrCode wrapHandlerReturn(Handler handler, TReturn& output, Params... params)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
 }
 
@@ -467,7 +466,7 @@ ErrCode wrapHandler(Object* object, Handler handler, Params... params)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
 }
 
@@ -493,7 +492,7 @@ ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Para
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
 }
 
@@ -532,7 +531,7 @@ ErrCode daqTry(const IBaseObject* context, F&& func)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
 }
 

@@ -202,7 +202,7 @@ ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* contex
 {
     TypeManagerPtr typeManager;
     if (context == nullptr || OPENDAQ_FAILED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager))))
-        return OPENDAQ_ERR_NO_TYPE_MANAGER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_TYPE_MANAGER, "");
 
     StringPtr typeName;
     ErrCode errCode = ser->readString("typeName"_daq, &typeName);
@@ -222,11 +222,11 @@ ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* contex
     }
     catch(const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch(...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 
     return OPENDAQ_SUCCESS;

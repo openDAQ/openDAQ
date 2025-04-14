@@ -144,7 +144,7 @@ TEST_F(ProcedureTest, AutoUnpackNoArgsErrCodeException)
     auto proc = Procedure([&called]()
     {
         called = true;
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     });
 
     ASSERT_ANY_THROW(proc());
@@ -279,7 +279,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrLambdaRawThrow)
 {
     ProcedurePtr ptr = [](IBaseObject* /*params*/)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     };
     ASSERT_THROW(ptr(), GeneralErrorException);
     ASSERT_EQ(ptr->dispatch(nullptr), OPENDAQ_ERR_GENERALERROR);
@@ -381,7 +381,7 @@ static ErrCode testingRaw(IBaseObject* /*params*/)
 
 static ErrCode testingRawE(IBaseObject* /*params*/)
 {
-    return OPENDAQ_ERR_GENERALERROR;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
 }
 
 static void testing0()
@@ -391,7 +391,7 @@ static void testing0()
 
 static ErrCode testing0E()
 {
-    return OPENDAQ_ERR_GENERALERROR;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
 }
 
 static void testing1(Int val)
@@ -401,7 +401,7 @@ static void testing1(Int val)
 
 static ErrCode testing1E(Int /*val*/)
 {
-    return OPENDAQ_ERR_GENERALERROR;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
 }
 
 static void testing2(Int val, Int val2)

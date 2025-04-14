@@ -85,8 +85,7 @@ daq::ErrCode PyProcedureImpl<F>::dispatch(daq::IBaseObject* params)
 template <class F>
 daq::ErrCode PyProcedureImpl<F>::getCoreType(daq::CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = daq::ctProc;
     return OPENDAQ_SUCCESS;

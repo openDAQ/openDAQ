@@ -67,7 +67,7 @@ ErrCode PropertyObjectClassImpl::getProperty(IString* propertyName, IProperty** 
 
             const auto parentClass = type.asPtrOrNull<IPropertyObjectClass>();
             if (!parentClass.assigned())
-                return OPENDAQ_ERR_INVALIDTYPE;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
 
             return parentClass->getProperty(propertyName, property);
         }
@@ -106,7 +106,7 @@ ErrCode PropertyObjectClassImpl::hasProperty(IString* propertyName, Bool* hasPro
 
             const auto parentClass = type.asPtrOrNull<IPropertyObjectClass>();
             if (!parentClass.assigned())
-                return OPENDAQ_ERR_INVALIDTYPE;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
 
             return parentClass->hasProperty(propertyName, hasProperty);
         }

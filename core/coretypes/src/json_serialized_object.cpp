@@ -24,18 +24,16 @@ ErrCode JsonSerializedObject::readSerializedObject(IString* key, ISerializedObje
     ConstCharPtr member;
     key->getCharPtr(&member);
 
-    if (object.HasMember(member))
-    {
-        if (object[member].IsObject())
-        {
-            *plainObj = new(std::nothrow) JsonSerializedObject(object[member].GetObject());
-            (*plainObj)->addRef();
-            return OPENDAQ_SUCCESS;
-        }
-        return OPENDAQ_ERR_INVALIDTYPE;
-    }
+    if (!object.HasMember(member))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 
-    return OPENDAQ_ERR_NOTFOUND;
+    auto& value = object[member];
+    if (!value.IsObject())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+
+    *plainObj = new(std::nothrow) JsonSerializedObject(value.GetObject());
+    (*plainObj)->addRef();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode JsonSerializedObject::readSerializedList(IString* key, ISerializedList** list)
@@ -45,24 +43,22 @@ ErrCode JsonSerializedObject::readSerializedList(IString* key, ISerializedList**
     ConstCharPtr member;
     key->getCharPtr(&member);
 
-    if (object.HasMember(member))
-    {
-        if (object[member].IsArray())
-        {
-            SerializedListPtr serList;
-            ErrCode err = createObject<ISerializedList, JsonSerializedList>(&serList, object[member].GetArray());
-            if (OPENDAQ_FAILED(err))
-            {
-                return err;
-            }
+    if (!object.HasMember(member))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 
-            *list = serList.addRefAndReturn();
-            return OPENDAQ_SUCCESS;
-        }
-        return OPENDAQ_ERR_INVALIDTYPE;
+    auto& value = object[member];
+    if (!value.IsArray())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+
+    SerializedListPtr serList;
+    ErrCode err = createObject<ISerializedList, JsonSerializedList>(&serList, value.GetArray());
+    if (OPENDAQ_FAILED(err))
+    {
+        return err;
     }
 
-    return OPENDAQ_ERR_NOTFOUND;
+    *list = serList.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode JsonSerializedObject::readList(IString* key, IBaseObject* context, IFunction* factoryCallback, IList** list)
@@ -70,16 +66,14 @@ ErrCode JsonSerializedObject::readList(IString* key, IBaseObject* context, IFunc
     ConstCharPtr member;
     key->getCharPtr(&member);
 
-    if (object.HasMember(member))
-    {
-        if (object[member].IsArray())
-        {
-            return JsonDeserializerImpl::Deserialize(object[member], context, factoryCallback, reinterpret_cast<IBaseObject**>(list));
-        }
-        return OPENDAQ_ERR_INVALIDTYPE;
-    }
+    if (!object.HasMember(member))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 
-    return OPENDAQ_ERR_NOTFOUND;
+    auto& value = object[member];
+    if (!value.IsArray())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+
+    return JsonDeserializerImpl::Deserialize(value, context, factoryCallback, reinterpret_cast<IBaseObject**>(list));
 }
 
 ErrCode JsonSerializedObject::readObject(IString* key, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
@@ -87,12 +81,10 @@ ErrCode JsonSerializedObject::readObject(IString* key, IBaseObject* context, IFu
     ConstCharPtr member;
     key->getCharPtr(&member);
 
-    if (object.HasMember(member))
-    {
-        return JsonDeserializerImpl::Deserialize(object[member], context, factoryCallback, obj);
-    }
+    if (!object.HasMember(member))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return JsonDeserializerImpl::Deserialize(object[member], context, factoryCallback, obj);
 }
 
 ErrCode JsonSerializedObject::readString(IString* key, IString** string)
@@ -100,21 +92,19 @@ ErrCode JsonSerializedObject::readString(IString* key, IString** string)
     ConstCharPtr member;
     key->getCharPtr(&member);
 
-    if (object.HasMember(member))
-    {
-        if (object[member].IsString())
-        {
-            ErrCode errCode = createString(string, object[member].GetString());
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
-            return OPENDAQ_SUCCESS;
-        }
-        return OPENDAQ_ERR_INVALIDTYPE;
-    }
+    if (!object.HasMember(member))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+    
+    auto& value = object[member];
+    if (!value.IsString())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
 
-    return OPENDAQ_ERR_NOTFOUND;
+    ErrCode errCode = createString(string, value.GetString());
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return errCode;
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode JsonSerializedObject::readBool(IString* key, Bool* boolean)
@@ -122,18 +112,16 @@ ErrCode JsonSerializedObject::readBool(IString* key, Bool* boolean)
     ConstCharPtr member;
     key->getCharPtr(&member);
 
-    if (object.HasMember(member))
-    {
-        if (object[member].IsBool())
-        {
-            *boolean = object[member].GetBool();
+    if (!object.HasMember(member))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 
-            return OPENDAQ_SUCCESS;
-        }
-        return OPENDAQ_ERR_INVALIDTYPE;
-    }
+    auto& value = object[member];
+    if (!value.IsBool())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
 
-    return OPENDAQ_ERR_NOTFOUND;
+    *boolean = value.GetBool();
+
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode JsonSerializedObject::readInt(IString* key, Int* integer)
@@ -141,24 +129,23 @@ ErrCode JsonSerializedObject::readInt(IString* key, Int* integer)
     ConstCharPtr member;
     key->getCharPtr(&member);
 
-    if (object.HasMember(member))
-    {
-        auto& value = object[member];
-        if (value.IsInt())
-        {
-            *integer = value.GetInt();
-            return OPENDAQ_SUCCESS;
-        }
+    if (!object.HasMember(member))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 
-        if (value.IsInt64())
-        {
-            *integer = value.GetInt64();
-            return OPENDAQ_SUCCESS;
-        }
-        return OPENDAQ_ERR_INVALIDTYPE;
+    auto& value = object[member];
+    if (value.IsInt())
+    {
+        *integer = value.GetInt();
+        return OPENDAQ_SUCCESS;
     }
 
-    return OPENDAQ_ERR_NOTFOUND;
+    if (value.IsInt64())
+    {
+        *integer = value.GetInt64();
+        return OPENDAQ_SUCCESS;
+    }
+
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
 }
 
 ErrCode JsonSerializedObject::readFloat(IString* key, Float* real)
@@ -166,19 +153,16 @@ ErrCode JsonSerializedObject::readFloat(IString* key, Float* real)
     ConstCharPtr member;
     key->getCharPtr(&member);
 
-    if (object.HasMember(member))
-    {
-        auto& value = object[member];
-        if (value.IsDouble())
-        {
-            *real = value.GetDouble();
+    if (!object.HasMember(member))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 
-            return OPENDAQ_SUCCESS;
-        }
-        return OPENDAQ_ERR_INVALIDTYPE;
-    }
+    auto& value = object[member];
+    if (!value.IsDouble())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
 
-    return OPENDAQ_ERR_NOTFOUND;
+    *real = value.GetDouble();
+
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode JsonSerializedObject::getKeys(IList** list)
@@ -212,7 +196,7 @@ ErrCode JsonSerializedObject::getType(IString* key, CoreType* type)
     auto iter = object.FindMember(str);
     if (iter == object.MemberEnd())
     {
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
     }
 
     *type = JsonDeserializerImpl::GetCoreType(iter->value);

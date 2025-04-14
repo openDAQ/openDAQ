@@ -44,7 +44,7 @@ ErrCode ValidatorImpl::validate(IBaseObject* propObj, IBaseObject* value)
     {
     }
 
-    return OPENDAQ_ERR_VALIDATE_FAILED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_VALIDATE_FAILED, "");
 }
 
 ErrCode ValidatorImpl::validateNoLock(IBaseObject* propObj, IBaseObject* value)
@@ -73,7 +73,7 @@ ErrCode ValidatorImpl::validateNoLock(IBaseObject* propObj, IBaseObject* value)
     {
     }
 
-    return OPENDAQ_ERR_VALIDATE_FAILED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_VALIDATE_FAILED, "");
 }
 
 ErrCode ValidatorImpl::getEval(IString** eval)

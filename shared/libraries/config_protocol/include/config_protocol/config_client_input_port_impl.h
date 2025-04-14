@@ -78,7 +78,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
                 return Super::connect(signal);
             const auto signalPtr = SignalPtr::Borrow(signal);
             if (!isSignalFromTheSameComponentTree(signalPtr))
-                return OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED, "");
             {
                 auto lock = this->getRecursiveConfigLock();
 
@@ -145,7 +145,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
         [this, &signal, &accepts]
         {
             if (clientComm->getProtocolVersion() < 4)
-                return OPENDAQ_ERR_SERVER_VERSION_TOO_LOW;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SERVER_VERSION_TOO_LOW, "");
 
             const auto signalPtr = SignalPtr::Borrow(signal);
             if (!isSignalFromTheSameComponentTree(signalPtr))

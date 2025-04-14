@@ -138,7 +138,7 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
         libraries.emplace_back(ModuleLibrary{{}, module});
         return OPENDAQ_SUCCESS;
     }
-    return OPENDAQ_ERR_DUPLICATEITEM;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM, "");
 }
 
 ErrCode ModuleManagerImpl::loadModules(IContext* context)
@@ -566,7 +566,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 
     return DAQ_MAKE_ERROR_INFO(
@@ -891,7 +891,7 @@ ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId,
         }
     }
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 }
 
 ErrCode ModuleManagerImpl::changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config)

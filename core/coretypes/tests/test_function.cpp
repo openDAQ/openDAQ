@@ -350,7 +350,7 @@ TEST_F(FunctionTest, ImplicitSmartPtrLambdaRawThrow)
 {
     FunctionPtr ptr = [](IBaseObject* /*params*/, IBaseObject** /*result*/)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     };
     ASSERT_THROW(ptr(), GeneralErrorException);
 
@@ -454,7 +454,7 @@ static ErrCode testingRaw(IBaseObject* /*params*/, IBaseObject** /*result*/)
 
 static ErrCode testingRawE(IBaseObject* /*params*/, IBaseObject** /*result*/)
 {
-    return OPENDAQ_ERR_GENERALERROR;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
 }
 
 static std::string testing0E()

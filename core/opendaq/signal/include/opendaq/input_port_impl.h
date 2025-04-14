@@ -244,7 +244,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())

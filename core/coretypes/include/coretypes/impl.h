@@ -65,9 +65,9 @@ ErrCode createObjectForwarding(Interface** intf, Params... params)
     {
         return OPENDAQ_ERR_NOMEMORY;
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
 
     ErrCode errCode;
@@ -104,7 +104,7 @@ ErrCode createObject(Interface** intf, Params... params)
     }
     catch (const std::exception& e)
     {
-        return errorFromException(e);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
 
     ErrCode errCode;

@@ -228,7 +228,7 @@ TEST_F(ErrorInfoTest, ArgumentNotNull)
     auto obj = CreateTestObject();
     
 #ifdef NDEBUG
-    std::string expected = "Argument must not be NULL.";
+    std::string expected = "Parameter obj must not be null in the function \"";
 #else
     std::string expected = "Parameter obj must not be null" + getErrorPostfix(53);
 #endif

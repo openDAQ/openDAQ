@@ -171,7 +171,7 @@ ErrCode wrapHandlerReturn(FunctionPtr handler, TReturn& output, Params... params
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
     }
 }
 

@@ -58,7 +58,7 @@ public:
     ErrCode INTERFACE_FUNC getId(IString** serverId) override
     {
         if (serverId == nullptr)
-            return OPENDAQ_ERR_INVALIDPARAMETER;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
         *serverId = id.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -93,7 +93,7 @@ public:
         OPENDAQ_PARAM_NOT_NULL(signals);
 
         if (this->isComponentRemoved)
-            return OPENDAQ_ERR_COMPONENT_REMOVED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED, "");
 
         if (!searchFilter)
             return this->signals->getItems(signals);

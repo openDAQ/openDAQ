@@ -80,7 +80,7 @@ ErrCode OwningDictImpl::clear()
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     ErrCode err;

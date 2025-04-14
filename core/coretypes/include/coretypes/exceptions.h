@@ -82,7 +82,7 @@ BEGIN_NAMESPACE_OPENDAQ
     }                                                                   \
     catch (...)                                                         \
     {                                                                   \
-        return OPENDAQ_ERR_GENERALERROR;                                \
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");       \
     }
 
 #ifdef NDEBUG

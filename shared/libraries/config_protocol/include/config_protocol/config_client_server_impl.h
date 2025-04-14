@@ -56,12 +56,12 @@ inline ConfigClientServerImpl::ConfigClientServerImpl(
 
 inline ErrCode ConfigClientServerImpl::enableDiscovery()
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
 }
 
 inline ErrCode ConfigClientServerImpl::stop()
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
 }
 
 inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized,

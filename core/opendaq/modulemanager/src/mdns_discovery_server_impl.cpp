@@ -82,7 +82,7 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
         LOG_I("Service \"{}\" registered with the discovery server", serviceId);
         return OPENDAQ_SUCCESS;
     }
-    return OPENDAQ_ERR_INVALIDSTATE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Failed to register service \"%s\"", serviceId.getCharPtr());
 }
 
 ErrCode MdnsDiscoveryServerImpl::unregisterService(IString* id)

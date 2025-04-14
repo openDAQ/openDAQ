@@ -1278,36 +1278,36 @@ public:
             *device = daq::createWithImplementation<daq::IDevice, TestDevice>(ctx, parent, config).detach();
             return OPENDAQ_SUCCESS;
         }
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
     }
 
     daq::ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(daq::IDict**) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
     }
     daq::ErrCode INTERFACE_FUNC createFunctionBlock(daq::IFunctionBlock**, daq::IString*, daq::IComponent*, daq::IString*, daq::IPropertyObject*) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
     }
     daq::ErrCode INTERFACE_FUNC getAvailableServerTypes(daq::IDict**) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
     }
     daq::ErrCode INTERFACE_FUNC createServer(daq::IServer**, daq::IString*, daq::IDevice*, daq::IPropertyObject*) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
     }
     daq::ErrCode INTERFACE_FUNC createStreaming(daq::IStreaming**, daq::IString*, daq::IPropertyObject*) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
     }
     daq::ErrCode INTERFACE_FUNC getAvailableStreamingTypes(daq::IDict**) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
     }
     daq::ErrCode INTERFACE_FUNC completeServerCapability(daq::Bool*, daq::IServerCapability*, daq::IServerCapabilityConfig*) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
     }
 
 private:

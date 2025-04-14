@@ -459,7 +459,7 @@ public:
         }
         catch (...)
         {
-            return OPENDAQ_ERR_GENERALERROR;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
         }
     }
 
@@ -914,21 +914,21 @@ public:
         if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
             return ownerPtr->getPropertyValue(this->name, value);
 
-        return OPENDAQ_ERR_NO_OWNER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER, "");
     }
 
     ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override
     {
         if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
             return ownerPtr->setPropertyValue(this->name, value);
-        return OPENDAQ_ERR_NO_OWNER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER, "");
     }
 
     ErrCode INTERFACE_FUNC setValueProtected(IBaseObject* newValue) override
     {
         if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
             return ownerPtr.asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(this->name, newValue);
-        return OPENDAQ_ERR_NO_OWNER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER, "");
     }
 
     ErrCode INTERFACE_FUNC validate()

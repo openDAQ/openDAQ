@@ -144,9 +144,9 @@ ErrCode StringImpl::toFloat(Float* val)
         *val = std::stod(std::string(str));
         return OPENDAQ_SUCCESS;
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return OPENDAQ_ERR_CONVERSIONFAILED;
+        return errorFromException(e, nullptr, OPENDAQ_ERR_CONVERSIONFAILED);
     }
 }
 
@@ -157,9 +157,9 @@ ErrCode StringImpl::toInt(Int* val)
         *val = std::stoll(std::string(str));
         return OPENDAQ_SUCCESS;
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return OPENDAQ_ERR_CONVERSIONFAILED;
+        return errorFromException(e, nullptr, OPENDAQ_ERR_CONVERSIONFAILED);
     }
 }
 
@@ -231,7 +231,7 @@ ErrCode StringImpl::compareTo(IBaseObject* obj)
 
 ErrCode StringImpl::getSerializeId(ConstCharPtr* /*id*/) const
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
 }
 
 ErrCode StringImpl::serialize(ISerializer* serializer)

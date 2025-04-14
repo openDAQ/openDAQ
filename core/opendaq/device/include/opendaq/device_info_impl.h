@@ -322,7 +322,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setDeviceType(IDeviceType* deviceType)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
 
     this->deviceType = deviceType;
     return OPENDAQ_SUCCESS;
@@ -967,7 +967,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addNetworkInteface(IStr
 {
     if (this->frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
     }
 
     OPENDAQ_PARAM_NOT_NULL(networkInterface);
@@ -975,10 +975,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addNetworkInteface(IStr
 
     const auto nameObj = StringPtr::Borrow(name);
     if (nameObj == "")
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
 
     if (networkInterfaces.hasKey(name))
-        return OPENDAQ_ERR_DUPLICATEITEM;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM, "");
 
     return networkInterfaces->set(name, networkInterface);
 }
@@ -1000,7 +1000,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getNetworkInterface(ISt
     OPENDAQ_PARAM_NOT_NULL(interface);
 
     if (!networkInterfaces.hasKey(interfaceName))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
 
     *interface = networkInterfaces.get(interfaceName).addRefAndReturn();
     return OPENDAQ_SUCCESS;

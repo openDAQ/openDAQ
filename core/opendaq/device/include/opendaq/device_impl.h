@@ -76,7 +76,7 @@ public:
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
-    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
+    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     virtual ListPtr<IDeviceInfo> onGetAvailableDevices();
     virtual DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes();
@@ -2015,7 +2015,25 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         userLock = obj.readObject("UserLock", context);
 
     if (obj.hasKey("deviceInfo"))
-        deviceInfo = obj.readObject("deviceInfo", context);
+    {
+        DeviceInfoPtr deviceInfo;
+        this->getInfo(&deviceInfo);
+        if (deviceInfo.assigned())
+        {
+            DeviceInfoPtr updatedDeviceInfo = obj.readObject("deviceInfo", context);
+            for (const auto & prop : updatedDeviceInfo.getAllProperties())
+            {
+                if (prop.getReadOnly())
+                    continue;
+
+                auto propName = prop.getName();
+                if (!deviceInfo.hasProperty(propName))
+                    deviceInfo.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+                
+                deviceInfo.setPropertyValue(propName, prop.getValue());
+            }
+        }
+    }
 }
 
 template <typename TInterface, typename... Interfaces>

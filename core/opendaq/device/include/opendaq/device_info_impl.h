@@ -154,6 +154,7 @@ protected:
     virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
     ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer) override;
     ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
     std::set<std::string> changeableDefaultPropertyNames;
     DeviceTypePtr deviceType;
@@ -1106,6 +1107,34 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const
     if (property.getName() == "activeClientConnections" && version < 3)
         return OPENDAQ_IGNORED;
     return Super::serializeProperty(property, serializer);
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+{
+    // Serializing custom values is the first part of property object serialization.
+    // Since "userName" and "location" are actually references to the parent device, they do not store their own values.
+    // Therefore, these properties are skipped during serialization.
+    // To store the actual values, we need to copy them from the parent device into the device info before serializing property values.
+    for (const StringPtr& propertyName : {String("userName"), String("location")})
+    {
+        PropertyPtr property;
+        ErrCode err = this->getProperty(propertyName, &property);
+        if (OPENDAQ_FAILED(err))
+            return err;
+
+        if (property.getReadOnly())
+            continue;
+
+        if (auto parent = Super::getPropertyObjectParent(); parent.assigned())
+        {
+            auto propertyVal = parent.getPropertyValue(propertyName);
+            auto lock = getRecursiveConfigLock();
+            Super::setPropertyValueNoLock(propertyName, propertyVal);
+        }
+    }
+
+    return Super::serializeCustomValues(serializer, forUpdate);
 }
 
 template <typename TInterface, typename ... Interfaces>

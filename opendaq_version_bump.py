@@ -20,17 +20,25 @@ def parse_yml(filename, key):
 
 print()
 old_version = read_file('opendaq_version').strip()
-print('Current version (`MAJOR.MINOR.PATCH`): `' + old_version + '`')
+print('Current version (`MAJOR.MINOR.PATCH...`): `' + old_version + '`')
 old_antora_version = parse_yml('docs/Antora/antora.yml', 'version:')
 print('Current Antora version: `' + old_antora_version + '`')
 print()
-print('Bump for release or development (latest main)?')
-print('(Release will write "MAJOR.MINOR" in Antora docs version, development  will write "dev")')
-is_release = input('R/D: ').strip().lower() == 'r'
 new_version = input('New version (`MAJOR.MINOR.PATCH`): ').strip()
+suffix = input('Suffix: Release (none, PRESS ENTER), development (dev0, dev1, dev3, ...), or release candidate (rc0, rc1, rc2, ...)?: ').strip().lower()
 print()
-new_antora_version =  'dev' if not is_release else new_version[:new_version.rindex('.')]
+print('(Release will write "MAJOR.MINOR" in Antora docs version, development  will write "dev", release candidate will write "rc")')
+if suffix[0:3] == 'dev':
+    new_antora_version = 'dev' 
+    new_version = new_version + suffix
+elif suffix[0:2] == 'rc':
+    new_antora_version = 'rc' 
+    new_version = new_version + suffix
+else: # relelase
+    new_antora_version = new_version[:new_version.rindex('.')]
+
 new_antora_version = '\"' + new_antora_version + '\"'
+
 read_and_replace("opendaq_version", old_version, new_version)
 read_and_replace("docs/Antora/antora.yml", old_antora_version, new_antora_version)
 read_and_replace("docs/Antora-specs/antora.yml", old_antora_version, new_antora_version)

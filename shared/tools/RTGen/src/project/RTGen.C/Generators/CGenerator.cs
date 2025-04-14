@@ -243,7 +243,7 @@ namespace RTGen.C.Generators
 
                     if (arg.Type.Flags.IsValueType || arg.Type.Name == "void")
                     {
-                        if (arg.Type.Name == "CoreType") //special CoreType handling
+                        if ((!arg.Type.Flags.IsCoreType && arg.Type.Name != "void" && arg.Type.Name != "IntfID") || arg.Type.Name == "CoreType")
                         {
                             if (String.IsNullOrEmpty(arg.Type.Modifiers))
                             {

@@ -75,6 +75,9 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      * @param clientNumber The number identifying the disconnected client.
      */
     virtual ErrCode INTERFACE_FUNC removeConnectedClient(SizeT clientNumber) = 0;
+
+    // [templateType(deviceInfo, IDeviceInfo)]
+    virtual ErrCode INTERFACE_FUNC mergeDeviceInfo(IDeviceInfo* deviceInfo) = 0;
 };
 /*!@}*/
 

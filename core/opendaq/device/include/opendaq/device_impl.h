@@ -2021,17 +2021,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         if (deviceInfo.assigned())
         {
             DeviceInfoPtr updatedDeviceInfo = obj.readObject("deviceInfo", context);
-            for (const auto & prop : updatedDeviceInfo.getAllProperties())
-            {
-                if (prop.getReadOnly())
-                    continue;
-
-                auto propName = prop.getName();
-                if (!deviceInfo.hasProperty(propName))
-                    deviceInfo.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
-                
-                deviceInfo.setPropertyValue(propName, prop.getValue());
-            }
+            checkErrorInfo(deviceInfo.as<IDeviceInfoInternal>(true)->mergeDeviceInfo(updatedDeviceInfo));
         }
     }
 }

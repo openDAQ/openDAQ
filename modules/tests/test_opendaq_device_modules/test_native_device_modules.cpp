@@ -2575,7 +2575,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration)
     auto signals = restoredClient.getDevices()[0].getSignals(search::Recursive(search::Any()));
     for (const auto& signal : signals)
     {
-        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>(true);
         ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }

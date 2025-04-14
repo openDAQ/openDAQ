@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/device_info_config.h>
+#include <opendaq/device_info_ptr.h>
 #include <coretypes/freezable.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
@@ -140,6 +141,9 @@ public:
     // IOwnable
     virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
 
+    ErrCode INTERFACE_FUNC mergeDeviceInfo(IDeviceInfo* deviceInfo) override;
+
+
 
 protected:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -154,7 +158,6 @@ protected:
     virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
     ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer) override;
     ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
-    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
     std::set<std::string> changeableDefaultPropertyNames;
     DeviceTypePtr deviceType;
@@ -1110,34 +1113,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
-{
-    // Serializing custom values is the first part of property object serialization.
-    // Since "userName" and "location" are actually references to the parent device, they do not store their own values.
-    // Therefore, these properties are skipped during serialization.
-    // To store the actual values, we need to copy them from the parent device into the device info before serializing property values.
-    for (const StringPtr& propertyName : {String("userName"), String("location")})
-    {
-        PropertyPtr property;
-        ErrCode err = this->getProperty(propertyName, &property);
-        if (OPENDAQ_FAILED(err))
-            return err;
-
-        if (property.getReadOnly())
-            continue;
-
-        if (auto parent = Super::getPropertyObjectParent(); parent.assigned())
-        {
-            auto propertyVal = parent.getPropertyValue(propertyName);
-            auto lock = this->getRecursiveConfigLock();
-            Super::setPropertyValueNoLock(propertyName, propertyVal);
-        }
-    }
-
-    return Super::serializeCustomValues(serializer, forUpdate);
-}
-
-template <typename TInterface, typename ... Interfaces>
 PropertyObjectPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getOwnerOfProperty(const StringPtr& propertyName)
 {
     if (propertyName == "userName" || propertyName == "location")
@@ -1255,6 +1230,37 @@ void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMethod(con
         LOG_W("Device info failed while triggering core event {}", args.getEventName());
     }
 }
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::mergeDeviceInfo(IDeviceInfo* deviceInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(deviceInfo);
+
+    auto deviceInfoPtr = DeviceInfoPtr::Borrow(deviceInfo);
+    for (const auto & prop : deviceInfoPtr.getAllProperties())
+    {
+        if (prop.getReadOnly())
+            continue;
+
+        auto propName = prop.getName();
+        if (propName == "userName" || propName == "location")
+            continue;
+
+        Bool hasProperty;
+        ErrCode errCode = this->addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+        if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
+            daqClearErrorInfo();
+        else if (OPENDAQ_FAILED(errCode))
+            return errCode;
+        
+        errCode = this->setPropertyValue(propName, prop.getValue());
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)
 

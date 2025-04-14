@@ -24,18 +24,19 @@ The procedure of querying Modules for available Devices, as well as selecting th
 openDAQ(TM) provides three client and three server modules. They make possible to connect to openDAQ(TM) devices, as well as transfer their signal data. 
 To discover available devices, we can use the `getAvailableDevices` method of the openDAQ(TM) instance which returns the list of devices info of all available devices.
 Device info contains information about device such as name, serial number, connection string, server capabilities, etc.
-Connection string is used to connect to the device. Prefix of connection string indentifies the protocol used to connect to the device or a type of device.
+Connection string is used to connect to the device. Prefix of connection string identifies the protocol used to connect to the device or a type of device.
 
 * `daqref://` indentifies the reference Device Module that simulates sine wave signals;
 * `daq.opcua://` is a prefix of OPC UA device;
-* `daq.ns://` indentifies the devices which supports native streaming protocol;
+* `daq.nd://` is used for devices that support the native configuration protocol;
+* `daq.ns://` indentifies devices which support the native streaming protocol;
 * `daq.lt://` is a prefix of device that supports streaming Lt protocol;
-* `daq://` is a prefix of the device that supports multiple protocols and alows to connect with optimal protocol. The host will represent the device manufacturer and serial number and will have a list of server capabilities which represent the protocols that device supports and connection strings for each protocol.
+* `daq://` is a prefix of the device that supports multiple protocols and allows to connect with optimal protocol. The host will represent the device manufacturer and serial number and will have a list of server capabilities which represent the protocols that device supports and connection strings for each protocol.
 
 == Connecting to Devices
-To connect to device developer can use either connection string from the device Info or if there is a need to connect with required protocol, use conenction string from server capability. Some server capabilities may contain multiple connection strings for the same protocol. The primary connection string can be view with the method `getConnectionString` and all possible addresses with the method `getConnectionStrings`.
+To connect to device developer can use either connection string from the device Info or if there is a need to connect with required protocol, use connection string from server capability. Some server capabilities may contain multiple connection strings for the same protocol. The primary connection string can be view with the method `getConnectionString` and all possible addresses with the method `getConnectionStrings`.
 
-NOTE: Device info may contatin server capability only for OpcUa, Native and streaming Lt protocol. Devices like reference device and audio does not have server capabilities.
+NOTE: Device info may contain server capability only for OpcUa, Native and streaming Lt protocol. Devices like reference device and audio does not have server capabilities.
 
 == Connecting to openDAQ(TM) OPC UA devices
 

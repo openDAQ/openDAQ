@@ -46,7 +46,9 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize, const ContextPtr c
     loggerComponent = logger.getOrAddComponent("CircularBuffer");
     sizeOfMem = memSize;
     sizeOfSample = sampleSize;
-    data = malloc(sizeOfMem * sizeOfSample);
+    //data = std::make_unique<void*>(malloc(sizeOfMem * sizeOfSample));
+    //auto r = sizeOfMem * sizeOfSample;
+    data = new std::vector<std::any>(sizeOfMem * sizeOfSample);
     writePos = data;
     readPos = data;
     bIsFull = false;
@@ -58,7 +60,7 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize, const ContextPtr c
 PacketBuffer::~PacketBuffer()
 {
     logger.removeComponent("CircularBuffer");
-    free(data);
+    //free(data);
 }
 
 PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
@@ -67,7 +69,7 @@ PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
     loggerComponent = logger.getOrAddComponent("CircularBuffer");
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleCount;
-    data = malloc(sizeOfMem * sizeOfSample);
+    data = new std::vector<std::any>(sizeOfMem * sizeOfSample);
     writePos = data;
     readPos = data;
     bIsFull = false;
@@ -110,7 +112,7 @@ bool PacketBuffer::getIsFull()
     return bIsFull;
 }
 
-const bool PacketBuffer::isEmpty()
+bool const PacketBuffer::isEmpty()
 {
     return writePos == readPos && !bIsFull;
 }
@@ -350,7 +352,7 @@ void PacketBuffer::resize(const PacketBufferInit& instructions)
 
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleCount;
-    data = malloc(sizeOfMem * sizeOfSample);
+    data = std::move(malloc(sizeOfMem * sizeOfSample));
     writePos = data;
     readPos = data;
     bIsFull = false;

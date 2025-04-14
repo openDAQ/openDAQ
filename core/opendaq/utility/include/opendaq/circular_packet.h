@@ -23,6 +23,7 @@
 #include <opendaq/deleter_impl.h>
 #include <opendaq/context_ptr.h>
 #include <iostream>
+//#include <any>
 #include <mutex>
 #include <condition_variable>
 #include <vector>
@@ -85,7 +86,7 @@ public:
                                                  daq::DataDescriptorPtr dataDescriptor,
                                                  daq::DataPacketPtr& domainPacket);
 
-    const bool isEmpty();
+    bool const isEmpty();
 
     int reset();
 

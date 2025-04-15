@@ -397,7 +397,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv4)
 
 TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv6)
 {
-    SKIP_TEST_MAC_CI;
+    // SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = Instance();
     client.addDevice("daq.lt://[::1]", nullptr);

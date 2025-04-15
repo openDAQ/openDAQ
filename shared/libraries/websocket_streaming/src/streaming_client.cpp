@@ -15,8 +15,8 @@ using namespace daq::stream;
 using namespace daq::streaming_protocol;
 
 // parsing connection string to four groups: prefix, host, port, path
-static const std::regex RegexIpv6Hostname(R"(^(.*://)?(?:\[([a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?)\])(?::(\d+))?(/.*)?$)");
-static const std::regex RegexIpv4Hostname(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(?:\[([a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?)\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
 StreamingClient::StreamingClient(const ContextPtr& context, const std::string& connectionString, bool useRawTcpConnection)
     : logger(context.getLogger())

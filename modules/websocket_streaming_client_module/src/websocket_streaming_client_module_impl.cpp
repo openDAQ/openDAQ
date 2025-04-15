@@ -16,8 +16,8 @@ static std::string OldWebsocketDeviceTypeId = "OpenDAQLTStreamingOld";
 static std::string WebsocketDevicePrefix = "daq.lt";
 static std::string OldWebsocketDevicePrefix = "daq.ws";
 
-static const std::regex RegexIpv6Hostname(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
-static const std::regex RegexIpv4Hostname(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
 using namespace discovery;
 using namespace daq::websocket_streaming;
@@ -161,9 +161,6 @@ Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapa
     if (target.getProtocolId() != "OpenDAQLTStreaming")
         return false;
 
-    if (target.getConnectionString().getLength() != 0)
-        return true;
-
     if (source.getConnectionType() != "TCP/IP")
         return false;
 
@@ -189,14 +186,20 @@ Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapa
     }
 
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    const auto targetAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
-        const auto prefix = WebsocketDevicePrefix;
-        StringPtr connectionString = createUrlConnectionString(address, port,path);
+        if (auto it = std::find(targetAddress.begin(), targetAddress.end(), address); it != targetAddress.end())
+            continue;
 
+        StringPtr connectionString;
+        if (source.getPrefix() == target.getPrefix())
+            connectionString = addrInfo.getConnectionString();
+        else
+            connectionString = createUrlConnectionString(address, port, path);
         const auto targetAddrInfo = AddressInfoBuilder()
-                                        .setAddress(addrInfo.getAddress())
+                                        .setAddress(address)
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
                                         .setType(addrInfo.getType())
                                         .setConnectionString(connectionString)
@@ -251,12 +254,9 @@ PropertyObjectPtr WebsocketStreamingClientModule::createDefaultConfig()
 
 StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    if (!config.assigned() || !config.hasProperty("Port"))
-        return connectionString;
-
-    int port = config.getPropertyValue("Port");
-    if (port == 7414)
-        return connectionString;
+    int port = 7414;   
+    if (config.assigned() && config.hasProperty("Port"))
+        port = config.getPropertyValue("Port");
 
     std::string urlString = connectionString.toStdString();
     std::smatch match;
@@ -276,7 +276,13 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
     {
         prefix = match[1];
         host = match[2];
+
+        if (match[3].matched)
+            port = std::stoi(match[3]);
         
+        if (port == 7414)
+            return connectionString;
+
         if (match[4].matched)
             path = match[4];
 

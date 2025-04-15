@@ -957,7 +957,11 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     if (test_helpers::Ipv6IsDisabled())
         return;
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceInfo(deviceInfo).build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configurator/discovery_reachability_after_connect_ipv6/";
     serverConfig.setPropertyValue("Path", path);
@@ -965,9 +969,8 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = Instance();
-    // client.getAvailableDevices(); // TODO: won't work with prefix which is not `daq://`
-    // daq://[::1]/path.../ wont work as well because will be found daq://127.0.0.1/path.../ or similar
-    DevicePtr device = client.addDevice(std::string("daq.nd://[::1]") + path);
+    StringPtr deviceConnectionString = std::string("daq.nd://[::1]") + path;
+    DevicePtr device = client.addDevice(deviceConnectionString);
 
     ASSERT_TRUE(device.assigned());
 
@@ -981,26 +984,29 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
         if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
         {
-            const auto ipv6Info = capability.getAddressInfo()[0];
-            // ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-            
-            // ASSERT_EQ(ipv4Info.getType(), "IPv4");
-            ASSERT_EQ(ipv6Info.getType(), "IPv6");
+            auto addressInfos = capability.getAddressInfo();
+            auto addresses = capability.getAddresses();
+            for (size_t i = 0; i < addressInfos.getCount(); ++i)
+            {
+                const auto& info = addressInfos[i];
+                if (info.getType() != "IPv6")
+                    continue;
 
-            // ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[0]);
-            
-            // ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[0]);
-            return;
+                if (info.getConnectionString() != deviceConnectionString)
+                    continue;
+
+                ASSERT_EQ(info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                ASSERT_EQ(info.getConnectionString(), capability.getConnectionStrings()[i]);
+                ASSERT_EQ(info.getAddress(), addresses[i]);
+                return;
+            }
         }
         else
         {
             ASSERT_EQ(capability.getProtocolName(), "OpenDAQNativeStreaming");
         }
     }
-    ASSERT_TRUE(false) << "Device not found";
+    ASSERT_TRUE(false) << "Native streaming capability with connection string " << deviceConnectionString << " not found";
 }
 
 #endif
@@ -1028,7 +1034,11 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
     if (test_helpers::Ipv6IsDisabled())
         return;
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo).addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configurator/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
@@ -2509,7 +2519,7 @@ public:
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override
     {
-        std::vector<StringPtr> addresses{"123.123.123.123", "234.234.234.234", "127.0.0.1"};
+        std::map<StringPtr, StringPtr> addresses{{"[::1]", "IPv6"}, {"127.0.0.1", "IPv4"}};
         const auto info = DeviceInfo("daq.nd://127.0.0.1:7420/");
         info.setSerialNumber("DevSer0");
         info.setManufacturer("openDAQ");
@@ -2527,11 +2537,11 @@ public:
         const std::vector caps{streamingCap, configCap};
         for (const auto& cap : caps)
         {
-            for (const auto& address : addresses)
+            for (const auto& [address, type] : addresses)
             {
                 const auto addressInfo = AddressInfoBuilder().setAddress(address)
                                                              .setReachabilityStatus(AddressReachabilityStatus::Reachable)
-                                                             .setType("IPv4")
+                                                             .setType(type)
                                                              .setConnectionString(cap.getPrefix() + "://" + address + ":7420/")
                                                              .build();
                 cap.addAddress(address).addConnectionString(cap.getPrefix() + "://" + address + ":7420/").addAddressInfo(addressInfo);

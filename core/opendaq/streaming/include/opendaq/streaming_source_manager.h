@@ -17,6 +17,8 @@
 #pragma once
 
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <map>
+#include <unordered_set>
 
 BEGIN_NAMESPACE_OPENDAQ
 

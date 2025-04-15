@@ -24,6 +24,7 @@ endif()
 target_link_libraries(${TEST_APP}
     PRIVATE
         daq::coreobjects
+        daq::opendaq
         daq::opendaq_mocks
 )
 

@@ -50,9 +50,7 @@ IErrorInfo* ErrorInfoHolder::getErrorInfo() const
     IErrorInfo* errorInfo;
     errorInfoObject->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
 
-    if (errorInfo == nullptr)
-        errorInfoObject->releaseRef();
-
+    releaseRefIfNotNull(errorInfoObject);
     return errorInfo;
 }
 

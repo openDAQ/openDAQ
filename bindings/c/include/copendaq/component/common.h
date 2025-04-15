@@ -21,22 +21,22 @@ extern "C"
 {
 #endif
 
-    enum OperationModeType
+    typedef enum OperationModeType
     {
         OperationModeTypeUnknown = 0,
         OperationModeTypeIdle,
         OperationModeTypeOperation,
         OperationModeTypeSafeOperation
-    };
+    } OperationModeType;
 
-    enum ComponentTypeSort
+    typedef enum ComponentTypeSort
     {
         ComponentTypeSortUndefined = 0,
         ComponentTypeSortServer = 1,
         ComponentTypeSortDevice,
         ComponentTypeSortFunctionBlock,
         ComponentTypeSortStreaming
-    };
+    } ComponentTypeSort;
 
 #ifdef __cplusplus
 }

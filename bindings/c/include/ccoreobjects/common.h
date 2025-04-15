@@ -21,7 +21,7 @@ extern "C"
 {
 #endif
 
-    enum CoreEventId
+    typedef enum CoreEventId
     {
         CoreEventIdPropertyValueChanged = 0,
         CoreEventIdPropertyObjectUpdateEnd = 10,
@@ -42,22 +42,22 @@ extern "C"
         CoreEventIdDeviceLockStateChanged = 160,
         CoreEventIdConnectionStatusChanged = 170,
         CoreEventIdDeviceOperationModeChanged = 180,
-    };
+    } CoreEventId;
 
-    enum Permission
+    typedef enum Permission
     {
         PermissionNone = 0x0,    // The user has no permissions on the object.
         PermissionRead = 0x1,    // The user can see and read an object.
         PermissionWrite = 0x2,   // The user can change or write to the object.
         PermissionExecute = 0x4  // The user can execute an action attached to the object.
-    };
+    } Permission;
 
-    enum PropertyEventType
+    typedef enum PropertyEventType
     {
         PropertyEventTypeEventTypeUpdate,
         PropertyEventTypeEventTypeClear,
         PropertyEventTypeEventTypeRead
-    };
+    } PropertyEventType;
 
 #ifdef __cplusplus
 }

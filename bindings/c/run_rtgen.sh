@@ -125,7 +125,7 @@ run_rtgen copendaq/component opendaq/component opendaq folder folder
 run_rtgen copendaq/component opendaq/component opendaq folder_config folder_config
 run_rtgen copendaq/component opendaq/component opendaq recursive_search recursive_search
 run_rtgen copendaq/component opendaq/component opendaq removable removable
-run_rtgen copendaq/component opendaq/component opendaq search_filter search_filter
+# run_rtgen copendaq/component opendaq/component opendaq search_filter search_filter #pass by reference
 run_rtgen copendaq/component opendaq/component opendaq tags tags
 run_rtgen copendaq/component opendaq/component opendaq tags_private tags_private
 run_rtgen copendaq/component opendaq/component opendaq update_parameters update_parameters

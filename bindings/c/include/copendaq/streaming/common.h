@@ -21,11 +21,11 @@ extern "C"
 {
 #endif
 
-    enum SubscriptionEventType
+    typedef enum SubscriptionEventType
     {
         SubscriptionEventTypeSubscribed,
         SubscriptionEventTypeUnsubscribed
-    };
+    } SubscriptionEventType;
 
 #ifdef __cplusplus
 }

@@ -143,6 +143,8 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * the currently active configuration parameters for the specified interface.
      */
     virtual ErrCode INTERFACE_FUNC requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config) = 0;
+
+    virtual ErrCode INTERFACE_FUNC completeDeviceCapabilities(IDevice* device) = 0;
 };
 /*!@}*/
 

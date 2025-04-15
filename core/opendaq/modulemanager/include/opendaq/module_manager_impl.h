@@ -57,6 +57,7 @@ public:
     ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr) override;
     ErrCode INTERFACE_FUNC changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config) override;
+    ErrCode INTERFACE_FUNC completeDeviceCapabilities(IDevice* device) override;
 
 private:
     
@@ -101,6 +102,7 @@ private:
     static void overrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
+    void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);
 
     bool modulesLoaded;
     std::vector<std::string> paths;

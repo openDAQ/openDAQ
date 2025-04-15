@@ -559,11 +559,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned())
             {
-                replaceSubDeviceOldProtocolIds(devicePtr);
-                discoveredDeviceInfo = discoveredDeviceInfo.assigned() ? discoveredDeviceInfo : getDiscoveredDeviceInfo(devicePtr.getInfo());
-                mergeDiscoveryAndDeviceCapabilities(devicePtr, discoveredDeviceInfo);
-                completeServerCapabilities(devicePtr);
-
+                onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
                     componentPrivate.setComponentConfig(addDeviceConfig);
             }
@@ -919,6 +915,16 @@ ErrCode ModuleManagerImpl::requestIpConfig(IString* iface, IString* manufacturer
     return errCode;
 }
 
+ErrCode ModuleManagerImpl::completeDeviceCapabilities(IDevice* device)
+{
+    OPENDAQ_PARAM_NOT_NULL(device);
+
+    DevicePtr devicePtr = DevicePtr::Borrow(device);
+
+    const ErrCode errCode = wrapHandler(this, &ModuleManagerImpl::onCompleteCapabilities, device, nullptr);
+    return errCode;
+}
+
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
 {
     const std::string nativeId = "OpenDAQNativeConfiguration";
@@ -1263,6 +1269,16 @@ std::pair<StringPtr, DeviceInfoPtr> ModuleManagerImpl::populateDiscoveredDevice(
     }
 
     return {nullptr, nullptr};
+}
+
+void ModuleManagerImpl::onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo)
+{
+    replaceSubDeviceOldProtocolIds(device);
+    mergeDiscoveryAndDeviceCapabilities(device,
+                                        discoveredDeviceInfo.assigned()
+                                            ? discoveredDeviceInfo
+                                            : getDiscoveredDeviceInfo(device.getInfo()));
+    completeServerCapabilities(device);
 }
 
 std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connectionString) const

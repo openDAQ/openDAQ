@@ -298,7 +298,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfo, IPropertyObject)
      * @param[out] interface The device network interface with the given name.
      * @retval OPENDAQ_ERR_NOTFOUND if the network interface with the given name is not available.
      */
-    virtual ErrCode INTERFACE_FUNC getNetworkInterface(IString* interfaceName, INetworkInterface** interface) = 0;
+    virtual ErrCode INTERFACE_FUNC getNetworkInterface(IString* interfaceName, INetworkInterface** interfc) = 0;
 
     /*!
      * @brief Gets the name of the current user of the device.

@@ -48,7 +48,9 @@ extern "C"
     ErrCode EXPORTED LoggerSink_createStdOutLoggerSink(LoggerSink** obj);
     ErrCode EXPORTED LoggerSink_createRotatingFileLoggerSink(LoggerSink** obj, String* fileName, SizeT maxFileByteSize, SizeT maxFiles);
     ErrCode EXPORTED LoggerSink_createBasicFileLoggerSink(LoggerSink** obj, String* fileName);
+#ifdef _WIN32
     ErrCode EXPORTED LoggerSink_createWinDebugLoggerSink(LoggerSink** obj);
+#endif
 
 #ifdef __cplusplus
 }

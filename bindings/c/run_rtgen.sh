@@ -172,7 +172,7 @@ run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_wr
 run_rtgen copendaq/logger opendaq/logger opendaq logger logger
 run_rtgen copendaq/logger opendaq/logger opendaq logger_component logger_component
 # run_rtgen copendaq/logger opendaq/logger opendaq logger_errors logger_errors #contains error codes
-run_rtgen copendaq/logger opendaq/logger opendaq logger_sink logger_sink #enum
+# run_rtgen copendaq/logger opendaq/logger opendaq logger_sink logger_sink #enum, os dependent code
 run_rtgen copendaq/logger opendaq/logger opendaq logger_sink_last_message_private logger_sink_last_message_private
 
 # opendaq modulemanager

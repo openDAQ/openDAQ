@@ -74,6 +74,7 @@ ErrCode LoggerSink_createBasicFileLoggerSink(LoggerSink** obj, String* fileName)
     return err;
 }
 
+#ifdef _WIN32
 ErrCode LoggerSink_createWinDebugLoggerSink(LoggerSink** obj)
 {
     daq::ILoggerSink* ptr = nullptr;
@@ -81,3 +82,4 @@ ErrCode LoggerSink_createWinDebugLoggerSink(LoggerSink** obj)
     *obj = reinterpret_cast<LoggerSink*>(ptr);
     return err;
 }
+#endif

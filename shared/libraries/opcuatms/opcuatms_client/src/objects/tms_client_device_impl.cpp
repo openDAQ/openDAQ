@@ -139,21 +139,22 @@ ErrCode TmsClientDeviceImpl::getAvailableOperationModes(IList** availableOpModes
 
     const auto nodeId = getNodeId("OperationModeOptions");
     auto opModesNodeStrList = VariantConverter<IString>::ToDaqList(client->readValue(nodeId));
-    *availableOpModes = opModesNodeStrList.detach();
+    auto convertedOpModes = List<OperationModeType>();
+    for (const auto& opMode : opModesNodeStrList)
+        convertedOpModes.pushBack(static_cast<Int>(this->OperationModeTypeFromString(opMode)));
+
+    *availableOpModes = convertedOpModes.detach();
 
     return OPENDAQ_SUCCESS;
-
 }
 
-ErrCode TmsClientDeviceImpl::setOperationMode(IString* modeType)
+ErrCode TmsClientDeviceImpl::setOperationMode(OperationModeType modeType)
 {
-    OPENDAQ_PARAM_NOT_NULL(modeType);
-
     if (!this->hasReference("OperationMode"))
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
     
     const auto nodeId = getNodeId("OperationMode");
-    const auto modeTypeStr = StringPtr::Borrow(modeType).toStdString();
+    const auto modeTypeStr = this->OperationModeTypeToString(modeType);
 
     const auto variant = VariantConverter<IString>::ToVariant(String(modeTypeStr), nullptr, daqContext);
     client->writeValue(nodeId, variant);   
@@ -161,14 +162,13 @@ ErrCode TmsClientDeviceImpl::setOperationMode(IString* modeType)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TmsClientDeviceImpl::setOperationModeRecursive(IString* modeType)
+ErrCode TmsClientDeviceImpl::setOperationModeRecursive(OperationModeType modeType)
 {
-    OPENDAQ_PARAM_NOT_NULL(modeType);
-    const auto modeTypeStr = "Recursive" + StringPtr::Borrow(modeType).toStdString();
+    const auto modeTypeStr = "Recursive" + this->OperationModeTypeToString(modeType);
     return this->setOperationMode(String(modeTypeStr));
 }
 
-ErrCode TmsClientDeviceImpl::getOperationMode(IString** modeType)
+ErrCode TmsClientDeviceImpl::getOperationMode(OperationModeType* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
 
@@ -178,7 +178,7 @@ ErrCode TmsClientDeviceImpl::getOperationMode(IString** modeType)
     const auto nodeId = getNodeId("OperationMode");
     const auto variant = client->readValue(nodeId);
 
-    *modeType = VariantConverter<IString>::ToDaqObject(variant, daqContext).detach();
+    *modeType = this->OperationModeTypeFromString(VariantConverter<IString>::ToDaqObject(variant, daqContext));
     
     return OPENDAQ_SUCCESS;
 }

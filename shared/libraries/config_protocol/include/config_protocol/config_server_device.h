@@ -224,7 +224,7 @@ inline BaseObjectPtr ConfigServerDevice::setOperationMode(const RpcContext& cont
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
     const auto modeType = static_cast<std::string>(params["ModeType"]);
-    device.setOperationMode(modeType);
+    device.setOperationMode(StandardComponent::OperationModeTypeFromString(modeType));
     return nullptr;
 }
 
@@ -234,7 +234,7 @@ inline BaseObjectPtr ConfigServerDevice::setOperationModeRecursive(const RpcCont
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
     const auto modeType = static_cast<std::string>(params["ModeType"]);
-    device.setOperationModeRecursive(modeType);
+    device.setOperationModeRecursive(StandardComponent::OperationModeTypeFromString(modeType));
     return nullptr;
 }
 
@@ -243,7 +243,7 @@ inline BaseObjectPtr ConfigServerDevice::getOperationMode(const RpcContext& cont
                                                           const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
-    return device.getOperationMode();
+    return StandardComponent::OperationModeTypeToString(device.getOperationMode());
 }
 
 }

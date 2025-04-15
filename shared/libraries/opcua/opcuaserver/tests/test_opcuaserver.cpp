@@ -143,6 +143,43 @@ TEST_F_OPTIONAL(OpcUaServerTest, ClientConnectTestSessionContextStopBeforeClient
     UA_Client_delete(client);
 }
 
+TEST_F(OpcUaServerTest, ClientConnectDisconnectCallbacks)
+{
+    auto server = OpcUaServer();
+    server.setPort(4840);
+
+    std::string clientId;
+    bool clientConnected{false};
+    bool clientDisconnected{false};
+    server.setClientConnectedHandler(
+        [&clientId, &clientConnected](const std::string& id)
+        {
+            clientConnected = true;
+            clientId = id;
+        }
+    );
+    server.setClientDisconnectedHandler(
+        [&clientId, &clientConnected, &clientDisconnected](const std::string& id)
+        {
+            if (clientConnected && id == clientId)
+                clientDisconnected = true;
+        }
+    );
+
+    server.start();
+
+    UA_Client* client = CreateClient();
+    ASSERT_EQ_STATUS(UA_Client_connect(client, SERVER_URL), UA_STATUSCODE_GOOD);
+
+    ASSERT_TRUE(clientConnected);
+    ASSERT_NE(clientId, "");
+
+    UA_Client_delete(client);
+    ASSERT_TRUE(clientDisconnected);
+
+    server.stop();
+}
+
 TEST_F(OpcUaServerTest, ReadBrowseName)
 {
     OpcUaServer server = createServer();

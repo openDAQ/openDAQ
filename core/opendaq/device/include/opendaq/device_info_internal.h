@@ -17,7 +17,6 @@
 #pragma once
 #include <coretypes/common.h>
 #include <coretypes/baseobject.h>
-#include <coretypes/baseobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,7 +33,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
 {
-
     /*!
      * @brief Adds a protocol to the list of supported capabilities.
      * @param serverCapability The supported protocol to add.
@@ -60,6 +58,23 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoInternal, IBaseObject)
      * The provided name should be unique within the device info as used as the key in the dictionary of available interfaces.
      */
     virtual ErrCode INTERFACE_FUNC addNetworkInteface(IString* name, INetworkInterface* networkInterface) = 0;
+
+    // [arrayArg(clientNumber, 1)]
+    /*!
+     * @brief Registers a newly connected client or re-registers a reconnected client.
+     * @param[in,out] clientNumber If provided, represents the original ordinal number of the re-registered client.
+     * If unassigned or exceeding the total number of clients ever registered (including those that were later deregistered),
+     * it is set to the incremented total count; otherwise, the client is registered under the specified number.
+     * @param clientInfo The connected client information object.
+     * @return OPENDAQ_ERR_ALREADYEXISTS if a client with the specified number already registered.
+     */
+    virtual ErrCode INTERFACE_FUNC addConnectedClient(SizeT* clientNumber, IConnectedClientInfo* clientInfo) = 0;
+
+    /*!
+     * @brief Unregisters a previously connected client upon disconnection.
+     * @param clientNumber The number identifying the disconnected client.
+     */
+    virtual ErrCode INTERFACE_FUNC removeConnectedClient(SizeT clientNumber) = 0;
 };
 /*!@}*/
 

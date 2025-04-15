@@ -310,6 +310,16 @@ std::string ServerSessionHandler::getClientId()
     return clientId;
 }
 
+void ServerSessionHandler::setClientHostName(const std::string& hostName)
+{
+    this->clientHostName = hostName;
+}
+
+std::string ServerSessionHandler::getClientHostName()
+{
+    return clientHostName;
+}
+
 ReadTask ServerSessionHandler::readHeader(const void* data, size_t size)
 {
     TransportHeader header(static_cast<const PackedHeaderType*>(data));

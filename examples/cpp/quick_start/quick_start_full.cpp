@@ -19,7 +19,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         if (deviceInfo.getName() == "Reference device simulator")
         {
             device = instance.addDevice(deviceInfo.getConnectionString());
-            break; 
+            break;
         }        
     }
 

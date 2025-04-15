@@ -3,6 +3,7 @@
 ## Features
 
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Introduces serializer versioning; openDAQ list objects are now serialized as objects instead of JSON arrays.
+- [#730](https://github.com/openDAQ/openDAQ/pull/730) Provide list of connected clients info via DeviceInfo.
 - [#718](https://github.com/openDAQ/openDAQ/pull/718) Adds new Native Configuration Protocol RPCs for handling sub-function blocks (function blocks that are children of other FBs.
 - [#642](https://github.com/openDAQ/openDAQ/pull/642) Introduces mechanisms to modify the IP configuration parameters of openDAQ-compatible devices.
 - [#638](https://github.com/openDAQ/openDAQ/pull/638) Adds a tick tolerance option to the `MultiReader`, allowing for the limitation of inter-sample offsets between read signals.
@@ -30,6 +31,10 @@
 
 ## Bug fixes
 
+- [#757](https://github.com/openDAQ/openDAQ/pull/757) Device info obtained from device and discovery matching is changed from checking for connection string equality to SN + manufacturer equality.
+- [#753](https://github.com/openDAQ/openDAQ/pull/753) Fixes crash when deserializing struct types that have a type name that's present in the list of protected type names.
+- [#756](https://github.com/openDAQ/openDAQ/pull/756) With CMake 4.0.0 the Windows builds would no longer find the test executables somehow.
+- [#746](https://github.com/openDAQ/openDAQ/pull/746) Initialized IProcedure objects to default value: `nullptr`. Uninitialized objects cause potential use-before-init errors for certain compilers.
 - [#754](https://github.com/openDAQ/openDAQ/pull/754) Treat duplicate OPC-UA properties, with names that differ only in case, as warnings instead of fatal errors.
 - [#751](https://github.com/openDAQ/openDAQ/pull/751) Fix IPv6 addresses discovering on Windows, improve regex parsing of connection strings, fix LT pseudo-device IPv6 connection info
 - [#744](https://github.com/openDAQ/openDAQ/pull/744) Fix leaf device streaming misconfiguration on reconnection
@@ -55,6 +60,8 @@
 
 ## Misc
 
+- [#758](https://github.com/openDAQ/openDAQ/pull/758) General update of the quick-start documentation for usage of .NET on Windows and Linux.
+- [#742](https://github.com/openDAQ/openDAQ/pull/742) Assign a name to the scheduler, logger, and discovery threads.
 - [#747](https://github.com/openDAQ/openDAQ/pull/747) Fixes CMake 4.0.0 compatibility, fixes ctutils library compilation yielding a Warning for lack of nullptr initialization, adds a CMake option to disable access control at compile time
 - [#738](https://github.com/openDAQ/openDAQ/pull/738) When clearing a property value, the PropertyValueArgs object obtained in the onWrite callback now contains the default value instead of an empty ptr.
 - [#728](https://github.com/openDAQ/openDAQ/pull/728) Add timeout on to re-scan after for available devices after 5s in the module manager call `createDevice`.
@@ -233,4 +240,29 @@ Following methods of base streaming implementation moved from protected to priva
 ```cpp
     void startReconnection();
     void completeReconnection();
+```
+
+### [#730](https://github.com/openDAQ/openDAQ/pull/730) Provide list of connected clients info via DeviceInfo.
+
+Updates the openDAQ discovery client API and base Module implementation, providing helper method populateDiscoveredDeviceInfo to create discovered DeviceInfo and populate its properties.
+
+Therefore, the following module implementation snippet should be modified as follows:
+
+```diff
+DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
+{
+-   PropertyObjectPtr deviceInfo = DeviceInfo("");
+-   DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
+
+    auto cap = ServerCapability(...);
+    ...
+
+-   deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+-   deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
+-   deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
+
+-   return deviceInfo;
+
++   return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
+}
 ```

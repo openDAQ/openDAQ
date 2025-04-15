@@ -253,6 +253,21 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 
 #endif
 
+TEST_F(WebsocketModulesTest, GetConnectedClientsInfo)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // one streaming connection
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQLTStreaming");
+    ASSERT_EQ(serverSideClientsInfo[0].getHostName(), "");
+    ASSERT_TRUE(serverSideClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
+}
+
 TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();
@@ -382,7 +397,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv4)
 
 TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv6)
 {
-    SKIP_TEST_MAC_CI;
+    // SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = Instance();
     client.addDevice("daq.lt://[::1]", nullptr);

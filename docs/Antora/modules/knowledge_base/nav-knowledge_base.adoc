@@ -12,7 +12,5 @@
 *** xref:multireader_spec.adoc[Multi Reader]
 *** xref:streaming.adoc[Streaming]
 *** xref:modules.adoc[Modules]
-** *Server/Client protocols*
-*** xref:protocol_features_characteristics.adoc[Protocol features and characteristics]
-** *Internals*
-*** xref:interfaces_objects_wrappers.adoc[Interfaces, Objects and Wrappers]
+** xref:protocol_features_characteristics.adoc[*Protocol features and characteristics*]
+** xref:interfaces_objects_wrappers.adoc[*Interfaces, Objects and Wrappers*]

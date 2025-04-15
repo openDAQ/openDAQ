@@ -21,20 +21,20 @@ extern "C"
 {
 #endif
 
-    enum AddressReachabilityStatus
+    typedef enum AddressReachabilityStatus
     {
         AddressReachabilityStatusUnknown = 0,
         AddressReachabilityStatusReachable,
         AddressReachabilityStatusUnreachable,
-    };
+    } AddressReachabilityStatus;
 
-    enum ProtocolType
+    typedef enum ProtocolType
     {
         ProtocolTypeUnknown = 0,
         ProtocolTypeConfiguration,
         ProtocolTypeStreaming,
         ProtocolTypeConfigurationAndStreaming,
-    };
+    } ProtocolType;
 
 #ifdef __cplusplus
 }

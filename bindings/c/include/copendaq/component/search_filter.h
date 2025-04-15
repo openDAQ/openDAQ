@@ -47,7 +47,7 @@ extern "C"
     ErrCode EXPORTED SearchFilter_createVisibleSearchFilter(SearchFilter** obj);
     ErrCode EXPORTED SearchFilter_createRequiredTagsSearchFilter(SearchFilter** obj, List* requiredTags);
     ErrCode EXPORTED SearchFilter_createExcludedTagsSearchFilter(SearchFilter** obj, List* excludedTags);
-    ErrCode EXPORTED SearchFilter_createInterfaceIdSearchFilter(SearchFilter** obj, IntfID& intfId);
+    ErrCode EXPORTED SearchFilter_createInterfaceIdSearchFilter(SearchFilter** obj, IntfID intfId);
     ErrCode EXPORTED SearchFilter_createLocalIdSearchFilter(SearchFilter** obj, String* localId);
     ErrCode EXPORTED SearchFilter_createAnySearchFilter(SearchFilter** obj);
     ErrCode EXPORTED SearchFilter_createAndSearchFilter(SearchFilter** obj, SearchFilter* left, SearchFilter* right);

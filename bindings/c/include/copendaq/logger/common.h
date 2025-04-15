@@ -30,7 +30,7 @@ extern "C"
 #define OPENDAQ_LOG_LEVEL_OFF 6
 #define OPENDAQ_LOG_LEVEL_DEFAULT 7
 
-    enum LogLevel
+    typedef enum LogLevel
     {
         LogLevelTrace = OPENDAQ_LOG_LEVEL_TRACE,        ///< used to log any details about the execution for diagnostic
         LogLevelDebug = OPENDAQ_LOG_LEVEL_DEBUG,        ///< used to log information which useful during software debugging
@@ -40,7 +40,7 @@ extern "C"
         LogLevelCritical = OPENDAQ_LOG_LEVEL_CRITICAL,  ///< used to log unrecoverable problems or corruptions
         LogLevelOff = OPENDAQ_LOG_LEVEL_OFF,            ///< used to turn off logging
         LogLevelDefault = OPENDAQ_LOG_LEVEL_DEFAULT     ///< choose default logging level either from environment or compile-time setting
-    };
+    } LogLevel;
 
 #ifdef __cplusplus
 }

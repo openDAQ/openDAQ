@@ -47,7 +47,7 @@ extern "C"
     const Bool True = 1;
     const Bool False = 0;
 
-    enum CoreType
+    typedef enum CoreType
     {
         ctBool = 0,             ///< Boolean, True or False
         ctInt,                  ///< 64 bit signed integer
@@ -64,7 +64,7 @@ extern "C"
         ctStruct,               ///< Constant structure with dictionary of fields and types
         ctEnumeration,          ///< Enumeration representing a predefined set of named integral constants
         ctUndefined = 0xFFFF,   ///< Undefined
-    };
+    } CoreType;
 
     typedef ErrCode (*FuncCall)(BaseObject*, BaseObject**);
     typedef ErrCode (*ProcCall)(BaseObject*);

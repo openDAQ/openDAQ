@@ -21,7 +21,7 @@ extern "C"
 {
 #endif
 
-    enum SampleType
+    typedef enum SampleType
     {
         SampleTypeInvalid = 0,
         SampleTypeUndefined = 0,
@@ -43,30 +43,30 @@ extern "C"
         SampleTypeStruct,
         SampleTypeNull,
         SampleType_count
-    };
+    } SampleType;
 
-    enum ReadMode
+    typedef enum ReadMode
     {
         ReadModeUnscaled,
         ReadModeScaled,
         ReadModeRawValue
-    };
+    } ReadMode;
 
-    enum ReadTimeoutType
+    typedef enum ReadTimeoutType
     {
         ReadTimeoutTypeAny, /*!< When some segments are available return them immediately.
                              *   When no segments are available return immediately when any arrive or time-out is exceeded.
                              */
         ReadTimeoutTypeAll  /*!< Wait for the requested amount or until time-out is exceeded.*/
-    };
+    } ReadTimeoutType;
 
-    enum ReadStatus
+    typedef enum ReadStatus
     {
         ReadStatusOk = 0,
         ReadStatusEvent,
         ReadStatusFail,
         ReadStatusUnknown = 0xFFFF
-    };
+    } ReadStatus;
 
 #ifdef __cplusplus
 }

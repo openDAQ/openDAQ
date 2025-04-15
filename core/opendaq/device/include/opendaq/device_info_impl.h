@@ -1233,17 +1233,17 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    if (frozen)
+    if (this->frozen)
         return OPENDAQ_IGNORED;
 
     const auto serializedPtr = SerializedObjectPtr::Borrow(obj);
 
     return daqTry([&]
     {
-        beginUpdate();
-        Finally finally([this] { endUpdate(); });
+        this->beginUpdate();
+        Finally finally([this] { this->endUpdate(); });
 
-        DeserializeLocalProperties(serializedPtr, context, nullptr, this->objPtr);
+        Super::DeserializeLocalProperties(serializedPtr, context, nullptr, this->objPtr);
 
         if (serializedPtr.hasKey("propValues"))
         {

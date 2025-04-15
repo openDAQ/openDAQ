@@ -1246,7 +1246,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::mergeDeviceInfo(IDevice
         if (propName == "userName" || propName == "location")
             continue;
 
-        Bool hasProperty;
         ErrCode errCode = this->addProperty(prop.asPtr<IPropertyInternal>(true).clone());
         if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
             daqClearErrorInfo();

@@ -124,6 +124,9 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    static std::string OperationModeTypeToString(OperationModeType mode);
+    static OperationModeType OperationModeTypeFromString(const std::string& mode);
+
 protected:
     virtual void activeChanged();
     virtual void visibleChanged();
@@ -131,9 +134,6 @@ protected:
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
-
-    static std::string OperationModeTypeToString(OperationModeType mode);
-    static OperationModeType OperationModeTypeFromString(const std::string& mode);
 
     ContextPtr context;
 

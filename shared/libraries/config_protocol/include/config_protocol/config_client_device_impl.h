@@ -64,9 +64,9 @@ public:
     ErrCode INTERFACE_FUNC forceUnlock() override;
 
     ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
-    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
-    ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
-    ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
+    ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -254,7 +254,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(IString* modeType)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType)
 {
     return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
     { 
@@ -264,7 +264,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(IStr
 
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecursive(IString* modeType)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecursive(OperationModeType modeType)
 {
     return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
     { 
@@ -273,7 +273,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecur
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(IString** modeType)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(OperationModeType* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
     return daqTry([this, modeType] 

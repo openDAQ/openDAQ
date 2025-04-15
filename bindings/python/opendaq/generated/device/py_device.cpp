@@ -387,11 +387,11 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         "Gets a list of available operation modes for the device.");
     cls.def_property("operation_mode_recursive",
         nullptr,
-        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& modeType)
+        [](daq::IDevice *object, daq::OperationModeType modeType)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
-            objectPtr.setOperationModeRecursive(getVariantValue<daq::IString*>(modeType));
+            objectPtr.setOperationModeRecursive(modeType);
         },
         "Sets the operation mode of the device subtree including the sub-devices.");
     cls.def_property("operation_mode",
@@ -399,13 +399,13 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
-            return objectPtr.getOperationMode().toStdString();
+            return objectPtr.getOperationMode();
         },
-        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& modeType)
+        [](daq::IDevice *object, daq::OperationModeType modeType)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
-            objectPtr.setOperationMode(getVariantValue<daq::IString*>(modeType));
+            objectPtr.setOperationMode(modeType);
         },
         "Gets the operation mode of the device. / Sets the operation mode of the device subtree excluding the sub-devices.");
 }

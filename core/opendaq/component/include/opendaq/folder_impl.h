@@ -224,12 +224,11 @@ void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& 
     if (!parentDevice.assigned())
         return;
     
-    StringPtr opModeStr;
-    parentDevice.template as<IDevice>(true)->getOperationMode(&opModeStr);
-    if (!opModeStr.assigned())
+    OperationModeType modeType;
+    const ErrCode errCode = parentDevice.template as<IDevice>(true)->getOperationMode(&modeType);
+    if (OPENDAQ_FAILED(errCode))
         return;
 
-    OperationModeType modeType = this->OperationModeTypeFromString(opModeStr);
     componentPrivate->updateOperationMode(modeType);
 }
 

@@ -288,11 +288,15 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     {
         auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
         auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 2u);
-        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
+        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 2u) << clientSignal.getGlobalId();
+        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
         ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
-        ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[0]);
-        ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[1]);
+        ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[0])
+            << "client sig " << clientSignal.getGlobalId()
+            << " streaming source " << clientSignal.getActiveStreamingSource();
+        ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[1])
+            << "client sig " << clientSignal.getGlobalId()
+            << " streaming source " << clientSignal.getActiveStreamingSource();
     }
 
 #ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
@@ -318,11 +322,13 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
     {
         auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
         auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u);
-        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
+        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u) << clientSignal.getGlobalId();
+        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
         ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
         ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
-                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
+                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1])
+            << "client sig " << clientSignal.getGlobalId()
+            << " streaming source " << clientSignal.getActiveStreamingSource();
     }
 
 #ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
@@ -346,11 +352,13 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
     {
         auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
         auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u);
-        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
+        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u) << clientSignal.getGlobalId();
+        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
         ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
         ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
-                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
+                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1])
+            << "client sig " << clientSignal.getGlobalId()
+            << " streaming source " << clientSignal.getActiveStreamingSource();
     }
 
 #ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
@@ -398,11 +406,13 @@ TEST_P(SubDevicesReconnectionTest, LeafStreamingToClientAfterReconnect)
     {
         auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
         auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u);
-        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
+        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u) << clientSignal.getGlobalId();
+        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
         ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
         ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
-                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
+                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1])
+            << "client sig " << clientSignal.getGlobalId()
+            << " streaming source " << clientSignal.getActiveStreamingSource();
     }
     gatewaySignals.clear();
 

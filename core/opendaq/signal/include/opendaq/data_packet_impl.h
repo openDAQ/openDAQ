@@ -26,6 +26,7 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scaling_calc_private.h>
 #include <opendaq/signal_exceptions.h>
+#include <opendaq/mem_pool_allocator.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -180,13 +181,17 @@ inline BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& d
 inline BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
 {
     void * rawAddr = addr;
-    std::unique_ptr<char[]> rawData;
 
     auto scalingCalc = descriptor.asPtr<IScalingCalcPrivate>(true);
     if (scalingCalc->hasScalingCalc())
     {
-        rawData = std::make_unique<char[]>(descriptor.getSampleSize());
-        rawAddr = rawData.get();
+        using MemPoolAllocator = details::MemPoolAllocator<uint8_t>;
+        using StaticMemPool = details::StaticMemPool<uint8_t, 32>;
+
+        StaticMemPool memPool;
+        std::vector<uint8_t, MemPoolAllocator> rawData{MemPoolAllocator(memPool)};
+        rawData.reserve(descriptor.getSampleSize());
+        rawAddr = rawData.data();
         scalingCalc->scaleData(addr, 1, &rawAddr);
     }
 
@@ -657,18 +662,19 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT s
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    auto rawValue = std::make_unique<char[]>(sampleSize);
-    void* rawValueData = rawValue.get();
+    using MemPoolAllocator = details::MemPoolAllocator<uint8_t>;
+    using StaticMemPool = details::StaticMemPool<uint8_t, 32>;
+
+    StaticMemPool memPool;
+    std::vector<uint8_t, MemPoolAllocator> rawValue{MemPoolAllocator(memPool)};
+    rawValue.reserve(sampleSize);
+
+    void* rawValueData = rawValue.data();
     const ErrCode errCode = getRawValueByIndex(&rawValueData, sampleIndex);
 
     OPENDAQ_RETURN_IF_FAILED(errCode);
-    if (!rawValue)
-        return OPENDAQ_IGNORED;
 
-    return daqTry([&]
-    {
-        *value = PacketDetails::buildObjectFromDescriptor(rawValueData, descriptor, typeManager).detach();
-    });
+    return daqTry([&] { *value = PacketDetails::buildObjectFromDescriptor(rawValueData, descriptor, typeManager).detach(); });
 }
 
 template <typename TInterface>

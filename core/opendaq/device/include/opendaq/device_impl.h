@@ -2018,10 +2018,11 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     {
         DeviceInfoPtr deviceInfo;
         this->getInfo(&deviceInfo);
-        if (deviceInfo.assigned())
+
+        if (auto updatableDeviceInfo = deviceInfo.asPtrOrNull<IUpdatable>(true); updatableDeviceInfo.assigned())
         {
-            DeviceInfoPtr updatedDeviceInfo = obj.readObject("deviceInfo", context);
-            checkErrorInfo(deviceInfo.as<IDeviceInfoInternal>(true)->mergeDeviceInfo(updatedDeviceInfo));
+            const auto deviceInfoObject = obj.readSerializedObject("deviceInfo");
+            updatableDeviceInfo.updateInternal(deviceInfoObject, context);
         }
     }
 }

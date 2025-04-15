@@ -116,7 +116,7 @@ protected:
     bool bUnderReset;
     size_t sizeOfMem;
     size_t sizeOfSample;
-    void* data;
+    std::vector<std::any> data;
     void* writePos;
     void* readPos;
     // Out-of-scope packets (oos abbreviation)

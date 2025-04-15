@@ -46,11 +46,9 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize, const ContextPtr c
     loggerComponent = logger.getOrAddComponent("CircularBuffer");
     sizeOfMem = memSize;
     sizeOfSample = sampleSize;
-    //data = std::make_unique<void*>(malloc(sizeOfMem * sizeOfSample));
-    //auto r = sizeOfMem * sizeOfSample;
-    data = new std::vector<std::any>(sizeOfMem * sizeOfSample);
-    writePos = data;
-    readPos = data;
+    data = std::vector<std::any>(sizeOfMem * sizeOfSample);
+    writePos = &data;
+    readPos = &data;
     bIsFull = false;
     bAdjustedSize = false;
     bUnderReset = false;
@@ -60,7 +58,6 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize, const ContextPtr c
 PacketBuffer::~PacketBuffer()
 {
     logger.removeComponent("CircularBuffer");
-    //free(data);
 }
 
 PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
@@ -69,9 +66,9 @@ PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
     loggerComponent = logger.getOrAddComponent("CircularBuffer");
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleCount;
-    data = new std::vector<std::any>(sizeOfMem * sizeOfSample);
-    writePos = data;
-    readPos = data;
+    data = std::vector<std::any>(sizeOfMem * sizeOfSample);
+    writePos = &data;
+    readPos = &data;
     bIsFull = false;
     bUnderReset = false;
     bAdjustedSize = false;
@@ -131,7 +128,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCo
 
     auto writePosVirtuallyAdjusted = ((uint8_t*) writePos + sizeOfSample * *sampleCount);
 
-    auto endOfBuffer = ((uint8_t*) data + sizeOfSample * sizeOfMem);
+    auto endOfBuffer = ((uint8_t*) &data + sizeOfSample * sizeOfMem);
 
     auto readPosWritePosDiff = ((uint8_t*) writePos - (uint8_t*) readPos)/(int)sizeOfSample;
     auto writePosEndBufferDiff = (endOfBuffer - (uint8_t*) writePos)/(int)sizeOfSample;
@@ -176,7 +173,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCo
     }
     if (writePos == (void*) endOfBuffer)
     {
-        writePos = data;
+        writePos = &data;
         if (readPos == writePos)
             bIsFull = true;
 
@@ -204,7 +201,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOf
 
             if (beginningOfDelegatedSpace < readPos)
                 oos_packets.push(
-                    std::make_pair(((uint8_t*) data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) data), sampleCount));
+                    std::make_pair(((uint8_t*) &data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) &data), sampleCount));
 
             oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount));
             return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
@@ -241,7 +238,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOf
 
         readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
 
-        if ((uint8_t*) readPos >= (uint8_t*) data + sizeOfSample * sizeOfMem)
+        if ((uint8_t*) readPos >= (uint8_t*) &data + sizeOfSample * sizeOfMem)
             readPos = (void*) ((uint8_t*) readPos - (sizeOfSample * sizeOfMem));
 
         bIsFull = false;
@@ -255,13 +252,13 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOf
 
 size_t PacketBuffer::getAvailableSampleCount()
 {
-    auto ff_g = (uint8_t*) data + sizeOfMem * sizeOfSample;
+    auto ff_g = (uint8_t*) &data + sizeOfMem * sizeOfSample;
 
     if (writePos == readPos)
     {
         if (bIsFull)
             return 0;
-        return (uint8_t*)data - (uint8_t*)readPos;
+        return (uint8_t*)&data - (uint8_t*)readPos;
     }
     else
     {
@@ -348,13 +345,11 @@ void PacketBuffer::resize(const PacketBufferInit& instructions)
     if (!this->isEmpty())
         throw;
 
-    free(data);
-
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleCount;
-    data = std::move(malloc(sizeOfMem * sizeOfSample));
-    writePos = data;
-    readPos = data;
+    data = std::vector<std::any>(sizeOfMem * sizeOfSample);
+    writePos = &data;
+    readPos = &data;
     bIsFull = false;
     bUnderReset = false;
     bAdjustedSize = false;

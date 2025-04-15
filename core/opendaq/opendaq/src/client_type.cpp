@@ -41,4 +41,19 @@ ClientType ClientTypeTools::IntToClientType(Int value)
     DAQ_THROW_EXCEPTION(InvalidValueException, "Client type value invalid");
 }
 
+StringPtr ClientTypeTools::ClientTypeToString(ClientType value)
+{
+    switch (value)
+    {
+        case ClientType::Control:
+            return String("Control");
+        case ClientType::ExclusiveControl:
+            return String("ExclusiveControl");
+        case ClientType::ViewOnly:
+            return String("ViewOnly");
+    }
+
+    return String("");
+}
+
 END_NAMESPACE_OPENDAQ

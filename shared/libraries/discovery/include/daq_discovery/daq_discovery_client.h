@@ -28,7 +28,9 @@ public:
     void initMdnsClient(const ListPtr<IString>& serviceNames, std::chrono::milliseconds discoveryDuration = 500ms);
     std::vector<MdnsDiscoveredDevice> discoverMdnsDevices() const;
 
-    static void populateDiscoveredInfoProperties(PropertyObjectPtr& info, const MdnsDiscoveredDevice& device);
+    static void populateDiscoveredInfoProperties(PropertyObjectPtr& info,
+                                                 const MdnsDiscoveredDevice& device,
+                                                 const PropertyObjectPtr& defaultConnectedClientInfo);
 
     ErrCode applyIpConfiguration(const StringPtr& manufacturer,
                                  const StringPtr& serialNumber,
@@ -42,6 +44,7 @@ public:
 
 protected:
     bool verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const;
+    static void populateConnectedClientsInfo(PropertyObjectPtr& info, const MdnsDiscoveredDevice& device);
 
     std::shared_ptr<MDNSDiscoveryClient> mdnsClient;
     std::unordered_set<std::string> requiredCaps;

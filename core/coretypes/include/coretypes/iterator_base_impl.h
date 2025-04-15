@@ -81,7 +81,7 @@ ErrCode IteratorBaseImpl<T, E, VS>::getCurrent(IBaseObject** obj) const
     OPENDAQ_PARAM_NOT_NULL(obj);
 
     if (it == end)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED, "");
+        return OPENDAQ_ERR_NOTASSIGNED;
 
     *obj = valueSelector(*it);
     return OPENDAQ_SUCCESS;

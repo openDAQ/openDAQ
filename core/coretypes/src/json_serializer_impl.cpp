@@ -75,7 +75,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyRaw(ConstCharPtr string, SizeT length)
 
     if (length <= 0)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     writer.Key(string, static_cast<rapidjson::SizeType>(length));
@@ -96,7 +96,7 @@ ErrCode JsonSerializerImpl<TWriter>::key(ConstCharPtr string)
 
     if (length == 0)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     writer.Key(string, static_cast<rapidjson::SizeType>(length));
@@ -123,7 +123,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyStr(IString* name)
 
     if (length == 0)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     writer.Key(str, static_cast<rapidjson::SizeType>(length));
@@ -254,7 +254,7 @@ ErrCode PUBLIC_EXPORT createJsonSerializer(ISerializer** jsonSerializer, Bool pr
 
     if (!object)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
 
     object->addRef();
@@ -280,7 +280,7 @@ ErrCode PUBLIC_EXPORT createJsonSerializerWithVersion(ISerializer** jsonSerializ
 
     if (!object)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
 
     object->addRef();

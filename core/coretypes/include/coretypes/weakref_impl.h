@@ -55,7 +55,7 @@ inline ErrCode WeakRefImpl::getRef(IBaseObject** ref)
     {
         auto curRefCount = refCount->strong.load(std::memory_order_acquire);
         if (curRefCount == 0)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED);
 
         if (refCount->strong.compare_exchange_weak(curRefCount, curRefCount + 1, std::memory_order_acq_rel))
         {
@@ -71,7 +71,7 @@ inline ErrCode WeakRefImpl::getRefAs(IntfID intfID, void** obj)
     {
         auto curRefCount = refCount->strong.load(std::memory_order_acquire);
         if (curRefCount == 0)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED);
 
         if (refCount->strong.compare_exchange_weak(curRefCount, curRefCount + 1, std::memory_order_acq_rel))
         {

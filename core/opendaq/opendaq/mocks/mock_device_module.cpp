@@ -91,7 +91,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
     }
     else
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
     *device = devicePtr.detach();
 
@@ -138,17 +138,17 @@ ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                               IString* /*connectionString*/,
                                               IPropertyObject* /*config*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode MockDeviceModuleImpl::completeServerCapability(daq::Bool* /*succeeded*/, daq::IServerCapability* /*source*/, daq::IServerCapabilityConfig* /*target*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode MockDeviceModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamingTypes*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockDeviceModule, IModule, IContext*, ctx)

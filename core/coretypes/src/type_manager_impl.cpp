@@ -33,7 +33,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
     const auto typePtr = TypePtr::Borrow(type);
     const auto typeName = typePtr.getName();
     if (!typeName.assigned() || typeName == "")
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::string typeStr = typeName;
     std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), [](char c) { return std::tolower(c); });
@@ -41,7 +41,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_RESERVED_TYPE_NAME, fmt::format(R"(""Type {} is in the list of protected type names.")", typeStr));
 
     if (!daq::validateTypeName(typeName.getCharPtr()))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_VALIDATE_FAILED, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_VALIDATE_FAILED, "Invalid struct name");
 
     {
         std::scoped_lock lock(this->sync);
@@ -50,7 +50,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
         {
             if (types.get(typeName) == typePtr)
                 return OPENDAQ_SUCCESS;        // Already exists and is exactly the same, which we don't mind
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "");  // Already exists with the same name, but is actually different
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS);  // Already exists with the same name, but is actually different
         }
 
         const ErrCode err = types->set(typeName, typePtr);
@@ -74,7 +74,7 @@ ErrCode TypeManagerImpl::removeType(IString* name)
         std::scoped_lock lock(this->sync);
 
         if (!types.hasKey(name))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
         BaseObjectPtr obj;
         const ErrCode err = types->remove(name, &obj);
@@ -98,7 +98,7 @@ ErrCode TypeManagerImpl::getType(IString* name, IType** type)
     std::scoped_lock lock(this->sync);
 
     if (!types.hasKey(name))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     *type = types.get(name).addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -144,7 +144,7 @@ ErrCode TypeManagerImpl::serialize(ISerializer* serializer)
     ErrCode errCode = this->types->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableFields));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
     if (OPENDAQ_FAILED(errCode))
         return errCode;
@@ -197,7 +197,7 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;

@@ -58,7 +58,7 @@ public:
 
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* /*id*/) const override
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
 
     // IUnknown
@@ -219,7 +219,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::serialize(ISerializer* serializer)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 template <class V, class Intf, class ... Intfs>

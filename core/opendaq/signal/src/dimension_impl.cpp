@@ -88,7 +88,7 @@ ErrCode DimensionImpl::getSize(SizeT* size)
     }
     else
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_UNKNOWN_RULE_TYPE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_UNKNOWN_RULE_TYPE);
     }
     return OPENDAQ_SUCCESS;
 }

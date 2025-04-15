@@ -73,6 +73,7 @@ protected:
     ErrCode createIterator(IIterator** iterator, T it) 
     {
         OPENDAQ_PARAM_NOT_NULL(iterator);
+
         *iterator = new (std::nothrow) DictListIterator<DictType, TSelector>(
             asOrNull<IBaseObject>(dict, true),
             it,
@@ -81,7 +82,7 @@ protected:
         );
 
         if (*iterator == nullptr)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
 
         (*iterator)->addRef();
 

@@ -68,7 +68,7 @@ ErrCode StatusContainerBase<TInterface, Interfaces...>::getStatus(IString* name,
     std::scoped_lock lock(sync);
 
     if (!statuses.hasKey(name))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     *value = statuses.get(name).addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -101,7 +101,7 @@ ErrCode StatusContainerBase<TInterface, Interfaces...>::getStatusMessage(IString
     OPENDAQ_PARAM_NOT_NULL(message);
     std::scoped_lock lock(sync);
     if (!messages.hasKey(name))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
     *message = messages.get(name).addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -152,12 +152,12 @@ inline ErrCode ComponentStatusContainerImpl::addStatusWithMessage(IString* name,
 
     const auto nameObj = StringPtr::Borrow(name);
     if (nameObj == "")
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
     if (statuses.hasKey(name))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS);
 
     auto errCode = statuses->set(name, initialValue);
     if (OPENDAQ_FAILED(errCode))
@@ -188,20 +188,20 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
 
     const auto nameObj = StringPtr::Borrow(name);
     if (nameObj == "")
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     const auto messageObj = StringPtr::Borrow(message);
 
     std::scoped_lock lock(sync);
 
     if (!statuses.hasKey(name))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     const auto valueObj = EnumerationPtr::Borrow(value);
     const auto oldStatus = statuses.get(name);
     const auto oldMessage = messages.get(name);
 
     if (valueObj.getEnumerationType() != oldStatus.getEnumerationType())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 
     if (valueObj == oldStatus)
     {

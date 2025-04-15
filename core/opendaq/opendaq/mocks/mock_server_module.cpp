@@ -90,7 +90,7 @@ ErrCode MockServerModuleImpl::createServer(IServer** server,
     }
     else
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
     return OPENDAQ_SUCCESS;
 }
@@ -99,17 +99,17 @@ ErrCode MockServerModuleImpl::createStreaming(IStreaming** /*streaming*/,
                                               IString* /*connectionString*/,
                                               IPropertyObject* /*config*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode MockServerModuleImpl::completeServerCapability(daq::Bool* /*succeeded*/, daq::IServerCapability* /*source*/, daq::IServerCapabilityConfig* /*target*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode MockServerModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamingTypes*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

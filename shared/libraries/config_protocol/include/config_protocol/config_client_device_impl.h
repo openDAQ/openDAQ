@@ -225,7 +225,7 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
     auto parentDevice = this->getParentDevice();
 
     if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED);
 
     return daqTry([this] { this->clientComm->unlock(this->remoteGlobalId); });
 }
@@ -238,7 +238,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
     auto parentDevice = this->getParentDevice();
 
     if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED);
 
     return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
 }

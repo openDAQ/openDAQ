@@ -17,10 +17,10 @@ ErrCode JsonDeserializerImpl::DeserializeTagged(JsonValue& document, IBaseObject
     auto jsonObject = document.GetObject();
 
     if (!jsonObject.HasMember("__type"))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_NO_TYPE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_NO_TYPE);
 
     if (!jsonObject["__type"].IsString())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE);
     
     std::string typeId = jsonObject["__type"].GetString();
 
@@ -162,7 +162,7 @@ ErrCode JsonDeserializerImpl::Deserialize(JsonValue& document, IBaseObject* cont
         }
         default:
             *object = nullptr;
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE);
     }
     return errCode;
 }
@@ -187,7 +187,7 @@ ErrCode JsonDeserializerImpl::deserialize(IString* serialized, IBaseObject* cont
     char* buffer = new(std::nothrow) char[length + 1 + dataPaddingSize * 2];
     if (!buffer)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
 
     JsonDocument document;
@@ -196,7 +196,7 @@ ErrCode JsonDeserializerImpl::deserialize(IString* serialized, IBaseObject* cont
     if (document.ParseInsitu(&buffer[dataPaddingSize]).HasParseError())
     {
         delete[] buffer;
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR);
     }
 
     ErrCode errCode = Deserialize(document, context, factoryCallback, object);
@@ -228,7 +228,7 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized,
     std::unique_ptr<char[]> buffer(new(std::nothrow) char[length + 1]);
     if (!buffer)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
 
     JsonDocument document;
@@ -236,12 +236,12 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized,
 
     if (document.ParseInsitu(buffer.get()).HasParseError())
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR);
     }
 
     if (document.GetType() != rapidjson::kObjectType)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
     }
 
     SerializedObjectPtr jsonSerObj;
@@ -277,7 +277,7 @@ ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IStr
     std::unique_ptr<char[]> buffer(new(std::nothrow) char[length + 1]);
     if (!buffer)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
 
     JsonDocument document;
@@ -285,12 +285,12 @@ ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IStr
 
     if (document.ParseInsitu(buffer.get()).HasParseError())
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR);
     }
 
     if (document.GetType() != rapidjson::kObjectType)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
     }
 
     SerializedObjectPtr jsonSerObj;
@@ -350,7 +350,7 @@ ErrCode PUBLIC_EXPORT createJsonDeserializer(IDeserializer** jsonDeserializer)
     IDeserializer* object = new(std::nothrow) JsonDeserializerImpl();
 
     if (!object)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
 
     object->addRef();
 

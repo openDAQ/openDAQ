@@ -76,7 +76,7 @@ static ErrCode testingPRaw(IBaseObject* /*params*/)
 
 [[maybe_unused]] static ErrCode testingPRawE(IBaseObject* /*params*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
 }
 
 static void testingP0()
@@ -86,7 +86,7 @@ static void testingP0()
 
 [[maybe_unused]] static ErrCode testingP0E()
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
 }
 
 static void testingP1(Int val)
@@ -96,7 +96,7 @@ static void testingP1(Int val)
 
 [[maybe_unused]] static ErrCode testingP1E(Int /*val*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
 }
 
 static void testingP2(Int val, Float val2)
@@ -227,7 +227,7 @@ static ErrCode testingFRaw(IBaseObject* /*params*/, IBaseObject** /*result*/)
 
 [[maybe_unused]] static ErrCode testingFRawE(IBaseObject* /*params*/, IBaseObject** /*result*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
 }
 
 [[maybe_unused]] static std::string testingF0E()

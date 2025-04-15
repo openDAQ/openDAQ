@@ -59,7 +59,7 @@ ErrCode SubTask::then(ITask* continuation)
 
     auto pre = dynamic_cast<SubTask*>(continuation);
     if (pre == nullptr)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
 
     if (pre->getTask().empty())
     {

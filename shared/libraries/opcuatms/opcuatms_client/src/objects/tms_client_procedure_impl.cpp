@@ -48,7 +48,7 @@ ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
         lastProccessDescription = "Calling procedure";
         OpcUaObject<UA_CallMethodResult> callResult = ctx->getClient()->callMethod(callRequest);
         if (OPCUA_STATUSCODE_FAILED(callResult->statusCode) || (callResult->outputArgumentsSize != 0))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
         
         return OPENDAQ_SUCCESS;
     });

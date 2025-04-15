@@ -64,7 +64,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
                 {
                     lastProcessDescription = "Checking existing property is read-only";
                     if (prop.getReadOnly())
-                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "");
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
                 }
 
                 BaseObjectPtr valuePtr = value;
@@ -89,11 +89,11 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
             if (const auto& it = objectTypeIdMap.find((propertyNamePtr)); it != objectTypeIdMap.cend())
             {
                 lastProcessDescription = "Object type properties cannot be set over OpcUA";
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
             }
 
             lastProcessDescription = "Property not found";
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
         });
 
     if (OPENDAQ_FAILED(errCode))
@@ -188,13 +188,13 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertySelecti
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::clearPropertyValue(IString* propertyName)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IString* propertyName)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <typename Impl>
@@ -206,37 +206,37 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getProperty(IStrin
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::addProperty(IProperty* property)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <typename Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* propertyName)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* /*propertyName*/, IEvent** /*event*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <typename Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* /*propertyName*/, IEvent** /*event*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueWrite(IEvent** /*event*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueRead(IEvent** /*event*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <typename Impl>
@@ -260,7 +260,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getAllProperties(I
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* orderedPropertyNames)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>

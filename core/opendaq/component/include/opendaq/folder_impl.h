@@ -181,7 +181,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItem(IString* localId, IComponent** item)
 
     auto it = items.find(StringPtr::Borrow(localId).toStdString());
     if (it == items.end())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     *item = it->second.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -244,7 +244,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         const ErrCode err = daqTry([this, &item]
         {
             if (!addItemInternal(item))
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM, "");
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
 
             return OPENDAQ_SUCCESS;
         });
@@ -283,7 +283,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
         const ErrCode err = daqTry([this, &str]
         {
             if (!removeItemWithLocalIdInternal(str))
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
             return OPENDAQ_SUCCESS;
         });
@@ -317,7 +317,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
         const ErrCode err = daqTry([this, &str]
         {
             if (!removeItemWithLocalIdInternal(str))
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
             return OPENDAQ_SUCCESS;
         });

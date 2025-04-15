@@ -231,7 +231,7 @@ ErrCode StringImpl::compareTo(IBaseObject* obj)
 
 ErrCode StringImpl::getSerializeId(ConstCharPtr* /*id*/) const
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode StringImpl::serialize(ISerializer* serializer)

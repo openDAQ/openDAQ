@@ -174,17 +174,44 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
 }
 
 #ifdef NDEBUG
-    #define DAQ_MAKE_ERROR_INFO(errCode, message, ...) \
-        daq::makeErrorInfo(errCode, message, nullptr, ##__VA_ARGS__)
-#else
     template <typename... Params>
-    ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, IBaseObject* source, Params... params)
+    ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, Params... params)
     {
-        setErrorInfoWithSource(fileName, fileLine, source, message, std::forward<Params>(params)...);
+        setErrorInfoWithSource(nullptr, message, std::forward<Params>(params)...);
         return errCode;
     }
-    #define DAQ_MAKE_ERROR_INFO(errCode, message, ...) \
-        daq::makeErrorInfo(__FILE__, __LINE__, errCode, message, nullptr, ##__VA_ARGS__)
+
+    template <typename... Params>
+    ErrCode makeErrorInfo(ErrCode errCode)
+    {
+        std::stringstream ss;
+        ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
+        setErrorInfoWithSource(nullptr, ss.str());
+        return errCode;
+    }
+
+    #define DAQ_MAKE_ERROR_INFO(errCode, ...) \
+        daq::makeErrorInfo(errCode, ##__VA_ARGS__)
+#else
+
+    template <typename... Params>
+    ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, Params... params)
+    {
+        setErrorInfoWithSource(fileName, fileLine, nullptr, message, std::forward<Params>(params)...);
+        return errCode;
+    }
+
+    template <typename... Params>
+    ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode)
+    {
+        std::stringstream ss;
+        ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
+        setErrorInfoWithSource(fileName, fileLine, nullptr, ss.str());
+        return errCode;
+    }
+
+    #define DAQ_MAKE_ERROR_INFO(errCode, ...) \
+        daq::makeErrorInfo(__FILE__, __LINE__, errCode, ##__VA_ARGS__)
 #endif
 
 inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = nullptr)

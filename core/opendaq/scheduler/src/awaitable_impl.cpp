@@ -28,7 +28,7 @@ ErrCode AwaitableImpl<TReturn>::wait()
 
     if (!future.valid())
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_EMPTY_AWAITABLE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_EMPTY_AWAITABLE);
     }
 
     OPENDAQ_TRY(
@@ -46,7 +46,7 @@ ErrCode AwaitableImpl<TReturn>::getResult(IBaseObject** result)
 
     if (!completed && !future.valid())
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_EMPTY_AWAITABLE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_EMPTY_AWAITABLE);
     }
 
     if constexpr (std::is_void_v<TReturn>)

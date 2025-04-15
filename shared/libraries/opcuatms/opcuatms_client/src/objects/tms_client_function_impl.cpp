@@ -47,7 +47,7 @@ ErrCode TmsClientFunctionImpl::call(IBaseObject* args, IBaseObject** result)
         lastProccessDescription = "Calling function";
         OpcUaObject<UA_CallMethodResult> callResult = ctx->getClient()->callMethod(callRequest);
         if (OPCUA_STATUSCODE_FAILED(callResult->statusCode) || (callResult->outputArgumentsSize != 1))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
 
         lastProccessDescription = "Getting call result";
         *result = VariantConverter<IBaseObject>::ToDaqObject(OpcUaVariant(callResult->outputArguments[0]), daqContext).detach();

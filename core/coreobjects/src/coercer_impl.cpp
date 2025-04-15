@@ -37,7 +37,7 @@ ErrCode CoercerImpl::coerce(IBaseObject* propObj, IBaseObject* value, IBaseObjec
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COERCE_FAILED, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COERCE_FAILED);
     }
 
     return OPENDAQ_SUCCESS;
@@ -63,7 +63,7 @@ ErrCode CoercerImpl::coerceNoLock(IBaseObject* propObj, IBaseObject* value, IBas
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COERCE_FAILED, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COERCE_FAILED);
     }
 
     return OPENDAQ_SUCCESS;

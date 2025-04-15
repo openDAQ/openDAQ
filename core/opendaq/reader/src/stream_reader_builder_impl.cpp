@@ -28,7 +28,7 @@ ErrCode StreamReaderBuilderImpl::build(IStreamReader** streamReader)
     return daqTry([&]()
     {
         if (used)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CREATE_FAILED, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CREATE_FAILED);
 
         *streamReader = StreamReaderFromBuilder(builderPtr).detach();
         used = true;

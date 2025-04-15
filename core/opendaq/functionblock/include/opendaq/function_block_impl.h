@@ -602,7 +602,7 @@ ConstCharPtr FunctionBlockImpl<TInterface, Interfaces...>::SerializeId()
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 template <typename TInterface, typename... Interfaces>

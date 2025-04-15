@@ -345,7 +345,7 @@ ErrCode FunctionBlockWrapperImpl::getPropertyValue(IString* propertyName, IBaseO
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertyValue(propertyName, value);
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 ErrCode FunctionBlockWrapperImpl::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
@@ -357,7 +357,7 @@ ErrCode FunctionBlockWrapperImpl::getPropertySelectionValue(IString* propertyNam
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertySelectionValue(propertyName, value);
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 ErrCode FunctionBlockWrapperImpl::clearPropertyValue(IString* propertyName)
@@ -369,7 +369,7 @@ ErrCode FunctionBlockWrapperImpl::clearPropertyValue(IString* propertyName)
     if (isPropertyVisible(propertyName))
         return functionBlock->clearPropertyValue(propertyName);
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 ErrCode FunctionBlockWrapperImpl::hasProperty(IString* propertyName, Bool* hasProperty)
@@ -436,12 +436,12 @@ ErrCode FunctionBlockWrapperImpl::getProperty(IString* propertyName, IProperty**
 
 ErrCode FunctionBlockWrapperImpl::addProperty(IProperty* property)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode FunctionBlockWrapperImpl::removeProperty(IString* propertyName)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode FunctionBlockWrapperImpl::getProperties(const ListPtr<IProperty>& innerProperties, IList** properties)

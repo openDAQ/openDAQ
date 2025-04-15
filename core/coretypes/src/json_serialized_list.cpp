@@ -17,7 +17,7 @@ ErrCode JsonSerializedList::readSerializedList(ISerializedList** list)
 
     if (index >= length)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
     if (array[index].IsArray())
@@ -25,7 +25,7 @@ ErrCode JsonSerializedList::readSerializedList(ISerializedList** list)
         auto serList = new(std::nothrow) JsonSerializedList(array[index++].GetArray());
         if (!serList)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
         }
 
         serList->addRef();
@@ -33,7 +33,7 @@ ErrCode JsonSerializedList::readSerializedList(ISerializedList** list)
 
         return OPENDAQ_SUCCESS;
     }
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 }
 
 ErrCode JsonSerializedList::readList(IBaseObject* context, IFunction* factoryCallback, IList** list)
@@ -42,7 +42,7 @@ ErrCode JsonSerializedList::readList(IBaseObject* context, IFunction* factoryCal
 
     if (index >= length)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
     auto& genericValue = array[index];
@@ -66,7 +66,7 @@ ErrCode JsonSerializedList::readList(IBaseObject* context, IFunction* factoryCal
         return OPENDAQ_SUCCESS;
     }
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 }
 
 ErrCode JsonSerializedList::readSerializedObject(ISerializedObject** plainObj)
@@ -75,7 +75,7 @@ ErrCode JsonSerializedList::readSerializedObject(ISerializedObject** plainObj)
 
     if (index >= length)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
     using namespace rapidjson;
@@ -86,7 +86,7 @@ ErrCode JsonSerializedList::readSerializedObject(ISerializedObject** plainObj)
         auto serObj = new(std::nothrow) JsonSerializedObject(array[index++].GetObject());
         if (!serObj)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
         }
 
         serObj->addRef();
@@ -100,7 +100,7 @@ ErrCode JsonSerializedList::readSerializedObject(ISerializedObject** plainObj)
         *plainObj = nullptr;
         return OPENDAQ_SUCCESS;
     }
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 }
 
 ErrCode JsonSerializedList::readObject(IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
@@ -109,7 +109,7 @@ ErrCode JsonSerializedList::readObject(IBaseObject* context, IFunction* factoryC
 
     if (index >= length)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
     return JsonDeserializerImpl::Deserialize(array[index++], context, factoryCallback, obj);
@@ -121,7 +121,7 @@ ErrCode JsonSerializedList::readString(IString** obj)
 
     if (index >= length)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
     auto& genericValue = array[index];
@@ -138,7 +138,7 @@ ErrCode JsonSerializedList::readString(IString** obj)
         return OPENDAQ_SUCCESS;
     }
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 }
 
 ErrCode JsonSerializedList::readBool(Bool* obj)
@@ -147,7 +147,7 @@ ErrCode JsonSerializedList::readBool(Bool* obj)
 
     if (index >= length)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
     if (array[index].IsBool())
@@ -156,7 +156,7 @@ ErrCode JsonSerializedList::readBool(Bool* obj)
         return OPENDAQ_SUCCESS;
     }
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 }
 
 ErrCode JsonSerializedList::readInt(Int* obj)
@@ -165,7 +165,7 @@ ErrCode JsonSerializedList::readInt(Int* obj)
 
     if (index >= length)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
     if (array[index].IsInt())
@@ -174,7 +174,7 @@ ErrCode JsonSerializedList::readInt(Int* obj)
         return OPENDAQ_SUCCESS;
     }
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 }
 
 ErrCode JsonSerializedList::readFloat(Float* obj)
@@ -183,7 +183,7 @@ ErrCode JsonSerializedList::readFloat(Float* obj)
 
     if (index >= length)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
     if (array[index].IsDouble())
@@ -192,7 +192,7 @@ ErrCode JsonSerializedList::readFloat(Float* obj)
         return OPENDAQ_SUCCESS;
     }
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 }
 
 ErrCode JsonSerializedList::getCount(SizeT* size)
@@ -210,7 +210,7 @@ ErrCode JsonSerializedList::getCurrentItemType(CoreType* size)
 
     if (index >= length)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
     }
 
     *size = JsonDeserializerImpl::GetCoreType(array[index]);

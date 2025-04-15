@@ -284,37 +284,37 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::addProperty(IProperty* propert
     if (!deserializationComplete)
         return Impl::addProperty(property);
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* propertyName)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* /*propertyName*/, IEvent** /*event*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* /*propertyName*/, IEvent** /*event*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueWrite(IEvent** /*event*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueRead(IEvent** /*event*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
@@ -338,7 +338,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getAllProperties(IList** prope
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* orderedPropertyNames)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>

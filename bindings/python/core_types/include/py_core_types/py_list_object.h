@@ -89,7 +89,7 @@ daq::ErrCode PyListImpl<F>::getItemAt(daq::SizeT index, daq::IBaseObject** item)
     OPENDAQ_PARAM_NOT_NULL(item);
 
     if (index >= pyObject.size())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
 
     pybind11::object obj = pyObject[index];
 

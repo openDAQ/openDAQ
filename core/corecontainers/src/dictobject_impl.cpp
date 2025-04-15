@@ -47,7 +47,7 @@ ErrCode DictImpl::get(IBaseObject* key, IBaseObject** value)
 
     auto item = hashTable.find(key);
     if (item == hashTable.end())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     *value = item->second;
     if (*value != nullptr)
@@ -60,7 +60,7 @@ ErrCode DictImpl::set(IBaseObject* key, IBaseObject* value)
 {
     if (frozen)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
     OPENDAQ_PARAM_NOT_NULL(key);
@@ -90,7 +90,7 @@ ErrCode DictImpl::remove(IBaseObject* key, IBaseObject** value)
 {
     if (frozen)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
     OPENDAQ_PARAM_NOT_NULL(key);
@@ -98,7 +98,7 @@ ErrCode DictImpl::remove(IBaseObject* key, IBaseObject** value)
 
     auto item = hashTable.find(key);
     if (item == hashTable.end())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     IBaseObject* tmpKey = item->first;
     IBaseObject* tmpValue = item->second;
@@ -115,14 +115,14 @@ ErrCode DictImpl::deleteItemInternal(IBaseObject* key, IBaseObject** obj, bool& 
 {
     if (frozen)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
     OPENDAQ_PARAM_NOT_NULL(key);
 
     auto item = hashTable.find(key);
     if (item == hashTable.end())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     deleted = false;
     IBaseObject* tmpKey = item->first;
@@ -152,7 +152,7 @@ ErrCode DictImpl::clear()
 {
     if (frozen)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
     releaseRefOnChildren();
@@ -240,7 +240,7 @@ ErrCode DictImpl::createStartIterator(IIterator** iterator)
     );
 
     if (*iterator == nullptr)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
 
     (*iterator)->addRef();
 
@@ -260,7 +260,7 @@ ErrCode DictImpl::createEndIterator(IIterator** iterator)
     );
 
     if (*iterator == nullptr)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
 
     (*iterator)->addRef();
 
@@ -440,7 +440,7 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
         }
 
         if (OPENDAQ_FAILED(errCode))
@@ -462,7 +462,7 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 
             if (errCode == OPENDAQ_ERR_NOINTERFACE)
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
             }
 
             if (OPENDAQ_FAILED(errCode))

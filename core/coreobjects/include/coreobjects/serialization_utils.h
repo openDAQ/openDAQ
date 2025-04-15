@@ -123,7 +123,7 @@ inline ErrCode serializeMember(ISerializer* serializer, const char* name, const 
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
         }
 
         if (OPENDAQ_FAILED(errCode))

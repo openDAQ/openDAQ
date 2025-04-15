@@ -35,7 +35,7 @@ ErrCode write(ISerializer* serializer, const T& value)
 template <typename T>
 ErrCode read(ISerializedObject* serializedObj, T& valueOut)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 template <typename T>

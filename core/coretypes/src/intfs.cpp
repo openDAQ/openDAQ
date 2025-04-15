@@ -100,7 +100,7 @@ PUBLIC_EXPORT ErrCode daqDuplicateCharPtr(ConstCharPtr source, CharPtr* dest)
         const auto len = std::strlen(source) + 1;
         *dest = static_cast<CharPtr>(daqAllocateMemory(len));
         if (*dest == nullptr)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
 
 #if defined(__STDC_SECURE_LIB__) || defined(__STDC_LIB_EXT1__)
         strcpy_s(*dest, len, source);
@@ -123,7 +123,7 @@ ErrCode PUBLIC_EXPORT daqDuplicateCharPtrN(ConstCharPtr source, SizeT length, Ch
         const auto len = length + 1;
         *dest = static_cast<CharPtr>(daqAllocateMemory(len));
         if (*dest == nullptr)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY, "");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
 
 #if defined(__STDC_SECURE_LIB__) || defined(__STDC_LIB_EXT1__)
         memcpy_s(*dest, len - 1, source, len - 1);

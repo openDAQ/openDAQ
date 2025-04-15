@@ -35,7 +35,7 @@ ErrCode ComponentTypeBuilderImpl::build(IComponentType** componentType)
                 break;
         }
 
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
     });
 }
 

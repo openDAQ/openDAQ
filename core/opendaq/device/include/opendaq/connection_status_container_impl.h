@@ -85,7 +85,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatus(IString* name, IEnumerat
 
     const auto nameObj = StringPtr::Borrow(name);
     if (nameObj == "")
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
@@ -98,7 +98,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatus(IString* name, IEnumerat
         }
     }
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 inline ErrCode ConnectionStatusContainerImpl::getStatusMessage(IString* name, IString** message)
@@ -108,7 +108,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatusMessage(IString* name, IS
 
     const auto nameObj = StringPtr::Borrow(name);
     if (nameObj == "")
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
@@ -121,7 +121,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatusMessage(IString* name, IS
         }
     }
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 inline ErrCode ConnectionStatusContainerImpl::getStatuses(IDict** statuses)
@@ -149,12 +149,12 @@ inline ErrCode ConnectionStatusContainerImpl::addConfigurationConnectionStatus(I
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
     if (connectionStringObj == "")
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
     if (configConnectionStatusAdded || statuses.hasKey(connectionStringObj) || messages.hasKey(connectionStringObj))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS);
 
     const auto message = String("");
     statuses[connectionStringObj] = initialValue;
@@ -185,12 +185,12 @@ inline ErrCode ConnectionStatusContainerImpl::addStreamingConnectionStatus(IStri
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
     if (connectionStringObj == "")
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
     if (statuses.hasKey(connectionStringObj) || messages.hasKey(connectionStringObj))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS);
 
     ++streamingConnectionsCounter;
     const auto message = String("");
@@ -222,7 +222,7 @@ inline ErrCode ConnectionStatusContainerImpl::removeStreamingConnectionStatus(IS
     std::scoped_lock lock(sync);
 
     if (!statuses.hasKey(connectionString) || !messages.hasKey(connectionString))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     const StringPtr statusNameAlias =
         statusNameAliases.hasKey(connectionString)
@@ -262,20 +262,20 @@ inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatusWithMessage(
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
     if (connectionStringObj == "")
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     const auto messageObj = StringPtr::Borrow(message);
 
     std::scoped_lock lock(sync);
 
     if (!statuses.hasKey(connectionStringObj) || !messages.hasKey(connectionStringObj))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     const auto valueObj = EnumerationPtr::Borrow(value);
     const auto oldValue = statuses.get(connectionStringObj);
     const auto oldMessage = messages.get(connectionStringObj);
 
     if (valueObj.getEnumerationType() != oldValue.getEnumerationType())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
     if (valueObj == oldValue && oldMessage == messageObj)
         return OPENDAQ_IGNORED;
 

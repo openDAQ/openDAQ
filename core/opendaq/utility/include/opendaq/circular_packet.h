@@ -86,7 +86,7 @@ public:
                                                  daq::DataDescriptorPtr dataDescriptor,
                                                  daq::DataPacketPtr& domainPacket);
 
-    bool const isEmpty();
+    bool isEmpty() const;
 
     int reset();
 

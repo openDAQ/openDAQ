@@ -112,7 +112,7 @@ bool PacketBuffer::getIsFull()
     return bIsFull;
 }
 
-bool const PacketBuffer::isEmpty()
+bool PacketBuffer::isEmpty() const
 {
     return writePos == readPos && !bIsFull;
 }

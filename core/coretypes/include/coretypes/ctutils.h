@@ -129,11 +129,15 @@ inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* error
 
 inline void checkErrorInfo(ErrCode errCode)
 {
-    if (OPENDAQ_SUCCEEDED(errCode))
-        return;
-
     IList* errorInfoList;
     daqGetErrorInfoList(&errorInfoList);
+
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        if (errorInfoList != nullptr)
+            errorInfoList->releaseRef();
+        return;
+    }
 
     std::ostringstream ss;
     if (errorInfoList != nullptr)

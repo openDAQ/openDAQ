@@ -80,6 +80,14 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * The configuration is set from the property `ReAddDevices` of configuration object.
      */
     virtual ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) = 0;
+
+    /*!
+     * @brief Returns whether the restore device operation mode is enabled. If enabled, the devices will be restored to their original operation mode.
+     * @param[out] enabled The flag indicating whether the restore device operation mode is enabled.
+     *
+     * The configuration is set from the property `RestoreDeviceOperationMode` of configuration object.
+     */
+    virtual ErrCode INTERFACE_FUNC getRestoreDeviceOperationMode(Bool* enabled) = 0;
 };
 
 /*!

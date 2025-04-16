@@ -1990,6 +1990,7 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     Super::updateObject(obj, context);
+    ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
 
     if (obj.hasKey("Dev"))
     {
@@ -2038,6 +2039,12 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
     if (obj.hasKey("UserLock"))
         userLock = obj.readObject("UserLock", context);
+
+    if (contextPtr.getRestoreDeviceOperationMode() && obj.hasKey("OperationMode"))
+    {
+        Int mode = obj.readInt("OperationMode");
+        this->operationMode = static_cast<OperationModeType>(mode);
+    }
 }
 
 template <typename TInterface, typename... Interfaces>

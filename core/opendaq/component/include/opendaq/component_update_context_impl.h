@@ -44,6 +44,7 @@ public:
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
 
     ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
+    ErrCode INTERFACE_FUNC getRestoreDeviceOperationMode(Bool* enabled) override;
 
 private:
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
@@ -262,6 +263,11 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
 inline ErrCode ComponentUpdateContextImpl::getReAddDevicesEnabled(Bool* enabled)
 {
     return config->getReAddDevicesEnabled(enabled);
+}
+
+inline ErrCode ComponentUpdateContextImpl::getRestoreDeviceOperationMode(Bool* enabled)
+{
+    return config->getRestoreDeviceOperationMode(enabled);
 }
 
 END_NAMESPACE_OPENDAQ

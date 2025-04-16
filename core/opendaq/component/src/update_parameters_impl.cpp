@@ -6,6 +6,7 @@ UpdateParametersImpl::UpdateParametersImpl()
 {
     Super::addProperty(BoolProperty("ReAddDevices", false));
     Super::addProperty(BoolProperty("RemoteUpdate", false));
+    Super::addProperty(BoolProperty("RestoreDeviceOperationMode", true));
 }
 
 template <typename T>
@@ -26,6 +27,20 @@ ErrCode UpdateParametersImpl::getReAddDevicesEnabled(Bool* enabled)
 ErrCode UpdateParametersImpl::setReAddDevicesEnabled(Bool enabled)
 {
     return Super::setPropertyValue(String("ReAddDevices"), BooleanPtr(enabled));
+}
+
+ErrCode UpdateParametersImpl::getRestoreDeviceOperationMode(Bool* enabled)
+{
+    return daqTry([&]
+    {
+        *enabled = getTypedProperty<IBoolean>("RestoreDeviceOperationMode");
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode UpdateParametersImpl::setRestoreDeviceOperationMode(Bool enabled)
+{
+    return Super::setPropertyValue(String("RestoreDeviceOperationMode"), BooleanPtr(enabled));
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, UpdateParameters)

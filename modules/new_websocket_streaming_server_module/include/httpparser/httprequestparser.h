@@ -13,6 +13,10 @@
 
 #include "request.h"
 
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
+
 namespace httpparser
 {
 

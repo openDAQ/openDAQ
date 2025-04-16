@@ -256,9 +256,9 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType)
 {
-    return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
-    { 
-        this->clientComm->setOperationMode(this->remoteGlobalId, modeType); 
+    return daqTry([this, modeType] 
+    {
+        this->clientComm->setOperationMode(this->remoteGlobalId, OperationModeTypeToString(modeType)); 
     });
 }
 
@@ -266,9 +266,9 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(Oper
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecursive(OperationModeType modeType)
 {
-    return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
+    return daqTry([this, modeType] 
     { 
-        this->clientComm->setOperationModeRecursive(this->remoteGlobalId, modeType); 
+        this->clientComm->setOperationModeRecursive(this->remoteGlobalId, OperationModeTypeToString(modeType)); 
     });
 }
 
@@ -278,7 +278,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
     OPENDAQ_PARAM_NOT_NULL(modeType);
     return daqTry([this, modeType] 
     { 
-        *modeType = this->clientComm->getOperationMode(this->remoteGlobalId).detach(); 
+        *modeType = OperationModeTypeToString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
     });
 }
 

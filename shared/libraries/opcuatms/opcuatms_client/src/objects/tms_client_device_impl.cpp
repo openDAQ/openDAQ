@@ -141,7 +141,7 @@ ErrCode TmsClientDeviceImpl::getAvailableOperationModes(IList** availableOpModes
     auto opModesNodeStrList = VariantConverter<IString>::ToDaqList(client->readValue(nodeId));
     auto convertedOpModes = List<OperationModeType>();
     for (const auto& opMode : opModesNodeStrList)
-        convertedOpModes.pushBack(static_cast<Int>(this->OperationModeTypeFromString(opMode)));
+        convertedOpModes.pushBack(static_cast<Int>(OperationModeTypeFromString(opMode)));
 
     *availableOpModes = convertedOpModes.detach();
 
@@ -154,7 +154,7 @@ ErrCode TmsClientDeviceImpl::setOperationMode(OperationModeType modeType)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
     
     const auto nodeId = getNodeId("OperationMode");
-    const auto modeTypeStr = this->OperationModeTypeToString(modeType);
+    const auto modeTypeStr = OperationModeTypeToString(modeType);
 
     const auto variant = VariantConverter<IString>::ToVariant(String(modeTypeStr), nullptr, daqContext);
     client->writeValue(nodeId, variant);   
@@ -164,7 +164,7 @@ ErrCode TmsClientDeviceImpl::setOperationMode(OperationModeType modeType)
 
 ErrCode TmsClientDeviceImpl::setOperationModeRecursive(OperationModeType modeType)
 {
-    const auto modeTypeStr = "Recursive" + this->OperationModeTypeToString(modeType);
+    const auto modeTypeStr = "Recursive" + OperationModeTypeToString(modeType);
     return this->setOperationMode(String(modeTypeStr));
 }
 
@@ -178,7 +178,7 @@ ErrCode TmsClientDeviceImpl::getOperationMode(OperationModeType* modeType)
     const auto nodeId = getNodeId("OperationMode");
     const auto variant = client->readValue(nodeId);
 
-    *modeType = this->OperationModeTypeFromString(VariantConverter<IString>::ToDaqObject(variant, daqContext));
+    *modeType = OperationModeTypeFromString(VariantConverter<IString>::ToDaqObject(variant, daqContext));
     
     return OPENDAQ_SUCCESS;
 }

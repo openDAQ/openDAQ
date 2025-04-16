@@ -559,17 +559,17 @@ TEST_F(DeviceTest, NetworkConfigDisabled)
     ASSERT_THROW(deviceNetworkConfig.getNetworkInterfaceNames(), daq::NotImplementedException);
 }
 
-void checkDeviceOperationMode(const daq::DevicePtr& device, const std::string& expected)
+void checkDeviceOperationMode(const daq::DevicePtr& device, daq::OperationModeType expected)
 {
     ASSERT_EQ(device.getOperationMode(), expected);
-    bool active = expected != "Idle";
+    bool active = expected != daq::OperationModeType::Idle;
     size_t count = 0;
 
     for (const auto& fb: device.getFunctionBlocks())
     {
         for (const auto& sig: fb.getSignals())
         {
-            ASSERT_EQ(sig.getActive(), active) << "Checking fb signal " << sig.getGlobalId() << " for mode " << expected;
+            ASSERT_EQ(sig.getActive(), active) << "Checking fb signal " << sig.getGlobalId() << " for mode " << static_cast<daq::EnumType>(expected);
             count++;
         }
     }
@@ -577,7 +577,7 @@ void checkDeviceOperationMode(const daq::DevicePtr& device, const std::string& e
     {
         for (const auto& sig: ch.getSignals())
         {
-            ASSERT_EQ(sig.getActive(), active) << "Checking ch signal " << sig.getGlobalId() << " for mode " << expected;
+            ASSERT_EQ(sig.getActive(), active) << "Checking ch signal " << sig.getGlobalId() << " for mode " << static_cast<daq::EnumType>(expected);
             count++;
         }
     }
@@ -592,29 +592,32 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
     device.asPtr<daq::IComponentPrivate>(true).updateOperationMode(daq::OperationModeType::Unknown);
     subDevice.asPtr<daq::IComponentPrivate>(true).updateOperationMode(daq::OperationModeType::Unknown);
 
-    auto expectedDeviceModes = daq::List<daq::IString>("Idle", "Operation", "SafeOperation");
+    auto expectedDeviceModes = daq::List<daq::OperationModeType>(
+        static_cast<daq::Int>(daq::OperationModeType::Idle),
+        static_cast<daq::Int>(daq::OperationModeType::Operation),
+        static_cast<daq::Int>(daq::OperationModeType::SafeOperation));
 
     ASSERT_EQ(device.getAvailableOperationModes(), expectedDeviceModes);
     ASSERT_EQ(subDevice.getAvailableOperationModes(), expectedDeviceModes);
 
-    checkDeviceOperationMode(device, "Operation");
-    checkDeviceOperationMode(subDevice, "Operation");
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Operation);
 
-    ASSERT_NO_THROW(device.setOperationModeRecursive("Idle"));
-    checkDeviceOperationMode(device, "Idle");
-    checkDeviceOperationMode(subDevice, "Idle");
+    ASSERT_NO_THROW(device.setOperationModeRecursive(daq::OperationModeType::Idle));
+    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
 
-    ASSERT_NO_THROW(device.setOperationMode("Operation"));
-    checkDeviceOperationMode(device, "Operation");
-    checkDeviceOperationMode(subDevice, "Idle");
+    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Operation));
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
 
-    ASSERT_NO_THROW(subDevice.setOperationModeRecursive("SafeOperation"));
-    checkDeviceOperationMode(device, "Operation");
-    checkDeviceOperationMode(subDevice, "SafeOperation");
+    ASSERT_NO_THROW(subDevice.setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::SafeOperation);
 
-    ASSERT_NO_THROW(device.setOperationModeRecursive("Idle"));
-    checkDeviceOperationMode(device, "Idle");
-    checkDeviceOperationMode(subDevice, "Idle");
+    ASSERT_NO_THROW(device.setOperationModeRecursive(daq::OperationModeType::Idle));
+    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
 }
 
 TEST_F(DeviceTest, CheckNotSupportedOpMode)
@@ -622,11 +625,13 @@ TEST_F(DeviceTest, CheckNotSupportedOpMode)
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
     device.asPtr<daq::IComponentPrivate>(true).updateOperationMode(daq::OperationModeType::Unknown);
 
-    auto expectedDeviceModes = daq::List<daq::IString>("Idle", "Operation");
+    auto expectedDeviceModes = daq::List<daq::OperationModeType>(
+        static_cast<daq::Int>(daq::OperationModeType::Idle), 
+        static_cast<daq::Int>(daq::OperationModeType::Operation));
 
     ASSERT_EQ(device.getAvailableOperationModes(), expectedDeviceModes);
-    ASSERT_EQ(device.getOperationMode(), "Operation");
+    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
 
-    ASSERT_EQ(device->setOperationMode(daq::String("SafeOperation")), OPENDAQ_IGNORED);
-    ASSERT_EQ(device.getOperationMode(), "Operation");
+    ASSERT_EQ(device->setOperationMode(daq::OperationModeType::SafeOperation), OPENDAQ_IGNORED);
+    ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
 }

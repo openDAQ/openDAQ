@@ -21,7 +21,7 @@
 #include <opendaq/removable.h>
 #include <coreobjects/core_event_args_ptr.h>
 #include <coreobjects/property_object_impl.h>
-#include <opendaq/component_ptr.h>
+#include <opendaq/component_factory.h>
 #include <coretypes/weakrefptr.h>
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
@@ -123,9 +123,6 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
-
-    static std::string OperationModeTypeToString(OperationModeType mode);
-    static OperationModeType OperationModeTypeFromString(const std::string& mode);
 
 protected:
     virtual void activeChanged();
@@ -647,34 +644,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs*
     }
 
     return OPENDAQ_SUCCESS;
-}
-
-template <class Intf, class ... Intfs>
-std::string ComponentImpl<Intf, Intfs...>::OperationModeTypeToString(OperationModeType mode)
-{
-    switch (mode)
-    {
-        case OperationModeType::Idle:
-            return "Idle";
-        case OperationModeType::Operation:
-            return "Operation";
-        case OperationModeType::SafeOperation:
-            return "SafeOperation";
-        default:
-            return "Unknown";
-    };
-}
-
-template <class Intf, class ... Intfs>
-OperationModeType ComponentImpl<Intf, Intfs...>::OperationModeTypeFromString(const std::string& mode)
-{
-    if (mode == "Idle")
-        return OperationModeType::Idle;
-    if (mode == "Operation")
-        return OperationModeType::Operation;
-    if (mode == "SafeOperation")
-        return OperationModeType::SafeOperation;
-    return OperationModeType::Unknown;
 }
 
 template <class Intf, class ... Intfs>

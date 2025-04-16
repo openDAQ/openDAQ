@@ -110,6 +110,10 @@ public:
     void setOperationModeRecursive(const std::string& globalId, const StringPtr& modeType);
     StringPtr getOperationMode(const std::string& globalId);
 
+    void startRecording(const std::string& globalId);
+    void stopRecording(const std::string& globalId);
+    BooleanPtr getIsRecording(const std::string& globalId);
+
     bool getConnected() const;
     ContextPtr getDaqContext();
 

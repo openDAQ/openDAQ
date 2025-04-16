@@ -15,7 +15,7 @@ PacketBufferInit::PacketBufferInit(const daq::DataDescriptorPtr& description, si
 
     if (description == nullptr)
     {
-        throw;
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Data descriptor cannot be empty.");
     }
     desc = *description;
 
@@ -343,7 +343,7 @@ void PacketBuffer::resize(const PacketBufferInit& instructions)
 
     // crude, but effective
     if (!this->isEmpty())
-        throw;
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Reset procedure has failed.");
 
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleCount;

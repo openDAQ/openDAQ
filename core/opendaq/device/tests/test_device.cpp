@@ -136,6 +136,13 @@ public:
     { 
         return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation}; 
     }
+
+    void onOperationModeChanged(daq::OperationModeType modeType) override
+    {
+        bool active = modeType != daq::OperationModeType::Idle;
+        for (const auto& signal : this->signals.getItems(daq::search::InterfaceId(daq::ISignal::Id)))
+            signal.setActive(active);
+    }
 };
 
 
@@ -565,21 +572,10 @@ void checkDeviceOperationMode(const daq::DevicePtr& device, daq::OperationModeTy
     bool active = expected != daq::OperationModeType::Idle;
     size_t count = 0;
 
-    for (const auto& fb: device.getFunctionBlocks())
+    for (const auto& sig: device.getSignals())
     {
-        for (const auto& sig: fb.getSignals())
-        {
-            ASSERT_EQ(sig.getActive(), active) << "Checking fb signal " << sig.getGlobalId() << " for mode " << static_cast<daq::EnumType>(expected);
-            count++;
-        }
-    }
-    for (const auto& ch: device.getChannels())
-    {
-        for (const auto& sig: ch.getSignals())
-        {
-            ASSERT_EQ(sig.getActive(), active) << "Checking ch signal " << sig.getGlobalId() << " for mode " << static_cast<daq::EnumType>(expected);
-            count++;
-        }
+        ASSERT_EQ(sig.getActive(), active) << "Checking device signal " << sig.getGlobalId() << " for mode " << static_cast<daq::EnumType>(expected);
+        count++;
     }
 
     ASSERT_GT(count, 0u) << "No signals found for device " << device.getGlobalId();

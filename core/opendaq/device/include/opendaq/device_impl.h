@@ -47,6 +47,7 @@
 #include <opendaq/connection_status_container_private_ptr.h>
 #include <opendaq/connection_status_container_impl.h>
 #include <opendaq/device_network_config.h>
+#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -225,7 +226,6 @@ protected:
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
     virtual std::set<OperationModeType> onGetAvailableOperationModes();
-    void onOperationModeChanged(OperationModeType modeType) override;
 
     ListPtr<ILockGuard> getTreeLockGuard();
     ErrCode updateOperationModeInternal(OperationModeType modeType);
@@ -1132,15 +1132,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(ILi
 
     return errCode;
 }
-
-template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
-{
-    bool active = modeType != OperationModeType::Idle;
-    for (const auto& signal : this->signals.getItems(search::InterfaceId(ISignal::Id)))
-        signal.setActive(active);
-}
-
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(OperationModeType modeType)
 {
@@ -1150,7 +1141,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(Op
         this->operationMode = modeType;
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
+        {
             this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
+            std::cout << "Operation mode changed on server " << this->globalId << " to " << static_cast<Int>(modeType) << "\n";
+        }
     }
     return errCode;
 }
@@ -1753,6 +1747,9 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     serializer.key("UserLock");
     userLock.serialize(serializer);
 
+    serializer.key("OperationMode");
+    serializer.writeInt(static_cast<Int>(this->operationMode));
+
     if (connectionStatusContainer.asPtr<IComponentStatusContainer>().getStatuses().getCount() > 0)
     {
         serializer.key("connectionStatuses");
@@ -1939,6 +1936,12 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
         userLock = serializedObject.readObject("UserLock", context);
     else
         userLock.forceUnlock();
+
+    if (serializedObject.hasKey("OperationMode"))
+    {
+        Int mode = serializedObject.readInt("OperationMode");
+        this->operationMode = static_cast<OperationModeType>(mode);
+    }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
     this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");

@@ -698,7 +698,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::remove()
     auto lock = this->getRecursiveConfigLock();
 
     if (isComponentRemoved)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     isComponentRemoved = true;
 

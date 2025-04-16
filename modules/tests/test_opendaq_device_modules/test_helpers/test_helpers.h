@@ -287,13 +287,9 @@ namespace test_helpers
         bool active = expected != OperationModeType::Idle;
         std::string messagePrefix = isServer ? "Server: " : "Client: ";
 
-        for (const auto& fb: device.getFunctionBlocks())
-        {
-            for (const auto& sig: fb.getSignals())
-                ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking fb signal " << sig.getGlobalId() << " for mode " << static_cast<int>(expected);
-        }
         for (const auto& ch: device.getChannels())
         {
+            ASSERT_EQ(ch.getActive(), active) << messagePrefix << "Checking ch " << ch.getGlobalId() << " for mode " << static_cast<int>(expected);
             for (const auto& sig: ch.getSignals())
                 ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking ch signal " << sig.getGlobalId() << " for mode " << static_cast<int>(expected);
         }

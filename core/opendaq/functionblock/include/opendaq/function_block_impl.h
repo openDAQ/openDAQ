@@ -114,8 +114,6 @@ protected:
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
-    void onOperationModeChanged(OperationModeType modeType) override;
-
     template <class Impl>
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
                                                   const BaseObjectPtr& context,
@@ -663,14 +661,6 @@ BaseObjectPtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionB
                    return createWithImplementation<IFunctionBlock, Impl>(
                        fbType, deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
                });
-}
-
-template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
-{
-    bool active = modeType != OperationModeType::Idle;
-    for (const auto& signal : this->signals.getItems())
-        signal.setActive(active);
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -80,6 +80,7 @@ private:
     void deviceDomainChanged(const CoreEventArgsPtr& args);
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
     void connectionStatusChanged(const CoreEventArgsPtr& args);
+    void operationModeChanged(const CoreEventArgsPtr& args);
     bool handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args);
     bool handleDeviceInfoPropertyAdded(const CoreEventArgsPtr& args);
     bool handleDeviceInfoPropertyRemoved(const CoreEventArgsPtr& args);
@@ -258,7 +259,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(Oper
 {
     return daqTry([this, modeType] 
     {
-        this->clientComm->setOperationMode(this->remoteGlobalId, OperationModeTypeToString(modeType)); 
+        this->clientComm->setOperationMode(this->remoteGlobalId, OperationModeTypeToString(modeType));
     });
 }
 
@@ -268,7 +269,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecur
 {
     return daqTry([this, modeType] 
     { 
-        this->clientComm->setOperationModeRecursive(this->remoteGlobalId, OperationModeTypeToString(modeType)); 
+        this->clientComm->setOperationModeRecursive(this->remoteGlobalId, OperationModeTypeToString(modeType));
     });
 }
 
@@ -278,7 +279,10 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
     OPENDAQ_PARAM_NOT_NULL(modeType);
     return daqTry([this, modeType] 
     { 
-        *modeType = OperationModeTypeFromString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
+        if (this->clientComm->getProtocolVersion() < 12)
+            *modeType = OperationModeTypeFromString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
+        else
+            checkErrorInfo(Super::getOperationMode(modeType));   
     });
 }
 
@@ -315,6 +319,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
             break;
         case CoreEventId::ConnectionStatusChanged:
             connectionStatusChanged(args);
+            break;
+        case CoreEventId::DeviceOperationModeChanged:
+            operationModeChanged(args);
             break;
         case CoreEventId::PropertyValueChanged:
         {
@@ -493,6 +500,14 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::connectionStatusChanged(const C
     // ignores status change if it was not added initially
     if (addedStatuses.hasKey(statusName))
         connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(connectionString, value, nullptr, message);
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::operationModeChanged(const CoreEventArgsPtr& args)
+{
+    const Int mode = args.getParameters().get("OperationMode");
+    this->updateOperationModeInternal(static_cast<OperationModeType>(mode));
+    std::cout << "Operation mode changed on client " << this->globalId << " to " << mode << "\n";
 }
 
 template <class TDeviceBase>

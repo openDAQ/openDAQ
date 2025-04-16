@@ -2926,6 +2926,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for server root device
     ASSERT_NO_THROW(server.setOperationModeRecursive(daq::OperationModeType::Idle));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
@@ -2935,6 +2936,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for server sub device
     ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
@@ -2944,6 +2946,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for client sub device
     ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
@@ -2953,6 +2956,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for client device not recursively
     ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::SafeOperation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
@@ -2962,6 +2966,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for client device
     ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 

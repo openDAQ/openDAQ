@@ -278,7 +278,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
     OPENDAQ_PARAM_NOT_NULL(modeType);
     return daqTry([this, modeType] 
     { 
-        *modeType = OperationModeTypeToString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
+        *modeType = OperationModeTypeFromString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
     });
 }
 

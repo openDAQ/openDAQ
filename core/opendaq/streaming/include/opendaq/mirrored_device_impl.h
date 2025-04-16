@@ -313,11 +313,11 @@ void MirroredDeviceBase<Interfaces...>::deserializeCustomObjectValues(const Seri
             {
                 onAddStreaming(connectionString, config);
             }
-            catch (const DuplicateItemException& e)
+            catch ([[maybe_unused]] const DuplicateItemException& e)
             {
                 DAQLOGF_D(this->loggerComponent, "Streaming connection {} already exists ({})", connectionString, e.what());
             }
-            catch (const DaqException& e)
+            catch ([[maybe_unused]] const DaqException& e)
             {
                 DAQLOGF_E(this->loggerComponent, "Failed to connect streaming {}: {}", connectionString, e.what());
             }

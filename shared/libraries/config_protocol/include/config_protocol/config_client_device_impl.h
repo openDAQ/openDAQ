@@ -249,8 +249,11 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
 {
     OPENDAQ_PARAM_NOT_NULL(availableOpModes);
     return daqTry([this, availableOpModes] 
-    { 
-        *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
+    {
+        if (this->clientComm->getProtocolVersion() < 12)
+            *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
+        else
+            checkErrorInfo(Super::getAvailableOperationModes(availableOpModes));   
     });
 }
 
@@ -507,7 +510,6 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::operationModeChanged(const Core
 {
     const Int mode = args.getParameters().get("OperationMode");
     this->updateOperationModeInternal(static_cast<OperationModeType>(mode));
-    std::cout << "Operation mode changed on client " << this->globalId << " to " << mode << "\n";
 }
 
 template <class TDeviceBase>

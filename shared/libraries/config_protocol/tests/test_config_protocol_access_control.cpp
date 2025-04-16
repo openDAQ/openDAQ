@@ -9,7 +9,7 @@
 #include <coreobjects/user_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
-
+#include <opendaq/recorder_ptr.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -25,6 +25,7 @@ public:
     DevicePtr createDevice()
     {
         auto device = test_utils::createTestDevice();
+        device.getDevices()[0].addFunctionBlock("mockrecorder1");
 
         // everyone can read
         // admin can read write and execute
@@ -527,4 +528,37 @@ TEST_F(ConfigProtocolAccessControlTest, NestedCallProperty)
 
     auto result = clientDevice.getPropertyValue("Advanced.SumProp").call(1, 2);
     ASSERT_EQ(result, 3);
+}
+
+TEST_F(ConfigProtocolAccessControlTest, Recorder)
+{
+    auto device = createDevice();
+
+    setupServerAndClient(device, UserRegular);
+
+    {
+        const RecorderPtr recorderPtr = clientDevice.getDevices()[0].getFunctionBlocks()[1].asPtrOrNull<IRecorder>();
+        ASSERT_TRUE(recorderPtr.assigned());
+
+        ASSERT_NO_THROW(recorderPtr.getIsRecording());
+        ASSERT_FALSE(recorderPtr.getIsRecording());
+        ASSERT_THROW(recorderPtr.startRecording(), AccessDeniedException);
+        ASSERT_THROW(recorderPtr.stopRecording(), AccessDeniedException);
+    }
+
+    setupServerAndClient(device, UserAdmin);
+
+    {
+        const RecorderPtr recorderPtr = clientDevice.getDevices()[0].getFunctionBlocks()[1].asPtrOrNull<IRecorder>();
+        ASSERT_TRUE(recorderPtr.assigned());
+
+        ASSERT_NO_THROW(recorderPtr.getIsRecording());
+        ASSERT_FALSE(recorderPtr.getIsRecording());
+
+        ASSERT_NO_THROW(recorderPtr.startRecording());
+        ASSERT_TRUE(recorderPtr.getIsRecording());
+
+        ASSERT_NO_THROW(recorderPtr.stopRecording());
+        ASSERT_FALSE(recorderPtr.getIsRecording());
+    }
 }

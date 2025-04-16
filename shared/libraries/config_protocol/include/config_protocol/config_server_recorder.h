@@ -26,7 +26,7 @@ class ConfigServerRecorder
 public:
     static BaseObjectPtr startRecording(const RpcContext& context, const RecorderPtr& recorder, const ParamsDictPtr& params);
     static BaseObjectPtr stopRecording(const RpcContext& context, const RecorderPtr& recorder, const ParamsDictPtr& params);
-    static BaseObjectPtr isRecording(const RpcContext& context, const RecorderPtr& recorder, const ParamsDictPtr& params);
+    static BaseObjectPtr getIsRecording(const RpcContext& context, const RecorderPtr& recorder, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerRecorder::startRecording(const RpcContext& context, const RecorderPtr& recorder, const ParamsDictPtr& /*params*/)
@@ -51,7 +51,7 @@ inline BaseObjectPtr ConfigServerRecorder::stopRecording(const RpcContext& conte
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerRecorder::isRecording(const RpcContext& context, const RecorderPtr& recorder, const ParamsDictPtr& /*params*/)
+inline BaseObjectPtr ConfigServerRecorder::getIsRecording(const RpcContext& context, const RecorderPtr& recorder, const ParamsDictPtr& /*params*/)
 {
     ComponentPtr recorderComponent = recorder.asPtr<IComponent>();
     ConfigServerAccessControl::protectObject(recorderComponent, context.user, Permission::Read);

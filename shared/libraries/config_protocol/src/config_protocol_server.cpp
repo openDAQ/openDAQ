@@ -174,7 +174,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
 
     addHandler<RecorderPtr>("StartRecording", &ConfigServerRecorder::startRecording);
     addHandler<RecorderPtr>("StopRecording", &ConfigServerRecorder::stopRecording);
-    addHandler<RecorderPtr>("IsRecording", &ConfigServerRecorder::isRecording);
+    addHandler<RecorderPtr>("GetIsRecording", &ConfigServerRecorder::getIsRecording);
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -358,7 +358,7 @@ BaseObjectPtr ConfigProtocolServer::callRpc(const StringPtr& name, const ParamsD
 {
     const auto it = rpcDispatch.find(name.toStdString());
     if (it == rpcDispatch.end())
-        throw ConfigProtocolException("Invalid function call");
+        throw ConfigProtocolException(fmt::format("Invalid function call: {}", name));
 
     return it->second(params);
 }

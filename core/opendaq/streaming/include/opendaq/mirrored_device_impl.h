@@ -68,7 +68,7 @@ protected:
 private:
     std::vector<StreamingPtr> streamingSources;
     DictPtr<IString, IPropertyObject> manuallyAddedStreamings; // connection string and config object
-    std::shared_ptr<StreamingSourceManager> streamingSourceManager;
+    StreamingSourceManagerPtr streamingSourceManager;
 };
 
 template <typename... Interfaces>
@@ -238,7 +238,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
     if (this->componentConfig.assigned() && this->componentConfig.hasProperty("General"))
     {
         auto deviceSelf = this->template borrowPtr<DevicePtr>();
-        streamingSourceManager = std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
+        streamingSourceManager = createStreamingSourceManager(this->context, deviceSelf, this->componentConfig);
     }
 
     return errCode;

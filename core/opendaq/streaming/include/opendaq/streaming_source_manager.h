@@ -22,6 +22,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+class StreamingSourceManager;
+using StreamingSourceManagerPtr = std::shared_ptr<StreamingSourceManager>;
+
 class StreamingSourceManager
 {
 public:
@@ -59,5 +62,9 @@ private:
     std::map<StringPtr, SizeT> prioritizedProtocolsMap; // protocol Id as a key, protocol priority as a value
     StringPtr primaryAddressType;
 };
+
+StreamingSourceManagerPtr createStreamingSourceManager(const ContextPtr& context,
+                                                       const DevicePtr& ownerDevice,
+                                                       const PropertyObjectPtr& deviceConfig);
 
 END_NAMESPACE_OPENDAQ

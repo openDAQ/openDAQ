@@ -441,6 +441,12 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     {
         this->deviceInfo = serialized.readObject("deviceInfo");
     }
+
+    if (serialized.hasKey("OperationMode"))
+    {
+        Int mode = serialized.readInt("OperationMode");
+        this->updateOperationModeNoCoreEvent(static_cast<OperationModeType>(mode));
+    }
 }
 
 template <class TDeviceBase>

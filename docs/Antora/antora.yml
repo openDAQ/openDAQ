@@ -8,8 +8,7 @@ asciidoc:
     experimental: true
     version: "dev"
 nav:
-- modules/getting_started/nav-getting_started.adoc
+- modules/tutorials/tutorials.adoc
 - modules/howto_guides/nav-howto-guides.adoc
-- modules/knowledge_base/nav-knowledge_base.adoc
-- modules/glossary/nav-glossary.adoc
+- modules/explanations/nav-explanations.adoc
 

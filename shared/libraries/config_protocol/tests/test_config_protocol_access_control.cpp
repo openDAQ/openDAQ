@@ -354,7 +354,7 @@ TEST_F(ConfigProtocolAccessControlTest, RemoveFunctionBlock)
 
     {
         auto subDevice = clientDevice.getDevices()[0];
-        ASSERT_EQ(subDevice.getFunctionBlocks().getCount(), 1u);
+        ASSERT_EQ(subDevice.getFunctionBlocks().getCount(), 2u);
         auto fb = subDevice.getFunctionBlocks()[0];
         ASSERT_THROW(subDevice.removeFunctionBlock(fb), AccessDeniedException);
     }
@@ -363,10 +363,10 @@ TEST_F(ConfigProtocolAccessControlTest, RemoveFunctionBlock)
 
     {
         auto subDevice = clientDevice.getDevices()[0];
-        ASSERT_EQ(subDevice.getFunctionBlocks().getCount(), 1u);
+        ASSERT_EQ(subDevice.getFunctionBlocks().getCount(), 2u);
         auto fb = subDevice.getFunctionBlocks()[0];
         subDevice.removeFunctionBlock(fb);
-        ASSERT_EQ(subDevice.getFunctionBlocks().getCount(), 0u);
+        ASSERT_EQ(subDevice.getFunctionBlocks().getCount(), 1u);
     }
 }
 

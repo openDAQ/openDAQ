@@ -17,7 +17,7 @@ By the end of this tutorial, learners will be able to:
 The openDAQ(TM) SDK allows users to quickly and easily set up an application that can connect to an openDAQ(TM)-compatible device, configure it and read its data. It allows for easy signal processing and routing of signals through blocks that process and manipulate signal data.
 
 This guide illustrates the process of configuring and connecting to Devices, using simulated
-xref:glossary:glossary.adoc#device[Device]s and xref:glossary:glossary.adoc#signal[Signal]s, requiring no prior knowledge of the openDAQ(TM) framework.
+xref:explanations:glossary.adoc#device[Device]s and xref:explanations:glossary.adoc#signal[Signal]s, requiring no prior knowledge of the openDAQ(TM) framework.
 
 Full final source files of the examples featured in this guide are available at the bottom of the page, as well as within the binary packages available at https://docs.opendaq.com.
 
@@ -27,7 +27,7 @@ making use of the provided openDAQ(TM) binaries and examples.
 
 == Simulating an openDAQ(TM) Device
 
-For this guide, we will be using a xref:glossary:glossary.adoc#device[Device] simulator that outputs synthetic sine xref:glossary:glossary.adoc#signal[Signal]s at a chosen sample rate, with a chosen amplitude and frequency. It hosts an xref:glossary:glossary.adoc#opc_ua[OPC UA] server and a Native streaming server, allowing clients to inspect and configure the Device, and read its data.
+For this guide, we will be using a xref:explanations:glossary.adoc#device[Device] simulator that outputs synthetic sine xref:explanations:glossary.adoc#signal[Signal]s at a chosen sample rate, with a chosen amplitude and frequency. It hosts an xref:explanations:glossary.adoc#opc_ua[OPC UA] server and a Native streaming server, allowing clients to inspect and configure the Device, and read its data.
 
 [tabs]
 ====
@@ -758,7 +758,7 @@ Not all Function Blocks are required to have Input Ports or output Signals, howe
 Conversely, a file writer Function Block has no output Signals, but only receives input data, and writes it to a file on a hard drive. Another example of the latter is the renderer Function Block that is provided by one of the Modules within the openDAQ(TM) binaries. It provides an Input Port to which a Signal can be connected. Once connected, the renderer draws a graph that visualizes the Signal data over time. The Function Block can be added to our openDAQ(TM) Instance using its `"RefFBModuleRenderer"` unique ID.
 
 .Function Blocks with different combinations of Input Ports and output Signals
-image::opendaq:getting_started:function-block-types.svg[Function Blocks,align="center"]
+image::opendaq:tutorials:function-block-types.svg[Function Blocks,align="center"]
 
 NOTE: As with Devices, we can list the metadata of all Function Blocks made available by loaded Modules by getting all available Function Blocks. Doing so we can obtain a list of Function Block information objects, providing metadata, as well as the IDs of the Function Blocks.
 
@@ -818,7 +818,7 @@ renderer.GetInputPorts()[0].Connect(signal);
 Try running the above code snippet. You should see a new window pop-up, displaying the sine wave Device Signal, similar to the window shown in the image below.
 
 .Image of the renderer drawing a signal graph
-image::getting_started:renderer.PNG[image,align="center"]
+image::tutorials:renderer.PNG[image,align="center"]
 
 === The data path
 
@@ -827,7 +827,7 @@ As mentioned, the renderer is a Function Block that receives input data but prod
 Such Function Blocks can form a longer Data Path, where multiple Function Blocks are chained together, each using the output of the previous block as its input data. In the next part of our example, we connect the output Signal of the simulated Device's first Channel through the statistics and into the renderer, forming the following data path:
 
 .Image of the data path from the Channel through the statistics and into the renderer
-image::getting_started:signal-path.svg[image,align="center"]
+image::tutorials:signal-path.svg[image,align="center"]
 
 We extend our code to add and connect the statistics Function Block:
 

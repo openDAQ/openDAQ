@@ -2,8 +2,8 @@
 
 openDAQ(TM) provides a Property system that allows for custom Properties with metadata
 descriptions to be added to data acquisition components represented in its architecture.
-It allows for Properties such as a xref:knowledge_base:device.adoc[Device]'s sampling
-rate or an FFT xref:knowledge_base:function_blocks.adoc[Function Block]'s line count to
+It allows for Properties such as a xref:explanations:device.adoc[Device]'s sampling
+rate or an FFT xref:explanations:function_blocks.adoc[Function Block]'s line count to
 be customized by users. Any Property on a component can be read/written (if the 
 Property is not read-only) by openDAQ(TM) applications. The Properties are the main
 building blocks of any user interface implementation that wishes to interact with openDAQ(TM)
@@ -1087,7 +1087,7 @@ C#::
 ====
 
 We configure the unit of the `"Amplitude"` Property based on the `"AmplitudeUnit"` selected value, using
-the `Unit` token in our expression to indicate we're creating a xref:glossary:glossary.adoc#unit[Unit], and accessing the currently
+the `Unit` token in our expression to indicate we're creating a xref:explanations:glossary.adoc#unit[Unit], and accessing the currently
 selected value of our `"AmplitudeUnit"` Selection Property.
 
 NOTE: The `%Prop:Value` notation is equivalent to `$Prop`, while `%Prop:SelectedValue` uses the

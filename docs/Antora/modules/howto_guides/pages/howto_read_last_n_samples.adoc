@@ -14,17 +14,17 @@ By the end of this guide, learners will be able to:
 :tip-caption: Assumptions
 [TIP]
 ====
-This guide assumes that you've read the _background section_ about the  xref:knowledge_base:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide.
+This guide assumes that you've read the _background section_ about the  xref:explanations:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide.
 
 For brevity, in `C++` we also assume that all the code is in namespace `daq` or it has been imported via `using namespace daq;` and omit any otherwise necessary header includes until the final complete listing.
 ====
 
-When you are only interested in the last few samples of a Signal at any given time, this is the job for a xref:knowledge_base:readers.adoc#tail_reader[Tail Reader].
+When you are only interested in the last few samples of a Signal at any given time, this is the job for a xref:explanations:readers.adoc#tail_reader[Tail Reader].
 The Reader will connect to a Signal and always keep at least the last *N* samples in the cache ready to read.
 This number is referred to as *history size*.
 
 To create the Reader, you must first decide on the number of last samples you're interested in then pass it to the Reader as a parameter.
-In the <<create,example below>> we choose to keep the last `5` samples of the xref:knowledge_base:signals.adoc[Signal] `signal`.
+In the <<create,example below>> we choose to keep the last `5` samples of the xref:explanations:signals.adoc[Signal] `signal`.
 
 [#create]
 .Creating a default Tail Reader
@@ -67,8 +67,8 @@ By default, if no explicit read Sample Types are provided, they're assumed to be
 * `SampleType::Int64` / `daq::Int` / `std::int64_t` for _domain_.
 ====
 
-After creating the Reader, we can issue the usual xref:knowledge_base:readers.adoc#read_calls[_read_ calls].
-Until the xref:knowledge_base:signals.adoc[Signal] produces at least the *history size* samples (in our case `5`) the Reader will on a _read_ call only return the available number of samples.
+After creating the Reader, we can issue the usual xref:explanations:readers.adoc#read_calls[_read_ calls].
+Until the xref:explanations:signals.adoc[Signal] produces at least the *history size* samples (in our case `5`) the Reader will on a _read_ call only return the available number of samples.
 
 [tabs]
 ====
@@ -139,7 +139,7 @@ reader.read(values, &count); // count = 5, values = { 2, 3, 4, 5, 6 }
 ----
 ====
 
-As the reader is unable to keep an indefinite number of xref:glossary:glossary.adoc#data_packet[Packet]s for an indefinite amount of time, when enough samples are produced to get above the *history size*, the Reader will start replacing old xref:glossary:glossary.adoc#data_packet[Packet]s with new ones when it is able to still stay above the requested limit. The consequence of this is that requesting more samples than *history size* will result in an error unless the number of samples in the cached xref:glossary:glossary.adoc#data_packet[Packet]s happens to be more than required due to having to hold on to a larger xref:glossary:glossary.adoc#data_packet[Packet] in order to stay above the limit.
+As the reader is unable to keep an indefinite number of xref:explanations:glossary.adoc#data_packet[Packet]s for an indefinite amount of time, when enough samples are produced to get above the *history size*, the Reader will start replacing old xref:explanations:glossary.adoc#data_packet[Packet]s with new ones when it is able to still stay above the requested limit. The consequence of this is that requesting more samples than *history size* will result in an error unless the number of samples in the cached xref:explanations:glossary.adoc#data_packet[Packet]s happens to be more than required due to having to hold on to a larger xref:explanations:glossary.adoc#data_packet[Packet] in order to stay above the limit.
 
 .Reading above history size
 [tabs]

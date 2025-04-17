@@ -947,6 +947,59 @@ TEST_F(InstanceTest, DISABLED_SaveLoadServers)
     ASSERT_EQ(servers[0].getId(), serverId);
 }
 
+TEST_F(InstanceTest, SaveLoadDeviceOperationMode)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        instance.addDevice("daqmock://phys_device");
+        instance.addDevice("daqmock://client_device");
+
+        auto devs = instance.getDevices();
+        devs[0].setOperationMode(OperationModeType::Idle);
+        devs[1].setOperationMode(OperationModeType::SafeOperation);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    instance2.loadConfiguration(config);
+
+    auto devs = instance2.getDevices();
+    ASSERT_EQ(devs.getCount(), 2u);
+
+    ASSERT_EQ(devs[0].getOperationMode(), OperationModeType::Idle);
+    ASSERT_EQ(devs[1].getOperationMode(), OperationModeType::SafeOperation);
+}
+
+TEST_F(InstanceTest, SaveLoadNotRestoreDeviceOperationMode)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance("localIntanceId");
+        instance.addDevice("daqmock://phys_device");
+        instance.addDevice("daqmock://client_device");
+
+        auto devs = instance.getDevices();
+        devs[0].setOperationMode(OperationModeType::Idle);
+        devs[1].setOperationMode(OperationModeType::SafeOperation);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+
+    auto loadConfig = UpdateParameters();
+    loadConfig.setRestoreDeviceOperationMode(false);
+    instance2.loadConfiguration(config, loadConfig);
+
+    auto devs = instance2.getDevices();
+    ASSERT_EQ(devs.getCount(), 2u);
+
+    ASSERT_EQ(devs[0].getOperationMode(), OperationModeType::Operation);
+    ASSERT_EQ(devs[1].getOperationMode(), OperationModeType::Operation);
+}
+
 TEST_F(InstanceTest, TestRemoved1)
 {
     auto instance = test_helpers::setupInstance();

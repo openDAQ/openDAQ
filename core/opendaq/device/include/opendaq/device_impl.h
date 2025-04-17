@@ -269,6 +269,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
           }))
 
 {
+    this->updateOperationMode(OperationModeType::Unknown);
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
     this->defaultComponents.insert("Synchronization");
@@ -340,7 +341,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock();
 
     this->isRootDevice = true;
-    this->updateOperationMode(OperationModeType::Unknown);
     return OPENDAQ_SUCCESS;
 }
 
@@ -2002,6 +2002,12 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     Super::updateObject(obj, context);
     ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
 
+    if (contextPtr.getRestoreDeviceOperationMode() && obj.hasKey("OperationMode"))
+    {
+        Int mode = obj.readInt("OperationMode");
+        this->setOperationMode(static_cast<OperationModeType>(mode));
+    }
+
     if (obj.hasKey("Dev"))
     {
         const auto devicesFolder = obj.readSerializedObject("Dev");
@@ -2043,18 +2049,10 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     }
 
     if (obj.hasKey("deviceDomain"))
-    {
         deviceDomain = obj.readObject("deviceDomain");
-    }
 
     if (obj.hasKey("UserLock"))
         userLock = obj.readObject("UserLock", context);
-
-    if (contextPtr.getRestoreDeviceOperationMode() && obj.hasKey("OperationMode"))
-    {
-        Int mode = obj.readInt("OperationMode");
-        this->operationMode = static_cast<OperationModeType>(mode);
-    }
 }
 
 template <typename TInterface, typename... Interfaces>

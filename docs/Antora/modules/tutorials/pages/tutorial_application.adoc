@@ -1,4 +1,4 @@
-= openDAQ(TM) Application Quick Start guide
+= openDAQ(TM) Application Tutorial
 :page-toclevels: 4
 :toclevels: 4
 

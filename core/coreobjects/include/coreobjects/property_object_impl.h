@@ -413,6 +413,7 @@ protected:
 
     // Child property handling - Used when a property is queried in the "parent.child" format
     bool isChildProperty(const StringPtr& name, StringPtr& childName, StringPtr& subName) const;
+    std::pair<std::string, std::string> splitByLastDot(const std::string& input) const;
 
     // Update
 
@@ -669,6 +670,20 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty
     }
 
     return false;
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+std::pair<std::string, std::string> GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::splitByLastDot(const std::string& input) const
+{
+    size_t pos = input.rfind('.');
+    if (pos == std::string::npos)
+    {
+        // No dot found, return whole input as head, empty tail
+        return {input, ""};
+    }
+    std::string head = input.substr(0, pos);
+    std::string tail = input.substr(pos + 1);
+    return {head, tail};
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -3207,6 +3222,24 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(hasProperty);
+
+    const auto propName = StringPtr::Borrow(propertyName);
+
+    auto splitStr = splitByLastDot(propName);
+    if (!(splitStr.first == propName))
+    {
+        BaseObjectPtr val;
+        ErrCode err = getPropertyValue(String(splitStr.first), &val);
+        if (OPENDAQ_FAILED(err))
+            return DAQ_MAKE_ERROR_INFO(err, fmt::format(R"(Failed to retrieve child object with name {})", splitStr.first));
+
+        PropertyObjectPtr obj = val.asPtrOrNull<IPropertyObject>(true);
+        if (!obj.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, fmt::format(R"(Child with name {} is not a Object-type property)", splitStr.first));
+
+        return obj->hasProperty(String(splitStr.second), hasProperty);
+    }
+    
 
     if (localProperties.find(propertyName) != localProperties.cend())
     {

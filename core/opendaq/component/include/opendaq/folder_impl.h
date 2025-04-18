@@ -249,8 +249,6 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
             return err;
     }
 
-    syncComponentOperationMode(component);
-
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
@@ -260,6 +258,8 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         this->triggerCoreEvent(args);
         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
     }
+
+    syncComponentOperationMode(component);
 
     return OPENDAQ_SUCCESS;
 }

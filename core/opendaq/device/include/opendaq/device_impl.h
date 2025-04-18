@@ -245,7 +245,7 @@ private:
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
-    OperationModeType operationMode;
+    OperationModeType operationMode {OperationModeType::Idle};
     ListPtr<OperationModeType> availableOperationModes;
 };
 
@@ -269,7 +269,6 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
           }))
 
 {
-    this->updateOperationMode(OperationModeType::Unknown);
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
     this->defaultComponents.insert("Synchronization");
@@ -341,6 +340,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock();
 
     this->isRootDevice = true;
+    this->updateOperationMode(OperationModeType::Unknown);
     return OPENDAQ_SUCCESS;
 }
 

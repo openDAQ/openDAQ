@@ -96,6 +96,7 @@ public:
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -177,7 +178,6 @@ protected:
     ComponentPtr findComponentInternal(const ComponentPtr& component, const std::string& id);
 
     PropertyObjectPtr getPropertyObjectParent() override;
-    ComponentPtr getParentDevice();
 
     static bool validateComponentId(const std::string& id);
 
@@ -647,6 +647,20 @@ ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs*
 }
 
 template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getOperationMode(OperationModeType* modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+
+    ComponentPtr parent;
+    this->getParent(&parent);
+    if (parent.assigned())
+        return parent->getOperationMode(modeType);
+
+    *modeType = OperationModeType::Unknown;
+    return OPENDAQ_IGNORED;
+}
+
+template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::onOperationModeChanged(OperationModeType /* modeType */)
 {
 }
@@ -1078,21 +1092,6 @@ PropertyObjectPtr ComponentImpl<Intf, Intfs...>::getPropertyObjectParent()
 {
     if (parent.assigned())
         return parent.getRef();
-
-    return nullptr;
-}
-
-template <class Intf, class ... Intfs>
-ComponentPtr ComponentImpl<Intf, Intfs...>::getParentDevice()
-{
-    ComponentPtr parent;
-    this->getParent(&parent);
-    while (parent.assigned())
-    {
-        if (parent.supportsInterface<IDevice>())
-            return parent;
-        parent = parent.getParent();
-    }
 
     return nullptr;
 }

@@ -2689,14 +2689,15 @@ TEST_F(NativeDeviceModulesTest, ConnectedClientsInfoNotSavedLoaded)
     ASSERT_EQ(serverSideClientsInfo[1].getAddress(), clientSideClientsInfo[1].getAddress());
 }
 
-InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPath)
+InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPath = nullptr)
 {
     PropertyObjectPtr config = PropertyObject();
-    config.addProperty(BoolProperty("EnableLogging", true));
-    config.addProperty(StringProperty("LoggingPath", loggerPath));
+    config.addProperty(BoolProperty("EnableLogging", loggerPath.assigned()));
+    if (loggerPath.assigned())
+        config.addProperty(StringProperty("LoggingPath", loggerPath));
     config.addProperty(StringProperty("SerialNumber", "NativeDeviceModulesTestSerial"));
 
-    auto instance = InstanceBuilder().setLogger(Logger(loggerPath))
+    auto instance = InstanceBuilder().setLogger(loggerPath.assigned() ? Logger(loggerPath) : nullptr)
                                      .setRootDevice("daqref://device0", config)
                                      .build();
     
@@ -2709,7 +2710,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreServerConfiguration)
     StringPtr config;
 
     {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
         auto client = CreateClientInstance();
         auto clientRoot = client.getDevices()[0];
         auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics");
@@ -2717,7 +2718,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreServerConfiguration)
         config = client.saveConfiguration();
     }
 
-    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
     
     auto restoredClient = Instance();
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
@@ -2740,7 +2741,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreClientConnectedToServer)
     StringPtr config;
 
     {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
         auto client = CreateClientInstance();
         auto clientRoot = client.getDevices()[0];
         auto fb = client.addFunctionBlock("RefFBModuleStatistics");
@@ -2748,7 +2749,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreClientConnectedToServer)
         config = client.saveConfiguration();
     }
 
-    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
     
     auto restoredClient = Instance();
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
@@ -2771,7 +2772,7 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
 {
     StringPtr config;
     {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
         auto client = CreateClientInstance();
         auto clientRefDevice = client.addDevice("daqref://device1");
         auto clientRoot = client.getDevices()[0];
@@ -2780,7 +2781,7 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
         config = client.saveConfiguration();
     }
 
-    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
     
     auto restoredClient = Instance();
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
@@ -2807,6 +2808,59 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
     auto signal = fb.getInputPorts()[0].getSignal();
     ASSERT_TRUE(signal.assigned());
     ASSERT_EQ(signal.getGlobalId(), clientRefDevice.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
+}
+
+TEST_F(NativeDeviceModulesTest, SaveLoadDeviceOperationMode)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0];
+
+        auto dev = clientRoot.addDevice("daqref://device1");
+        dev.setOperationMode(OperationModeType::SafeOperation);
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
+    auto client = CreateClientInstance();
+    client.loadConfiguration(config);
+    auto clientRoot = client.getDevices()[0];
+
+    auto devs = clientRoot.getDevices();
+    ASSERT_EQ(devs.getCount(), 1u);
+
+    ASSERT_EQ(devs[0].getOperationMode(), OperationModeType::SafeOperation);
+}
+
+// BUG: we are not passing the update parameters to the server
+TEST_F(NativeDeviceModulesTest, DISABLED_SaveLoadNotRestoreDeviceOperationMode)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0];
+
+        auto dev = clientRoot.addDevice("daqref://device1");
+        dev.setOperationMode(OperationModeType::SafeOperation);
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
+    auto client = CreateClientInstance();
+
+    auto loadConfig = UpdateParameters().setRestoreDeviceOperationMode(false);
+    client.loadConfiguration(config, loadConfig);
+    auto clientRoot = client.getDevices()[0];
+
+    auto devs = clientRoot.getDevices();
+    ASSERT_EQ(devs.getCount(), 1u);
+
+    ASSERT_EQ(devs[0].getOperationMode(), OperationModeType::Operation);
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)

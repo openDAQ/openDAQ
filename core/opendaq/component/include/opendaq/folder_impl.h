@@ -220,13 +220,9 @@ void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& 
     if (!componentPrivate.assigned())
         return;
 
-    auto parentDevice = this->getParentDevice();
-    if (!parentDevice.assigned())
-        return;
-    
     OperationModeType modeType;
-    const ErrCode errCode = parentDevice.template as<IDevice>(true)->getOperationMode(&modeType);
-    if (OPENDAQ_FAILED(errCode))
+    const ErrCode errCode = this->getOperationMode(&modeType);
+    if (errCode != OPENDAQ_SUCCESS)
         return;
 
     componentPrivate->updateOperationMode(modeType);
@@ -236,14 +232,15 @@ template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 {
     OPENDAQ_PARAM_NOT_NULL(item);
+    ComponentPtr component = ComponentPtr::Borrow(item);
 
     {
         auto lock = this->getRecursiveConfigLock();
 
-        const ErrCode err = daqTry([this, &item]
+        const ErrCode err = daqTry([this, &component]
         {
-            if (!addItemInternal(item))
-                return OPENDAQ_ERR_DUPLICATEITEM;
+            if (!addItemInternal(component))
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM, fmt::format("Component with id {} already exists", component.getGlobalId()));
 
             return OPENDAQ_SUCCESS;
         });
@@ -252,18 +249,16 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
             return err;
     }
 
+    syncComponentOperationMode(component);
+
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
-        const auto component = ComponentPtr::Borrow(item);
-
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
             CoreEventId::ComponentAdded,
             Dict<IString, IBaseObject>({{"Component", component}}));
 
         this->triggerCoreEvent(args);
-
         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
-        syncComponentOperationMode(component);
     }
 
     return OPENDAQ_SUCCESS;

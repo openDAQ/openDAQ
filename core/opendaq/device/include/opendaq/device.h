@@ -373,12 +373,6 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param modeType The operation mode to set.
      */
     virtual ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) = 0;
-
-    /*!
-     * @brief Gets the operation mode of the device.
-     * @param[out] modeType The current operation mode.
-     */
-    virtual ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) = 0;
 };
 /*!@}*/
 

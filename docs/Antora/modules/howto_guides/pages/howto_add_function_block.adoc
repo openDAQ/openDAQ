@@ -6,7 +6,7 @@
 By the end of this guide, learners will be able to:
 
 - 🧱 Understand Function Blocks and their role.
-- 🗒️ List all available Fnction Blocks using the SDK.
+- 🗒️ List all available Function Blocks using the SDK.
 - ➗ Add a Function Block using its ID.
 - 🧷 Access metadata of Function Block instances.
 - 💡 Implement full code examples.

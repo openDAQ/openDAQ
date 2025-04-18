@@ -596,6 +596,18 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
     ASSERT_EQ(device.getAvailableOperationModes(), expectedDeviceModes);
     ASSERT_EQ(subDevice.getAvailableOperationModes(), expectedDeviceModes);
 
+    // compare with the default operation mode
+    ASSERT_EQ(device.getAvailableOperationModes()[0], daq::OperationModeType::Idle);
+    ASSERT_EQ(device.getAvailableOperationModes()[1], daq::OperationModeType::Operation);
+    ASSERT_EQ(device.getAvailableOperationModes()[2], daq::OperationModeType::SafeOperation);
+    
+    // check getting operation mode from the list
+    daq::OperationModeType mode = device.getAvailableOperationModes()[0];
+    ASSERT_EQ(mode, daq::OperationModeType::Idle);
+
+    auto mode2 = device.getAvailableOperationModes()[1];
+    ASSERT_EQ(mode2, daq::OperationModeType::Operation);
+
     checkDeviceOperationMode(device, daq::OperationModeType::Operation);
     checkDeviceOperationMode(subDevice, daq::OperationModeType::Operation);
 

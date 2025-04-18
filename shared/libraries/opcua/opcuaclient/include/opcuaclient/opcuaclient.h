@@ -168,7 +168,7 @@ protected:
 
     std::chrono::milliseconds iterateTimeout;
 
-    daq::utils::TimerThread iterateThread;
+    daq::utils::NamedTimerThread iterateThread;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA

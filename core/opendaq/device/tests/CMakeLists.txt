@@ -13,6 +13,7 @@ set(TEST_SOURCES test_factories.cpp
                  test_log_file_info.cpp
                  test_user_lock.cpp
                  test_connection_status_container.cpp
+                 test_connected_client_info.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
@@ -29,7 +30,7 @@ target_link_libraries(${TEST_APP} PRIVATE daq::coreobjects
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
-         WORKING_DIRECTORY bin
+         WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
 if (MSVC)

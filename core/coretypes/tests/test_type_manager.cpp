@@ -10,7 +10,7 @@ TEST_F(TypeManagerTest, AddType)
 {
     auto manager = TypeManager();
     manager.addType(SimpleType(ctInt));
-    ASSERT_THROW(manager.addType(RatioStructType()), InvalidParameterException);
+    ASSERT_THROW(manager.addType(RatioStructType()), ReservedTypeNameException);
     manager.addType(StructType("foo", List<IString>("field"), List<IType>(SimpleType(ctString))));
 }
 
@@ -162,9 +162,7 @@ TEST_F(TypeManagerTest, ProtectedStructNames)
         const auto type1 = StructType(name, List<IString>("field"), List<IType>(SimpleType(ctString)));
         const auto type2 = StructType(uppercase, List<IString>("field"), List<IType>(SimpleType(ctString)));
 
-        ASSERT_THROW(typeManager.addType(type1), InvalidParameterException);
-        ASSERT_THROW(typeManager.addType(type2), InvalidParameterException);
+        ASSERT_THROW(typeManager.addType(type1), ReservedTypeNameException);
+        ASSERT_THROW(typeManager.addType(type2), ReservedTypeNameException);
     }
-
-
 }

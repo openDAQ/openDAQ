@@ -26,7 +26,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class AddressInfoImpl : public GenericPropertyObjectImpl<IAddressInfo, IAddressInfoPrivate>
 {
 public:
-    using Super = GenericPropertyObjectImpl;
+    using Super = GenericPropertyObjectImpl<IAddressInfo, IAddressInfoPrivate>;
 
     explicit AddressInfoImpl();
     explicit AddressInfoImpl(const AddressInfoBuilderPtr& builder);

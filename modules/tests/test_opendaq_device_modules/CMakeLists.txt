@@ -10,6 +10,7 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_native_streaming_modules.cpp
                  test_subdevices.cpp
                  test_streaming.cpp
+                 test_device_discovery.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES}
@@ -42,7 +43,7 @@ endif()
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
-         WORKING_DIRECTORY bin
+         WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
 target_compile_definitions(${TEST_APP} PRIVATE OPENDAQ_SKIP_DLL_IMPORT)

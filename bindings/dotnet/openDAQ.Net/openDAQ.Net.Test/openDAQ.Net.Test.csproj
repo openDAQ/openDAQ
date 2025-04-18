@@ -16,6 +16,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- without this no class would be expanded in Solution Explorer somehow -->
+    <Compile Include=".\*.cs" />
+    <!-- Include local unit tests if available (no error if there is none) -->
+    <Compile Include="..\..\..\..\build\bindings\CSharp\local-tests\*.cs" Link="%(FileName).cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
     <PackageReference Include="NUnit" Version="4.3.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />

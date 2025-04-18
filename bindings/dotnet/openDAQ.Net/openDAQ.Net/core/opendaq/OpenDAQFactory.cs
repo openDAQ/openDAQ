@@ -33,7 +33,7 @@ public static partial class OpenDAQFactory
     /// </summary>
     static OpenDAQFactory()
     {
-        // initialize the SDK (load all SDK libraries)
+        // initialize the SDK (load all depending SDK libraries)
         _ = CoreTypesFactory.SdkVersion;
         _ = CoreObjectsFactory.SdkVersion;
         _ = OpenDAQFactory.SdkVersion;

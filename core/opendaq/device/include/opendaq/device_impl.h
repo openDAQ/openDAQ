@@ -246,7 +246,7 @@ private:
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Idle};
-    ListPtr<Int> availableOperationModes;
+    ListPtr<IInteger> availableOperationModes;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -1129,7 +1129,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(ILi
         std::set<OperationModeType> modes;
         errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
         
-        this->availableOperationModes = List<OperationModeType>();
+        this->availableOperationModes = List<IInteger>();
         for (auto mode : modes)
             availableOperationModes.pushBack(static_cast<Int>(mode));
 
@@ -1720,7 +1720,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         }
 
         {
-            ListPtr<Int> availableOpModes;
+            ListPtr<IInteger> availableOpModes;
             this->getAvailableOperationModes(&availableOpModes);
             if (availableOpModes.assigned())
             {

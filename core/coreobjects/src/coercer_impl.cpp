@@ -107,8 +107,7 @@ ErrCode CoercerImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*c
 
     CoercerPtr coercerPtr;
     ErrCode errCode = createCoercer(&coercerPtr, str);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *obj = coercerPtr.addRefAndReturn();
     return OPENDAQ_SUCCESS;

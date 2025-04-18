@@ -206,13 +206,11 @@ ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* contex
 
     StringPtr typeName;
     ErrCode errCode = ser->readString("typeName"_daq, &typeName);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     StringPtr value;
     errCode = ser->readString("value"_daq, &value);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     try
     {

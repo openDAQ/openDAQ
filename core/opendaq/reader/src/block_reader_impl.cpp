@@ -259,10 +259,7 @@ ErrCode BlockReaderImpl::readPacketData()
             errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         }
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     info.writtenSampleCount += sampleCountToRead;

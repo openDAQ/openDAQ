@@ -123,13 +123,11 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializable->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (defaultValues.assigned() && !defaultValues.empty())
     {
@@ -139,13 +137,11 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = serializable->serialize(serializer);
 
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     serializer->key("types");
@@ -154,13 +150,11 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializable->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     
     serializer->endObject();
 
@@ -185,13 +179,11 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
 {
     StringPtr typeName;
     ErrCode errCode = ser->readString("typeName"_daq, &typeName);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr types;
     errCode = ser->readObject("types"_daq, context, factoryCallback, &types);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr defaultValues;
     errCode = ser->readObject("defaultValues"_daq, context, factoryCallback, &defaultValues);
@@ -200,8 +192,7 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
 
     BaseObjectPtr names;
     errCode = ser->readObject("names"_daq, context, factoryCallback, &names);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     try
     {

@@ -204,15 +204,13 @@ ErrCode StringImpl::compareTo(IBaseObject* obj)
     if (OPENDAQ_FAILED(err))
     {
         err = obj->toString(&otherValueOwned);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
         otherValue = otherValueOwned;
     }
     else
     {
         err = otherString->getCharPtr(&otherValue);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     int r = strcmp(str, otherValue);

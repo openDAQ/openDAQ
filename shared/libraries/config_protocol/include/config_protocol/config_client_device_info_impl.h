@@ -71,8 +71,7 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setProtectedPropertyValue(IString*
 
     PropertyPtr property;
     ErrCode errCode = Impl::getProperty(propertyName, &property);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     
     if (property.getReadOnly())
         return Impl::setProtectedPropertyValue(propertyName, value);

@@ -983,8 +983,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serial
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
     auto errCode = Super::serializeCustomValues(serializer, forUpdate);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return daqTry(
     [&serializerPtr, forUpdate, this]

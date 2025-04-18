@@ -148,8 +148,7 @@ ErrCode ReferenceDomainInfoImpl::Deserialize(ISerializedObject* serialized, IBas
 
     ReferenceDomainInfoBuilderPtr dataDescriptor;
     auto errCode = createObject<IReferenceDomainInfoBuilder, ReferenceDomainInfoBuilderImpl>(&dataDescriptor);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
 

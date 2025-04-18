@@ -42,8 +42,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
     {
         PropertyPtr prop;
         ErrCode err = getProperty(propertyNamePtr, &prop);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         if (!prop.assigned())
             throw NotFoundException(R"(Child property "{}" not found)", propertyNamePtr);
@@ -144,8 +143,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     {
         PropertyPtr prop;
         ErrCode err = getProperty(propertyNamePtr, &prop);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         if (!prop.assigned())
             throw NotFoundException(R"(Child property "{}" not found)", propertyNamePtr);

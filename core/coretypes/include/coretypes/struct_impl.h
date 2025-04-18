@@ -342,13 +342,11 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::serialize(ISerializer
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializableFields->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();
 
@@ -411,13 +409,11 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(
 
     StringPtr typeName;
     ErrCode errCode = ser->readString("typeName"_daq, &typeName);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr fields;
     errCode = ser->readObject("fields"_daq, context, factoryCallback, &fields);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     try
     {

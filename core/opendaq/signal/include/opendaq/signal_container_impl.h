@@ -172,8 +172,7 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::enableCoreEventTrigger()
     for (const auto& component : this->components)
     {
         const ErrCode err = component.template asPtr<IPropertyObjectInternal>()->enableCoreEventTrigger();
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger();
@@ -185,8 +184,7 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::disableCoreEventTrigger()
     for (const auto& component : this->components)
     {
         const ErrCode err = component.template asPtr<IPropertyObjectInternal>()->disableCoreEventTrigger();
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
@@ -660,8 +658,7 @@ template <class Intf, class... Intfs>
 ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
 {
     ErrCode errCode = Super::updateOperationMode(modeType);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     for (const auto& component : components)
     {
@@ -670,8 +667,7 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(Operatio
             continue;
 
         errCode = componentPrivate->updateOperationMode(modeType);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;

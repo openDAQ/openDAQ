@@ -153,8 +153,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::acceptsSignal(ISignal* signal, Bool
     OPENDAQ_PARAM_NOT_NULL(signal);
 
     const auto err = canConnectSignal(signal);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (listenerRef.assigned())
     {
@@ -185,8 +184,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
     try
     {
         auto err = canConnectSignal(signal);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         auto signalPtr = SignalPtr::Borrow(signal);
 

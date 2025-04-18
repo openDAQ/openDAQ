@@ -2422,8 +2422,7 @@ ErrCode tryFreeze(T* obj)
     auto freezable = ptr.template asOrNull<IFreezable>(true);
     ErrCode errCode = freezable->freeze();
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     ptr.detach();
     return errCode;

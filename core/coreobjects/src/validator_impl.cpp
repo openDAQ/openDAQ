@@ -117,8 +117,7 @@ ErrCode ValidatorImpl::Deserialize(ISerializedObject* serialized,
     
     ValidatorPtr validatorPtr;
     ErrCode errCode = createValidator(&validatorPtr, str);
-    if(OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *obj = validatorPtr.addRefAndReturn();
     return OPENDAQ_SUCCESS;

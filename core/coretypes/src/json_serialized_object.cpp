@@ -52,10 +52,7 @@ ErrCode JsonSerializedObject::readSerializedList(IString* key, ISerializedList**
 
     SerializedListPtr serList;
     ErrCode err = createObject<ISerializedList, JsonSerializedList>(&serList, value.GetArray());
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     *list = serList.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -177,10 +174,7 @@ ErrCode JsonSerializedObject::getKeys(IList** list)
     {
         errCode = (*list)->pushBack(String(prop.name.GetString()));
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;

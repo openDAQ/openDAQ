@@ -280,12 +280,10 @@ inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatusWithMessage(
         return OPENDAQ_IGNORED;
 
     auto errCode = statuses->set(connectionStringObj, value);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = messages->set(connectionStringObj, message);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const StringPtr statusNameAlias = statusNameAliases.getOrDefault(connectionStringObj);
 
@@ -357,8 +355,7 @@ inline ErrCode ConnectionStatusContainerImpl::Deserialize(ISerializedObject* ser
 
     ObjectPtr<IConnectionStatusContainerPrivate> statusContainer;
     auto errCode = createObject<IConnectionStatusContainerPrivate, ConnectionStatusContainerImpl>(&statusContainer, daqContext, triggerCoreEvent);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
 

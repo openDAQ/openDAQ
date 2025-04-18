@@ -311,8 +311,7 @@ ErrCode ServerCapabilityConfigImpl::getAddressInfo(IList** addressesInfo)
     BaseObjectPtr obj;
     StringPtr str = "AddressInfo";
     ErrCode err = this->getPropertyValue(str, &obj);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto addressInfoPtr = obj.asPtr<IPropertyObject>();
     for (const auto& prop : addressInfoPtr.getAllProperties())
@@ -321,8 +320,7 @@ ErrCode ServerCapabilityConfigImpl::getAddressInfo(IList** addressesInfo)
         {
             BaseObjectPtr cap;
             err = addressInfoPtr->getPropertyValue(prop.getName(), &cap);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             infos.pushBack(cap.detach());
         }
@@ -338,14 +336,12 @@ ErrCode ServerCapabilityConfigImpl::addAddressInfo(IAddressInfo* addressInfo)
     
     StringPtr address;
     ErrCode err = addressInfo->getAddress(&address);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     BaseObjectPtr obj;
     StringPtr str = "AddressInfo";
     err = this->getPropertyValue(str, &obj);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto addressInfoPtr = obj.asPtr<IPropertyObject>();
     for (const auto& prop : addressInfoPtr.getAllProperties())

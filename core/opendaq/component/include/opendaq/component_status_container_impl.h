@@ -160,8 +160,7 @@ inline ErrCode ComponentStatusContainerImpl::addStatusWithMessage(IString* name,
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS);
 
     auto errCode = statuses->set(name, initialValue);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = messages->set(name, message);
     if (OPENDAQ_FAILED(errCode))
@@ -212,15 +211,13 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
         }
         // No change in value, change in message
         auto errCode = messages->set(name, messageObj);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
     else
     {
         // Change in value
         auto errCode = statuses->set(name, value);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (oldMessage != messageObj)
         {
@@ -289,8 +286,7 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
 
     ObjectPtr<IComponentStatusContainerPrivate> statusContainer;
     auto errCode = createObject<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(&statusContainer, triggerCoreEvent);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
 

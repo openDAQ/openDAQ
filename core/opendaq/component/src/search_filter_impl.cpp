@@ -34,8 +34,7 @@ ErrCode RequiredTagsSearchFilterImpl::acceptsComponent(IComponent* component, Bo
 
     TagsPtr tags;
     const ErrCode err = component->getTags(&tags);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     *accepts = true;
     for (const auto& requiredTag : requiredTags)
@@ -71,8 +70,7 @@ ErrCode ExcludedTagsSearchFilterImpl::acceptsComponent(IComponent* component, Bo
 
     TagsPtr tags;
     const ErrCode err = component->getTags(&tags);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     *accepts = true;
     for (const auto tag : tags.getList())

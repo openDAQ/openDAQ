@@ -125,13 +125,11 @@ ErrCode MirroredDeviceBase<Interfaces...>::addStreamingSource(IStreaming* stream
                 );
             }
         );
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const auto thisPtr = this->template borrowPtr<DevicePtr>();
     errCode = streamingPtr.template asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
 }
@@ -170,12 +168,10 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
                 this->connectionStatusContainer.removeStreamingConnectionStatus(streamingConnectionStringPtr);
             }
         );
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = (*it).template asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     streamingSources.erase(it);
 

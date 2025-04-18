@@ -206,8 +206,7 @@ ErrCode MirroredSignalBase<Interfaces...>::triggerEvent(IEventPacket* eventPacke
     Bool forwardEvent;
 
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onTriggerEvent, forwardEvent, eventPacket);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *forward = forwardEvent;
     return OPENDAQ_SUCCESS;
@@ -401,8 +400,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setMirroredDomainSignal(IMirroredSign
     if (domainSignal)
     {
         const ErrCode err = mirroredDomainSignal.asPtr<IMirroredSignalPrivate>()->getMirroredDataDescriptor(&mirroredDomainDataDescriptor);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return OPENDAQ_SUCCESS;
@@ -533,16 +531,14 @@ ErrCode MirroredSignalBase<Interfaces...>::setActiveStreamingSource(IString* str
     if (listened && streamed)
     {
         ErrCode errCode = unsubscribeInternal();
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     activeStreamingSourceRef = streamingSource;
     if (listened && streamed)
     {
         ErrCode errCode = subscribeInternal();
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -575,8 +571,7 @@ ErrCode MirroredSignalBase<Interfaces...>::deactivateStreaming()
         errCode = unsubscribeInternal();
     activeStreamingSourceRef = nullptr;
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
 }
@@ -644,13 +639,11 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeInternal()
     {
         StringPtr signalRemoteId;
         ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         SignalPtr domainSignal;
         errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, domainSignal);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         StringPtr domainSignalRemoteId;
         if (domainSignal.assigned())
@@ -671,13 +664,11 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeInternal()
     {
         StringPtr signalRemoteId;
         ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         SignalPtr domainSignal;
         errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, domainSignal);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         StringPtr domainSignalRemoteId;
         if (domainSignal.assigned())
@@ -721,8 +712,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
         if (listened)
             errCode = unsubscribeInternal();
     }
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
 }

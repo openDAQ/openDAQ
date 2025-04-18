@@ -362,8 +362,7 @@ public:
         *type = ctUndefined;
         BaseObjectPtr defVal;
         auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         if (!defVal.assigned())
             return OPENDAQ_SUCCESS;
@@ -374,8 +373,7 @@ public:
 
         IntfID intfID;
         err = value.asPtr<IDictElementType>()->getKeyInterfaceId(&intfID);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         auto coreType = details::intfIdToCoreType(intfID);
 
@@ -408,13 +406,11 @@ public:
 
             BaseObjectPtr defVal;
             auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             BaseObjectPtr selVal;
             err = lock ? this->getSelectionValues(&selVal) : this->getSelectionValuesNoLock(&selVal);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             BaseObjectPtr value = defVal.assigned() ? defVal : nullptr;
             value = selVal.assigned() ? selVal : value;
@@ -965,8 +961,7 @@ public:
             if (const auto freezable = defaultValue.asPtrOrNull<IFreezable>(); freezable.assigned())
             {
                 const ErrCode err = freezable->freeze();
-                if (OPENDAQ_FAILED(err))
-                    return err;
+                OPENDAQ_RETURN_IF_FAILED(err);
             }
         }
 
@@ -1144,20 +1139,13 @@ public:
         ErrCode errCode = serializedObj->readString(String("name"), &name);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
 
         const auto propObj = PropertyBuilder(name);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
 
         errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", propObj, context, factoryCallback, &IPropertyBuilder::setValueType);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         DESERIALIZE_MEMBER(context, factoryCallback, description, setDescription)
 
@@ -1165,7 +1153,7 @@ public:
         errCode = serializedObj->readObject(String("unit"), context, factoryCallback, &unit);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1178,7 +1166,7 @@ public:
         errCode = serializedObj->readObject(String("refProp"), context, factoryCallback, &refProp);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1191,7 +1179,7 @@ public:
         errCode = serializedObj->readObject(String("suggestedValues"), context, factoryCallback, &suggestedValues);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1202,7 +1190,7 @@ public:
         errCode = serializedObj->readObject(String("visible"), context, factoryCallback, &visible);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1213,7 +1201,7 @@ public:
         errCode = serializedObj->readObject(String("readOnly"), context, factoryCallback, &readOnly);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1224,7 +1212,7 @@ public:
         errCode = serializedObj->readObject(String("minValue"), context, factoryCallback, &minValue);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1235,7 +1223,7 @@ public:
         errCode = serializedObj->readObject(String("maxValue"), context, factoryCallback, &maxValue);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1246,7 +1234,7 @@ public:
         errCode = serializedObj->readObject(String("coercer"), context, factoryCallback, &coercer);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1257,7 +1245,7 @@ public:
         errCode = serializedObj->readObject(String("validator"), context, factoryCallback, &validator);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1268,7 +1256,7 @@ public:
         errCode = serializedObj->readObject(String("callableInfo"), context, factoryCallback, &callableInfo);
         if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
         {
-            return errCode;
+            return DAQ_MAKE_ERROR_INFO(errCode);
         }
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
@@ -1334,10 +1322,7 @@ public:
 
         PropertyPtr prop;
         ErrCode err = clone(&prop);
-        if (OPENDAQ_FAILED(err))
-        {
-            return err;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         return daqTry([&] {
             prop.asPtr<IOwnable>().setOwner(owner);
@@ -1498,8 +1483,7 @@ public:
         {
             PermissionManagerPtr parentManager;
             ErrCode err = owner->getPermissionManager(&parentManager);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>();
 

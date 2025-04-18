@@ -457,10 +457,7 @@ ErrCode StreamReaderImpl::readPacketData()
     if (info.values != nullptr)
     {
         ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     if (info.domainValues != nullptr)
@@ -482,10 +479,7 @@ ErrCode StreamReaderImpl::readPacketData()
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     if (toRead < remainingSampleCount)

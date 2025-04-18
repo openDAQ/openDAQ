@@ -180,8 +180,7 @@ ErrCode EventImpl::setMuted(IEventHandler* eventHandler, bool muted)
     SizeT hashCode;
     ErrCode errCode = eventHandler->getHashCode(&hashCode);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const Iterator iterator = std::find_if(handlers.begin(),
         handlers.end(),

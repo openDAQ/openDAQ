@@ -1172,8 +1172,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* mode
     auto lockGuardList = this->getTreeLockGuard();
 
     ErrCode errCode = this->updateOperationModeInternal(mode);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     for (const auto& component : this->components)
     {
@@ -1185,8 +1184,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* mode
             continue;
 
         errCode = componentPrivate->updateOperationMode(mode);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -1196,14 +1194,12 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(IString* modeType)
 {
     ErrCode errCode = setOperationMode(modeType);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     
     for (const DevicePtr & dev: this->devices.getItems())
     {
         errCode = dev->setOperationModeRecursive(modeType);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
     return OPENDAQ_SUCCESS;
 }

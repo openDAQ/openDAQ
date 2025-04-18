@@ -54,8 +54,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
         }
 
         const ErrCode err = types->set(typeName, typePtr);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return daqTry([&]
@@ -78,8 +77,7 @@ ErrCode TypeManagerImpl::removeType(IString* name)
 
         BaseObjectPtr obj;
         const ErrCode err = types->remove(name, &obj);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return daqTry([&]
@@ -146,13 +144,11 @@ ErrCode TypeManagerImpl::serialize(ISerializer* serializer)
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializableFields->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();
 
@@ -180,8 +176,7 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
 
         BaseObjectPtr types;
         ErrCode errCode = ser->readObject("types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types.asPtr<IDict>().getValues())
         {

@@ -143,10 +143,7 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
             errCode = domainReader->readData(domainPacket.getData(), info.offset, &info.domainValues, toRead);
         }
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     info.offset = 0;

@@ -265,8 +265,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDescriptor(IDataDescriptor** d
     
     DataDescriptorPtr dataDescriptorPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetDescriptor, dataDescriptorPtr);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *descriptor = dataDescriptorPtr.detach();
     return OPENDAQ_SUCCESS;
@@ -453,8 +452,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
 
     SignalPtr signalPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, signalPtr);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *signal = signalPtr.detach();
     return OPENDAQ_SUCCESS;
@@ -927,8 +925,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
     if (connections.empty())
     {
         const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     connections.push_back(connectionPtr);
@@ -966,8 +963,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
     if (connections.empty())
     {
         const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, false);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;

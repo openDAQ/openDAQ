@@ -827,13 +827,11 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ErrCode err = getAvailableDeviceTypes(&deviceTypes);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
     
     DictPtr<IString, IStreamingType> streamingTypes;
     err = getAvailableStreamingTypes(&streamingTypes);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     auto config = PropertyObject();
     

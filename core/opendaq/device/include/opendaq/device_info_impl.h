@@ -535,8 +535,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getCustomInfoPropertyNa
 {
     auto propList = List<IProperty>();
     const ErrCode err = Super::getAllProperties(&propList);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     auto customPropNameList = List<IString>();
     for (auto prop : propList)
@@ -812,14 +811,12 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
     
     StringPtr id;
     ErrCode err = serverCapability->getProtocolId(&id);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     BaseObjectPtr serverCapabilities;
     StringPtr str = "serverCapabilities";
     err = this->getPropertyValue(str, &serverCapabilities);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>(true);
     for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
@@ -844,8 +841,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeServerCapability(
     BaseObjectPtr serverCapabilities;
     StringPtr str = "serverCapabilities";
     const ErrCode err = this->getPropertyValue(str, &serverCapabilities);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
     
     const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>(true);
     if (!serverCapabilitiesPtr.hasProperty(protocolId))
@@ -860,8 +856,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCap
     BaseObjectPtr serverCapabilities;
     StringPtr str = "serverCapabilities";
     ErrCode err = this->getPropertyValue(str, &serverCapabilities);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
     
     const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>(true);
     const auto props = serverCapabilitiesPtr.getAllProperties();
@@ -870,8 +865,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clearServerStreamingCap
         if (prop.getValueType() == ctObject)
         {
             err = serverCapabilitiesPtr->removeProperty(prop.getName());
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
         }
     }
 
@@ -887,8 +881,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::hasServerCapability(ISt
     BaseObjectPtr obj;
     StringPtr str = "serverCapabilities";
     ErrCode err = this->getPropertyValue(str, &obj);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>(true);
     serverCapabilitiesPtr->hasProperty(protocolId, hasCapability);
@@ -903,8 +896,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapability(ISt
 
     Bool hasCap;
     ErrCode err = this->hasServerCapability(protocolId, &hasCap);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (!hasCap)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Server capability with id "{}" not found.)", StringPtr::Borrow(protocolId)));
@@ -912,8 +904,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapability(ISt
     BaseObjectPtr obj;
     StringPtr str = "serverCapabilities";
     err = this->getPropertyValue(str, &obj);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>();
     *capability = serverCapabilitiesPtr.getPropertyValue(protocolId).asPtr<IServerCapability>().detach();
@@ -929,8 +920,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
     BaseObjectPtr obj;
     StringPtr str = "serverCapabilities";
     ErrCode err = this->getPropertyValue(str, &obj);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>(true);
     for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
@@ -939,8 +929,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
         {
             BaseObjectPtr cap;
             err = serverCapabilitiesPtr->getPropertyValue(prop.getName(), &cap);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             caps.pushBack(cap.detach());
         }
@@ -956,8 +945,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
     BaseObjectPtr obj;
     StringPtr str = "configurationConnectionInfo";
     ErrCode err = this->getPropertyValue(str, &obj);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
     *connectionInfo = obj.asPtr<IServerCapability>().detach();
     return OPENDAQ_SUCCESS;
 }
@@ -1015,8 +1003,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addConnectedClient(Size
     BaseObjectPtr clientsInfoProperty;
     auto propertyName = String("activeClientConnections");
     ErrCode err = this->getPropertyValue(propertyName, &clientsInfoProperty);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (*clientNumber == 0 || *clientNumber > totalCountOfConnectedClientsEverRegistered)
         *clientNumber = ++totalCountOfConnectedClientsEverRegistered;
@@ -1034,8 +1021,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::removeConnectedClient(S
     BaseObjectPtr clientsInfoProperty;
     auto propertyName = String("activeClientConnections");
     const ErrCode err = this->getPropertyValue(propertyName, &clientsInfoProperty);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto clientsInfoPropretyObject = clientsInfoProperty.asPtr<IPropertyObject>(true);
     return clientsInfoPropretyObject->removeProperty(id);
@@ -1050,8 +1036,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConnectedClientsInfo
     BaseObjectPtr obj;
     auto propertyName = String("activeClientConnections");
     ErrCode err = this->getPropertyValue(propertyName, &obj);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto clientsInfoPtr = obj.asPtr<IPropertyObject>(true);
     for (const auto& prop : clientsInfoPtr.getAllProperties())
@@ -1060,8 +1045,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConnectedClientsInfo
         {
             BaseObjectPtr clientInfo;
             err = clientsInfoPtr->getPropertyValue(prop.getName(), &clientInfo);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             clientsInfoList.pushBack(clientInfo.detach());
         }
@@ -1085,8 +1069,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(
 {
     Int version;
     ErrCode err = serializer->getVersion(&version);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     // skip object-type property which cannot be properly handled by older version
     if (name == "activeClientConnections" && version < 3)
@@ -1099,8 +1082,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const
 {
     Int version;
     ErrCode err = serializer->getVersion(&version);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     // skip object-type property which cannot be properly handled by older version
     if (property.getName() == "activeClientConnections" && version < 3)
@@ -1154,8 +1136,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
 {
     ErrCode errCode = Super::setOwner(newOwner);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (errCode == OPENDAQ_IGNORED)
         return errCode;
@@ -1180,8 +1161,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     {
         PropertyPtr property;
         errCode = this->getProperty(propertyName, &property);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (property.getReadOnly())
             continue;
@@ -1192,12 +1172,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         
         BaseObjectPtr propertyValue;
         errCode = Super::getPropertyValueNoLock(propertyName, &propertyValue);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
         
         errCode = parent->setPropertyValue(propertyName, propertyValue);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;

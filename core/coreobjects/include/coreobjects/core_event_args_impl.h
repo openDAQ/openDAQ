@@ -138,13 +138,11 @@ inline ErrCode CoreEventArgsImpl::serialize(ISerializer* serializer)
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializableParams->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();
 
@@ -167,8 +165,7 @@ inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObjec
 {
     Int id;
     ErrCode errCode = ser->readInt("id"_daq, &id);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     StringPtr name;
     errCode = ser->readString("name"_daq, &name);
@@ -178,13 +175,11 @@ inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObjec
         errCode = OPENDAQ_SUCCESS;
     }
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr params;
     errCode = ser->readObject("params"_daq, context, factoryCallback, &params);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     try
     {

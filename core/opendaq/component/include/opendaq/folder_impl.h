@@ -158,8 +158,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searc
 
     IList* list;
     auto err = createListWithElementType(&list, itemId);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     ListPtr<IComponent> childList = ListPtr<IComponent>::Adopt(list);
     for (const auto& [_, item] : this->items)
@@ -249,8 +248,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
             return OPENDAQ_SUCCESS;
         });
 
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -288,8 +286,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
             return OPENDAQ_SUCCESS;
         });
 
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
     
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -363,8 +360,7 @@ ErrCode FolderImpl<Intf, Intfs...>::enableCoreEventTrigger()
     for (const auto& [_, item] : items)
     {
         const ErrCode err = item.template asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger();
@@ -376,8 +372,7 @@ ErrCode FolderImpl<Intf, Intfs...>::disableCoreEventTrigger()
     for (const auto& [_, item] : items)
     {
         const ErrCode err = item.template asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
@@ -567,8 +562,7 @@ template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
 {
     ErrCode errCode = Super::updateOperationMode(modeType);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     for (const auto& [_, item] : items)
     {

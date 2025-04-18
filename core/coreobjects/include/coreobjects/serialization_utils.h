@@ -81,7 +81,7 @@ inline ErrCode deserializeMember(ISerializedObject* serialized,
 
     if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
     {
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode);
     }
 
     if (errCode != OPENDAQ_ERR_NOTFOUND)
@@ -126,17 +126,11 @@ inline ErrCode serializeMember(ISerializer* serializer, const char* name, const 
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
         }
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         serializer->key(name);
         errCode = serializable->serialize(serializer);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
     return OPENDAQ_SUCCESS;
 }

@@ -89,8 +89,7 @@ ErrCode ListImpl::clone(IBaseObject** cloned)
         {
             BaseObjectPtr clonedVal;
             const ErrCode err = cloneable->clone(&clonedVal);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             lst->pushBack(clonedVal);
         }
@@ -434,8 +433,7 @@ ErrCode ListImpl::serialize(ISerializer* serializer)
     OPENDAQ_PARAM_NOT_NULL(serializer);
     Int version;
     ErrCode err = serializer->getVersion(&version);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (version > 1)
     {
@@ -471,16 +469,10 @@ ErrCode ListImpl::serialize(ISerializer* serializer)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
         }
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = serializableElement->serialize(serializer);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     serializer->endList();

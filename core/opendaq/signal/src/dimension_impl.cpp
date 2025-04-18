@@ -75,8 +75,7 @@ ErrCode DimensionImpl::getSize(SizeT* size)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_UNKNOWN_RULE_TYPE, R"(Rule type is set to "other" and cannot be parse by openDAQ)");
 
     ErrCode err = rule.asPtr<IRulePrivate>()->verifyParameters();
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (rule.getType() == DimensionRuleType::Linear || rule.getType() == DimensionRuleType::Logarithmic)
     {
@@ -120,8 +119,7 @@ ErrCode DimensionImpl::getLabels(IList** labels)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_UNKNOWN_RULE_TYPE, R"(Rule type is set to "other" and cannot be parsed by openDAQ)");
 
     ErrCode err = rule.asPtr<IRulePrivate>()->verifyParameters();
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     try
     {

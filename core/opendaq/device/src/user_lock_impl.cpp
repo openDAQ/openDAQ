@@ -88,8 +88,7 @@ ErrCode UserLockImpl::Deserialize(ISerializedObject* serialized, IBaseObject* co
 
     Bool isLocked;
     ErrCode err = serializedObj->readBool(String("locked"), &isLocked);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     StringPtr username;
     err = serializedObj->readString(String("username"), &username);

@@ -51,10 +51,7 @@ ErrCode JsonSerializedList::readList(IBaseObject* context, IFunction* factoryCal
         IBaseObject* object;
         ErrCode errCode = JsonDeserializerImpl::Deserialize(array[index++], context, factoryCallback, &object);
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *list = static_cast<IList*>(object);
         return OPENDAQ_SUCCESS;

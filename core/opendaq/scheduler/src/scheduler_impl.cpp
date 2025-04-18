@@ -82,8 +82,7 @@ ErrCode SchedulerImpl::checkAndPrepare(const IBaseObject* work, IAwaitable** awa
 ErrCode SchedulerImpl::scheduleFunction(IFunction* function, IAwaitable** awaitable)
 {
     ErrCode errCode = checkAndPrepare(function, awaitable);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     auto scheduled = createWithImplementation<IAwaitable, AwaitableFunc>(
         executor->async([func = FunctionPtr(function)]() mutable
@@ -114,8 +113,7 @@ ErrCode SchedulerImpl::scheduleWork(IWork* work)
 ErrCode SchedulerImpl::scheduleGraph(ITaskGraph* graph, IAwaitable** awaitable)
 {
     ErrCode errCode = checkAndPrepare(graph, awaitable);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     auto scheduled = TaskPtr::Borrow(graph).asPtrOrNull<ITaskInternal>(true);
     if (scheduled == nullptr)

@@ -56,10 +56,7 @@ ErrCode JsonDeserializerImpl::DeserializeTagged(JsonValue& document, IBaseObject
     {
         errCode = daqGetSerializerFactory(typeId.data(), &factory);
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = factory(jsonSerObj, context, factoryCallback, object);
     }
@@ -87,16 +84,10 @@ ErrCode JsonDeserializerImpl::DeserializeList(const JsonList& array, IBaseObject
         IBaseObject* elementObj;
         errCode = Deserialize(element, context, factoryCallback, &elementObj);
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = list->moveBack(elementObj);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
     *object = list;
 

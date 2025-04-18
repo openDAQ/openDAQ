@@ -152,8 +152,7 @@ ErrCode ConnectedClientInfoImpl::serialize(ISerializer* serializer)
 {
     Int version;
     ErrCode err = serializer->getVersion(&version);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (version < 3)
     {

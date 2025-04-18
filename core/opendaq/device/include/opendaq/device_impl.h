@@ -246,7 +246,7 @@ private:
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Idle};
-    ListPtr<OperationModeType> availableOperationModes;
+    ListPtr<Int> availableOperationModes;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -1720,7 +1720,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         }
 
         {
-            ListPtr<OperationModeType> availableOpModes;
+            ListPtr<Int> availableOpModes;
             this->getAvailableOperationModes(&availableOpModes);
             if (availableOpModes.assigned())
             {

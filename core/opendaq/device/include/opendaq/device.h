@@ -355,7 +355,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) = 0;
 
-    // [elementType(availableOpModes, OperationModeType)]
+    // [elementType(availableOpModes, Int)]
     /*!
      * @brief Gets a list of available operation modes for the device.
      * @param[out] availableOpModes The list of available operation modes.

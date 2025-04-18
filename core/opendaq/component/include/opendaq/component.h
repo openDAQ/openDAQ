@@ -37,7 +37,6 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IComponent, GenericComponentPtr)]
  * [interfaceLibrary(ICoreEventArgs, "coreobjects")]
  * [includeHeader("<coretypes/event_wrapper.h>")]
- * [interfaceSmartPtr(OperationModeType, IntPtr, "<coretypes/integer.h>")]
  */
 
 enum class OperationModeType: EnumType

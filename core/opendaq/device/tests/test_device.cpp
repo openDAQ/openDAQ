@@ -588,7 +588,7 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
     device.asPtr<daq::IComponentPrivate>(true).updateOperationMode(daq::OperationModeType::Unknown);
     subDevice.asPtr<daq::IComponentPrivate>(true).updateOperationMode(daq::OperationModeType::Unknown);
 
-    auto expectedDeviceModes = daq::List<daq::OperationModeType>(
+    auto expectedDeviceModes = daq::List<daq::Int>(
         static_cast<daq::Int>(daq::OperationModeType::Idle),
         static_cast<daq::Int>(daq::OperationModeType::Operation),
         static_cast<daq::Int>(daq::OperationModeType::SafeOperation));
@@ -633,7 +633,7 @@ TEST_F(DeviceTest, CheckNotSupportedOpMode)
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
     device.asPtr<daq::IComponentPrivate>(true).updateOperationMode(daq::OperationModeType::Unknown);
 
-    auto expectedDeviceModes = daq::List<daq::OperationModeType>(
+    auto expectedDeviceModes = daq::List<daq::Int>(
         static_cast<daq::Int>(daq::OperationModeType::Idle), 
         static_cast<daq::Int>(daq::OperationModeType::Operation));
 

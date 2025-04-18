@@ -139,7 +139,7 @@ ErrCode TmsClientDeviceImpl::getAvailableOperationModes(IList** availableOpModes
 
     const auto nodeId = getNodeId("OperationModeOptions");
     auto opModesNodeStrList = VariantConverter<IString>::ToDaqList(client->readValue(nodeId));
-    auto convertedOpModes = List<OperationModeType>();
+    auto convertedOpModes = List<Int>();
     for (const auto& opMode : opModesNodeStrList)
         convertedOpModes.pushBack(static_cast<Int>(OperationModeTypeFromString(opMode)));
 

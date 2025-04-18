@@ -309,9 +309,17 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
     template <typename... Params>
     ErrCode makeErrorInfo(ErrCode errCode)
     {
-        std::stringstream ss;
-        ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
-        setErrorInfoWithSource(nullptr, ss.str());
+        IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
+        std::string msg = fact->getExceptionMessage();
+
+        if (msg.empty())
+        {
+            std::stringstream ss;
+            ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
+            msg = ss.str();
+        }
+
+        setErrorInfoWithSource(nullptr, msg);
         return errCode;
     }
 
@@ -329,9 +337,17 @@ ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, IBaseObject* 
     template <typename... Params>
     ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode)
     {
-        std::stringstream ss;
-        ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
-        setErrorInfoWithSource(fileName, fileLine, nullptr, ss.str());
+        IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
+        std::string msg = fact->getExceptionMessage();
+
+        if (msg.empty())
+        {
+            std::stringstream ss;
+            ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
+            msg = ss.str();
+        }
+
+        setErrorInfoWithSource(fileName, fileLine, nullptr, msg);
         return errCode;
     }
 

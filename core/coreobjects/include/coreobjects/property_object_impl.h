@@ -412,7 +412,9 @@ protected:
                                            PropertyObjectPtr& propObjPtr);
 
     // Child property handling - Used when a property is queried in the "parent.child" format
-    bool isChildProperty(const StringPtr& name, StringPtr& childName, StringPtr& subName) const;
+    bool isChildProperty(const StringPtr& name) const;
+    void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
+    void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
 
     // Update
 
@@ -655,20 +657,42 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getClassName
 #endif
 
 template <class PropObjInterface, class... Interfaces>
-bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty(const StringPtr& name,
-                                                                                 StringPtr& childName,
-                                                                                 StringPtr& subName) const
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty(const StringPtr& name) const
 {
-    auto strName = name.getCharPtr();
-    auto propName = strchr(strName, '.');
-    if (propName != nullptr)
-    {
-        childName = String(strName, propName - strName);
-        subName = String(propName + 1);
-        return true;
-    }
+    auto chr = strchr(name.getCharPtr(), '.');
+    return chr != nullptr;
+}
 
-    return false;
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::splitOnFirstDot(const StringPtr& input,
+                                                                                 StringPtr& head,
+                                                                                 StringPtr& tail) const
+{
+    const std::string inputStr = input;
+    head = input;
+
+    size_t pos = inputStr.find('.');
+    if (pos == std::string::npos)
+        return;
+    
+    head = inputStr.substr(0, pos);
+    tail = inputStr.substr(pos + 1);
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::splitOnLastDot(const StringPtr& input,
+                                                                                StringPtr& head,
+                                                                                StringPtr& tail) const
+{
+    const std::string inputStr = input;
+    head = input;
+
+    size_t pos = inputStr.rfind('.');
+    if (pos == std::string::npos)
+        return;
+
+    head = inputStr.substr(0, pos);
+    tail = inputStr.substr(pos + 1);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1099,12 +1123,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             return OPENDAQ_SUCCESS;
         }
 
-        StringPtr childName;
         StringPtr subName;
-        const auto isChildProp = isChildProperty(propName, childName, subName);
+        const auto isChildProp = isChildProperty(propName);
         if (isChildProp)
         {
-            propName = childName;
+            splitOnFirstDot(propName, propName, subName);
         }
 
         PropertyPtr prop = getUnboundProperty(propName);
@@ -1843,12 +1866,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             return OPENDAQ_SUCCESS;
         }
 
-        StringPtr childName;
         StringPtr subName;
-        const auto isChildProp = isChildProperty(propName, childName, subName);
+        const auto isChildProp = isChildProperty(propName);
         if (isChildProp)
         {
-            propName = childName;
+            splitOnFirstDot(propName, propName, subName);
         }
 
         PropertyPtr prop = getUnboundPropertyOrNull(propName);
@@ -1962,12 +1984,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
         BaseObjectPtr valuePtr;
         ErrCode err;
 
-        StringPtr childName;
-        StringPtr subName;
 
-        if (isChildProperty(propName, childName, subName))
+        if (isChildProperty(propName))
         {
-            err = getChildPropertyValue(childName, subName, valuePtr);
+            StringPtr subName;
+            splitOnFirstDot(propName, propName, subName);
+            err = getChildPropertyValue(propName, subName, valuePtr);
         }
         else
         {
@@ -2000,10 +2022,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         BaseObjectPtr valuePtr;
         PropertyPtr prop;
 
-        StringPtr childName;
-        StringPtr subName;
-
-        if (isChildProperty(propName, childName, subName))
+        if (isChildProperty(propName))
         {
             getProperty(propName, &prop);
             if (!prop.assigned())
@@ -2067,19 +2086,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProperty(
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(property);
 
-    return daqTry([&]() -> auto {
-        StringPtr childName;
-        StringPtr subName;
+    return daqTry([&]() -> auto
+    {
+
         StringPtr propName = propertyName;
-
-        const auto isChildProp = isChildProperty(propName, childName, subName);
-
         PropertyPtr prop;
 
-        if (isChildProp)
+        if (isChildProperty(propName))
         {
-            propName = childName;
+            StringPtr subName;
             BaseObjectPtr childProp;
+
+            splitOnFirstDot(propName, propName, subName);
             const ErrCode err = getPropertyValueInternal(propName, &childProp);
             if (OPENDAQ_FAILED(err))
             {
@@ -3207,6 +3225,26 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(hasProperty);
+
+    auto propName = StringPtr::Borrow(propertyName);
+
+    if (isChildProperty(propName))
+    {
+        BaseObjectPtr val;
+        StringPtr childStr;
+        splitOnLastDot(propName, propName, childStr);
+
+        ErrCode err = getPropertyValue(propName, &val);
+        if (OPENDAQ_FAILED(err))
+            return DAQ_MAKE_ERROR_INFO(err, fmt::format(R"(Failed to retrieve child object with name {})", propName));
+
+        PropertyObjectPtr obj = val.asPtrOrNull<IPropertyObject>(true);
+        if (!obj.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, fmt::format(R"(Child with name {} is not a Object-type property)", propName));
+
+        return obj->hasProperty(childStr, hasProperty);
+    }
+    
 
     if (localProperties.find(propertyName) != localProperties.cend())
     {

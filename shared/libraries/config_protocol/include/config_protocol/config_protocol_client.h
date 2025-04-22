@@ -341,6 +341,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
             ErrCode errCode = localTypeManager->addType(type);
             if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
             {
+                daqClearErrorInfo();
                 const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
                 LOG_D("Type {} already exists in local type manager", type.getName());
             }

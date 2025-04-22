@@ -204,7 +204,8 @@ template <class Intf, class ... Intfs>
 ErrCode SignalContainerImpl<Intf, Intfs...>::setActive(Bool active)
 {
     const ErrCode err = Super::setActive(active);
-    if (OPENDAQ_FAILED(err) || err == OPENDAQ_IGNORED)
+    OPENDAQ_RETURN_IF_FAILED(err);
+    if (err == OPENDAQ_IGNORED)
         return err;
 
     return daqTry([&]

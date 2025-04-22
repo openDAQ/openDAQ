@@ -196,7 +196,8 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     });
 
     auto err = createErrorInfo(&errorInfo_);
-    OPENDAQ_RETURN_IF_FAILED(err);
+    if (OPENDAQ_FAILED(err))
+        return err;
 
     if constexpr (sizeof...(params) == 0)
     {
@@ -214,18 +215,22 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
         err = createString(&msg, errorMsg);
     }
 
-    OPENDAQ_RETURN_IF_FAILED(err);
+    if (OPENDAQ_FAILED(err))
+        return err;;
 
     err = errorInfo_->setMessage(msg);
-    OPENDAQ_RETURN_IF_FAILED(err);
+    if (OPENDAQ_FAILED(err))
+        return err;
 
     if (sourceObj)
     {
         err = createString(&source, objectToString(sourceObj).c_str());
-        OPENDAQ_RETURN_IF_FAILED(err);
+        if (OPENDAQ_FAILED(err))
+            return err;
 
         err = errorInfo_->setSource(source);
-        OPENDAQ_RETURN_IF_FAILED(err);
+        if (OPENDAQ_FAILED(err))
+            return err;
     }
 
     errorInfo_->addRef();
@@ -243,15 +248,18 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, ConstCharPtr fileName, Int fileLine, IBaseObject* sourceObj, const std::string& message, Params... params)
     {
         ErrCode errCode = createErrorInfoObjectWithSource(errorInfo, sourceObj, message, std::forward<Params>(params)...);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
 
         IErrorInfo* errorInfo_ = *errorInfo;
 
         errCode = errorInfo_->setFileName(fileName);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
 
         errCode = errorInfo_->setFileLine(fileLine);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
+        if (OPENDAQ_FAILED(errCode))
+            return errCode;
 
         return OPENDAQ_SUCCESS;
     }

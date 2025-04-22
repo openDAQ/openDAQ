@@ -203,10 +203,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
     }
 
     ErrCode errCode = checkClassNameIsSyncInterface(className, typeManager);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr interfacesValue;
     StringPtr str = "Interfaces";

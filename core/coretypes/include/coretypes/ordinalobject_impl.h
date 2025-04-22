@@ -93,6 +93,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equals(IBaseObject* other, Bool* 
 
         if (OPENDAQ_FAILED(err))
         {
+            daqClearErrorInfo();
             return OPENDAQ_SUCCESS;
         }
 

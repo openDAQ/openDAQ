@@ -120,10 +120,7 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
     SizeT toRead = std::min(info.remainingToRead, remainingSampleCount);
 
     ErrCode errCode = valueReader->readData(getValuePacketData(dataPacket), info.offset, &info.values, toRead);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (info.domainValues != nullptr)
     {

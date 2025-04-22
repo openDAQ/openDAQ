@@ -181,8 +181,7 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
         for (const auto& type : types.asPtr<IDict>().getValues())
         {
             errCode = typeManagerPtr->addType(type.asPtrOrNull<IType>(true));
-            if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_ALREADYEXISTS)
-                return errCode;
+            OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_ALREADYEXISTS);
         }
         *obj = typeManagerPtr.detach();
     }

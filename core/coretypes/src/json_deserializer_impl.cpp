@@ -26,44 +26,32 @@ ErrCode JsonDeserializerImpl::DeserializeTagged(JsonValue& document, IBaseObject
 
     SerializedObjectPtr jsonSerObj;
     auto errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, jsonObject);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     bool constructedFromCallbackFactory = false;
 
-    errCode = daqTry(
-        [&factoryCallback, &typeId, &object, &context, &jsonSerObj, &constructedFromCallbackFactory]
-        {
-            const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
-            if (factoryCallbackPtr.assigned())
-            {
-                *object = factoryCallbackPtr.call(String(typeId), jsonSerObj, context, factoryCallback).detach();
-                constructedFromCallbackFactory = *object != nullptr;
-            }
-
-            return OPENDAQ_SUCCESS;
-        });
-
-    if (OPENDAQ_FAILED(errCode))
+    errCode = daqTry([&factoryCallback, &typeId, &object, &context, &jsonSerObj, &constructedFromCallbackFactory]
     {
-        return errCode;
-    }
+        const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
+        if (factoryCallbackPtr.assigned())
+        {
+            *object = factoryCallbackPtr.call(String(typeId), jsonSerObj, context, factoryCallback).detach();
+            constructedFromCallbackFactory = *object != nullptr;
+        }
+
+        return OPENDAQ_SUCCESS;
+    });
+
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     daqDeserializerFactory factory{};
     if (!constructedFromCallbackFactory)
     {
         errCode = daqGetSerializerFactory(typeId.data(), &factory);
-
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = factory(jsonSerObj, context, factoryCallback, object);
-    }
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -74,10 +62,7 @@ ErrCode JsonDeserializerImpl::DeserializeList(const JsonList& array, IBaseObject
 {
     IList* list;
     ErrCode errCode = createList(&list);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     for (auto& element : array)
     {
@@ -237,10 +222,7 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized,
 
     SerializedObjectPtr jsonSerObj;
     ErrCode errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, document.GetObject(), true);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return updatable->update(jsonSerObj, config);
 }
@@ -286,10 +268,7 @@ ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IStr
 
     SerializedObjectPtr jsonSerObj;
     ErrCode errCode = createObject<ISerializedObject, JsonSerializedObject>(&jsonSerObj, document.GetObject(), true);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const ProcedurePtr proc = ProcedurePtr::Borrow(customDeserialize);
     return daqTry([&]

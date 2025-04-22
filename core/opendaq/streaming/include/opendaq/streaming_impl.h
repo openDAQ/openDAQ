@@ -198,10 +198,7 @@ ErrCode StreamingImpl<Interfaces...>::setActive(Bool active)
         return OPENDAQ_IGNORED;
 
     const ErrCode errCode = wrapHandler(this, &Self::onSetActive, active);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     std::scoped_lock lock(sync);
     this->isActive = active;
@@ -347,10 +344,7 @@ template <typename... Interfaces>
 ErrCode StreamingImpl<Interfaces...>::removeAllSignals()
 {
     ErrCode errCode = removeStreamingSourceForAllSignals();
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     std::scoped_lock lock(sync);
     for (const auto& [_, signalItem] : streamingSignalsItems)

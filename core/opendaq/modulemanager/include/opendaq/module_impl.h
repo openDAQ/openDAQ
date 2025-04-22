@@ -104,8 +104,7 @@ public:
 
         DictPtr<IString, IDeviceType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
-        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-            return errCode;
+        OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr deviceType;
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);
@@ -168,8 +167,7 @@ public:
         
         DictPtr<IString, IComponentType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
-        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-            return errCode;
+        OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr type;
         if (types.assigned())
@@ -218,9 +216,8 @@ public:
 
         DictPtr<IString, IComponentType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
-        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-            return errCode;
-        
+        OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
+
         ComponentTypePtr type;
         if (types.assigned())
             type = types.getOrDefault(serverTypeId);
@@ -246,8 +243,7 @@ public:
         
         DictPtr<IString, IStreamingType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
-        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-            return errCode;
+        OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr streamingType;
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);

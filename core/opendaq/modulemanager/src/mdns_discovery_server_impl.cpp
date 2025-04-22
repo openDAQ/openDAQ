@@ -33,7 +33,10 @@ std::string GetPropertyValueOrDefault(const daq::PropertyObjectPtr& propObj, con
     daq::BaseObjectPtr value;
     auto errCode = propObj->getPropertyValue(key, &value);
     if (OPENDAQ_FAILED(errCode))
+    {
+        daqClearErrorInfo();
         return defaultValue;
+    }
     return std::string(value);
 }
 

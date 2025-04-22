@@ -109,7 +109,8 @@ void EvalValueImpl::onCreate()
 
     ConstCharPtr s;
     parseErrCode = eval->getCharPtr(&s);
-    OPENDAQ_RETURN_IF_FAILED(parseErrCode);
+    if (OPENDAQ_FAILED(parseErrCode))
+        return;
 
     bool parsed = parseEvalValue(s, &params);
     resolveStatus = ResolveStatus::Unresolved;

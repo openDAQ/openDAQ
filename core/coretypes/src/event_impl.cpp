@@ -36,11 +36,7 @@ ErrCode EventImpl::removeHandler(IEventHandler* eventHandler)
 
     SizeT hashCode;
     ErrCode errCode = eventHandler->getHashCode(&hashCode);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const ConstIterator iterator = std::find_if(handlers.begin(),
                                                 handlers.end(),
@@ -108,8 +104,7 @@ ErrCode EventImpl::trigger(IBaseObject* sender, IEventArgs* args)
         if (!handler.muted)
         {
             const ErrCode errCode = handler.eventHandler->handleEvent(sender, args);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
             continue;
         }
 

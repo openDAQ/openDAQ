@@ -757,6 +757,7 @@ static T baseObjectToValue(IBaseObject* obj)
     ErrCode err = obj->borrowInterface(Intf::Id, reinterpret_cast<void**>(&typeObj));
     if (OPENDAQ_FAILED(err))
     {
+        daqClearErrorInfo();
         value = getValueFromConvertible<T>(obj);
     }
     else
@@ -2435,10 +2436,7 @@ ErrCode createObjectFrozen(Interface** intf, Params... params)
 
     Ptr ptr{};
     ErrCode errCode = daq::createObject<Interface, Impl>(&ptr, std::forward<Params>(params)...);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     auto freezable = ptr.template asOrNull<IFreezable>(true);
     errCode = freezable->freeze();

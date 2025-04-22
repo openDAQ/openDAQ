@@ -26,7 +26,15 @@
 
 #ifdef OPENDAQ_ENABLE_PARAMETER_VALIDATION
 
-#define OPENDAQ_RETURN_IF_FAILED(errCode)       \
+#define OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, expectedErrCode) \
+    do {                                                        \
+        if ((errCode) == (expectedErrCode))                     \
+            daqClearErrorInfo();                                \
+        else if (OPENDAQ_FAILED(errCode))                       \
+            return DAQ_MAKE_ERROR_INFO(errCode);                \
+    } while (0)
+
+#define OPENDAQ_RETURN_IF_FAILED(errCode) \
     do { if (OPENDAQ_FAILED(errCode)) return DAQ_MAKE_ERROR_INFO(errCode); } while (0)
 
 #define OPENDAQ_PARAM_REQUIRE(cond) \

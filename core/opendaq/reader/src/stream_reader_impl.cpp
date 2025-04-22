@@ -560,6 +560,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                 ErrCode errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
                 if (OPENDAQ_FAILED(errCode))
                 {
+                    daqClearErrorInfo();
                     invalid = true;
                 }
             } 

@@ -290,8 +290,7 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* stream
             if (listened && streamed)
             {
                 ErrCode errCode = unsubscribeInternal();
-                if (OPENDAQ_FAILED(errCode))
-                    return errCode;
+                OPENDAQ_RETURN_IF_FAILED(errCode);
             }
             activeStreamingSourceRef = nullptr;
         }

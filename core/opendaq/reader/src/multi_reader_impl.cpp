@@ -558,10 +558,7 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
     SizeT min{};
     SyncStatus syncStatus{};
     ErrCode errCode = synchronize(min, syncStatus);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     SizeT cnt = 0;
     if (syncStatus == SyncStatus::Synchronized)

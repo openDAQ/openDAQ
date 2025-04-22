@@ -114,6 +114,7 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
     *signals = signalsPtr.detach();
     if (OPENDAQ_FAILED(errCode))
     {
+        daqClearErrorInfo();
         LOG_W("Failed to get related signals on OpcUA client signal \"{}\"", this->globalId);
     }
     return OPENDAQ_SUCCESS;

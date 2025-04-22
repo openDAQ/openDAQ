@@ -52,10 +52,14 @@ ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
         
         return OPENDAQ_SUCCESS;
     });
-    if (OPENDAQ_FAILED(errCode) && this->daqContext.getLogger().assigned())
+    if (OPENDAQ_FAILED(errCode))
     {
-        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcudure");
-        LOG_W("Failed to call procedure on OpcUA client. Error: \"{}\"", lastProccessDescription);
+        daqClearErrorInfo();
+        if (this->daqContext.getLogger().assigned())
+        {
+            auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcudure");
+            LOG_W("Failed to call procedure on OpcUA client. Error: \"{}\"", lastProccessDescription);
+        }
     }
     return OPENDAQ_SUCCESS;
 }

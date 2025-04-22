@@ -372,13 +372,11 @@ inline ErrCode ConnectionStatusContainerImpl::Deserialize(ISerializedObject* ser
         if (nameAlias == ConfigurationConnectionStatusAlias && statuses.hasKey(connString))
         {
             errCode = statusContainer->addConfigurationConnectionStatus(connString, statuses.get(connString));
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
             if (messages.hasKey(connString))
             {
                 errCode = statusContainer->updateConnectionStatusWithMessage(connString, statuses.get(connString), nullptr, messages.get(connString));
-                if (OPENDAQ_FAILED(errCode))
-                    return errCode;
+                OPENDAQ_RETURN_IF_FAILED(errCode);
             }
             break;
         }

@@ -86,11 +86,7 @@ ErrCode StringImpl::equals(IBaseObject* other, Bool* equal) const
     {
         SizeT otherLength;
         auto err = otherString->getLength(&otherLength);
-
-        if (OPENDAQ_FAILED(err))
-        {
-            return OPENDAQ_SUCCESS;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         if (otherLength != length)
         {
@@ -99,11 +95,7 @@ ErrCode StringImpl::equals(IBaseObject* other, Bool* equal) const
 
         ConstCharPtr otherValue;
         err = otherString->getCharPtr(&otherValue);
-
-        if (OPENDAQ_FAILED(err))
-        {
-            return OPENDAQ_SUCCESS;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         if (otherValue == nullptr)
         {
@@ -236,11 +228,7 @@ ErrCode StringImpl::serialize(ISerializer* serializer)
 {
     SizeT length;
     ErrCode errCode = getLength(&length);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->writeString(str, length);
 

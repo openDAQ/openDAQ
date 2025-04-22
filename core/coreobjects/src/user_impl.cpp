@@ -129,8 +129,7 @@ ErrCode UserImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunc
 
     ListPtr<IUser> groups;
     err = serializedObj->readList(String("groups"), nullptr, nullptr, &groups);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return DAQ_MAKE_ERROR_INFO(err, "Failed to read groups from serialized object.");
+    OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(err, OPENDAQ_ERR_NOTFOUND);
 
     auto user = User(username, passwordHash, groups);
     *obj = user.addRefAndReturn();

@@ -25,11 +25,7 @@ ErrCode JsonSerializerImpl<TWriter>::startTaggedObject(ISerializable* serializab
 
     ConstCharPtr id;
     ErrCode errCode = serializable->getSerializeId(&id);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     writer.StartObject();
     writer.Key("__type");
@@ -88,11 +84,7 @@ ErrCode JsonSerializerImpl<TWriter>::key(ConstCharPtr string)
 {
     SizeT length;
     ErrCode errCode = getCharLen(string, length);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (length == 0)
     {
@@ -111,10 +103,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyStr(IString* name)
 
     ConstCharPtr str;
     ErrCode errCode = name->getCharPtr(&str);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     OPENDAQ_PARAM_NOT_NULL(str);
 

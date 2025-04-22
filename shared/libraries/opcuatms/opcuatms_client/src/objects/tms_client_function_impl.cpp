@@ -53,10 +53,14 @@ ErrCode TmsClientFunctionImpl::call(IBaseObject* args, IBaseObject** result)
         *result = VariantConverter<IBaseObject>::ToDaqObject(OpcUaVariant(callResult->outputArguments[0]), daqContext).detach();
         return OPENDAQ_SUCCESS;
     });
-    if (OPENDAQ_FAILED(errCode) && this->daqContext.getLogger().assigned())
+    if (OPENDAQ_FAILED(errCode))
     {
-        auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcedure");
-        LOG_W("Failed to call function on OpcUA client. Error in \"{}\"", lastProccessDescription);
+        daqClearErrorInfo();
+        if (this->daqContext.getLogger().assigned())
+        {
+            auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcedure");
+            LOG_W("Failed to call function on OpcUA client. Error in \"{}\"", lastProccessDescription);
+        }
     }
     return OPENDAQ_SUCCESS;
 }

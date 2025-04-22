@@ -168,7 +168,7 @@ inline ErrCode ComponentStatusContainerImpl::addStatusWithMessage(IString* name,
         // Rollback
         statuses.remove(name);
         // Return error
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -228,7 +228,7 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
                 // Rollback
                 statuses.set(name, oldStatus);
                 // Return error
-                return errCode;
+                return DAQ_MAKE_ERROR_INFO(errCode);
             }
         }
     }
@@ -299,8 +299,7 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
         for (const auto& [name, value] : statuses)
         {
             errCode = statusContainer->addStatusWithMessage(name, value, messages.get(name));
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
     }
     else
@@ -309,8 +308,7 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
         for (const auto& [name, value] : statuses)
         {
             errCode = statusContainer->addStatus(name, value);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
     }
 

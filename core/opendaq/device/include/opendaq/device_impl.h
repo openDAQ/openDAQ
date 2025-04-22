@@ -370,18 +370,16 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
-
-            if (OPENDAQ_FAILED(revertStatus))
-                return revertStatus;
-
+            OPENDAQ_RETURN_IF_FAILED(revertStatus);
             break;
         }
     }
 
-    if (OPENDAQ_SUCCEEDED(status))
-        status = lockInternal(user);
+    OPENDAQ_RETURN_IF_FAILED(status);
 
-    if (OPENDAQ_SUCCEEDED(status) && !this->coreEventMuted && this->coreEvent.assigned())
+    status = lockInternal(user);
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
         this->triggerCoreEvent(CoreEventArgsDeviceLockStateChanged(true));
 
     return status;
@@ -393,9 +391,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
     auto lock = this->getRecursiveConfigLock();
 
     ErrCode status = unlockInternal(user);
-
-    if (OPENDAQ_FAILED(status))
-        return status;
+    OPENDAQ_RETURN_IF_FAILED(status);
 
     ListPtr<IDevice> devices;
     this->getDevices(&devices, search::Any());
@@ -411,11 +407,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
-
             if (OPENDAQ_FAILED(revertStatus))
-                return revertStatus;
-
-            return status;
+                return DAQ_MAKE_ERROR_INFO(revertStatus);
+            return DAQ_MAKE_ERROR_INFO(status);
         }
     }
 
@@ -439,9 +433,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
     auto syncLock = this->getAcquisitionLock();
 
     ErrCode status = forceUnlockInternal();
-
-    if (OPENDAQ_FAILED(status))
-        return status;
+    OPENDAQ_RETURN_IF_FAILED(status);
 
     ListPtr<IDevice> devices;
     this->getDevices(&devices, search::Any());
@@ -449,9 +441,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
     for (SizeT i = 0; i < devices.getCount(); i++)
     {
         status = devices[i].asPtr<IDevicePrivate>()->forceUnlock();
-
-        if (OPENDAQ_FAILED(status))
-            return status;
+        OPENDAQ_RETURN_IF_FAILED(status);
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -1515,8 +1505,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
         else
             status = devices[i].asPtr<IDevicePrivate>()->unlock(user);
 
-        if (OPENDAQ_FAILED(status))
-            return status;
+        OPENDAQ_RETURN_IF_FAILED(status);
     }
 
     return status;

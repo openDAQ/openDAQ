@@ -97,10 +97,7 @@ ErrCode JsonSerializedObject::readString(IString* key, IString** string)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 
     ErrCode errCode = createString(string, value.GetString());
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return OPENDAQ_SUCCESS;
 }
 
@@ -165,15 +162,11 @@ ErrCode JsonSerializedObject::readFloat(IString* key, Float* real)
 ErrCode JsonSerializedObject::getKeys(IList** list)
 {
     ErrCode errCode = createList(list);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     for (const auto& prop : object)
     {
         errCode = (*list)->pushBack(String(prop.name.GetString()));
-
         OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 

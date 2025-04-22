@@ -87,18 +87,15 @@ ErrCode ModuleInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
 
     BaseObjectPtr versionInfo;
     ErrCode err = serializedObj->readObject(String("versionInfo"), context, factoryCallback, &versionInfo);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return err;
+    OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(err, OPENDAQ_ERR_NOTFOUND);
 
     StringPtr name;
     err = serializedObj->readString(String("name"), &name);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return err;
+    OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(err, OPENDAQ_ERR_NOTFOUND);
 
     StringPtr id;
     err = serializedObj->readString(String("id"), &id);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return err;
+    OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(err, OPENDAQ_ERR_NOTFOUND);
 
     return createObject<IModuleInfo, ModuleInfoImpl, VersionInfoPtr, StringPtr, StringPtr>(reinterpret_cast<IModuleInfo**>(obj), versionInfo, name, id);
 }

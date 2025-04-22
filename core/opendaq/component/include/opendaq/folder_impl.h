@@ -123,7 +123,8 @@ template <class Intf, class ... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
 {
     const ErrCode err = Super::setActive(active);
-    if (OPENDAQ_FAILED(err) || err == OPENDAQ_IGNORED)
+    OPENDAQ_RETURN_IF_FAILED(err);
+    if (err == OPENDAQ_IGNORED)
         return err;
 
     return daqTry([&]
@@ -319,8 +320,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
             return OPENDAQ_SUCCESS;
         });
 
-        if (OPENDAQ_FAILED(err))
-             return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -570,8 +570,7 @@ ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeTy
         if (componentPrivate.assigned())
         {
             errCode = componentPrivate->updateOperationMode(modeType);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
     }
 

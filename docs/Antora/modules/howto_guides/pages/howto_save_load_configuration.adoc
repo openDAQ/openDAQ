@@ -66,6 +66,7 @@ File.WriteAllText("openDAQconfig.json", jsonStr, System.Text.Encoding.UTF8);
 ----
 ====
 
+:note-caption: Saving Configuration
 [NOTE]
 ====
 Saving Configuration will produce a string similar to this:
@@ -135,6 +136,7 @@ instance.LoadConfiguration(jsonStr);
 ----
 ====
 
+:note-caption: Loading Configuration
 [NOTE]
 ====
 While loading the Configuration, the SDK checking the circular dependencies of signal (for example output signal of function block connected as input signal to the same function block). At that case LoadConfiguration method will not stop the proccess but will notify user with the warning message of the trace of the circular dependencies. 

@@ -58,11 +58,13 @@ var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
 ----
 ====
 
+:note-caption: Constructor Flexibility
 [NOTE]
 ====
 The constructor for the reader is designed to offer flexibility in its input parameters. It can accept either a signal or an input port, providing users with versatile options based on their specific requirements.
 ====
 
+:note-caption: Default Sample Types
 [NOTE]
 ====
 By default, if no explicit read Sample Types are provided, they're assumed to be:

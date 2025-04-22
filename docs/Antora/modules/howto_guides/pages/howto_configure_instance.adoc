@@ -157,6 +157,7 @@ Instance instance = instanceBuilder.Build();
 ----
 ====
 
+:note-caption: Logger
 [NOTE]
 ====
 Alternatively, a developer can create their own implementation of the Logger, which implements the `ILogger` interface.

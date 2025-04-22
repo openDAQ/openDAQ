@@ -37,6 +37,7 @@ With this in mind, we limit ourselves to Signals that have:
     * Inter-sample offsets are ignored
 . Values that can be converted to a common data-type
 
+:note-caption: Limitations
 [NOTE]
 ====
 Some of the above limitations might be lifted in the future.
@@ -166,6 +167,7 @@ avail = reader.available_count # 0
 After the Reader construction, Signals produce xref:explanations:glossary.adoc#data_packet[Data Packet]s of differing sizes but not enough to align on the start Domain point.
 So the reader reports it has `0` samples available as it dropped them on the call to check the number of samples available as they are below the start Domain point.
 
+:note-caption: Helper Function
 [NOTE]
 ====
 In the examples, a helper function `demoSignal()` is used to set-up a custom simulated Signal with preset _epoch_ / _origin_ and _packet size_.
@@ -433,6 +435,7 @@ reader_builder.domain_read_type = daq.SampleType.Int64
 built_reader = reader_builder.build()
 ----
 ====
+:note-caption: Multi-Reader from the same builder
 [NOTE]
 ====
 When creating a Multi-Reader from the same builder multiple times, developers should be cautious, especially if they are using Input Ports as input sources. This is because when creating an Input Port, it is bound to the first reader. Therefore, attempting to create another reader with the same Input Port will result in an exception, indicating that the Input Port is already in use.

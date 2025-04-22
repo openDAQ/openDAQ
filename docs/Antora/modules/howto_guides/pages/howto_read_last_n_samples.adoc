@@ -59,6 +59,7 @@ var reader = OpenDAQFactory.CreateTailReader<double, long>(signal, 5);
 ----
 ====
 
+:note-caption: Default Sample Types
 [NOTE]
 ====
 By default, if no explicit read Sample Types are provided, they're assumed to be:

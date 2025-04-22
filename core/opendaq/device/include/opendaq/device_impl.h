@@ -356,10 +356,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 {
     auto lock = this->getRecursiveConfigLock();
 
-    ErrCode status = OPENDAQ_SUCCESS;
-
     ListPtr<IDevice> devices;
-    this->getDevices(&devices, search::Any());
+    ErrCode status = this->getDevices(&devices, search::Any());
+    if (OPENDAQ_FAILED(status))
+        return status;
+
     std::vector<bool> lockStatuses(devices.getCount());
 
     for (SizeT i = 0; i < devices.getCount(); i++)
@@ -395,12 +396,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
     auto lock = this->getRecursiveConfigLock();
 
     ErrCode status = unlockInternal(user);
-
     if (OPENDAQ_FAILED(status))
         return status;
 
     ListPtr<IDevice> devices;
-    this->getDevices(&devices, search::Any());
+    status = this->getDevices(&devices, search::Any());
+    if (OPENDAQ_FAILED(status))
+        return status;
+
     std::vector<bool> lockStatuses(devices.getCount());
 
     for (SizeT i = 0; i < devices.getCount(); i++)
@@ -441,17 +444,17 @@ ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
     auto syncLock = this->getAcquisitionLock();
 
     ErrCode status = forceUnlockInternal();
-
     if (OPENDAQ_FAILED(status))
         return status;
 
     ListPtr<IDevice> devices;
-    this->getDevices(&devices, search::Any());
+    status = this->getDevices(&devices, search::Any());
+    if (OPENDAQ_FAILED(status))
+        return status;
 
     for (SizeT i = 0; i < devices.getCount(); i++)
     {
         status = devices[i].asPtr<IDevicePrivate>()->forceUnlock();
-
         if (OPENDAQ_FAILED(status))
             return status;
     }
@@ -666,7 +669,7 @@ void GenericDevice<TInterface, Interfaces...>::removeChannel(const FolderConfigP
 {
     if (parentFolder == nullptr)
     {
-        const auto folder = channel.getParent().asPtr<IFolderConfig>();
+        const auto folder = channel.getParent().asPtr<IFolderConfig>(true);
         folder.removeItem(channel);
     }
     else
@@ -678,7 +681,7 @@ bool GenericDevice<TInterface, Interfaces...>::hasChannel(const FolderConfigPtr&
 {
     if (parentFolder == nullptr)
     {
-        const auto folder = channel.getParent().asPtr<IFolderConfig>();
+        const auto folder = channel.getParent().asPtr<IFolderConfig>(true);
         return folder.hasItem(channel.getLocalId());
     }
     else
@@ -1721,7 +1724,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
         {
             ListPtr<IInteger> availableOpModes;
-            this->getAvailableOperationModes(&availableOpModes);
+            checkErrorInfo(this->getAvailableOperationModes(&availableOpModes));
             if (availableOpModes.assigned())
             {
                 serializer.key("availableOperationModes");
@@ -1772,7 +1775,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     {
         OperationModeType mode;
-        this->getOperationMode(&mode);
+        checkErrorInfo(this->getOperationMode(&mode));
         serializer.key("OperationMode");
         serializer.writeInt(static_cast<Int>(mode));
     }
@@ -1875,11 +1878,11 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (devices.hasItem(deviceId))
         {
             DevicePtr device = devices.getItem(deviceId);
-            this->removeDevice(device);
+            checkErrorInfo(this->removeDevice(device));
         }
 
         DevicePtr device;
-        this->addDevice(&device, connectionString, deviceConfig);
+        checkErrorInfo(this->addDevice(&device, connectionString, deviceConfig));
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
     }
@@ -1896,10 +1899,7 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
                                                                   const BaseObjectPtr& context)
 {
     if (!parentIoFolder.hasItem(localId))
-    {
-        //        LOG_W("IoFolder {} not found", localId)
         return;
-    }
 
     const auto item = parentIoFolder.getItem(localId);
     if (item.supportsInterface<IChannel>())
@@ -2005,7 +2005,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     if (contextPtr.getRestoreDeviceOperationMode() && obj.hasKey("OperationMode"))
     {
         Int mode = obj.readInt("OperationMode");
-        this->setOperationMode(static_cast<OperationModeType>(mode));
+        checkErrorInfo(this->setOperationMode(static_cast<OperationModeType>(mode)));
     }
 
     if (obj.hasKey("Dev"))

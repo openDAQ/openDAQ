@@ -259,6 +259,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
         component.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
     }
 
+    // When a component is added to the subtree, the folder updates its operation mode to match the operation mode of the parent device.
     syncComponentOperationMode(component);
 
     return OPENDAQ_SUCCESS;

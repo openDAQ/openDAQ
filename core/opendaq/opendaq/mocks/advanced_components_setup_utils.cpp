@@ -293,7 +293,13 @@ FunctionBlockPtr MockDevice1Impl::onAddFunctionBlock(const StringPtr& typeId, co
         addNestedFunctionBlock(fb);
         return fb;
     }
-        DAQ_THROW_EXCEPTION(NotFoundException);
+    else if (typeId == "mockrecorder1")
+    {
+        const auto fb = createWithImplementation<IFunctionBlock, MockRecorderFb1Impl>(context, this->functionBlocks, "newRecorderFb");
+        addNestedFunctionBlock(fb);
+        return fb;
+    }
+    DAQ_THROW_EXCEPTION(NotFoundException);
 }
 
 void MockDevice1Impl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
@@ -373,6 +379,37 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 MockSrvImpl::MockSrvImpl(const ContextPtr& ctx, const DevicePtr& rootDev, const StringPtr& id)
     : Server(id, nullptr, rootDev, ctx)
 {
+}
+
+MockRecorderFb1Impl::MockRecorderFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    : Super(FunctionBlockType("test_recorder_uid", "test_recorder_name", "test_recorder_description"), ctx, parent, localId, "MockClass")
+{
+}
+
+ErrCode MockRecorderFb1Impl::startRecording()
+{
+    if (this->isRecording)
+        return OPENDAQ_ERR_INVALIDSTATE;
+
+    this->isRecording = true;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MockRecorderFb1Impl::stopRecording()
+{
+    if (!this->isRecording)
+        return OPENDAQ_ERR_INVALIDSTATE;
+
+    this->isRecording = false;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MockRecorderFb1Impl::getIsRecording(Bool* isRecording)
+{
+    OPENDAQ_PARAM_NOT_NULL(isRecording);
+
+    *isRecording = this->isRecording;
+    return OPENDAQ_SUCCESS;
 }
 
 }

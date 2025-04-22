@@ -324,6 +324,21 @@ PropertyObjectPtr ConfigProtocolClientComm::getComponentConfig(const std::string
     return sendComponentCommand(globalId, ClientCommand("GetComponentConfig", 13));
 }
 
+void ConfigProtocolClientComm::startRecording(const std::string& globalId)
+{
+    sendComponentCommand(globalId, ClientCommand("StartRecording", 12));
+}
+
+void ConfigProtocolClientComm::stopRecording(const std::string& globalId)
+{
+    sendComponentCommand(globalId, ClientCommand("StopRecording", 12));
+}
+
+BooleanPtr ConfigProtocolClientComm::getIsRecording(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetIsRecording", 12));
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
 {
     auto dict = Dict<IString, IBaseObject>();

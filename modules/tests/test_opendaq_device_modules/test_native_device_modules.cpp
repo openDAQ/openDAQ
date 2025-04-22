@@ -2555,7 +2555,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration)
 
     {
         auto server = CreateServerInstance();
-        auto client = CreateClientInstance(0);
+        auto client = CreateClientInstance();
         auto clientFb = client.addFunctionBlock("RefFBModuleStatistics");
         clientFb.addFunctionBlock("RefFBModuleTrigger");
 

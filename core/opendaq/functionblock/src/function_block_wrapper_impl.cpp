@@ -302,10 +302,11 @@ ErrCode FunctionBlockWrapperImpl::setPropertyValue(IString* propertyName, IBaseO
         {
             auto valuePtr = BaseObjectPtr::Borrow(value);
 
-            StringPtr childName;
-            StringPtr subName;
-            if (isChildProperty(propertyNameStr, childName, subName))
+            if (isChildProperty(propertyNameStr))
             {
+                StringPtr childName;
+                StringPtr subName;
+                splitOnFirstDot(propertyNameStr, childName, subName);
                 if (!isPropertyVisible(childName))
                     DAQ_THROW_EXCEPTION(NotFoundException);
             }

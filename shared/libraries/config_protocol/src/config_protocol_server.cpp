@@ -9,6 +9,7 @@
 #include <coretypes/cloneable.h>
 #include <config_protocol/config_server_access_control.h>
 #include <opendaq/custom_log.h>
+#include <config_protocol/config_server_recorder.h>
 
 namespace daq::config_protocol
 {
@@ -171,6 +172,10 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
     addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
+
+    addHandler<RecorderPtr>("StartRecording", &ConfigServerRecorder::startRecording);
+    addHandler<RecorderPtr>("StopRecording", &ConfigServerRecorder::stopRecording);
+    addHandler<RecorderPtr>("GetIsRecording", &ConfigServerRecorder::getIsRecording);
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -354,7 +359,7 @@ BaseObjectPtr ConfigProtocolServer::callRpc(const StringPtr& name, const ParamsD
 {
     const auto it = rpcDispatch.find(name.toStdString());
     if (it == rpcDispatch.end())
-        throw ConfigProtocolException("Invalid function call");
+        throw ConfigProtocolException(fmt::format("Invalid function call: {}", name));
 
     return it->second(params);
 }

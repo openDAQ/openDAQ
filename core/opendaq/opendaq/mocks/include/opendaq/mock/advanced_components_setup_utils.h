@@ -158,4 +158,17 @@ namespace daq::test_utils
     public:
         MockSrvImpl(const ContextPtr& ctx, const DevicePtr& rootDev, const StringPtr& id);
     };
+
+    class MockRecorderFb1Impl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
+    {
+    public:
+        using Super = FunctionBlockImpl<IFunctionBlock, IRecorder>;
+
+        MockRecorderFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+        ErrCode INTERFACE_FUNC startRecording() override;
+        ErrCode INTERFACE_FUNC stopRecording() override;
+        ErrCode INTERFACE_FUNC getIsRecording(Bool* isRecording) override;
+    private:
+        bool isRecording{false};
+    };
 }

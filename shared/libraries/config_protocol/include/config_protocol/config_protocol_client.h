@@ -112,6 +112,10 @@ public:
 
     PropertyObjectPtr getComponentConfig(const std::string& globalId);
 
+    void startRecording(const std::string& globalId);
+    void stopRecording(const std::string& globalId);
+    BooleanPtr getIsRecording(const std::string& globalId);
+
     bool getConnected() const;
     ContextPtr getDaqContext();
 

@@ -1724,7 +1724,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
         {
             ListPtr<IInteger> availableOpModes;
-            checkErrorInfo(this->getAvailableOperationModes(&availableOpModes));
+            this->getAvailableOperationModes(&availableOpModes);
             if (availableOpModes.assigned())
             {
                 serializer.key("availableOperationModes");
@@ -1775,9 +1775,12 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     {
         OperationModeType mode;
-        checkErrorInfo(this->getOperationMode(&mode));
-        serializer.key("OperationMode");
-        serializer.writeInt(static_cast<Int>(mode));
+        ErrCode errCode = this->getOperationMode(&mode);
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            serializer.key("OperationMode");
+            serializer.writeInt(static_cast<Int>(mode));
+        }
     }
 
     if (connectionStatusContainer.asPtr<IComponentStatusContainer>().getStatuses().getCount() > 0)
@@ -2005,7 +2008,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     if (contextPtr.getRestoreDeviceOperationMode() && obj.hasKey("OperationMode"))
     {
         Int mode = obj.readInt("OperationMode");
-        checkErrorInfo(this->setOperationMode(static_cast<OperationModeType>(mode)));
+        this->setOperationMode(static_cast<OperationModeType>(mode));
     }
 
     if (obj.hasKey("Dev"))

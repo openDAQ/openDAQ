@@ -46,6 +46,7 @@ set(TEST_SOURCES test_objectptr.cpp
                  test_type_manager.cpp
                  test_callback_factory_deserialization.cpp
                  test_enumeration.cpp
+                 test_object_pool.cpp
 )
 
 set(TEST_HEADERS event_test.h

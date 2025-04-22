@@ -211,12 +211,11 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
 #else
         snprintf(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
 #endif
-
         err = createString(&msg, errorMsg);
     }
 
     if (OPENDAQ_FAILED(err))
-        return err;;
+        return err;
 
     err = errorInfo_->setMessage(msg);
     if (OPENDAQ_FAILED(err))

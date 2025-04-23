@@ -71,7 +71,6 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/mirrored_device_config.h
         ${SDK_HEADERS_DIR}/mirrored_device_impl.h
         ${SDK_HEADERS_DIR}/streaming_source_manager.h
-        ${SDK_SRC_DIR}/streaming_source_manager.cpp
     )
     
     source_group("streaming" FILES 
@@ -110,7 +109,6 @@ set(SRC_PrivateHeaders_Component
 set(SRC_Cpp_Component 
     subscription_event_args_impl.cpp
     streaming_type_impl.cpp
-    streaming_source_manager.cpp
     streaming.natvis
     PARENT_SCOPE
 )

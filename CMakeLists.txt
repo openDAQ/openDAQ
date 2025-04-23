@@ -161,6 +161,7 @@ if (NOT APPLE AND UNIX)
 endif()
 cmake_dependent_option(OPENDAQ_GENERATE_PYTHON_BINDINGS_STUBS "Generate python bindings stubs for auto-completion" OFF "OPENDAQ_GENERATE_PYTHON_BINDINGS" OFF)
 cmake_dependent_option(OPENDAQ_SKIP_UNSTABLE_TESTS "Skip tests marked as unstable" ON "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS" ON)
+cmake_dependent_option(DAQMODULES_REF_TEMPLATE_DEVICE_MODULE "Building of reference device module created from template" ON "OPENDAQ_ENABLE_MODULE_TEMPLATES" ON)
 
 if (OPENDAQ_ENABLE_TESTS)
     set(OPENDAQ_ENABLE_TEST_UTILS ON)
@@ -601,7 +602,7 @@ include(RTGen)
 set(CMAKE_INSTALL_DEBUG_LIBRARIES ON)
 include(InstallRequiredSystemLibraries)
 
-if (NOT WIN32)
+if (NOT CMAKE_HOST_WIN32)
     set(MONO_C mono)
 endif()
 
@@ -691,6 +692,11 @@ if(CMAKE_COMPILER_IS_CLANGXX)
 
     # Treat warnings as errors if OPENDAQ_<DEBUG|RELEASE>_WARNINGS_AS_ERRORS is ON
     add_compile_options($<$<OR:$<AND:$<CONFIG:Debug>,$<BOOL:${OPENDAQ_DEBUG_WARNINGS_AS_ERRORS}>>,$<AND:$<NOT:$<CONFIG:Debug>>,$<BOOL:${OPENDAQ_RELEASE_WARNINGS_AS_ERRORS}>>>:-Werror>)
+endif()
+
+if (OPENDAQ_ENABLE_MODULE_TEMPLATES)
+    message(WARNING "Building openDAQ module templates. This feature is a WIP and will change significantly between releases, with a high likelihood of changes that break user modules. Use with caution.")
+    add_subdirectory(templates)
 endif()
 
 add_subdirectory(core)

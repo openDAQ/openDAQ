@@ -168,6 +168,7 @@ inline void StreamingSourceManager::componentUpdated(const ComponentPtr& sender,
         if (ownerDeviceGlobalId == updatedComponentGlobalId ||
             IdsParser::isNestedComponentId(updatedComponentGlobalId, ownerDeviceGlobalId))
         {
+            context.getModuleManager().asPtr<IModuleManagerUtils>().completeDeviceCapabilities(ownerDevice);
             completeStreamingConnections(ownerDevice);
             enableStreamingForUpdatedComponent(ownerDevice);
         }

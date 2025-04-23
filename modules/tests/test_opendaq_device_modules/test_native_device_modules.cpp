@@ -1562,39 +1562,6 @@ TEST_F(NativeDeviceModulesTest, AddStreamingPostConnection)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, AddStreamingPostConnectionSaveLoad)
-{
-    SKIP_TEST_MAC_CI;
-    auto server = CreateServerInstance();
-    StringPtr config;
-
-    {
-        auto client = CreateClientInstance();
-        server.addServer("OpenDAQLTStreaming", nullptr);
-        StreamingPtr streaming = client.getDevices()[0].addStreaming("daq.lt://127.0.0.1");
-
-//        const auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-//        streaming.addSignals(clientSignals);
-//        for (const auto& signal : clientSignals)
-//        {
-//            auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
-//            ASSERT_EQ(mirorredSignal.getStreamingSources().getCount(), 2u);
-//            ASSERT_NO_THROW(mirorredSignal.setActiveStreamingSource(streaming.getConnectionString()));
-//        }
-        config = client.saveConfiguration();
-    }
-
-    fmt::print("\n\n saved config:\n{}\n\n", config);
-
-    auto restoredClient = Instance();
-    restoredClient.loadConfiguration(config);
-
-    auto clientMirroredDevice = restoredClient.getDevices()[0].template asPtrOrNull<IMirroredDevice>();
-    ASSERT_TRUE(clientMirroredDevice.assigned());
-    ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 2u);
-    ASSERT_EQ(clientMirroredDevice.getStreamingSources()[1].getConnectionString(), "daq.lt://127.0.0.1");
-}
-
 class AddComponentsTest : public NativeDeviceModulesTest, public testing::WithParamInterface<std::vector<std::string>>
 {
 public:

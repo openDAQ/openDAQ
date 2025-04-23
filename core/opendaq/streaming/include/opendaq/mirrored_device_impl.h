@@ -58,16 +58,10 @@ protected:
 
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
-    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
-                                       const BaseObjectPtr& context,
-                                       const FunctionPtr& factoryCallback) override;
-
     virtual bool isAddedToLocalComponentTree();
 
 private:
     std::vector<StreamingPtr> streamingSources;
-    DictPtr<IString, IPropertyObject> manuallyAddedStreamings; // connection string and config object
     StreamingSourceManagerPtr streamingSourceManager;
 };
 
@@ -78,7 +72,6 @@ MirroredDeviceBase<Interfaces...>::MirroredDeviceBase(const ContextPtr& ctx,
                                                       const StringPtr& className,
                                                       const StringPtr& name)
     : Super(ctx, parent, localId, className, name)
-    , manuallyAddedStreamings(Dict<IString, IPropertyObject>())
 {
 }
 
@@ -198,9 +191,6 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
     if (OPENDAQ_FAILED(errCode))
         return errCode;
 
-    if (manuallyAddedStreamings.hasKey(streamingConnectionStringPtr))
-        manuallyAddedStreamings.remove(streamingConnectionStringPtr);
-
     streamingSources.erase(it);
 
     return OPENDAQ_SUCCESS;
@@ -269,8 +259,6 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
     auto streamingPtr = managerUtils.createStreaming(connectionString, config);
     streamingSources.push_back(streamingPtr);
 
-    manuallyAddedStreamings.set(connectionString, config);
-
     this->connectionStatusContainer.addStreamingConnectionStatus(streamingPtr.getConnectionString(),
                                                                  streamingPtr.getConnectionStatus(),
                                                                  streamingPtr);
@@ -278,51 +266,6 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
     checkErrorInfo(streamingPtr.template asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
 
     return streamingPtr;
-}
-
-template <typename... Interfaces>
-void MirroredDeviceBase<Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
-{
-    Super::serializeCustomObjectValues(serializer, forUpdate);
-
-    if (forUpdate)
-    {
-        if (manuallyAddedStreamings.getCount() > 0)
-        {
-            serializer.key("ManuallyAddedStreamingConnections");
-            manuallyAddedStreamings.serialize(serializer);
-        }
-    }
-}
-
-template <typename... Interfaces>
-void MirroredDeviceBase<Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
-                                                                      const BaseObjectPtr& context,
-                                                                      const FunctionPtr& factoryCallback)
-{
-    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
-
-    if (serializedObject.hasKey("ManuallyAddedStreamingConnections"))
-    {
-        DictPtr<IString, IPropertyObject> streamingConnectionsParams =
-            serializedObject.readObject("ManuallyAddedStreamingConnections", context, factoryCallback);
-
-        for (const auto& [connectionString, config] : streamingConnectionsParams)
-        {
-            try
-            {
-                onAddStreaming(connectionString, config);
-            }
-            catch ([[maybe_unused]] const DuplicateItemException& e)
-            {
-                DAQLOGF_D(this->loggerComponent, "Streaming connection {} already exists ({})", connectionString, e.what());
-            }
-            catch ([[maybe_unused]] const DaqException& e)
-            {
-                DAQLOGF_E(this->loggerComponent, "Failed to connect streaming {}: {}", connectionString, e.what());
-            }
-        }
-    }
 }
 
 template <typename... Interfaces>

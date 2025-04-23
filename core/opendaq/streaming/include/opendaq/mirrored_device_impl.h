@@ -230,7 +230,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
         auto deviceSelf = this->template borrowPtr<DevicePtr>();
         PropertyObjectPtr generalConfig = this->componentConfig.getPropertyValue("General");
         if (!(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2)) // is not "NotConnected"
-            streamingSourceManager = createStreamingSourceManager(this->context, deviceSelf, this->componentConfig);
+            streamingSourceManager = std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
     }
 
     return errCode;

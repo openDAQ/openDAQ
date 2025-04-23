@@ -441,11 +441,4 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
     }
 }
 
-inline StreamingSourceManagerPtr createStreamingSourceManager(const ContextPtr& context,
-                                                       const DevicePtr& ownerDevice,
-                                                       const PropertyObjectPtr& deviceConfig)
-{
-    return std::make_shared<StreamingSourceManager>(context, ownerDevice, deviceConfig);
-}
-
 END_NAMESPACE_OPENDAQ

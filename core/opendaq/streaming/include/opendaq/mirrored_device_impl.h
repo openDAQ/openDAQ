@@ -228,7 +228,9 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
     if (this->componentConfig.assigned() && this->componentConfig.hasProperty("General"))
     {
         auto deviceSelf = this->template borrowPtr<DevicePtr>();
-        streamingSourceManager = createStreamingSourceManager(this->context, deviceSelf, this->componentConfig);
+        PropertyObjectPtr generalConfig = this->componentConfig.getPropertyValue("General");
+        if (!(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2)) // is not "NotConnected"
+            streamingSourceManager = createStreamingSourceManager(this->context, deviceSelf, this->componentConfig);
     }
 
     return errCode;

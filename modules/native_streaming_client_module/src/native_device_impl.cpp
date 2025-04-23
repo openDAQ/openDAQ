@@ -11,11 +11,16 @@
 #include <opendaq/component_exceptions.h>
 #include <opendaq/exceptions.h>
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/address_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
+
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.+://)([^:/\s]+))");
+static const std::regex RegexPort(":(\\d+)");
 
 NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        NativeStreamingClientHandlerPtr transportProtocolClient,
@@ -449,6 +454,8 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
+    uint16_t configProtocolVersion = clientComm->getProtocolVersion();
+
     if (clientComm->getProtocolVersion() < 8)
     {
         auto changeableFields = List<IString>();
@@ -485,6 +492,94 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
     {
         auto propBuilder = IntPropertyBuilder("NativeConfigProtocolVersion", clientComm->getProtocolVersion()).setReadOnly(true);
         deviceInfo.addProperty(propBuilder.build());
+    }
+
+    // Set the connection info for the device
+    ServerCapabilityConfigPtr connectionInfo = deviceInfo.getConfigurationConnectionInfo();
+
+    auto host = ConnectionStringUtils::GetHost(connectionString);
+    const auto addressInfo = AddressInfoBuilder().setAddress(host)
+                                 .setReachabilityStatus(AddressReachabilityStatus::Reachable)
+                                 .setType(ConnectionStringUtils::GetHostType(connectionString))
+                                 .setConnectionString(connectionString)
+                                 .build();
+
+    connectionInfo.setProtocolId(NativeConfigurationDeviceTypeId)
+        .setProtocolName("OpenDAQNativeConfiguration")
+        .setProtocolType(ProtocolType::ConfigurationAndStreaming)
+        .setConnectionType("TCP/IP")
+        .addAddress(host)
+        .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
+        .setPrefix("daq.nd")
+        .setConnectionString(connectionString)
+        .setProtocolVersion(std::to_string(configProtocolVersion))
+        .addAddressInfo(addressInfo)
+        .freeze();
+}
+
+StringPtr ConnectionStringUtils::GetHostType(const StringPtr& url)
+{
+    std::string urlString = url.toStdString();
+    std::smatch match;
+
+    if (std::regex_search(urlString, match, RegexIpv6Hostname))
+        return String("IPv6");
+    if (std::regex_search(urlString, match, RegexIpv4Hostname))
+        return String("IPv4");
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Host type not found in url: {}", url);
+}
+
+StringPtr ConnectionStringUtils::GetHost(const StringPtr& url)
+{
+    std::string urlString = url.toStdString();
+    std::smatch match;
+
+    if (std::regex_search(urlString, match, RegexIpv6Hostname))
+        return String(match[2]);
+    if (std::regex_search(urlString, match, RegexIpv4Hostname))
+        return String(match[2]);
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
+}
+
+StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config)
+{
+    std::string outPort;
+    std::string urlString = url.toStdString();
+    std::smatch match;
+
+    std::string host = GetHost(url).toStdString();
+    std::string suffix = urlString.substr(urlString.find(host) + host.size());
+
+    if (std::regex_search(suffix, match, RegexPort))
+        outPort = match[1];
+    else
+        outPort = "7420";
+
+    if (config.assigned())
+    {
+        std::string ctxPort = config.getPropertyValue("Port");
+        if (ctxPort != "7420")
+            outPort = ctxPort;
+    }
+
+    return outPort;
+}
+
+StringPtr ConnectionStringUtils::GetPath(const StringPtr& url)
+{
+    std::string urlString = url.toStdString();
+
+    std::string host = GetHost(url).toStdString();
+    std::string suffix = urlString.substr(urlString.find(host) + host.size());
+    auto pos = suffix.find("/");
+
+    if (pos != std::string::npos)
+    {
+        return String(suffix.substr(pos));
+    }
+    else
+    {
+        return String("/");
     }
 }
 

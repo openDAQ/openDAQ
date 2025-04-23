@@ -45,19 +45,50 @@ void WebsocketStreamingServer::setControlPort(uint16_t port)
 void WebsocketStreamingServer::start()
 {
     if (!device.assigned())
-        throw InvalidStateException("Device is not set.");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Device is not set.");
     if (!context.assigned())
-        throw InvalidStateException("Context is not set.");
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Context is not set.");
     if (streamingPort == 0 || controlPort == 0)
         return;
+
+    auto info = this->device.getInfo();
+    if (info.hasServerCapability("OpenDAQLTStreaming"))
+        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQLTStreaming server capability.", info.getName()));
 
     streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignals(search::Recursive(search::Any())); });
     streamingServer.onStartSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.startReadSignals(signals); } );
     streamingServer.onStopSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.stopReadSignals(signals); } );
+    streamingServer.onClientConnected(
+        [this](const std::string& clientId, const std::string& address)
+        {
+            SizeT clientNumber = 0;
+            if (device.assigned() && !device.isRemoved())
+            {
+                device.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
+                    &clientNumber,
+                    ConnectedClientInfo(address, ProtocolType::Streaming, "OpenDAQLTStreaming", "", ""));
+            }
+            registeredClientIds.insert({clientId, clientNumber});
+        }
+    );
+    streamingServer.onClientDisconnected(
+        [this](const std::string& clientId)
+        {
+            if (auto it = registeredClientIds.find(clientId); it != registeredClientIds.end())
+            {
+                if (device.assigned() && !device.isRemoved() && it->second != 0)
+                {
+                    device.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(it->second);
+                }
+                registeredClientIds.erase(it);
+            }
+        }
+    );
     streamingServer.start(streamingPort, controlPort);
 
     packetReader.setLoopFrequency(50);
-    packetReader.onPacket([this](const SignalPtr& signal, const ListPtr<IPacket>& packets) {
+    packetReader.onPacket([this](const SignalPtr& signal, const ListPtr<IPacket>& packets)
+    {
         const auto signalId = signal.getGlobalId();
         for (const auto& packet : packets)
             streamingServer.broadcastPacket(signalId, packet);
@@ -70,18 +101,24 @@ void WebsocketStreamingServer::start()
     serverCapability.setPrefix("daq.lt");
     serverCapability.setPort(streamingPort);
     serverCapability.setConnectionType("TCP/IP");
-    this->device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
+    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapability);
 }
 
 void WebsocketStreamingServer::stop()
 {
-    if (this->device.assigned())
+    if (device.assigned() && !device.isRemoved())
     {
-         const auto info = this->device.getInfo();
-         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-         if (info.hasServerCapability("OpenDAQLTStreaming"))
-             infoInternal.removeServerCapability("OpenDAQLTStreaming");
+        const auto info = this->device.getInfo();
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("OpenDAQLTStreaming"))
+            infoInternal.removeServerCapability("OpenDAQLTStreaming");
+        for (const auto& [_, clientNumber] : registeredClientIds)
+        {
+            if (clientNumber != 0)
+                infoInternal.removeConnectedClient(clientNumber);
+        }
     }
+    registeredClientIds.clear();
 
     stopInternal();
 }

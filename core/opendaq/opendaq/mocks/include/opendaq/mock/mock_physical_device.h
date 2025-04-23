@@ -63,6 +63,7 @@ protected:
     ComponentPtr componentB;
     uint64_t time;
 
+    Bool netConfigEnabled{False};
     ListPtr<IString> ifaceNames;
     ProcedurePtr onSubmitConfig;
     FunctionPtr onRetrieveConfig;

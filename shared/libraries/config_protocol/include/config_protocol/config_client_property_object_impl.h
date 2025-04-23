@@ -80,7 +80,7 @@ protected:
 
     virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
-    void cloneAndSetChildPropertyObject(const PropertyPtr& prop) override;
+    PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
 
 /*
     void beginApplyUpdate() override;
@@ -261,10 +261,15 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearPropertyValue(IString* pr
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IString* propertyName)
 {
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
     if (!deserializationComplete)
         return Impl::clearProtectedPropertyValue(propertyName);
 
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    const auto propertyNamePtr = StringPtr::Borrow(propertyName);
+    return daqTry([this, &propertyNamePtr]()
+    {
+        clientComm->clearProtectedPropertyValue(remoteGlobalId, propertyNamePtr);
+    });
 }
 
 template <class Impl>
@@ -611,7 +616,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(const SerializedOb
 }
 
 template <class Impl>
-void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(const PropertyPtr& prop)
+PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyObject(const PropertyPtr& prop)
 {
     const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
     if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
@@ -619,15 +624,10 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
         const auto propName = prop.getName();
         const auto defaultValueObj = prop.getDefaultValue().asPtrOrNull<IPropertyObject>();
         if (!defaultValueObj.assigned())
-            return;
+            return nullptr;
 
         if (!isBasePropertyObject(defaultValueObj))
-        {
-            auto clonedValue = defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
-            this->writeLocalValue(propName, clonedValue);
-            this->configureClonedObj(propName, clonedValue);
-            return;
-        }
+            return defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
 
         // This feels hacky...
         const auto serializer = JsonSerializer();
@@ -651,11 +651,13 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
         
         const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());
         if (impl == nullptr)
-            throw InvalidStateException("Failed to cast to ConfigClientPropertyObjectImpl");
+            DAQ_THROW_EXCEPTION(InvalidStateException, "Failed to cast to ConfigClientPropertyObjectImpl");
         impl->unfreeze();
-        this->writeLocalValue(propName, clientPropObj);
-        this->configureClonedObj(propName, clientPropObj);
+
+        return clientPropObj;
     }
+
+    return nullptr;
 }
 
 /*
@@ -852,7 +854,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const St
     {
         case ctProc:
         case ctFunc:
-            throw InvalidOperationException("Cannot set remote function property");
+            DAQ_THROW_EXCEPTION(InvalidOperationException, "Cannot set remote function property");
         default:
             return;
     }
@@ -861,8 +863,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const St
 template <class Impl>
 bool ConfigClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const PropertyObjectPtr& propObj)
 {
-    return !propObj.supportsInterface<IServerCapabilityConfig>() 
-            && !propObj.supportsInterface<IAddressInfo>();
+    return !propObj.supportsInterface<IServerCapabilityConfig>()
+            && !propObj.supportsInterface<IAddressInfo>()
+            && !propObj.supportsInterface<IConnectedClientInfo>();
 }
 
 
@@ -961,15 +964,15 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
     {
         const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
         if (!serializedPtr.assigned())
-            throw ArgumentNullException("Serialized object not assigned");
+            DAQ_THROW_EXCEPTION(ArgumentNullException, "Serialized object not assigned");
 
         const auto contextPtr = BaseObjectPtr::Borrow(context);
         if (!contextPtr.assigned())
-            throw ArgumentNullException("Deserialization context not assigned");
+            DAQ_THROW_EXCEPTION(ArgumentNullException, "Deserialization context not assigned");
 
         const auto componentDeserializeContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>(true);
         if (!componentDeserializeContext.assigned())
-            throw InvalidParameterException("Invalid deserialization context");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid deserialization context");
 
         const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 

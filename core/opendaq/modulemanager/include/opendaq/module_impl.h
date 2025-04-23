@@ -31,6 +31,9 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/module_info_factory.h>
 #include <opendaq/component_type_private.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include <coreobjects/property_object_protected_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class Module : public ImplementationOf<IModule>
@@ -169,8 +172,8 @@ public:
             return errCode;
 
         ComponentTypePtr type;
-        if (types.assigned() && types.hasKey(id))
-            type = types.get(id);
+        if (types.assigned())
+            type = types.getOrDefault(id);
 
         FunctionBlockPtr block;
         errCode = wrapHandlerReturn(this, &Module::onCreateFunctionBlock, block, id, parent, localId, mergeConfig(config, type));
@@ -219,8 +222,8 @@ public:
             return errCode;
         
         ComponentTypePtr type;
-        if (types.assigned() && types.hasKey(serverTypeId))
-            type = types.get(serverTypeId);
+        if (types.assigned())
+            type = types.getOrDefault(serverTypeId);
 
         ServerPtr serverInstance;
         errCode = wrapHandlerReturn(this, &Module::onCreateServer, serverInstance, serverTypeId, mergeConfig(config, type), rootDevice);
@@ -351,7 +354,7 @@ public:
      */
     virtual FunctionBlockPtr onCreateFunctionBlock(const StringPtr& /*id*/, const ComponentPtr& /*parent*/, const StringPtr& /*localId*/, const PropertyObjectPtr& /*config*/)
     {
-        throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
     }
 
     /*!
@@ -400,6 +403,22 @@ protected:
                   ? this->logger.getOrAddComponent(this->moduleInfo.getName().assigned() ? this->moduleInfo.getName() : "UnknownModule")
                   : throw ArgumentNullException("Logger must not be null"))
     {
+    }
+
+    template <typename PopulatePropertiesFunc, typename DiscoveredDeviceT>
+    static DeviceInfoPtr populateDiscoveredDeviceInfo(PopulatePropertiesFunc populateProperties,
+                                                      const DiscoveredDeviceT& discoveredDevice,
+                                                      const ServerCapabilityPtr& cap,
+                                                      const DeviceTypePtr& deviceType)
+    {
+        PropertyObjectPtr deviceInfo = DeviceInfo("");
+        populateProperties(deviceInfo, discoveredDevice, ConnectedClientInfo());
+
+        deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+        deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
+        deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(deviceType);
+
+        return deviceInfo;
     }
 
 private:

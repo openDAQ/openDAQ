@@ -1,11 +1,15 @@
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/thread_name.h>
 
 namespace daq::config_protocol
 {
 
-ConfigProtocolStreamingProducer::ConfigProtocolStreamingProducer(const ContextPtr& daqContext, const SendDaqPacketCallback& sendDaqPacketCallback)
-    : sendDaqPacketCb(sendDaqPacketCallback)
+ConfigProtocolStreamingProducer::ConfigProtocolStreamingProducer(const ContextPtr& daqContext,
+                                                                 const HandleDaqPacketCallback& sendDaqPacketCallback,
+                                                                 const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb)
+    : handleDaqPacketCb(sendDaqPacketCallback)
+    , sendPreprocessedPacketsCb(sendPreprocessedPacketsCb)
     , signalNumericIdCounter(0)
     , readThreadRunning(false)
     , daqContext(daqContext)
@@ -139,13 +143,15 @@ void ConfigProtocolStreamingProducer::stopReadSignal(StreamedSignal& streamedSig
 
 void ConfigProtocolStreamingProducer::readerThreadFunc()
 {
-    LOG_D("Streaming producer thread started");
+    daqNameThread("CfgProtoStreamProd");
+    LOG_D("Streaming producer thread started")
     while (readThreadRunning)
     {
         {
             std::unique_lock<std::mutex> lock(sync, std::try_to_lock);
             if (lock.owns_lock())
             {
+                bool hasPacketsToSend = false;
                 for (const auto& [_, streamedSignal] : streamedSignals)
                 {
                     if (const auto& reader = streamedSignal.reader; reader.assigned())
@@ -153,12 +159,15 @@ void ConfigProtocolStreamingProducer::readerThreadFunc()
                         PacketPtr packet = reader.read();
                         while (packet.assigned())
                         {
-                            if (sendDaqPacketCb)
-                                sendDaqPacketCb(packet, streamedSignal.signalNumericId);
+                            hasPacketsToSend = true;
+                            if (handleDaqPacketCb)
+                                handleDaqPacketCb(std::move(packet), streamedSignal.signalNumericId);
                             packet = reader.read();
                         }
                     }
                 }
+                if (hasPacketsToSend && sendPreprocessedPacketsCb)
+                    sendPreprocessedPacketsCb();
             }
         }
 

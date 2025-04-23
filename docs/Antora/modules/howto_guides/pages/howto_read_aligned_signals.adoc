@@ -1,5 +1,15 @@
 = Read multiple Signals aligned
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🧩 Use Multi Reader for synchronized reading.
+- 🧰 Create and configure Multi Readers.
+- 🖱 Apply code examples.
+====
+
 :tip-caption: Assumptions
 [TIP]
 ====

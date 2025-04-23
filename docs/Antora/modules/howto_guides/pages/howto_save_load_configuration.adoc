@@ -1,5 +1,16 @@
 = Save and load Configuration
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 📚 Understand openDAQ(TM) configuration components.
+- 💾 Save configuration to JSON.
+- 📥 Load configurations from JSON.
+- 🖥️ Apply code examples.
+====
+
 openDAQ(TM) provides features to save the current Configuration to JSON format. The Configuration is defined as the current state of
 the complete openDAQ tree. It consists of:
 

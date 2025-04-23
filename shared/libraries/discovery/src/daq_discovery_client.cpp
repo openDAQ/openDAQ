@@ -80,12 +80,16 @@ void addInfoProperty(PropertyObjectPtr& info, std::string propName, T propValue)
     }
 }
 
-void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info, const MdnsDiscoveredDevice& device)
+void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info,
+                                                       const MdnsDiscoveredDevice& device,
+                                                       const PropertyObjectPtr& defaultConnectedClientInfo = nullptr)
 {
     for (const auto& prop : device.properties)
     {
-        addInfoProperty(info, prop.first, prop.second);
+        if (prop.first.find(discovery_common::DiscoveryUtils::CONNECTED_CLIENT_INFO_KEY_PREFIX) == std::string::npos)
+            addInfoProperty(info, prop.first, prop.second);
     }
+    discovery_common::DiscoveryUtils::populateConnectedClientsInfo(info, defaultConnectedClientInfo, device.properties);
 }
 
 ErrCode DiscoveryClient::applyIpConfiguration(const StringPtr& manufacturer,
@@ -122,19 +126,17 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
 
     if (OPENDAQ_SUCCEEDED(errCode))
     {
-        errCode = daqTry(
-            [&]()
+        errCode = daqTry([&]()
+        {
+            if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
+                responseProperties["serialNumber"] != serialNumber.toStdString() ||
+                responseProperties["ifaceName"] != ifaceName.toStdString())
             {
-                if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
-                    responseProperties["serialNumber"] != serialNumber.toStdString() ||
-                    responseProperties["ifaceName"] != ifaceName.toStdString())
-                {
-                    return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response", nullptr);
-                }
-                config = IpModificationUtils::populateIpConfigProperties(responseProperties);
-                return OPENDAQ_SUCCESS;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response");
             }
-        );
+            config = IpModificationUtils::populateIpConfigProperties(responseProperties);
+            return OPENDAQ_SUCCESS;
+        });
     }
 
     return errCode;

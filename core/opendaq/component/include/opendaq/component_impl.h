@@ -58,11 +58,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
 
-namespace permissions
-{
-    static const auto DefaultComponentPermissions = PermissionsBuilder().inherit(true).build();
-}
-
 enum class ComponentStatus : EnumType
 {
     Ok = 0,
@@ -74,6 +69,7 @@ template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>
 {
 public:
+    using Self = ComponentImpl<Intf, Intfs...>;
     using Super = GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>;
 
     ComponentImpl(const ContextPtr& context,
@@ -86,7 +82,7 @@ public:
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
-    virtual ErrCode INTERFACE_FUNC setActive(Bool active) override;
+    ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -107,6 +103,7 @@ public:
     ErrCode INTERFACE_FUNC unlockAttributes(IList* attributes) override;
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
+    ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -134,6 +131,9 @@ protected:
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
+
+    static std::string OperationModeTypeToString(OperationModeType mode);
+    static OperationModeType OperationModeTypeFromString(const std::string& mode);
 
     ContextPtr context;
 
@@ -180,6 +180,7 @@ protected:
     ComponentPtr findComponentInternal(const ComponentPtr& component, const std::string& id);
 
     PropertyObjectPtr getPropertyObjectParent() override;
+    ComponentPtr getParentDevice();
 
     static bool validateComponentId(const std::string& id);
 
@@ -189,6 +190,8 @@ protected:
     void setComponentStatus(const ComponentStatus& status) const;
     // Set component status with message and log status and message (if different from previous, and not OK and empty string)
     void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
+
+    virtual void onOperationModeChanged(OperationModeType modeType);
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
@@ -231,7 +234,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
           }))
 {
     if (!localId.assigned() || localId.toStdString().empty())
-        throw GeneralErrorException("Local id not assigned");
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Local id not assigned");
 
     if (parent.assigned())
         globalId = parent.getGlobalId().toStdString() + "/" + static_cast<std::string>(localId);
@@ -239,7 +242,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
         globalId = "/" + localId;
 
     if (!context.assigned())
-        throw InvalidParameterException{"Context must be assigned on component creation"};
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Context must be assigned on component creation");
 
     if (context.getLogger().assigned()) {
         const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
@@ -253,7 +256,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 
     if (parent.assigned())
     {
-        this->permissionManager.setPermissions(permissions::DefaultComponentPermissions);
+        this->permissionManager.setPermissions(PermissionsBuilder().inherit(true).build());
         const auto parentManager = parent.getPermissionManager();
         this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
     }
@@ -354,7 +357,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getParent(IComponent** parent)
     else
         parentPtr = nullptr;
 
-    *parent = parentPtr.addRefAndReturn();
+    *parent = parentPtr.detach();
 
     return OPENDAQ_SUCCESS;
 }
@@ -647,6 +650,46 @@ ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs*
 }
 
 template <class Intf, class ... Intfs>
+std::string ComponentImpl<Intf, Intfs...>::OperationModeTypeToString(OperationModeType mode)
+{
+    switch (mode)
+    {
+        case OperationModeType::Idle:
+            return "Idle";
+        case OperationModeType::Operation:
+            return "Operation";
+        case OperationModeType::SafeOperation:
+            return "SafeOperation";
+        default:
+            return "Unknown";
+    };
+}
+
+template <class Intf, class ... Intfs>
+OperationModeType ComponentImpl<Intf, Intfs...>::OperationModeTypeFromString(const std::string& mode)
+{
+    if (mode == "Idle")
+        return OperationModeType::Idle;
+    if (mode == "Operation")
+        return OperationModeType::Operation;
+    if (mode == "SafeOperation")
+        return OperationModeType::SafeOperation;
+    return OperationModeType::Unknown;
+}
+
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::onOperationModeChanged(OperationModeType /* modeType */)
+{
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
+{
+    auto lock = this->getRecursiveConfigLock();
+    return wrapHandler(this, &Self::onOperationModeChanged, modeType);
+}
+
+template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::getOnComponentCoreEvent(IEvent** event)
 {
     OPENDAQ_PARAM_NOT_NULL(event);
@@ -661,24 +704,23 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
     OPENDAQ_PARAM_NOT_NULL(outComponent);
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    return daqTry(
-        [&]
+    return daqTry([&]
+    {
+        std::string str = StringPtr(id);
+        if (str != "" && str[0] == '/')
         {
-            std::string str = StringPtr(id);
-            if (str != "" && str[0] == '/')
-            {
-                str.erase(str.begin(), str.begin() + 1);
-                std::string startStr;
-                std::string restStr;
-                IdsParser::splitRelativeId(str, startStr, restStr);
-                if (startStr == localId)
-                    str = restStr;
-            }
+            str.erase(str.begin(), str.begin() + 1);
+            std::string startStr;
+            std::string restStr;
+            IdsParser::splitRelativeId(str, startStr, restStr);
+            if (startStr == localId)
+                str = restStr;
+        }
 
-            *outComponent = findComponentInternal(this->template borrowPtr<ComponentPtr>(), str).detach();
+        *outComponent = findComponentInternal(this->template borrowPtr<ComponentPtr>(), str).detach();
 
-            return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
-        });
+        return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
+    });
 }
 
 template<class Intf, class ... Intfs>
@@ -738,7 +780,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     auto configPtr = BaseObjectPtr::Borrow(config);
     if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>())
     {
-        return this->makeErrorInfo(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
     }
     
     const bool muted = this->coreEventMuted;
@@ -842,14 +884,14 @@ BaseObjectPtr ComponentImpl<Intf, Intfs...>::DeserializeComponent(const Serializ
                                                                   CreateComponentCallback&& createComponentCallback)
 {
     if (!serialized.assigned())
-        throw ArgumentNullException("Serialized object not assigned");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Serialized object not assigned");
 
     if (!context.assigned())
-        throw ArgumentNullException("Deserialization context not assigned");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Deserialization context not assigned");
 
     const auto componentDeserializeContext = context.asPtrOrNull<IComponentDeserializeContext>(true);
     if (!componentDeserializeContext.assigned())
-        throw InvalidParameterException("Invalid deserialization context");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid deserialization context");
 
     ComponentPtr component = Super::DeserializePropertyObject(
         serialized,
@@ -1072,6 +1114,21 @@ PropertyObjectPtr ComponentImpl<Intf, Intfs...>::getPropertyObjectParent()
 }
 
 template <class Intf, class ... Intfs>
+ComponentPtr ComponentImpl<Intf, Intfs...>::getParentDevice()
+{
+    ComponentPtr parent;
+    this->getParent(&parent);
+    while (parent.assigned())
+    {
+        if (parent.supportsInterface<IDevice>())
+            return parent;
+        parent = parent.getParent();
+    }
+
+    return nullptr;
+}
+
+template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::triggerCoreEvent(const CoreEventArgsPtr& args)
 {
     try
@@ -1131,7 +1188,7 @@ template <class Intf, class... Intfs>
 bool ComponentImpl<Intf, Intfs...>::validateComponentId(const std::string& id)
 {
     if (id.find('/') != std::string::npos)
-        throw InvalidParameterException("Component id " + id + " contains '/'");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Component id " + id + " contains '/'");
     return id.find(' ') == std::string::npos;
 }
 
@@ -1165,8 +1222,8 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
     }
     catch (const NotFoundException&)
     {
-        throw NotFoundException("ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called "
-                                "before setComponentStatus.");
+        DAQ_THROW_EXCEPTION(NotFoundException, 
+                            "ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called before setComponentStatus.");
     }
 
     // Check if status and message are the same as before, and also Ok and empty string, and if so, return

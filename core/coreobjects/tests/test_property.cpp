@@ -125,7 +125,7 @@ TEST_F(PropertyTest, SelectionValuesWithCustomClass)
     PropertyObjectPtr firstElement = selectionValuesList[0];
     ASSERT_EQ(firstElement.getClassName(), "TestClass");
 
-    auto serializer = JsonSerializer();
+    auto serializer = JsonSerializerWithVersion(1);
     ptr.serialize(serializer);
 
     std::string serialized = serializer.getOutput();

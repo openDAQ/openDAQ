@@ -24,6 +24,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/signal_ptr.h>
 
+#include <tsl/ordered_map.h>
 #include <native_streaming/server.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
@@ -32,6 +33,9 @@ static const SizeT UNLIMITED_CONFIGURATION_CONNECTIONS = 0;
 
 using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
 using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
+
+using OnClientConnectedCallback = std::function<void(const std::string& clientId, const std::string& address, bool isStreamingConnection, ClientType clientType, const std::string& hostName)>;
+using OnClientDisconnectedCallback = std::function<void(const std::string& clientId)>;
 
 using ConfigServerCallbacks = std::pair<ProcessConfigProtocolPacketCb, OnPacketBufferReceivedCallback>;
 using SetUpConfigProtocolServerCb = std::function<ConfigServerCallbacks(SendConfigProtocolPacketCb cb, const UserPtr& user, ClientType connectionType)>;
@@ -45,8 +49,9 @@ public:
                                           OnSignalSubscribedCallback signalSubscribedHandler,
                                           OnSignalUnsubscribedCallback signalUnsubscribedHandler,
                                           SetUpConfigProtocolServerCb setUpConfigProtocolServerCb,
-                                          SizeT maxAllowedConfigConnections = UNLIMITED_CONFIGURATION_CONNECTIONS,
-                                          SizeT streamingPacketSendTimeout = UNLIMITED_PACKET_SEND_TIME);
+                                          OnClientConnectedCallback clientConnectedHandler,
+                                          OnClientDisconnectedCallback clientDisconnectedHandler,
+                                          const PropertyObjectPtr& config = NativeStreamingServerHandler::createDefaultConfig());
     ~NativeStreamingServerHandler() = default;
 
     void startServer(uint16_t port);
@@ -56,8 +61,10 @@ public:
     void removeComponentSignals(const StringPtr& componentId);
 
     void sendPacket(const std::string& signalId, PacketPtr&& packet);
-    void processStreamingPacket(const std::string& signalId, PacketPtr&& packet);
-    void scheduleStreamingWriteTasks();
+    void processStreamingPackets(const tsl::ordered_map<std::string, PacketBufferData>& packetIndices, const std::vector<IPacket*>& packets);
+    void sendAvailableStreamingPackets();
+
+    static PropertyObjectPtr createDefaultConfig();
 
 protected:
     void initSessionHandler(SessionPtr session);
@@ -105,6 +112,8 @@ protected:
     OnSignalSubscribedCallback signalSubscribedHandler;
     OnSignalUnsubscribedCallback signalUnsubscribedHandler;
     SetUpConfigProtocolServerCb setUpConfigProtocolServerCb;
+    OnClientConnectedCallback clientConnectedHandler;
+    OnClientDisconnectedCallback clientDisconnectedHandler;
 
     std::mutex sync;
     size_t connectedClientIndex;
@@ -114,6 +123,8 @@ protected:
     SizeT controlConnectionsCount;
     SizeT exclusiveControlConnectionsCount;
     SizeT streamingPacketSendTimeout;
+    SizeT packetStreamingReleaseThreshold;
+    SizeT cacheablePacketPayloadSizeMax;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

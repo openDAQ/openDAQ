@@ -52,7 +52,7 @@ index c2f25cf..c3de580 100644
 +      work = [p = make_moc(std::move(p)), f = std::forward<F>(f), args...](bool cancel) mutable {
 +        if (cancel)
 +            p.object.set_value(std::nullopt);
-+        
++
 +        try {
 +            p.object.set_value(std::make_optional(f(args...)));
 +        }

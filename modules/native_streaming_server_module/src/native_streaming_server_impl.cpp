@@ -14,12 +14,16 @@
 #include <config_protocol/config_protocol_server.h>
 
 #include <boost/asio/dispatch.hpp>
+#include <opendaq/input_port_factory.h>
+#include <opendaq/thread_name.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
-
 using namespace daq;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
+
+static constexpr size_t DEFAULT_MAX_PACKET_READ_COUNT = 5000;
+static constexpr size_t DEFAULT_POLLING_PERIOD = 20;
 
 NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice,
                                                      const PropertyObjectPtr& config,
@@ -34,6 +38,12 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     , loggerComponent(logger.getOrAddComponent(id))
     , serverStopped(false)
 {
+    auto info = rootDevice.getInfo();
+    if (info.hasServerCapability("OpenDAQNativeStreaming"))
+        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNativeStreaming server capability.", info.getName()));
+    if (info.hasServerCapability("OpenDAQNativeConfiguration"))
+        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNativeConfiguration server capability.", info.getName()));
+
     startProcessingOperations();
     startTransportOperations();
 
@@ -50,7 +60,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
         .setPort(port);
 
     serverCapabilityStreaming.addProperty(StringProperty("Path", path == "/" ? "" : path));
-    rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapabilityStreaming);
+    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapabilityStreaming);
 
     ServerCapabilityConfigPtr serverCapabilityConfig =
         ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
@@ -60,12 +70,15 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
         .setProtocolVersion(std::to_string(GetLatestConfigProtocolVersion()));
 
     serverCapabilityConfig.addProperty(StringProperty("Path", path == "/" ? "" : path));
-    rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapabilityConfig);
+    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapabilityConfig);
 
     this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
 
     const uint16_t pollingPeriod = config.getPropertyValue("StreamingDataPollingPeriod");
     readThreadSleepTime = std::chrono::milliseconds(pollingPeriod);
+
+    maxPacketReadCount = config.getPropertyValue("MaxPacketReadCount");
+    packetBuf.resize(maxPacketReadCount);
     startReading();
 }
 
@@ -157,6 +170,7 @@ void NativeStreamingServerImpl::startTransportOperations()
     transportThread = std::thread(
         [this]()
         {
+            daqNameThread("NatSrvStreamTrans");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*transportIOContextPtr);
             transportIOContextPtr->run();
@@ -190,6 +204,8 @@ void NativeStreamingServerImpl::startProcessingOperations()
     processingThread = std::thread(
         [this]()
         {
+            daqNameThread("NatSrvProc");
+
             using namespace boost::asio;
             auto workGuard = make_work_guard(processingIOContext);
             processingIOContext.run();
@@ -227,7 +243,8 @@ void NativeStreamingServerImpl::stopServerInternal()
     serverStopped = true;
 
     this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
-    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
+    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr;
+        rootDevice.assigned() && !rootDevice.isRemoved())
     {
         const auto info = rootDevice.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
@@ -235,7 +252,14 @@ void NativeStreamingServerImpl::stopServerInternal()
             infoInternal.removeServerCapability("OpenDAQNativeStreaming");
         if (info.hasServerCapability("OpenDAQNativeConfiguration"))
             infoInternal.removeServerCapability("OpenDAQNativeConfiguration");
+        for (const auto& [_, clientNumber] : registeredClientIds)
+        {
+            if (clientNumber != 0)
+                infoInternal.removeConnectedClient(clientNumber);
+        }
     }
+    registeredClientIds.clear();
+    disconnectedClientIds.clear();
 
     stopReading();
     serverHandler->stopServer();
@@ -322,8 +346,42 @@ void NativeStreamingServerImpl::prepareServerHandler()
     if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         rootDeviceSignals = rootDevice.getSignals(search::Recursive(search::Any()));
 
-    const SizeT maxAllowedConfigConnections = this->config.getPropertyValue("MaxAllowedConfigConnections");
-    const SizeT streamingPacketSendTimeout = this->config.getPropertyValue("StreamingPacketSendTimeout");
+    auto clientConnectedHandler = [this](const std::string& clientId, const std::string& address, bool isStreamingConnection, ClientType clientType, const std::string& hostName)
+    {
+        SizeT clientNumber = 0;
+        Bool reconnected = False;
+        if (auto it = disconnectedClientIds.find(clientId); it != disconnectedClientIds.end())
+        {
+            reconnected = True;
+            clientNumber = it->second;
+            disconnectedClientIds.erase(it);
+        }
+        if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr;
+            rootDevice.assigned() && !rootDevice.isRemoved())
+        {
+            const auto clientInfo =
+                isStreamingConnection
+                    ? ConnectedClientInfo(address, ProtocolType::Streaming, "OpenDAQNativeStreaming", "", hostName)
+                    : ConnectedClientInfo(address, ProtocolType::Configuration, "OpenDAQNativeConfiguration", ClientTypeTools::ClientTypeToString(clientType), hostName);
+            clientInfo.addProperty(StringProperty("Reconnected", reconnected ? "Yes" : "No"));
+            rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(&clientNumber, clientInfo);
+        }
+        registeredClientIds.insert({clientId, clientNumber});
+    };
+
+    auto clientDisconnectedHandler = [this](const std::string& clientId)
+    {
+        if (auto it = registeredClientIds.find(clientId); it != registeredClientIds.end())
+        {
+            if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr;
+                rootDevice.assigned() && !rootDevice.isRemoved())
+            {
+                rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(it->second);
+            }
+            disconnectedClientIds.emplace(clientId, it->second);
+            registeredClientIds.erase(it);
+        }
+    };
 
     serverHandler = std::make_shared<NativeStreamingServerHandler>(context,
                                                                    transportIOContextPtr,
@@ -331,8 +389,9 @@ void NativeStreamingServerImpl::prepareServerHandler()
                                                                    signalSubscribedHandler,
                                                                    signalUnsubscribedHandler,
                                                                    createConfigServerCb,
-                                                                   maxAllowedConfigConnections,
-                                                                   streamingPacketSendTimeout);
+                                                                   clientConnectedHandler,
+                                                                   clientDisconnectedHandler,
+                                                                   config);
 }
 
 void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)
@@ -354,25 +413,9 @@ void NativeStreamingServerImpl::populateDefaultConfigFromProvider(const ContextP
 
 PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPtr& context)
 {
-    constexpr Int minPortValue = 0;
-    constexpr Int maxPortValue = 65535;
+    auto defaultConfig = NativeStreamingServerHandler::createDefaultConfig();
 
-    auto defaultConfig = PropertyObject();
-
-    const auto portProp = IntPropertyBuilder("NativeStreamingPort", 7420)
-        .setMinValue(minPortValue)
-        .setMaxValue(maxPortValue)
-        .build();
-    defaultConfig.addProperty(portProp);
-    defaultConfig.addProperty(StringProperty("Path", "/"));
-
-    // default value "UNLIMITED_CONFIGURATION_CONNECTIONS = 0" stands for unlimited count of concurrent connections
-    const auto configConnectionsLimitProp = IntPropertyBuilder("MaxAllowedConfigConnections", UNLIMITED_CONFIGURATION_CONNECTIONS)
-                                                .setMinValue(0)
-                                                .build();
-    defaultConfig.addProperty(configConnectionsLimitProp);
-
-    const auto pollingPeriodProp = IntPropertyBuilder("StreamingDataPollingPeriod", 20)
+    const auto pollingPeriodProp = IntPropertyBuilder("StreamingDataPollingPeriod", DEFAULT_POLLING_PERIOD)
                                        .setMinValue(1)
                                        .setMaxValue(65535)
                                        .setDescription("Polling period in milliseconds "
@@ -381,18 +424,15 @@ PropertyObjectPtr NativeStreamingServerImpl::createDefaultConfig(const ContextPt
                                        .build();
     defaultConfig.addProperty(pollingPeriodProp);
 
-    const auto streamingPacketSendTimeoutPropDescription =
-        "Defines the timeout for sending streaming packets, measured in milliseconds. "
-        "If a timeout is set with this property, and the lifetime of the queued PacketBuffer awaiting transmission exceeds "
-        "the specified limit since the buffer's creation before starting the low-level write operation, the server will reset "
-        "the connection for the corresponding client that owns the queue, effectively clearing it. "
-        "The default value '0' signifies that the streaming server time to send out the packets is not limited, "
-        "i.e. the lifetime of PacketBuffers awaiting for transmission, along with the memory allocated for the queue, are both unlimited.";
-    const auto streamingPacketSendTimeoutProp = IntPropertyBuilder("StreamingPacketSendTimeout", UNLIMITED_PACKET_SEND_TIME)
-                                                    .setMinValue(0)
-                                                    .setDescription(streamingPacketSendTimeoutPropDescription)
-                                                    .build();
-    defaultConfig.addProperty(streamingPacketSendTimeoutProp);
+    const auto maxPacketReadCountProp = IntPropertyBuilder("MaxPacketReadCount", DEFAULT_MAX_PACKET_READ_COUNT)
+                                                .setMinValue(1)
+                                                .setDescription("Specifies the size of a pre-allocated packet buffer into "
+                                                                "which packets are dequeued. The size determines the amount of "
+                                                                "packets that can be read in one dequeue call. Should be greater "
+                                                                "than the amount of packets generated per polling period for best "
+                                                                "performance.")
+                                                .build();
+    defaultConfig.addProperty(maxPacketReadCountProp);
 
     populateDefaultConfigFromProvider(context, defaultConfig);
     return defaultConfig;
@@ -441,6 +481,7 @@ void NativeStreamingServerImpl::startReading()
     readThreadActive = true;
     this->readThread = std::thread([this]()
     {
+        daqNameThread("NatSrvStreamRead");
         this->startReadThread();
         LOG_I("Reading thread finished");
     });
@@ -455,30 +496,58 @@ void NativeStreamingServerImpl::stopReading()
         LOG_I("Reading thread joined");
     }
 
+    auto ports = List<IInputPort>();
+    for (const auto& [_, __, port, ___] : signalReaders)
+        ports.pushBack(port);
+
     signalReaders.clear();
+
+    for (const auto& port : ports)
+        port.remove();
 }
 
 void NativeStreamingServerImpl::startReadThread()
 {
     while (readThreadActive)
     {
+        bool sendData = false;
+
         {
             std::scoped_lock lock(readersSync);
-
-            bool hasPacketsToSend = false;
-            for (const auto& [_, signalGlobalId, reader] : signalReaders)
+            bool repeatRead;
+            do
             {
-                PacketPtr packet = reader.read();
-                while (packet.assigned())
+                repeatRead = false;
+                SizeT read = 0;
+                SizeT count = maxPacketReadCount;
+                for (const auto& [_, signalGlobalId, port, connection] : signalReaders)
                 {
-                    hasPacketsToSend = true;
-                    serverHandler->processStreamingPacket(signalGlobalId, std::move(packet));
-                    packet = reader.read();
+                    connection->dequeueUpTo(packetBuf.data() + read, &count);
+                    auto& packetData = packetIndices[signalGlobalId];
+                    packetData.index = static_cast<int>(read);
+                    packetData.count = static_cast<int>(count);
+                    read += count;
+                    count = maxPacketReadCount - read;
+
+                    // Max packet read count exceeded; Send packets and re-read to not drop data.
+                    if (count == 0)
+                    {
+                        repeatRead = true;
+                        break;
+                    }
                 }
+
+                if (read)
+                    serverHandler->processStreamingPackets(packetIndices, packetBuf);
+
+                sendData = sendData || read;
+                clearIndices();
             }
-            if (hasPacketsToSend)
-                serverHandler->scheduleStreamingWriteTasks();
+            while (repeatRead);
         }
+
+        if (sendData)
+            serverHandler->sendAvailableStreamingPackets();
 
         std::this_thread::sleep_for(readThreadSleepTime);
     }
@@ -488,7 +557,7 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnectionInternal>>& element)
                            {
                                return std::get<0>(element) == signalToRead;
                            });
@@ -496,15 +565,22 @@ void NativeStreamingServerImpl::addReader(SignalPtr signalToRead)
         return;
 
     LOG_I("Add reader for signal {}", signalToRead.getGlobalId());
-    auto reader = PacketReader(signalToRead);
-    signalReaders.push_back(std::tuple<SignalPtr, std::string, PacketReaderPtr>({signalToRead, signalToRead.getGlobalId().toStdString(), reader}));
+
+    auto port = InputPort(signalToRead.getContext(), nullptr, "readsig");
+    port.connect(signalToRead);
+    port.setNotificationMethod(PacketReadyNotification::None);
+    auto connection = port.getConnection().asPtr<IConnectionInternal>();
+
+    signalReaders.push_back(std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnectionInternal>>(
+        {signalToRead, signalToRead.getGlobalId().toStdString(), port, connection}));
+    packetIndices.insert(std::make_pair(signalToRead.getGlobalId().toStdString(), PacketBufferData()));
 }
 
 void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 {
     auto it = std::find_if(signalReaders.begin(),
                            signalReaders.end(),
-                           [&signalToRead](const std::tuple<SignalPtr, std::string, PacketReaderPtr>& element)
+                           [&signalToRead](const std::tuple<SignalPtr, std::string, InputPortPtr, ObjectPtr<IConnection>>& element)
                            {
                                return std::get<0>(element) == signalToRead;
                            });
@@ -512,7 +588,20 @@ void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
         return;
 
     LOG_I("Remove reader for signal {}", signalToRead.getGlobalId());
+
+    auto port = std::get<2>(*it);
     signalReaders.erase(it);
+    packetIndices.erase(signalToRead.getGlobalId().toStdString());
+    port.remove();
+}
+
+void NativeStreamingServerImpl::clearIndices()
+{
+    for (auto& [signalId, _] : packetIndices)
+    {
+        auto& data = packetIndices[signalId];
+        data.reset();
+    }
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

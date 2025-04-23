@@ -8,16 +8,14 @@ function(create_component_source_groups_${BASE_NAME})
     set(SDK_HEADERS_DIR "utility/include/opendaq")
     set(SDK_SRC_DIR "utility/src")
     
-    source_group("utility//sample_type" FILES 
-        ${SDK_HEADERS_DIR}/sample_type.h
-    )
-    
     source_group("utility//ids_parser" FILES 
         ${SDK_HEADERS_DIR}/ids_parser.h
         ${SDK_SRC_DIR}/ids_parser.cpp
     )
     
     source_group("utility" FILES 
+        ${SDK_HEADERS_DIR}/thread_name.h
+        ${SDK_SRC_DIR}/thread_name.cpp
         ${SDK_HEADERS_DIR}/utility_errors.h
         ${SDK_HEADERS_DIR}/utility_exceptions.h
         ${SDK_SRC_DIR}/utility.natvis
@@ -26,6 +24,7 @@ endfunction()
 
 set(SRC_Cpp_Component 
     ids_parser.cpp
+    thread_name.cpp
     utility.natvis
     PARENT_SCOPE
 )
@@ -34,11 +33,14 @@ set(SRC_PublicHeaders_Component
     utility_errors.h
     utility_exceptions.h
     ids_parser.h
+    mem_pool_allocator.h
+    thread_name.h
     PARENT_SCOPE
 )
 
 set(SRC_PrivateLinkLibraries_Component
     $<BUILD_INTERFACE:Boost::algorithm>
+    $<BUILD_INTERFACE:daq::opendaq_utils>
     PARENT_SCOPE
 )
 

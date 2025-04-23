@@ -343,7 +343,7 @@ inline ErrCode MDNSDiscoveryClient::requestIpConfigModification(const std::strin
     sendNonDiscoveryQuery(records, discovery_common::IpModificationUtils::IP_MODIFICATION_OPCODE, requestQueryId, callback);
 
     if (OPENDAQ_FAILED(rpcErrorCode))
-        return makeErrorInfo(rpcErrorCode, rpcErrorMessage, nullptr);
+        return DAQ_MAKE_ERROR_INFO(rpcErrorCode, rpcErrorMessage);
 
     return OPENDAQ_SUCCESS;
 }
@@ -403,7 +403,7 @@ inline ErrCode MDNSDiscoveryClient::requestCurrentIpConfiguration(const std::str
     sendNonDiscoveryQuery(records, discovery_common::IpModificationUtils::IP_GET_CONFIG_OPCODE, requestQueryId, callback);
 
     if (OPENDAQ_FAILED(rpcErrorCode))
-        return makeErrorInfo(rpcErrorCode, rpcErrorMessage, nullptr);
+        return DAQ_MAKE_ERROR_INFO(rpcErrorCode, rpcErrorMessage);
 
     return OPENDAQ_SUCCESS;
 }
@@ -636,9 +636,18 @@ inline std::string MDNSDiscoveryClient::ipAddressToString(const sockaddr* addr, 
 
 inline std::string MDNSDiscoveryClient::getIpv6NetworkInterface(const struct sockaddr_in6* addr, size_t addrlen)
 {
-    char ifname[IF_NAMESIZE] = {0};
-    if (addr->sin6_scope_id && if_indextoname(addr->sin6_scope_id, ifname)) 
-        return "%" + std::string(ifname);
+    if (addr->sin6_scope_id)
+    {
+#ifdef _WIN32
+        // On Windows, sin6_scope_id should be used directly as an integer.
+        return "%" + std::to_string(addr->sin6_scope_id);
+#else
+        // On Linux/macOS, convert interface index to name.
+        char ifname[IF_NAMESIZE] = {0};
+        if (if_indextoname(addr->sin6_scope_id, ifname))
+            return "%" + std::string(ifname);
+#endif
+    }
     return "";
 }
 

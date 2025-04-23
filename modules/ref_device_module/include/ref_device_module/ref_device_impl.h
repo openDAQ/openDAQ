@@ -46,6 +46,7 @@ public:
 protected:
     ListPtr<ILogFileInfo> onGetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
+    std::set<OperationModeType> onGetAvailableOperationModes() override;
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
 #ifdef __linux__

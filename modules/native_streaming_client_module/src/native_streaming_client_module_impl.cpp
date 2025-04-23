@@ -15,12 +15,16 @@
 #include <config_protocol/config_protocol_client.h>
 #include <opendaq/address_info_factory.h>
 #include <opendaq/client_type.h>
-#include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/thread_name.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace discovery;
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
+
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.+://)([^:/\s]+))");
+static const std::regex RegexPort(":(\\d+)");
 
 NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     : Module("OpenDAQNativeStreamingClientModule",
@@ -162,6 +166,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     auto processingThread = std::thread(
         [this, processingIOContextPtr]()
         {
+            daqNameThread("NatCliDevCfgProc");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
@@ -173,6 +178,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
     auto reconnectionProcessingThread = std::thread(
         [this, reconnectionProcessingIOContextPtr]()
         {
+            daqNameThread("NatCliDevReconnProc");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*reconnectionProcessingIOContextPtr);
             reconnectionProcessingIOContextPtr->run();
@@ -229,24 +235,21 @@ void NativeStreamingClientModule::populateDeviceConfigFromContext(PropertyObject
     if (options.getCount() == 0)
         return;
 
-    if (options.hasKey("ProtocolVersion"))
     {
-        auto value = options.get("ProtocolVersion");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("ProtocolVersion");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             deviceConfig.setPropertyValue("ProtocolVersion", value);
     }
 
-    if (options.hasKey("ConfigProtocolRequestTimeout"))
     {
-        auto value = options.get("ConfigProtocolRequestTimeout");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("ConfigProtocolRequestTimeout");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             deviceConfig.setPropertyValue("ConfigProtocolRequestTimeout", value);
     }
 
-    if (options.hasKey("RestoreClientConfigOnReconnect"))
     {
-        auto value = options.get("RestoreClientConfigOnReconnect");
-        if (value.getCoreType() == CoreType::ctBool)
+        auto value = options.getOrDefault("RestoreClientConfigOnReconnect");
+        if (value.assigned() && value.getCoreType() == CoreType::ctBool)
             deviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", value);
     }
 }
@@ -257,45 +260,39 @@ void NativeStreamingClientModule::populateTransportLayerConfigFromContext(Proper
     if (options.getCount() == 0)
         return;
 
-    if (options.hasKey("MonitoringEnabled"))
     {
-        auto value = options.get("MonitoringEnabled");
-        if (value.getCoreType() == CoreType::ctBool)
+        auto value = options.getOrDefault("MonitoringEnabled");
+        if (value.assigned() && value.getCoreType() == CoreType::ctBool)
             transportLayerConfig.setPropertyValue("MonitoringEnabled", value);
     }
 
-    if (options.hasKey("HeartbeatPeriod"))
     {
-        auto value = options.get("HeartbeatPeriod");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("HeartbeatPeriod");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("HeartbeatPeriod", value);
     }
 
-    if (options.hasKey("InactivityTimeout"))
     {
-        auto value = options.get("InactivityTimeout");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("InactivityTimeout");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("InactivityTimeout", value);
     }
 
-    if (options.hasKey("ConnectionTimeout"))
     {
-        auto value = options.get("ConnectionTimeout");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("ConnectionTimeout");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("ConnectionTimeout", value);
     }
 
-    if (options.hasKey("StreamingInitTimeout"))
     {
-        auto value = options.get("StreamingInitTimeout");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("StreamingInitTimeout");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("StreamingInitTimeout", value);
     }
 
-    if (options.hasKey("ReconnectionPeriod"))
     {
-        auto value = options.get("ReconnectionPeriod");
-        if (value.getCoreType() == CoreType::ctInt)
+        auto value = options.getOrDefault("ReconnectionPeriod");
+        if (value.assigned() && value.getCoreType() == CoreType::ctInt)
             transportLayerConfig.setPropertyValue("ReconnectionPeriod", value);
     }
 }
@@ -340,7 +337,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
                                                       const PropertyObjectPtr& config)
 {
     if (!connectionString.assigned())
-        throw ArgumentNullException();
+        DAQ_THROW_EXCEPTION(ArgumentNullException);
 
     NativeType nativeType;
     if (ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
@@ -348,7 +345,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
         nativeType = NativeType::config;
     else
-        throw InvalidParameterException("Invalid connection string prefix");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string prefix");
 
     PropertyObjectPtr deviceConfig;
     if (!config.assigned())
@@ -357,10 +354,10 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         deviceConfig = populateDefaultConfig(config, nativeType);
 
     if (!acceptsConnectionParameters(connectionString, deviceConfig))
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     if (!context.assigned())
-        throw InvalidParameterException("Context is not available.");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
     auto host = GetHost(connectionString);
     auto port = GetPort(connectionString, deviceConfig);
@@ -514,6 +511,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
     auto processingThread = std::thread(
         [this, processingIOContextPtr, connectionString]()
         {
+            daqNameThread("NatCliStreamProc");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*processingIOContextPtr);
             processingIOContextPtr->run();
@@ -555,7 +553,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
     {
         auto message = fmt::format("Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
         LOG_E("{}", message);
-        throw NotFoundException(message);
+        DAQ_THROW_EXCEPTION(NotFoundException, message);
     }
 
     return transportClientHandler;
@@ -617,7 +615,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
                                                             const PropertyObjectPtr& config)
 {
     if (!acceptsStreamingConnectionParameters(connectionString, config))
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming) : createConnectionDefaultConfig(NativeType::streaming);
 
@@ -637,9 +635,6 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     if (target.getProtocolId() != "OpenDAQNativeStreaming" &&
         target.getProtocolId() != "OpenDAQNativeConfiguration")
         return false;
-    
-    if (target.getConnectionString().getLength() != 0)
-        return true;
 
     if (source.getConnectionType() != "TCP/IP")
         return false;
@@ -666,14 +661,22 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     }
     
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    const auto targetAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
-        const auto prefix = target.getProtocolId() == "OpenDAQNativeStreaming" ? NativeStreamingPrefix : NativeConfigurationDevicePrefix;
-        
-        StringPtr connectionString = CreateUrlConnectionString(prefix, address, port, path);
+        if (auto it = std::find(targetAddress.begin(), targetAddress.end(), address); it != targetAddress.end())
+            continue;
+
+        const auto prefix = target.getPrefix();
+        StringPtr connectionString;
+        if (source.getPrefix() == prefix)
+            connectionString = addrInfo.getConnectionString();
+        else
+            connectionString = CreateUrlConnectionString(prefix, address, port, path);
+
         const auto targetAddrInfo = AddressInfoBuilder()
-                                        .setAddress(addrInfo.getAddress())
+                                        .setAddress(address)
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
                                         .setType(addrInfo.getType())
                                         .setConnectionString(connectionString)
@@ -739,45 +742,37 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
 StringPtr NativeStreamingClientModule::GetHostType(const StringPtr& url)
 {
 	std::string urlString = url.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
 	std::smatch match;
 
-	if (std::regex_search(urlString, match, regexIpv6Hostname))
+    if (std::regex_search(urlString, match, RegexIpv6Hostname))
 		return String("IPv6");
-	if (std::regex_search(urlString, match, regexIpv4Hostname))
+    if (std::regex_search(urlString, match, RegexIpv4Hostname))
 		return String("IPv4");
-	throw InvalidParameterException("Host type not found in url: {}", url);
+	DAQ_THROW_EXCEPTION(InvalidParameterException, "Host type not found in url: {}", url);
 }
 
 StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
 {
     std::string urlString = url.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
     std::smatch match;
 
-    if (std::regex_search(urlString, match, regexIpv6Hostname))
+    if (std::regex_search(urlString, match, RegexIpv6Hostname))
         return String(match[2]);
-    if (std::regex_search(urlString, match, regexIpv4Hostname))
+    if (std::regex_search(urlString, match, RegexIpv4Hostname))
         return String(match[2]);
-    throw InvalidParameterException("Host name not found in url: {}", url);
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
 }
 
 StringPtr NativeStreamingClientModule::GetPort(const StringPtr& url, const PropertyObjectPtr& config)
 {
     std::string outPort;
     std::string urlString = url.toStdString();
-
-    auto regexPort = std::regex(":(\\d+)");
     std::smatch match;
 
     std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
-    if (std::regex_search(suffix, match, regexPort))
+    if (std::regex_search(suffix, match, RegexPort))
         outPort = match[1];
     else
         outPort = "7420";
@@ -859,38 +854,24 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-
     auto cap = ServerCapability(NativeConfigurationDeviceTypeId, "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming);
 
     SetupProtocolAddresses(discoveredDevice, cap, "daq.nd");
     cap.setCoreEventsEnabled(true);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-
     auto cap = ServerCapability(NativeStreamingDeviceTypeId, "OpenDAQNativeStreaming", ProtocolType::Streaming);
 
     SetupProtocolAddresses(discoveredDevice, cap, "daq.ns");
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createPseudoDeviceType());
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

@@ -1,14 +1,16 @@
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <native_streaming/client.hpp>
+#include <boost/asio/ip/host_name.hpp>
+#include "native_streaming_protocol/streaming_manager.h"
 
 #include <opendaq/custom_log.h>
 #include <opendaq/packet_factory.h>
 
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/thread_name.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
-
 using namespace daq::native_streaming;
 
 NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
@@ -35,34 +37,34 @@ NativeStreamingClientImpl::~NativeStreamingClientImpl()
 void NativeStreamingClientImpl::manageTransportLayerProps()
 {
     if (!transportLayerProperties.assigned())
-        throw ArgumentNullException("Transport layer properties cannot be null");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Transport layer properties cannot be null");
 
     if (!transportLayerProperties.hasProperty("MonitoringEnabled"))
-        throw NotFoundException("Transport layer MonitoringEnabled property not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer MonitoringEnabled property not found");
     if (!transportLayerProperties.hasProperty("HeartbeatPeriod"))
-        throw NotFoundException("Transport layer HeartbeatPeriod property not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer HeartbeatPeriod property not found");
     if (!transportLayerProperties.hasProperty("InactivityTimeout"))
-        throw NotFoundException("Transport layer InactivityTimeout property not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer InactivityTimeout property not found");
     if (!transportLayerProperties.hasProperty("ConnectionTimeout"))
-        throw NotFoundException("Transport layer ConnectionTimeout property not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ConnectionTimeout property not found");
     if (!transportLayerProperties.hasProperty("StreamingInitTimeout"))
-        throw NotFoundException("Transport layer StreamingInitTimeout property not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer StreamingInitTimeout property not found");
     if (!transportLayerProperties.hasProperty("ReconnectionPeriod"))
-        throw NotFoundException("Transport layer ReconnectionPeriod property not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ReconnectionPeriod property not found");
 
     if (transportLayerProperties.hasProperty("ClientId") &&
         transportLayerProperties.getProperty("ClientId").getValueType() != ctString)
-        throw NotFoundException("Transport layer ClientId property should be of String type");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ClientId property should be of String type");
     if (transportLayerProperties.getProperty("MonitoringEnabled").getValueType() != ctBool)
-        throw NotFoundException("Transport layer MonitoringEnabled property should be of Bool type");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer MonitoringEnabled property should be of Bool type");
     if (transportLayerProperties.getProperty("HeartbeatPeriod").getValueType() != ctInt)
-        throw NotFoundException("Transport layer HeartbeatPeriod property should be of Int type");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer HeartbeatPeriod property should be of Int type");
     if (transportLayerProperties.getProperty("InactivityTimeout").getValueType() != ctInt)
-        throw NotFoundException("Transport layer InactivityTimeout property should be of Int type");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer InactivityTimeout property should be of Int type");
     if (transportLayerProperties.getProperty("ConnectionTimeout").getValueType() != ctInt)
-        throw NotFoundException("Transport layer ConnectionTimeout property should be of Int type");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ConnectionTimeout property should be of Int type");
     if (transportLayerProperties.getProperty("ReconnectionPeriod").getValueType() != ctInt)
-        throw NotFoundException("Transport layer ReconnectionPeriod property should be of Int type");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Transport layer ReconnectionPeriod property should be of Int type");
 
     connectionMonitoringEnabled = transportLayerProperties.getPropertyValue("MonitoringEnabled");
     heartbeatPeriod = transportLayerProperties.getPropertyValue("HeartbeatPeriod");
@@ -72,6 +74,10 @@ void NativeStreamingClientImpl::manageTransportLayerProps()
 
     if (!transportLayerProperties.hasProperty("Reconnected"))
         transportLayerProperties.addProperty(BoolProperty("Reconnected", False));
+
+    if (!transportLayerProperties.hasProperty("HostName"))
+        transportLayerProperties.addProperty(StringProperty("HostName", ""));
+    transportLayerProperties.setPropertyValue("HostName", String(boost::asio::ip::host_name()));
 }
 
 void NativeStreamingClientImpl::resetStreamingHandlers()
@@ -236,17 +242,41 @@ void NativeStreamingClientImpl::sendStreamingRequest()
         sessionHandlerTemp->sendStreamingRequest();
 }
 
-void NativeStreamingClientImpl::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
+void NativeStreamingClientImpl::sendOneStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
 {
     if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
     {
         if (auto packetStreamingServerTemp = this->packetStreamingServerPtr; packetStreamingServerTemp)
         {
-            packetStreamingServerTemp->addDaqPacket(signalNumericId, packet);
+            StreamingManager::pushToPacketStreamingServer(packetStreamingServerTemp, std::move(packet), signalNumericId);
             while (auto packetBuffer = packetStreamingServerTemp->getNextPacketBuffer())
             {
                 sessionHandlerTemp->sendPacketBuffer(std::move(packetBuffer));
             }
+        }
+    }
+}
+
+void NativeStreamingClientImpl::pushOneStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
+{
+    if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+    {
+        if (auto packetStreamingServerTemp = this->packetStreamingServerPtr; packetStreamingServerTemp)
+        {
+            StreamingManager::pushToPacketStreamingServer(packetStreamingServerTemp, std::move(packet), signalNumericId);
+        }
+    }
+}
+
+void NativeStreamingClientImpl::sendAvailableStreamingPackets()
+{
+    if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+    {
+        if (auto packetStreamingServerTemp = this->packetStreamingServerPtr; packetStreamingServerTemp)
+        {
+            auto [tasks,_] = StreamingManager::getStreamingWriteTasks(packetStreamingServerTemp);
+            if (!tasks.empty())
+                sessionHandler->schedulePacketBufferWriteTasks(std::move(tasks), std::nullopt);
         }
     }
 }
@@ -280,7 +310,7 @@ void NativeStreamingClientImpl::onPacketBufferReceived(const packet_streaming::P
 
 void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
 {
-    LOG_I("Client connected to server endpoint: {}", session->getEndpointAddress());
+    LOG_I("Client connected to server endpoint: {}:{}", session->getEndpointAddress(), session->getEndpointPortNumber());
 
     OnSessionErrorCallback errorHandler =
         [thisWeakPtr = this->weak_from_this()](const std::string& errorMessage, SessionPtr session)
@@ -342,7 +372,10 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
     sessionHandler->setPacketBufferReceivedHandler(packetBufferReceivedHandler);
 
     // FIXME keep and reuse packet server when packet retransmission feature will be enabled
-    packetStreamingServerPtr = std::make_shared<packet_streaming::PacketStreamingServer>();
+    packetStreamingServerPtr =
+        std::make_shared<packet_streaming::PacketStreamingServer>(packet_streaming::PACKET_ZERO_PAYLOAD_SIZE,
+                                                                  packet_streaming::PACKET_RELEASE_THRESHOLD_DEFAULT,
+                                                                  false);
 
     sessionHandler->sendTransportLayerProperties(transportLayerProperties);
     if (connectionMonitoringEnabled)
@@ -449,7 +482,7 @@ void NativeStreamingClientImpl::handleSignal(const SignalNumericIdType& signalNu
                       signalNumericId,
                       it->second,
                       signalStringId);
-                throw DuplicateItemException();
+                DAQ_THROW_EXCEPTION(DuplicateItemException);
             }
         }
         else
@@ -505,9 +538,9 @@ void NativeStreamingClientHandler::sendStreamingRequest()
     clientHandlerPtr->sendStreamingRequest();
 }
 
-void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
+void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
 {
-    clientHandlerPtr->sendStreamingPacket(signalNumericId, packet);
+    clientHandlerPtr->sendOneStreamingPacket(signalNumericId, std::move(packet));
 }
 
 std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()
@@ -551,6 +584,8 @@ void NativeStreamingClientHandler::startTransportOperations()
     ioThread =
         std::thread([this]()
                     {
+                        daqNameThread("NatCliTransIO");
+
                         using namespace boost::asio;
                         executor_work_guard<io_context::executor_type> workGuard(ioContextPtr->get_executor());
                         ioContextPtr->run();

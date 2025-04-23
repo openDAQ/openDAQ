@@ -69,6 +69,7 @@ public:
     void setProtectedPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
     BaseObjectPtr getPropertyValue(const std::string& globalId, const std::string& propertyName);
     void clearPropertyValue(const std::string& globalId, const std::string& propertyName);
+    void clearProtectedPropertyValue(const std::string& globalId, const std::string& propertyName);
     void update(const std::string& globalId, const std::string& serialized, const std::string& path);
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
     void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
@@ -79,12 +80,15 @@ public:
     bool isLocked(const std::string& globalId);
     void beginUpdate(const std::string& globalId, const std::string& path = "");
     void endUpdate(const std::string& globalId, const std::string& path = "", const ListPtr<IDict>& props = nullptr);
-    DictPtr<IString, IFunctionBlockType> getAvailableFunctionBlockTypes(const std::string& globalId);
+
+    DictPtr<IString, IFunctionBlockType> getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb = false);
     ComponentHolderPtr addFunctionBlock(const std::string& globalId,
                                         const StringPtr& typeId,
                                         const PropertyObjectPtr& config = nullptr,
-                                        const ComponentPtr& parentComponent = nullptr);
-    void removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId);
+                                        const ComponentPtr& parentComponent = nullptr,
+                                        bool isFb = false);
+    void removeFunctionBlock(const std::string& globalId, const StringPtr& functionBlockLocalId, bool isFb = false);
+
     uint64_t getTicksSinceOrigin(const std::string& globalId);
     ListPtr<IDeviceInfo> getAvailableDevices(const std::string& globalId);
     DictPtr<IString, IDeviceType> getAvailableDeviceTypes(const std::string& globalId);
@@ -100,6 +104,11 @@ public:
     TypeManagerPtr getTypeManager();
     ListPtr<ILogFileInfo> getLogFileInfos(const std::string& globalId);
     StringPtr getLog(const std::string& globalId, const StringPtr& id, Int size, Int offset);
+
+    ListPtr<IString> getAvailableOperationModes(const std::string& globalId);
+    void setOperationMode(const std::string& globalId, const StringPtr& modeType);
+    void setOperationModeRecursive(const std::string& globalId, const StringPtr& modeType);
+    StringPtr getOperationMode(const std::string& globalId);
 
     bool getConnected() const;
     ContextPtr getDaqContext();
@@ -196,7 +205,8 @@ public:
     explicit ConfigProtocolClient(const ContextPtr& daqContext,
                                   const SendRequestCallback& sendRequestCallback,
                                   const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
-                                  const SendDaqPacketCallback& sendDaqPacketCallback,
+                                  const HandleDaqPacketCallback& handleDaqPacketCallback,
+                                  const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb,
                                   const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
 
     // called from client module
@@ -216,7 +226,6 @@ private:
     ContextPtr daqContext;
     SendRequestCallback sendRequestCallback;
     SendNoReplyRequestCallback sendNoReplyRequestCallback;
-    SendDaqPacketCallback sendDaqPacketCallback;
     ServerNotificationReceivedCallback serverNotificationReceivedCallback;
     DeserializerPtr deserializer;
     ConfigProtocolStreamingProducerPtr streamingProducer;
@@ -238,14 +247,14 @@ template<class TRootDeviceImpl>
 ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& daqContext,
                                                             const SendRequestCallback& sendRequestCallback,
                                                             const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
-                                                            const SendDaqPacketCallback& sendDaqPacketCallback,
+                                                            const HandleDaqPacketCallback& handleDaqPacketCallback,
+                                                            const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb,
                                                             const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
     : daqContext(daqContext)
     , sendRequestCallback(sendRequestCallback)
-    , sendDaqPacketCallback(sendDaqPacketCallback)
     , serverNotificationReceivedCallback(serverNotificationReceivedCallback)
     , deserializer(JsonDeserializer())
-    , streamingProducer(std::make_shared<ConfigProtocolStreamingProducer>(daqContext, sendDaqPacketCallback))
+    , streamingProducer(std::make_shared<ConfigProtocolStreamingProducer>(daqContext, handleDaqPacketCallback, sendPreprocessedPacketsCb))
     , clientComm(
           std::make_shared<ConfigProtocolClientComm>(
               daqContext,
@@ -368,14 +377,19 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
 
     auto rootDevice = clientComm->getRootDevice();
     if (!rootDevice.assigned())
-        throw NotAssignedException("Root device is not assigned.");
+        DAQ_THROW_EXCEPTION(NotAssignedException, "Root device is not assigned.");
 
     protocolHandshake(clientComm->getProtocolVersion());
     enumerateTypes();
 
     if (restoreClientConfigOnReconnect)
     {
-        const auto serializer = JsonSerializer();
+        SerializerPtr serializer;
+        if (getProtocolVersion() < 10)
+            serializer = JsonSerializerWithVersion(1);
+        else
+            serializer = JsonSerializerWithVersion(2);
+
         rootDevice.asPtr<IUpdatable>().serializeForUpdate(serializer);
         StringPtr serializedClientRootDevice = serializer.getOutput();
 
@@ -453,7 +467,7 @@ ComponentPtr ConfigProtocolClient<TRootDeviceImpl>::findComponent(std::string gl
 {
     auto rootDevice = clientComm->getRootDevice();
     if (!rootDevice.assigned())
-        throw NotAssignedException{"Root device is not assigned."};
+        DAQ_THROW_EXCEPTION(NotAssignedException, "Root device is not assigned.");
 
     if (globalId.empty())
         return nullptr;

@@ -105,7 +105,8 @@
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "APP_ENABLE_WEBPAGE_EXAMPLES": true,
                 "OPENDAQ_DOCUMENTATION_TESTS": true,
-                "OPENDAQ_ENABLE_NATIVE_STREAMING": true
+                "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
+                "OPENDAQ_ENABLE_OPCUA_INTEGRATION_TESTS": true
             }
         },
         {

@@ -216,15 +216,19 @@ void MockPhysicalDeviceImpl::registerNetworkConfigProperties()
     if (!config.assigned())
         return;
 
-    if (config.hasProperty("ifaceNames"))
+    if (config.hasProperty("netConfigEnabled") && config.getProperty("netConfigEnabled").getValueType() == CoreType::ctBool)
+    {
+        netConfigEnabled = config.getPropertyValue("netConfigEnabled");
+    }
+    if (config.hasProperty("ifaceNames") && config.getProperty("ifaceNames").getValueType() == CoreType::ctList)
     {
         ifaceNames = config.getPropertyValue("ifaceNames");
     }
-    if (config.hasProperty("onSubmitConfig"))
+    if (config.hasProperty("onSubmitConfig") && config.getProperty("onSubmitConfig").getValueType() == CoreType::ctProc)
     {
         onSubmitConfig = config.getPropertyValue("onSubmitConfig");
     }
-    if (config.hasProperty("onRetrieveConfig"))
+    if (config.hasProperty("onRetrieveConfig") && config.getProperty("onRetrieveConfig").getValueType() == CoreType::ctFunc)
     {
         onRetrieveConfig = config.getPropertyValue("onRetrieveConfig");
     }
@@ -235,7 +239,7 @@ void MockPhysicalDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& iface
     if (onSubmitConfig.assigned())
         onSubmitConfig(ifaceName, config);
     else
-        throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+        DAQ_THROW_EXCEPTION(NotImplementedException, "This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
                                       "and equals signs =============================================================================="
                                       "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated");
 }
@@ -244,14 +248,14 @@ PropertyObjectPtr MockPhysicalDeviceImpl::onRetrieveNetworkConfiguration(const S
 {
     if (onRetrieveConfig.assigned())
         return onRetrieveConfig(ifaceName);
-    throw NotImplementedException("This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
+    DAQ_THROW_EXCEPTION(NotImplementedException, "This Is An Extremely Long Test String With Invalid Characters Like \tTabs,\nNewLines\r, "
                                   "and equals signs =============================================================================="
                                   "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after thisThis is truncated");
 }
 
 Bool MockPhysicalDeviceImpl::onGetNetworkConfigurationEnabled()
 {
-    return True;
+    return netConfigEnabled;
 }
 
 ListPtr<IString> MockPhysicalDeviceImpl::onGetNetworkInterfaceNames()

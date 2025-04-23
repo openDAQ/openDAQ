@@ -205,12 +205,22 @@ public:
     {
         initialEventPacket = eventPacket;
         startIoOperations();
-        serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                       ioContextPtrServer,
-                                                                       signalsList,
-                                                                       signalSubscribedHandler,
-                                                                       signalUnsubscribedHandler,
-                                                                       setUpConfigProtocolServerCb);
+
+        auto config = NativeStreamingServerHandler::createDefaultConfig();
+        // maxAllowedConfigConnections = 1 is used here to verify that the limit does not impact streaming connections
+        config.setPropertyValue("MaxAllowedConfigConnections", 1);
+
+        serverHandler = std::make_shared<NativeStreamingServerHandler>(
+            serverContext,
+            ioContextPtrServer,
+            signalsList,
+            signalSubscribedHandler,
+            signalUnsubscribedHandler,
+            setUpConfigProtocolServerCb,
+            [](const std::string&, const std::string&, bool, ClientType, const std::string&){},
+            [](const std::string&){},
+            config
+        );
         serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
     }
 
@@ -238,14 +248,16 @@ protected:
 
 TEST_P(StreamingProtocolTest, CreateServerNoSignals)
 {
-    // maxAllowedConfigConnections = 1 is used here to verify that the limit does not impact streaming connections
-    serverHandler = std::make_shared<NativeStreamingServerHandler>(serverContext,
-                                                                   ioContextPtrServer,
-                                                                   List<ISignal>(),
-                                                                   signalSubscribedHandler,
-                                                                   signalUnsubscribedHandler,
-                                                                   setUpConfigProtocolServerCb,
-                                                                   1);
+    serverHandler = std::make_shared<NativeStreamingServerHandler>(
+        serverContext,
+        ioContextPtrServer,
+        List<ISignal>(),
+        signalSubscribedHandler,
+        signalUnsubscribedHandler,
+        setUpConfigProtocolServerCb,
+        [](const std::string&, const std::string&, bool, ClientType, const std::string&){},
+        [](const std::string&){}
+    );
 }
 
 TEST_P(StreamingProtocolTest, CreateClient)
@@ -276,6 +288,59 @@ TEST_P(StreamingProtocolTest, ConnectDisconnectNoSignals)
         client.clientHandler->sendStreamingRequest();
         ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
     }
+}
+
+TEST_P(StreamingProtocolTest, StreamingClientConnectDisconnectCallbacks)
+{
+    std::string clientId;
+    bool clientConnected{false};
+    auto clientConnectedHandler =
+        [&clientId, &clientConnected](const std::string& id,
+                                      const std::string& address,
+                                      bool isStreamingConnection,
+                                      ClientType /*clientType*/,
+                                      const std::string& hostName)
+    {
+        ASSERT_TRUE(isStreamingConnection);
+        ASSERT_NE(address, "");
+        ASSERT_NE(hostName, "");
+        clientConnected = true;
+        clientId = id;
+    };
+    std::promise<bool> clientDisconnectedPromise;
+    std::future<bool> clientDisconnectedFuture = clientDisconnectedPromise.get_future();
+    auto clientDisconnectedHandler =
+        [&clientId, &clientConnected, &clientDisconnectedPromise](const std::string& id)
+    {
+        if (clientConnected && id == clientId)
+            clientDisconnectedPromise.set_value(true);
+    };
+
+    startIoOperations();
+    serverHandler = std::make_shared<NativeStreamingServerHandler>(
+        serverContext,
+        ioContextPtrServer,
+        List<ISignal>(),
+        signalSubscribedHandler,
+        signalUnsubscribedHandler,
+        setUpConfigProtocolServerCb,
+        clientConnectedHandler,
+        clientDisconnectedHandler
+    );
+    serverHandler->startServer(NATIVE_STREAMING_SERVER_PORT);
+
+    auto& client = clients[0];
+    client.clientHandler = createClient(client, client.signalAvailableHandler);
+    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    client.clientHandler->sendStreamingRequest();
+    ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+
+    ASSERT_TRUE(clientConnected);
+    ASSERT_NE(clientId, "");
+
+    client.clientHandler.reset(); // disconnect
+    ASSERT_EQ(clientDisconnectedFuture.wait_for(std::chrono::milliseconds(1000)), std::future_status::ready);
+    ASSERT_TRUE(clientDisconnectedFuture.get());
 }
 
 TEST_P(StreamingProtocolTest, Reconnection)
@@ -807,13 +872,24 @@ TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
         );
     }
 
-    // process and then send all data packets within a signle transport operation
-    for (auto&& serverDataPacket : serverDataPackets)
+    // process and then send all data packets within a single transport operation
+    
+    std::vector<IPacket*> packetBuf;
+    tsl::ordered_map<std::string, opendaq_native_streaming_protocol::PacketBufferData> packetIndices;
+    packetBuf.resize(serverDataPackets.getCount());
+
+    for (size_t i = 0; i < serverDataPackets.getCount(); ++i)
     {
-        sentDataPackets.pushBack(serverDataPacket);
-        serverHandler->processStreamingPacket(serverSignal.getGlobalId().toStdString(), std::move(serverDataPacket));
+        packetBuf[i] = serverDataPackets[i].detach();
     }
-    serverHandler->scheduleStreamingWriteTasks();
+
+    auto packetBufferData = PacketBufferData();
+    packetBufferData.index = 0;
+    packetBufferData.count = static_cast<int>(packetBuf.size());
+    packetIndices.insert(std::make_pair(serverSignal.getGlobalId().toStdString(), packetBufferData));
+
+    serverHandler->processStreamingPackets(packetIndices, packetBuf);
+    serverHandler->sendAvailableStreamingPackets();
 
     for (size_t i = 0; i < clients.size(); ++i)
     {
@@ -821,7 +897,7 @@ TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
         ASSERT_EQ(receivedPacketFutures[i]->wait_for(timeout), std::future_status::ready);
         auto [signalId, packets] = receivedPacketFutures[i]->get();
         ASSERT_EQ(signalId, serverSignal.getGlobalId());
-        ASSERT_EQ(sentDataPackets, packets);
+        ASSERT_EQ(serverDataPackets, packets);
     }
 }
 

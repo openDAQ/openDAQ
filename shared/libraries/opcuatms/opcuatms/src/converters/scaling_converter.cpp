@@ -47,7 +47,7 @@ OpcUaObject<UA_LinearScalingDescriptionStructure> StructConverter<IScaling, UA_L
     const ScalingPtr& object, const ContextPtr& /*context*/)
 {
     if (object.getType() != ScalingType::Linear)
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     OpcUaObject<UA_LinearScalingDescriptionStructure> scaling;
     scaling->type = UA_STRING_ALLOC("linear");
@@ -123,7 +123,7 @@ ScalingPtr VariantConverter<IScaling>::ToDaqObject(const OpcUaVariant& variant, 
         return StructConverter<IScaling, UA_LinearScalingDescriptionStructure>::ToDaqObject(*tmsStruct);
     }
     
-    throw ConversionFailedException();
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -136,7 +136,7 @@ OpcUaVariant VariantConverter<IScaling>::ToVariant(const ScalingPtr& object, con
     else if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE])
         variant.setScalar(*StructConverter<IScaling, UA_LinearScalingDescriptionStructure>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -151,7 +151,7 @@ ListPtr<IScaling> VariantConverter<IScaling>::ToDaqList(const OpcUaVariant& vari
     if (variant.isType<UA_LinearScalingDescriptionStructure>())
         return ListConversionUtils::VariantToList<IScaling, UA_LinearScalingDescriptionStructure>(variant);
 
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 template <>
@@ -164,7 +164,7 @@ OpcUaVariant VariantConverter<IScaling>::ToArrayVariant(const ListPtr<IScaling>&
     if (targetType == &UA_TYPES_DAQBSP[UA_TYPES_DAQBSP_LINEARSCALINGDESCRIPTIONSTRUCTURE])
         return ListConversionUtils::ToArrayVariant<IScaling, UA_LinearScalingDescriptionStructure>(list);
     
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

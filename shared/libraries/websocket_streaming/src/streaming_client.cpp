@@ -14,6 +14,10 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 using namespace daq::stream;
 using namespace daq::streaming_protocol;
 
+// parsing connection string to four groups: prefix, host, port, path
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(?:\[([a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?)\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
+
 StreamingClient::StreamingClient(const ContextPtr& context, const std::string& connectionString, bool useRawTcpConnection)
     : logger(context.getLogger())
     , loggerComponent( logger.assigned() ? logger.getOrAddComponent("StreamingClient") : throw ArgumentNullException("Logger must not be null") )
@@ -242,14 +246,10 @@ void StreamingClient::parseConnectionString(const std::string& url)
 
     std::smatch match;
 
-    // parsing connection string to four groups: prefix, host, port, path
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(?:\[([a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?)\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
-
     bool parsed = false;
-    parsed = std::regex_search(url, match, regexIpv6Hostname);
+    parsed = std::regex_search(url, match, RegexIpv6Hostname);
     if (!parsed)
-        parsed = std::regex_search(url, match, regexIpv4Hostname);
+        parsed = std::regex_search(url, match, RegexIpv4Hostname);
 
     if (parsed)
     {
@@ -501,7 +501,7 @@ void StreamingClient::setDataSignal(const daq::streaming_protocol::SubscribedSig
 
     auto domainInputSignal = findTimeSignalByTableId(tableId);
     if (!domainInputSignal)
-        throw NotFoundException("Unknown domain signal for data signal {}, table {}", signalId, tableId);
+        DAQ_THROW_EXCEPTION(NotFoundException, "Unknown domain signal for data signal {}, table {}", signalId, tableId);
 
     InputSignalBasePtr inputSignal = nullptr;
     if (auto availableSigIt = availableSignals.find(signalId); availableSigIt != availableSignals.end())

@@ -16,7 +16,7 @@
 #include <opendaq/component_status_container_ptr.h>
 #include <opendaq/device_domain_factory.h>
 #include <coreobjects/property_object_factory.h>
-#include "test_utils.h"
+#include <opendaq/mock/advanced_components_setup_utils.h>
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"
@@ -46,6 +46,7 @@ public:
                 clientContext,
                 std::bind(&ConfigCoreEventTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigCoreEventTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
                 nullptr,
                 nullptr
             );

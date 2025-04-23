@@ -7,18 +7,17 @@ BEGIN_NAMESPACE_OPENDAQ
 BinaryDataImpl::BinaryDataImpl(SizeT size)
 {
     if (size == 0)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     this->data = new (std::nothrow) char[size];
     this->size = size;
     if (this->data == nullptr)
-        throw NoMemoryException();
+        DAQ_THROW_EXCEPTION(NoMemoryException);
 }
 
 ErrCode BinaryDataImpl::getAddress(void** data)
 {
-    if (data == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(data);
 
     *data = this->data;
     return OPENDAQ_SUCCESS;
@@ -26,8 +25,7 @@ ErrCode BinaryDataImpl::getAddress(void** data)
 
 ErrCode BinaryDataImpl::getSize(SizeT* size)
 {
-    if (size == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(size);
 
     *size = this->size;
     return OPENDAQ_SUCCESS;
@@ -35,8 +33,7 @@ ErrCode BinaryDataImpl::getSize(SizeT* size)
 
 ErrCode INTERFACE_FUNC BinaryDataImpl::getCoreType(CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = ctBinaryData;
     return OPENDAQ_SUCCESS;

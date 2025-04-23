@@ -28,6 +28,17 @@ namespace Daq.Core.OpenDAQ;
 /// <summary>Factory functions of the &apos;OpenDAQ&apos; library.</summary>
 public static partial class OpenDAQFactory
 {
+    /// <summary>
+    /// Initializes the openDAQ SDK.
+    /// </summary>
+    static OpenDAQFactory()
+    {
+        // initialize the SDK (load all depending SDK libraries)
+        _ = CoreTypesFactory.SdkVersion;
+        _ = CoreObjectsFactory.SdkVersion;
+        _ = OpenDAQFactory.SdkVersion;
+    }
+
     //void daqOpenDaqGetVersion(unsigned int* major, unsigned int* minor, unsigned int* revision); cdecl;
     [DllImport(OpenDAQDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
     private static extern void daqOpenDaqGetVersion(out int major, out int minor, out int revision);

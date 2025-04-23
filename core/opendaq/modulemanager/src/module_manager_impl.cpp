@@ -23,19 +23,25 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <optional>
 #include <map>
-#include "opendaq/logger_factory.h"
+#include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/property_internal_ptr.h>
-#include <coreobjects/property_object_internal.h>
+#include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/network_interface_factory.h>
 
+#include <opendaq/thread_name.h>
+
 BEGIN_NAMESPACE_OPENDAQ
+
+using namespace std::chrono_literals;
+
 static OrphanedModules orphanedModules;
 
+static constexpr std::chrono::milliseconds DefaultrescanTimer = 5000ms;
 static constexpr char createModuleFactory[] = "createModule";
 static constexpr char checkDependenciesFunc[] = "checkDependencies";
 
@@ -44,6 +50,7 @@ static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerCompo
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
     , work(ioContext.get_executor())
+    , rescanTimer(DefaultrescanTimer)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -53,6 +60,10 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     {
         paths.insert(paths.end(), pathList.begin(), pathList.end());
     }
+    else
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+    }
 
     std::size_t numThreads = 2;
     pool.reserve(numThreads);
@@ -61,12 +72,13 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     {
         pool.emplace_back([this]
         {
+            daqNameThread("ModuleManager");
             ioContext.run();
         });
     }
 
     if (paths.empty())
-        throw InvalidParameterException{"No valid paths provided!"};
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "No valid paths provided!");
 
     discoveryClient.initMdnsClient(List<IString>(discovery_common::IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME));
 }
@@ -94,8 +106,7 @@ ModuleManagerImpl::~ModuleManagerImpl()
 
 ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 {
-    if (availableModules == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(availableModules);
     
     auto list = List<IModule>();
     for (auto& library : libraries)
@@ -109,8 +120,7 @@ ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 
 ErrCode ModuleManagerImpl::addModule(IModule* module)
 {
-    if (module == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(module);
     
     orphanedModules.tryUnload();
 
@@ -136,10 +146,20 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     if (modulesLoaded)
         return OPENDAQ_SUCCESS;
     
-    const auto contextPtr = ContextPtr::Borrow(context);
-    logger = contextPtr.getLogger();
+    this->context = ContextPtr::Borrow(context);
+    logger = this->context.getLogger();
     if (!logger.assigned())
-        return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
+
+    auto options = this->context.getOptions();
+    if (options.hasKey("ModuleManager"))
+    {
+        DictPtr<IString, IBaseObject> inner = options.get("ModuleManager");
+        if (inner.hasKey("AddDeviceRescanTimer"))
+        {
+            this->rescanTimer = std::chrono::milliseconds(static_cast<int>(inner.get("AddDeviceRescanTimer")));
+        }
+    }
 
     loggerComponent = this->logger.getOrAddComponent("ModuleManager");
 
@@ -212,8 +232,6 @@ struct DevicePing
 
 void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 {
-    using namespace std::chrono_literals;
-
     std::vector<DevicePing> statuses;
     std::map<std::string, bool> ipv4Addresses;
     std::map<std::string, bool> ipv6Addresses;
@@ -322,11 +340,10 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
 
     // runs in parallel with getting avaiable devices from modules
-    std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult =
-        std::async([this]()
-                   {
-                       return this->discoverDevicesWithIpModification();
-                   });
+    std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult = std::async([this]
+    {
+        return this->discoverDevicesWithIpModification();
+    });
 
     for (const auto& library : libraries)
     {
@@ -439,6 +456,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     *availableDevices = availableDevicesPtr.detach();
 
     availableDevicesGroup = groupedDevices;
+    lastScanTime = std::chrono::steady_clock::now();
     return OPENDAQ_SUCCESS;
 }
 
@@ -490,22 +508,25 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         auto connectionStringPtr = String(pureConnectionString);
 
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
-            return this->makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
-        // Scan for devices if not yet done so
-        // TODO: Should we re-scan after a timeout?
-        if (!availableDevicesGroup.assigned())
+        // Scan for devices if not yet done so, or timeout is exceeded
+        auto currentTime = std::chrono::steady_clock::now();
+        if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
         {
             const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
             if (OPENDAQ_FAILED(errCode))
-                return this->makeErrorInfo(errCode, "Failed getting available devices");
+                return DAQ_MAKE_ERROR_INFO(errCode, "Failed getting available devices");
         }
 
         // Connection strings with the "daq" prefix automatically choose the best method of connection
         const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
-        const auto discoveredDeviceInfo = getDiscoveredDeviceInfo(connectionStringPtr, useSmartConnection);
+        DeviceInfoPtr discoveredDeviceInfo;
         if (useSmartConnection)
+        {
+            discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
             connectionStringPtr = resolveSmartConnectionString(connectionStringPtr, discoveredDeviceInfo, config, loggerComponent);
+        }
 
         for (const auto& library : libraries)
         {
@@ -523,6 +544,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             if (devicePtr.assigned() && devicePtr.getInfo().assigned())
             {
                 replaceSubDeviceOldProtocolIds(devicePtr);
+                discoveredDeviceInfo = discoveredDeviceInfo.assigned() ? discoveredDeviceInfo : getDiscoveredDeviceInfo(devicePtr.getInfo());
                 mergeDiscoveryAndDeviceCapabilities(devicePtr, discoveredDeviceInfo);
                 completeServerCapabilities(devicePtr);
 
@@ -536,18 +558,18 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     }
     catch (const DaqException& e)
     {
-        return errorFromException(e);
+        return errorFromException(e, this->getThisAsBaseObject());
     }
     catch (const std::exception& e)
     {
-        return makeErrorInfo(OPENDAQ_ERR_GENERALERROR, e.what(), nullptr);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
         return OPENDAQ_ERR_GENERALERROR;
     }
 
-    return this->makeErrorInfo(
+    return DAQ_MAKE_ERROR_INFO(
         OPENDAQ_ERR_NOTFOUND,
         "Device with given connection string and config is not available [{}]",
         connectionString
@@ -745,7 +767,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
     }
 
-    return this->makeErrorInfo(
+    return DAQ_MAKE_ERROR_INFO(
         OPENDAQ_ERR_NOTFOUND,
         fmt::format(R"(Function block with given uid and config is not available [{}])", typeId)
     );
@@ -909,39 +931,37 @@ uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPt
     return 0;
 }
 
-DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const
+DeviceInfoPtr ModuleManagerImpl::getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const
 {
     if (!availableDevicesGroup.assigned())
-        throw NotFoundException("Device scan has not yet been initiated.");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device scan has not yet been initiated.");
 
-    if (useSmartConnection)
-    {
         if (availableDevicesGroup.hasKey(inputConnectionString))
             return availableDevicesGroup.get(inputConnectionString);
-        throw NotFoundException(fmt::format("Device with connection string \"{}\" not found", inputConnectionString));
-    }
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" not found", inputConnectionString);
+}
 
+DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const
+{
+    auto serialNumber = deviceInfo.getSerialNumber();
+    auto manufacturer = deviceInfo.getManufacturer();
+
+    if (!serialNumber.getLength() || !manufacturer.getLength())
+        return nullptr;
+    
+    DeviceInfoPtr localInfo; 
     for (const auto & [_, info] : availableDevicesGroup)
     {
-        if (info.getServerCapabilities().getCount() == 0)
+        if (manufacturer == info.getManufacturer() && serialNumber == info.getSerialNumber())
         {
-            if (info.getConnectionString() == inputConnectionString)
+            if (info.getServerCapabilities().getCount())
                 return info;
-        }
-        else
-        {
-            for(const auto & capability : info.getServerCapabilities())
-            {
-                for (const auto & connection: capability.getConnectionStrings())
-                {
-                    if (connection == inputConnectionString)
-                        return info;
-                }
-            }
+            
+            localInfo = info;
         }
     }
 
-    return nullptr;
+    return localInfo;
 }
 
 StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,
@@ -951,7 +971,7 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
 {
     const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
     if (capabilities.getCount() == 0)
-        throw NotFoundException(fmt::format("Device with connection string \"{}\" has no available server capabilities", inputConnectionString));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" has no available server capabilities", inputConnectionString);
 
     ServerCapabilityPtr selectedCapability = capabilities[0];
     auto selectedPriority = getServerCapabilityPriority(selectedCapability);
@@ -996,9 +1016,9 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
     if (!types.assigned())
         return nullptr;
 
-    for (auto const& [typeId, type] : types)
+    for (auto const& [_, type] : types)
     {
-        if (type.getConnectionStringPrefix()== prefix)
+        if (type.getConnectionStringPrefix() == prefix)
             return type;
     }
 
@@ -1065,18 +1085,10 @@ AddressInfoPtr ModuleManagerImpl::getDeviceConnectionAddress(const DevicePtr& de
 
 AddressInfoPtr ModuleManagerImpl::findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
                                                        const AddressInfoPtr& deviceConnectionAddress,
-                                                       const StringPtr& primaryAddressType)
+                                                       StringPtr primaryAddressType)
 {
     if (isValidConnectionAddressType(primaryAddressType)) // restrict by connection address type
     {
-        // Attempt to reuse the address of device connection if it meets type constraints
-        if (deviceConnectionAddress.assigned() && deviceConnectionAddress.getType() == primaryAddressType)
-        {
-            for (const auto& addressInfo : availableAddresses)
-                if (addressInfo.getAddress() == deviceConnectionAddress.getAddress())
-                    return addressInfo;
-        }
-
         // If the device connection address is unavailable for streaming, search for any address matching type constraints
         for (const auto& addressInfo : availableAddresses)
         {
@@ -1140,7 +1152,7 @@ void ModuleManagerImpl::attachStreamingsToDevice(const MirroredDeviceConfigPtr& 
               cap.getConnectionString(),
               cap.getPrefix());
 
-        const StringPtr protocolId = cap.getPropertyValue("protocolId");
+        const StringPtr protocolId = cap.getProtocolId();
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
@@ -1353,10 +1365,13 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
         {
             if (address == info.getAddress() && addressType == info.getType())
             {
-                info.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(AddressReachabilityStatus::Reachable);
+                info.asPtr<IAddressInfoPrivate>(true).setReachabilityStatusPrivate(AddressReachabilityStatus::Reachable);
             }
         }
     }
+
+    for (const auto& target: targetCaps)
+        target.freeze();
 }
 
 PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
@@ -1411,7 +1426,7 @@ std::pair<StringPtr, DeviceInfoPtr> ModuleManagerImpl::populateDiscoveredDevice(
 {
     auto deviceInfo = DeviceInfo("");
     PropertyObjectPtr info = deviceInfo;
-    discovery::DiscoveryClient::populateDiscoveredInfoProperties(info, discoveredDevice);
+    discovery::DiscoveryClient::populateDiscoveredInfoProperties(info, discoveredDevice, ConnectedClientInfo());
 
     StringPtr manufacturer = deviceInfo.getManufacturer();
     StringPtr serialNumber = deviceInfo.getSerialNumber();
@@ -1467,7 +1482,7 @@ std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManag
         return std::make_pair(strs1[0], tsl::ordered_map<std::string, BaseObjectPtr> {});
 
     if (strs1.size() != 2)
-        throw InvalidParameterException("Invalid connection string");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string");
 
     std::vector<std::string> options;
     boost::split(options, strs1[1], boost::is_any_of("&"));
@@ -1478,7 +1493,7 @@ std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManag
         std::vector<std::string> keyAndValue;
         boost::split(keyAndValue, option, boost::is_any_of("="));
         if (keyAndValue.size() != 2)
-            throw InvalidParameterException("Invalid connection string");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string");
 
         BaseObjectPtr value = EvalValue(keyAndValue[1]);
         optionsMap.insert({keyAndValue[0], value});
@@ -1543,26 +1558,25 @@ ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabil
 ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
                                                                          const ServerCapabilityPtr& deviceCap)
 {
-    auto merged = ServerCapability(deviceCap.getProtocolId(), deviceCap.getProtocolName(), deviceCap.getProtocolType());
-    const auto caps = List<IServerCapability>(deviceCap, discoveryCap);
+    ServerCapabilityConfigPtr merged = deviceCap.asPtr<IPropertyObjectInternal>(true).clone();
 
-    for (const auto& cap : caps)
-        for (const auto& prop : cap.getAllProperties())
+    for (const auto& prop : discoveryCap.getAllProperties())
+    {
+        const auto name = prop.getName();
+
+        if (!merged.hasProperty(name))
         {
-            const auto name = prop.getName();
-            const auto val = cap.getPropertyValue(name);
-            const bool hasProp = merged.hasProperty(name);
-            
-            if (val == prop.getDefaultValue() && hasProp)
-                continue;
-
-            if (hasProp)
-                merged.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, val);
-            else
-                merged.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+            merged.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+            continue;
         }
 
-    merged.freeze();
+        const auto val = discoveryCap.getPropertyValue(name);
+        if (val != prop.getDefaultValue())
+        {
+            merged.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(name, val);
+        }
+    }
+
     return merged.detach();
 }
 
@@ -1639,10 +1653,10 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
     std::error_code errCode;
     if (!fs::exists(searchFolder, errCode))
-        throw InvalidParameterException("The specified path \"%s\" does not exist.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" does not exist.", searchFolder.c_str());
 
     if (!fs::is_directory(searchFolder, errCode))
-        throw InvalidParameterException("The specified path \"%s\" is not a folder.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" is not a folder.", searchFolder.c_str());
 
     fs::recursive_directory_iterator dirIterator(searchFolder);
 
@@ -1707,6 +1721,16 @@ static void printAvailableTypes(const ModulePtr& module, const LoggerComponentPt
     printComponentTypes([&module]{ return module.getAvailableServerTypes(); }, "SRV", loggerComponent);
 }
 
+static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
+{
+#if defined(__linux__) || defined(linux) || defined(__linux)
+    // boost does not propagate `dlopen()` error messages
+    return dlerror();
+#else
+    return libraryErrCode.message();
+#endif
+}
+
 ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
 {
     auto currDir = fs::current_path();
@@ -1718,16 +1742,11 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
 
     if (libraryErrCode)
     {
-        throw ModuleLoadFailedException(
-            "Module \"{}\" failed to load. Error: {} [{}]",
-            relativePath,
-            libraryErrCode.value(),
-#if defined(__linux__) || defined(linux) || defined(__linux)
-            // boost does not propagate `dlopen()` error messages
-            dlerror()
-#else
-            libraryErrCode.message()
-#endif
+        DAQ_THROW_EXCEPTION(ModuleLoadFailedException,
+                            "Module \"{}\" failed to load. Error: {} [{}]",
+                            relativePath,
+                            libraryErrCode.value(),
+                            GetMessageFromLibraryErrCode(libraryErrCode)
         );
     }
 
@@ -1744,11 +1763,11 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
         {
             LOG_T("Failed to check dependencies for \"{}\".", relativePath);
 
-            throw ModuleIncompatibleDependenciesException(
-                "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
-                relativePath,
-                errCode,
-                errMsg
+            DAQ_THROW_EXCEPTION(ModuleIncompatibleDependenciesException,
+                                "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
+                                relativePath,
+                                errCode,
+                                errMsg
             );
         }
     }
@@ -1757,7 +1776,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
     {
         LOG_T("Module \"{}\" has no exported module factory.", relativePath);
 
-        throw ModuleNoEntryPointException("Module \"{}\" has no exported module factory.", relativePath);
+        DAQ_THROW_EXCEPTION(ModuleNoEntryPointException, "Module \"{}\" has no exported module factory.", relativePath);
     }
 
     using ModuleFactory = ErrCode(IModule**, IContext*);
@@ -1771,7 +1790,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
     {
         LOG_T("Failed creating module from \"{}\".", relativePath);
 
-        throw ModuleEntryPointFailedException("Library \"{}\" failed to create a Module.", relativePath);
+        DAQ_THROW_EXCEPTION(ModuleEntryPointFailedException, "Library \"{}\" failed to create a Module.", relativePath);
     }
 
     if (auto version = module.getModuleInfo().getVersionInfo(); version.assigned())

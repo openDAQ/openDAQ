@@ -83,7 +83,7 @@ public:
             }
         }
 
-        throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
     }
 
     PacketReaderPtr createReader(const DevicePtr& device, const std::string& signalName)
@@ -97,7 +97,7 @@ public:
                 return PacketReader(signal);
         }
 
-        throw NotFoundException();
+        DAQ_THROW_EXCEPTION(NotFoundException);
     }
 
     ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader,

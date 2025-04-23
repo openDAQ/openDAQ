@@ -165,6 +165,16 @@ public:
      */
     ValuePtr get(const KeyPtr& key) const;
 
+
+    /*!
+     * @brief Gets the element with the specified key.
+     * @param key The key of the element to get.
+     * @return The element with the specified key.
+     *
+     * Returns the default value if the key does not exist.
+     */
+    ValuePtr getOrDefault(const KeyPtr& key, const ValuePtr& defaultValue = nullptr) const;
+
     /*!
      * @brief Gets the element with the specified key.
      * @param key The key of the element to get.
@@ -290,7 +300,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::get(const KeyPtr& key) const
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IBaseObject* obj;
     ErrCode errCode = this->object->get(key, &obj);
@@ -300,10 +310,27 @@ ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::get(const KeyPtr& key
 }
 
 template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
+ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getOrDefault(const KeyPtr& key, const ValuePtr& defaultValue) const
+{
+    if (!ObjectPtr<T>::object)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    IBaseObject* obj;
+    ErrCode errCode = this->object->get(key, &obj);
+
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+        return defaultValue;
+
+    checkErrorInfo(errCode);
+
+    return ValuePtr(std::move(obj));
+}
+
+template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryGet(const KeyPtr& key, ValuePtr& value) const
 {
     if (!this->object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IBaseObject* obj{};
     ErrCode errCode = this->object->get(key, &obj);
@@ -314,8 +341,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryGet(const KeyPtr& key,
         return false;
     }
 
-    if (OPENDAQ_FAILED(errCode))
-        checkErrorInfo(errCode);
+    checkErrorInfo(errCode);
 
     return true;
 }
@@ -324,7 +350,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 void DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::set(const KeyPtr& key, const ValuePtr& value)
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     ErrCode errCode = this->object->set(key, value);
     checkErrorInfo(errCode);
@@ -334,7 +360,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::remove(const KeyPtr& key)
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IBaseObject* obj;
     ErrCode errCode = this->object->remove(key, &obj);
@@ -347,7 +373,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryRemove(const KeyPtr& key)
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     ObjectPtr<IBaseObject> obj;
     ErrCode errCode = this->object->remove(key, &obj);
@@ -357,8 +383,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryRemove(const KeyPtr& k
         return false;
     }
 
-    if (OPENDAQ_FAILED(errCode))
-        checkErrorInfo(errCode);
+    checkErrorInfo(errCode);
 
     return true;
 }
@@ -367,7 +392,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 void DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::deleteItem(const KeyPtr& key)
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     ErrCode errCode = this->object->deleteItem(key);
     checkErrorInfo(errCode);
@@ -377,7 +402,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 SizeT DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getCount() const
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     SizeT size{};
     auto errCode = this->object->getCount(&size);
@@ -390,7 +415,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 void DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::clear()
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     ErrCode errCode = this->object->clear();
     checkErrorInfo(errCode);
@@ -400,7 +425,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::hasKey(const KeyPtr& key) const
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     Bool keyExists = False;
     ErrCode errCode = this->object->hasKey(key, &keyExists);
@@ -413,7 +438,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 ListPtr<KeyT, KeyPtr> DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getKeyList() const
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IList* list;
     auto errCode = this->object->getKeyList(&list);
@@ -426,7 +451,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 ListPtr<ValueT, ValuePtr> DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getValueList() const
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IList* list;
     auto errCode = this->object->getValueList(&list);
@@ -439,7 +464,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 IterablePtr<KeyT, KeyPtr> DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getKeys() const
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IIterable* iterable;
     auto errCode = this->object->getKeys(&iterable);
@@ -452,7 +477,7 @@ template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 IterablePtr<ValueT, ValuePtr> DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getValues() const
 {
     if (!ObjectPtr<T>::object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IIterable* iterable;
     auto errCode = this->object->getValues(&iterable);
@@ -465,7 +490,7 @@ template <typename T, typename KeyT, typename ValueT, typename KeyPtr, typename 
 IntfID DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getKeyInterfaceId() const
 {
     if (!this->object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     auto elementType = this->template asPtrOrNull<IDictElementType>(true);
 
@@ -483,7 +508,7 @@ template <typename T, typename KeyT, typename ValueT, typename KeyPtr, typename 
 IntfID DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getValueInterfaceId() const
 {
     if (!this->object)
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     auto elementType = this->template asPtrOrNull<IDictElementType>(true);
 

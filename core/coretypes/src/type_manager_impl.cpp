@@ -28,8 +28,7 @@ TypeManagerImpl::TypeManagerImpl()
 
 ErrCode TypeManagerImpl::addType(IType* type)
 {
-    if (type == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     const auto typePtr = TypePtr::Borrow(type);
     const auto typeName = typePtr.getName();
@@ -39,7 +38,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
     std::string typeStr = typeName;
     std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), [](char c) { return std::tolower(c); });
     if (reservedTypeNames.count(typeStr))
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_RESERVED_TYPE_NAME, fmt::format(R"(""Type {} is in the list of protected type names.")", typeStr));
 
     if (!daq::validateTypeName(typeName.getCharPtr()))
         return OPENDAQ_ERR_VALIDATE_FAILED;
@@ -59,19 +58,17 @@ ErrCode TypeManagerImpl::addType(IType* type)
             return err;
     }
 
-    return daqTry(
-        [&]()
-        {
-            if (coreEventCallback.assigned())
-                coreEventCallback(typePtr);
-            return OPENDAQ_SUCCESS;
-        });
+    return daqTry([&]
+    {
+        if (coreEventCallback.assigned())
+            coreEventCallback(typePtr);
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode TypeManagerImpl::removeType(IString* name)
 {
-    if (name == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(name);
 
     {
         std::scoped_lock lock(this->sync);
@@ -85,19 +82,18 @@ ErrCode TypeManagerImpl::removeType(IString* name)
             return err;
     }
 
-    return daqTry(
-        [&]()
-        {
-            if (coreEventCallback.assigned())
-                coreEventCallback(name);
-            return OPENDAQ_SUCCESS;
-        });
+    return daqTry([&]
+    {
+        if (coreEventCallback.assigned())
+            coreEventCallback(name);
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode TypeManagerImpl::getType(IString* name, IType** type)
 {
-    if (type == nullptr || name == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(name);
+    OPENDAQ_PARAM_NOT_NULL(type);
 
     std::scoped_lock lock(this->sync);
 
@@ -110,8 +106,7 @@ ErrCode TypeManagerImpl::getType(IString* name, IType** type)
 
 ErrCode TypeManagerImpl::getTypes(IList** types)
 {
-    if (types == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(types);
 
     std::scoped_lock lock(this->sync);
 
@@ -121,8 +116,7 @@ ErrCode TypeManagerImpl::getTypes(IList** types)
 
 ErrCode TypeManagerImpl::hasType(IString* typeName, Bool* hasType)
 {
-    if (hasType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(hasType);
 
     std::scoped_lock lock(this->sync);
 
@@ -199,7 +193,7 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
     }
     catch (const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (...)
     {

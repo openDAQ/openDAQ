@@ -1,5 +1,15 @@
 = Read with absolute time-stamps
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🧭 Understand time Domains.
+- 🧾 Ensure preconditions for time-based reading.
+- 💻 Use code examples.
+====
+
 :tip-caption: Assumptions
 [TIP]
 ====

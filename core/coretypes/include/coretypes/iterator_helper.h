@@ -21,8 +21,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 inline ErrCode compareIterators(const IIterator* it1, const IIterator* it2, Bool* equal)
 {
-    if (it1 == nullptr || it2 == nullptr || equal == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(it1);
+    OPENDAQ_PARAM_NOT_NULL(it2);
+    OPENDAQ_PARAM_NOT_NULL(equal);
 
     *equal = false;
 

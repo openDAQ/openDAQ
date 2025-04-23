@@ -54,7 +54,7 @@ struct MdnsDiscoveredService
 private:
     friend class MDNSDiscoveryServer;
 
-    size_t size() const;
+    size_t updateConnectedClientsAndGetPropsCount() const;
     mdns_record_t createTxtRecord(const std::string& name, const std::string& value) const;
     void populateRecords(std::vector<mdns_record_t>& records) const;
 
@@ -66,6 +66,7 @@ private:
     size_t staticRecordSize;
     mutable size_t recordSize;
     mutable std::vector<std::pair<std::string, std::string>> dynamicProperties;
+    mutable discovery_common::TxtProperties connectedClientsProperties;
 
     std::string serviceInstance;
     std::string serviceQualified;

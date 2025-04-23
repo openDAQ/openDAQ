@@ -80,7 +80,7 @@ public:
     {
         if (coreType == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
         }
 
         *coreType = ctProc;
@@ -107,7 +107,7 @@ protected:
         }
         catch (const DaqException& e)
         {
-            return e.getErrCode();
+            return errorFromException(e);
         }
         catch (...)
         {
@@ -135,7 +135,7 @@ public:
         }
         catch (const DaqException& e)
         {
-            return e.getErrCode();
+            return errorFromException(e);
         }
         catch (...)
         {
@@ -204,7 +204,7 @@ public:
     {
         if (coreType == nullptr)
         {
-            return makeErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return by a null pointer.");
         }
 
         *coreType = ctProc;
@@ -217,8 +217,7 @@ public:
 template <typename TFunctor, typename std::enable_if<!std::is_bind_expression<TFunctor>::value>::type* = nullptr>
 ErrCode createProcedureWrapper(IProcedure** obj, [[maybe_unused]] TFunctor proc)
 {
-    if (!obj)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     try
     {
@@ -233,8 +232,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, [[maybe_unused]] TFunctor proc)
     }
     catch (const DaqException& e)
     {
-        setErrorInfoWithSource(nullptr, e.what());
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (const std::bad_alloc&)
     {
@@ -255,8 +253,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, [[maybe_unused]] TFunctor proc)
 template <typename TFunctor, typename std::enable_if<std::is_bind_expression<TFunctor>::value>::type* = nullptr>
 ErrCode createProcedureWrapper(IProcedure** obj, TFunctor proc)
 {
-    if (!obj)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     try
     {
@@ -264,8 +261,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor proc)
     }
     catch (const DaqException& e)
     {
-        setErrorInfoWithSource(nullptr, e.what());
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (const std::bad_alloc&)
     {
@@ -286,8 +282,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor proc)
 template <typename TFunctor>
 ErrCode createProcedureWrapper(IProcedure** obj, TFunctor* proc)
 {
-    if (!obj)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     try
     {
@@ -295,8 +290,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor* proc)
     }
     catch (const DaqException& e)
     {
-        setErrorInfoWithSource(nullptr, e.what());
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (const std::bad_alloc&)
     {
@@ -317,7 +311,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor* proc)
 template <typename TFunctor>
 IProcedure* ProcedureWrapper_Create(TFunctor proc)
 {
-    IProcedure* obj;
+    IProcedure* obj = nullptr;
     const ErrCode res = createProcedureWrapper<TFunctor>(&obj, std::move(proc));
     checkErrorInfo(res);
 
@@ -329,7 +323,7 @@ IProcedure* ProcedureWrapper_Create(TFunctor proc)
 template <typename TFunctor>
 IProcedure* ProcedureWrapper_Create(TFunctor* proc)
 {
-    IProcedure* obj;
+    IProcedure* obj = nullptr;
     const ErrCode res = createProcedureWrapper<TFunctor>(&obj, proc);
     checkErrorInfo(res);
 

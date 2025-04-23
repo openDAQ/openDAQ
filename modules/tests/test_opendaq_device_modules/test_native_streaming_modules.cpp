@@ -3,6 +3,7 @@
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/user_factory.h>
+#include <opendaq/mock/mock_device_module.h>
 
 using NativeStreamingModulesTest = testing::Test;
 
@@ -276,6 +277,20 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(NativeStreamingModulesTest, GetConnectedClientsInfo)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // one streaming connection
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_NE(serverSideClientsInfo[0].getHostName(), "");
+    ASSERT_TRUE(serverSideClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
+}
 
 TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 {
@@ -707,7 +722,7 @@ TEST_F(NativeStreamingModulesTest, RemoveSignals)
     ASSERT_EQ(clientSignals.getCount(), 3u);
 }
 
-TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
+TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -727,6 +742,27 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://127.0.0.1/");
 }
 
+TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv6)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.ns://[::1]", nullptr);
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://[::1]");
+}
+
 TEST_F(NativeStreamingModulesTest, ProtectedSignals)
 {
     auto users = List<IUser>();
@@ -740,8 +776,8 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
     auto serverSignals = server.getSignalsRecursive(search::Any());
     ASSERT_EQ(serverSignals.getCount(), 5u);
 
-    serverSignals[2].getPermissionManager().setPermissions(permissions);
-    serverSignals[3].getPermissionManager().setPermissions(permissions);
+    serverSignals[0].getPermissionManager().setPermissions(permissions);
+    serverSignals[1].getPermissionManager().setPermissions(permissions);
 
     {
         auto client = CreateClientInstance("admin", "admin");
@@ -752,9 +788,14 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
     {
         auto client = CreateClientInstance("opendaq", "opendaq");
         auto clientSignals = client.getSignalsRecursive(search::Any());
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
         ASSERT_EQ(clientSignals.getCount(), 3u);
-        ASSERT_EQ(clientSignals[0].getName(), "AI0");
-        ASSERT_EQ(clientSignals[1].getName(), "AI0Time");
+        ASSERT_EQ(clientSignals[0].getName(), "AI1");
+        ASSERT_EQ(clientSignals[1].getName(), "AI1Time");
+#else
+        ASSERT_EQ(clientSignals.getCount(), 5u);
+#endif
     }
 }
 
@@ -776,7 +817,12 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeDenied)
     test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     auto reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     ASSERT_FALSE(test_helpers::waitForAcknowledgement(signalSubscribeFuture, std::chrono::seconds(1)));
+#else
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture, std::chrono::seconds(1)));
+#endif
 }
 
 
@@ -834,11 +880,58 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalUnsubscribeDenied)
     auto serverSignal = server.getSignalsRecursive()[0];
     serverSignal.getPermissionManager().setPermissions(permissionsDenyAll);
 
-    // try to unsibscibe
+    // try to unsubscribe
     std::promise<StringPtr> signalUnsubscribePromise;
     std::future<StringPtr> signalUnsubscribeFuture;
     test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     reader.release();
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     ASSERT_FALSE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture, std::chrono::seconds(1)));
+#else
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture, std::chrono::seconds(1)));
+#endif
+}
+
+TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
+{
+    auto server = Instance();
+    auto moduleManager = server.getModuleManager();
+    const ModulePtr deviceModule(MockDeviceModule_Create(server.getContext()));
+    moduleManager.addModule(deviceModule);
+
+    const auto serverDevice = server.addDevice("daqmock://phys_device");
+
+    auto config = PropertyObject();
+    config.addProperty(IntProperty("MaxPacketReadCount", 1));
+    server.addServer("OpenDAQNativeStreaming", config);
+
+    auto client = Instance();
+    auto clientDevice = client.addDevice("daq.nd://127.0.0.1");
+    
+    auto clientSignal = clientDevice.getSignals(search::Recursive(search::LocalId("ByteStep")))[0];
+    auto serverSignal = serverDevice.getSignals(search::Recursive(search::LocalId("ByteStep")))[0];
+
+    auto mirroredSignalPtr = clientSignal.asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture;
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+
+    auto serverReader = PacketReader(serverSignal);
+    auto clientReader = PacketReader(clientSignal);
+
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
+
+    const size_t packetsToGenerate = 50;
+    const size_t packetsToRead = packetsToGenerate + 1;
+
+    serverDevice.setPropertyValue("GeneratePackets", packetsToGenerate); 
+
+    auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
+    auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
+
+    EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
+    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }

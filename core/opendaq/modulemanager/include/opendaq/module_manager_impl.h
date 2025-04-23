@@ -69,7 +69,8 @@ private:
     std::string getPrefixFromConnectionString(std::string connectionString) const;
     static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> splitConnectionStringAndOptions(const std::string& connectionString);
 
-    DeviceInfoPtr getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const;
+    DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
+    DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
     static StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                                   const DeviceInfoPtr& discoveredDeviceInfo,
                                                   const PropertyObjectPtr& config,
@@ -95,8 +96,8 @@ private:
     static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
     AddressInfoPtr findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
-                                              const AddressInfoPtr& deviceConnectionAddress,
-                                              const StringPtr& primaryAddressType);
+                                        const AddressInfoPtr& deviceConnectionAddress,
+                                        StringPtr primaryAddressType);
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
     static bool isValidConnectionAddressType(const StringPtr& connectionAddressType);
     void configureStreamings(const MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
@@ -125,6 +126,10 @@ private:
 
     DictPtr<IString, IDeviceInfo> availableDevicesWithIpConfig;
     discovery::DiscoveryClient discoveryClient; // for discovering devices which has IP modification feature enabled
+    ContextPtr context;
+
+    std::chrono::time_point<std::chrono::steady_clock> lastScanTime;
+    std::chrono::milliseconds rescanTimer;
 };
 
 END_NAMESPACE_OPENDAQ

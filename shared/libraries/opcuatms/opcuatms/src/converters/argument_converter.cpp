@@ -47,7 +47,7 @@ ArgumentInfoPtr VariantConverter<IArgumentInfo>::ToDaqObject(const OpcUaVariant&
     const auto decodedVariant = DecodeIfExtensionObject(variant);
 
     if (!decodedVariant.isType<UA_Argument>())
-        throw ConversionFailedException();
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
     
     return StructConverter<IArgumentInfo, UA_Argument>::ToDaqObject(*static_cast<UA_Argument*>(decodedVariant->data));
 }
@@ -62,7 +62,7 @@ OpcUaVariant VariantConverter<IArgumentInfo>::ToVariant(const ArgumentInfoPtr& o
     if (targetType == nullptr || targetType == &UA_TYPES[UA_TYPES_ARGUMENT])
         variant.setScalar(*StructConverter<IArgumentInfo, UA_Argument>::ToTmsType(object));
     else
-        throw ConversionFailedException{};
+        DAQ_THROW_EXCEPTION(ConversionFailedException);
 
     return variant;
 }
@@ -82,7 +82,7 @@ OpcUaVariant VariantConverter<IArgumentInfo>::ToArrayVariant(const ListPtr<IArgu
 {
     if (targetType == nullptr || targetType == &UA_TYPES[UA_TYPES_ARGUMENT])
         return ListConversionUtils::ToArrayVariant<IArgumentInfo, UA_Argument>(list);
-    throw ConversionFailedException{};
+    DAQ_THROW_EXCEPTION(ConversionFailedException);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

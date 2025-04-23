@@ -42,8 +42,7 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     using namespace discovery_common;
     using namespace discovery_server;
 
-    if (!id)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(id);
     if (!config)
         return OPENDAQ_IGNORED;
     if (!deviceInfo)

@@ -2,13 +2,14 @@
 #include <coretypes/list_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
+#include <opendaq/connection_internal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 PacketReaderImpl::PacketReaderImpl(const SignalPtr& signal)
 {
     if (!signal.assigned())
-        throw ArgumentNullException("Signal must not be null.");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Signal must not be null.");
 
     port = InputPort(signal.getContext(), nullptr, "readsignal");
     this->internalAddRef();
@@ -30,7 +31,7 @@ PacketReaderImpl::PacketReaderImpl(const SignalPtr& signal)
 PacketReaderImpl::PacketReaderImpl(IInputPortConfig* port)
 {
     if (!port)
-        throw ArgumentNullException("Input port must not be null.");
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Input port must not be null.");
 
     this->port = port;
 
@@ -73,6 +74,35 @@ ErrCode PacketReaderImpl::getEmpty(Bool* empty)
     getAvailableCount(&count);
     *empty = count == 0;
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketReaderImpl::queryInterface(const IntfID& id, void** intf)
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IInputPortNotifications::Id)
+    {
+        *intf = static_cast<IInputPortNotifications*>(this);
+        this->addRef();
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::queryInterface(id, intf);
+}
+
+ErrCode PacketReaderImpl::borrowInterface(const IntfID& id, void** intf) const
+{
+    OPENDAQ_PARAM_NOT_NULL(intf);
+
+    if (id == IInputPortNotifications::Id)
+    {
+        *intf = const_cast<IInputPortNotifications*>(static_cast<const IInputPortNotifications*>(this));
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    return Super::borrowInterface(id, intf);
 }
 
 ErrCode PacketReaderImpl::setOnDataAvailable(IProcedure* callback)

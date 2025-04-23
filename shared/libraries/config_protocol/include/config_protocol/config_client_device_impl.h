@@ -63,6 +63,11 @@ public:
     ErrCode INTERFACE_FUNC unlock(IUser* user) override;
     ErrCode INTERFACE_FUNC forceUnlock() override;
 
+    ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
+    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
+    ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
+    ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -76,6 +81,8 @@ private:
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
     void connectionStatusChanged(const CoreEventArgsPtr& args);
     bool handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args);
+    bool handleDeviceInfoPropertyAdded(const CoreEventArgsPtr& args);
+    bool handleDeviceInfoPropertyRemoved(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -115,7 +122,7 @@ template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (!functionBlock.assigned())
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     this->clientComm->removeFunctionBlock(this->remoteGlobalId, functionBlock.getLocalId());
 
@@ -164,7 +171,7 @@ template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& device)
 {
     if (!device.assigned())
-        throw InvalidParameterException();
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     this->clientComm->removeDevice(this->remoteGlobalId, device.getLocalId());
 
@@ -193,7 +200,7 @@ StringPtr GenericConfigClientDeviceImpl<TDeviceBase>::onGetLog(const StringPtr& 
 }
 
 template <class TDeviceBase>
-ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* user)
+ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* user)
 {
     if (user != nullptr)
     {
@@ -206,7 +213,7 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* u
 }
 
 template <class TDeviceBase>
-ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
+ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
 {
     if (user != nullptr)
     {
@@ -224,7 +231,7 @@ ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser*
 }
 
 template <class TDeviceBase>
-inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
 {
     auto lock = this->getRecursiveConfigLock();
 
@@ -234,6 +241,45 @@ inline ErrCode INTERFACE_FUNC GenericConfigClientDeviceImpl<TDeviceBase>::forceU
         return OPENDAQ_ERR_DEVICE_LOCKED;
 
     return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
+}
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperationModes(IList** availableOpModes)
+{
+    OPENDAQ_PARAM_NOT_NULL(availableOpModes);
+    return daqTry([this, availableOpModes] 
+    { 
+        *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
+    });
+}
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(IString* modeType)
+{
+    return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
+    { 
+        this->clientComm->setOperationMode(this->remoteGlobalId, modeType); 
+    });
+}
+
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecursive(IString* modeType)
+{
+    return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
+    { 
+        this->clientComm->setOperationModeRecursive(this->remoteGlobalId, modeType); 
+    });
+}
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(IString** modeType)
+{
+    OPENDAQ_PARAM_NOT_NULL(modeType);
+    return daqTry([this, modeType] 
+    { 
+        *modeType = this->clientComm->getOperationMode(this->remoteGlobalId).detach(); 
+    });
 }
 
 template <class TDeviceBase>
@@ -276,9 +322,19 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
                 return;
             break;
         }
-        case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::PropertyAdded:
+        {
+            if (handleDeviceInfoPropertyAdded(args))
+                return;
+            break;
+        }
         case CoreEventId::PropertyRemoved:
+        {
+            if (handleDeviceInfoPropertyRemoved(args))
+                return;
+            break;
+        }
+        case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::SignalConnected:
         case CoreEventId::SignalDisconnected:
         case CoreEventId::DataDescriptorChanged:
@@ -457,6 +513,66 @@ bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyValueCh
 
     ScopedRemoteUpdate update(this->deviceInfo);
     this->deviceInfo.setPropertyValue(propName, val);
+    return true;
+}
+
+template <class TDeviceBase>
+bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyAdded(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    std::string path = params.get("Path");
+
+    const std::string prefix = "DaqDeviceInfo";
+    if (path.find(prefix) == std::string::npos)
+        return false;
+
+    PropertyObjectPtr propObjPtr;
+    if (path.size() != prefix.size())
+    {
+        path = path.substr(prefix.size() + 1);
+        propObjPtr = this->deviceInfo.getPropertyValue(path);
+    }
+    else
+    {
+        propObjPtr = this->deviceInfo;
+    }
+    const PropertyPtr prop = params.get("Property");
+    if (propObjPtr.hasProperty(prop.getName()))
+        return true;
+
+    // fixme - nested property objects of DeviceInfo do not support IConfigClientObject interface
+    //ScopedRemoteUpdate update(propObjPtr);
+    propObjPtr.addProperty(prop);
+    return true;
+}
+
+template <class TDeviceBase>
+bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyRemoved(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    std::string path = params.get("Path");
+
+    const std::string prefix = "DaqDeviceInfo";
+    if (path.find(prefix) == std::string::npos)
+        return false;
+
+    PropertyObjectPtr propObjPtr;
+    if (path.size() != prefix.size())
+    {
+        path = path.substr(prefix.size() + 1);
+        propObjPtr = this->deviceInfo.getPropertyValue(path);
+    }
+    else
+    {
+        propObjPtr = this->deviceInfo;
+    }
+    const std::string propName = params.get("Name");
+    if (!propObjPtr.hasProperty(propName))
+        return true;
+
+    // fixme - nested property objects of DeviceInfo do not support IConfigClientObject interface
+    //ScopedRemoteUpdate update(propObjPtr);
+    propObjPtr.removeProperty(propName);
     return true;
 }
 

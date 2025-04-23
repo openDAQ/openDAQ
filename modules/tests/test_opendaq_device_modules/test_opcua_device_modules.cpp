@@ -231,7 +231,14 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
         GTEST_SKIP() << "Ipv6 is disabled";
     }
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo)
+                                     .addDiscoveryServer("mdns")
+                                     .build();
+
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discoveryReachabilityAfterConnectIPv6/";
     serverConfig.setPropertyValue("Path", path);
@@ -239,8 +246,8 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
 
     auto client = Instance();
-    // client.getAvailableDevices();
-    DevicePtr device = client.addDevice(std::string("daq.opcua://[::1]") + path);
+    StringPtr deviceConnectionString = std::string("daq.opcua://[::1]") + path;
+    DevicePtr device = client.addDevice(deviceConnectionString);
 
     ASSERT_TRUE(device.assigned());
 
@@ -253,23 +260,26 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
             break;
 
         ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
-        // const auto ipv4Info = capability.getAddressInfo()[0];
-        const auto ipv6Info = capability.getAddressInfo()[0];
 
-        // ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-        ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-        
-        // ASSERT_EQ(ipv4Info.getType(), "IPv4");
-        ASSERT_EQ(ipv6Info.getType(), "IPv6");
+        auto addressInfos = capability.getAddressInfo();
+        auto addresses = capability.getAddresses();
+        for (size_t i = 0; i < addressInfos.getCount(); ++i)
+        {
+            const auto& info = addressInfos[i];
+            if (info.getType() != "IPv6")
+                continue;
 
-        // ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-        ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[0]);
-        
-        // ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-        ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[0]);
-        return;
+            if (info.getConnectionString() != deviceConnectionString)
+                continue;
+
+            ASSERT_EQ(info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            ASSERT_EQ(info.getConnectionString(), capability.getConnectionStrings()[i]);
+            ASSERT_EQ(info.getAddress(), addresses[i]);
+            return;
+        }
     }
-    ASSERT_TRUE(false) << "Device not found"; 
+
+    ASSERT_TRUE(false) << "OpcUa streaming capability with connection string " << deviceConnectionString << " not found";
 }
 
 #endif
@@ -299,7 +309,11 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         GTEST_SKIP() << "Ipv6 is disabled";
     }
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo).addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discoveryReachabilityAfterConnect/";
     serverConfig.setPropertyValue("Path", path);
@@ -364,6 +378,22 @@ TEST_F(OpcuaDeviceModulesTest, TestProtocolVersion)
         return;
     }
     ASSERT_TRUE(false) << "Device not found";
+}
+
+TEST_F(OpcuaDeviceModulesTest, GetConnectedClientsInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // one config connection
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQOPCUA");
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(serverSideClientsInfo[0].getHostName(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getAddress(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
 }
 
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
@@ -974,7 +1004,7 @@ TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
     }
 }
 
-TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
+TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -992,6 +1022,27 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPort(), 4840);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://127.0.0.1");
+}
+
+TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.opcua://[::1]");
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQOPCUAConfiguration");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQOPCUA");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
+    ASSERT_EQ(connectionInfo.getPort(), 4840);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://[::1]");
 }
 
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
@@ -1307,4 +1358,62 @@ TEST_F(OpcuaDeviceModulesTest, GetSetNonCheangableUserNameLocation)
         ASSERT_EQ(clientDeviceInfo.getPropertyValue(propertyName), "serverValue");
         ASSERT_EQ(serverDeviceInfo.getPropertyValue(propertyName), "serverValue");      
     }
+}
+
+TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    test_helpers::checkDeviceOperationMode(server, "Operation");
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+
+    ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
+    ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
+
+    // setting the operation mode for server root device
+    ASSERT_NO_THROW(server.setOperationModeRecursive("Idle"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+
+    // setting the operation mode for server sub device
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive("SafeOperation"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "SafeOperation", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "SafeOperation");
+
+    // setting the operation mode for client sub device
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive("Operation"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+
+    // setting the operation mode for client device not recursively
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode("SafeOperation"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "SafeOperation", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "SafeOperation");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+
+    // setting the operation mode for client device
+    ASSERT_NO_THROW(client.setOperationModeRecursive("Idle"));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
 }

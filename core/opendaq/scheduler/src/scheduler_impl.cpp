@@ -8,11 +8,23 @@
 #include <opendaq/task_internal.h>
 #include <opendaq/task_ptr.h>
 #include <opendaq/work_ptr.h>
-
 #include <coretypes/function_ptr.h>
 #include <coretypes/validation.h>
-
 #include <utility>
+#include <opendaq/thread_name.h>
+
+class CustomWorkerInterface : public tf::WorkerInterface
+{
+public:
+    void scheduler_prologue(tf::Worker& worker) override
+    {
+        daqNameThread(fmt::format("Scheduler{}", worker.id()).c_str());
+    }
+
+    void scheduler_epilogue(tf::Worker& worker, std::exception_ptr ptr) override
+    {
+    };
+};
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -22,9 +34,10 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent("Scheduler")
                           : throw ArgumentNullException("Logger must not be null"))
-    , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers))
+    , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers,
+               std::make_shared<CustomWorkerInterface>()))
 {
-    LOG_T("Starting scheduler with {} workers.", executor->num_workers())
+    LOG_D("Starting scheduler with {} workers.", executor->num_workers())
 }
 
 SchedulerImpl::~SchedulerImpl()
@@ -56,8 +69,8 @@ ErrCode SchedulerImpl::stop()
 
 ErrCode SchedulerImpl::checkAndPrepare(const IBaseObject* work, IAwaitable** awaitable)
 {
-    if (work == nullptr || awaitable == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(work);
+    OPENDAQ_PARAM_NOT_NULL(awaitable);
 
     if (stopped)
         return OPENDAQ_ERR_SCHEDULER_STOPPED;
@@ -120,10 +133,7 @@ ErrCode SchedulerImpl::scheduleGraph(ITaskGraph* graph, IAwaitable** awaitable)
 
 ErrCode SchedulerImpl::isMultiThreaded(Bool* multiThreaded)
 {
-    if (multiThreaded == nullptr)
-    {
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    }
+    OPENDAQ_PARAM_NOT_NULL(multiThreaded);
 
     *multiThreaded = executor->num_workers() > 1;
     return OPENDAQ_SUCCESS;

@@ -7,7 +7,7 @@
 #include <gmock/gmock.h>
 #include <opendaq/device_private_ptr.h>
 #include <opendaq/device_ptr.h>
-#include "test_utils.h"
+#include <opendaq/mock/advanced_components_setup_utils.h>
 
 using namespace daq;
 using namespace testing;
@@ -19,7 +19,7 @@ public:
 
     DevicePtr createDevice()
     {
-        return daq::config_protocol::test_utils::createTestDevice();
+        return test_utils::createTestDevice();
     }
 
     void setupServerAndClient(ClientType connectionType)
@@ -43,6 +43,7 @@ public:
             clientContext,
             std::bind(&ConfigProtocolViewOnlyClientTest::sendRequestAndGetReply, this, std::placeholders::_1),
             std::bind(&ConfigProtocolViewOnlyClientTest::sendNoReplyRequest, this, std::placeholders::_1),
+            nullptr,
             nullptr,
             nullptr);
 

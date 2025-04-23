@@ -1,5 +1,15 @@
-
 = Access control
+
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🗝️ Understand basics of access control.
+- 🧑‍🤝‍🧑 Describe user roles and permissions.
+- 🌍 Recognize transport layer authentication.
+- 🛡 Understand native protocol access control.
+====
 
 In many cases, we have a data acquisition system that can be accessed by multiple users. Typically, we want each user to have specific permissions based on their role.
 For instance, an admin user should be able to configure the device and modify all its settings. A guest user might only need read-only access, while a calibrator user

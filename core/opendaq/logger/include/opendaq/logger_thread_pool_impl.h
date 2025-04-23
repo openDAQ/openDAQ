@@ -33,6 +33,8 @@ public:
 
 private:
     ThreadPoolPtr spdlogThreadPool;
+
+    static void threadStart();
 };
 
 END_NAMESPACE_OPENDAQ

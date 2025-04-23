@@ -27,4 +27,9 @@ inline SerializerPtr JsonSerializer(Bool pretty = False)
     return SerializerPtr(JsonSerializer_Create(pretty));
 }
 
+inline SerializerPtr JsonSerializerWithVersion(Int version, Bool pretty = False)
+{
+    return SerializerPtr(JsonSerializer_Create(version, pretty));
+}
+
 END_NAMESPACE_OPENDAQ

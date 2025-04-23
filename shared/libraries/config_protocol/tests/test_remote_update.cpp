@@ -5,7 +5,7 @@
 #include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/data_descriptor_factory.h>
-#include "test_utils.h"
+#include <opendaq/mock/advanced_components_setup_utils.h>
 #include "config_protocol/config_protocol_server.h"
 #include "config_protocol/config_protocol_client.h"
 #include "config_protocol/config_client_device_impl.h"
@@ -36,6 +36,7 @@ public:
                 clientContext,
                 std::bind(&ConfigRemoteUpdateTest::sendRequestAndGetReply, this, std::placeholders::_1),
                 std::bind(&ConfigRemoteUpdateTest::sendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
                 nullptr,
                 nullptr
             );

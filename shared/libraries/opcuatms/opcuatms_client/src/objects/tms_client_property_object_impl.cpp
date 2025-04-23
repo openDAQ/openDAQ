@@ -36,9 +36,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    StringPtr childName;
-    StringPtr subName;
-    if (this->isChildProperty(propertyNamePtr, childName, subName))
+    if (this->isChildProperty(propertyNamePtr))
     {
         PropertyPtr prop;
         ErrCode err = getProperty(propertyNamePtr, &prop);
@@ -138,9 +136,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    StringPtr childName;
-    StringPtr subName;
-    if (this->isChildProperty(propertyNamePtr, childName, subName))
+    if (this->isChildProperty(propertyNamePtr))
     {
         PropertyPtr prop;
         ErrCode err = getProperty(propertyNamePtr, &prop);

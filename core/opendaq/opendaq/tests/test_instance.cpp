@@ -947,6 +947,29 @@ TEST_F(InstanceTest, DISABLED_SaveLoadServers)
     ASSERT_EQ(servers[0].getId(), serverId);
 }
 
+TEST_F(InstanceTest, SaveLoadDeviceStruct)
+{
+    StringPtr config;
+    StringPtr serverId;
+    {
+        auto instance = test_helpers::setupInstance();
+        instance.addDevice("daqmock://phys_device");
+
+        auto device = instance.getDevices()[0];
+        StructPtr deviceStruct = device.getPropertyValue("DeviceStructure");
+        deviceStruct = StructBuilder(deviceStruct).set("value1", 5e-7);
+        device.setPropertyValue("DeviceStructure", deviceStruct);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance = Instance();
+    instance.loadConfiguration(config);
+    auto device = instance.getDevices()[0];
+    StructPtr deviceStruct = device.getPropertyValue("DeviceStructure");
+    ASSERT_EQ(deviceStruct.get("value1"), 5e-7);
+}
+
 TEST_F(InstanceTest, TestRemoved1)
 {
     auto instance = test_helpers::setupInstance();

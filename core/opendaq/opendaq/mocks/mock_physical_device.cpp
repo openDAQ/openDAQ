@@ -65,8 +65,15 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx,
     registerProperties();
     registerNetworkConfigProperties();
 
-    const PropertyObjectPtr thisPtr = this->borrowPtr<PropertyObjectPtr>();
-    thisPtr.addProperty(StringProperty("TestProperty", "Test").detach());
+    this->addProperty(StringProperty("TestProperty", "Test"));
+
+    auto structFields = daq::Dict<daq::IString, daq::IBaseObject>(
+    {
+        {"value1", 0.0},
+        {"value2", 0.0}
+    });
+    this->addProperty(daq::StructProperty("DeviceStructure", daq::Struct("TestMockStructure", structFields, ctx.getTypeManager())));
+
     this->tags.add("phys_device");
 
     this->setDeviceDomain(DeviceDomain(Ratio(123, 456), "Origin", Unit("UnitSymbol", 987, "UnitName", "UnitQuantity")));

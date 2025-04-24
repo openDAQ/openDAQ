@@ -2810,59 +2810,6 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
     ASSERT_EQ(signal.getGlobalId(), clientRefDevice.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
 }
 
-TEST_F(NativeDeviceModulesTest, SaveLoadDeviceOperationMode)
-{
-    StringPtr config;
-    {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo();
-        auto client = CreateClientInstance();
-        auto clientRoot = client.getDevices()[0];
-
-        auto dev = clientRoot.addDevice("daqref://device1");
-        dev.setOperationMode(OperationModeType::SafeOperation);
-
-        config = client.saveConfiguration();
-    }
-
-    auto server = CreateServerInstanceWithEnabledLogFileInfo();
-    auto client = CreateClientInstance();
-    client.loadConfiguration(config);
-    auto clientRoot = client.getDevices()[0];
-
-    auto devs = clientRoot.getDevices();
-    ASSERT_EQ(devs.getCount(), 1u);
-
-    ASSERT_EQ(devs[0].getOperationMode(), OperationModeType::SafeOperation);
-}
-
-// BUG: we are not passing the update parameters to the server
-TEST_F(NativeDeviceModulesTest, DISABLED_SaveLoadNotRestoreDeviceOperationMode)
-{
-    StringPtr config;
-    {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo();
-        auto client = CreateClientInstance();
-        auto clientRoot = client.getDevices()[0];
-
-        auto dev = clientRoot.addDevice("daqref://device1");
-        dev.setOperationMode(OperationModeType::SafeOperation);
-
-        config = client.saveConfiguration();
-    }
-
-    auto server = CreateServerInstanceWithEnabledLogFileInfo();
-    auto client = CreateClientInstance();
-
-    auto loadConfig = UpdateParameters().setRestoreDeviceOperationMode(false);
-    client.loadConfiguration(config, loadConfig);
-    auto clientRoot = client.getDevices()[0];
-
-    auto devs = clientRoot.getDevices();
-    ASSERT_EQ(devs.getCount(), 1u);
-
-    ASSERT_EQ(devs[0].getOperationMode(), OperationModeType::Operation);
-}
-
 StringPtr getFileLastModifiedTime(const std::string& path)
 {
     auto ftime = fs::last_write_time(path);

@@ -47,7 +47,6 @@
 #include <opendaq/connection_status_container_private_ptr.h>
 #include <opendaq/connection_status_container_impl.h>
 #include <opendaq/device_network_config.h>
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -669,7 +668,7 @@ void GenericDevice<TInterface, Interfaces...>::removeChannel(const FolderConfigP
 {
     if (parentFolder == nullptr)
     {
-        const auto folder = channel.getParent().asPtr<IFolderConfig>(true);
+        const auto folder = channel.getParent().asPtr<IFolderConfig>();
         folder.removeItem(channel);
     }
     else
@@ -681,7 +680,7 @@ bool GenericDevice<TInterface, Interfaces...>::hasChannel(const FolderConfigPtr&
 {
     if (parentFolder == nullptr)
     {
-        const auto folder = channel.getParent().asPtr<IFolderConfig>(true);
+        const auto folder = channel.getParent().asPtr<IFolderConfig>();
         return folder.hasItem(channel.getLocalId());
     }
     else
@@ -1727,8 +1726,18 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             this->getAvailableOperationModes(&availableOpModes);
             if (availableOpModes.assigned())
             {
-                serializer.key("availableOperationModes");
+                serializer.key("AvailableOperationModes");
                 availableOpModes.serialize(serializer);
+            }
+        }
+
+        {
+            OperationModeType mode;
+            ErrCode errCode = this->getOperationMode(&mode);
+            if (OPENDAQ_SUCCEEDED(errCode))
+            {
+                serializer.key("OperationMode");
+                serializer.writeInt(static_cast<Int>(mode));
             }
         }
     }
@@ -1772,16 +1781,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     serializer.key("UserLock");
     userLock.serialize(serializer);
-
-    {
-        OperationModeType mode;
-        ErrCode errCode = this->getOperationMode(&mode);
-        if (OPENDAQ_SUCCEEDED(errCode))
-        {
-            serializer.key("OperationMode");
-            serializer.writeInt(static_cast<Int>(mode));
-        }
-    }
 
     if (connectionStatusContainer.asPtr<IComponentStatusContainer>().getStatuses().getCount() > 0)
     {
@@ -1967,16 +1966,16 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     else
         userLock.forceUnlock();
 
+    if (serializedObject.hasKey("AvailableOperationModes"))
+    {
+        this->availableOperationModes = serializedObject.readObject("AvailableOperationModes");
+        this->availableOperationModes.freeze();
+    }
+
     if (serializedObject.hasKey("OperationMode"))
     {
         Int mode = serializedObject.readInt("OperationMode");
         this->operationMode = static_cast<OperationModeType>(mode);
-    }
-
-    if (serializedObject.hasKey("availableOperationModes"))
-    {
-        this->availableOperationModes = serializedObject.readObject("availableOperationModes");
-        this->availableOperationModes.freeze();
     }
 
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
@@ -2004,12 +2003,6 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 {
     Super::updateObject(obj, context);
     ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
-
-    if (contextPtr.getRestoreDeviceOperationMode() && obj.hasKey("OperationMode"))
-    {
-        Int mode = obj.readInt("OperationMode");
-        this->setOperationMode(static_cast<OperationModeType>(mode));
-    }
 
     if (obj.hasKey("Dev"))
     {

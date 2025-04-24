@@ -56,18 +56,4 @@ void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParamete
             objectPtr.setReAddDevicesEnabled(enabled);
         },
         "Returns whether the re-add devices is enabled. If enabled, the devices will be re-added in update process. / Sets the re-add devices enabled flag.");
-    cls.def_property("restore_device_operation_mode",
-        [](daq::IUpdateParameters *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
-            return objectPtr.getRestoreDeviceOperationMode();
-        },
-        [](daq::IUpdateParameters *object, const bool enabled)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
-            objectPtr.setRestoreDeviceOperationMode(enabled);
-        },
-        "Returns whether the restore device operation mode is enabled. If enabled, the devices will be restored to their original operation mode. / Sets the restore device operation mode enabled flag.");
 }

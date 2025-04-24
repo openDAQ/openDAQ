@@ -193,7 +193,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
         {
             return IdsParser::isNestedComponentId(comp.getGlobalId(), addedComponentId) || comp.getGlobalId() == addedComponentId;
         }
-        );
+    );
     auto ancestorDevices = List<IDevice>();
     if (minHopsStreamingHeuristicEnabled) // skip nested devices' streamings if MinHops disabled
         ancestorDevices = ownerDevice.getDevices(search::Recursive(search::Custom(isAncestorComponent)));
@@ -249,13 +249,13 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
     };
 
     // setup streaming sources for all signals of the new component
-    if (addedComponent.supportsInterface<ISignal>())
+    if (auto addedSignal = addedComponent.asPtrOrNull<ISignal>(); addedSignal.assigned())
     {
-        setupStreamingForSignal(addedComponent.asPtr<ISignal>());
+        setupStreamingForSignal(addedSignal);
     }
-    else if (addedComponent.supportsInterface<IFolder>())
+    else if (auto addedFolder = addedComponent.asPtrOrNull<IFolder>(); addedFolder.assigned())
     {
-        ListPtr<ISignal> nestedSignals = addedComponent.asPtr<IFolder>().getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
+        ListPtr<ISignal> nestedSignals = addedFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
         for (const auto& nestedSignal : nestedSignals)
             setupStreamingForSignal(nestedSignal);
     }
@@ -263,19 +263,43 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
 
 inline void StreamingSourceManager::enableStreamingForUpdatedComponent(const ComponentPtr& updatedComponent)
 {
-    // assign streaming sources for all signals which do not have any, assuming these are newly added signals
-    if (updatedComponent.supportsInterface<IMirroredSignalConfig>())
+    // setup streaming sources for all nested signals which do not have any, assuming these are newly added signals
+    if (auto updatedSignal = updatedComponent.asPtrOrNull<IMirroredSignalConfig>(); updatedSignal.assigned())
     {
-        if (updatedComponent.asPtr<IMirroredSignalConfig>().getStreamingSources().getCount() == 0)
-            enableStreamingForAddedComponent(updatedComponent);
+        if (updatedSignal.getStreamingSources().getCount() == 0)
+            enableStreamingForAddedComponent(updatedSignal);
     }
-    else if (updatedComponent.supportsInterface<IFolder>())
+    else if (auto updatedFolder = updatedComponent.asPtrOrNull<IFolder>(); updatedFolder.assigned())
     {
-        ListPtr<IMirroredSignalConfig> nestedSignals =
-            updatedComponent.asPtr<IFolder>().getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
-        for (const auto& nestedSignal : nestedSignals)
-            if (nestedSignal.getStreamingSources().getCount() == 0)
-                enableStreamingForAddedComponent(nestedSignal);
+        auto isNewlyAddedDomainSignal = Function(
+            [](const ComponentPtr& comp)
+            {
+                auto signal = comp.asPtrOrNull<IMirroredSignalConfig>();
+                return signal.assigned()
+                       && signal.getStreamingSources().getCount() == 0
+                       && !signal.getDomainSignal().assigned();
+            }
+        );
+        auto isNewlyAddedValueSignal = Function(
+            [](const ComponentPtr& comp)
+            {
+                auto signal = comp.asPtrOrNull<IMirroredSignalConfig>();
+                return signal.assigned()
+                       && signal.getStreamingSources().getCount() == 0
+                       && signal.getDomainSignal().assigned();
+            }
+        );
+
+        ListPtr<IMirroredSignalConfig> nestedAddedDomainSignals =
+            updatedFolder.getItems(search::Recursive(search::Custom(isNewlyAddedDomainSignal)));
+        ListPtr<IMirroredSignalConfig> nestedAddedValueSignals =
+            updatedFolder.getItems(search::Recursive(search::Custom(isNewlyAddedValueSignal)));
+
+        // setup streaming sources for domain signals first
+        for (const auto& nestedDomainSignal : nestedAddedDomainSignals)
+            enableStreamingForAddedComponent(nestedDomainSignal);
+        for (const auto& nestedValueSignal : nestedAddedValueSignals)
+            enableStreamingForAddedComponent(nestedValueSignal);
     }
 }
 

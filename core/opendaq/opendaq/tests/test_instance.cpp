@@ -1035,4 +1035,122 @@ TEST_F(InstanceTest, ModuleManagerGrouping)
     }
 }
 
+class DeviceWhichLogs : public Device
+{
+public:
+
+    DeviceWhichLogs(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+        : Device(ctx, parent, localId)
+    {
+        isRunning = true;
+        for (int i = 0; i < 10; ++i)
+        {
+            workers.emplace_back([this]
+            {
+                while (isRunning)
+                {
+                    LOG_I("Device is running and doing important stuff. while logger have to write all of this in file. the logger eventualy is also very busy.");
+                }
+            });
+        }
+    }
+
+    ~DeviceWhichLogs() override
+    {
+        isRunning = false;
+        for (auto& worker : workers)
+        {
+            if (worker.joinable())
+                worker.join();
+        }
+    }
+
+    std::vector<std::thread> workers;
+    std::atomic<bool> isRunning{false};
+};
+
+class ModuleForDeviceWhichLogs : public Module
+{
+public:
+    ModuleForDeviceWhichLogs(daq::ContextPtr ctx)
+        : Module("Module For Device Which Logs",
+                 daq::VersionInfo(1, 0, 0),
+                 std::move(ctx),
+                 "ModuleForDeviceWhichLogs")
+    {
+    }
+
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override
+    {
+        auto deviceType = DeviceTypeBuilder()
+            .setId("DeviceWhichLogs")
+            .setName("Device")
+            .setDescription("")
+            .setConnectionStringPrefix("device.which.logs")
+            .setDefaultConfig(PropertyObject())
+            .build();
+
+        auto result = Dict<IString, IDeviceType>();
+        result.set(deviceType.getId(), deviceType);
+        return result;
+    }
+
+    DevicePtr onCreateDevice(const StringPtr& /*connectionString*/, const ComponentPtr& parent, const PropertyObjectPtr& /*config*/) override
+    {
+        return createWithImplementation<Device, DeviceWhichLogs>(context, parent, "deviceWhichLogs");
+    }
+};
+
+std::string GetEnvironmentVariableValue(const std::string& variableName, const std::string& defaultValue = "")
+{
+    if (variableName.empty())
+        return defaultValue;
+
+    const char* value = std::getenv(variableName.c_str());
+
+    if (value)
+        return value;
+    else
+        return defaultValue;
+}
+
+int setEnv(const std::string& name, const std::string& value)
+{
+#ifdef _WIN32
+    return _putenv_s(name.c_str(), value.c_str());
+#else
+    if (value.empty())
+        return unsetenv(name.c_str());
+    return setenv(name.c_str(), value.c_str(), 1);
+#endif
+}
+
+void setEnvironmentVariableValue(const std::string& variableName, const std::string& defaultValue)
+{
+    if (variableName.empty())
+        return;
+
+    if (setEnv(variableName, defaultValue) != 0)
+        throw std::runtime_error("Failed to set env variable");
+}
+
+TEST_F(InstanceTest, checkLoggerFromEnv)
+{
+    std::string defaultLoggerSinkFileName = GetEnvironmentVariableValue("OPENDAQ_SINK_FILE_FILE_NAME");
+    std::string defaultLoggerSinkLogLevel = GetEnvironmentVariableValue("OPENDAQ_SINK_FILE_LOG_LEVEL", "");
+
+    setEnvironmentVariableValue("OPENDAQ_SINK_FILE_FILE_NAME", "openDAQ_SDK.log");
+    setEnvironmentVariableValue("OPENDAQ_SINK_FILE_LOG_LEVEL", std::to_string(OPENDAQ_LOG_LEVEL_TRACE));
+
+    auto instance = Instance("[[none]]");
+    instance.getModuleManager().addModule(createWithImplementation<IModule, ModuleForDeviceWhichLogs>(instance.getContext()));
+
+    instance.addDevice("device.which.logs://test_device");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    setEnvironmentVariableValue("OPENDAQ_SINK_FILE_FILE_NAME", defaultLoggerSinkFileName);
+    setEnvironmentVariableValue("OPENDAQ_SINK_FILE_LOG_LEVEL", defaultLoggerSinkLogLevel);
+}
+
+
 END_NAMESPACE_OPENDAQ

@@ -968,6 +968,7 @@ TEST_F(InstanceTest, SaveLoadDeviceStruct)
     auto device = instance.getDevices()[0];
     StructPtr deviceStruct = device.getPropertyValue("DeviceStructure");
     ASSERT_EQ(deviceStruct.get("value1"), 5e-7);
+    ASSERT_EQ(deviceStruct.get("value2"), 0.0);
 }
 
 TEST_F(InstanceTest, TestRemoved1)

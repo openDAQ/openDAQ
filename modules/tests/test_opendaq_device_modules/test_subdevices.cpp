@@ -198,7 +198,7 @@ public:
         }
     }
 
-    InstancePtr CreateSubdeviceInstance(uint16_t index)
+    InstancePtr CreateLeafDeviceInstance(uint16_t leafDeviceIndex)
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
@@ -206,15 +206,15 @@ public:
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
-        auto instance = InstanceCustom(context, fmt::format("subdevice{}", index));
+        auto instance = InstanceCustom(context, fmt::format("subdevice{}", leafDeviceIndex));
         const auto refDevice = instance.addDevice("daqref://device0");
 
         auto structureProtocolType = std::get<0>(GetParam());
 
-        addLtServer(instance, WEBSOCKET_STREAMING_PORT + index, WEBSOCKET_CONTROL_PORT + index);
-        addNativeServer(instance, NATIVE_PORT + index);
+        addLtServer(instance, WEBSOCKET_STREAMING_PORT + leafDeviceIndex, WEBSOCKET_CONTROL_PORT + leafDeviceIndex);
+        addNativeServer(instance, NATIVE_PORT + leafDeviceIndex);
         if (structureProtocolType == StructureProtocolType::OpcUa)
-            addOpcuaServer(instance, OPCUA_PORT + index);
+            addOpcuaServer(instance, OPCUA_PORT + leafDeviceIndex);
 
         return instance;
     }
@@ -229,25 +229,59 @@ public:
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
         auto instance = InstanceCustom(context, "gateway");
-
-        auto structureProtocolType = std::get<0>(GetParam());
-        auto subdeviceStreamingType = std::get<1>(GetParam());
-
-        for (auto index = 1; index <= 2; index++)
-        {
-            auto streamingProtocolIds = (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
-                                            ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
-                                            : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
-            const auto config = createDeviceConfig(instance, streamingProtocolIds, MIN_CONNECTIONS);
-            const auto subDevice = instance.addDevice(createStructureDeviceConnectionString(index), config);
-        }
+        ConnectLeafDeviceToGateway(instance, 1u);
 
         addLtServer(instance, WEBSOCKET_STREAMING_PORT, WEBSOCKET_CONTROL_PORT);
         addNativeServer(instance, NATIVE_PORT);
-        if (structureProtocolType == StructureProtocolType::OpcUa)
+        if (std::get<0>(GetParam()) == StructureProtocolType::OpcUa)
             addOpcuaServer(instance, OPCUA_PORT);
 
         return instance;
+    }
+
+    void ConnectLeafDeviceToGateway(const InstancePtr& gatewayInstance, uint16_t leafDeviceIndex)
+    {
+        auto subdeviceStreamingType = std::get<1>(GetParam());
+
+        auto streamingProtocolIds = (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
+                                        ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
+                                        : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
+        const auto config = createDeviceConfig(gatewayInstance, streamingProtocolIds, MIN_CONNECTIONS);
+        gatewayInstance.addDevice(createStructureDeviceConnectionString(leafDeviceIndex), config);
+    }
+
+    InstancePtr addSecondLeafDevice(const InstancePtr& gatewayInstance, const InstancePtr& clientInstance, bool& success)
+    {
+        InstancePtr secondLeafDevice = nullptr;
+
+        // dynamically added leaf device connections handled via core events
+        if (std::get<0>(GetParam()) == StructureProtocolType::Native)
+        {
+            secondLeafDevice = CreateLeafDeviceInstance(2u);
+
+            std::promise<void> leafDevAddedPromise;
+            std::future<void> leafDevAddedFuture = leafDevAddedPromise.get_future();
+
+            clientInstance.getContext().getOnCoreEvent() +=
+                [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+            {
+                auto params = args.getParameters();
+                if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+                {
+                    ComponentPtr component = params.get("Component");
+                    if (component.getLocalId() == "subdevice2")
+                        leafDevAddedPromise.set_value();
+                }
+            };
+
+            ConnectLeafDeviceToGateway(gatewayInstance, 2u);
+            success = leafDevAddedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
+        }
+        else
+        {
+            success = true;
+        }
+        return secondLeafDevice;
     }
 
     InstancePtr CreateClientInstance(const IntegerPtr& heuristicValue)
@@ -275,10 +309,13 @@ public:
 TEST_P(SubDevicesTest, RootStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
-    auto subdevice1 = CreateSubdeviceInstance(1u);
-    auto subdevice2 = CreateSubdeviceInstance(2u);
+    auto firstLeafDevice = CreateLeafDeviceInstance(1u);
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_CONNECTIONS);
+
+    bool success{false};
+    InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
+    ASSERT_TRUE(success);
 
     auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
     auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
@@ -309,10 +346,13 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
 TEST_P(SubDevicesTest, LeafStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
-    auto subdevice1 = CreateSubdeviceInstance(1u);
-    auto subdevice2 = CreateSubdeviceInstance(2u);
+    auto firstLeafDevice = CreateLeafDeviceInstance(1u);
     auto gateway = CreateGatewayInstance();
-    auto client = CreateClientInstance(MIN_HOPS);    
+    auto client = CreateClientInstance(MIN_HOPS);
+
+    bool success{false};
+    InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
+    ASSERT_TRUE(success);
 
     auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
     auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
@@ -339,10 +379,13 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
 TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 {
     SKIP_TEST_MAC_CI;
-    auto subdevice1 = CreateSubdeviceInstance(1u);
-    auto subdevice2 = CreateSubdeviceInstance(2u);
+    auto firstLeafDevice = CreateLeafDeviceInstance(1u);
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_HOPS);
+
+    bool success{false};
+    InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
+    ASSERT_TRUE(success);
 
     auto clientSignals = client.getSignalsRecursive();
     auto gatewaySignals = gateway.getSignalsRecursive();
@@ -392,10 +435,10 @@ class SubDevicesReconnectionTest : public SubDevicesTest
 TEST_P(SubDevicesReconnectionTest, LeafStreamingToClientAfterReconnect)
 {
     SKIP_TEST_MAC_CI;
-    auto subdevice1 = CreateSubdeviceInstance(1u);
-    auto subdevice2 = CreateSubdeviceInstance(2u);
+    auto firstLeafDevice = CreateLeafDeviceInstance(1u);
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_HOPS);
+
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
 
     auto clientSignals = client.getSignals(search::Recursive(search::Visible()));

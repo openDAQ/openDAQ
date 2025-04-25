@@ -957,13 +957,13 @@ TEST_F(InstanceTest, SaveLoadDeviceStruct)
 
         auto device = instance.getDevices()[0];
         StructPtr deviceStruct = device.getPropertyValue("DeviceStructure");
-        deviceStruct = StructBuilder(deviceStruct).set("value1", 5e-7);
+        deviceStruct = StructBuilder(deviceStruct).set("value1", 5e-7).build();
         device.setPropertyValue("DeviceStructure", deviceStruct);
 
         config = instance.saveConfiguration();
     }
 
-    auto instance = Instance();
+    auto instance = test_helpers::setupInstance();
     instance.loadConfiguration(config);
     auto device = instance.getDevices()[0];
     StructPtr deviceStruct = device.getPropertyValue("DeviceStructure");

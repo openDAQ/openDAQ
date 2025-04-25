@@ -1049,6 +1049,7 @@ public:
             {
                 while (isRunning)
                 {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     LOG_I("Device is running and doing important stuff. while logger have to write all of this in file. the logger eventualy is also very busy.");
                 }
             });
@@ -1146,7 +1147,7 @@ TEST_F(InstanceTest, checkLoggerFromEnv)
     instance.getModuleManager().addModule(createWithImplementation<IModule, ModuleForDeviceWhichLogs>(instance.getContext()));
 
     instance.addDevice("device.which.logs://test_device");
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(60));
 
     setEnvironmentVariableValue("OPENDAQ_SINK_FILE_FILE_NAME", defaultLoggerSinkFileName);
     setEnvironmentVariableValue("OPENDAQ_SINK_FILE_LOG_LEVEL", defaultLoggerSinkLogLevel);

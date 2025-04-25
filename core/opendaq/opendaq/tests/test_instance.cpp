@@ -947,7 +947,6 @@ TEST_F(InstanceTest, DISABLED_SaveLoadServers)
     ASSERT_EQ(servers[0].getId(), serverId);
 }
 
-<<<<<<< HEAD
 TEST_F(InstanceTest, SaveLoadDeviceConfig)
 {
     StringPtr config;

@@ -3303,14 +3303,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
         case ctStruct:
         case ctObject:
         {
+            const auto strongManager = manager.assigned() ? manager.getRef() : nullptr;
+
             const auto obj = propObj.getPropertyValue(propName);
-            if (const auto updatable = obj.asPtrOrNull<IUpdatable>(); updatable.assigned())
+            if (const auto updatable = obj.asPtrOrNull<IUpdatable>(true); updatable.assigned())
             {
                 const auto serializedNestedObj = serialized.readSerializedObject(propName);
-                return updatable->update(serializedNestedObj, manager.assigned() ? manager.getRef() : nullptr);
+                return updatable->update(serializedNestedObj, strongManager);
             }
 
-            propValue = serialized.readObject(propName);
+            propValue = serialized.readObject(propName, strongManager);
             break;
         }
         case ctProc:
@@ -3362,7 +3364,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
 
     if (serialized.hasKey("propValues"))
         serializedProps = serialized.readSerializedObject("propValues");
-
+ 
     beginUpdate();
     Finally finally([this]() { endUpdate(); });
 

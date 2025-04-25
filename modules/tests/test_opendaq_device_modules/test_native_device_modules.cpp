@@ -14,6 +14,7 @@
 #include <coretypes/filesystem.h>
 #include <opendaq/client_type.h>
 #include <opendaq/component_impl.h>
+#include <coreobjects/callable_info_factory.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -3297,3 +3298,42 @@ TEST_F(NativeDeviceModulesTest, AddNestedFB)
     ASSERT_TRUE(nestedFb.isRemoved());
     ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
 }
+
+TEST_F(NativeDeviceModulesTest, TestEnumerationPropertyRemote)
+{
+    InstancePtr serverInstance;
+
+    {
+        serverInstance = Instance();
+        serverInstance.setRootDevice("daqref://device0");
+        serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+        const StringPtr propName = "ReturnEnum";
+        const auto enumType = EnumerationType("SyncStatus",
+        List<IString>("Idle", "Running", "Successful", "Failed"));
+        const auto manager = serverInstance.getContext().getTypeManager();
+        manager.addType(enumType);
+
+        const auto prop = FunctionPropertyBuilder(propName, FunctionInfo(ctEnumeration, List<IArgumentInfo>())).build();
+        serverInstance.addProperty(prop);
+        serverInstance.setPropertyValue(propName, Function([&, manager]
+        {
+            return Enumeration("SyncStatus", "Successful", manager);
+        }));
+
+        FunctionPtr func = serverInstance.getPropertyValue(propName);
+
+        const EnumerationPtr enumRes = func.call();
+        ASSERT_EQ(enumRes.getValue(), "Successful");
+    }
+
+    const InstancePtr clientInstance = Instance();
+    const auto device = clientInstance.addDevice("daq.nd://127.0.0.1");
+
+    const StringPtr propName = "ReturnEnum";
+    const FunctionPtr func = device.getPropertyValue(propName);
+
+    const EnumerationPtr result = func.call();
+    ASSERT_EQ(result.getValue(), "Successful");
+}
+

@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#776)](https://github.com/openDAQ/openDAQ/pull/776) Fixing restoring struct fields while loading configuration
 - [#773](https://github.com/openDAQ/openDAQ/pull/773) Extend IPropertyObject::hasProperty() to accept nested property lookup via "dot" notation.
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Introduces serializer versioning; openDAQ list objects are now serialized as objects instead of JSON arrays.
 - [#730](https://github.com/openDAQ/openDAQ/pull/730) Provide list of connected clients info via DeviceInfo.

@@ -407,7 +407,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(
 {
     TypeManagerPtr typeManager;
     if (context == nullptr || OPENDAQ_FAILED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager))))
-        return OPENDAQ_ERR_NO_TYPE_MANAGER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_TYPE_MANAGER, "Type manager is required for deserialization of Struct");
 
     StringPtr typeName;
     ErrCode errCode = ser->readString("typeName"_daq, &typeName);

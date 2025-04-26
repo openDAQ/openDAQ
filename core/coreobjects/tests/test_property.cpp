@@ -157,7 +157,7 @@ TEST_F(PropertyTest, ImplementationName)
     StringPtr className = obj.asPtr<IInspectable>(true).getRuntimeClassName();
     ASSERT_EQ(className, "daq::PropertyBuilderImpl");
 
-     className = obj.build().asPtr<IInspectable>(true).getRuntimeClassName();
+    className = obj.build().asPtr<IInspectable>(true).getRuntimeClassName();
     ASSERT_EQ(className, "daq::PropertyImpl");
 }
 

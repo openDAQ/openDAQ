@@ -39,7 +39,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [includeHeader("<coretypes/event_wrapper.h>")]
  */
 
-enum class OperationModeType: int32_t
+enum class OperationModeType: EnumType
 {
     Unknown = 0,
     Idle,
@@ -208,6 +208,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * the starting component, the id should be in the form of "Dev/dev_id/Ch/ch_id/Sig/sig_id.
      */
     virtual ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) = 0;
+
+    /*!
+     * @brief Gets the operation mode of the device.
+     * @param[out] modeType The current operation mode.
+     */
+    virtual ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) = 0;
 };
 /*!@}*/
 

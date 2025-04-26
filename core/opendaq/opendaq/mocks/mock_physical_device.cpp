@@ -270,6 +270,11 @@ ListPtr<IString> MockPhysicalDeviceImpl::onGetNetworkInterfaceNames()
     return ifaceNames;
 }
 
+std::set<daq::OperationModeType> MockPhysicalDeviceImpl::onGetAvailableOperationModes() 
+{ 
+    return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation}; 
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     INTERNAL_FACTORY,
     MockPhysicalDevice, daq::IDevice,

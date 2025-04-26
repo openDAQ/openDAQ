@@ -40,7 +40,10 @@ void defineINetworkInterface(pybind11::module_ m, PyDaqIntf<daq::INetworkInterfa
 {
     cls.doc() = "Provides an interface to manipulate the configuration of a device's (server's) network interface. Offers methods to update the IP configuration and retrieve the currently active one, if the corresponding feature supported by the device. Additionally, includes a helper method to create a prebuilt property object with valid default configuration.";
 
-    m.def("NetworkInterface", &daq::NetworkInterface_Create);
+    m.def("NetworkInterface", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& ownerDeviceManufacturerName, std::variant<daq::IString*, py::str, daq::IEvalValue*>& ownerDeviceSerialNumber, const py::object& moduleManager){
+        return daq::NetworkInterface_Create(getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(ownerDeviceManufacturerName), getVariantValue<daq::IString*>(ownerDeviceSerialNumber), pyObjectToBaseObject(moduleManager));
+    }, py::arg("name"), py::arg("owner_device_manufacturer_name"), py::arg("owner_device_serial_number"), py::arg("module_manager"));
+
 
     cls.def("request_current_configuration",
         [](daq::INetworkInterface *object)

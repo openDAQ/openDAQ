@@ -262,7 +262,7 @@ TEST(SignalConverter, subscribedDataSignal)
     signalParams[bsp::META_DEFINITION][bsp::META_POSTSCALING][bsp::META_POFFSET] = 3.0;
 
     std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(signalParams);
-    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(std::vector<char>(msgpack.begin(), msgpack.end()));
 
     result = subscribedSignal.processSignalMetaInformation(method, signalParamsToParse);
     ASSERT_EQ(result, 0);
@@ -317,7 +317,7 @@ TEST(SignalConverter, subscribedBitfieldSignal)
     signalParams[bsp::META_DEFINITION][bsp::META_RULE] = bsp::META_RULETYPE_CONSTANT;
 
     std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(signalParams);
-    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(std::vector<char>(msgpack.begin(), msgpack.end()));
 
     result = subscribedSignal.processSignalMetaInformation(method, signalParamsToParse);
     ASSERT_EQ(result, 0);
@@ -383,7 +383,7 @@ TEST(SignalConverter, subscribedTimeSignal)
     timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_DENOMINATOR] = ticksPerSecond;
 
     std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(timeSignalParams);
-    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(std::vector<char>(msgpack.begin(), msgpack.end()));
 
     result = subscribedSignal.processSignalMetaInformation(method, timeSignalParamsToParse);
     ASSERT_EQ(result, 0);
@@ -458,7 +458,7 @@ TEST(SignalConverter, FloatDeltaOfLinearSignal)
     timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_DENOMINATOR] = ticksPerSecond;
 
     std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(timeSignalParams);
-    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(std::vector<char>(msgpack.begin(), msgpack.end()));
 
     result = subscribedSignal.processSignalMetaInformation(method, timeSignalParamsToParse);
     ASSERT_EQ(result, 0);

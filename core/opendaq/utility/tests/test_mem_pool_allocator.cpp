@@ -6,7 +6,7 @@
 
 using MemPoolAllocatorTest = ::testing::Test;
 
-using namespace daq::detail;
+using namespace daq::details;
 
 TEST_F(MemPoolAllocatorTest, Stack)
 {

@@ -327,7 +327,6 @@ TEST_F(COpendaqSignalTest, EventPacket)
 
 TEST_F(COpendaqSignalTest, InputPort)
 {
-    InputPort* inputPort = nullptr;
     InputPortConfig* inputPortConfig = nullptr;
     Context* ctx = createContext();
     String* id = nullptr;
@@ -434,7 +433,6 @@ TEST_F(COpendaqSignalTest, Scaling)
 
 TEST_F(COpendaqSignalTest, Signal)
 {
-    Signal* signal = nullptr;
     SignalConfig* signalConfig = nullptr;
     String* id = nullptr;
     String_createString(&id, "sig");

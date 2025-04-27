@@ -17,7 +17,7 @@
 
 const IntfID CORE_TYPE_INTF_ID = { daq::ICoreType::Id.Data1, daq::ICoreType::Id.Data2, daq::ICoreType::Id.Data3, daq::ICoreType::Id.Data4_UInt64 };
 
-ErrCode CoreType_getCoreType(CoreType* self, CoreType* coreType)
+ErrCode CoreType_getCoreType(CoreTypeObject* self, CoreType* coreType)
 {
     return reinterpret_cast<daq::ICoreType*>(self)->getCoreType(reinterpret_cast<daq::CoreType*>(coreType));
 }

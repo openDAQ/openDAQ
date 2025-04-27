@@ -1,4 +1,5 @@
 #include <copendaq.h>
+
 #include <gtest/gtest.h>
 
 using CCoretypesTest = testing::Test;

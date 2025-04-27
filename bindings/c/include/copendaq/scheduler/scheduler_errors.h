@@ -15,5 +15,21 @@
  */
 
 #pragma once
+#include <ccoretypes/errors.h>
 
-#include <private/utils.h>
+/*!
+ * @ingroup opendaq_errors_group
+ * @addtogroup opendaq_errors_macros Error Code Macros
+ * @{
+ */
+
+#define OPENDAQ_ERRTYPE_SCHEDULER 0x04u
+
+#define OPENDAQ_ERR_SCHEDULER_UNKNOWN OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_SCHEDULER, 0x0000u)
+#define OPENDAQ_ERR_SCHEDULER_STOPPED OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_SCHEDULER, 0x0001u)
+#define OPENDAQ_ERR_NOT_ENOUGH_TASKS  OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_SCHEDULER, 0x0002u)
+#define OPENDAQ_ERR_EMPTY_AWAITABLE   OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_SCHEDULER, 0x0003u)
+
+/*!
+ * @}
+ */

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "ccommon.h"
+#include <ccommon.h>
 
 #include <opendaq/opendaq.h>
 

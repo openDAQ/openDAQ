@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:48.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:56.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/server/server_type.h"
+#include <copendaq/server/server_type.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID SERVER_TYPE_INTF_ID = { daq::IServerType::Id.Data1, daq::IServerType::Id.Data2, daq::IServerType::Id.Data3, daq::IServerType::Id.Data4_UInt64 };
 

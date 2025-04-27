@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:02.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/argument_info.h"
+#include <ccoreobjects/argument_info.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID ARGUMENT_INFO_INTF_ID = { daq::IArgumentInfo::Id.Data1, daq::IArgumentInfo::Id.Data2, daq::IArgumentInfo::Id.Data3, daq::IArgumentInfo::Id.Data4_UInt64 };
 

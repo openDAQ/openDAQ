@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:59.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:06.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/input_port.h"
+#include <copendaq/signal/input_port.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID INPUT_PORT_INTF_ID = { daq::IInputPort::Id.Data1, daq::IInputPort::Id.Data2, daq::IInputPort::Id.Data3, daq::IInputPort::Id.Data4_UInt64 };
 

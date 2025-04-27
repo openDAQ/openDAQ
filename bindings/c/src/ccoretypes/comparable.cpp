@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 10.04.2025 17:06:43.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/comparable.h"
+#include <ccoretypes/comparable.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID COMPARABLE_INTF_ID = { daq::IComparable::Id.Data1, daq::IComparable::Id.Data2, daq::IComparable::Id.Data3, daq::IComparable::Id.Data4_UInt64 };
 

@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:34.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/opendaq/instance_builder.h"
+#include <copendaq/opendaq/instance_builder.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID INSTANCE_BUILDER_INTF_ID = { daq::IInstanceBuilder::Id.Data1, daq::IInstanceBuilder::Id.Data2, daq::IInstanceBuilder::Id.Data3, daq::IInstanceBuilder::Id.Data4_UInt64 };
 

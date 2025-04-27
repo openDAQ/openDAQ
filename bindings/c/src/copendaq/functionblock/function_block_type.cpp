@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:25.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:34.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/functionblock/function_block_type.h"
+#include <copendaq/functionblock/function_block_type.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID FUNCTION_BLOCK_TYPE_INTF_ID = { daq::IFunctionBlockType::Id.Data1, daq::IFunctionBlockType::Id.Data2, daq::IFunctionBlockType::Id.Data3, daq::IFunctionBlockType::Id.Data4_UInt64 };
 

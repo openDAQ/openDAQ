@@ -5,15 +5,17 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:27.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/float.h"
+#include <ccoretypes/float.h>
 
 #include <opendaq/opendaq.h>
 
-const IntfID FLOAT_OBJECT_INTF_ID = { daq::IFloat::Id.Data1, daq::IFloat::Id.Data2 , daq::IFloat::Id.Data3, daq::IFloat::Id.Data4_UInt64 };
+#include <copendaq_private.h>
+
+const IntfID FLOAT_INTF_ID = { daq::IFloat::Id.Data1, daq::IFloat::Id.Data2, daq::IFloat::Id.Data3, daq::IFloat::Id.Data4_UInt64 };
 
 ErrCode FloatObject_getValue(FloatObject* self, Float* value)
 {

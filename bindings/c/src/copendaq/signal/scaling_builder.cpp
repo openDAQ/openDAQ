@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:38:07.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:13.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/scaling_builder.h"
+#include <copendaq/signal/scaling_builder.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID SCALING_BUILDER_INTF_ID = { daq::IScalingBuilder::Id.Data1, daq::IScalingBuilder::Id.Data2, daq::IScalingBuilder::Id.Data3, daq::IScalingBuilder::Id.Data4_UInt64 };
 

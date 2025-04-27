@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 10.04.2025 17:06:42.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:37.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/cloneable.h"
+#include <ccoretypes/cloneable.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID CLONEABLE_INTF_ID = { daq::ICloneable::Id.Data1, daq::ICloneable::Id.Data2, daq::ICloneable::Id.Data3, daq::ICloneable::Id.Data4_UInt64 };
 

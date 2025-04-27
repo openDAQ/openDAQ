@@ -5,29 +5,29 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:01:45.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/complex_number.h"
+#include <ccoretypes/complex_number.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID COMPLEX_NUMBER_INTF_ID = { daq::IComplexNumber::Id.Data1, daq::IComplexNumber::Id.Data2, daq::IComplexNumber::Id.Data3, daq::IComplexNumber::Id.Data4_UInt64 };
 
 /*
 ErrCode ComplexNumber_getValue(ComplexNumber* self, ComplexFloat64* value)
 {
-    return reinterpret_cast<daq::IComplexNumber*>(self)->getValue(value);
+    return reinterpret_cast<daq::IComplexNumber*>(self)->getValue(reinterpret_cast<daq::ComplexFloat64*>(value));
 }
 */
 
 /*
 ErrCode ComplexNumber_equalsValue(ComplexNumber* self, ComplexFloat64 value, Bool* equal)
 {
-    return reinterpret_cast<daq::IComplexNumber*>(self)->equalsValue(value, equal);
+    return reinterpret_cast<daq::IComplexNumber*>(self)->equalsValue(static_cast<daq::ComplexFloat64>(value), equal);
 }
 */
 

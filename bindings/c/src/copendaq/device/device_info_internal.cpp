@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:17.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:26.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/device/device_info_internal.h"
+#include <copendaq/device/device_info_internal.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID DEVICE_INFO_INTERNAL_INTF_ID = { daq::IDeviceInfoInternal::Id.Data1, daq::IDeviceInfoInternal::Id.Data2, daq::IDeviceInfoInternal::Id.Data3, daq::IDeviceInfoInternal::Id.Data4_UInt64 };
 

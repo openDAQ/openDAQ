@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:56.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/dimension_rule.h"
+#include <copendaq/signal/dimension_rule.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID DIMENSION_RULE_INTF_ID = { daq::IDimensionRule::Id.Data1, daq::IDimensionRule::Id.Data2, daq::IDimensionRule::Id.Data3, daq::IDimensionRule::Id.Data4_UInt64 };
 

@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:10.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/component/tags_private.h"
+#include <copendaq/component/tags_private.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID TAGS_PRIVATE_INTF_ID = { daq::ITagsPrivate::Id.Data1, daq::ITagsPrivate::Id.Data2, daq::ITagsPrivate::Id.Data3, daq::ITagsPrivate::Id.Data4_UInt64 };
 

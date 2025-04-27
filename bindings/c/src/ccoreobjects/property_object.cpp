@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:11.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:05.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/property_object.h"
+#include <ccoreobjects/property_object.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID PROPERTY_OBJECT_INTF_ID = { daq::IPropertyObject::Id.Data1, daq::IPropertyObject::Id.Data2, daq::IPropertyObject::Id.Data3, daq::IPropertyObject::Id.Data4_UInt64 };
 

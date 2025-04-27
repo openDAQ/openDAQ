@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:52.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/data_descriptor_builder.h"
+#include <copendaq/signal/data_descriptor_builder.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID DATA_DESCRIPTOR_BUILDER_INTF_ID = { daq::IDataDescriptorBuilder::Id.Data1, daq::IDataDescriptorBuilder::Id.Data2, daq::IDataDescriptorBuilder::Id.Data3, daq::IDataDescriptorBuilder::Id.Data4_UInt64 };
 

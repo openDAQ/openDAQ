@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:44.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/scheduler/awaitable.h"
+#include <copendaq/scheduler/awaitable.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID AWAITABLE_INTF_ID = { daq::IAwaitable::Id.Data1, daq::IAwaitable::Id.Data2, daq::IAwaitable::Id.Data3, daq::IAwaitable::Id.Data4_UInt64 };
 

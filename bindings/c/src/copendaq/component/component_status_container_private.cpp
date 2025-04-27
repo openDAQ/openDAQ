@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:03.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:13.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/component/component_status_container_private.h"
+#include <copendaq/component/component_status_container_private.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID = { daq::IComponentStatusContainerPrivate::Id.Data1, daq::IComponentStatusContainerPrivate::Id.Data2, daq::IComponentStatusContainerPrivate::Id.Data3, daq::IComponentStatusContainerPrivate::Id.Data4_UInt64 };
 

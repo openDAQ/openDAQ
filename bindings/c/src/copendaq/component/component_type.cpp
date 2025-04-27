@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:04.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/component/component_type.h"
+#include <copendaq/component/component_type.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID COMPONENT_TYPE_INTF_ID = { daq::IComponentType::Id.Data1, daq::IComponentType::Id.Data2, daq::IComponentType::Id.Data3, daq::IComponentType::Id.Data4_UInt64 };
 

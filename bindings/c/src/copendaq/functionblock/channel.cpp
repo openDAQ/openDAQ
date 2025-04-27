@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:24.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/functionblock/channel.h"
+#include <copendaq/functionblock/channel.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID CHANNEL_INTF_ID = { daq::IChannel::Id.Data1, daq::IChannel::Id.Data2, daq::IChannel::Id.Data3, daq::IChannel::Id.Data4_UInt64 };
 

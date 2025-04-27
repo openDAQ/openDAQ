@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:06.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/eval_value.h"
+#include <ccoreobjects/eval_value.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID EVAL_VALUE_INTF_ID = { daq::IEvalValue::Id.Data1, daq::IEvalValue::Id.Data2, daq::IEvalValue::Id.Data3, daq::IEvalValue::Id.Data4_UInt64 };
 

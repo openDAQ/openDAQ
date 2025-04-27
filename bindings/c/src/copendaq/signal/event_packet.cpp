@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:59.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:05.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/event_packet.h"
+#include <copendaq/signal/event_packet.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID EVENT_PACKET_INTF_ID = { daq::IEventPacket::Id.Data1, daq::IEventPacket::Id.Data2, daq::IEventPacket::Id.Data3, daq::IEventPacket::Id.Data4_UInt64 };
 

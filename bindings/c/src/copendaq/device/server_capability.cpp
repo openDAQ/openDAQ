@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:22.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/device/server_capability.h"
+#include <copendaq/device/server_capability.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID SERVER_CAPABILITY_INTF_ID = { daq::IServerCapability::Id.Data1, daq::IServerCapability::Id.Data2, daq::IServerCapability::Id.Data3, daq::IServerCapability::Id.Data4_UInt64 };
 

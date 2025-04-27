@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:53.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/data_rule.h"
+#include <copendaq/signal/data_rule.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID DATA_RULE_INTF_ID = { daq::IDataRule::Id.Data1, daq::IDataRule::Id.Data2, daq::IDataRule::Id.Data3, daq::IDataRule::Id.Data4_UInt64 };
 

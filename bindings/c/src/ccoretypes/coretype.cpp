@@ -5,19 +5,19 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 10.04.2025 17:06:45.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/coretype.h"
+#include <ccoretypes/coretype.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID CORE_TYPE_INTF_ID = { daq::ICoreType::Id.Data1, daq::ICoreType::Id.Data2, daq::ICoreType::Id.Data3, daq::ICoreType::Id.Data4_UInt64 };
 
-ErrCode CoreType_getCoreType(CoreTypeObject* self, CoreType* coreType)
+ErrCode CoreType_getCoreType(CoreType* self, CoreType* coreType)
 {
     return reinterpret_cast<daq::ICoreType*>(self)->getCoreType(reinterpret_cast<daq::CoreType*>(coreType));
 }

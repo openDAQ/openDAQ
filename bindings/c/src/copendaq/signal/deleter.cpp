@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:54.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:02.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/deleter.h"
+#include <copendaq/signal/deleter.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID DELETER_INTF_ID = { daq::IDeleter::Id.Data1, daq::IDeleter::Id.Data2, daq::IDeleter::Id.Data3, daq::IDeleter::Id.Data4_UInt64 };
 

@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:08.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:02.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/permission_mask_builder.h"
+#include <ccoreobjects/permission_mask_builder.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID PERMISSION_MASK_BUILDER_INTF_ID = { daq::IPermissionMaskBuilder::Id.Data1, daq::IPermissionMaskBuilder::Id.Data2, daq::IPermissionMaskBuilder::Id.Data3, daq::IPermissionMaskBuilder::Id.Data4_UInt64 };
 

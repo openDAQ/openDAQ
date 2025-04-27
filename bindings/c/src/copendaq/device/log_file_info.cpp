@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:20.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:29.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/device/log_file_info.h"
+#include <copendaq/device/log_file_info.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID LOG_FILE_INFO_INTF_ID = { daq::ILogFileInfo::Id.Data1, daq::ILogFileInfo::Id.Data2, daq::ILogFileInfo::Id.Data3, daq::ILogFileInfo::Id.Data4_UInt64 };
 

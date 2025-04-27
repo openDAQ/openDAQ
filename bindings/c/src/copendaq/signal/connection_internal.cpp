@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:51.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/connection_internal.h"
+#include <copendaq/signal/connection_internal.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID CONNECTION_INTERNAL_INTF_ID = { daq::IConnectionInternal::Id.Data1, daq::IConnectionInternal::Id.Data2, daq::IConnectionInternal::Id.Data3, daq::IConnectionInternal::Id.Data4_UInt64 };
 

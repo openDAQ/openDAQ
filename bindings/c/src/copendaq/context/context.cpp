@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:12.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:21.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/context/context.h"
+#include <copendaq/context/context.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID CONTEXT_INTF_ID = { daq::IContext::Id.Data1, daq::IContext::Id.Data2, daq::IContext::Id.Data3, daq::IContext::Id.Data4_UInt64 };
 

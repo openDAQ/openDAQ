@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:03.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/callable_info.h"
+#include <ccoreobjects/callable_info.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID CALLABLE_INFO_INTF_ID = { daq::ICallableInfo::Id.Data1, daq::ICallableInfo::Id.Data2, daq::ICallableInfo::Id.Data3, daq::ICallableInfo::Id.Data4_UInt64 };
 

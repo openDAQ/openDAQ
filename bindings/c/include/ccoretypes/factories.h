@@ -21,7 +21,7 @@ extern "C"
 {
 #endif
 
-#include "ccommon.h"
+#include <ccommon.h>
 
     typedef struct Serializer Serializer;
     typedef struct EventHandler EventHandler;

@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:32.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:40.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/modulemanager/module_manager_utils.h"
+#include <copendaq/modulemanager/module_manager_utils.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID MODULE_MANAGER_UTILS_INTF_ID = { daq::IModuleManagerUtils::Id.Data1, daq::IModuleManagerUtils::Id.Data2, daq::IModuleManagerUtils::Id.Data3, daq::IModuleManagerUtils::Id.Data4_UInt64 };
 

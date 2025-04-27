@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:40.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:49.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/reader/sample_reader.h"
+#include <copendaq/reader/sample_reader.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID SAMPLE_READER_INTF_ID = { daq::ISampleReader::Id.Data1, daq::ISampleReader::Id.Data2, daq::ISampleReader::Id.Data3, daq::ISampleReader::Id.Data4_UInt64 };
 

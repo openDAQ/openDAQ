@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:09.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:03.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/permissions_builder.h"
+#include <ccoreobjects/permissions_builder.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID PERMISSIONS_BUILDER_INTF_ID = { daq::IPermissionsBuilder::Id.Data1, daq::IPermissionsBuilder::Id.Data2, daq::IPermissionsBuilder::Id.Data3, daq::IPermissionsBuilder::Id.Data4_UInt64 };
 

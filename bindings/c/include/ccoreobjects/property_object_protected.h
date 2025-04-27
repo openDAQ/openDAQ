@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:13.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:07.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ extern "C"
 {
 #endif
 
-#include "ccommon.h"
+#include <ccommon.h>
 
     typedef struct PropertyObjectProtected PropertyObjectProtected;
     typedef struct String String;

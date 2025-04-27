@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:42.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/reader/tail_reader.h"
+#include <copendaq/reader/tail_reader.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID TAIL_READER_INTF_ID = { daq::ITailReader::Id.Data1, daq::ITailReader::Id.Data2, daq::ITailReader::Id.Data3, daq::ITailReader::Id.Data4_UInt64 };
 

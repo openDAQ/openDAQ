@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:37.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/reader/multi_reader_status.h"
+#include <copendaq/reader/multi_reader_status.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID MULTI_READER_STATUS_INTF_ID = { daq::IMultiReaderStatus::Id.Data1, daq::IMultiReaderStatus::Id.Data2, daq::IMultiReaderStatus::Id.Data3, daq::IMultiReaderStatus::Id.Data4_UInt64 };
 

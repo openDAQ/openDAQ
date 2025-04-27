@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:30.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/modulemanager/module_info.h"
+#include <copendaq/modulemanager/module_info.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID MODULE_INFO_INTF_ID = { daq::IModuleInfo::Id.Data1, daq::IModuleInfo::Id.Data2, daq::IModuleInfo::Id.Data3, daq::IModuleInfo::Id.Data4_UInt64 };
 

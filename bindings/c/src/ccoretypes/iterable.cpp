@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:01:50.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/iterable.h"
+#include <ccoretypes/iterable.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID ITERABLE_INTF_ID = { daq::IIterable::Id.Data1, daq::IIterable::Id.Data2, daq::IIterable::Id.Data3, daq::IIterable::Id.Data4_UInt64 };
 

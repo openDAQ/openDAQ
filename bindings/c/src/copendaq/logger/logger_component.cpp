@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:27.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/logger/logger_component.h"
+#include <copendaq/logger/logger_component.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID LOGGER_COMPONENT_INTF_ID = { daq::ILoggerComponent::Id.Data1, daq::ILoggerComponent::Id.Data2, daq::ILoggerComponent::Id.Data3, daq::ILoggerComponent::Id.Data4_UInt64 };
 

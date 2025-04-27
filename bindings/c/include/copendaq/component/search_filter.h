@@ -32,7 +32,7 @@ extern "C"
 {
 #endif
 
-#include "ccommon.h"
+#include <ccommon.h>
 
     typedef struct SearchFilter SearchFilter;
     typedef struct Component Component;

@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:47.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/scheduler/work.h"
+#include <copendaq/scheduler/work.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID WORK_INTF_ID = { daq::IWork::Id.Data1, daq::IWork::Id.Data2, daq::IWork::Id.Data3, daq::IWork::Id.Data4_UInt64 };
 

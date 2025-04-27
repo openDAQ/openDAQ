@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:38.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/reader/packet_reader.h"
+#include <copendaq/reader/packet_reader.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID PACKET_READER_INTF_ID = { daq::IPacketReader::Id.Data1, daq::IPacketReader::Id.Data2, daq::IPacketReader::Id.Data3, daq::IPacketReader::Id.Data4_UInt64 };
 

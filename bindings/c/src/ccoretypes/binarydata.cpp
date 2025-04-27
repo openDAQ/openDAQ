@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:01:44.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/binarydata.h"
+#include <ccoretypes/binarydata.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID BINARY_DATA_INTF_ID = { daq::IBinaryData::Id.Data1, daq::IBinaryData::Id.Data2, daq::IBinaryData::Id.Data3, daq::IBinaryData::Id.Data4_UInt64 };
 

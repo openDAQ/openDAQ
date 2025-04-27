@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:37.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/reader/multi_reader_builder.h"
+#include <copendaq/reader/multi_reader_builder.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID MULTI_READER_BUILDER_INTF_ID = { daq::IMultiReaderBuilder::Id.Data1, daq::IMultiReaderBuilder::Id.Data2, daq::IMultiReaderBuilder::Id.Data3, daq::IMultiReaderBuilder::Id.Data4_UInt64 };
 

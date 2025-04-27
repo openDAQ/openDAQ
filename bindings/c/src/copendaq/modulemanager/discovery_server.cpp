@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:29.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/modulemanager/discovery_server.h"
+#include <copendaq/modulemanager/discovery_server.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID DISCOVERY_SERVER_INTF_ID = { daq::IDiscoveryServer::Id.Data1, daq::IDiscoveryServer::Id.Data2, daq::IDiscoveryServer::Id.Data3, daq::IDiscoveryServer::Id.Data4_UInt64 };
 

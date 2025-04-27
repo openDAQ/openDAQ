@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:01:59.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/type_manager.h"
+#include <ccoretypes/type_manager.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID TYPE_MANAGER_INTF_ID = { daq::ITypeManager::Id.Data1, daq::ITypeManager::Id.Data2, daq::ITypeManager::Id.Data3, daq::ITypeManager::Id.Data4_UInt64 };
 

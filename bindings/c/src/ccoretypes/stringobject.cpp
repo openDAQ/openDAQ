@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:01:55.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/stringobject.h"
+#include <ccoretypes/stringobject.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID STRING_INTF_ID = { daq::IString::Id.Data1, daq::IString::Id.Data2, daq::IString::Id.Data3, daq::IString::Id.Data4_UInt64 };
 

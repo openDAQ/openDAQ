@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:45.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/scheduler/graph_visualization.h"
+#include <copendaq/scheduler/graph_visualization.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID GRAPH_VISUALIZATION_INTF_ID = { daq::IGraphVisualization::Id.Data1, daq::IGraphVisualization::Id.Data2, daq::IGraphVisualization::Id.Data3, daq::IGraphVisualization::Id.Data4_UInt64 };
 

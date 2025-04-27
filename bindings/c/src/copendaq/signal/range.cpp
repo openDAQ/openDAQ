@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:38:03.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/range.h"
+#include <copendaq/signal/range.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID RANGE_INTF_ID = { daq::IRange::Id.Data1, daq::IRange::Id.Data2, daq::IRange::Id.Data3, daq::IRange::Id.Data4_UInt64 };
 

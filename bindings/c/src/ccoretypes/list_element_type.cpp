@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 10.04.2025 17:06:51.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/list_element_type.h"
+#include <ccoretypes/list_element_type.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID LIST_ELEMENT_TYPE_INTF_ID = { daq::IListElementType::Id.Data1, daq::IListElementType::Id.Data2, daq::IListElementType::Id.Data3, daq::IListElementType::Id.Data4_UInt64 };
 

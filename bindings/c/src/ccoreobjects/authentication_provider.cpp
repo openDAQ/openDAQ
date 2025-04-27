@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:02.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/authentication_provider.h"
+#include <ccoreobjects/authentication_provider.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID AUTHENTICATION_PROVIDER_INTF_ID = { daq::IAuthenticationProvider::Id.Data1, daq::IAuthenticationProvider::Id.Data2, daq::IAuthenticationProvider::Id.Data3, daq::IAuthenticationProvider::Id.Data4_UInt64 };
 

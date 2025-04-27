@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:10.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/property.h"
+#include <ccoreobjects/property.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID PROPERTY_INTF_ID = { daq::IProperty::Id.Data1, daq::IProperty::Id.Data2, daq::IProperty::Id.Data3, daq::IProperty::Id.Data4_UInt64 };
 
@@ -148,7 +148,7 @@ ErrCode Property_createIntProperty(Property** obj, String* name, Integer* defaul
     return err;
 }
 
-ErrCode Property_createFloatProperty(Property** obj, String* name, FloatObject* defaultValue, Boolean* visible)
+ErrCode Property_createFloatProperty(Property** obj, String* name, Float* defaultValue, Boolean* visible)
 {
     daq::IProperty* ptr = nullptr;
     ErrCode err = daq::createFloatProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IFloat*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));

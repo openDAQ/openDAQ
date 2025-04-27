@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 10.04.2025 17:07:07.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/permission_manager.h"
+#include <ccoreobjects/permission_manager.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID PERMISSION_MANAGER_INTF_ID = { daq::IPermissionManager::Id.Data1, daq::IPermissionManager::Id.Data2, daq::IPermissionManager::Id.Data3, daq::IPermissionManager::Id.Data4_UInt64 };
 

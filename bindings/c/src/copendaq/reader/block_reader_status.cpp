@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:35.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/reader/block_reader_status.h"
+#include <copendaq/reader/block_reader_status.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID BLOCK_READER_STATUS_INTF_ID = { daq::IBlockReaderStatus::Id.Data1, daq::IBlockReaderStatus::Id.Data2, daq::IBlockReaderStatus::Id.Data3, daq::IBlockReaderStatus::Id.Data4_UInt64 };
 

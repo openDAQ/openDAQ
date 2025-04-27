@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:00.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ extern "C"
 {
 #endif
 
-#include "ccommon.h"
+#include <ccommon.h>
 
     typedef struct Component Component;
     typedef struct String String;

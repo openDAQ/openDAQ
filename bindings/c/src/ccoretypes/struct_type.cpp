@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:01:57.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/struct_type.h"
+#include <ccoretypes/struct_type.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID STRUCT_TYPE_INTF_ID = { daq::IStructType::Id.Data1, daq::IStructType::Id.Data2, daq::IStructType::Id.Data3, daq::IStructType::Id.Data4_UInt64 };
 

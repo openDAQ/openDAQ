@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 10.04.2025 17:07:04.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/core_event_args.h"
+#include <ccoreobjects/core_event_args.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID CORE_EVENT_ARGS_INTF_ID = { daq::ICoreEventArgs::Id.Data1, daq::ICoreEventArgs::Id.Data2, daq::ICoreEventArgs::Id.Data3, daq::ICoreEventArgs::Id.Data4_UInt64 };
 

@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:46.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/scheduler/task.h"
+#include <copendaq/scheduler/task.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID TASK_INTF_ID = { daq::ITask::Id.Data1, daq::ITask::Id.Data2, daq::ITask::Id.Data3, daq::ITask::Id.Data4_UInt64 };
 

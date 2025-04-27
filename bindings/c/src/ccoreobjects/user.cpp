@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 01.04.2025 17:02:16.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:09.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoreobjects/user.h"
+#include <ccoreobjects/user.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID USER_INTF_ID = { daq::IUser::Id.Data1, daq::IUser::Id.Data2, daq::IUser::Id.Data3, daq::IUser::Id.Data4_UInt64 };
 

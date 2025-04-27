@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:38:04.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:11.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/reference_domain_info_builder.h"
+#include <copendaq/signal/reference_domain_info_builder.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID REFERENCE_DOMAIN_INFO_BUILDER_INTF_ID = { daq::IReferenceDomainInfoBuilder::Id.Data1, daq::IReferenceDomainInfoBuilder::Id.Data2, daq::IReferenceDomainInfoBuilder::Id.Data3, daq::IReferenceDomainInfoBuilder::Id.Data4_UInt64 };
 

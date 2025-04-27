@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:23.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:32.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/device/user_lock.h"
+#include <copendaq/device/user_lock.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID USER_LOCK_INTF_ID = { daq::IUserLock::Id.Data1, daq::IUserLock::Id.Data2, daq::IUserLock::Id.Data3, daq::IUserLock::Id.Data4_UInt64 };
 

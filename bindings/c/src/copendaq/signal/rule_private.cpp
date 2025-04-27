@@ -5,15 +5,15 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:38:05.
+//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:12.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/signal/rule_private.h"
+#include <copendaq/signal/rule_private.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
 const IntfID RULE_PRIVATE_INTF_ID = { daq::IRulePrivate::Id.Data1, daq::IRulePrivate::Id.Data2, daq::IRulePrivate::Id.Data3, daq::IRulePrivate::Id.Data4_UInt64 };
 

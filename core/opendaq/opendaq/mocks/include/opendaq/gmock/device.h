@@ -56,9 +56,9 @@ struct MockDevice : MockGenericSignalContainer<MockDevice, IDevice>
     MOCK_METHOD(ErrCode, getLogFileInfos, (IList**), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getLog, (IString**, IString*, Int, Int), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getConnectionStatusContainer, (IComponentStatusContainer** statusContainer), (override MOCK_CALL));
-    MOCK_METHOD(ErrCode, setOperationMode, (IString*), (override MOCK_CALL));
-    MOCK_METHOD(ErrCode, setOperationModeRecursive, (IString*), (override MOCK_CALL));
-    MOCK_METHOD(ErrCode, getOperationMode, (IString**), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, setOperationMode, (OperationModeType), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, setOperationModeRecursive, (OperationModeType), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, getOperationMode, (OperationModeType*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getAvailableOperationModes, (IList**), (override MOCK_CALL));
 };
 

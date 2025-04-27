@@ -434,6 +434,7 @@ void NativeDeviceImpl::removed()
     Super::removed();
 }
 
+// retrieves the local configuration object without triggering an RPC call
 ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
 {
     OPENDAQ_PARAM_NOT_NULL(config);

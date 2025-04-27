@@ -145,7 +145,7 @@ protected:
 
         Float* data = nullptr;
         DataPacket_getRawData(packet, reinterpret_cast<void**>(&data));
-        std::memcpy(data, values, sizeof(values));
+        memcpy(data, values, sizeof(values));
 
         Packet* outputPacket = nullptr;
         BaseObject_queryInterface(packet, PACKET_INTF_ID, reinterpret_cast<BaseObject**>(&outputPacket));

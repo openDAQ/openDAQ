@@ -8,13 +8,13 @@ static Bool taskGraphCalled = False;
 static Bool taskCalled = False;
 static Bool functionCalled = False;
 
-ErrCode procedureTaskGraph(BaseObject* self)
+ErrCode procedureTaskGraph(BaseObject*)
 {
     taskGraphCalled = true;
     return 0;
 }
 
-ErrCode procedureTask(BaseObject* self)
+ErrCode procedureTask(BaseObject*)
 {
     taskCalled = true;
     return 0;
@@ -39,7 +39,7 @@ TEST_F(COpendaqSchedulerTest, Scheduler)
     Logger_createLogger(&logger, sinks, LogLevel::LogLevelDebug);
 
     Scheduler* scheduler = nullptr;
-    Scheduler_createScheduler(&scheduler, logger, 0);
+    Scheduler_createScheduler(&scheduler, logger, 1);
 
     Procedure* procGraph = nullptr;
     Procedure_createProcedure(&procGraph, procedureTaskGraph);

@@ -39,7 +39,7 @@ namespace RTGen.C.Generators
         public override IVersionInfo Version => new VersionInfo
         {
             Major = 0,
-            Minor = 5,
+            Minor = 6,
             Patch = 0
         };
 
@@ -97,18 +97,18 @@ namespace RTGen.C.Generators
             {
                 string common = "ccommon";
 
-                sb.AppendLine($"#include \"{common}.h\"");
+                sb.AppendLine($"#include <{common}.h>");
             }
             else if (_generatorType == GeneratorType.Source)
             {
                 string lib = Options.LibraryInfo.Name;
                 string file = Options.Filename ?? "";
                 var header = (lib ?? "") + (String.IsNullOrEmpty(lib) ? "" : "/") + (file ?? "") + ".h";
-                sb.AppendLine($"#include \"{header}\"");
+                sb.AppendLine($"#include <{header}>");
                 sb.AppendLine();
                 sb.AppendLine("#include <opendaq/opendaq.h>");
                 sb.AppendLine();
-                sb.AppendLine("#include \"copendaq_private.h\"");
+                sb.AppendLine("#include <copendaq_private.h>");
             }
             return sb.ToString();
         }

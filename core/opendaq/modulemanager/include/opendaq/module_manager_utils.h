@@ -144,6 +144,10 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config) = 0;
 
+    /*!
+     * @brief Completes the DeviceInfo's ServerCapabilities of existing device with the information obtained from device discovery.
+     * @param device The device whose ServerCapabilities should be completed.
+     */
     virtual ErrCode INTERFACE_FUNC completeDeviceCapabilities(IDevice* device) = 0;
 };
 /*!@}*/

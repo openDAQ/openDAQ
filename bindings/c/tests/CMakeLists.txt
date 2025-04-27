@@ -1,2 +1,3 @@
 add_subdirectory(ccoretypes)
 add_subdirectory(ccoreobjects)
+add_subdirectory(copendaq)

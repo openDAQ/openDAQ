@@ -15,5 +15,18 @@
  */
 
 #pragma once
+#include <ccoretypes/errors.h>
 
-#include <private/utils.h>
+/*!
+ * @ingroup opendaq_errors_group
+ * @addtogroup opendaq_errors_macros Error Code Macros
+ * @{
+ */
+
+#define OPENDAQ_ERRTYPE_COMPONENT 0x0Eu
+
+#define OPENDAQ_ERR_COMPONENT_REMOVED OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_COMPONENT, 0x0000u)
+
+/*!
+ * @}
+ */

@@ -78,22 +78,21 @@ extern "C"
         uint64_t Data4;
     } IntfID;
 
-#include "ccoreobjects/common.h"
+#include <ccoreobjects/common.h>
 
-#include "copendaq/component/common.h"
-#include "copendaq/context/common.h"
-#include "copendaq/device/common.h"
-#include "copendaq/functionblock/common.h"
-#include "copendaq/logger/common.h"
-#include "copendaq/modulemanager/common.h"
-#include "copendaq/opendaq/common.h"
-#include "copendaq/reader/common.h"
-#include "copendaq/scheduler/common.h"
-#include "copendaq/server/common.h"
-#include "copendaq/signal/common.h"
-#include "copendaq/streaming/common.h"
-#include "copendaq/synchronization/common.h"
-#include "copendaq/utility/common.h"
+#include <copendaq/component/common.h>
+#include <copendaq/context/common.h>
+#include <copendaq/device/common.h>
+#include <copendaq/functionblock/common.h>
+#include <copendaq/logger/common.h>
+#include <copendaq/modulemanager/common.h>
+#include <copendaq/opendaq/common.h>
+#include <copendaq/reader/common.h>
+#include <copendaq/scheduler/common.h>
+#include <copendaq/server/common.h>
+#include <copendaq/signal/common.h>
+#include <copendaq/streaming/common.h>
+#include <copendaq/synchronization/common.h>
 
 #ifdef __cplusplus
 }

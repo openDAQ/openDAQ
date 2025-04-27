@@ -15,10 +15,10 @@ set(SRC_CoreTypes_Headers
     include/ccoretypes/complex_number.h
     include/ccoretypes/convertible.h
     include/ccoretypes/coretype.h
-    # include/ccoretypes/dict_element_type.h # IntfID output paramater handling issue
     include/ccoretypes/dictobject.h
     include/ccoretypes/enumeration.h
     include/ccoretypes/enumeration_type.h
+    include/ccoretypes/errors.h
     include/ccoretypes/event.h
     include/ccoretypes/event_args.h
     include/ccoretypes/event_handler.h
@@ -28,7 +28,6 @@ set(SRC_CoreTypes_Headers
     include/ccoretypes/integer.h
     include/ccoretypes/iterable.h
     include/ccoretypes/iterator.h
-    # include/ccoretypes/list_element_type.h # IntfID output paramater handling issue
     include/ccoretypes/listobject.h
     include/ccoretypes/number.h
     include/ccoretypes/procedure.h
@@ -43,7 +42,6 @@ set(SRC_CoreTypes_Headers
     include/ccoretypes/struct.h
     include/ccoretypes/struct_type.h
     include/ccoretypes/type.h
-    # include/ccoretypes/type_manager_private.h # not implemented in daq
     include/ccoretypes/type_manager.h
     include/ccoretypes/updatable.h
     include/ccoretypes/version_info.h
@@ -66,7 +64,6 @@ set(SRC_CoreTypes_Cpp
     src/ccoretypes/complex_number.cpp
     src/ccoretypes/convertible.cpp
     src/ccoretypes/coretype.cpp
-    # src/ccoretypes/dict_element_type.cpp
     src/ccoretypes/dictobject.cpp
     src/ccoretypes/enumeration.cpp
     src/ccoretypes/enumeration_type.cpp
@@ -79,7 +76,6 @@ set(SRC_CoreTypes_Cpp
     src/ccoretypes/integer.cpp
     src/ccoretypes/iterable.cpp
     src/ccoretypes/iterator.cpp
-    # src/ccoretypes/list_element_type.cpp
     src/ccoretypes/listobject.cpp
     src/ccoretypes/number.cpp
     src/ccoretypes/procedure.cpp
@@ -94,7 +90,6 @@ set(SRC_CoreTypes_Cpp
     src/ccoretypes/struct.cpp
     src/ccoretypes/struct_type.cpp
     src/ccoretypes/type.cpp
-    # src/ccoretypes/type_manager_private.cpp
     src/ccoretypes/type_manager.cpp
     src/ccoretypes/updatable.cpp
     src/ccoretypes/version_info.cpp
@@ -113,6 +108,7 @@ set(SRC_CoreObjects_Headers
     include/ccoreobjects/coercer.h
     include/ccoreobjects/core_event_args.h
     include/ccoreobjects/end_update_event_args.h
+    include/ccoreobjects/errors.h
     include/ccoreobjects/eval_value.h
     include/ccoreobjects/ownable.h
     include/ccoreobjects/permission_manager.h
@@ -161,19 +157,14 @@ set(SRC_CoreObjects_Cpp
 set(SRC_OpenDAQ_Headers
     include/copendaq/component/common.h
     include/copendaq/component/component.h
-    # include/copendaq/component/component_deserialize_context.h # not implemented in daq
-    # include/copendaq/component/component_holder.h
     include/copendaq/component/component_private.h
     include/copendaq/component/component_status_container.h
     include/copendaq/component/component_status_container_private.h
     include/copendaq/component/component_type.h
     include/copendaq/component/component_type_builder.h
-    # include/copendaq/component/component_type_private.h
-    # include/copendaq/component/component_update_context.h
-    # include/copendaq/component/deserialize_component.h
+    include/copendaq/component/component_errors.h
     include/copendaq/component/folder.h
     include/copendaq/component/folder_config.h
-    # include/copendaq/component/recursive_search.h
     include/copendaq/component/removable.h
     include/copendaq/component/search_filter.h
     include/copendaq/component/tags.h
@@ -185,47 +176,46 @@ set(SRC_OpenDAQ_Headers
 
     include/copendaq/device/address_info.h
     include/copendaq/device/address_info_builder.h
-    # include/copendaq/device/address_info_private.h
     include/copendaq/device/common.h
     include/copendaq/device/connection_status_container_private.h
     include/copendaq/device/device.h
     include/copendaq/device/device_domain.h
     include/copendaq/device/device_info.h
     include/copendaq/device/device_info_config.h
-    # include/copendaq/device/device_info_internal.h
     include/copendaq/device/device_network_config.h
     include/copendaq/device/device_private.h
     include/copendaq/device/device_type.h
+    include/copendaq/device/device_errors.h
     include/copendaq/device/io_folder_config.h
     include/copendaq/device/log_file_info.h
     include/copendaq/device/log_file_info_builder.h
     include/copendaq/device/network_interface.h
     include/copendaq/device/server_capability.h
     include/copendaq/device/server_capability_config.h
-    # include/copendaq/device/user_lock.h
-
+    
     include/copendaq/functionblock/channel.h
     include/copendaq/functionblock/common.h
     include/copendaq/functionblock/function_block.h
+    include/copendaq/functionblock/function_block_errors.h
     include/copendaq/functionblock/function_block_type.h
     include/copendaq/functionblock/function_block_wrapper.h
 
     include/copendaq/logger/common.h
     include/copendaq/logger/logger.h
     include/copendaq/logger/logger_component.h
+    include/copendaq/logger/logger_errors.h
     include/copendaq/logger/logger_sink.h
-    # include/copendaq/logger/logger_sink_last_message_private.h
-
+    
     include/copendaq/modulemanager/common.h
-    # include/copendaq/modulemanager/context_internal.h
     include/copendaq/modulemanager/discovery_server.h
     include/copendaq/modulemanager/module.h
     include/copendaq/modulemanager/module_info.h
     include/copendaq/modulemanager/module_manager.h
-    # include/copendaq/modulemanager/module_manager_utils.h
-
+    include/copendaq/modulemanager/module_manager_errors.h
+    
     include/copendaq/opendaq/common.h
     include/copendaq/opendaq/config_provider.h
+    include/copendaq/opendaq/errors.h
     include/copendaq/opendaq/instance.h
     include/copendaq/opendaq/instance_builder.h
 
@@ -238,7 +228,7 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/reader/multi_reader_status.h
     include/copendaq/reader/packet_reader.h
     include/copendaq/reader/reader.h
-    # include/copendaq/reader/reader_config.h
+    include/copendaq/reader/reader_errors.h
     include/copendaq/reader/reader_status.h
     include/copendaq/reader/sample_reader.h
     include/copendaq/reader/stream_reader.h
@@ -251,6 +241,7 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/scheduler/common.h
     include/copendaq/scheduler/graph_visualization.h
     include/copendaq/scheduler/scheduler.h
+    include/copendaq/scheduler/scheduler_errors.h
     include/copendaq/scheduler/task.h
     include/copendaq/scheduler/task_graph.h
     include/copendaq/scheduler/work.h
@@ -262,7 +253,6 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/signal/allocator.h
     include/copendaq/signal/common.h
     include/copendaq/signal/connection.h
-    # include/copendaq/signal/connection_internal.h
     include/copendaq/signal/data_descriptor.h
     include/copendaq/signal/data_descriptor_builder.h
     include/copendaq/signal/data_packet.h
@@ -277,22 +267,18 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/signal/input_port.h
     include/copendaq/signal/input_port_config.h
     include/copendaq/signal/input_port_notifications.h
-    # include/copendaq/signal/input_port_private.h
     include/copendaq/signal/packet.h
     include/copendaq/signal/packet_destruct_callback.h
     include/copendaq/signal/range.h
     include/copendaq/signal/reference_domain_info.h
     include/copendaq/signal/reference_domain_info_builder.h
-    # include/copendaq/signal/reusable_data_packet.h
-    # include/copendaq/signal/rule_private.h
     include/copendaq/signal/scaling.h
     include/copendaq/signal/scaling_builder.h
-    # include/copendaq/signal/scaling_calc_private.h
     include/copendaq/signal/signal.h
     include/copendaq/signal/signal_config.h
+    include/copendaq/signal/signal_errors.h
     include/copendaq/signal/signal_events.h
-    # include/copendaq/signal/signal_private.h
-
+    
     include/copendaq/streaming/common.h
     include/copendaq/streaming/mirrored_device.h
     include/copendaq/streaming/mirrored_device_config.h
@@ -305,25 +291,17 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/synchronization/common.h
     include/copendaq/synchronization/sync_component.h
     include/copendaq/synchronization/sync_component_private.h
-
-    include/copendaq/utility/common.h
 )
 
 set(SRC_OpenDAQ_Cpp
     src/copendaq/component/component.cpp
-    # src/copendaq/component/component_deserialize_context.cpp # not implemented in daq
-    # src/copendaq/component/component_holder.cpp
     src/copendaq/component/component_private.cpp
     src/copendaq/component/component_status_container.cpp
     src/copendaq/component/component_status_container_private.cpp
     src/copendaq/component/component_type.cpp
     src/copendaq/component/component_type_builder.cpp
-    # src/copendaq/component/component_type_private.cpp
-    # src/copendaq/component/component_update_context.cpp
-    # src/copendaq/component/deserialize_component.cpp
     src/copendaq/component/folder.cpp
     src/copendaq/component/folder_config.cpp
-    # src/copendaq/component/recursive_search.cpp
     src/copendaq/component/removable.cpp
     src/copendaq/component/search_filter.cpp
     src/copendaq/component/tags.cpp
@@ -334,13 +312,11 @@ set(SRC_OpenDAQ_Cpp
 
     src/copendaq/device/address_info.cpp
     src/copendaq/device/address_info_builder.cpp
-    # src/copendaq/device/address_info_private.cpp
     src/copendaq/device/connection_status_container_private.cpp
     src/copendaq/device/device.cpp
     src/copendaq/device/device_domain.cpp
     src/copendaq/device/device_info.cpp
     src/copendaq/device/device_info_config.cpp
-    # src/copendaq/device/device_info_internal.cpp
     src/copendaq/device/device_network_config.cpp
     src/copendaq/device/device_private.cpp
     src/copendaq/device/device_type.cpp
@@ -350,8 +326,7 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/device/network_interface.cpp
     src/copendaq/device/server_capability.cpp
     src/copendaq/device/server_capability_config.cpp
-    # src/copendaq/device/user_lock.cpp
-
+    
     src/copendaq/functionblock/channel.cpp
     src/copendaq/functionblock/function_block.cpp
     src/copendaq/functionblock/function_block_type.cpp
@@ -360,15 +335,12 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/logger/logger.cpp
     src/copendaq/logger/logger_component.cpp
     src/copendaq/logger/logger_sink.cpp
-    # src/copendaq/logger/logger_sink_last_message_private.cpp
-
-    # src/copendaq/modulemanager/context_internal.cpp
+    
     src/copendaq/modulemanager/discovery_server.cpp
     src/copendaq/modulemanager/module.cpp
     src/copendaq/modulemanager/module_info.cpp
     src/copendaq/modulemanager/module_manager.cpp
-    # src/copendaq/modulemanager/module_manager_utils.cpp
-
+    
     src/copendaq/opendaq/config_provider.cpp
     src/copendaq/opendaq/instance.cpp
     src/copendaq/opendaq/instance_builder.cpp
@@ -381,7 +353,6 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/reader/multi_reader_status.cpp
     src/copendaq/reader/packet_reader.cpp
     src/copendaq/reader/reader.cpp
-    # src/copendaq/reader/reader_config.cpp
     src/copendaq/reader/reader_status.cpp
     src/copendaq/reader/sample_reader.cpp
     src/copendaq/reader/stream_reader.cpp
@@ -402,7 +373,6 @@ set(SRC_OpenDAQ_Cpp
 
     src/copendaq/signal/allocator.cpp
     src/copendaq/signal/connection.cpp
-    # src/copendaq/signal/connection_internal.cpp
     src/copendaq/signal/data_descriptor.cpp
     src/copendaq/signal/data_descriptor_builder.cpp
     src/copendaq/signal/data_packet.cpp
@@ -417,22 +387,17 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/signal/input_port.cpp
     src/copendaq/signal/input_port_config.cpp
     src/copendaq/signal/input_port_notifications.cpp
-    # src/copendaq/signal/input_port_private.cpp
     src/copendaq/signal/packet.cpp
     src/copendaq/signal/packet_destruct_callback.cpp
     src/copendaq/signal/range.cpp
     src/copendaq/signal/reference_domain_info.cpp
     src/copendaq/signal/reference_domain_info_builder.cpp
-    # src/copendaq/signal/reusable_data_packet.cpp
-    # src/copendaq/signal/rule_private.cpp
     src/copendaq/signal/scaling.cpp
     src/copendaq/signal/scaling_builder.cpp
-    # src/copendaq/signal/scaling_calc_private.cpp
     src/copendaq/signal/signal.cpp
     src/copendaq/signal/signal_config.cpp
     src/copendaq/signal/signal_events.cpp
-    # src/copendaq/signal/signal_private.cpp
-
+    
     src/copendaq/streaming/mirrored_device.cpp
     src/copendaq/streaming/mirrored_device_config.cpp
     src/copendaq/streaming/mirrored_signal_config.cpp

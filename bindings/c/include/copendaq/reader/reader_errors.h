@@ -15,5 +15,19 @@
  */
 
 #pragma once
+#include <ccoretypes/errors.h>
 
-#include <private/utils.h>
+/*!
+ * @ingroup opendaq_errors_group
+ * @addtogroup opendaq_errors_macros Error Code Macros
+ * @{
+ */
+
+#define OPENDAQ_ERRTYPE_READER 0x0Du
+
+#define OPENDAQ_ERR_READER_UNKNOWN OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_READER, 0x0000u)
+#define OPENDAQ_ERR_INVALID_DATA   OPENDAQ_ERROR_CODE(OPENDAQ_ERRTYPE_READER, 0x0001u)
+
+/*!
+ * @}
+ */

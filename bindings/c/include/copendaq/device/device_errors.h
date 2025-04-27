@@ -15,5 +15,16 @@
  */
 
 #pragma once
+#include <ccoretypes/errors.h>
 
-#include <private/utils.h>
+/*!
+ * @ingroup opendaq_errors_group
+ * @addtogroup opendaq_errors_macros Error Code Macros
+ * @{
+ */
+
+#define OPENDAQ_ERRTYPE_DEVICE 0x08u
+
+/*!
+ * @}
+ */

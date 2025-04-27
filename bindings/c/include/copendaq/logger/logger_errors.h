@@ -15,12 +15,16 @@
  */
 
 #pragma once
+#include <ccoretypes/errors.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+/*!
+ * @ingroup opendaq_errors_group
+ * @addtogroup opendaq_errors_macros Error Code Macros
+ * @{
+ */
 
-#ifdef __cplusplus
-}
-#endif
+#define OPENDAQ_ERRTYPE_LOGGER 0x07u
+
+/*!
+ * @}
+ */

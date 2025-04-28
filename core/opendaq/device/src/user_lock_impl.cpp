@@ -92,7 +92,10 @@ ErrCode UserLockImpl::Deserialize(ISerializedObject* serialized, IBaseObject* co
 
     StringPtr username;
     err = serializedObj->readString(String("username"), &username);
-    OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(err, OPENDAQ_ERR_NOTFOUND);
+    if (err == OPENDAQ_ERR_NOTFOUND)
+        daqClearErrorInfo();
+    else if (OPENDAQ_FAILED(err))
+        return DAQ_MAKE_ERROR_INFO(err);
 
     UserPtr user = nullptr;
     const auto contextPtr = BaseObjectPtr::Borrow(context);

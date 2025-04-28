@@ -148,10 +148,10 @@ private:
     void requireMinServerVersion(const ClientCommand& command);
     ComponentDeserializeContextPtr createDeserializeContext(const std::string& remoteGlobalId,
                                                             const ContextPtr& context,
-                                                            const ComponentPtr& root,
-                                                            const ComponentPtr& parent,
-                                                            const StringPtr& localId,
-                                                            IntfID* intfID);
+                                                            const ComponentPtr& root = nullptr,
+                                                            const ComponentPtr& parent = nullptr,
+                                                            const StringPtr& localId = nullptr,
+                                                            IntfID* intfID = nullptr);
     BaseObjectPtr createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const;
     StringPtr createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params);
     PacketBuffer createRpcRequestPacketBuffer(uint64_t id, const StringPtr& name, const ParamsDictPtr& params);

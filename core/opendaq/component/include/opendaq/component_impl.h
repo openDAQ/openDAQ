@@ -21,7 +21,7 @@
 #include <opendaq/removable.h>
 #include <coreobjects/core_event_args_ptr.h>
 #include <coreobjects/property_object_impl.h>
-#include <opendaq/component_ptr.h>
+#include <opendaq/component_factory.h>
 #include <coretypes/weakrefptr.h>
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
@@ -96,6 +96,7 @@ public:
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -131,9 +132,6 @@ protected:
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
-
-    static std::string OperationModeTypeToString(OperationModeType mode);
-    static OperationModeType OperationModeTypeFromString(const std::string& mode);
 
     ContextPtr context;
 
@@ -180,7 +178,6 @@ protected:
     ComponentPtr findComponentInternal(const ComponentPtr& component, const std::string& id);
 
     PropertyObjectPtr getPropertyObjectParent() override;
-    ComponentPtr getParentDevice();
 
     static bool validateComponentId(const std::string& id);
 
@@ -650,31 +647,17 @@ ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs*
 }
 
 template <class Intf, class ... Intfs>
-std::string ComponentImpl<Intf, Intfs...>::OperationModeTypeToString(OperationModeType mode)
+ErrCode ComponentImpl<Intf, Intfs...>::getOperationMode(OperationModeType* modeType)
 {
-    switch (mode)
-    {
-        case OperationModeType::Idle:
-            return "Idle";
-        case OperationModeType::Operation:
-            return "Operation";
-        case OperationModeType::SafeOperation:
-            return "SafeOperation";
-        default:
-            return "Unknown";
-    };
-}
+    OPENDAQ_PARAM_NOT_NULL(modeType);
 
-template <class Intf, class ... Intfs>
-OperationModeType ComponentImpl<Intf, Intfs...>::OperationModeTypeFromString(const std::string& mode)
-{
-    if (mode == "Idle")
-        return OperationModeType::Idle;
-    if (mode == "Operation")
-        return OperationModeType::Operation;
-    if (mode == "SafeOperation")
-        return OperationModeType::SafeOperation;
-    return OperationModeType::Unknown;
+    ComponentPtr parent;
+    this->getParent(&parent);
+    if (parent.assigned())
+        return parent->getOperationMode(modeType);
+
+    *modeType = OperationModeType::Unknown;
+    return OPENDAQ_IGNORED;
 }
 
 template <class Intf, class ... Intfs>
@@ -729,7 +712,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::remove()
     auto lock = this->getRecursiveConfigLock();
 
     if (isComponentRemoved)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     isComponentRemoved = true;
 
@@ -1108,21 +1091,6 @@ PropertyObjectPtr ComponentImpl<Intf, Intfs...>::getPropertyObjectParent()
 {
     if (parent.assigned())
         return parent.getRef();
-
-    return nullptr;
-}
-
-template <class Intf, class ... Intfs>
-ComponentPtr ComponentImpl<Intf, Intfs...>::getParentDevice()
-{
-    ComponentPtr parent;
-    this->getParent(&parent);
-    while (parent.assigned())
-    {
-        if (parent.supportsInterface<IDevice>())
-            return parent;
-        parent = parent.getParent();
-    }
 
     return nullptr;
 }

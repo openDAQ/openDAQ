@@ -187,7 +187,10 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
 
     BaseObjectPtr defaultValues;
     errCode = ser->readObject("defaultValues"_daq, context, factoryCallback, &defaultValues);
-    OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_NOTFOUND);
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+        daqClearErrorInfo();
+    else if (OPENDAQ_FAILED(errCode))
+        return DAQ_MAKE_ERROR_INFO(errCode);
 
     BaseObjectPtr names;
     errCode = ser->readObject("names"_daq, context, factoryCallback, &names);
@@ -209,7 +212,10 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
         if (typeManager.assigned())
         {
             errCode = typeManager->addType(structType);
-            OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_RESERVED_TYPE_NAME);
+            if (errCode == OPENDAQ_ERR_RESERVED_TYPE_NAME)
+                daqClearErrorInfo();
+            else if (OPENDAQ_FAILED(errCode))
+                return DAQ_MAKE_ERROR_INFO(errCode);
         }
         *obj = structType.detach();
     }

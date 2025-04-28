@@ -87,15 +87,24 @@ ErrCode VersionInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
 
     Int major = -1;
     ErrCode err = serializedObj->readInt(String("major"), &major);
-    OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(err, OPENDAQ_ERR_NOTFOUND);
+    if (err == OPENDAQ_ERR_NOTFOUND)
+        daqClearErrorInfo();
+    else if (OPENDAQ_FAILED(err))
+        return DAQ_MAKE_ERROR_INFO(err);
 
     Int minor = -1;
     err = serializedObj->readInt(String("minor"), &minor);
-    OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(err, OPENDAQ_ERR_NOTFOUND);
+    if (err == OPENDAQ_ERR_NOTFOUND)
+        daqClearErrorInfo();
+    else if (OPENDAQ_FAILED(err))
+        return DAQ_MAKE_ERROR_INFO(err);
 
     Int patch = -1;
     err = serializedObj->readInt(String("patch"), &patch);
-    OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(err, OPENDAQ_ERR_NOTFOUND);
+    if (err == OPENDAQ_ERR_NOTFOUND)
+        daqClearErrorInfo();
+    else if (OPENDAQ_FAILED(err))
+        return DAQ_MAKE_ERROR_INFO(err);
 
     return createObject<IVersionInfo, VersionInfoImpl, SizeT, SizeT, SizeT>(reinterpret_cast<IVersionInfo**>(obj), major, minor, patch);
 }

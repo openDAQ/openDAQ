@@ -111,9 +111,9 @@ public:
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
 
     ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
-    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
-    ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
-    ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
+    ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -225,9 +225,9 @@ protected:
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
     virtual std::set<OperationModeType> onGetAvailableOperationModes();
-    void onOperationModeChanged(OperationModeType modeType) override;
 
     ListPtr<ILockGuard> getTreeLockGuard();
+    ErrCode updateOperationModeNoCoreEvent(OperationModeType modeType);
     ErrCode updateOperationModeInternal(OperationModeType modeType);
 
     DevicePtr getParentDevice();
@@ -244,7 +244,8 @@ private:
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
-    OperationModeType operationMode;
+    OperationModeType operationMode {OperationModeType::Idle};
+    ListPtr<IInteger> availableOperationModes;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -354,10 +355,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 {
     auto lock = this->getRecursiveConfigLock();
 
-    ErrCode status = OPENDAQ_SUCCESS;
-
     ListPtr<IDevice> devices;
-    this->getDevices(&devices, search::Any());
+    ErrCode status = this->getDevices(&devices, search::Any());
+    OPENDAQ_RETURN_IF_FAILED(status);
+
     std::vector<bool> lockStatuses(devices.getCount());
 
     for (SizeT i = 0; i < devices.getCount(); i++)
@@ -370,14 +371,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
-            OPENDAQ_RETURN_IF_FAILED(revertStatus);
-            break;
+            if (OPENDAQ_FAILED(revertStatus))
+                return DAQ_MAKE_ERROR_INFO(revertStatus);
+            OPENDAQ_RETURN_IF_FAILED(status);
         }
     }
 
-    OPENDAQ_RETURN_IF_FAILED(status);
-
     status = lockInternal(user);
+    OPENDAQ_RETURN_IF_FAILED(status);
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
         this->triggerCoreEvent(CoreEventArgsDeviceLockStateChanged(true));
@@ -394,7 +395,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
     OPENDAQ_RETURN_IF_FAILED(status);
 
     ListPtr<IDevice> devices;
-    this->getDevices(&devices, search::Any());
+    status = this->getDevices(&devices, search::Any());
+    OPENDAQ_RETURN_IF_FAILED(status);
+
     std::vector<bool> lockStatuses(devices.getCount());
 
     for (SizeT i = 0; i < devices.getCount(); i++)
@@ -436,7 +439,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
     OPENDAQ_RETURN_IF_FAILED(status);
 
     ListPtr<IDevice> devices;
-    this->getDevices(&devices, search::Any());
+    status = this->getDevices(&devices, search::Any());
+    OPENDAQ_RETURN_IF_FAILED(status);
 
     for (SizeT i = 0; i < devices.getCount(); i++)
     {
@@ -1111,34 +1115,39 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(ILi
 {
     OPENDAQ_PARAM_NOT_NULL(availableOpModes);
 
-    std::set<OperationModeType> modes;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
-    
-    auto modesList = List<IString>();
-    for (const auto& mode : modes)
-        modesList.pushBack(this->OperationModeTypeToString(mode));
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    if (!this->availableOperationModes.assigned())
+    {
+        std::set<OperationModeType> modes;
+        errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
+        
+        this->availableOperationModes = List<IInteger>();
+        for (auto mode : modes)
+            availableOperationModes.pushBack(static_cast<Int>(mode));
 
-    *availableOpModes = modesList.detach();
+        this->availableOperationModes.freeze();
+    }
+
+    *availableOpModes = this->availableOperationModes.addRefAndReturn();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeNoCoreEvent(OperationModeType modeType)
+{
+    const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
+    if (OPENDAQ_SUCCEEDED(errCode))
+        this->operationMode = modeType;
 
     return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
-{
-    bool active = modeType != OperationModeType::Idle;
-    for (const auto& signal : this->signals.getItems(search::InterfaceId(ISignal::Id)))
-        signal.setActive(active);
-}
-
-template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(OperationModeType modeType)
 {
-    const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
+    const ErrCode errCode = this->updateOperationModeNoCoreEvent(modeType);
     if (OPENDAQ_SUCCEEDED(errCode))
     {
-        this->operationMode = modeType;
-
         if (!this->coreEventMuted && this->coreEvent.assigned())
             this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
     }
@@ -1152,16 +1161,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* modeType)
+ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType)
 {
-    OPENDAQ_PARAM_NOT_NULL(modeType);
-    OperationModeType mode = this->OperationModeTypeFromString(StringPtr::Borrow(modeType));
-    if (this->onGetAvailableOperationModes().count(mode) == 0)
+    if (this->onGetAvailableOperationModes().count(modeType) == 0)
         return OPENDAQ_IGNORED;
 
     auto lockGuardList = this->getTreeLockGuard();
 
-    ErrCode errCode = this->updateOperationModeInternal(mode);
+    ErrCode errCode = this->updateOperationModeInternal(modeType);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     for (const auto& component : this->components)
@@ -1173,7 +1180,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* mode
         if (!componentPrivate.assigned())
             continue;
 
-        errCode = componentPrivate->updateOperationMode(mode);
+        errCode = componentPrivate->updateOperationMode(modeType);
         OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
@@ -1181,7 +1188,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(IString* mode
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(IString* modeType)
+ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(OperationModeType modeType)
 {
     ErrCode errCode = setOperationMode(modeType);
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -1195,10 +1202,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(IStr
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(IString** modeType)
+ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(OperationModeType* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
-    *modeType = String(this->OperationModeTypeToString(this->operationMode)).detach();
+    *modeType = this->operationMode;
     return OPENDAQ_SUCCESS;
 }
 
@@ -1698,6 +1705,26 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             serializer.key("deviceDomain");
             deviceDomain.serialize(serializer);
         }
+
+        {
+            ListPtr<IInteger> availableOpModes;
+            this->getAvailableOperationModes(&availableOpModes);
+            if (availableOpModes.assigned())
+            {
+                serializer.key("AvailableOperationModes");
+                availableOpModes.serialize(serializer);
+            }
+        }
+
+        {
+            OperationModeType mode;
+            ErrCode errCode = this->getOperationMode(&mode);
+            if (OPENDAQ_SUCCEEDED(errCode))
+            {
+                serializer.key("OperationMode");
+                serializer.writeInt(static_cast<Int>(mode));
+            }
+        }
     }
     else
     {
@@ -1838,11 +1865,11 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (devices.hasItem(deviceId))
         {
             DevicePtr device = devices.getItem(deviceId);
-            this->removeDevice(device);
+            checkErrorInfo(this->removeDevice(device));
         }
 
         DevicePtr device;
-        this->addDevice(&device, connectionString, deviceConfig);
+        checkErrorInfo(this->addDevice(&device, connectionString, deviceConfig));
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
     }
@@ -1859,10 +1886,7 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
                                                                   const BaseObjectPtr& context)
 {
     if (!parentIoFolder.hasItem(localId))
-    {
-        //        LOG_W("IoFolder {} not found", localId)
         return;
-    }
 
     const auto item = parentIoFolder.getItem(localId);
     if (item.supportsInterface<IChannel>())
@@ -1927,6 +1951,18 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     else
         userLock.forceUnlock();
 
+    if (serializedObject.hasKey("AvailableOperationModes"))
+    {
+        this->availableOperationModes = serializedObject.readObject("AvailableOperationModes");
+        this->availableOperationModes.freeze();
+    }
+
+    if (serializedObject.hasKey("OperationMode"))
+    {
+        Int mode = serializedObject.readInt("OperationMode");
+        this->operationMode = static_cast<OperationModeType>(mode);
+    }
+
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, ioFolder, "IO");
     this->template deserializeDefaultFolder<IDevice>(serializedObject, context, factoryCallback, devices, "Dev");
     this->template deserializeDefaultFolder<IComponent>(serializedObject, context, factoryCallback, servers, "Srv");
@@ -1951,6 +1987,7 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     Super::updateObject(obj, context);
+    ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
 
     if (obj.hasKey("Dev"))
     {
@@ -1993,9 +2030,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     }
 
     if (obj.hasKey("deviceDomain"))
-    {
         deviceDomain = obj.readObject("deviceDomain");
-    }
 
     if (obj.hasKey("UserLock"))
         userLock = obj.readObject("UserLock", context);

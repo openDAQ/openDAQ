@@ -104,7 +104,10 @@ public:
 
         DictPtr<IString, IDeviceType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
-        OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
+        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
+            daqClearErrorInfo();
+        else if (OPENDAQ_FAILED(errCode))
+            return DAQ_MAKE_ERROR_INFO(errCode);
 
         ComponentTypePtr deviceType;
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);
@@ -167,7 +170,10 @@ public:
         
         DictPtr<IString, IComponentType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
-        OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
+        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
+            daqClearErrorInfo();
+        else if (OPENDAQ_FAILED(errCode))
+            return DAQ_MAKE_ERROR_INFO(errCode);
 
         ComponentTypePtr type;
         if (types.assigned())
@@ -216,7 +222,10 @@ public:
 
         DictPtr<IString, IComponentType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
-        OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
+        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
+            daqClearErrorInfo();
+        else if (OPENDAQ_FAILED(errCode))
+            return DAQ_MAKE_ERROR_INFO(errCode);
 
         ComponentTypePtr type;
         if (types.assigned())
@@ -243,7 +252,10 @@ public:
         
         DictPtr<IString, IStreamingType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
-        OPENDAQ_RETURN_IF_UNEXPECTED_ERROR(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
+        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
+            daqClearErrorInfo();
+        else if (OPENDAQ_FAILED(errCode))
+            return DAQ_MAKE_ERROR_INFO(errCode);
 
         ComponentTypePtr streamingType;
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);

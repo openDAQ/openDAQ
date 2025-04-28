@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#771](https://github.com/openDAQ/openDAQ/pull/771) Improvements to device operation mode, including changes to the Device API for operation mode handling.
 - [#764](https://github.com/openDAQ/openDAQ/pull/764) Add support restoring device info fields
 - [#773](https://github.com/openDAQ/openDAQ/pull/773) Extend IPropertyObject::hasProperty() to accept nested property lookup via "dot" notation.
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Introduces serializer versioning; openDAQ list objects are now serialized as objects instead of JSON arrays.
@@ -33,6 +34,8 @@
 
 ## Bug fixes
 
+- [#778](https://github.com/openDAQ/openDAQ/pull/778) Fixing calling remote function with enumeration inside
+- [#776](https://github.com/openDAQ/openDAQ/pull/776) Fixing restoring struct fields while loading configuration
 - [#757](https://github.com/openDAQ/openDAQ/pull/757) Device info obtained from device and discovery matching is changed from checking for connection string equality to SN + manufacturer equality.
 - [#753](https://github.com/openDAQ/openDAQ/pull/753) Fixes crash when deserializing struct types that have a type name that's present in the list of protected type names.
 - [#756](https://github.com/openDAQ/openDAQ/pull/756) With CMake 4.0.0 the Windows builds would no longer find the test executables somehow.

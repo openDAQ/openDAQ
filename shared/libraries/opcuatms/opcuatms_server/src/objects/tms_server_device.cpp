@@ -19,6 +19,7 @@
 #include <opcuatms/converters/list_conversion_utils.h>
 #include <opcuatms_server/objects/tms_server_function_block_type.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/component_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -272,8 +273,10 @@ void TmsServerDevice::populateDeviceInfo()
         deviceInfoProperties.push_back(tmsOpModeOptions);
         this->addReadCallback(tmsOpModeOptions->getNodeId(), [this]
         {
-            const auto opMode = object.getAvailableOperationModes();
-            return VariantConverter<IString>::ToArrayVariant(opMode, nullptr, daqContext);
+            auto opModes = List<IString>();
+            for (const auto& opMode : object.getAvailableOperationModes())
+                opModes.pushBack(OperationModeTypeToString(opMode));
+            return VariantConverter<IString>::ToArrayVariant(opModes, nullptr, daqContext);
         });
 
         const auto opMode = StringProperty("OperationMode", "", false);
@@ -283,7 +286,7 @@ void TmsServerDevice::populateDeviceInfo()
 
         this->addReadCallback(tmsOpMode->getNodeId(), [this]
         {
-            const auto opMode = object.getOperationMode();
+            const auto opMode = OperationModeTypeToString(object.getOperationMode());
             return VariantConverter<IString>::ToVariant(opMode, nullptr, daqContext);
         });
 
@@ -291,9 +294,15 @@ void TmsServerDevice::populateDeviceInfo()
         {
             const auto strValue = VariantConverter<IBaseObject>::ToDaqObject(variant).asPtr<IString>().toStdString();
             if (strValue.find("Recursive") == 0)
-                this->object.setOperationModeRecursive(strValue.substr(9));
+            {
+                auto opMode = OperationModeTypeFromString(strValue.substr(9));
+                this->object.setOperationModeRecursive(opMode);
+            }
             else
-                this->object.setOperationMode(strValue);
+            {
+                auto opMode = OperationModeTypeFromString(strValue);
+                this->object.setOperationMode(opMode);
+            }
             return UA_STATUSCODE_GOOD;
         });
     }

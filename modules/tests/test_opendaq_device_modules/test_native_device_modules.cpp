@@ -14,6 +14,7 @@
 #include <coretypes/filesystem.h>
 #include <opendaq/client_type.h>
 #include <opendaq/component_impl.h>
+#include <coreobjects/callable_info_factory.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -136,7 +137,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 11);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 12);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -2555,7 +2556,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration)
 
     {
         auto server = CreateServerInstance();
-        auto client = CreateClientInstance(0);
+        auto client = CreateClientInstance();
         auto clientFb = client.addFunctionBlock("RefFBModuleStatistics");
         clientFb.addFunctionBlock("RefFBModuleTrigger");
 
@@ -2693,13 +2694,13 @@ InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPa
 {
     PropertyObjectPtr config = PropertyObject();
     config.addProperty(BoolProperty("EnableLogging", loggerPath.assigned()));
-    config.addProperty(StringProperty("LoggingPath", loggerPath.assigned() ? loggerPath : ""));
+    if (loggerPath.assigned())
+        config.addProperty(StringProperty("LoggingPath", loggerPath));
     config.addProperty(StringProperty("SerialNumber", "NativeDeviceModulesTestSerial"));
 
-    auto instanceBuilder = InstanceBuilder();
-    if (loggerPath.assigned())
-        instanceBuilder.setLogger(Logger(loggerPath));
-    auto instance = instanceBuilder.setRootDevice("daqref://device0", config).build();
+    auto instance = InstanceBuilder().setLogger(loggerPath.assigned() ? Logger(loggerPath) : nullptr)
+                                     .setRootDevice("daqref://device0", config)
+                                     .build();
     
     instance.addServer("OpenDAQNativeStreaming", nullptr);
     return instance;
@@ -2963,57 +2964,62 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    test_helpers::checkDeviceOperationMode(server, "Operation");
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation");
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
 
     ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
     ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
 
     // setting the operation mode for server root device
-    ASSERT_NO_THROW(server.setOperationModeRecursive("Idle"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+    ASSERT_NO_THROW(server.setOperationModeRecursive(daq::OperationModeType::Idle));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 
     // setting the operation mode for server sub device
-    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive("SafeOperation"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "SafeOperation", true);
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "SafeOperation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
 
     // setting the operation mode for client sub device
-    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive("Operation"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
 
     // setting the operation mode for client device not recursively
-    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode("SafeOperation"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "SafeOperation", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::SafeOperation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "SafeOperation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
 
     // setting the operation mode for client device
-    ASSERT_NO_THROW(client.setOperationModeRecursive("Idle"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+    ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 }
 
 TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
@@ -3343,3 +3349,42 @@ TEST_F(NativeDeviceModulesTest, AddNestedFB)
     ASSERT_TRUE(nestedFb.isRemoved());
     ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
 }
+
+TEST_F(NativeDeviceModulesTest, TestEnumerationPropertyRemote)
+{
+    InstancePtr serverInstance;
+
+    {
+        serverInstance = Instance();
+        serverInstance.setRootDevice("daqref://device0");
+        serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+
+        const StringPtr propName = "ReturnEnum";
+        const auto enumType = EnumerationType("SyncStatus",
+        List<IString>("Idle", "Running", "Successful", "Failed"));
+        const auto manager = serverInstance.getContext().getTypeManager();
+        manager.addType(enumType);
+
+        const auto prop = FunctionPropertyBuilder(propName, FunctionInfo(ctEnumeration, List<IArgumentInfo>())).build();
+        serverInstance.addProperty(prop);
+        serverInstance.setPropertyValue(propName, Function([&, manager]
+        {
+            return Enumeration("SyncStatus", "Successful", manager);
+        }));
+
+        FunctionPtr func = serverInstance.getPropertyValue(propName);
+
+        const EnumerationPtr enumRes = func.call();
+        ASSERT_EQ(enumRes.getValue(), "Successful");
+    }
+
+    const InstancePtr clientInstance = Instance();
+    const auto device = clientInstance.addDevice("daq.nd://127.0.0.1");
+
+    const StringPtr propName = "ReturnEnum";
+    const FunctionPtr func = device.getPropertyValue(propName);
+
+    const EnumerationPtr result = func.call();
+    ASSERT_EQ(result.getValue(), "Successful");
+}
+

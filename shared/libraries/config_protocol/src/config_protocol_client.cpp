@@ -101,8 +101,7 @@ BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& glob
     auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetPropertyValue", dict);
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
-    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext, nullptr, nullptr, nullptr, nullptr);
-
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
     return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
 }
 
@@ -159,7 +158,8 @@ BaseObjectPtr ConfigProtocolClientComm::callProperty(const std::string& globalId
     auto callPropertyRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "CallProperty", dict);
     const auto callPropertyRpcReplyPacketBuffer = sendRequestCallback(callPropertyRpcRequestPacketBuffer);
 
-    const auto result = parseRpcOrRejectReply(callPropertyRpcReplyPacketBuffer.parseRpcRequestOrReply());
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
+    const auto result = parseRpcOrRejectReply(callPropertyRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
     return result;
 }
 
@@ -326,7 +326,7 @@ BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId
     auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetLastValue", dict);
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
-    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext, nullptr, nullptr, nullptr, nullptr);
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
     return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
 }
 
@@ -831,8 +831,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Clien
         remoteGlobalId = temp.toStdString();
     }
 
-    const auto deserializeContext = createDeserializeContext(remoteGlobalId, daqContext, nullptr, parentComponent, nullptr, nullptr);
-
+    const auto deserializeContext = createDeserializeContext(remoteGlobalId, daqContext, nullptr, parentComponent);
     return parseRpcOrRejectReply(sendCommandRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext, isGetRootDeviceCommand);
 }
 

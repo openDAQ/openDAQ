@@ -239,6 +239,10 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
             {
                 checkErrorInfo(errCode);
             }
+            else
+            {
+                daqClearErrorInfo();
+            }
         }
         auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
         if (!mirroredSignalConfigPtr.getActiveStreamingSource().assigned())

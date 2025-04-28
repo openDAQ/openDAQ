@@ -271,3 +271,15 @@ DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscovered
 +   return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
 ```
+
+### [#734](https://github.com/openDAQ/openDAQ/pull/734) Using component config while loading configuration for the devices and function blocks.
+
+Introduces new methods on IComponentPrivate interface to manage component initialization config PropertyObject and deprecates similar methods from IDevicePrivate.
+
+Therefore, the getting device config is to be modified as follows:
+
+```diff
+    auto device = instance.getDevices()[0];
+-   PropertyObjectPtr config = device.asPtr<IDevicePrivate>(true).getDeviceConfig();
++   PropertyObjectPtr config = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+```

@@ -341,6 +341,12 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     testStreamClientSignalViaGateway(client, gateway);
 #endif
 #endif
+
+    // avoid reconnection triggering
+    client.release();
+    gateway.release();
+    firstLeafDevice.release();
+    secondLeafDevice.release();
 }
 
 TEST_P(SubDevicesTest, LeafStreamingToClient)
@@ -374,6 +380,12 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
 #ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
     testStreamClientSignalFromLeaf(client);
 #endif
+
+    // avoid reconnection triggering
+    client.release();
+    gateway.release();
+    firstLeafDevice.release();
+    secondLeafDevice.release();
 }
 
 TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
@@ -411,6 +423,12 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
     }
     testStreamGatewayAndClientSignals(client, gateway);
 #endif
+
+    // avoid reconnection triggering
+    client.release();
+    gateway.release();
+    firstLeafDevice.release();
+    secondLeafDevice.release();
 }
 
 INSTANTIATE_TEST_SUITE_P(

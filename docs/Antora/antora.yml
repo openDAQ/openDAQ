@@ -11,4 +11,4 @@ nav:
 - modules/tutorials/tutorials.adoc
 - modules/howto_guides/nav-howto-guides.adoc
 - modules/explanations/nav-explanations.adoc
-- https://{docs-prefix}.opendaq.com/[Reference]
+- modules/reference/nav-reference.adoc

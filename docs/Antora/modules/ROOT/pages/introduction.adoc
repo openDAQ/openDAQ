@@ -12,8 +12,8 @@ This documentation is split into 4 parts:
 * xref:howto_guides:howto.adoc[**How-to guides**]: A collection of example code snippets aimed at helping you solve specific problems.
 * xref:explanations:opendaq_architecture.adoc[**Explanations**]: Explanations of the core concepts and inner workings of the SDK.
 ifeval::["{docs-prefix}" != "docs-dev"]
-* https://docs.opendaq.com/doxygen/index.html[Reference]
-endif::[<condition>]
+* https://docs.opendaq.com/doxygen/index.html[**Reference**]
+endif::[]
 ifeval::["{docs-prefix}" == "docs-dev"]
-* https://docs-dev.opendaq.com/doxygen/index.html[Reference]
-endif::[<condition>]
+* https://docs-dev.opendaq.com/doxygen/index.html[**Reference**]
+endif::[]

@@ -179,8 +179,9 @@ public:
         FunctionBlockPtr block;
         errCode = wrapHandlerReturn(this, &Module::onCreateFunctionBlock, block, id, parent, localId, mergeConfig(config, type));
 
-        if (const auto & componentPrivate = block.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-            componentPrivate.setComponentConfig(config);
+        if (block.assigned())
+            if (const auto& componentPrivate = block.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+                componentPrivate.setComponentConfig(config);
 
         *functionBlock = block.detach();
         return errCode;

@@ -109,4 +109,4 @@ dotnet add package openDAQ.Net
 ----
 
 Congratulations, if you have managed to reach this point, you have successfully created your first openDAQ(TM) project! +
-To find out more about using openDAQ(TM) in applications to connect to, configure, and read data of Devices, continue with the xref:quick_start_application.adoc[openDAQ(TM) application quick start guide].
+To find out more about using openDAQ(TM) in applications to connect to, configure, and read data of Devices, continue with the xref:tutorial_application.adoc[openDAQ(TM) application tutorial].

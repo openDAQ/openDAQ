@@ -1,14 +1,14 @@
 = Modules
 
 An openDAQ(TM) module is usually a dynamic library that contains implementations of xref:device.adoc[Device] drivers, xref:streaming.adoc[Streaming] drivers,
-xref:glossary:glossary.adoc#opendaq_opcua_server_module[Servers], xref:glossary:glossary.adoc#opendaq_opcua_client_module[Clients],
+xref:explanations:glossary.adoc#opendaq_opcua_server_module[Servers], xref:explanations:glossary.adoc#opendaq_opcua_client_module[Clients],
 or xref:function_blocks.adoc[Function Blocks]. Once loaded, they provide openDAQ(TM) applications with the capability of
 connecting to/adding Devices, establishing Streaming connections, adding new Function Blocks, and hosting available types of Servers.
 
 The modules bundled with openDAQ(TM) are, for example, the openDAQ(TM) OpcUa Client, OpcUa Server,
 Native Streaming Server, Native Streaming Client, Streaming LT Server and Streaming LT Client.
-The xref:glossary:glossary.adoc#opendaq_opcua_server_module[OpcUa Server Module] contains a Server implementation
-that allows an openDAQ(TM) xref:glossary:glossary.adoc#device[Device] to publish its structure.
+The xref:explanations:glossary.adoc#opendaq_opcua_server_module[OpcUa Server Module] contains a Server implementation
+that allows an openDAQ(TM) xref:explanations:glossary.adoc#device[Device] to publish its structure.
 The Streaming Server Modules contain a server implementations that allow an openDAQ(TM) device to stream its data.
 The OpcUa Client module is used to connect to any device with openDAQ(TM) OpcUa Server running,
 allowing to view its structure and modify its configuration.
@@ -83,8 +83,8 @@ def loading_modules(context: opendaq.IContext):
 ----
 ====
 
-The user does not usually create the Module Manager on their own. Its construction is done silently by the openDAQ(TM) xref:glossary:glossary.adoc#instance[Instance], which also automatically sets the Context parameter.
-In order for the xref:glossary:glossary.adoc#instance[Instance] to know with what module path to initialize the manager, it takes the module path as a constructor parameter.
+The user does not usually create the Module Manager on their own. Its construction is done silently by the openDAQ(TM) xref:explanations:glossary.adoc#instance[Instance], which also automatically sets the Context parameter.
+In order for the xref:explanations:glossary.adoc#instance[Instance] to know with what module path to initialize the manager, it takes the module path as a constructor parameter.
 
 [tabs]
 ====

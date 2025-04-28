@@ -13,14 +13,14 @@ By the end of this guide, learners will be able to:
 :tip-caption: Assumptions
 [TIP]
 ====
-This guide assumes that you've read the _background section_ about the  xref:knowledge_base:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide. +
+This guide assumes that you've read the _background section_ about the  xref:explanations:readers.adoc[common behavior of Readers] or gone through the xref:howto_read_with_domain.adoc[] how-to guide. +
 
 For brevity, in `C++` we also assume that all the code is in namespace `daq` or it has been imported via `using namespace daq;` and omit any otherwise necessary header includes until the final complete listing.
 ====
 
-When you start reading more than one xref:glossary:glossary.adoc#signal[Signal] at once, you immediately run into a problem.
-The fact that the next sample in all the Signals read doesn't represent the same point in a xref:glossary:glossary.adoc#domain[Domain] (usually time Domain).
-This happens because the Signals can have different xref:glossary:glossary.adoc#tick_resolution[Origin]s, produce data with different xref:glossary:glossary.adoc#tick_resolution[Tick Resolution]s representing different xref:glossary:glossary.adoc#unit[Unit]s and with xref:glossary:glossary.adoc#data_rule[Data Rule]s taken into account at different rates (usually called _sample-rate_).
+When you start reading more than one xref:explanations:glossary.adoc#signal[Signal] at once, you immediately run into a problem.
+The fact that the next sample in all the Signals read doesn't represent the same point in a xref:explanations:glossary.adoc#domain[Domain] (usually time Domain).
+This happens because the Signals can have different xref:explanations:glossary.adoc#tick_resolution[Origin]s, produce data with different xref:explanations:glossary.adoc#tick_resolution[Tick Resolution]s representing different xref:explanations:glossary.adoc#unit[Unit]s and with xref:explanations:glossary.adoc#data_rule[Data Rule]s taken into account at different rates (usually called _sample-rate_).
 
 This is quite a complex problem, and even more if you take into account that the read Signals can completely change at any time during measurement. But the fact is also that most Signals don't change at all or at least not radically, and almost all of them are in a time Domain, so in practice, we can cover reading a large portion of Signals when we limit ourselves to a subset of allowed configurations.
 
@@ -37,6 +37,7 @@ With this in mind, we limit ourselves to Signals that have:
     * Inter-sample offsets are ignored
 . Values that can be converted to a common data-type
 
+:note-caption: Limitations
 [NOTE]
 ====
 Some of the above limitations might be lifted in the future.
@@ -44,7 +45,7 @@ Some of the above limitations might be lifted in the future.
 
 == Using the Multi-Reader
 
-Using the Multi-Reader is largely the same as any other Reader and is basically a xref:knowledge_base:readers.adoc#stream_reader[Stream Reader] for multiple Signals at once except that with multiple Signals it performs some additional checks to keep the Signals compatible and synchronized to the same Domain point.
+Using the Multi-Reader is largely the same as any other Reader and is basically a xref:explanations:readers.adoc#stream_reader[Stream Reader] for multiple Signals at once except that with multiple Signals it performs some additional checks to keep the Signals compatible and synchronized to the same Domain point.
 
 [#create-signals]
 .Creating a default Multi-Reader with list of Signals
@@ -163,9 +164,10 @@ avail = reader.available_count # 0
 ----
 ====
 
-After the Reader construction, Signals produce xref:glossary:glossary.adoc#data_packet[Data Packet]s of differing sizes but not enough to align on the start Domain point.
+After the Reader construction, Signals produce xref:explanations:glossary.adoc#data_packet[Data Packet]s of differing sizes but not enough to align on the start Domain point.
 So the reader reports it has `0` samples available as it dropped them on the call to check the number of samples available as they are below the start Domain point.
 
+:note-caption: Helper Function
 [NOTE]
 ====
 In the examples, a helper function `demoSignal()` is used to set-up a custom simulated Signal with preset _epoch_ / _origin_ and _packet size_.
@@ -433,6 +435,7 @@ reader_builder.domain_read_type = daq.SampleType.Int64
 built_reader = reader_builder.build()
 ----
 ====
+:note-caption: Multi-Reader from the same builder
 [NOTE]
 ====
 When creating a Multi-Reader from the same builder multiple times, developers should be cautious, especially if they are using Input Ports as input sources. This is because when creating an Input Port, it is bound to the first reader. Therefore, attempting to create another reader with the same Input Port will result in an exception, indicating that the Input Port is already in use.

@@ -118,8 +118,10 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
     findAndCreateSyncComponent();
-    // just to remove information about the device configuration property
-    this->findAndCreateComponentConfig();
+
+    // for the root device the client side local config object is used
+    if (!isRootDevice)
+        this->componentConfig = this->findAndCreateComponentConfig();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)

@@ -435,6 +435,7 @@ TEST_F(OpcuaDeviceModulesTest, DeviceComponentConfig)
     ASSERT_THROW(localOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), AlreadyExistsException);
 
     // for nested device config cannot be overriden locally
+    ASSERT_TRUE(nestedOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
     ASSERT_THROW(nestedOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), InvalidOperationException);
 }
 

@@ -2856,7 +2856,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
     auto devices = restoredClient.getDevices()[0].getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
 
-    auto deviceConfig = devices[0].asPtr<IDevicePrivate>(true).getDeviceConfig();
+    auto deviceConfig = devices[0].asPtr<IComponentPrivate>(true).getComponentConfig();
     ASSERT_TRUE(deviceConfig.assigned());
     ASSERT_TRUE(deviceConfig.hasProperty("TestKey"));
     ASSERT_EQ(deviceConfig.getPropertyValue("TestKey"), "TestValue");

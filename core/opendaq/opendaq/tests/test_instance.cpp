@@ -947,7 +947,7 @@ TEST_F(InstanceTest, DISABLED_SaveLoadServers)
     ASSERT_EQ(servers[0].getId(), serverId);
 }
 
-TEST_F(InstanceTest, SaveLoadDeviceConfig)
+TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
 {
     StringPtr config;
     {
@@ -966,6 +966,32 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
 
     auto device = instance2.getDevices()[0];
     const auto deviceConfig = device.asPtr<IDevicePrivate>(true).getDeviceConfig();
+    ASSERT_TRUE(deviceConfig.assigned());
+    ASSERT_TRUE(deviceConfig.hasProperty("General"));
+
+    PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
+    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+}
+
+TEST_F(InstanceTest, SaveLoadDeviceConfig)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance();
+
+        auto deviceConfig = instance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
+        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+
+        instance.addDevice("daqmock://phys_device", deviceConfig);
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance();
+    instance2.loadConfiguration(config);
+
+    auto device = instance2.getDevices()[0];
+    const auto deviceConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
     ASSERT_TRUE(deviceConfig.assigned());
     ASSERT_TRUE(deviceConfig.hasProperty("General"));
 

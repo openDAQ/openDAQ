@@ -127,8 +127,7 @@ public:
     BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
                                              const SerializedObjectPtr& serObj,
                                              const BaseObjectPtr& context,
-                                             const FunctionPtr& factoryCallback,
-                                             ComponentDeserializeCallback deviceDeserialzeCallback);
+                                             const FunctionPtr& factoryCallback);
     bool isComponentNested(const StringPtr& componentGlobalId);
     void connectExternalSignalToServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
     void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
@@ -455,7 +454,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationPacket(const Pack
     const auto obj = deserializer.deserialize(json, deserializeContext,
                                               [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
                                               {
-                                                  return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                                                  return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
                                               });
     // handle notifications in callback provided in constructor
     const bool processed = serverNotificationReceivedCallback ? serverNotificationReceivedCallback(obj) : false;

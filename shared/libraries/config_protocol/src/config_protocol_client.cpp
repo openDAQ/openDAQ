@@ -432,7 +432,7 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
                         checkErrorInfo(this->rootDeviceDeserializeCallback(object, context, factoryCallback, &obj));
                         return obj;
                     }
-                    return deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                    return deserializeConfigComponent(typeId, object, context, factoryCallback);
                 });
         }
         else
@@ -442,7 +442,7 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
                 context,
                 [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
                 {
-                    return deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                    return deserializeConfigComponent(typeId, object, context, factoryCallback);
                 });
         }
     }
@@ -467,8 +467,7 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
 BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringPtr& typeId,
                                                                    const SerializedObjectPtr& serObj,
                                                                    const BaseObjectPtr& context,
-                                                                   const FunctionPtr& factoryCallback,
-                                                                   ComponentDeserializeCallback /*deviceDeserialzeCallback*/)
+                                                                   const FunctionPtr& factoryCallback)
 {
     if (typeId == "Folder")
     {

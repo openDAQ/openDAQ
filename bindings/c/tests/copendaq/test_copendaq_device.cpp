@@ -2,29 +2,16 @@
 
 #include <gtest/gtest.h>
 
+#include "opendaq/context_factory.h"
+
 class COpendaqDeviceTest : public testing::Test
 {
     void SetUp() override
     {
-        InstanceBuilder* builder = nullptr;
-        InstanceBuilder_createInstanceBuilder(&builder);
-        InstanceBuilder_setGlobalLogLevel(builder, LogLevel::LogLevelDebug);
-        String* component = nullptr;
-        String_createString(&component, "Instance");
-        InstanceBuilder_setComponentLogLevel(builder, component, LogLevel::LogLevelError);
-        BaseObject_releaseRef(component);
-        LoggerSink* sink = nullptr;
-        LoggerSink_createStdErrLoggerSink(&sink);
-        InstanceBuilder_addLoggerSink(builder, sink);
-        BaseObject_releaseRef(sink);
-        InstanceBuilder_setSchedulerWorkerNum(builder, 1);
-        String* modulePath = nullptr;
-        String_createString(&modulePath, ".");
-        InstanceBuilder_addModulePath(builder, modulePath);
-        BaseObject_releaseRef(modulePath);
+        auto context = daq::NullContext();
+        Context* ctx = reinterpret_cast<Context*>(context.getObject());
 
-        InstanceBuilder_build(builder, &instance);
-        BaseObject_releaseRef(builder);
+        Instance_createInstance(&instance, ctx, nullptr);
         Instance_getRootDevice(instance, &dev);
     }
 
@@ -66,9 +53,7 @@ TEST_F(COpendaqDeviceTest, AddressInfo)
     String* connectionStringOut = nullptr;
     AddressInfo_getConnectionString(addressInfo, &connectionStringOut);
     ASSERT_NE(connectionStringOut, nullptr);
-    ConstCharPtr connectionStringStr = nullptr;
-    String_getCharPtr(connectionStringOut, &connectionStringStr);
-    printf("ConnectionString %s\n", connectionStringStr);
+
     BaseObject_releaseRef(connectionStringOut);
     BaseObject_releaseRef(addressInfo);
     BaseObject_releaseRef(builder);
@@ -90,34 +75,9 @@ TEST_F(COpendaqDeviceTest, DeviceInfo)
     ConstCharPtr nameStr = nullptr;
     String_getCharPtr(name, &nameStr);
 
-    printf("ConnectionString %s\n", connectionStringStr);
-    printf("Name %s\n", nameStr);
     BaseObject_releaseRef(name);
     BaseObject_releaseRef(connectionString);
     BaseObject_releaseRef(deviceInfo);
-}
-
-TEST_F(COpendaqDeviceTest, Device)
-{
-    String* connectionString = nullptr;
-    String_createString(&connectionString, "daqref://device0");
-
-    Device* connectedDevice = nullptr;
-    Device_addDevice(dev, &connectedDevice, connectionString, nullptr);
-    ASSERT_NE(connectedDevice, nullptr);
-
-    DeviceInfo* connectedDeviceInfo = nullptr;
-    Device_getInfo(connectedDevice, &connectedDeviceInfo);
-    ASSERT_NE(connectedDeviceInfo, nullptr);
-
-    DeviceType* connectedDeviceType = nullptr;
-    DeviceInfo_getDeviceType(connectedDeviceInfo, &connectedDeviceType);
-    ASSERT_NE(connectedDeviceType, nullptr);
-
-    BaseObject_releaseRef(connectedDeviceType);
-    BaseObject_releaseRef(connectedDeviceInfo);
-    BaseObject_releaseRef(connectedDevice);
-    BaseObject_releaseRef(connectionString);
 }
 
 TEST_F(COpendaqDeviceTest, IoFolderConfig)

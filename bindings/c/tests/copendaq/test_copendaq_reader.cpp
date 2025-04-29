@@ -360,4 +360,5 @@ TEST_F(COpendaqReaderTest, TailReader)
         ASSERT_EQ(data[i], static_cast<Float>(i + 1));
     }
     BaseObject_releaseRef(status);
+    BaseObject_releaseRef(tailReader);
 }

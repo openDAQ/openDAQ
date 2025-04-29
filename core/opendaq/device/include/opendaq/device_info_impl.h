@@ -1169,8 +1169,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         errCode = parent->addProperty(StringProperty(propertyName, ""));
         if (errCode == OPENDAQ_ERR_DUPLICATEITEM)
             daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
+        else
+            OPENDAQ_RETURN_IF_FAILED(errCode);
 
         BaseObjectPtr propertyValue;
         errCode = Super::getPropertyValueNoLock(propertyName, &propertyValue);

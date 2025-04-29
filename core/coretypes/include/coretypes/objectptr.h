@@ -1946,7 +1946,7 @@ template <class U>
 U* ObjectPtr<T>::asOrNull(bool borrow) const
 {
     if (!object)
-        DAQ_THROW_EXCEPTION(InvalidParameterException);
+        return nullptr;
 
     U* intf;
     ErrCode res;

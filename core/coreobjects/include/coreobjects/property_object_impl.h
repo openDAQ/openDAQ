@@ -3010,8 +3010,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(
                                          context,
                                          factoryCallback,
                                          [](const SerializedObjectPtr&, const BaseObjectPtr& context, const StringPtr& className) {
-                                             const TypeManagerPtr objManager =
-                                                 context.assigned() ? context.asOrNull<ITypeManager>() : nullptr;
+                                             const TypeManagerPtr objManager = context.asOrNull<ITypeManager>();
                                              if (objManager.assigned())
                                                  return PropertyObject(objManager, className);
                                              return PropertyObject();

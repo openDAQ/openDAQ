@@ -89,22 +89,22 @@ ErrCode ModuleInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
     ErrCode err = serializedObj->readObject(String("versionInfo"), context, factoryCallback, &versionInfo);
     if (err == OPENDAQ_ERR_NOTFOUND)
         daqClearErrorInfo();
-    else if (OPENDAQ_FAILED(err))
-        return DAQ_MAKE_ERROR_INFO(err);
+    else
+        OPENDAQ_RETURN_IF_FAILED(err);
 
     StringPtr name;
     err = serializedObj->readString(String("name"), &name);
     if (err == OPENDAQ_ERR_NOTFOUND)
         daqClearErrorInfo();
-    else if (OPENDAQ_FAILED(err))
-        return DAQ_MAKE_ERROR_INFO(err);
+    else
+        OPENDAQ_RETURN_IF_FAILED(err);
 
     StringPtr id;
     err = serializedObj->readString(String("id"), &id);
     if (err == OPENDAQ_ERR_NOTFOUND)
         daqClearErrorInfo();
-    else if (OPENDAQ_FAILED(err))
-        return DAQ_MAKE_ERROR_INFO(err);
+    else
+        OPENDAQ_RETURN_IF_FAILED(err);
 
     return createObject<IModuleInfo, ModuleInfoImpl, VersionInfoPtr, StringPtr, StringPtr>(reinterpret_cast<IModuleInfo**>(obj), versionInfo, name, id);
 }

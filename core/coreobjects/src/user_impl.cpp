@@ -131,8 +131,8 @@ ErrCode UserImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunc
     err = serializedObj->readList(String("groups"), nullptr, nullptr, &groups);
     if (err == OPENDAQ_ERR_NOTFOUND)
         daqClearErrorInfo();
-    else if (OPENDAQ_FAILED(err))
-        return DAQ_MAKE_ERROR_INFO(err);
+    else
+        OPENDAQ_RETURN_IF_FAILED(err);
 
     auto user = User(username, passwordHash, groups);
     *obj = user.addRefAndReturn();

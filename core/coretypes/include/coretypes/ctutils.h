@@ -382,21 +382,21 @@ inline bool simplify(Int& num, Int& den)
 }
 
 template <typename Handler, typename... Params>
-ErrCode wrapHandler(Handler handler, Params... params)
+ErrCode wrapHandler(Handler handler, Params&& ... params)
 {
-    using ResultType = std::invoke_result_t<Handler, Params...>;
+    using ResultType = std::invoke_result_t<Handler, Params&& ...>;
     static_assert(std::is_same_v<ResultType, void> || std::is_same_v<ResultType, ErrCode>, "Return type must be void or daq::ErrCode");
 
     try
     {
         if constexpr (std::is_same_v<ResultType, void>)
         {
-            (handler)(params...);
+            (handler)(std::forward<Params>(params)...);
             return OPENDAQ_SUCCESS;
         }
         else
         {
-            return (handler)(params...);
+            return (handler) (std::forward<Params>(params)...);
         }
     }
     catch (const DaqException& e)
@@ -414,11 +414,11 @@ ErrCode wrapHandler(Handler handler, Params... params)
 }
 
 template <typename Handler, typename TReturn, typename... Params>
-ErrCode wrapHandlerReturn(Handler handler, TReturn& output, Params... params)
+ErrCode wrapHandlerReturn(Handler handler, TReturn& output, Params&& ... params)
 {
     try
     {
-        output = (handler)(params...);
+        output = (handler) (std::forward<Params>(params)...);
         return OPENDAQ_SUCCESS;
     }
     catch (const DaqException& e)
@@ -436,21 +436,21 @@ ErrCode wrapHandlerReturn(Handler handler, TReturn& output, Params... params)
 }
 
 template <typename Object, typename Handler, typename... Params>
-ErrCode wrapHandler(Object* object, Handler handler, Params... params)
+ErrCode wrapHandler(Object* object, Handler handler, Params&& ... params)
 {
-    using ResultType = decltype((object->*handler)(params...));
+    using ResultType = decltype((object->*handler)(std::forward<Params>(params)...));
     static_assert(std::is_same_v<ResultType, void> || std::is_same_v<ResultType, ErrCode>, "Return type must be void or daq::ErrCode");
 
     try
     {
         if constexpr (std::is_same_v<ResultType, void>)
         {
-            (object->*handler)(params...);
+            (object->*handler)(std::forward<Params>(params)...);
             return OPENDAQ_SUCCESS;
         }
         else
         {
-            return (object->*handler)(params...);
+            return (object->*handler)(std::forward<Params>(params)...);
         }
     }
     catch (const DaqException& e)
@@ -472,11 +472,11 @@ ErrCode wrapHandler(Object* object, Handler handler, Params... params)
 }
 
 template <typename Object, typename Handler, typename TReturn, typename... Params>
-ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Params... params)
+ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Params&&... params)
 {
     try
     {
-        output = (object->*handler)(params...);
+        output = (object->*handler)(std::forward<Params>(params)...);
         return OPENDAQ_SUCCESS;
     }
     catch (const DaqException& e)

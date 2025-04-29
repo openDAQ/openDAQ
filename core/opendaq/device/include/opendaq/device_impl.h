@@ -160,6 +160,10 @@ public:
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
 
+    // IPropertyObjectInternal
+    ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
+
 protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
@@ -1706,11 +1710,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
     if (!forUpdate)
     {
-        if (deviceInfo.assigned())
-        {
-            serializer.key("deviceInfo");
-            deviceInfo.serialize(serializer);
-        }
         if (deviceDomain.assigned())
         {
             serializer.key("deviceDomain");
@@ -1761,6 +1760,12 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
                 serializer.writeString(serialNumber);
             }
         }
+    }
+
+    if (deviceInfo.assigned())
+    {
+        serializer.key("deviceInfo");
+        deviceInfo.serialize(serializer);
     }
 
     if (syncComponent.assigned())
@@ -2048,6 +2053,52 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
     if (obj.hasKey("UserLock"))
         userLock = obj.readObject("UserLock", context);
+
+    if (obj.hasKey("deviceInfo"))
+    {
+        DeviceInfoPtr deviceInfo;
+        this->getInfo(&deviceInfo);
+
+        if (auto updatableDeviceInfo = deviceInfo.asPtrOrNull<IUpdatable>(true); updatableDeviceInfo.assigned())
+        {
+            const auto deviceInfoObject = obj.readSerializedObject("deviceInfo");
+            updatableDeviceInfo.updateInternal(deviceInfoObject, context);
+        }
+    }
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
+{
+    ErrCode errCode = Super::enableCoreEventTrigger();
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    
+    DeviceInfoPtr deviceInfo;
+    errCode = this->getInfo(&deviceInfo);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    if (!deviceInfo.assigned())
+        return errCode;
+    
+    return deviceInfo.asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
+{
+    ErrCode errCode = Super::disableCoreEventTrigger();
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    
+    DeviceInfoPtr deviceInfo;
+    errCode = this->getInfo(&deviceInfo);
+    if (OPENDAQ_FAILED(errCode))
+        return errCode;
+    if (!deviceInfo.assigned())
+        return errCode;
+    
+    return deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
 }
 
 template <typename TInterface, typename... Interfaces>

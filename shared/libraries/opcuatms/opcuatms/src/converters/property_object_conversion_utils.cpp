@@ -31,18 +31,18 @@ void PropertyObjectConversionUtils::ToPropertyObject(const OpcUaVariant& variant
 {
     const auto dict = VariantConverter<IDict>::ToDaqObject(variant);
 
-    for (const auto& entry : dict)
+    for (const auto& [name, value] : dict)
     {
-        if (!objOut.hasProperty(entry.first))
+        if (!objOut.hasProperty(name))
         {
-            auto property = PropertyBuilder(entry.first).setValueType(entry.second.getCoreType())
-                                                        .setDefaultValue(entry.second)
-                                                        .build();
+            auto property = PropertyBuilder(name).setValueType(value.getCoreType())
+                                                 .setDefaultValue(value)
+                                                 .build();
             objOut.addProperty(property);
         }
         else
         {
-            objOut.setPropertyValue(entry.first, entry.second);
+            objOut.setPropertyValue(name, value);
         }
     }
 }
@@ -50,7 +50,6 @@ void PropertyObjectConversionUtils::ToPropertyObject(const OpcUaVariant& variant
 PropertyObjectPtr PropertyObjectConversionUtils::ClonePropertyObject(const PropertyObjectPtr& obj)
 {
     // This is a workaround until PropertyObject implemnts IClonable.
-
     auto serializer = JsonSerializer();
     auto deserializer = JsonDeserializer();
     obj.serialize(serializer);

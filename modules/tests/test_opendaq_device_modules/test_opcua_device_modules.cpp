@@ -1233,6 +1233,47 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceUserNameLocation)
     }
 }
 
+TEST_F(OpcuaDeviceModulesTest, SaveLoadDeviceInfo)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstance();
+        auto client = CreateClientInstance();
+
+        auto serverDevice = server.getDevices()[0];
+        auto clientDevice = client.getDevices()[0].getDevices()[0];
+        auto deviceInfo = clientDevice.getInfo();
+
+        // as opcua server was run before, the new property would not be visible 
+        // serverDevice.getInfo().addProperty(StringProperty("ServerCustomProperty", "defaultValue"));
+
+        deviceInfo.setPropertyValue("userName", "testUser");
+        deviceInfo.setPropertyValue("location", "testLocation");
+
+        // this property is a local client property and will be visible only in the current client
+        // the same is after restoring the property, as addint property is happening only on local machine
+        deviceInfo.addProperty(StringProperty("ClientCustomProperty", "defaultValue"));
+        deviceInfo.setPropertyValue("ClientCustomProperty", "newValue");
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstance();
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto clientDevice = restoredClient.getDevices()[0].getDevices()[0];
+    auto deviceInfo = clientDevice.getInfo();
+
+    // ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
+    // ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
+
+    ASSERT_TRUE(deviceInfo.hasProperty("ClientCustomProperty"));
+    ASSERT_EQ(deviceInfo.getProperty("ClientCustomProperty").getDefaultValue(), "defaultValue");
+    ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
+}
+
 class TestDevice : public daq::Device
 {
 public:

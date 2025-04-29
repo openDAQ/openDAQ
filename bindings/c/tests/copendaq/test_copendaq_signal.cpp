@@ -303,6 +303,7 @@ TEST_F(COpendaqSignalTest, DimensionRule)
     BaseObject_releaseRef(rule);
     BaseObject_releaseRef(deltaStr);
     BaseObject_releaseRef(startStr);
+    BaseObject_releaseRef(sizeStr);
 }
 
 TEST_F(COpendaqSignalTest, EventPacket)
@@ -440,4 +441,6 @@ TEST_F(COpendaqSignalTest, Signal)
     SignalConfig_createSignal(&signalConfig, ctx, nullptr, id, nullptr);
     ASSERT_NE(signalConfig, nullptr);
     BaseObject_releaseRef(id);
+    BaseObject_releaseRef(ctx);
+    BaseObject_releaseRef(signalConfig);
 }

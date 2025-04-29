@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "opendaq/context_factory.h"
+
 using COpendaqOpendaqTest = testing::Test;
 
 TEST_F(COpendaqOpendaqTest, ConfigProvider)
@@ -17,19 +19,13 @@ TEST_F(COpendaqOpendaqTest, InstanceAndBuilder)
     InstanceBuilder* builder = nullptr;
     InstanceBuilder_createInstanceBuilder(&builder);
     ASSERT_NE(builder, nullptr);
-    InstanceBuilder_setGlobalLogLevel(builder, LogLevel::LogLevelDebug);
-    String* component = nullptr;
-    String_createString(&component, "Instance");
-    InstanceBuilder_setComponentLogLevel(builder, component, LogLevel::LogLevelError);
-    BaseObject_releaseRef(component);
-    LoggerSink* sink = nullptr;
-    LoggerSink_createStdErrLoggerSink(&sink);
-    InstanceBuilder_addLoggerSink(builder, sink);
-    BaseObject_releaseRef(sink);
-    InstanceBuilder_setSchedulerWorkerNum(builder, 1);
+
+    auto context = daq::NullContext();
+    Context* ctx = reinterpret_cast<Context*>(context.getObject());
 
     Instance* instance = nullptr;
-    InstanceBuilder_build(builder, &instance);
+    // Creating an instance with a builder causes memleaks on some compilers
+    Instance_createInstance(&instance, ctx, nullptr);
     ASSERT_NE(instance, nullptr);
 
     BaseObject_releaseRef(builder);

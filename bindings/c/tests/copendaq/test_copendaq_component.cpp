@@ -233,4 +233,6 @@ TEST_F(COpendaqComponentTest, Tags)
     Tags_contains(tags, tag, &result);
 
     ASSERT_TRUE(result);
+    BaseObject_releaseRef(tag);
+    BaseObject_releaseRef(tags);
 }

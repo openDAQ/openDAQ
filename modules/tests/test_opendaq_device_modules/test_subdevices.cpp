@@ -310,11 +310,12 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
     auto firstLeafDevice = CreateLeafDeviceInstance(1u);
+    InstancePtr secondLeafDevice;
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_CONNECTIONS);
 
     bool success{false};
-    InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
+    secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
     auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
@@ -341,23 +342,18 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     testStreamClientSignalViaGateway(client, gateway);
 #endif
 #endif
-
-    // avoid reconnection triggering
-    client.release();
-    gateway.release();
-    firstLeafDevice.release();
-    secondLeafDevice.release();
 }
 
 TEST_P(SubDevicesTest, LeafStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
     auto firstLeafDevice = CreateLeafDeviceInstance(1u);
+    InstancePtr secondLeafDevice;
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_HOPS);
 
     bool success{false};
-    InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
+    secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
     auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
@@ -380,23 +376,18 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
 #ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
     testStreamClientSignalFromLeaf(client);
 #endif
-
-    // avoid reconnection triggering
-    client.release();
-    gateway.release();
-    firstLeafDevice.release();
-    secondLeafDevice.release();
 }
 
 TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 {
     SKIP_TEST_MAC_CI;
     auto firstLeafDevice = CreateLeafDeviceInstance(1u);
+    InstancePtr secondLeafDevice;
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_HOPS);
 
     bool success{false};
-    InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
+    secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
     auto clientSignals = client.getSignalsRecursive();
@@ -423,12 +414,6 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
     }
     testStreamGatewayAndClientSignals(client, gateway);
 #endif
-
-    // avoid reconnection triggering
-    client.release();
-    gateway.release();
-    firstLeafDevice.release();
-    secondLeafDevice.release();
 }
 
 INSTANTIATE_TEST_SUITE_P(

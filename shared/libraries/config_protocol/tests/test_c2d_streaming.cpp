@@ -561,7 +561,7 @@ TEST_F_UNSTABLE_SKIPPED(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithS
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 0u);
-    // verify that signal disconnected
+    // verify that server signal connected
     EXPECT_TRUE(chIpClient1.getSignal().assigned());
     EXPECT_TRUE(chIpServer.getSignal().assigned());
     EXPECT_TRUE(chIpClient2.getSignal().assigned());
@@ -573,7 +573,7 @@ TEST_F_UNSTABLE_SKIPPED(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithS
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 0u);
-    // verify that signal disconnected
+    // verify that new signal connected
     EXPECT_TRUE(fbIpClient1.getSignal().assigned());
     EXPECT_TRUE(fbIpServer.getSignal().assigned());
     EXPECT_TRUE(fbIpClient2.getSignal().assigned());
@@ -599,7 +599,7 @@ TEST_F(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithAnotherExternal)
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 1u);
-    // verify that signal disconnected
+    // verify that new signal connected
     EXPECT_TRUE(chIpClient1.getSignal().assigned());
     EXPECT_TRUE(chIpServer.getSignal().assigned());
     EXPECT_TRUE(chIpClient2.getSignal().assigned());
@@ -611,7 +611,7 @@ TEST_F(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithAnotherExternal)
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 1u);
-    // verify that signal disconnected
+    // verify that new signal connected
     EXPECT_TRUE(fbIpClient1.getSignal().assigned());
     EXPECT_TRUE(fbIpServer.getSignal().assigned());
     EXPECT_TRUE(fbIpClient2.getSignal().assigned());
@@ -633,7 +633,7 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainPortRemove)
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 0u);
-    // verify that signal disconnected
+    // verify that port removed
     EXPECT_TRUE(fbIpClient1.isRemoved());
     EXPECT_TRUE(fbIpServer.isRemoved());
     EXPECT_TRUE(fbIpClient2.isRemoved());

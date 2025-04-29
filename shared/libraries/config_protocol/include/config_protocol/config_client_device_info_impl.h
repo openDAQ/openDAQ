@@ -59,7 +59,14 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setPropertyValue(IString* property
 {
     if (this->remoteUpdating)
         return Impl::setPropertyValue(propertyName, value);
-    return Super::setPropertyValue(propertyName, value);
+
+    const ErrCode errCode = Super::setPropertyValue(propertyName, value);
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+    {
+        daqClearErrorInfo();
+        return Impl::setPropertyValue(propertyName, value);
+    }
+    return errCode;
 }
 
 template <class Impl>

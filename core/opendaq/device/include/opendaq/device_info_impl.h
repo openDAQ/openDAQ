@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/device_info_config.h>
+#include <opendaq/device_info_ptr.h>
 #include <coretypes/freezable.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
@@ -140,6 +141,8 @@ public:
     // IOwnable
     virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
 
+    // IUpdatable
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
 protected:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -161,7 +164,6 @@ protected:
 
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
     PropertyObjectPtr getOwnerOfProperty(const StringPtr& propertyName);
-    // bool isLocal;
     std::atomic<SizeT> totalCountOfConnectedClientsEverRegistered;
 };
 
@@ -1167,7 +1169,9 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
             continue;
 
         errCode = parent->addProperty(StringProperty(propertyName, ""));
-        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_DUPLICATEITEM);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_ALREADYEXISTS);
+        if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
+            continue;
 
         BaseObjectPtr propertyValue;
         errCode = Super::getPropertyValueNoLock(propertyName, &propertyValue);
@@ -1194,6 +1198,47 @@ void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMethod(con
         const auto loggerComponent = parent.getContext().getLogger().getOrAddComponent("DeviceInfo");
         LOG_W("Device info failed while triggering core event {}", args.getEventName());
     }
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    if (this->frozen)
+        return OPENDAQ_IGNORED;
+
+    const auto serializedPtr = SerializedObjectPtr::Borrow(obj);
+
+    return daqTry([&]
+    {
+        this->beginUpdate();
+        Finally finally([this] { this->endUpdate(); });
+
+        Super::DeserializeLocalProperties(serializedPtr, context, nullptr, this->objPtr);
+
+        if (serializedPtr.hasKey("propValues"))
+        {
+            const auto propValues = serializedPtr.readSerializedObject("propValues");
+
+            std::set<StringPtr> propsToIgnore = {
+                "connectionString",
+                "sdkVersion",
+                "serverCapabilities",
+                "configurationConnectionInfo",
+                "activeClientConnections",
+                "userName",
+                "location"
+            };
+
+            for (const auto& key : propValues.getKeys())
+            {
+                if (propsToIgnore.count(key))
+                    continue;
+                const auto propValue = propValues.readObject(key, context, nullptr);
+                checkErrorInfo(this->setProtectedPropertyValue(key, propValue));
+            }
+        }
+    });
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

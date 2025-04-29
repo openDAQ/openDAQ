@@ -2762,11 +2762,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPath(IStr
 {
     OPENDAQ_PARAM_NOT_NULL(path);
 
-    if (this->path == "")
-        this->path = path;
-    else
+    if (this->path.getLength())
         return OPENDAQ_IGNORED;
 
+    this->path = path;
     return OPENDAQ_SUCCESS;
 }
 

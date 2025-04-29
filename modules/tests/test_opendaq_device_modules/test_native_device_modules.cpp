@@ -2600,7 +2600,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration)
     auto signals = restoredClient.getDevices()[0].getSignals(search::Recursive(search::Any()));
     for (const auto& signal : signals)
     {
-        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>(true);
         ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
         ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
@@ -2862,7 +2862,6 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
     ASSERT_EQ(deviceConfig.getPropertyValue("TestKey"), "TestValue");
 }
 
-
 TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
 {
     StringPtr config;
@@ -2894,6 +2893,51 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
     ASSERT_TRUE(fbConfig.assigned());
     ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
     ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
+}
+
+TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfo)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
+        
+        auto client = CreateClientInstance();
+        auto device = client.getDevices()[0];
+        auto deviceInfo = device.getInfo();
+
+        server.getInfo().addProperty(StringProperty("ServerCustomProperty", "defaultValue"));
+
+        deviceInfo.setPropertyValue("userName", "testUser");
+        deviceInfo.setPropertyValue("location", "testLocation");
+
+        deviceInfo.setPropertyValue("ServerCustomProperty", "newValue");
+
+        deviceInfo.addProperty(StringProperty("ClientCustomProperty", "defaultValue"));
+        deviceInfo.setPropertyValue("ClientCustomProperty", "newValue");
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto device = devices[0];
+    auto deviceInfo = device.getInfo();
+    ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
+    ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
+
+    ASSERT_TRUE(deviceInfo.hasProperty("ServerCustomProperty"));
+    ASSERT_EQ(deviceInfo.getProperty("ServerCustomProperty").getDefaultValue(), "defaultValue");
+    ASSERT_EQ(deviceInfo.getPropertyValue("ServerCustomProperty"), "newValue");
+
+    ASSERT_TRUE(deviceInfo.hasProperty("ClientCustomProperty"));
+    ASSERT_EQ(deviceInfo.getProperty("ClientCustomProperty").getDefaultValue(), "defaultValue");
+    ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)

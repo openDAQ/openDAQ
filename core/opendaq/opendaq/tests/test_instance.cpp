@@ -1048,6 +1048,38 @@ TEST_F(InstanceTest, SaveLoadDeviceStruct)
     ASSERT_EQ(deviceStruct.get("value2"), 0.0);
 }
 
+TEST_F(InstanceTest, SaveLoadDeviceInfo)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance();
+        auto device = instance.addDevice("daqmock://phys_device");
+        auto deviceInfo = device.getInfo();
+        deviceInfo.setPropertyValue("userName", "testUser");
+        deviceInfo.setPropertyValue("location", "testLocation");
+        deviceInfo.setPropertyValue("TestChangeableField", "testValue");
+        deviceInfo.addProperty(StringProperty("CustomProperty", "defaultValue"));
+        deviceInfo.setPropertyValue("CustomProperty", "newValue");
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance();
+    instance2.loadConfiguration(config);
+
+    auto devices = instance2.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto device = devices[0];
+    auto deviceInfo = device.getInfo();
+    ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
+    ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
+    ASSERT_EQ(deviceInfo.getPropertyValue("TestChangeableField"), "testValue");
+    ASSERT_TRUE(deviceInfo.hasProperty("CustomProperty"));
+    ASSERT_EQ(deviceInfo.getProperty("CustomProperty").getDefaultValue(), "defaultValue");
+    ASSERT_EQ(deviceInfo.getPropertyValue("CustomProperty"), "newValue");
+}
+
 TEST_F(InstanceTest, TestRemoved1)
 {
     auto instance = test_helpers::setupInstance();

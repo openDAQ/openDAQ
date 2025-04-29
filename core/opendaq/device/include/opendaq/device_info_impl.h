@@ -1193,7 +1193,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
         {
             daqClearErrorInfo();
-            break;
+            continue;
         }
         else if (OPENDAQ_FAILED(errCode))
         {
@@ -1248,16 +1248,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
         if (serializedPtr.hasKey("propValues"))
         {
             const auto propValues = serializedPtr.readSerializedObject("propValues");
-            const auto keys = propValues.getKeys();
 
             std::set<StringPtr> propsToIgnore = {
-                "name", 
-                "connectionString", 
-                "sdkVersion", 
-                "serverCapabilities", 
-                "configurationConnectionInfo", 
-                "activeClientConnections", 
-                "userName", 
+                "connectionString",
+                "sdkVersion",
+                "serverCapabilities",
+                "configurationConnectionInfo",
+                "activeClientConnections",
+                "userName",
                 "location"
             };
 
@@ -1269,8 +1267,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
                 checkErrorInfo(this->setProtectedPropertyValue(key, propValue));
             }
         }
-
-        SerializedObjectPtr serializedProperties;
     });
 }
 

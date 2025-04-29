@@ -2824,6 +2824,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
+            daqClearErrorInfo();
             return OPENDAQ_SUCCESS;
         }
 

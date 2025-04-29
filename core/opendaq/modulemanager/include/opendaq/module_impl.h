@@ -104,10 +104,7 @@ public:
 
         DictPtr<IString, IDeviceType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
-        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
-            daqClearErrorInfo();
-        else
-            OPENDAQ_RETURN_IF_FAILED(errCode);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr deviceType;
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);
@@ -170,10 +167,7 @@ public:
         
         DictPtr<IString, IComponentType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
-        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
-            daqClearErrorInfo();
-        else
-            OPENDAQ_RETURN_IF_FAILED(errCode);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr type;
         if (types.assigned())
@@ -222,10 +216,7 @@ public:
 
         DictPtr<IString, IComponentType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
-        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
-            daqClearErrorInfo();
-        else
-            OPENDAQ_RETURN_IF_FAILED(errCode);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr type;
         if (types.assigned())
@@ -252,10 +243,7 @@ public:
         
         DictPtr<IString, IStreamingType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
-        if (errCode == OPENDAQ_ERR_NOTIMPLEMENTED)
-            daqClearErrorInfo();
-        else
-            OPENDAQ_RETURN_IF_FAILED(errCode);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr streamingType;
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);

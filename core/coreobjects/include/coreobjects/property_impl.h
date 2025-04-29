@@ -1137,10 +1137,7 @@ public:
     {
         StringPtr name;
         ErrCode errCode = serializedObj->readString(String("name"), &name);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
 
         const auto propObj = PropertyBuilder(name);
 
@@ -1151,96 +1148,66 @@ public:
 
         BaseObjectPtr unit;
         errCode = serializedObj->readObject(String("unit"), context, factoryCallback, &unit);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setUnit(unit.asPtr<IUnit>());
 
         DESERIALIZE_MEMBER(context, factoryCallback, defaultValue, setDefaultValue)
 
         BaseObjectPtr refProp;
         errCode = serializedObj->readObject(String("refProp"), context, factoryCallback, &refProp);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setReferencedProperty(refProp.asPtr<IEvalValue>());
 
         DESERIALIZE_MEMBER(context, factoryCallback, selectionValues, setSelectionValues)
 
         BaseObjectPtr suggestedValues;
         errCode = serializedObj->readObject(String("suggestedValues"), context, factoryCallback, &suggestedValues);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setSuggestedValues(suggestedValues.asPtr<IList>());
 
         BaseObjectPtr visible;
         errCode = serializedObj->readObject(String("visible"), context, factoryCallback, &visible);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setVisible(visible.asPtr<IBoolean>());
 
         BaseObjectPtr readOnly;
         errCode = serializedObj->readObject(String("readOnly"), context, factoryCallback, &readOnly);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setReadOnly(readOnly.asPtr<IBoolean>());
 
         BaseObjectPtr minValue;
         errCode = serializedObj->readObject(String("minValue"), context, factoryCallback, &minValue);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setMinValue(minValue.asPtr<INumber>());
 
         BaseObjectPtr maxValue;
         errCode = serializedObj->readObject(String("maxValue"), context, factoryCallback, &maxValue);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setMaxValue(maxValue.asPtr<INumber>());
 
         BaseObjectPtr coercer;
         errCode = serializedObj->readObject(String("coercer"), context, factoryCallback, &coercer);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setCoercer(coercer.asPtr<ICoercer>());
 
         BaseObjectPtr validator;
         errCode = serializedObj->readObject(String("validator"), context, factoryCallback, &validator);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setValidator(validator.asPtr<IValidator>());
 
         BaseObjectPtr callableInfo;
         errCode = serializedObj->readObject(String("callableInfo"), context, factoryCallback, &callableInfo);
-        if (errCode == OPENDAQ_ERR_NOTFOUND)
-            daqClearErrorInfo();
-        else if (OPENDAQ_FAILED(errCode))
-            return DAQ_MAKE_ERROR_INFO(errCode);
-        else
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setCallableInfo(callableInfo.asPtr<ICallableInfo>());
 
         *obj = propObj.build().detach();

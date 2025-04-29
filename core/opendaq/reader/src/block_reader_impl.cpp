@@ -254,6 +254,7 @@ ErrCode BlockReaderImpl::readPacketData()
             {
                 return errCode;
             }
+            daqClearErrorInfo();
             errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         }
 

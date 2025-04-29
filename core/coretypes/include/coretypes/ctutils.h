@@ -145,7 +145,7 @@ inline void checkErrorInfo(ErrCode errCode)
         SizeT count = 0;
         errorInfoList->getCount(&count);
 
-        for (SizeT i = count; i-- > 0;)
+        for (SizeT i = 0; i < count; i++)
         {
             IBaseObject* errorInfoObj;
             errorInfoList->getItemAt(i, &errorInfoObj);
@@ -156,7 +156,7 @@ inline void checkErrorInfo(ErrCode errCode)
             if (errorInfo != nullptr)
             {
                 ErrorFormat(ss, errorInfo);
-                if (i != 0)
+                if (i != count - 1)
                     ss << "\n";
             }
             if (errorInfoObj != nullptr)

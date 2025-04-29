@@ -171,6 +171,7 @@ inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObjec
     errCode = ser->readString("name"_daq, &name);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
+        daqClearErrorInfo();
         name = core_event_args_impl::getCoreEventName((CoreEventId) id);
         errCode = OPENDAQ_SUCCESS;
     }

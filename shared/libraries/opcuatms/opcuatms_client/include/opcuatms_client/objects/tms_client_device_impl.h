@@ -61,6 +61,7 @@ protected:
     void findAndCreateServerCapabilities(const DeviceInfoPtr& deviceInfo);
 
     void removed() override;
+    bool isAddedToLocalComponentTree() override;
 
 private:
     void fetchTimeDomain();

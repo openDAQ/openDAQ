@@ -53,7 +53,7 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     mockConfig.addProperty(FunctionProperty("onRetrieveConfig", FunctionInfo(ctObject, retrieveArguments)));
 
     auto types = Dict<IString, IDeviceType>();
-    types.set("mock_client_device", DeviceType("mock_client_device", "Client", "Client device", "daqmock"));
+    types.set("mock_client_device", DeviceType("mock_client_device", "Client", "Client device", "daqmock", mockConfig));
     types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock", mockConfig));
 
     *deviceTypes = types.detach();
@@ -91,7 +91,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
     }
     else
     {
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Invalid connection string %s", connStr.getCharPtr());
     }
     *device = devicePtr.detach();
 

@@ -137,7 +137,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 12);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 13);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -236,6 +236,13 @@ TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
     ASSERT_THROW(client.unlock(), ServerVersionTooLowException);
     ASSERT_THROW(client.getDevices()[0].getAvailableDevices(), ServerVersionTooLowException);
     ASSERT_THROW(client.getDevices()[0].getAvailableDeviceTypes(), ServerVersionTooLowException);
+}
+
+TEST_F(NativeDeviceModulesTest, FailedToSetAsRoot)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    ASSERT_THROW(client.setRootDevice("daq.nd://127.0.0.1"), InvalidParameterException);
 }
 
 TEST_F(NativeDeviceModulesTest, ConnectViaIpv6)
@@ -1168,6 +1175,23 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(channels.getCount(), 2u);
     auto servers = devices[0].getServers();
     ASSERT_EQ(servers.getCount(), 1u);
+}
+
+TEST_F(NativeDeviceModulesTest, DeviceComponentConfig)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto localNativeDevice = client.getDevices()[0];
+    auto nestedDevice = localNativeDevice.getDevices()[0];
+
+    // config automatically set by local ModuleManager when device created
+    ASSERT_TRUE(localNativeDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    ASSERT_THROW(localNativeDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), AlreadyExistsException);
+
+    // for nested device config cannot be overriden locally
+    ASSERT_TRUE(nestedDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    ASSERT_THROW(nestedDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), InvalidOperationException);
 }
 
 TEST_F(NativeDeviceModulesTest, GetStatuses)
@@ -2811,6 +2835,67 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
     ASSERT_EQ(signal.getGlobalId(), clientRefDevice.getSignals(search::Recursive(search::Visible()))[0].getGlobalId());
 }
 
+TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto client = CreateClientInstance();
+        
+        auto deviceConfig = client.createDefaultAddDeviceConfig();
+        deviceConfig.addProperty(StringProperty("TestKey", "TestValue"));
+        client.getDevices()[0].addDevice("daqref://device1", deviceConfig);
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices()[0].getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto deviceConfig = devices[0].asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(deviceConfig.assigned());
+    ASSERT_TRUE(deviceConfig.hasProperty("TestKey"));
+    ASSERT_EQ(deviceConfig.getPropertyValue("TestKey"), "TestValue");
+}
+
+
+TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0];
+
+        auto fbConfig = PropertyObject();
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+
+        auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto devices = restoredClient.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+    auto clientRoot = devices[0];
+
+    ASSERT_EQ(clientRoot.getFunctionBlocks().getCount(), 1u);
+
+    auto fb = clientRoot.getFunctionBlocks()[0];
+    auto fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(fbConfig.assigned());
+    ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+    ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
+}
+
 StringPtr getFileLastModifiedTime(const std::string& path)
 {
     auto ftime = fs::last_write_time(path);
@@ -2928,7 +3013,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for server root device
     ASSERT_NO_THROW(server.setOperationModeRecursive(daq::OperationModeType::Idle));
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
@@ -2938,7 +3023,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for server sub device
     ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
@@ -2948,7 +3033,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for client sub device
     ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
@@ -2958,7 +3043,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for client device not recursively
     ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::SafeOperation));
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
@@ -2968,7 +3053,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for client device
     ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 

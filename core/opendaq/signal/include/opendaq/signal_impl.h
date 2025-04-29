@@ -53,8 +53,8 @@ class SignalBase;
 
 using SignalImpl = SignalBase<ISignalConfig>;
 
-using TempConnectionsAllocator = detail::MemPoolAllocator<ConnectionPtr>;
-using TempConnectionsMemPool = detail::StaticMemPool<ConnectionPtr, 8>;
+using TempConnectionsAllocator = details::MemPoolAllocator<ConnectionPtr>;
+using TempConnectionsMemPool = details::StaticMemPool<ConnectionPtr, 8>;
 using TempConnections = std::vector<ConnectionPtr, TempConnectionsAllocator>;
 
 template <typename TInterface, typename... Interfaces>

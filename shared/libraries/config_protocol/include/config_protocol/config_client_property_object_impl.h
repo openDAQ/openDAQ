@@ -646,7 +646,7 @@ PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyOb
                                             const BaseObjectPtr& context,
                                             const FunctionPtr& factoryCallback)
                                      {
-                                         return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                                         return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
                                      });
         
         const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());

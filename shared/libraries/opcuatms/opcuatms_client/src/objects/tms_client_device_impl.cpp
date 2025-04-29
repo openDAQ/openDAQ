@@ -26,7 +26,6 @@
 #include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms_client/objects/tms_client_function_block_type_factory.h>
 #include <opendaq/device_domain_factory.h>
-#include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/address_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -104,7 +103,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                                  nodeId,
                                  {{"UserName", "userName"}, {"Location", "location"}})
     , logger(ctx.getLogger())
-    , loggerComponent( this->logger.assigned()
+    , loggerComponent(this->logger.assigned()
                           ? this->logger.getOrAddComponent("TmsClientDevice")
                           : throw ArgumentNullException("Logger must not be null"))
 {
@@ -119,6 +118,10 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
     findAndCreateSyncComponent();
+
+    // for the root device the client side local config object is used
+    if (!isRootDevice)
+        this->componentConfig = this->findAndCreateComponentConfig();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
@@ -657,6 +660,11 @@ void TmsClientDeviceImpl::removed()
     Super::removed();
 }
 
+bool TmsClientDeviceImpl::isAddedToLocalComponentTree()
+{
+    return this->clientContext->getRootDevice() == this->thisPtr<DevicePtr>();
+}
+
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
 {
     std::map<uint32_t, ComponentPtr> orderedComponents;
@@ -756,21 +764,6 @@ FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId
 
     auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, localId, clientContext, fbNodeId);
     addNestedFunctionBlock(clientFunctionBlock);
-
-    auto fbSignals = clientFunctionBlock.getSignals(search::Recursive(search::Any()));
-    auto deviceStreamingSources = this->thisPtr<MirroredDevicePtr>().getStreamingSources();
-    for (const auto& streaming : deviceStreamingSources)
-    {
-        streaming.addSignals(fbSignals);
-    }
-    if (deviceStreamingSources.getCount() > 0)
-    {
-        for (const auto& signal : fbSignals)
-        {
-            if (signal.getPublic())
-                signal.asPtr<IMirroredSignalConfig>().setActiveStreamingSource(deviceStreamingSources[0].getConnectionString());
-        }
-    }
 
     return clientFunctionBlock;
 }

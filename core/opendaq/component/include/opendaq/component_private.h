@@ -23,6 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(ICoreEventArgs, "coreobjects")]
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
 
 /*!
@@ -68,6 +69,18 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
      * @param modeType The new operation mode.
      */
     virtual ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) = 0;
+
+    /*!
+     * @brief Sets the configuration which was used to create the component.
+     * @param config The configuration of the component.
+     */
+    virtual ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) = 0;
+
+    /*!
+     * @brief Retrieves the configuration which was used to create the component.
+     * @param config The configuration of the component.
+     */
+    virtual ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

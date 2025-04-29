@@ -43,6 +43,7 @@
 - [#751](https://github.com/openDAQ/openDAQ/pull/751) Fix IPv6 addresses discovering on Windows, improve regex parsing of connection strings, fix LT pseudo-device IPv6 connection info
 - [#744](https://github.com/openDAQ/openDAQ/pull/744) Fix leaf device streaming misconfiguration on reconnection
 - [#740](https://github.com/openDAQ/openDAQ/pull/740) Fixes restoring connection signals to dynamic input ports of a function block while loading the configuration when the name of the new input does not match the old one.
+- [#734](https://github.com/openDAQ/openDAQ/pull/734) Using component config while loading configuration for the devices and function blocks.
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Fixes list/dictionary deserialization not containing key/value/item interface IDs. Requires server-side update.
 - [#731](https://github.com/openDAQ/openDAQ/pull/731) Fixes nested object access over OPC UA. Object properties original PropertyObject is now stored in PropertyObjectImpl; PropertyImpl now contains the clone.
 - [#719](https://github.com/openDAQ/openDAQ/pull/719) Fixes error when accessing selection property values using "dot" notation (eg. `getPropertySelectionValue("child.val")`).
@@ -269,4 +270,16 @@ DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscovered
 
 +   return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
+```
+
+### [#734](https://github.com/openDAQ/openDAQ/pull/734) Using component config while loading configuration for the devices and function blocks.
+
+Introduces new methods on IComponentPrivate interface to manage component initialization config PropertyObject and deprecates similar methods from IDevicePrivate.
+
+Therefore, the getting device config is to be modified as follows:
+
+```diff
+    auto device = instance.getDevices()[0];
+-   PropertyObjectPtr config = device.asPtr<IDevicePrivate>(true).getDeviceConfig();
++   PropertyObjectPtr config = device.asPtr<IComponentPrivate>(true).getComponentConfig();
 ```

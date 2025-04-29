@@ -744,7 +744,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         // Function to read samples from the signal
         void ReadSamples(MirroredSignalConfig signal)
         {
-            var reader = OpenDAQFactory.CreateStreamReader<double, UInt64>(signal);
+            var reader = OpenDAQFactory.CreateStreamReader<double, ulong>(signal);
 
             // Get the resolution and origin
             DataDescriptor descriptor = signal.DomainSignal.Descriptor;
@@ -757,7 +757,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
             // Allocate buffer for reading double samples
             double[] samples = new double[100];
-            UInt64[] domainSamples = new UInt64[100];
+            ulong[] domainSamples = new ulong[100];
             for (int i = 0; i < 40; ++i)
             {
                 Thread.Sleep(25);
@@ -816,8 +816,6 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Test]
     public void Test_0801_ReadWithDomainReaderCreateTest()
     {
-        Signal signal = device.GetChannels()[0].GetSignals()[0];
-
         // These calls all create the same reader
         var reader1 = OpenDAQFactory.CreateStreamReader(signal);
         var reader2 = OpenDAQFactory.CreateStreamReader<double, long>(signal);
@@ -826,8 +824,6 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [Test]
     public void Test_0802_ReadWithDomainReaderReadingDataTest()
     {
-        Signal signal = device.GetChannels()[0].GetSignals()[0];
-
         var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
 
         // Should return 0
@@ -866,8 +862,6 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     //[Test] //not a real test
     public void Test_0803_ReadWithDomainReaderHandlingSignalChangesTest()
     {
-        Signal signal = device.GetChannels()[0].GetSignals()[0];
-
         // Signal Sample Type value is `Float64` (double)
 
         //Hint: StreamReaderBuilder not yet available in .NET Bindings (no "SkipEvents" possible)
@@ -915,8 +909,6 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     //[Test] //not a real test
     public void Test_0804_ReadWithDomainReaderInvalidationAndReuseTest()
     {
-        Signal signal = device.GetChannels()[0].GetSignals()[0];
-
         //Hint: StreamReaderBuilder not yet available in .NET Bindings (no "SkipEvents" possible)
         //var reader = OpenDAQFactory.StreamReaderBuilder<long, long>()
         //                           .SetSignal(signal)
@@ -961,7 +953,271 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     #region Only last N samples
 
     // Corresponding document: Antora/modules/howto_guides/pages/howto_read_last_n_samples.adoc
-    //T0901_
+
+    //[Test] //not a real test
+    public void Test_0901_OnlyLastNSamplesTest()
+    {
+        var reader = OpenDAQFactory.CreateTailReader(signal, 5);
+
+        // Signal produces 3 samples: { 1, 2, 3 }
+
+        nuint count = 5;
+        double[] values = new double[5];
+        long[] domain = new long[5];
+
+        reader.ReadWithDomain(values, domain, ref count); // count = 3, values = { 1, 2, 3, 0, 0 }
+    }
+
+    //[Test] //not a real test
+    public void Test_0902_OnlyLastNSamplesTest()
+    {
+        //Hint: TailReaderBuilder not yet available in .NET Bindings (no "SkipEvents" possible)
+        //var reader = OpenDAQFactory.TailReaderBuilder().SetSignal(signal).SetHistorySize(5).SetSkipEvents(true).Build();
+        var reader = OpenDAQFactory.CreateTailReader(signal, 5);
+
+        // The Signal produces 3 samples: 1, 2, 3
+
+        nuint count = 5;
+        double[] values = new double[5];
+
+        reader.Read(values, ref count); // count = 3, values = { 1, 2, 3, 0, 0 }
+
+        // The Signal produces 3 samples: 4, 5, 6
+
+        count = 5;
+        reader.Read(values, ref count); // count = 5, values = { 2, 3, 4, 5, 6 }
+    }
+
+    [Test]
+    public void Test_0903_OnlyLastNSamplesReadingAboveHistorySizeTest()
+    {
+        var reader = OpenDAQFactory.CreateTailReader(signal, 5);
+
+        /*
+         * The Signal produces 3 Packets
+         * [Packet 1]: 4 samples
+         * [Packet 2]: 3 samples
+         * [Packet 3]: 1 sample
+         * -------------------------------
+         *      Total: 8 samples
+         */
+
+        nuint count = 10;
+        double[] values = new double[10];
+
+        // Will return staus.ReadStatus == ReadStatus.Fail and count == 0
+        var status = reader.Read(values, ref count);
+
+        // Will succeed as [Packet 3] and [Packet 2] together are less than 5 samples
+        // and we still need to keep the [Packet 1] around to satisfy the minimum of 5 samples
+        count = 8;
+        status = reader.Read(values, ref count); //returns status.ReadStatus == ReadStatus.Event and count == 0
+        status = reader.Read(values, ref count); //returns status.ReadStatus == ReadStatus.Ok and count == 8
+    }
+
+    //[Test(ExpectedResult = 0)] //not a real test
+    public int Test_0904_OnlyLastNSamples_FullListingTest()
+    {
+#if not_applicable_in_csharp
+        SignalConfig signal = setupExampleSignal();
+
+        example1(signal);
+        example2(signal);
+        example3(signal);
+
+        return 0;
+
+        /*
+         * Example 1: Behavior of the Tail Reader before getting the full history-size samples
+         */
+        void example1(SignalConfig signal)
+        {
+            var reader = OpenDAQFactory.CreateTailReader(signal, 5);
+            System.Diagnostics.Debug.Assert(reader.AvailableCount == 0u, "reader.AvailableCount != 0u");
+
+            // Allocate the buffers for the reader to copy data into
+            nuint count = 0;
+            double[] values = new double[5];
+            long[] domain = new long[5];
+
+            // Is below the history-size
+            count = 3;
+            reader.ReadWithDomain(values, domain, ref count);
+            System.Diagnostics.Debug.Assert(count == 0, "count != 0");
+
+            try
+            {
+                // Is more than the history-size
+                count = 6;
+                reader.ReadWithDomain(values, domain, ref count);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"*** {ex.GetType().Name}: {ex.Message}");
+            }
+
+            // The Signal produces 3 samples: 1, 2, 3
+            var packet = createPacketForSignal(signal, 3, 0);
+            double[] data = static_cast<double*>(packet.Data);
+            data[0] = 1;
+            data[1] = 2;
+            data[2] = 3;
+            signal.SendPacket(packet);
+
+            count = 5;
+            reader.ReadWithDomain(values, domain, ref count);
+
+            // count = 3, values = { 1, 2, 3, 0, 0 }
+            System.Diagnostics.Debug.Assert(count == 3u, "count != 3u");
+            System.Diagnostics.Debug.Assert(values[0] == 1, "values[0] != 1");
+            System.Diagnostics.Debug.Assert(values[1] == 2, "values[1] != 2");
+            System.Diagnostics.Debug.Assert(values[2] == 3, "values[2] != 3");
+            System.Diagnostics.Debug.Assert(values[3] == 0, "values[3] != 0");
+            System.Diagnostics.Debug.Assert(values[4] == 0, "values[4] != 0");
+        }
+
+        /*
+        * Example 2: Subsequent reads can have overlapping samples
+        */
+        void example2(SignalConfig signal)
+        {
+            var reader = TailReaderBuilder().setSignal(signal).setHistorySize(5).setSkipEvents(true).build();
+
+            // The Signal produces 3 samples: 1, 2, 3
+            SizeT FIRST_PACKET_SAMPLES = 3u;
+            var packet = createPacketForSignal(signal, FIRST_PACKET_SAMPLES);
+            var data = static_cast<double*>(packet.getData());
+            data[0] = 1;
+            data[1] = 2;
+            data[2] = 3;
+            signal.sendPacket(packet);
+
+            // Allocate the buffers for the reader to copy data into
+            nuint count{ 5}
+            ;
+            double[] values = new double[5]{ }
+            ;
+            reader.read(values, ref count);
+
+            // count = 3, values = { 1, 2, 3, 0, 0 }
+            System.Diagnostics.Debug.Assert(count == 3u, "count != 3u");
+            System.Diagnostics.Debug.Assert(values[0] == 1, "values[0] != 1");
+            System.Diagnostics.Debug.Assert(values[1] == 2, "values[1] != 2");
+            System.Diagnostics.Debug.Assert(values[2] == 3, "values[2] != 3");
+            System.Diagnostics.Debug.Assert(values[3] == 0, "values[3] != 0");
+            System.Diagnostics.Debug.Assert(values[4] == 0, "values[4] != 0");
+
+            // The Signal produces 3 samples: 4, 5, 6
+            var packet2 = createPacketForSignal(signal, 3, FIRST_PACKET_SAMPLES);
+            var data2 = static_cast<double*>(packet2.getData());
+            data2[0] = 4;
+            data2[1] = 5;
+            data2[2] = 6;
+            signal.sendPacket(packet2);
+
+            count = 5;
+            reader.read(values, ref count);
+
+            // count = 5, values = { 2, 3, 4, 5, 6 }
+            System.Diagnostics.Debug.Assert(count == 5, "count != 5");
+            System.Diagnostics.Debug.Assert(values[0] == 2, "values[0] != 2");
+            System.Diagnostics.Debug.Assert(values[1] == 3, "values[1] != 3");
+            System.Diagnostics.Debug.Assert(values[2] == 4, "values[2] != 4");
+            System.Diagnostics.Debug.Assert(values[3] == 5, "values[3] != 5");
+            System.Diagnostics.Debug.Assert(values[4] == 6, "values[4] != 6");
+        }
+
+        void example3(SignalConfig signal)
+        {
+            var reader = TailReaderBuilder().setSignal(signal).setHistorySize(5).setSkipEvents(true).build();
+
+            /*
+             * The Signal produces 3 Packets
+             * [Packet 1]: 4 samples
+             * [Packet 2]: 3 samples
+             * [Packet 3]: 1 sample
+             * -------------------------------
+             *      Total: 8 samples
+             */
+
+            var packet1 = createPacketForSignal(signal, 4);
+            var packet2 = createPacketForSignal(signal, 3);
+            var packet3 = createPacketForSignal(signal, 1);
+            signal.sendPacket(packet1);
+            signal.sendPacket(packet2);
+            signal.sendPacket(packet3);
+
+            System.Diagnostics.Debug.Assert(reader.AvailableCount == 8u, "reader.AvailableCount != 8u");
+
+            // Allocate the buffers for the reader to copy data into
+            nuint count{ }
+            ;
+            double[] values = new double[10]{ }
+            ;
+
+            try
+            {
+                count = 10;
+
+                // Will throw a SizeTooLargeException
+                reader.read(values, ref count);
+            }
+            catch (SizeTooLargeExcept e)
+            {
+                Console.WriteLine("*** Exception: " + e.what());
+            }
+
+            // Will succeed as [Packet 3] and [Packet 2] together are less than 5 samples,
+            // and we still need to keep [Packet 1] around to satisfy the minimum of 5 samples
+            count = 8;
+            reader.read(values, ref count);
+
+            System.Diagnostics.Debug.Assert(count == 8u, "count != 8u");
+        }
+
+        /*
+         * Set up the Signal with Float64 data
+         */
+        SignalConfig setupExampleSignal()
+        {
+            var logger = Logger();
+            var context = Context(Scheduler(logger, 1), logger, nullptr, nullptr);
+
+            var signal = Signal(context, nullptr, "example signal");
+            signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+            return signal;
+        }
+
+        DataDescriptor setupDescriptor(SampleType type, DataRule rule)
+        {
+            // Set up the data descriptor with the provided Sample-Type
+            //var dataDescriptor = OpenDAQFactory.CreateDataDescriptorBuilder().SetSampleType(type);
+            var dataDescriptor = OpenDAQFactory.CreateDataDescriptorBuilder();
+            dataDescriptor.SetSampleType(type);
+
+            // For the Domain, we provide a Linear Rule to generate time-stamps
+            if (rule.assigned())
+                dataDescriptor.setRule(rule);
+
+            return dataDescriptor.build();
+        }
+
+        DataPacket createPacketForSignal(Signal signal, nuint numSamples, long offset)
+        {
+            // Create a Data Packet where the values are generated via the +1 rule starting at 0
+            var domainPacket =
+                OpenDAQFactory.CreateDataPacket(setupDescriptor(SampleType.Int64, OpenDAQFactory.CreateLinearDataRule(1, 0)),
+                                                numSamples,
+                                                offset  // offset from 0 to start the sample generation at
+                                                );
+
+            return OpenDAQFactory.CreateDataPacketWithDomain(domainPacket, signal.Descriptor, numSamples, offset);
+        }
+#else
+        return 0;
+#endif
+    }
 
     #endregion Only last N samples
 

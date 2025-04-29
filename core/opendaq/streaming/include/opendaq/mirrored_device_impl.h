@@ -16,10 +16,11 @@
 
 #pragma once
 
-#include <opendaq/mirrored_device_config.h>
+#include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_private.h>
+#include <opendaq/streaming_source_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -40,6 +41,7 @@ public:
                                 const StringPtr& localId,
                                 const StringPtr& className = nullptr,
                                 const StringPtr& name = nullptr);
+    ~MirroredDeviceBase() override;
 
     // IMirroredDevice
     ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingSources) override;
@@ -48,13 +50,19 @@ public:
     ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streamingSource) override;
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
 
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
+
 protected:
     void removed() override;
 
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
+    virtual bool isAddedToLocalComponentTree();
+
 private:
     std::vector<StreamingPtr> streamingSources;
+    StreamingSourceManagerPtr streamingSourceManager;
 };
 
 template <typename... Interfaces>
@@ -65,6 +73,12 @@ MirroredDeviceBase<Interfaces...>::MirroredDeviceBase(const ContextPtr& ctx,
                                                       const StringPtr& name)
     : Super(ctx, parent, localId, className, name)
 {
+}
+
+template <typename... Interfaces>
+MirroredDeviceBase<Interfaces...>::~MirroredDeviceBase()
+{
+    streamingSourceManager.reset();
 }
 
 template <typename... Interfaces>
@@ -194,6 +208,32 @@ void MirroredDeviceBase<Interfaces...>::removed()
 }
 
 template <typename... Interfaces>
+ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* config)
+{
+    if (!this->isAddedToLocalComponentTree())
+    {
+        return DAQ_MAKE_ERROR_INFO(
+            OPENDAQ_ERR_INVALID_OPERATION,
+            "Cannot set config for device added to remote component tree"
+        );
+    }
+    ErrCode errCode = Super::setComponentConfig(config);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    if (this->componentConfig.assigned() && this->componentConfig.hasProperty("General"))
+    {
+        auto deviceSelf = this->template borrowPtr<DevicePtr>();
+        PropertyObjectPtr generalConfig = this->componentConfig.getPropertyValue("General");
+        bool automaticallyConnectStreamings = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
+        if (automaticallyConnectStreamings &&
+            !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2)) // is not "NotConnected"
+            streamingSourceManager = std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
+    }
+
+    return errCode;
+}
+
+template <typename... Interfaces>
 StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     auto lock = this->getRecursiveConfigLock();
@@ -225,6 +265,12 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
     checkErrorInfo(streamingPtr.template asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
 
     return streamingPtr;
+}
+
+template <typename... Interfaces>
+bool MirroredDeviceBase<Interfaces...>::isAddedToLocalComponentTree()
+{
+    return false;
 }
 
 END_NAMESPACE_OPENDAQ

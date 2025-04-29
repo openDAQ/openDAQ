@@ -170,7 +170,7 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
     /*!
      * @brief Sets the position of the device. The position specifies the position within a
      * given system. For example in which slot or slice the device is in.
-     * @param position The platform of the device.
+     * @param position The position of the device.
      */
     virtual ErrCode INTERFACE_FUNC setPosition(Int position) = 0;
 
@@ -191,9 +191,6 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceInfoConfig, IDeviceInfo)
     /*!
      * @brief Sets the location of the device.
      * @param[out] location The location of the device.
-     *
-     * If the info object is obtained from a device that is already added (not through discovery),
-     * the location string value matches that of the device's "userName" property.
      */
     virtual ErrCode INTERFACE_FUNC setLocation(IString* location) = 0;
 

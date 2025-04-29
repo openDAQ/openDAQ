@@ -1,6 +1,7 @@
 #include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms/converters/variant_converter.h>
 #include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -31,7 +32,19 @@ void PropertyObjectConversionUtils::ToPropertyObject(const OpcUaVariant& variant
     const auto dict = VariantConverter<IDict>::ToDaqObject(variant);
 
     for (const auto& entry : dict)
-        objOut.setPropertyValue(entry.first, entry.second);
+    {
+        if (!objOut.hasProperty(entry.first))
+        {
+            auto property = PropertyBuilder(entry.first).setValueType(entry.second.getCoreType())
+                                                        .setDefaultValue(entry.second)
+                                                        .build();
+            objOut.addProperty(property);
+        }
+        else
+        {
+            objOut.setPropertyValue(entry.first, entry.second);
+        }
+    }
 }
 
 PropertyObjectPtr PropertyObjectConversionUtils::ClonePropertyObject(const PropertyObjectPtr& obj)

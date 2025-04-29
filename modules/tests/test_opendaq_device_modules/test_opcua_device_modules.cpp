@@ -63,6 +63,13 @@ TEST_F(OpcuaDeviceModulesTest, ConnectAndDisconnect)
     server.detach();
 }
 
+TEST_F(OpcuaDeviceModulesTest, FailedToSetAsRoot)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    ASSERT_THROW(client.setRootDevice("daq.opcua://127.0.0.1"), InvalidParameterException);
+}
+
 TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 {
     if (test_helpers::Ipv6IsDisabled())
@@ -413,6 +420,23 @@ TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(fbs.getCount(), 1u);
     auto channels = client.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 2u);
+}
+
+TEST_F(OpcuaDeviceModulesTest, DeviceComponentConfig)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto localOpcuaDevice = client.getDevices()[0];
+    auto nestedOpcuaDevice = localOpcuaDevice.getDevices()[0];
+
+    // config automatically set by local ModuleManager when device created
+    ASSERT_TRUE(localOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    ASSERT_THROW(localOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), AlreadyExistsException);
+
+    // for nested device config cannot be overriden locally
+    ASSERT_TRUE(nestedOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    ASSERT_THROW(nestedOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), InvalidOperationException);
 }
 
 TEST_F(OpcuaDeviceModulesTest, RemoveDevice)
@@ -1416,4 +1440,40 @@ TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+}
+
+TEST_F(OpcuaDeviceModulesTest, SaveLoadFunctionBlockConfig)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstance();
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0].getDevices()[0];
+
+        PropertyObjectPtr fbConfig = PropertyObject();
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+
+        auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
+
+        fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+        ASSERT_TRUE(fbConfig.assigned());
+        ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+        ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstance();
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto clientRoot = restoredClient.getDevices()[0].getDevices()[0];
+    
+    ASSERT_EQ(clientRoot.getFunctionBlocks().getCount(), 1u);
+
+    auto fb = clientRoot.getFunctionBlocks()[0];
+    auto fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(fbConfig.assigned());
+    ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+    ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }

@@ -66,6 +66,7 @@ protected:
     void addSignal(const SignalPtr& signal);
     void removeSignal(const SignalConfigPtr& signal);
 
+    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
     void addNestedFunctionBlock(const FunctionBlockPtr& functionBlock);
     void removeNestedFunctionBlock(const FunctionBlockPtr& functionBlock);
     FunctionBlockPtr createAndAddNestedFunctionBlock(const StringPtr& typeId,
@@ -374,6 +375,11 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
 }
 
 template <class Intf, class ... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+}
+
+template <class Intf, class ... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::removeNestedFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     functionBlocks.removeItem(functionBlock);
@@ -581,7 +587,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
         fbFolder.checkObjectType("Folder");
 
         if (clearFunctionBlocksOnUpdate())
-            functionBlocks.clear();
+            for (const auto& fb : functionBlocks.getItems())
+                onRemoveFunctionBlock(fb);
 
         updateFolder(fbFolder,
                      "Folder",

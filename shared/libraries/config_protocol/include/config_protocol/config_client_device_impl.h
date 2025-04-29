@@ -423,9 +423,8 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
                     const BaseObjectPtr& context,
                     const FunctionPtr& factoryCallback)
                 {
-                    return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
-                },
-                nullptr);
+                    return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
+                });
 
             if (deserializedObj.assigned())
                 this->addExistingComponent(deserializedObj);

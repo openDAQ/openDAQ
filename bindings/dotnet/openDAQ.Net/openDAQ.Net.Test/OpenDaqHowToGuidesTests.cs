@@ -814,7 +814,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     // Corresponding document: Antora/modules/howto_guides/pages/howto_read_with_domain.adoc
 
     [Test]
-    public void Test_0801_ReaderCreateTest()
+    public void Test_0801_ReadWithDomainReaderCreateTest()
     {
         Signal signal = device.GetChannels()[0].GetSignals()[0];
 
@@ -824,7 +824,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void Test_0802_ReaderReadingDataTest()
+    public void Test_0802_ReadWithDomainReaderReadingDataTest()
     {
         Signal signal = device.GetChannels()[0].GetSignals()[0];
 
@@ -863,20 +863,94 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         }
     }
 
-    //[Test]
-    public void Test_0803_ReaderHandlingSignalChangesTest()
+    //[Test] //not a real test
+    public void Test_0803_ReadWithDomainReaderHandlingSignalChangesTest()
     {
-        //ToDo: call-backs not yet implemented
+        Signal signal = device.GetChannels()[0].GetSignals()[0];
+
+        // Signal Sample Type value is `Float64` (double)
+
+        //Hint: StreamReaderBuilder not yet available in .NET Bindings (no "SkipEvents" possible)
+        //var reader = OpenDAQFactory.StreamReaderBuilder<double, long>()
+        //                           .SetSignal(signal)
+        //                           //.SetValueReadType(SampleType::Float64)
+        //                           //.SetDomainReadType(SampleType::Int64)
+        //                           .SetSkipEvents(true)
+        //                           .Build();
+        var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+
+        // Signal produces 2 samples { 1.1, 2.2 }
+
+        //
+        // The value Sample Type of the `signal` changes from `Float64` to `Int32`
+        //
+
+        // Signal produces 2 samples { 3, 4 }
+
+        // If Descriptor has changed, Reader will return Reader status with that event
+        // Call succeeds and results in 2 samples { 1.1, 2.2 }
+        nuint count = 5;
+        double[] values = new double[5];
+        var status = reader.Read(values, ref count);
+        System.Diagnostics.Debug.Assert(status.ReadStatus == ReadStatus.Event, "status.ReadStatus != ReadStatus.Event");
+
+        // The subsequent call succeeds because `Int32` is convertible to `Float64`
+        // and results in 2 samples { 3.0, 4.0 }
+        reader.Read(values, ref count);
+
+        //
+        // The value Sample Type of the `signal` changes from `Int32` to `Int64`
+        //
+
+        // Signal produces 2 samples { 5, 6 }
+
+        // Reader reads 0 values and returns status with new Event Packet
+        nuint newCount = 2;
+        double[] newValues = new double[2];
+        var newStatus = reader.Read(newValues, ref newCount);
+        System.Diagnostics.Debug.Assert(newCount == 0u, "newCount != 0");
+        System.Diagnostics.Debug.Assert(newStatus.ReadStatus == ReadStatus.Event, "newStatus.ReadStatus != ReadStatus.Event");
     }
 
-    //[Test]
-    public void Test_0804_ReaderInvalidationAndReuseTest()
+    //[Test] //not a real test
+    public void Test_0804_ReadWithDomainReaderInvalidationAndReuseTest()
     {
-        //ToDo: call-backs not yet implemented
+        Signal signal = device.GetChannels()[0].GetSignals()[0];
+
+        //Hint: StreamReaderBuilder not yet available in .NET Bindings (no "SkipEvents" possible)
+        //var reader = OpenDAQFactory.StreamReaderBuilder<long, long>()
+        //                           .SetSignal(signal)
+        //                           //.SetValueReadType(SampleType::Int64)
+        //                           //.SetDomainReadType(SampleType::Int64)
+        //                           .SetSkipEvents(true)
+        //                           .Build();
+        var reader = OpenDAQFactory.CreateStreamReader<long, long>(signal);
+
+        // Signal produces 5 samples { 1, 2, 3, 4, 5 }
+
+        nuint count = 2;
+        long[] values = new long[2];
+        var firstStatus = reader.Read(values, ref count);  // count = 0, firstStatus = Event //currently no "SkipEvents" possible
+        reader.Read(values, ref count);  // count = 2, values = { 1, 2 }
+
+        // Reuse the Reader
+        //var newReader = OpenDAQFactory.CreateStreamReaderFromExisting<double, long>(reader); //currently not possible to change types
+        var newReader = OpenDAQFactory.CreateStreamReaderFromExisting<long, long>(reader);
+
+        // New Reader successfully continues on from previous Reader's position
+        count = 2;
+        long[] newValues = new long[2];
+        newReader.Read(newValues, ref count);  // count = 2, values = { 3, 4 }
+
+        // The old Reader has been invalidated when reused by a new one
+        count = 2;
+        long[] oldValues = new long[2];
+        var status = reader.Read(oldValues, ref count);
+        System.Diagnostics.Debug.Assert(status.Valid == false, "status.Valid != false");
     }
 
-    //[Test]
-    public void Test_0805_ReaderInvalidationAndReuseTest2()
+    //[Test] //not a real test
+    public void Test_0805_ReadWithDomainReaderInvalidationAndReuseTest2()
     {
         //ToDo: uses createPacketForSignal which is unknown
         //ToDo: uses SignalConfig as signal

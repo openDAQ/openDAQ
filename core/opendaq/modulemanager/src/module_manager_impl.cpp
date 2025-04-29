@@ -514,10 +514,13 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         else
             checkErrorInfo(createDefaultAddDeviceConfig(&addDeviceConfig));
 
-        PropertyObjectPtr generalConfig = inputIsDefaultAddDeviceConfig
-                                              ? addDeviceConfig.getPropertyValue("General").asPtr<IPropertyObject>()
-                                              : populateGeneralConfig(addDeviceConfig, inputConfig);
 
+        PropertyObjectPtr generalConfig =
+            inputIsDefaultAddDeviceConfig
+                ? addDeviceConfig.getPropertyValue("General").asPtr<IPropertyObject>()
+                : populateGeneralConfig(addDeviceConfig, inputConfig); // copy general properties from input config
+
+        // populate any general props which are duplicated in device & streaming type configs
         copyCommonGeneralPropValues(addDeviceConfig);
 
         const auto [pureConnectionString, connectionStringOptions] = splitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
@@ -552,6 +555,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             if (!deviceType.assigned())
                 continue;
 
+            // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
             const auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
             checkErrorInfo(err);
@@ -1468,7 +1472,6 @@ void ModuleManagerImpl::copyCommonGeneralPropValues(PropertyObjectPtr& addDevice
     {
         PropertyObjectPtr deviceTypeConfig = prop.getValue();
         StringPtr deviceTypeId = prop.getName();
-        overrideCommonPropsDefaultValues(deviceTypeConfig);
         if (overrideCommonPropsDefaultValues(deviceTypeConfig))
             deviceTypesConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(deviceTypeId, deviceTypeConfig);
     }

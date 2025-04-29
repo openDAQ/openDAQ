@@ -62,7 +62,6 @@ private:
     LoggerComponentPtr loggerComponent;
 
     bool minHopsStreamingHeuristicEnabled{false};
-    bool automaticallyConnectStreamings{false};
     std::unordered_set<std::string> allowedProtocolsOnly;
     std::map<StringPtr, SizeT> prioritizedProtocolsMap; // protocol Id as a key, protocol priority as a value
     StringPtr primaryAddressType;
@@ -76,7 +75,6 @@ inline StreamingSourceManager::StreamingSourceManager(const ContextPtr& context,
 {
     PropertyObjectPtr generalConfig = this->deviceConfig.getPropertyValue("General");
     minHopsStreamingHeuristicEnabled = generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 1;
-    automaticallyConnectStreamings = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
     primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
 
     ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
@@ -381,9 +379,6 @@ inline AddressInfoPtr StreamingSourceManager::getDeviceConnectionAddress(const D
 
 inline void StreamingSourceManager::completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice)
 {
-    if (!automaticallyConnectStreamings)
-        return;
-
     if (minHopsStreamingHeuristicEnabled)
     {
         // The order of handling nested devices is important since we need to establish streaming connections

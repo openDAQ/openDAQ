@@ -504,15 +504,10 @@ void TmsServerDevice::removeFunctionBlock(const StringPtr& localId)
         }
     }
 
-    const auto objFunctionBlocks = this->object.getFunctionBlocks(search::Any());
-
+    const auto objFunctionBlocks = this->object.getFunctionBlocks(search::LocalId(localId));
     for (const auto& fb : objFunctionBlocks)
     {
-        if (fb.getLocalId() == localId)
-        {
-            this->object.removeFunctionBlock(fb);
-            break;
-        }
+        this->object.removeFunctionBlock(fb);
     }
 }
 

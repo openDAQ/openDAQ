@@ -50,7 +50,6 @@ void PropertyObjectConversionUtils::ToPropertyObject(const OpcUaVariant& variant
 PropertyObjectPtr PropertyObjectConversionUtils::ClonePropertyObject(const PropertyObjectPtr& obj)
 {
     // This is a workaround until PropertyObject implemnts IClonable.
-
     auto serializer = JsonSerializer();
     auto deserializer = JsonDeserializer();
     obj.serialize(serializer);

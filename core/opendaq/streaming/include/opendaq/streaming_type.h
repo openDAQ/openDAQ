@@ -25,8 +25,8 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @ingroup opendaq_function_blocks
- * @addtogroup opendaq_function_block_type Streaming type
+ * @ingroup opendaq_streamings
+ * @addtogroup opendaq_streaming_type Streaming type
  * @{
  */
 
@@ -49,8 +49,8 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingType, IComponentType)
 /*!@}*/
 
 /*!
- * @ingroup opendaq_function_block_type
- * @addtogroup opendaq_function_block_type_factories Factories
+ * @ingroup opendaq_streaming_type
+ * @addtogroup opendaq_streaming_type_factories Factories
  * @{
  */
 

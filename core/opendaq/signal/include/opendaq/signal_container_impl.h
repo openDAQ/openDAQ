@@ -588,10 +588,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
         fbFolder.checkObjectType("Folder");
 
         if (clearFunctionBlocksOnUpdate())
-        {
             for (const auto& fb : functionBlocks.getItems())
                 onRemoveFunctionBlock(fb);
-        }
 
         updateFolder(fbFolder,
                      "Folder",

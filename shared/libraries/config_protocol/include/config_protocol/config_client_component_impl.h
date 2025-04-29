@@ -46,6 +46,7 @@ public:
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
@@ -132,6 +133,15 @@ template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::updateOperationMode(OperationModeType)
 {
     return OPENDAQ_IGNORED;
+}
+
+template <class Impl>
+ErrCode ConfigClientComponentBaseImpl<Impl>::getComponentConfig(IPropertyObject** config)
+{
+    return daqTry([this, &config]
+    {
+        *config = this->clientComm->getComponentConfig(this->remoteGlobalId).detach();
+    });
 }
 
 template <class Impl>

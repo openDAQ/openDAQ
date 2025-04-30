@@ -105,6 +105,32 @@ class BasicCsvRecorderSignal
             const DataDescriptorPtr& descriptor,
             const DataDescriptorPtr& domainDescriptor);
 
+        /**
+         * @brief Gets a semicolon-delimited string of metadata attributes for the specified value
+         *     descriptor.
+         *
+         * The resulting string is written as a second header line in the CSV file. It has the
+         * form "unit=X".
+         *
+         * @param descriptor The data descriptor of the value signal.
+         *
+         * @return A metadata string as described above.
+         */
+        std::string getValueMetadataLine(const DataDescriptorPtr& descriptor);
+
+        /**
+         * @brief Gets a semicolon-delimited string of metadata attributes for the specified
+         *     domain descriptor.
+         *
+         * The resulting string is written as a second header line in the CSV file. It has the
+         * form "resolution=X;epoch=Y;unit=Z;delta=W".
+         *
+         * @param domainDescriptor The data descriptor of the domain signal.
+         *
+         * @return A metadata string as described above.
+         */
+        std::string getDomainMetadataLine(const DataDescriptorPtr& domainDescriptor);
+
         CsvWriter writer;
         bool headersWritten = false;
 };

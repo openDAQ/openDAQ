@@ -276,9 +276,43 @@ void BasicCsvRecorderSignal::tryWriteHeaders(const DataDescriptorPtr& descriptor
 
     writer.headers(
         getDomainName(domainDescriptor).c_str(),
-        getValueName(descriptor).c_str());
+        getValueName(descriptor).c_str(),
+        getDomainMetadataLine(domainDescriptor).c_str(),
+        getValueMetadataLine(descriptor).c_str());
 
     headersWritten = true;
+}
+
+std::string BasicCsvRecorderSignal::getValueMetadataLine(const DataDescriptorPtr& descriptor)
+{
+    std::list<std::string> parts;
+
+    if (auto unit = descriptor.getUnit(); unit.assigned())
+        parts.push_back("unit=" + unit.getName());
+
+    return boost::algorithm::join(parts, ";");
+}
+
+std::string BasicCsvRecorderSignal::getDomainMetadataLine(const DataDescriptorPtr& domainDescriptor)
+{
+    std::list<std::string> parts;
+
+    if (auto resolution = domainDescriptor.getTickResolution(); resolution.assigned())
+        parts.push_back("resolution=" + std::to_string(resolution.getNumerator()) + '/' + std::to_string(resolution.getDenominator()));
+    if (auto origin = domainDescriptor.getOrigin(); origin.assigned())
+        parts.push_back("epoch=" + origin);
+    if (auto unit = domainDescriptor.getUnit(); unit.assigned())
+        parts.push_back("unit=" + unit.getName());
+    if (auto rule = domainDescriptor.getRule(); rule.assigned() && rule.getType() == DataRuleType::Linear)
+    {
+        if (auto params = rule.getParameters(); params.assigned() && params.hasKey("delta"))
+        {
+            std::int64_t delta = params["delta"];
+            parts.push_back("delta=" + std::to_string(delta));
+        }
+    }
+
+    return boost::algorithm::join(parts, ";");
 }
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

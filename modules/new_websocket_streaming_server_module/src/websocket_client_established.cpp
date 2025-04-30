@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <boost/asio.hpp>
+#include <boost/endian/conversion.hpp>
 
 #include "streaming_protocol.hpp"
 #include "websocket_client.hpp"
@@ -127,7 +128,7 @@ bool daq::ws_streaming::websocket_client_established::send_metadata(unsigned sig
         streaming_protocol::packet_type::METADATA,
         encoded_metadata.size() + sizeof(std::uint32_t));
     *reinterpret_cast<std::uint32_t *>(&streaming_header[streaming_header_size])
-        = htole32(streaming_protocol::metadata_encoding::MSGPACK);
+        = boost::endian::native_to_little<std::uint32_t>(streaming_protocol::metadata_encoding::MSGPACK);
     streaming_header_size += sizeof(std::uint32_t);
 
     auto websocket_header_size = websocket_protocol::generate_header(

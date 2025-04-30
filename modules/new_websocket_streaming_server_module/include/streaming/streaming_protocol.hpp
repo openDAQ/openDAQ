@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <boost/endian/conversion.hpp>
+
 namespace daq::ws_streaming
 {
     /**
@@ -52,14 +54,14 @@ namespace daq::ws_streaming
         {
             if (payload_size < 256)
             {
-                reinterpret_cast<std::uint32_t *>(header)[0] = htole32(signo | (payload_size << 20) | (type << 28));
+                reinterpret_cast<std::uint32_t *>(header)[0] = boost::endian::native_to_little<std::uint32_t>(signo | (payload_size << 20) | (type << 28));
                 return sizeof(std::uint32_t);
             }
 
             else
             {
-                reinterpret_cast<std::uint32_t *>(header)[0] = htole32(signo | (type << 28));
-                reinterpret_cast<std::uint32_t *>(header)[1] = htole32(payload_size);
+                reinterpret_cast<std::uint32_t *>(header)[0] = boost::endian::native_to_little<std::uint32_t>(signo | (type << 28));
+                reinterpret_cast<std::uint32_t *>(header)[1] = boost::endian::native_to_little<std::uint32_t>(payload_size);
                 return 2 * sizeof(std::uint32_t);
             }
         }

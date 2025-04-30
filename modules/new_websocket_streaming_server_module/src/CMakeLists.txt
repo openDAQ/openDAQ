@@ -19,6 +19,7 @@ target_link_libraries(${LIB_NAME}
         daq::opendaq
     PRIVATE
         Boost::asio
+        Boost::endian
         Boost::headers
         cryptopp::cryptopp
         nlohmann_json::nlohmann_json

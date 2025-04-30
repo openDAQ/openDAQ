@@ -65,18 +65,33 @@ class CsvWriter
         /*!
          * @brief Writes a header line to the CSV file.
          *
+         * Either one or two header lines can be emitted. If @p auxDomainName and @p auxValueName
+         * are both empty strings, only one header line is emitted. Otherwise, a second line is
+         * emitted using the auxiliary strings (if one of the parameters is a `nullptr` an empty
+         * string is used for that column).
+         *
          * There is no protection against writing headers after data has been written, or against
          * writing multiple header lines; this is the responsibility of the caller.
          *
          * @param domainName The name of the domain column.
          * @param valueName The name of the value column.
+         * @param auxDomainName The auxiliary (second line) name of the domain column.
+         * @param auxValueName The auxiliary (second line) name of the value column.
          *
          * @throws std::ios_base::failure The header line could not be written to the file due to
          *     an I/O error.
          */
-        void headers(const char *domainName, const char *valueName)
+        void headers(
+            const char *domainName,
+            const char *valueName,
+            const char *auxDomainName = nullptr,
+            const char *auxValueName = nullptr)
         {
             file << quoteHeader(domainName) << ',' << quoteHeader(valueName) << '\n';
+
+            if (auxDomainName || auxValueName)
+                file << quoteHeader(auxDomainName ? auxDomainName : "") << ','
+                    << quoteHeader(auxValueName ? auxValueName : "") << '\n';
         }
 
         /*!

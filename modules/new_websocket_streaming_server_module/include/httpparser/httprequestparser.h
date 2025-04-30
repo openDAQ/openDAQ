@@ -11,6 +11,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "request.h"
 
 namespace httpparser
@@ -40,7 +42,7 @@ public:
 private:
     static bool checkIfConnection(const Request::HeaderItem &item)
     {
-        return strcasecmp(item.name.c_str(), "Connection") == 0;
+        return boost::iequals(item.name, "Connection");
     }
 
     ParseResult consume(Request &req, const char *begin, const char *end)
@@ -291,14 +293,14 @@ private:
                     {
                         Request::HeaderItem &h = req.headers.back();
 
-                        if( strcasecmp(h.name.c_str(), "Content-Length") == 0 )
+                        if( boost::iequals(h.name, "Content-Length") )
                         {
                             contentSize = atoi(h.value.c_str());
                             req.content.reserve( contentSize );
                         }
-                        else if( strcasecmp(h.name.c_str(), "Transfer-Encoding") == 0 )
+                        else if( boost::iequals(h.name, "Transfer-Encoding") )
                         {
-                            if(strcasecmp(h.value.c_str(), "chunked") == 0)
+                            if(boost::iequals(h.value, "chunked"))
                                 chunked = true;
                         }
                     }
@@ -330,7 +332,7 @@ private:
 
                 if( it != req.headers.end() )
                 {
-                    if( strcasecmp(it->value.c_str(), "Keep-Alive") == 0 )
+                    if( boost::iequals(it->value, "Keep-Alive") )
                     {
                         req.keepAlive = true;
                     }

@@ -47,7 +47,9 @@ namespace daq::ws_streaming
                 if (new_value != last_value.value_or(~new_value))
                 {
                     last_value = new_value;
-                    websocket_protocol::constant_value_packet data { .index = 0, .value = new_value };
+                    websocket_protocol::constant_value_packet data { };
+                    data.index = 0;
+                    data.value = new_value;
                     if (!client.send_data(signo, &data, sizeof(data)))
                         return false;
                 }

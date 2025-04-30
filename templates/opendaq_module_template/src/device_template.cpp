@@ -152,20 +152,19 @@ void DeviceTemplateHooks::acqLoop()
     using namespace std::chrono_literals;
     using milli = std::chrono::milliseconds;
 
-    auto startLoopTime = std::chrono::high_resolution_clock::now();
     auto lock = getUniqueLock();
 
     while (!stopAcq)
     {
-        const auto time = std::chrono::high_resolution_clock::now();
-        const auto loopDuration = std::chrono::duration_cast<milli>(time - startLoopTime);
-        const auto waitTime = loopDuration.count() >= acqParams.loopTime.count() ? milli(0) : milli(acqParams.loopTime.count() - loopDuration.count());
-        startLoopTime = time;
-
-        cv.wait_for(lock, waitTime);
+        const auto startLoopTime = std::chrono::high_resolution_clock::now();
+        templateImpl->onAcquisitionLoop();
         if (!stopAcq)
         {
-            templateImpl->onAcquisitionLoop();
+            const auto endLoopTime = std::chrono::high_resolution_clock::now();
+            const auto loopDuration = endLoopTime - startLoopTime;
+            const auto waitTime = loopDuration >= acqParams.loopTime ? milli(0) : (acqParams.loopTime - loopDuration);
+
+            cv.wait_for(lock, waitTime);
         }
     }
 }

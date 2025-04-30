@@ -13,6 +13,7 @@ namespace daq::ws_streaming
      */
     namespace websocket_protocol
     {
+#pragma pack(push, 1)
         /**
          * The structure of a WebSocket streaming protocol constant-value data signal packet on
          * the wire. Such a packet contains the index of the sample where the change occurred, and
@@ -25,7 +26,8 @@ namespace daq::ws_streaming
             std::uint64_t index;    /**< The index of the sample where the change occurred
                                          (XXX TODO: what does this mean exactly?) */
             std::int64_t value;     /**< The signal's new constant value. */
-        } __attribute__((packed));
+        };
+#pragma pack(pop)
 
         /**
          * The maximum possible frame header size, in bytes.

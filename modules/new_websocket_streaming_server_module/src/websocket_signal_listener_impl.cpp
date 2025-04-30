@@ -95,8 +95,10 @@ daq::ErrCode daq::ws_streaming::WebSocketSignalListenerImpl::packetReceived(daq:
                             it->domain_value.value() + it->samples_since_signal_update * delta != start + offset)
                         {
                             it->domain_value = start + offset - delta * it->samples_since_signal_update;
-                            daq::ws_streaming::websocket_protocol::constant_value_packet data { .index = 0, .value = it->domain_value.value() };
-                            if (!client->send_data(domain_listener->signo, &data, sizeof(data)))
+                            daq::ws_streaming::websocket_protocol::constant_value_packet data_packet { };
+                            data_packet.index = 0;
+                            data_packet.value = it->domain_value.value();
+                            if (!client->send_data(domain_listener->signo, &data_packet, sizeof(data_packet)))
                             {
                                 boost::system::error_code ec;
                                 client->get_socket().shutdown(boost::asio::socket_base::shutdown_both, ec);

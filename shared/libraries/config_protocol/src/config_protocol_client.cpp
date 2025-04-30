@@ -326,17 +326,17 @@ PropertyObjectPtr ConfigProtocolClientComm::getComponentConfig(const std::string
 
 void ConfigProtocolClientComm::startRecording(const std::string& globalId)
 {
-    sendComponentCommand(globalId, ClientCommand("StartRecording", 12));
+    sendComponentCommand(globalId, ClientCommand("StartRecording", 14));
 }
 
 void ConfigProtocolClientComm::stopRecording(const std::string& globalId)
 {
-    sendComponentCommand(globalId, ClientCommand("StopRecording", 12));
+    sendComponentCommand(globalId, ClientCommand("StopRecording", 14));
 }
 
 BooleanPtr ConfigProtocolClientComm::getIsRecording(const std::string& globalId)
 {
-    return sendComponentCommand(globalId, ClientCommand("GetIsRecording", 12));
+    return sendComponentCommand(globalId, ClientCommand("GetIsRecording", 14));
 }
 
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)

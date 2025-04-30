@@ -111,9 +111,8 @@ ErrCode MultiReaderStatusImpl::getReadStatus(ReadStatus* status)
 
 ErrCode MultiReaderStatusImpl::getEventPacket(IEventPacket** packet) 
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
-
 
 ErrCode MultiReaderStatusImpl::getMainDescriptor(IEventPacket** descriptor)
 {

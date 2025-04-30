@@ -40,8 +40,7 @@ ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
 {
     Int coreTypeInt;
     ErrCode errCode = ser->readInt("coreType"_daq, &coreTypeInt);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     
     try
     {
@@ -66,7 +65,7 @@ ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
     
     return OPENDAQ_SUCCESS;

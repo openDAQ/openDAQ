@@ -78,8 +78,10 @@ public:
         ErrCode errCode = propObj->getPropertyValue(propName, &ptr);
 
         if (errCode == OPENDAQ_ERR_NOTASSIGNED || errCode == OPENDAQ_ERR_NOTFOUND)
+        {
+            daqClearErrorInfo();
             return defaultValue;
-
+        }
         checkErrorInfo(errCode);
         return ptr;
     }

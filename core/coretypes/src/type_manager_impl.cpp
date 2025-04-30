@@ -33,7 +33,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
     const auto typePtr = TypePtr::Borrow(type);
     const auto typeName = typePtr.getName();
     if (!typeName.assigned() || typeName == "")
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::string typeStr = typeName;
     std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), [](char c) { return std::tolower(c); });
@@ -41,7 +41,7 @@ ErrCode TypeManagerImpl::addType(IType* type)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_RESERVED_TYPE_NAME, fmt::format(R"(""Type {} is in the list of protected type names.")", typeStr));
 
     if (!daq::validateTypeName(typeName.getCharPtr()))
-        return OPENDAQ_ERR_VALIDATE_FAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_VALIDATE_FAILED, "Invalid struct name");
 
     {
         std::scoped_lock lock(this->sync);
@@ -50,12 +50,11 @@ ErrCode TypeManagerImpl::addType(IType* type)
         {
             if (types.get(typeName) == typePtr)
                 return OPENDAQ_SUCCESS;        // Already exists and is exactly the same, which we don't mind
-            return OPENDAQ_ERR_ALREADYEXISTS;  // Already exists with the same name, but is actually different
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS);  // Already exists with the same name, but is actually different
         }
 
         const ErrCode err = types->set(typeName, typePtr);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return daqTry([&]
@@ -74,12 +73,11 @@ ErrCode TypeManagerImpl::removeType(IString* name)
         std::scoped_lock lock(this->sync);
 
         if (!types.hasKey(name))
-            return OPENDAQ_ERR_NOTFOUND;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
         BaseObjectPtr obj;
         const ErrCode err = types->remove(name, &obj);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return daqTry([&]
@@ -98,7 +96,7 @@ ErrCode TypeManagerImpl::getType(IString* name, IType** type)
     std::scoped_lock lock(this->sync);
 
     if (!types.hasKey(name))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     *type = types.get(name).addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -144,15 +142,13 @@ ErrCode TypeManagerImpl::serialize(ISerializer* serializer)
     ErrCode errCode = this->types->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableFields));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializableFields->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();
 
@@ -180,14 +176,12 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
 
         BaseObjectPtr types;
         ErrCode errCode = ser->readObject("types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types.asPtr<IDict>().getValues())
         {
             errCode = typeManagerPtr->addType(type.asPtrOrNull<IType>(true));
-            if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_ALREADYEXISTS)
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_ALREADYEXISTS);
         }
         *obj = typeManagerPtr.detach();
     }
@@ -197,7 +191,7 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;

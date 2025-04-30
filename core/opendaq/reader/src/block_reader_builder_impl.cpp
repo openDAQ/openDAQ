@@ -28,7 +28,7 @@ ErrCode INTERFACE_FUNC BlockReaderBuilderImpl::build(IBlockReader** blockReader)
     return daqTry([&]()
     {
         if (used)
-            return OPENDAQ_ERR_CREATE_FAILED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CREATE_FAILED);
 
         *blockReader = BlockReaderFromBuilder(builderPtr).detach();
         used = true;

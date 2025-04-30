@@ -295,13 +295,13 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
         auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
-            return OPENDAQ_ERR_COMPONENT_REMOVED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
     
         if (lockedAttributes.count("Active"))
         {
@@ -320,7 +320,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
             return OPENDAQ_IGNORED;
 
         if (active && isComponentRemoved)
-            return OPENDAQ_ERR_INVALIDSTATE;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
 
         this->active = active;
         activeChanged();
@@ -379,13 +379,13 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
         auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
-            return OPENDAQ_ERR_COMPONENT_REMOVED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
         if (StringPtr namePtr = name; this->name == namePtr)
             return OPENDAQ_IGNORED;
@@ -430,13 +430,13 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
         auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
-            return OPENDAQ_ERR_COMPONENT_REMOVED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
         if (StringPtr descriptionPtr = description; this->description == descriptionPtr)
             return OPENDAQ_IGNORED;
@@ -491,13 +491,13 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
         auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
-            return OPENDAQ_ERR_COMPONENT_REMOVED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
         if (lockedAttributes.count("Visible"))
         {
@@ -545,7 +545,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
@@ -565,7 +565,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributes()
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     return lockAllAttributesInternal();
 }
@@ -579,7 +579,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
@@ -599,7 +599,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAllAttributes()
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     lockedAttributes.clear();
     return OPENDAQ_SUCCESS;
@@ -613,7 +613,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getLockedAttributes(IList** attributes)
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     ListPtr<IString> attributesList = List<IString>();
     for (const auto& str : lockedAttributes)
@@ -987,8 +987,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serial
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
     auto errCode = Super::serializeCustomValues(serializer, forUpdate);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return daqTry(
     [&serializerPtr, forUpdate, this]

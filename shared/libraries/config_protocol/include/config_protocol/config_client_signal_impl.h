@@ -172,8 +172,7 @@ inline void ConfigClientSignalImpl::assignDomainSignal(const SignalPtr& domainSi
 inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
 {
     const ErrCode err = Super::getLastValue(value);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (err != OPENDAQ_IGNORED)
         return err;

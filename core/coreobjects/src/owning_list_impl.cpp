@@ -50,10 +50,7 @@ ErrCode OwningListImpl::setOwner(IBaseObject* value) const
 ErrCode OwningListImpl::setItemAt(SizeT index, IBaseObject* obj)
 {
     ErrCode err = ListImpl::setItemAt(index, obj);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     return setOwner(obj);
 }
@@ -61,10 +58,7 @@ ErrCode OwningListImpl::setItemAt(SizeT index, IBaseObject* obj)
 ErrCode OwningListImpl::pushBack(IBaseObject* obj)
 {
     ErrCode err = ListImpl::pushBack(obj);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     return setOwner(obj);
 }
@@ -72,10 +66,7 @@ ErrCode OwningListImpl::pushBack(IBaseObject* obj)
 ErrCode OwningListImpl::pushFront(IBaseObject* obj)
 {
     ErrCode err = ListImpl::pushFront(obj);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     return setOwner(obj);
 }
@@ -83,10 +74,7 @@ ErrCode OwningListImpl::pushFront(IBaseObject* obj)
 ErrCode OwningListImpl::moveBack(IBaseObject* obj)
 {
     ErrCode err = ListImpl::moveBack(obj);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     return setOwner(obj);
 }
@@ -94,10 +82,7 @@ ErrCode OwningListImpl::moveBack(IBaseObject* obj)
 ErrCode OwningListImpl::moveFront(IBaseObject* obj)
 {
     ErrCode err = ListImpl::moveFront(obj);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     return setOwner(obj);
 }
@@ -105,10 +90,7 @@ ErrCode OwningListImpl::moveFront(IBaseObject* obj)
 ErrCode OwningListImpl::insertAt(SizeT index, IBaseObject* obj)
 {
     ErrCode err = ListImpl::insertAt(index, obj);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     return setOwner(obj);
 }
@@ -116,10 +98,7 @@ ErrCode OwningListImpl::insertAt(SizeT index, IBaseObject* obj)
 ErrCode OwningListImpl::popBack(IBaseObject** obj)
 {
     ErrCode err = ListImpl::popBack(obj);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     return removeOwner(*obj);
 }
@@ -127,10 +106,7 @@ ErrCode OwningListImpl::popBack(IBaseObject** obj)
 ErrCode OwningListImpl::popFront(IBaseObject** obj)
 {
     ErrCode err = ListImpl::popFront(obj);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     return removeOwner(*obj);
 }
@@ -138,10 +114,7 @@ ErrCode OwningListImpl::popFront(IBaseObject** obj)
 ErrCode OwningListImpl::removeAt(SizeT index, IBaseObject** obj)
 {
     ErrCode err = ListImpl::removeAt(index, obj);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (*obj != nullptr)
     {
@@ -157,10 +130,7 @@ ErrCode OwningListImpl::deleteAt(SizeT index)
     IBaseObject* value;
 
     ErrCode err = deleteAtInternal(index, &value, deleted);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (!deleted)
     {
@@ -174,7 +144,7 @@ ErrCode OwningListImpl::clear()
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
     ErrCode err;
@@ -183,7 +153,7 @@ ErrCode OwningListImpl::clear()
         err = removeOwner(value);
         if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_FROZEN)
         {
-            return err;
+            return DAQ_MAKE_ERROR_INFO(err);
         }
     }
 

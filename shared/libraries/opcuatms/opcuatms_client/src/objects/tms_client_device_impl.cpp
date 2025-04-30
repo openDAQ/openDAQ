@@ -127,7 +127,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
 {
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     fetchTimeDomain();
     return Super::getDomain(deviceDomain);

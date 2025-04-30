@@ -58,7 +58,7 @@ public:
 
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* /*id*/) const override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
 
     // IUnknown
@@ -93,6 +93,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equals(IBaseObject* other, Bool* 
 
         if (OPENDAQ_FAILED(err))
         {
+            daqClearErrorInfo();
             return OPENDAQ_SUCCESS;
         }
 
@@ -194,18 +195,15 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
     {
         IConvertible* convObj;
         err = obj->borrowInterface(IConvertible::Id, reinterpret_cast<void**>(&convObj));
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         err = CoreTypeHelper<V>::FromConvertible(otherValue, convObj);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
     else
     {
         err = typeObj->getValue(&otherValue);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     if (value > otherValue)
@@ -219,7 +217,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::serialize(ISerializer* serializer)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 template <class V, class Intf, class ... Intfs>

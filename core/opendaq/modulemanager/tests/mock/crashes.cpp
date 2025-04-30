@@ -4,5 +4,5 @@
 extern "C"
 daq::ErrCode PUBLIC_EXPORT createModule(daq::IModule**)
 {
-    return OPENDAQ_ERR_GENERALERROR;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
 }

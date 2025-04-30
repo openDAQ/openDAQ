@@ -111,7 +111,7 @@ protected:
         }
         catch (...)
         {
-            return OPENDAQ_ERR_CALLFAILED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
         }
 
         return OPENDAQ_SUCCESS;
@@ -139,7 +139,7 @@ public:
         }
         catch (...)
         {
-            return OPENDAQ_ERR_CALLFAILED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
         }
 
         return OPENDAQ_SUCCESS;
@@ -197,7 +197,7 @@ class ProcedureNull : public ImplementationOf<IProcedure, ICoreType>
 public:
     ErrCode INTERFACE_FUNC dispatch(IBaseObject* /*args*/) override
     {
-        return OPENDAQ_ERR_NOTASSIGNED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED);
     }
 
     ErrCode INTERFACE_FUNC getCoreType(CoreType* coreType) override
@@ -236,11 +236,11 @@ ErrCode createProcedureWrapper(IProcedure** obj, [[maybe_unused]] TFunctor proc)
     }
     catch (const std::bad_alloc&)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
     catch (const std::exception&)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     (*obj)->addRef();
@@ -265,11 +265,11 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor proc)
     }
     catch (const std::bad_alloc&)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
     catch (const std::exception&)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     (*obj)->addRef();
@@ -294,11 +294,11 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor* proc)
     }
     catch (const std::bad_alloc&)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
     catch (const std::exception&)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     (*obj)->addRef();

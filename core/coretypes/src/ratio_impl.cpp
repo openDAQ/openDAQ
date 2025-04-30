@@ -73,10 +73,7 @@ ErrCode RatioImpl::toInt(Int* val)
     Float realValue = -1;
     ErrCode err = toFloat(&realValue);
 
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     *val = static_cast<Int>(round(realValue));
     return OPENDAQ_SUCCESS;
@@ -89,10 +86,7 @@ ErrCode RatioImpl::toBool(Bool* val)
     Float realValue = -1;
     ErrCode err = toFloat(&realValue);
 
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     *val = static_cast<Bool>(static_cast<bool>(realValue));
     return OPENDAQ_SUCCESS;
@@ -183,17 +177,14 @@ ErrCode RatioImpl::compareTo(IBaseObject* obj)
     Float objFloatValue;
 
     auto err = obj->borrowInterface(IConvertible::Id, reinterpret_cast<void**>(&objConvIntf));
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     err = objConvIntf->toFloat(&objFloatValue);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     Float thisFloatValue;
     err = toFloat(&thisFloatValue);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto diff = thisFloatValue - objFloatValue;
 

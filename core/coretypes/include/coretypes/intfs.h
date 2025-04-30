@@ -369,8 +369,7 @@ protected:
     {
         IBaseObject* thisBaseObject;
         ErrCode err = this->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&thisBaseObject));
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         setErrorInfoWithSource(thisBaseObject, message, std::forward<Params>(params)...);
         return errCode;

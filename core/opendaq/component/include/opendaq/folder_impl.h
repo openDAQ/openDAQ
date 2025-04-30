@@ -123,7 +123,8 @@ template <class Intf, class ... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
 {
     const ErrCode err = Super::setActive(active);
-    if (OPENDAQ_FAILED(err) || err == OPENDAQ_IGNORED)
+    OPENDAQ_RETURN_IF_FAILED(err);
+    if (err == OPENDAQ_IGNORED)
         return err;
 
     return daqTry([&]
@@ -158,8 +159,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searc
 
     IList* list;
     auto err = createListWithElementType(&list, itemId);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     ListPtr<IComponent> childList = ListPtr<IComponent>::Adopt(list);
     for (const auto& [_, item] : this->items)
@@ -181,7 +181,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItem(IString* localId, IComponent** item)
 
     auto it = items.find(StringPtr::Borrow(localId).toStdString());
     if (it == items.end())
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     *item = it->second.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -245,8 +245,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
             return OPENDAQ_SUCCESS;
         });
 
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -278,13 +277,12 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
         const ErrCode err = daqTry([this, &str]
         {
             if (!removeItemWithLocalIdInternal(str))
-                return OPENDAQ_ERR_NOTFOUND;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
             return OPENDAQ_SUCCESS;
         });
 
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
     
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -312,13 +310,12 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
         const ErrCode err = daqTry([this, &str]
         {
             if (!removeItemWithLocalIdInternal(str))
-                return OPENDAQ_ERR_NOTFOUND;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
             return OPENDAQ_SUCCESS;
         });
 
-        if (OPENDAQ_FAILED(err))
-             return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -358,8 +355,7 @@ ErrCode FolderImpl<Intf, Intfs...>::enableCoreEventTrigger()
     for (const auto& [_, item] : items)
     {
         const ErrCode err = item.template asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger();
@@ -371,8 +367,7 @@ ErrCode FolderImpl<Intf, Intfs...>::disableCoreEventTrigger()
     for (const auto& [_, item] : items)
     {
         const ErrCode err = item.template asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
@@ -562,8 +557,7 @@ template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
 {
     ErrCode errCode = Super::updateOperationMode(modeType);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     for (const auto& [_, item] : items)
     {
@@ -571,8 +565,7 @@ ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeTy
         if (componentPrivate.assigned())
         {
             errCode = componentPrivate->updateOperationMode(modeType);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
     }
 

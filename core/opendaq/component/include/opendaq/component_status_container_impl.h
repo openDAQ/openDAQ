@@ -68,7 +68,7 @@ ErrCode StatusContainerBase<TInterface, Interfaces...>::getStatus(IString* name,
     std::scoped_lock lock(sync);
 
     if (!statuses.hasKey(name))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     *value = statuses.get(name).addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -101,7 +101,7 @@ ErrCode StatusContainerBase<TInterface, Interfaces...>::getStatusMessage(IString
     OPENDAQ_PARAM_NOT_NULL(message);
     std::scoped_lock lock(sync);
     if (!messages.hasKey(name))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
     *message = messages.get(name).addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -152,16 +152,15 @@ inline ErrCode ComponentStatusContainerImpl::addStatusWithMessage(IString* name,
 
     const auto nameObj = StringPtr::Borrow(name);
     if (nameObj == "")
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
     if (statuses.hasKey(name))
-        return OPENDAQ_ERR_ALREADYEXISTS;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS);
 
     auto errCode = statuses->set(name, initialValue);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = messages->set(name, message);
     if (OPENDAQ_FAILED(errCode))
@@ -169,7 +168,7 @@ inline ErrCode ComponentStatusContainerImpl::addStatusWithMessage(IString* name,
         // Rollback
         statuses.remove(name);
         // Return error
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -188,20 +187,20 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
 
     const auto nameObj = StringPtr::Borrow(name);
     if (nameObj == "")
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     const auto messageObj = StringPtr::Borrow(message);
 
     std::scoped_lock lock(sync);
 
     if (!statuses.hasKey(name))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     const auto valueObj = EnumerationPtr::Borrow(value);
     const auto oldStatus = statuses.get(name);
     const auto oldMessage = messages.get(name);
 
     if (valueObj.getEnumerationType() != oldStatus.getEnumerationType())
-        return OPENDAQ_ERR_INVALIDTYPE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 
     if (valueObj == oldStatus)
     {
@@ -212,15 +211,13 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
         }
         // No change in value, change in message
         auto errCode = messages->set(name, messageObj);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
     else
     {
         // Change in value
         auto errCode = statuses->set(name, value);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (oldMessage != messageObj)
         {
@@ -231,7 +228,7 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
                 // Rollback
                 statuses.set(name, oldStatus);
                 // Return error
-                return errCode;
+                return DAQ_MAKE_ERROR_INFO(errCode);
             }
         }
     }
@@ -289,8 +286,7 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
 
     ObjectPtr<IComponentStatusContainerPrivate> statusContainer;
     auto errCode = createObject<IComponentStatusContainerPrivate, ComponentStatusContainerImpl>(&statusContainer, triggerCoreEvent);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
 
@@ -303,8 +299,7 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
         for (const auto& [name, value] : statuses)
         {
             errCode = statusContainer->addStatusWithMessage(name, value, messages.get(name));
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
     }
     else
@@ -313,8 +308,7 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
         for (const auto& [name, value] : statuses)
         {
             errCode = statusContainer->addStatus(name, value);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
     }
 

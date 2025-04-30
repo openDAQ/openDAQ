@@ -139,7 +139,7 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
         libraries.emplace_back(ModuleLibrary{{}, module});
         return OPENDAQ_SUCCESS;
     }
-    return OPENDAQ_ERR_DUPLICATEITEM;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
 }
 
 ErrCode ModuleManagerImpl::loadModules(IContext* context)
@@ -581,7 +581,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     return DAQ_MAKE_ERROR_INFO(
@@ -836,13 +836,11 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ErrCode err = getAvailableDeviceTypes(&deviceTypes);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
     
     DictPtr<IString, IStreamingType> streamingTypes;
     err = getAvailableStreamingTypes(&streamingTypes);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     auto config = PropertyObject();
     
@@ -900,7 +898,7 @@ ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId,
         }
     }
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 ErrCode ModuleManagerImpl::changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config)

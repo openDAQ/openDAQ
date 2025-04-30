@@ -28,8 +28,7 @@ inline daq::ErrCode getSignalSampleType(const daq::SignalPtr& signal, daq::Sampl
 
     DataDescriptorPtr descriptor;
     ErrCode errCode = signal->getDescriptor(&descriptor);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (descriptor.isStructDescriptor())
     {

@@ -242,8 +242,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &nativeStreamingServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
     }
     serversPtr.pushBack(nativeStreamingServer);
 
@@ -254,8 +253,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
     }
     serversPtr.pushBack(websocketServer);
 #endif
@@ -265,8 +263,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &opcUaServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
     }
     serversPtr.pushBack(opcUaServer);
 
@@ -765,7 +762,7 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
     OPENDAQ_PARAM_NOT_NULL(serialized);
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)

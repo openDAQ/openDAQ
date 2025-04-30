@@ -19,6 +19,7 @@
 - [#605](https://github.com/openDAQ/openDAQ/pull/605) Add support for View Only client to the openDAQ Native configuration protocol.
 - [#704](https://github.com/openDAQ/openDAQ/pull/704) Support setting operation mode for the device which notifies all sub components
 - [#697](https://github.com/openDAQ/openDAQ/pull/697) [#783](https://github.com/openDAQ/openDAQ/pull/783) Added `IRecorder` interface and the `basic_csv_recorder_module`.
+- [#743](https://github.com/openDAQ/openDAQ/pull/743) Include experimental high-performance implementation of WebSocket Streaming Server; also adds CAN streaming capability to the client when used with the new server.
 
 ## Python
 

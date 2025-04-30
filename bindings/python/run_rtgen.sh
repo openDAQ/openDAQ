@@ -112,6 +112,7 @@ run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device      
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    channel
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block
 run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    function_block_type
+run_rtgen opendaq opendaq/functionblock   opendaq opendaq/generated/functionblock    recorder
 run_rtgen opendaq opendaq/logger          opendaq opendaq/generated/logger           logger
 run_rtgen opendaq opendaq/logger          opendaq opendaq/generated/logger           logger_component
 run_rtgen opendaq opendaq/logger          opendaq opendaq/generated/logger           logger_sink

@@ -21,7 +21,7 @@ target_link_libraries(${LIB_NAME}
         Boost::asio
         Boost::endian
         Boost::headers
-        cryptopp::cryptopp
+        Boost::uuid
         nlohmann_json::nlohmann_json
 )
 

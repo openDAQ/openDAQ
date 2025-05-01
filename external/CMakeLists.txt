@@ -100,7 +100,6 @@ if(OPENDAQ_ENABLE_OPCUA)
 endif()
 
 if(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    add_subdirectory(cryptopp EXCLUDE_FROM_ALL)
     add_subdirectory(nlohmann_json EXCLUDE_FROM_ALL)
     add_subdirectory(streaming_protocol EXCLUDE_FROM_ALL)
 endif()

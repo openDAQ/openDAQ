@@ -4,21 +4,33 @@
 #include <ostream>
 #include <string>
 
-#include <cryptopp/sha.h>
+#include <boost/uuid/detail/sha1.hpp>
+#include <iostream>
 
 #include "base64.hpp"
 #include "websocket_protocol.hpp"
 
 std::ostream& daq::ws_streaming::websocket_protocol::generate_upgrade_response(std::ostream& os, const std::string& key)
 {
-    CryptoPP::SHA1 sha1;
-    sha1.Update(reinterpret_cast<const std::uint8_t *>(key.data()), key.length());
-    sha1.Update(reinterpret_cast<const std::uint8_t *>(MAGIC_KEY), sizeof(MAGIC_KEY) - 1);
+    boost::uuids::detail::sha1 sha1;
+    sha1.process_bytes(key.data(), key.length());
+    sha1.process_bytes(MAGIC_KEY, sizeof(MAGIC_KEY) - 1);
 
-    std::array<std::uint8_t, CryptoPP::SHA1::DIGESTSIZE> sha1_value;
-    sha1.Final(sha1_value.data());
+    boost::uuids::detail::sha1::digest_type sha1_value;
+    sha1.get_digest(sha1_value);
 
-    auto response_key = base64::encode_into<std::string>(sha1_value.begin(), sha1_value.end());
+    std::array<std::uint8_t, 20> sha1_bytes;
+    for (unsigned i = 0; i < 5; ++i)
+    {
+        sha1_bytes[4 * i + 0] = sha1_value[i] >> 24;
+        sha1_bytes[4 * i + 1] = sha1_value[i] >> 16;
+        sha1_bytes[4 * i + 2] = sha1_value[i] >> 8;
+        sha1_bytes[4 * i + 3] = sha1_value[i];
+    }
+
+    auto response_key = base64::encode_into<std::string>(
+        sha1_bytes.data(),
+        sha1_bytes.data() + sha1_bytes.size());
 
     os << "HTTP/1.1 101 Switching Protocols\r\n";
     os << "Upgrade: websocket\r\n";

@@ -19,6 +19,7 @@
 #include <coretypes/dictobject.h>
 #include <opendaq/component.h>
 #include <opendaq/signal.h>
+#include <opendaq/update_parameters.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -80,6 +81,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * The configuration is set from the property `ReAddDevices` of configuration object.
      */
     virtual ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) = 0;
+
+    /*!
+     * @brief Returns the configuration object.
+     * @param[out] config The configuration object.
+     */
+    virtual ErrCode INTERFACE_FUNC getConfig(IUpdateParameters** config) = 0;
 };
 
 /*!

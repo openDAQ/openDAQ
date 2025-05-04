@@ -118,9 +118,6 @@ void JsonConfigProviderImpl::HandleArray(const BaseObjectPtr& options, const rap
         return;
     }
     
-    if (!options.assigned())
-        return;  
-    
     auto optionsPtr = options.asPtrOrNull<IList>();
     if (!optionsPtr.assigned())
     {
@@ -157,10 +154,7 @@ void JsonConfigProviderImpl::HandleObject(const BaseObjectPtr& options, const ra
         // json value type have to be object
         return;
     }
-    
-    if (!options.assigned())
-        return;   
-    
+
     auto optionsPtr = options.asPtrOrNull<IDict, DictPtr<IString, IBaseObject>>();
     if (!optionsPtr.assigned())
     {

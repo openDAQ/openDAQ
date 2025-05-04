@@ -618,14 +618,11 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 template <class PropObjInterface, class... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::internalDispose(bool)
 {
-    for (auto& item : propValues)
+    for (const auto& [_, propValue] : propValues)
     {
-        if (item.second.assigned())
-        {
-            OwnablePtr ownablePtr = item.second.template asPtrOrNull<IOwnable>(true);
-            if (ownablePtr.assigned())
-                ownablePtr.setOwner(nullptr);
-        }
+        OwnablePtr ownablePtr = propValue.template asPtrOrNull<IOwnable>(true);
+        if (ownablePtr.assigned())
+            ownablePtr.setOwner(nullptr);
     }
     propValues.clear();
 
@@ -1338,11 +1335,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue
 template <class PropObjInterface, class... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwnerToPropertyValue(const BaseObjectPtr& value)
 {
-    if (!value.assigned())
-        return;
-
-    auto ownablePtr = value.asPtrOrNull<IOwnable>(true);
-    if (ownablePtr.assigned())
+    if (auto ownablePtr = value.asPtrOrNull<IOwnable>(true); ownablePtr.assigned())
     {
         try
         {
@@ -2392,16 +2385,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdate(
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdateOnChildren()
 {
-    for (const auto& item : propValues)
+    for (const auto& [_, propValue] : propValues)
     {
-        const auto value = item.second;
-        if (value.assigned())
+        const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned())
         {
-            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-            if (propObj.assigned())
-            {
-                propObj.beginUpdate();
-            }
+            propObj.beginUpdate();
         }
     }
 }
@@ -2409,16 +2398,12 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdate
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOnChildren()
 {
-    for (const auto& item : propValues)
+    for (const auto& [_, propValue] : propValues)
     {
-        const auto value = item.second;
-        if (value.assigned())
+        const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned())
         {
-            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-            if (propObj.assigned())
-            {
-                propObj.endUpdate();
-            }
+            propObj.endUpdate();
         }
     }
 }
@@ -2685,31 +2670,22 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::disableCoreE
 {
     coreEventMuted = true;
 
-    for (auto& item : propValues)
+    for (const auto& [_, propValue] : propValues)
     {
-        if (item.second.assigned())
-        {
-            const auto objInternal = item.second.template asPtrOrNull<IPropertyObjectInternal>();
-            if (objInternal.assigned())
-                objInternal.disableCoreEventTrigger();
-        }
+        const auto objInternal = propValue.template asPtrOrNull<IPropertyObjectInternal>();
+        if (objInternal.assigned())
+            objInternal.disableCoreEventTrigger();
     }
 
-    for (const auto& item : localProperties)
+    for (const auto& [_, propValue] : localProperties)
     {
-        if (item.second.assigned())
+        const auto propInternal = propValue.template asPtr<IPropertyInternal>();
+        if (propInternal.assigned() && propInternal.getValueTypeUnresolved() == ctObject)
         {
-            const auto propInternal = item.second.template asPtr<IPropertyInternal>();
-            if (propInternal.getValueTypeUnresolved() == ctObject)
-            {
-                const auto defaultVal = item.second.getDefaultValue();
-                if (defaultVal.assigned())
-                {
-                    const auto objInternal = defaultVal.template asPtrOrNull<IPropertyObjectInternal>();
-                    if (objInternal.assigned())
-                        objInternal.disableCoreEventTrigger();
-                }
-            }
+            const auto defaultVal = propValue.getDefaultValue();
+            const auto objInternal = defaultVal.template asPtrOrNull<IPropertyObjectInternal>();
+            if (objInternal.assigned())
+                objInternal.disableCoreEventTrigger();
         }
     }
 
@@ -3333,9 +3309,6 @@ template <typename PropObjInterface, typename... Interfaces>
 bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadAccess(const BaseObjectPtr& userContext,
                                                                                    const BaseObjectPtr& obj)
 {
-    if (!obj.assigned())
-        return true;
-
     auto objPtr = obj.asPtrOrNull<IPropertyObject>();
     if (!objPtr.assigned())
         return true;

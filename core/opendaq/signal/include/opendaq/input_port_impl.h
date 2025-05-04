@@ -265,12 +265,9 @@ void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr
     if (notifySignal)
     {
         const auto signal = connection.getSignal();
-        if (signal.assigned())
-        {
-            const SignalEventsPtr events = signal.asPtrOrNull<ISignalEvents>(true);
-            if (events.assigned())
-                events.listenerDisconnected(connection);
-        }
+        const SignalEventsPtr events = signal.asPtrOrNull<ISignalEvents>(true);
+        if (events.assigned())
+            events.listenerDisconnected(connection);
     }
 
     connection.release();
@@ -525,12 +522,9 @@ void GenericInputPortImpl<Interfaces...>::finishUpdate()
 template <class... Interfaces>
 void GenericInputPortImpl<Interfaces...>::removed()
 {
-    if (customData.assigned())
-    {
-        auto customDataRemovable = customData.asPtrOrNull<IRemovable>();
-        if (customDataRemovable.assigned())
-            customDataRemovable.remove();
-    }
+    auto customDataRemovable = customData.asPtrOrNull<IRemovable>();
+    if (customDataRemovable.assigned())
+        customDataRemovable.remove();
 
     ConnectionPtr connection = getConnectionNoLock();
     connectionRef.release();

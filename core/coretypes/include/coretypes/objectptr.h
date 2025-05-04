@@ -1468,6 +1468,9 @@ T* ObjectPtr<T>::operator->() const
 template <class T>
 ObjectPtr<T>& ObjectPtr<T>::operator=(const ObjectPtr<T>& ptr)
 {
+    if (object == ptr.object)
+        return *this;
+
     if (object && !borrowed)
         object->releaseRef();
 
@@ -1483,6 +1486,8 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(const ObjectPtr<T>& ptr)
 template <class T>
 ObjectPtr<T>& ObjectPtr<T>::operator=(ObjectPtr<T>&& ptr) noexcept
 {
+    if (object == ptr.object)
+        return *this;
     if (object && !borrowed)
         object->releaseRef();
 
@@ -1532,6 +1537,8 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(ObjectPtr<U>&& ptr) noexcept
 template <class T>
 ObjectPtr<T>& ObjectPtr<T>::operator=(T*& obj)
 {
+    if (object == obj)
+        return *this;
     if (object && !borrowed)
         object->releaseRef();
     borrowed = false;

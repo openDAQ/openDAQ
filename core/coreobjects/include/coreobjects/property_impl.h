@@ -364,9 +364,6 @@ public:
         auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
         OPENDAQ_RETURN_IF_FAILED(err);
 
-        if (!defVal.assigned())
-            return OPENDAQ_SUCCESS;
-
         const auto value = defVal.asPtrOrNull<IDict>();
         if (!value.assigned())
             return OPENDAQ_SUCCESS;
@@ -1226,12 +1223,9 @@ public:
         {
             auto defaultValueObj = defaultValue;
 
-            if (defaultValueObj.assigned())
-            {
-                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
-                if (cloneableDefaultValue.assigned())
-                    defaultValueObj = cloneableDefaultValue.clone();
-            }
+            auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+            if (cloneableDefaultValue.assigned())
+                defaultValueObj = cloneableDefaultValue.clone();
 
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
@@ -1485,9 +1479,6 @@ private:
     template <typename TPtr>
     TPtr bindAndGet(const BaseObjectPtr& metadata, bool lock) const
     {
-	    if (!metadata.assigned())
-		    return nullptr;
-		    
 	    auto eval = metadata.asPtrOrNull<IEvalValue>();
 	    if (!eval.assigned())
 		    return metadata;
@@ -1501,9 +1492,6 @@ private:
 
     BaseObjectPtr getUnresolved(const BaseObjectPtr& localMetadata) const
     {
-        if (!localMetadata.assigned())
-            return nullptr;
-
         if (const auto eval = localMetadata.asPtrOrNull<IEvalValue>(); eval.assigned())
         {
             const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;

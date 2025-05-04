@@ -275,12 +275,11 @@ public:
         if (value != nullptr)
         {
             const auto valuePtr = BaseObjectPtr::Borrow(value);
-            if (valuePtr.assigned())
-                if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
-                {
-                    const auto err = freezable->freeze();
-                    OPENDAQ_RETURN_IF_FAILED(err);
-                }
+            if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
+            {
+                const auto err = freezable->freeze();
+                OPENDAQ_RETURN_IF_FAILED(err);
+            }
         }
 
         this->defaultValue = value;
@@ -300,12 +299,11 @@ public:
         if (values != nullptr)
         {
             const auto valuePtr = BaseObjectPtr::Borrow(values);
-            if (valuePtr.assigned())
-                if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
-                {
-                    const auto err = freezable->freeze();
-                    OPENDAQ_RETURN_IF_FAILED(err);
-                }
+            if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
+            {
+                const auto err = freezable->freeze();
+                OPENDAQ_RETURN_IF_FAILED(err);
+            }       
         }
 
         this->suggestedValues = values;
@@ -353,12 +351,11 @@ public:
         if (values != nullptr)
         {
             const auto valuePtr = BaseObjectPtr::Borrow(values);
-            if (valuePtr.assigned())
-                if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
-                {
-                    const auto err = freezable->freeze();
-                    OPENDAQ_RETURN_IF_FAILED(err);
-                }
+            if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
+            {
+                const auto err = freezable->freeze();
+                OPENDAQ_RETURN_IF_FAILED(err);
+            }
         }
 
         this->selectionValues = values;

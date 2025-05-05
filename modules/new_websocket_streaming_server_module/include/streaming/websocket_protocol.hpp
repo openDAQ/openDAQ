@@ -85,32 +85,33 @@ namespace daq::ws_streaming
             unsigned opcode, unsigned flags, std::size_t payload_size)
         {
             header[0] = opcode | flags;
+            std::uint64_t payload_size_64 = payload_size;
 
             if (payload_size <= 125)
             {
-                header[1] = payload_size;
+                header[1] = payload_size_64;
                 return 2;
             }
 
-            else if (payload_size <= 65535)
+            else if (payload_size_64 <= 65535)
             {
                 header[1] = 126;
-                header[2] = payload_size >> 8;
-                header[3] = payload_size;
+                header[2] = payload_size_64 >> 8;
+                header[3] = payload_size_64;
                 return 4;
             }
 
             else
             {
                 header[1] = 127;
-                header[2] = payload_size >> 56;
-                header[3] = payload_size >> 48;
-                header[4] = payload_size >> 40;
-                header[5] = payload_size >> 32;
-                header[6] = payload_size >> 24;
-                header[7] = payload_size >> 16;
-                header[8] = payload_size >> 8;
-                header[9] = payload_size;
+                header[2] = payload_size_64 >> 56;
+                header[3] = payload_size_64 >> 48;
+                header[4] = payload_size_64 >> 40;
+                header[5] = payload_size_64 >> 32;
+                header[6] = payload_size_64 >> 24;
+                header[7] = payload_size_64 >> 16;
+                header[8] = payload_size_64 >> 8;
+                header[9] = payload_size_64;
                 return 10;
             }
         }

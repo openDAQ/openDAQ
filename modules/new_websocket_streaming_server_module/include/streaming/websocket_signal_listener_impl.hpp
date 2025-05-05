@@ -22,10 +22,10 @@ namespace daq::ws_streaming
 
             WebSocketSignalListenerImpl(daq::IDevice *device_ptr, daq::ISignal *signal_ptr, unsigned signo);
 
-            virtual daq::ErrCode acceptsSignal(daq::IInputPort *port, daq::ISignal *signal, daq::Bool *accept) override;
-            virtual daq::ErrCode connected(daq::IInputPort *port) override;
-            virtual daq::ErrCode disconnected(daq::IInputPort *port) override;
-            virtual daq::ErrCode packetReceived(daq::IInputPort *port) override;
+            virtual daq::ErrCode INTERFACE_FUNC acceptsSignal(daq::IInputPort *port, daq::ISignal *signal, daq::Bool *accept) override;
+            virtual daq::ErrCode INTERFACE_FUNC connected(daq::IInputPort *port) override;
+            virtual daq::ErrCode INTERFACE_FUNC disconnected(daq::IInputPort *port) override;
+            virtual daq::ErrCode INTERFACE_FUNC packetReceived(daq::IInputPort *port) override;
 
             daq::SignalPtr getSignal() { return signal; }
             unsigned getSigno() const noexcept { return signo; }

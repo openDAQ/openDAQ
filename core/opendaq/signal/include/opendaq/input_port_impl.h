@@ -372,6 +372,10 @@ void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedSameThread()
             {
                 listener.packetReceived(this->template thisInterface<IInputPort>());
             }
+            catch (const DaqException& e)
+            {
+                LOG_E("Input port notification failed: {}", e.getErrorMessage());
+            }
             catch (const std::exception& e)
             {
                 LOG_E("Input port notification failed: {}", e.what());
@@ -462,6 +466,10 @@ ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications
                 try
                 {
                     notify.packetReceived(port);
+                }
+                catch (const DaqException& e)
+                {
+                    LOG_E("Input port notification failed: {}", e.getErrorMessage());
                 }
                 catch (const std::exception& e)
                 {

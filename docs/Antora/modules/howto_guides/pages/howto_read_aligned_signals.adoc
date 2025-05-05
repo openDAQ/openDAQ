@@ -68,6 +68,15 @@ Python::
 reader = daq.MultiReader(signals)
 reader = daq.MultiReader(signals, daq.SampleType.Float64, daq.SampleType.Int64)
 ----
+C#::
++
+[source,csharp]
+----
+// These calls all create the same Reader
+var reader = OpenDAQFactory.CreateMultiReader(signals);
+var reader = OpenDAQFactory.CreateMultiReader<double, long>(signals);
+// right now there exists no factory function using `SampleType` as parameters
+----
 ====
 
 Developer can set list of Input Ports instead of Signals.
@@ -92,6 +101,10 @@ Python::
 reader = daq.MultiReader(ports)
 reader = daq.MultiReader(ports, daq.SampleType.Float64, daq.SampleType.Int64)
 ----
+C#::
++
+[NOTE]
+Currently there is no factory function using `InputPort` as parameter.
 ====
 
 On creation the Reader first checks the preconditions listed in <<limitations>> and throws an error if they aren't met.
@@ -162,6 +175,10 @@ sendPacketToSignal(sig2, 843, 0)
 r = reader.read_with_domain(0) # status changed
 avail = reader.available_count # 0 
 ----
+C#::
++
+[NOTE]
+Currently this functionality cannot be translated to C# (signal and data simulation not possible).
 ====
 
 After the Reader construction, Signals produce xref:explanations:glossary.adoc#data_packet[Data Packet]s of differing sizes but not enough to align on the start Domain point.
@@ -285,6 +302,10 @@ r = reader.read_with_domain(523)
 print(len(r[0][0])) # 446
 avail = reader.available_count # 0
 ----
+C#::
++
+[NOTE]
+Currently this functionality cannot be translated to C# (signal and data simulation not possible).
 ====
 
 == Using the Multi-Reader to read time-stamps
@@ -391,6 +412,10 @@ r = timed_reader.read_with_timestamps(523)
 print(len(r[0][0])) # 446
 avail = reader.available_count # 0
 ----
+C#::
++
+[NOTE]
+Currently this functionality cannot be translated to C# (signal and data simulation not possible).
 ====
 
 == Creating Mutli-Reader with builder
@@ -434,6 +459,10 @@ reader_builder.value_read_type = daq.SampleType.Float64
 reader_builder.domain_read_type = daq.SampleType.Int64
 built_reader = reader_builder.build()
 ----
+C#::
++
+[NOTE]
+Currently this functionality cannot be translated to C# (no reader builders available).
 ====
 :note-caption: Multi-Reader from the same builder
 [NOTE]
@@ -861,4 +890,8 @@ rr = timed_reader.read_with_timestamps(523)
 print(len(rr[0][0]))  # 446
 
 ----
+C#::
++
+[NOTE]
+Currently this functionality cannot be translated to C# (signal and data simulation not possible).
 ====

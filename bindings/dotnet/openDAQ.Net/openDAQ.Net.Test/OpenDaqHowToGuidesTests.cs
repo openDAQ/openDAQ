@@ -1326,7 +1326,12 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     #region Align multiple signals
 
     // Corresponding document: Antora/modules/howto_guides/pages/howto_read_aligned_signals.adoc
-    //T1201_
+
+    //[Test]
+    public void Test_1201_ReadMultipleAlignedSignalsTest()
+    {
+        //Currently this functionality cannot be translated to C# (signal and data simulation not possible).
+    }
 
     #endregion Align multiple signals
 

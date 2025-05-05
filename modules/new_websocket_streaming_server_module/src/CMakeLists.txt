@@ -19,7 +19,6 @@ target_link_libraries(${LIB_NAME}
         daq::opendaq
     PRIVATE
         Boost::asio
-        Boost::endian
         Boost::headers
         Boost::uuid
         nlohmann_json::nlohmann_json

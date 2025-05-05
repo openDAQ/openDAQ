@@ -1215,6 +1215,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
             return OpenDAQFactory.CreateDataPacketWithDomain(domainPacket, signal.Descriptor, numSamples, offset);
         }
 #else
+        //Since there are several features not available for the .NET Bindings, there is no full listing for this language. Please refer to the specific sections above for the examples.
         return 0;
 #endif
     }
@@ -1224,7 +1225,42 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     #region Absolute time-stamps
 
     // Corresponding document: Antora/modules/howto_guides/pages/howto_read_with_timestamps.adoc
-    //T1001_
+
+    [Test]
+    public void Test_1001_ReadWithAbsoluteTimeStampsTimeReaderTest()
+    {
+        var reader = OpenDAQFactory.CreateStreamReader(signal);
+
+        // Signal produces 5 samples
+
+        var timeReader = OpenDAQFactory.CreateTimeReader(reader, signal);
+
+        nuint count = 5;
+        double[] values = new double[5];
+        DateTime[] timeStamps = new DateTime[5];
+
+        // Read with Time Reader
+        timeReader.ReadWithDomain(values, timeStamps, ref count);
+
+        for (nuint i = 0; i < count; ++i)
+        {
+            Console.WriteLine($"{timeStamps[i]:yyyy-MM-dd HH:mm:ss.fff}: {values[i]}");
+        }
+    }
+
+    //[Test] //not a real test
+    public int Test_1002_ReadWithAbsoluteTimeStampsWrappedReaderTest()
+    {
+        //The timestamps are not available in the original Reader for the .NET Bindings, as the Time Reader is a wrapper around the original Reader and does not modify it.
+        return 0;
+    }
+
+    //[Test(ExpectedResult = 0)] //not a real test
+    public int Test_1003_ReadWithAbsoluteTimeStamps_FullListingTest()
+    {
+        //Since there are several features not available for the .NET Bindings, there is no full listing for this language. Please refer to the specific sections above for the examples.
+        return 0;
+    }
 
     #endregion Absolute time-stamps
 

@@ -367,15 +367,15 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* context)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([this, &obj, &context]()
+    return daqTry([this, &obj]()
     {
         StringPtr serialized;
         checkErrorInfo(obj->toJson(&serialized));
-        clientComm->update(remoteGlobalId, serialized, this->path, context);
+        clientComm->update(remoteGlobalId, serialized, this->path);
     });
 }
 

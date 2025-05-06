@@ -32,7 +32,6 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <coretypes/validation.h>
-#include <iostream>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
@@ -267,6 +266,18 @@ public:
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
         this->valueType = ctInt;
+        this->selectionValues = BaseObjectPtr(selectionValues);
+
+        const auto err = validateDuringConstruction();
+        if (err != OPENDAQ_SUCCESS)
+            throwExceptionFromErrorCode(err);
+    }
+
+    // StringSelectionProperty()
+    PropertyImpl(const StringPtr& name, IList* selectionValues, IString* defaultValue, const BooleanPtr& visible)
+        : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
+    {
+        this->valueType = ctString;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
@@ -1002,7 +1013,7 @@ public:
 
         if (selectionValues.assigned())
         {
-            bool valid = valueType == ctInt;
+            bool valid = valueType == ctInt || valueType == ctString;
             valid = valid && (selectionValues.supportsInterface<IList>() || selectionValues.supportsInterface<IDict>());
             if (!valid)
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE,

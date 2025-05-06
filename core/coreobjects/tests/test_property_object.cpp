@@ -17,7 +17,6 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/listobject_factory.h>
-#include <thread>
 
 using namespace daq;
 
@@ -2187,4 +2186,22 @@ TEST_F(PropertyObjectTest, DotAccessSelectionValue)
     ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "a");
     parent.setPropertyValue("child.child.foo", 1);
     ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "b");
+}
+
+TEST_F(PropertyObjectTest, DynamicSelectionValue)
+{
+    auto propObj = PropertyObject();
+
+    auto selectionList = List<IString>("val1", "val2");
+
+    propObj.addProperty(FunctionProperty("SelectionListFunction", FunctionInfo(daq::ctList)));
+    auto func = Function([&selectionList]   
+    {
+        return selectionList;
+    });
+    propObj.setPropertyValue("SelectionListFunction", func);
+    propObj.addProperty(StringSelectionProperty("Selection", EvalValue("$SelectionListFunction()"), "val0"));
+
+    PropertyPtr selectionProp = propObj.getProperty("Selection");
+    ListPtr<IString> s = selectionProp.getSelectionValues();
 }

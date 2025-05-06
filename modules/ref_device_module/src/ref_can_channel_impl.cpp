@@ -111,8 +111,8 @@ void RefCANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size
     }
 
 
-    valueSignal.sendPacket(dataPacket);
     timeSignal.sendPacket(domainPacket);
+    valueSignal.sendPacket(dataPacket);
 }
 
 void RefCANChannelImpl::buildSignalDescriptors()

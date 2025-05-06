@@ -73,7 +73,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, TypePropertyFilter
  * @brief Creates a search filter that accepts properties with the specified name.
  * @param name The name of the accepted properties.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, NamePropertyFilter, IPropertyFilter, IString*, localId)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, NamePropertyFilter, IPropertyFilter, IString*, name)
 
 /*!
  * @brief Creates a search filter that accepts all properties.

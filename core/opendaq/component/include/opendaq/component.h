@@ -220,8 +220,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
 
     // [elementType(properties, IProperty)]
     /*!
-     * @brief Returns a list of properties  which are accepted by the specified property filter,
-     * contained in the component and its child components.
+     * @brief Returns a list of properties from the component and its child components that are accepted by
+     * the given property filter.
      * @param filter Provides an optional filter that filters out unwanted properties and allows for recursion.
      * @param[out] properties The List of found properties.
      *

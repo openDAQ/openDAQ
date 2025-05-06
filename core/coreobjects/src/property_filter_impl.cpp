@@ -125,19 +125,19 @@ ErrCode CustomPropertyFilterImpl::acceptsProperty(IProperty* property, Bool* acc
         });
 }
 
-//RecursivePropertyFilterImpl::RecursivePropertyFilterImpl(const PropertyFilterPtr& filter)
-//    : filter(filter)
-//{
-//}
+RecursivePropertyFilterImpl::RecursivePropertyFilterImpl(const PropertyFilterPtr& filter)
+    : filter(filter)
+{
+}
 
-//ErrCode RecursivePropertyFilterImpl::acceptsProperty(IProperty* property, Bool* accepts)
-//{
-//    OPENDAQ_PARAM_NOT_NULL(accepts);
-//    OPENDAQ_PARAM_NOT_NULL(property);
+ErrCode RecursivePropertyFilterImpl::acceptsProperty(IProperty* property, Bool* accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+    OPENDAQ_PARAM_NOT_NULL(property);
     
-//    *accepts = filter.acceptsProperty(property);
-//    return OPENDAQ_SUCCESS;
-//}
+    *accepts = filter.acceptsProperty(property);
+    return OPENDAQ_SUCCESS;
+}
 
 #if !defined(BUILDING_STATIC_LIBRARY)
 
@@ -193,11 +193,11 @@ ErrCode PUBLIC_EXPORT createCustomPropertyFilter(IPropertyFilter** objTmp, IFunc
     return createObject<IPropertyFilter, CustomPropertyFilterImpl, IFunction*>(objTmp, acceptsFunction);
 }
 
-//extern "C"
-//ErrCode PUBLIC_EXPORT createRecursivePropertyFilter(IPropertyFilter** objTmp, IPropertyFilter* filter)
-//{
-//    return createObject<IPropertyFilter, RecursivePropertyFilterImpl, IPropertyFilter*>(objTmp, filter);
-//}
+extern "C"
+ErrCode PUBLIC_EXPORT createRecursivePropertyFilter(IPropertyFilter** objTmp, IPropertyFilter* filter)
+{
+    return createObject<IPropertyFilter, RecursivePropertyFilterImpl, IPropertyFilter*>(objTmp, filter);
+}
 
 #endif
 

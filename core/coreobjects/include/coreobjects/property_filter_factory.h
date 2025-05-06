@@ -117,17 +117,17 @@ inline PropertyFilterPtr Custom(const FunctionPtr& acceptsFunction)
     return obj;
 }
 
-///*!
-// * @brief Creates a search filter that indicates that the property search method should recursively called for the nested object-properties.
-// * This filter constructor should always be the final filter wrapper, and should not be used as a constructor argument
-// * for another filter.
-// * @param filter The filter to be wrapped with a "recursive" flag.
-// */
-//inline PropertyFilterPtr Recursive(const PropertyFilterPtr& filter)
-//{
-//    PropertyFilterPtr obj(RecursivePropertyFilter_Create(filter));
-//    return obj;
-//}
+/*!
+ * @brief Creates a search filter that indicates that the property search method should recursively called for the nested object-properties.
+ * This filter constructor should always be the final filter wrapper, and should not be used as a constructor argument
+ * for another filter.
+ * @param filter The filter to be wrapped with a "recursive" flag.
+ */
+inline PropertyFilterPtr Recursive(const PropertyFilterPtr& filter)
+{
+    PropertyFilterPtr obj(RecursivePropertyFilter_Create(filter));
+    return obj;
+}
 
 /*!@}*/
 

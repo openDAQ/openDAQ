@@ -47,6 +47,7 @@
 #include <map>
 #include <thread>
 #include <utility>
+#include <coretypes/recursive_search_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -2615,13 +2616,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperti
             for (const auto& property : allProperties)
             {
                 if (filterPtr.acceptsProperty(property))
-                {
                     foundProperties.pushBack(property);
+
+                if (checkIsChildObjectProperty(property))
+                {
+                    if (auto childPropertyObject = property.getValue().asPtrOrNull<IPropertyObject>();
+                             childPropertyObject.assigned() && filterPtr.supportsInterface<IRecursiveSearch>())
+                    {
+                        for (const auto& foundChildProperty : childPropertyObject.findProperties(filterPtr))
+                            foundProperties.pushBack(foundChildProperty);
+                    }
                 }
-//                else if (filterPtr.supportsInterface<IRecursiveSearch>())
-//                {
-//                    // TODO
-//                }
             }
 
             *properties = foundProperties.detach();

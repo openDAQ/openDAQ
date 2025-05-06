@@ -106,13 +106,13 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, NotPropertyFilter,
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, CustomPropertyFilter, IPropertyFilter, IFunction*, acceptsFunction)
 
-///*!
-// * @brief Creates a search filter that indicates that the property search method should recursively called for the nested object-properties.
-// * This filter constructor should always be the final filter wrapper, and should not be used as a constructor argument
-// * for another filter.
-// * @param filter The filter to be wrapped with a "recursive" flag.
-// */
-//OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, RecursivePropertyFilter, IPropertyFilter, IPropertyFilter*, filter)
+/*!
+ * @brief Creates a search filter that indicates that the property search method should recursively called for the nested object-properties.
+ * This filter constructor should always be the final filter wrapper, and should not be used as a constructor argument
+ * for another filter.
+ * @param filter The filter to be wrapped with a "recursive" flag.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, RecursivePropertyFilter, IPropertyFilter, IPropertyFilter*, filter)
 
 /*!@}*/
 

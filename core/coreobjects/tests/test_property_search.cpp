@@ -75,36 +75,43 @@ TEST_F(PropertySearchTest, FindWithDefaultFilterInEmptyObject)
 TEST_F(PropertySearchTest, FindWithDefaultFilter)
 {
     auto foundProperties = testPropertyObject.findProperties();
-
     ASSERT_EQ(foundProperties.getCount(), 10u);
 }
 
 TEST_F(PropertySearchTest, FindAny)
 {
     auto foundProperties = testPropertyObject.findProperties(Any());
-
     ASSERT_EQ(foundProperties.getCount(), 13u);
+
+    auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(Any()));
+    ASSERT_EQ(recursivelyFoundProperties.getCount(), 26u);
 }
 
 TEST_F(PropertySearchTest, FindVisible)
 {
     auto foundProperties = testPropertyObject.findProperties(Visible());
-
     ASSERT_EQ(foundProperties.getCount(), 10u);
+
+    auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(Visible()));
+    ASSERT_EQ(recursivelyFoundProperties.getCount(), 20u);
 }
 
 TEST_F(PropertySearchTest, FindReadOnly)
 {
     auto foundProperties = testPropertyObject.findProperties(ReadOnly());
-
     ASSERT_EQ(foundProperties.getCount(), 3u);
+
+    auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(ReadOnly()));
+    ASSERT_EQ(recursivelyFoundProperties.getCount(), 6u);
 }
 
 TEST_F(PropertySearchTest, FindByName)
 {
     auto foundProperties = testPropertyObject.findProperties(Name("FloatProp"));
-
     ASSERT_EQ(foundProperties.getCount(), 1u);
+
+    auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(Name("FloatProp")));
+    ASSERT_EQ(recursivelyFoundProperties.getCount(), 2u);
 }
 
 TEST_F(PropertySearchTest, FindByType)
@@ -119,7 +126,24 @@ TEST_F(PropertySearchTest, FindByType)
     ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctProc)).getCount(), 1u);
     ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctFunc)).getCount(), 1u);
     ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctString)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctInt)).getCount(), 3u); // selection props are also of type ctInt
+    // selection props are also of type ctInt
+    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctInt)).getCount(), 3u);
+}
+
+TEST_F(PropertySearchTest, FindByTypeRecursively)
+{
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctStruct))).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctBool))).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctEnumeration))).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctList))).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctDict))).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctObject))).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctFloat))).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctProc))).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctFunc))).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctString))).getCount(), 2u);
+    // selection props are also of type ctInt
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctInt))).getCount(), 6u);
 }
 
 TEST_F(PropertySearchTest, FindCustom)
@@ -130,45 +154,67 @@ TEST_F(PropertySearchTest, FindCustom)
             return prop.getName().toStdString().find("Selection") != std::string::npos;
         }
     );
-    auto foundProperties = testPropertyObject.findProperties(Custom(customSearch));
 
+    auto foundProperties = testPropertyObject.findProperties(Custom(customSearch));
     ASSERT_EQ(foundProperties.getCount(), 2u);
+
+    auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(Custom(customSearch)));
+    ASSERT_EQ(recursivelyFoundProperties.getCount(), 4u);
 }
 
 TEST_F(PropertySearchTest, FindNot)
 {
     auto foundProperties = testPropertyObject.findProperties(Not(Visible()));
-
     ASSERT_EQ(foundProperties.getCount(), 3u);
+
+    auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(Not(Visible())));
+    ASSERT_EQ(recursivelyFoundProperties.getCount(), 6u);
 }
 
 TEST_F(PropertySearchTest, FindAnd)
 {
     auto foundProperties = testPropertyObject.findProperties(And(Visible(), ReadOnly()));
-
     ASSERT_EQ(foundProperties.getCount(), 2u);
+
+    auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(And(Visible(), ReadOnly())));
+    ASSERT_EQ(recursivelyFoundProperties.getCount(), 4u);
 }
 
 TEST_F(PropertySearchTest, FindOr)
 {
     auto foundProperties = testPropertyObject.findProperties(Or(Visible(), ReadOnly()));
-
     ASSERT_EQ(foundProperties.getCount(), 11u);
+
+    auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(Or(Visible(), ReadOnly())));
+    ASSERT_EQ(recursivelyFoundProperties.getCount(), 22u);
 }
 
-TEST_F(PropertySearchTest, ChangeFoundProperty)
+TEST_F(PropertySearchTest, ChangeFoundProperties)
 {
-    auto foundProperties = testPropertyObject.findProperties(Name("StringProp"));
+    auto foundProperties = testPropertyObject.findProperties(Recursive(Name("StringProp")));
 
-    ASSERT_EQ(foundProperties.getCount(), 1u);
+    ASSERT_EQ(foundProperties.getCount(), 2u);
     ASSERT_NO_THROW(foundProperties[0].setValue("NewString"));
+    ASSERT_NO_THROW(foundProperties[1].setValue("NewString"));
+
     ASSERT_EQ(testPropertyObject.getPropertyValue("StringProp"), "NewString");
+    ASSERT_EQ(nestedPropertyObject.getPropertyValue("StringProp"), "NewString");
 }
 
-TEST_F(PropertySearchTest, ChangeReadOnlyFoundProperty)
+TEST_F(PropertySearchTest, ChangeFoundReadOnlyProperties)
 {
-    auto foundProperties = testPropertyObject.findProperties(Name("FloatProp"));
+    auto foundProperties = testPropertyObject.findProperties(Recursive(Name("FloatProp")));
 
-    ASSERT_EQ(foundProperties.getCount(), 1u);
+    ASSERT_EQ(foundProperties.getCount(), 2u);
     ASSERT_THROW(foundProperties[0].setValue(3.14), AccessDeniedException);
+    ASSERT_THROW(foundProperties[1].setValue(3.14), AccessDeniedException);
+}
+
+TEST_F(PropertySearchTest, ChangeFoundProtectedProperties)
+{
+    auto foundProperties = testPropertyObject.findProperties(Recursive(Name("ObjectProp")));
+
+    ASSERT_EQ(foundProperties.getCount(), 2u);
+    ASSERT_THROW(foundProperties[0].setValue(PropertyObject()), AccessDeniedException);
+    ASSERT_THROW(foundProperties[1].setValue(PropertyObject()), AccessDeniedException);
 }

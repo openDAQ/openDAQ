@@ -34,7 +34,7 @@
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <opendaq/deserialize_component_ptr.h>
 #include <coreobjects/core_event_args_impl.h>
-#include <opendaq/recursive_search_ptr.h>
+#include <coretypes/recursive_search_ptr.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>

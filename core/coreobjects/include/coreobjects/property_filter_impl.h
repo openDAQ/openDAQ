@@ -19,6 +19,7 @@
 #include <coretypes/list_factory.h>
 #include <coreobjects/property_ptr.h>
 #include <coreobjects/property_filter_ptr.h>
+#include <coretypes/recursive_search.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -133,15 +134,15 @@ private:
 
 // Recursive filter
 
-//class RecursivePropertyFilterImpl final : public ImplementationOf<IPropertyFilter, IRecursiveSearch>
-//{
-//public:
-//    explicit RecursivePropertyFilterImpl(const PropertyFilterPtr& filter);
+class RecursivePropertyFilterImpl final : public ImplementationOf<IPropertyFilter, IRecursiveSearch>
+{
+public:
+    explicit RecursivePropertyFilterImpl(const PropertyFilterPtr& filter);
 
-//    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
 
-//private:
-//    PropertyFilterPtr filter;
-//};
+private:
+    PropertyFilterPtr filter;
+};
 
 END_NAMESPACE_OPENDAQ

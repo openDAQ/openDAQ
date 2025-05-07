@@ -603,7 +603,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     {
         var targetObject = CoreObjectsFactory.CreatePropertyObject();
         var parentObject = CoreObjectsFactory.CreatePropertyObject();
-        parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+        parentObject.AddProperty(PropertyFactory.ObjectProperty("TargetObject", targetObject));
 
         var maskRw = CoreObjectsFactory.CreatePermissionMaskBuilder();
         maskRw.Read();
@@ -635,7 +635,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     {
         var targetObject = CoreObjectsFactory.CreatePropertyObject();
         var parentObject = CoreObjectsFactory.CreatePropertyObject();
-        parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+        parentObject.AddProperty(PropertyFactory.ObjectProperty("TargetObject", targetObject));
 
         var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
         maskRwx.Read();
@@ -668,7 +668,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     {
         var targetObject = CoreObjectsFactory.CreatePropertyObject();
         var parentObject = CoreObjectsFactory.CreatePropertyObject();
-        parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+        parentObject.AddProperty(PropertyFactory.ObjectProperty("TargetObject", targetObject));
 
         var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
         maskRwx.Read();

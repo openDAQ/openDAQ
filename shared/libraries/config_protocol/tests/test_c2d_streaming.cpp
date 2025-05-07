@@ -278,6 +278,8 @@ class ClientToDeviceStreamingTest : public Test
 public:
     ClientToDeviceStreamingTest()
         : anonymousUser(User("", ""))
+        , loggerContext(NullContext())
+        , loggerComponent(loggerContext.getLogger().getOrAddComponent("ClientToDeviceStreamingTest"))
         , helper1(std::ref(server1))
         , helper2(std::ref(server2))
     {
@@ -314,23 +316,31 @@ public:
 
     void SetUp() override
     {
-        serverDevice = test_utils::createTestDevice("server");
+        serverDevice = test_utils::createTestDevice("rootSrv");
         serverExtSigFolder = serverDevice.getServers()[0].getItem("Sig");
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 
         server1 = createServer(client1);
-        createAndConnectClient("client1", client1, server1, helper1, client1RootDevice, client1MirroredDevice, client1ExtSigFolder);
+        createAndConnectClient("rootClient1", client1, server1, helper1, client1RootDevice, client1MirroredDevice, client1ExtSigFolder);
 
         server2 = createServer(client2);
-        createAndConnectClient("client2", client2, server2, helper2, client2RootDevice, client2MirroredDevice, client2ExtSigFolder);
+        createAndConnectClient("rootClient2", client2, server2, helper2, client2RootDevice, client2MirroredDevice, client2ExtSigFolder);
 
         chIpServer = serverDevice.getChannels()[0].getInputPorts()[0];
         chIpClient1 = client1MirroredDevice.getChannels()[0].getInputPorts()[0];
         chIpClient2 = client2MirroredDevice.getChannels()[0].getInputPorts()[0];
 
+        chIpServer.getOnComponentCoreEvent() += event(this, &ClientToDeviceStreamingTest::onServerPortConnected);
+        chIpClient1.getOnComponentCoreEvent() += event(this, &ClientToDeviceStreamingTest::onClient1PortConnected);
+        chIpClient2.getOnComponentCoreEvent() += event(this, &ClientToDeviceStreamingTest::onClient2PortConnected);
+
         fbIpServer = serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0];
         fbIpClient1 = client1MirroredDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0];
         fbIpClient2 = client2MirroredDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0];
+
+        fbIpServer.getOnComponentCoreEvent() += event(this, &ClientToDeviceStreamingTest::onServerPortConnected);
+        fbIpClient1.getOnComponentCoreEvent() += event(this, &ClientToDeviceStreamingTest::onClient1PortConnected);
+        fbIpClient2.getOnComponentCoreEvent() += event(this, &ClientToDeviceStreamingTest::onClient2PortConnected);
 
         serverExtSigFolder.getOnComponentCoreEvent() += event(this, &ClientToDeviceStreamingTest::onServerSignalRemoved);
         client1ExtSigFolder.getOnComponentCoreEvent() += event(this, &ClientToDeviceStreamingTest::onClient1SignalRemoved);
@@ -339,6 +349,14 @@ public:
 
     void TearDown() override
     {
+        chIpServer.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onServerPortConnected);
+        chIpClient1.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onClient1PortConnected);
+        chIpClient2.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onClient2PortConnected);
+
+        fbIpServer.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onServerPortConnected);
+        fbIpClient1.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onClient1PortConnected);
+        fbIpClient2.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onClient2PortConnected);
+
         serverExtSigFolder.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onServerSignalRemoved);
         client1ExtSigFolder.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onClient1SignalRemoved);
         client2ExtSigFolder.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onClient2SignalRemoved);
@@ -366,6 +384,23 @@ public:
         return serverSignalsRemoved && client1SignalsRemoved && client2SignalsRemoved;
     }
 
+    void resetPortConnectionExpectations()
+    {
+        serverPortConnectedPromise = std::promise<void>();
+        serverPortConnectedFuture = serverPortConnectedPromise.get_future();
+        client1PortConnectedPromise = std::promise<void>();
+        client1PortConnectedFuture = client1PortConnectedPromise.get_future();
+        client2PortConnectedPromise = std::promise<void>();
+        client2PortConnectedFuture = client2PortConnectedPromise.get_future();
+    }
+
+    bool waitForPortsConnection()
+    {
+        return serverPortConnectedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready
+               && client1PortConnectedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready
+               && client2PortConnectedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
+    }
+
     bool testDomainSignal(const SignalPtr& signal, const SignalPtr& domainSignal)
     {
         return signal.getDomainSignal().assigned() && signal.getDomainSignal() == domainSignal;
@@ -373,6 +408,7 @@ public:
 
 protected:
     const UserPtr anonymousUser;
+    ContextPtr loggerContext;
     LoggerComponentPtr loggerComponent;
     DevicePtr serverDevice;
 
@@ -413,6 +449,14 @@ protected:
     std::future<void> client1ExtSigRemovedFuture;
     std::future<void> client2ExtSigRemovedFuture;
 
+    std::promise<void> serverPortConnectedPromise;
+    std::promise<void> client1PortConnectedPromise;
+    std::promise<void> client2PortConnectedPromise;
+
+    std::future<void> serverPortConnectedFuture;
+    std::future<void> client1PortConnectedFuture;
+    std::future<void> client2PortConnectedFuture;
+
     // server handling
     void serverNotificationReady(ConfigClientPtr& clientPtr, const PacketBuffer& notificationPacket) const
     {
@@ -446,6 +490,22 @@ protected:
     void onClient2SignalRemoved(ComponentPtr& comp, CoreEventArgsPtr& eventArgs)
     {
         onSignalRemoved(client2ExtSigToBeRemoved, client2ExtSigRemovedPromise, comp, eventArgs);
+    };
+
+    void onServerPortConnected(ComponentPtr& comp, CoreEventArgsPtr& eventArgs)
+    {
+        if (static_cast<CoreEventId>(eventArgs.getEventId()) == CoreEventId::SignalConnected)
+            serverPortConnectedPromise.set_value();
+    };
+    void onClient1PortConnected(ComponentPtr& comp, CoreEventArgsPtr& eventArgs)
+    {
+        if (static_cast<CoreEventId>(eventArgs.getEventId()) == CoreEventId::SignalConnected)
+            client1PortConnectedPromise.set_value();
+    };
+    void onClient2PortConnected(ComponentPtr& comp, CoreEventArgsPtr& eventArgs)
+    {
+        if (static_cast<CoreEventId>(eventArgs.getEventId()) == CoreEventId::SignalConnected)
+            client2PortConnectedPromise.set_value();
     };
 
     void onSignalRemoved(size_t& signalCounter, std::promise<void>& promise, const ComponentPtr& comp, const CoreEventArgsPtr& eventArgs)
@@ -486,8 +546,10 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectOnly)
     SignalPtr localRootSigClient1 = client1RootDevice.getSignals()[0];
     SignalPtr localRootSigClient2 = client2RootDevice.getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localRootSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
     // one external signal connected - one mirrored signal created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -497,8 +559,10 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectOnly)
     EXPECT_EQ(remoteId(chIpServer.getSignal()), localRootSigClient1.getGlobalId());
     EXPECT_EQ(remoteId(chIpClient2.getSignal()), chIpServer.getSignal().getGlobalId());
 
+    resetPortConnectionExpectations();
     // connect local signal of 2-nd client to mirrored fb input port
     fbIpClient2.connect(localRootSigClient2);
+    ASSERT_TRUE(waitForPortsConnection());
     // two external signals connected - two mirrored signals created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 1u);
@@ -514,14 +578,19 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectDisconnect)
     SignalPtr localRootSigClient1 = client1RootDevice.getSignals()[0];
     SignalPtr localRootSigClient2 = client2RootDevice.getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localRootSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
+    resetPortConnectionExpectations();
     // connect local signal of 2-nd client to mirrored fb input port
     fbIpClient2.connect(localRootSigClient2);
+    ASSERT_TRUE(waitForPortsConnection());
 
     setExternalSignalRemovedExpectation(1, 0, 1);
     chIpClient1.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // one external signal connected - one mirrored signal remains
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 1u);
@@ -533,7 +602,7 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectDisconnect)
 
     setExternalSignalRemovedExpectation(1, 1, 0);
     fbIpClient2.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // none signals connected - none mirrored signals existing
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -544,35 +613,44 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectDisconnect)
     EXPECT_FALSE(fbIpClient2.getSignal().assigned());
 }
 
-TEST_F_UNSTABLE_SKIPPED(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithServerSignal)
+TEST_F(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithServerSignal)
 {
     SignalPtr localRootSigClient1 = client1RootDevice.getSignals()[0];
     SignalPtr localRootSigClient2 = client2RootDevice.getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localRootSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
+    resetPortConnectionExpectations();
     // connect local signal of 2-nd client to mirrored fb input port
     fbIpClient2.connect(localRootSigClient2);
+    ASSERT_TRUE(waitForPortsConnection());
 
     setExternalSignalRemovedExpectation(1, 0, 1);
+    resetPortConnectionExpectations();
     chIpClient1.connect(client1MirroredDevice.getDevices()[0].getSignals()[0]);
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // one external signal connected - one mirrored signal remains
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 0u);
+    ASSERT_TRUE(waitForPortsConnection());
     // verify that server signal connected
     EXPECT_TRUE(chIpClient1.getSignal().assigned());
     EXPECT_TRUE(chIpServer.getSignal().assigned());
     EXPECT_TRUE(chIpClient2.getSignal().assigned());
 
     setExternalSignalRemovedExpectation(1, 1, 0);
+    resetPortConnectionExpectations();
     fbIpClient2.connect(client2MirroredDevice.getDevices()[0].getSignals()[0]);
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // none signals connected - none mirrored signals existing
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 0u);
+    ASSERT_TRUE(waitForPortsConnection());
     // verify that new signal connected
     EXPECT_TRUE(fbIpClient1.getSignal().assigned());
     EXPECT_TRUE(fbIpServer.getSignal().assigned());
@@ -587,30 +665,39 @@ TEST_F(ClientToDeviceStreamingTest, ReplaceConnectedSignalWithAnotherExternal)
     SignalPtr localSigClient1 = client1RootDevice.getDevices()[0].getSignals()[0];
     SignalPtr localSigClient2 = client2RootDevice.getDevices()[0].getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localRootSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
+    resetPortConnectionExpectations();
     // connect local signal of 2-nd client to mirrored fb input port
     fbIpClient2.connect(localRootSigClient2);
+    ASSERT_TRUE(waitForPortsConnection());
 
     setExternalSignalRemovedExpectation(1, 0, 1);
+    resetPortConnectionExpectations();
     chIpClient1.connect(localSigClient1);
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // two external signal still connected - two mirrored signal remains
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 1u);
+    ASSERT_TRUE(waitForPortsConnection());
     // verify that new signal connected
     EXPECT_TRUE(chIpClient1.getSignal().assigned());
     EXPECT_TRUE(chIpServer.getSignal().assigned());
     EXPECT_TRUE(chIpClient2.getSignal().assigned());
 
     setExternalSignalRemovedExpectation(1, 1, 0);
+    resetPortConnectionExpectations();
     fbIpClient2.connect(localSigClient2);
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // two external signal still connected - two mirrored signal remains
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 1u);
+    ASSERT_TRUE(waitForPortsConnection());
     // verify that new signal connected
     EXPECT_TRUE(fbIpClient1.getSignal().assigned());
     EXPECT_TRUE(fbIpServer.getSignal().assigned());
@@ -622,13 +709,15 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainPortRemove)
     SignalPtr localRootSigClient1 = client1RootDevice.getSignals()[0];
     SignalPtr localRootSigClient2 = client2RootDevice.getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 2-nd client to mirrored fb input port
     fbIpClient2.connect(localRootSigClient2);
+    ASSERT_TRUE(waitForPortsConnection());
 
     setExternalSignalRemovedExpectation(1, 1, 0);
     auto fbToRemove = serverDevice.getDevices()[0].getFunctionBlocks()[0];
     serverDevice.getDevices()[0].removeFunctionBlock(fbToRemove);
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // none signals connected - none mirrored signals existing
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -654,8 +743,11 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectTwice)
 {
     SignalPtr localRootSigClient1 = client1RootDevice.getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localRootSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
     // one external signal connected - one mirrored signal created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -665,8 +757,11 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectTwice)
     EXPECT_EQ(remoteId(chIpServer.getSignal()), localRootSigClient1.getGlobalId());
     EXPECT_EQ(remoteId(chIpClient2.getSignal()), chIpServer.getSignal().getGlobalId());
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored fb input port
     fbIpClient1.connect(localRootSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
     // one external signal connected - one mirrored signal created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -681,14 +776,19 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectDisconnectTwice)
 {
     SignalPtr localRootSigClient1 = client1RootDevice.getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localRootSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored fb input port
     fbIpClient1.connect(localRootSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
 
     setExternalSignalRemovedExpectation(0, 0, 0);
     chIpClient1.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // one external signal connected - one mirrored signal remains
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -700,7 +800,7 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectDisconnectTwice)
 
     setExternalSignalRemovedExpectation(1, 0, 1);
     fbIpClient1.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // none signals connected - none mirrored signals existing
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -716,8 +816,11 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithDomainConnectOnly)
     SignalPtr localChSigClient1 = client1RootDevice.getDevices()[0].getChannels()[0].getSignals()[0];
     SignalPtr localChSigClient2 = client2RootDevice.getDevices()[0].getChannels()[0].getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localChSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
     // one external signal with domain connected - two mirrored signals created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -729,8 +832,11 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithDomainConnectOnly)
     EXPECT_EQ(remoteId(chIpServer.getSignal()), localChSigClient1.getGlobalId());
     EXPECT_EQ(remoteId(chIpClient2.getSignal()), chIpServer.getSignal().getGlobalId());
 
+    resetPortConnectionExpectations();
     // connect local signal of 2-nd client to mirrored fb input port
     fbIpClient2.connect(localChSigClient2);
+    ASSERT_TRUE(waitForPortsConnection());
+
     // two external signals with domain connected - four mirrored signals created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 4u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 2u);
@@ -748,14 +854,19 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithDomainConnectDisconnect)
     SignalPtr localChSigClient1 = client1RootDevice.getDevices()[0].getChannels()[0].getSignals()[0];
     SignalPtr localChSigClient2 = client2RootDevice.getDevices()[0].getChannels()[0].getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localChSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
+    resetPortConnectionExpectations();
     // connect local signal of 2-nd client to mirrored fb input port
     fbIpClient2.connect(localChSigClient2);
+    ASSERT_TRUE(waitForPortsConnection());
 
     setExternalSignalRemovedExpectation(2, 0, 2);
     chIpClient1.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // one external signal with domain connected - two mirrored signals remains
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 2u);
@@ -769,7 +880,7 @@ TEST_F(ClientToDeviceStreamingTest, SignalWithDomainConnectDisconnect)
 
     setExternalSignalRemovedExpectation(2, 2, 0);
     fbIpClient2.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // none signals connected - none mirrored signals existing
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -785,8 +896,11 @@ TEST_F(ClientToDeviceStreamingTest, SignalsWithSharedDomainConnectOnly)
     SignalPtr localFbSig1Client1 = client1RootDevice.getDevices()[0].getFunctionBlocks()[0].getSignals()[0];
     SignalPtr localFbSig2Client1 = client1RootDevice.getDevices()[0].getFunctionBlocks()[0].getSignals()[1];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localFbSig1Client1);
+    ASSERT_TRUE(waitForPortsConnection());
+
     // one external signal with domain connected - two mirrored signals created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -798,8 +912,11 @@ TEST_F(ClientToDeviceStreamingTest, SignalsWithSharedDomainConnectOnly)
     EXPECT_EQ(remoteId(chIpServer.getSignal()), localFbSig1Client1.getGlobalId());
     EXPECT_EQ(remoteId(chIpClient2.getSignal()), chIpServer.getSignal().getGlobalId());
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored fb input port
     fbIpClient1.connect(localFbSig2Client1);
+    ASSERT_TRUE(waitForPortsConnection());
+
     // two external signals with shared domain connected - 3 mirrored signals created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 3u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -817,14 +934,19 @@ TEST_F(ClientToDeviceStreamingTest, SignalsWithSharedDomainConnectDisconnect)
     SignalPtr localFbSig1Client1 = client1RootDevice.getDevices()[0].getFunctionBlocks()[0].getSignals()[0];
     SignalPtr localFbSig2Client1 = client1RootDevice.getDevices()[0].getFunctionBlocks()[0].getSignals()[1];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localFbSig1Client1);
+    ASSERT_TRUE(waitForPortsConnection());
+
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored fb input port
     fbIpClient1.connect(localFbSig2Client1);
+    ASSERT_TRUE(waitForPortsConnection());
 
     setExternalSignalRemovedExpectation(1, 0, 1);
     chIpClient1.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // one external signal with domain connected - two mirrored signals remains
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -838,7 +960,7 @@ TEST_F(ClientToDeviceStreamingTest, SignalsWithSharedDomainConnectDisconnect)
 
     setExternalSignalRemovedExpectation(2, 0, 2);
     fbIpClient1.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // none signals connected - none mirrored signals existing
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -854,8 +976,11 @@ TEST_F(ClientToDeviceStreamingTest, SignalAndDomainConnectOnly)
     SignalPtr localChValSigClient1 = client1RootDevice.getDevices()[0].getChannels()[0].getSignals()[0];
     SignalPtr localChDomSigClient1 = client1RootDevice.getDevices()[0].getChannels()[0].getSignals()[1];
 
+    resetPortConnectionExpectations();
     // connect value local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localChValSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
     // one external signal with domain connected - two mirrored signals created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -867,8 +992,11 @@ TEST_F(ClientToDeviceStreamingTest, SignalAndDomainConnectOnly)
     EXPECT_EQ(remoteId(chIpServer.getSignal()), localChValSigClient1.getGlobalId());
     EXPECT_EQ(remoteId(chIpClient2.getSignal()), chIpServer.getSignal().getGlobalId());
 
+    resetPortConnectionExpectations();
     // connect domain local signal of 1-st client to mirrored fb input port
     fbIpClient1.connect(localChDomSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
     // external value and domain signals connected - 2 mirrored signals created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 2u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -886,14 +1014,19 @@ TEST_F(ClientToDeviceStreamingTest, SignalAndDomainConnectDisconnect)
     SignalPtr localChValSigClient1 = client1RootDevice.getDevices()[0].getChannels()[0].getSignals()[0];
     SignalPtr localChDomSigClient1 = client1RootDevice.getDevices()[0].getChannels()[0].getSignals()[1];
 
+    resetPortConnectionExpectations();
     // connect value local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localChValSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
+
+    resetPortConnectionExpectations();
     // connect domain local signal of 1-st client to mirrored fb input port
     fbIpClient1.connect(localChDomSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
 
     setExternalSignalRemovedExpectation(1, 0, 1);
     chIpClient1.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // external domain signal connected - one mirrored signals remains
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -905,7 +1038,7 @@ TEST_F(ClientToDeviceStreamingTest, SignalAndDomainConnectDisconnect)
 
     setExternalSignalRemovedExpectation(1, 0, 1);
     fbIpClient1.disconnect();
-    EXPECT_TRUE(isExternalMirroredSignalsRemoved());
+    ASSERT_TRUE(isExternalMirroredSignalsRemoved());
     // none signals connected - none mirrored signals existing
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 0u);
     EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
@@ -920,8 +1053,10 @@ TEST_F(ClientToDeviceStreamingTest, ConnectNewClientWhenStreamingActive)
 {
     SignalPtr localChSigClient1 = client1RootDevice.getDevices()[0].getChannels()[0].getSignals()[0];
 
+    resetPortConnectionExpectations();
     // connect local signal of 1-st client to mirrored channel input port
     chIpClient1.connect(localChSigClient1);
+    ASSERT_TRUE(waitForPortsConnection());
 
     ConfigClientPtr client3;
     ConfigServerPtr newServer = createServer(client3);

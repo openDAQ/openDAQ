@@ -239,5 +239,5 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
             return objectPtr.findProperties(filter).detach();
         },
         py::arg("filter") = nullptr,
-        "Returns a list of properties contained in the Property object and accepted by specified property filter.");
+        "Returns a list of properties contained in the Property object that are accepted by the specified property filter.");
 }

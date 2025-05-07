@@ -26,21 +26,19 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Property search filter that should be passed to property search function of property object to filter
- * out unwanted results.
+ * @brief A filter used to exclude unwanted properties during a property search on a property object.
  *
- * Each filter defines an "accepts property" function.
+ * Each filter implements an "accepts property" function that determines whether a given property
+ * should be included in the search results.
  *
- * Accepts property defines whether or not the property being evaluated as part of a search method should be included
- * in the resulting output.
- *
+ * This function is evaluated for each property encountered during the search process.
  */
 DECLARE_OPENDAQ_INTERFACE(IPropertyFilter, IBaseObject)
 {
     /*!
      * @brief Defines whether or not the property should be included in the search results
      * @param property The property being evaluated.
-     * @param[out] accepts True of the property is to be included in the results; false otherwise.
+     * @param[out] accepts True if the property is to be included in the results; false otherwise.
      */
     virtual ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) = 0;
 };
@@ -64,8 +62,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, VisiblePropertyFil
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, ReadOnlyPropertyFilter, IPropertyFilter)
 
 /*!
- * @brief Creates a search filter that accepts properties of the specified type.
- * @param type The type of accepted properties.
+ * @brief Creates a search filter that accepts properties of the specified core type.
+ * @param type The value type of accepted properties.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, TypePropertyFilter, IPropertyFilter, const CoreType&, type)
 
@@ -107,7 +105,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, NotPropertyFilter,
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, CustomPropertyFilter, IPropertyFilter, IFunction*, acceptsFunction)
 
 /*!
- * @brief Creates a search filter that indicates that the property search method should recursively called for the nested object-properties.
+ * @brief Creates a search filter that instructs the property search method to be called recursively for child property objects.
  * This filter constructor should always be the final filter wrapper, and should not be used as a constructor argument
  * for another filter.
  * @param filter The filter to be wrapped with a "recursive" flag.

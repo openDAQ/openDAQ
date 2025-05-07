@@ -2634,6 +2634,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperti
         });
     }
 
+    // If no filter is provided, only visible properties directly belonging to the current object are returned.
     return getPropertiesInternal(false, true, properties);
 }
 

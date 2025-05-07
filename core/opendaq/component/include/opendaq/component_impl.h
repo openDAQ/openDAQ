@@ -672,8 +672,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::findPropertiesRecursive(IList** propertie
 
     auto lock = this->getRecursiveConfigLock();
 
-    IList** outProps = properties; // helps MSVC to resolve captured symbols properly
-    return daqTry([&]
+    return daqTry([&properties, &propertyFilter, this]
     {
         auto thisComponent = this->template borrowPtr<ComponentPtr>();
         ListPtr<IProperty> foundProperties = thisComponent.findProperties(propertyFilter);
@@ -686,7 +685,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::findPropertiesRecursive(IList** propertie
                     foundProperties.pushBack(property);
         }
 
-        *outProps = foundProperties.detach();
+        *properties = foundProperties.detach();
         return OPENDAQ_SUCCESS;
     });
 }

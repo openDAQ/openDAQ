@@ -379,12 +379,12 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
 
     // [elementType(properties, IProperty)]
     /*!
-     * @brief Returns a list of properties contained in the Property object and accepted by specified property filter.
-     * @param filter Provides an optional filter that filters out unwanted properties and allows for recursion.
-     * @param[out] properties The List of found properties.
+     * @brief Returns a list of properties contained in the Property object that are accepted by the specified property filter.
+     * @param filter An optional filter used to exclude unwanted properties and optionally enable recursive search.
+     * @param[out] properties The list of properties found.
      *
-     * If filter is not provided, the returned list contains only visible properties and does not include those of
-     * nested property object.
+     * If no filter is provided, only visible properties directly belonging to the current object are returned.
+     * Recursion enabled through corresponding wrapper filter includes properties from child property objects into search results.
      */
     virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, IPropertyFilter* filter = nullptr) = 0;
 };

@@ -47,8 +47,8 @@ inline PropertyFilterPtr ReadOnly()
 }
 
 /*!
- * @brief Creates a search filter that accepts properties of the specified type.
- * @param type The type of accepted properties.
+ * @brief Creates a search filter that accepts properties of the specified core type.
+ * @param type The value type of accepted properties.
  */
 inline PropertyFilterPtr Type(const CoreType& type)
 {
@@ -118,7 +118,7 @@ inline PropertyFilterPtr Custom(const FunctionPtr& acceptsFunction)
 }
 
 /*!
- * @brief Creates a search filter that indicates that the property search method should recursively called for the nested object-properties.
+ * @brief Creates a search filter that instructs the property search method to be called recursively for child property objects.
  * This filter constructor should always be the final filter wrapper, and should not be used as a constructor argument
  * for another filter.
  * @param filter The filter to be wrapped with a "recursive" flag.

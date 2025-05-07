@@ -202,5 +202,5 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             return objectPtr.findPropertiesRecursive(propertyFilter).detach();
         },
         py::arg("property_filter") = nullptr,
-        "Returns a list of properties from the component and its child components that are accepted by the given property filter.");
+        "Returns a list of properties from the component and its child components that match the specified property filter.");
 }

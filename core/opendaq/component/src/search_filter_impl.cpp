@@ -7,6 +7,7 @@ VisibleSearchFilterImpl::VisibleSearchFilterImpl() = default;
 
 ErrCode VisibleSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
 {
+    OPENDAQ_PARAM_NOT_NULL(accepts);
     OPENDAQ_PARAM_NOT_NULL(component);
     
     return component->getVisible(accepts);

@@ -220,13 +220,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
 
     // [elementType(properties, IProperty)]
     /*!
-     * @brief Returns a list of properties from the component and its child components that are accepted by
-     * the given property filter.
-     * @param filter Provides an optional filter that filters out unwanted properties and allows for recursion.
-     * @param[out] properties The List of found properties.
+     * @brief Returns a list of properties from the component and its child components that match the specified property filter.
+     * @param filter An optional filter that excludes unwanted properties and enables recursive search through the child object-properties.
+     * @param[out] properties The list of matching properties.
      *
-     * If filter is not provided, the returned list contains only visible properties of components in subtree and
-     * does not include those of nested property object.
+     * If no filter is provided, only visible properties from the component and its child components are returned.
+     * Matching properties from child property objects are included only if the specified filter enables recursion.
      */
     virtual ErrCode INTERFACE_FUNC findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter = nullptr) = 0;
 };

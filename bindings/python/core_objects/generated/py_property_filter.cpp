@@ -38,7 +38,7 @@ PyDaqIntf<daq::IPropertyFilter, daq::IBaseObject> declareIPropertyFilter(pybind1
 
 void defineIPropertyFilter(pybind11::module_ m, PyDaqIntf<daq::IPropertyFilter, daq::IBaseObject> cls)
 {
-    cls.doc() = "Property search filter that should be passed to property search function of property object to filter out unwanted results.";
+    cls.doc() = "A filter used to exclude unwanted properties during a property search on a property object.";
 
     m.def("VisiblePropertyFilter", &daq::VisiblePropertyFilter_Create);
     m.def("ReadOnlyPropertyFilter", &daq::ReadOnlyPropertyFilter_Create);

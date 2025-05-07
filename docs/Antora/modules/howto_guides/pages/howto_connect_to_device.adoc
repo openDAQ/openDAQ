@@ -26,10 +26,10 @@ To discover available devices, we can use the `getAvailableDevices` method of th
 Device info contains information about device such as name, serial number, connection string, server capabilities, etc.
 Connection string is used to connect to the device. Prefix of connection string identifies the protocol used to connect to the device or a type of device.
 
-* `daqref://` indentifies the reference Device Module that simulates sine wave signals;
+* `daqref://` identifies the reference Device Module that simulates sine wave signals;
 * `daq.opcua://` is a prefix of OPC UA device;
 * `daq.nd://` is used for devices that support the native configuration protocol;
-* `daq.ns://` indentifies devices which support the native streaming protocol;
+* `daq.ns://` identifies devices which support the native streaming protocol;
 * `daq.lt://` is a prefix of device that supports streaming Lt protocol;
 * `daq://` is a prefix of the device that supports multiple protocols and allows to connect with optimal protocol. The host will represent the device manufacturer and serial number and will have a list of server capabilities which represent the protocols that device supports and connection strings for each protocol.
 

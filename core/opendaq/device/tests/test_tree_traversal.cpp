@@ -271,6 +271,8 @@ TEST_F(TreeTraversalTest, FindAndChangeCommonProperties)
 {
     auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
     ASSERT_EQ(device.findProperties(search::properties::Name("CommonProp")).getCount(), 1u);
+    ASSERT_GT(device.findProperties().getCount(), 0u);
+    ASSERT_GT(device.findPropertiesRecursive().getCount(), 0u);
 
     const auto components = device.getItems(Recursive(Any()));
     const auto properties = device.findPropertiesRecursive(search::properties::Name("CommonProp"));

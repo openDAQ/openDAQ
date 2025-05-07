@@ -136,8 +136,8 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         PropertyObject CreateSimplePropertyObject()
         {
             var propObj = CoreObjectsFactory.CreatePropertyObject();
-            propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo", true));
-            propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("MyInteger", 0, true));
+            propObj.AddProperty(PropertyFactory.StringProperty("MyString", "foo"));
+            propObj.AddProperty(PropertyFactory.IntProperty("MyInteger", 0));
             return propObj;
         }
 
@@ -153,7 +153,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     public void PropertyTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
-        propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo", true));
+        propObj.AddProperty(PropertyFactory.StringProperty("MyString", "foo"));
         propObj.SetPropertyValue("MyString", "bar");
         Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
     }
@@ -167,10 +167,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         intProp.MaxValue = 15;
         propObj.AddProperty(intProp.Build());
 
-        var suggestedValues = CoreTypesFactory.CreateList<BaseObject>();
-        suggestedValues.Add((FloatObject)1.23);
-        suggestedValues.Add((FloatObject)3.21);
-        suggestedValues.Add((FloatObject)5.67);
+        var suggestedValues = CoreTypesFactory.CreateList<BaseObject>(1.23, 3.21, 5.67);
         var floatProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Float", 3.21);
         floatProp.SuggestedValues = suggestedValues;
 
@@ -190,17 +187,11 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>();
-        list.Add("Apple");
-        list.Add("Banana");
-        list.Add("Kiwi");
+        var list = CoreTypesFactory.CreateList<BaseObject>("Apple", "Banana", "Kiwi");
+        propObj.AddProperty(PropertyFactory.SelectionProperty("ListSelection", list, 0));
 
-        propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("ListSelection", list, 0, true));
-
-        var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
-        dict.Add(0, "foo");
-        dict.Add(10, "bar");
-        propObj.AddProperty(CoreObjectsFactory.CreateSparseSelectionProperty("DictSelection", dict, 10, true));
+        var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>((0, "foo"), (10, "bar"));
+        propObj.AddProperty(PropertyFactory.SparseSelectionProperty("DictSelection", dict, 10));
 
         // Prints "1"
         Console.WriteLine((long)propObj.GetPropertyValue("ListSelection"));
@@ -224,9 +215,9 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
 
         // The order below is important, as "child1" and "child2" are frozen once
         // used as default property values.
-        child2.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
-        child1.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child2));
-        propObj.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child1));
+        child2.AddProperty(PropertyFactory.StringProperty("String", "foo"));
+        child1.AddProperty(PropertyFactory.ObjectProperty("Child", child2));
+        propObj.AddProperty(PropertyFactory.ObjectProperty("Child", child1));
 
         // Prints out the value of the "String" Property of child2
         Console.WriteLine((string)propObj.GetPropertyValue("Child.Child.String"));
@@ -237,26 +228,19 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>();
-        list.Add("Banana");
-        list.Add("Apple");
-        list.Add("Kiwi");
+        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
 
-        propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
+        propObj.AddProperty(PropertyFactory.ListProperty("List", list));
 
-        var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
-        dict.Add(0, "foo");
-        dict.Add(10, "bar");
-        propObj.AddProperty(CoreObjectsFactory.CreateDictProperty("Dict", dict, true));
+        var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>((0, "foo"), (10, "bar"));
+        propObj.AddProperty(PropertyFactory.DictProperty("Dict", dict));
 
         // Prints out "Banana"
         Console.WriteLine((string)propObj.GetPropertyValue("List").CastList<StringObject>()[0]);
         // Prints out "bar"
         Console.WriteLine((string)propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>()[10]);
 
-        var list2 = CoreTypesFactory.CreateList<BaseObject>();
-        list2.Add("Pear");
-        list2.Add("Strawberry");
+        var list2 = CoreTypesFactory.CreateList<BaseObject>("Pear", "Strawberry");
 
         // Sets a new value for the List Property
         propObj.SetPropertyValue("List", (BaseObject)list2);
@@ -266,11 +250,11 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     public void ReferencePropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
-        propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 0, true));
-        propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("Prop1", "foo", true));
-        propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("Prop2", "bar", true));
+        propObj.AddProperty(PropertyFactory.IntProperty("Integer", 0));
+        propObj.AddProperty(PropertyFactory.StringProperty("Prop1", "foo"));
+        propObj.AddProperty(PropertyFactory.StringProperty("Prop2", "bar"));
 
-        propObj.AddProperty(CoreObjectsFactory.CreateReferenceProperty("RefProp", CoreObjectsFactory.CreateEvalValue("switch($Integer, 0, %Prop1, 1, %Prop2)")));
+        propObj.AddProperty(PropertyFactory.ReferenceProperty("RefProp", CoreObjectsFactory.CreateEvalValue("switch($Integer, 0, %Prop1, 1, %Prop2)")));
 
         // Prints "foo"
         Console.WriteLine((string)propObj.GetPropertyValue("RefProp"));
@@ -285,9 +269,9 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     public void RemainingPropertyTypesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
-        propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
-        propObj.AddProperty(CoreObjectsFactory.CreateRatioProperty("Ratio", CoreTypesFactory.CreateRatio(1, 10), true));
-        propObj.AddProperty(CoreObjectsFactory.CreateBoolProperty("Bool", true, true));
+        propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
+        propObj.AddProperty(PropertyFactory.RatioProperty("Ratio", CoreTypesFactory.CreateRatio(1, 10)));
+        propObj.AddProperty(PropertyFactory.BoolProperty("Bool", true));
     }
 
     [Test]
@@ -312,20 +296,18 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
 
         PropertyObject simulatedChannel = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>();
-        list.Add("Sine");
-        list.Add("Counter");
+        var list = CoreTypesFactory.CreateList<BaseObject>("Sine", "Counter");
 
-        simulatedChannel.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Waveform", list, 0, true));
-        simulatedChannel.AddProperty(CoreObjectsFactory.CreateReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
+        simulatedChannel.AddProperty(PropertyFactory.SelectionProperty("Waveform", list, 0));
+        simulatedChannel.AddProperty(PropertyFactory.ReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
 
         //...
 
-        simulatedChannel.AddProperty(CoreObjectsFactory.CreateObjectProperty("SineSettings", sineSettings));
+        simulatedChannel.AddProperty(PropertyFactory.ObjectProperty("SineSettings", sineSettings));
 
         //...
 
-        simulatedChannel.AddProperty(CoreObjectsFactory.CreateObjectProperty("CounterSettings", counterSettings));
+        simulatedChannel.AddProperty(PropertyFactory.ObjectProperty("CounterSettings", counterSettings));
     }
 
     [Test]
@@ -333,7 +315,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     {
         // If the value of the "Waveform" Property equals 0, the EvalValue evaluates to the
         // "SineSettings" Property. If not, it evaluates to the "CounterSettings" Property.
-        CoreObjectsFactory.CreateReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)"));
+        PropertyFactory.ReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)"));
     }
 
     //[Test]
@@ -368,11 +350,9 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         //PropertyBuilder amplitudeProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Amplitude", 5);
         //#endregion
 
-        //var list = CoreTypesFactory.CreateList<BaseObject>();
-        //list.Add("V");
-        //list.Add("mV");
+        //var list = CoreTypesFactory.CreateList<BaseObject>("V", "mV");
 
-        //sineSettings.AddProperty(CoreObjectsFactory.CreateSelectionProperty("AmplitudeUnit", list, 0, true));
+        //sineSettings.AddProperty(PropertyFactory.SelectionProperty("AmplitudeUnit", list, 0));
 
         ////...
 
@@ -414,7 +394,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         OpenDaqException ex = Assert.Throws<OpenDaqException>(() =>
         {
             var propObj = CoreObjectsFactory.CreatePropertyObject();
-            propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("foo", "bar", true));
+            propObj.AddProperty(PropertyFactory.StringProperty("foo", "bar"));
             propObj.RemoveProperty("foo");
 
             // Throws a not found error
@@ -431,21 +411,17 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     public void ListingPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
-        propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
-        propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("Int", 10, false));
-        propObj.AddProperty(CoreObjectsFactory.CreateFloatProperty("Float", 15.0, true));
-        propObj.AddProperty(CoreObjectsFactory.CreateReferenceProperty("FloatRef", CoreObjectsFactory.CreateEvalValue("%Float")));
+        propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
+        propObj.AddProperty(PropertyFactory.IntProperty("Int", 10, false));
+        propObj.AddProperty(PropertyFactory.FloatProperty("Float", 15.0));
+        propObj.AddProperty(PropertyFactory.ReferenceProperty("FloatRef", CoreObjectsFactory.CreateEvalValue("%Float")));
 
         // Contains the Properties "String", "Int", "Float", "FloatRef"
         var allProps = propObj.AllProperties;
         // Contains the Properties "String", "FloatRef"
         var visibleProps = propObj.VisibleProperties;
 
-        var order = CoreTypesFactory.CreateList<StringObject>();
-        order.Add("FloatRef");
-        order.Add("Float");
-        order.Add("Int");
-        order.Add("String");
+        var order = CoreTypesFactory.CreateList<StringObject>("FloatRef", "Float", "Int", "String");
         propObj.SetPropertyOrder(order);
 
         // Contains the Properties in the order "FloatRef", "Float", "Int", String"
@@ -456,7 +432,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     public void ReadingWritingPropertyValuesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
-        propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", false));
+        propObj.AddProperty(PropertyFactory.StringProperty("String", "foo", false));
 
         // Prints "foo"
         Console.WriteLine((string)propObj.GetPropertyValue("String"));
@@ -472,9 +448,9 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         var child1 = CoreObjectsFactory.CreatePropertyObject();
         var child2 = CoreObjectsFactory.CreatePropertyObject();
 
-        child2.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
-        child1.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child2));
-        propObj.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child1));
+        child2.AddProperty(PropertyFactory.StringProperty("String", "foo"));
+        child1.AddProperty(PropertyFactory.ObjectProperty("Child", child2));
+        propObj.AddProperty(PropertyFactory.ObjectProperty("Child", child1));
 
         propObj.SetPropertyValue("Child.Child.String", "bar");
 
@@ -487,11 +463,9 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>();
-        list.Add("Banana");
-        list.Add("Kiwi");
+        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
 
-        propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+        propObj.AddProperty(PropertyFactory.SelectionProperty("Selection", list, 1));
 
         // Prints "Kiwi"
         Console.WriteLine((string)propObj.GetPropertySelectionValue("Selection"));
@@ -502,18 +476,14 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>();
-        list.Add("Banana");
-        list.Add("Kiwi");
+        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
 
-        propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
+        propObj.AddProperty(PropertyFactory.ListProperty("List", list));
 
         // Prints "Banana"
         Console.WriteLine((string)propObj.GetPropertyValue("List[0]"));
 
-        var list2 = CoreTypesFactory.CreateList<BaseObject>();
-        list2.Add("Pear");
-        list2.Add("Strawberry");
+        var list2 = CoreTypesFactory.CreateList<BaseObject>("Pear", "Strawberry");
 
         // Sets a new value to the List Property.
         propObj.SetPropertyValue("List", (BaseObject)list2);
@@ -528,11 +498,9 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         #region just for the test to compile
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list0 = CoreTypesFactory.CreateList<BaseObject>();
-        list0.Add("Banana");
-        list0.Add("Kiwi");
+        var list0 = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
 
-        propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list0, true));
+        propObj.AddProperty(PropertyFactory.ListProperty("List", list0));
         #endregion
 
         IListObject<BaseObject> list = propObj.GetPropertyValue("List").CastList<BaseObject>();
@@ -548,10 +516,8 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var dict0 = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
-        dict0.Add(1, "Banana");
-        dict0.Add(12, "Kiwi");
-        propObj.AddProperty(CoreObjectsFactory.CreateDictProperty("Dict", dict0, true));
+        var dict0 = CoreTypesFactory.CreateDict<BaseObject, BaseObject>((1, "Banana"), (12, "Kiwi"));
+        propObj.AddProperty(PropertyFactory.DictProperty("Dict", dict0));
 
         IDictObject<IntegerObject, StringObject> dict = propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>();
         dict[3] = "Blueberry";
@@ -565,14 +531,11 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     {
         PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
 
-        propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
+        propClass.AddProperty(PropertyFactory.IntProperty("Integer", 10));
 
-        var list = CoreTypesFactory.CreateList<BaseObject>();
-        list.Add("Banana");
-        list.Add("Apple");
-        list.Add("Kiwi");
+        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
 
-        propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+        propClass.AddProperty(PropertyFactory.SelectionProperty("Selection", list, 1));
     }
 
     [Test]
@@ -582,14 +545,11 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
 
         PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
 
-        propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
+        propClass.AddProperty(PropertyFactory.IntProperty("Integer", 10));
 
-        var list = CoreTypesFactory.CreateList<BaseObject>();
-        list.Add("Banana");
-        list.Add("Apple");
-        list.Add("Kiwi");
+        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
 
-        propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+        propClass.AddProperty(PropertyFactory.SelectionProperty("Selection", list, 1));
 
         manager.AddType(propClass.Build());
 
@@ -605,11 +565,11 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         TypeManager manager = CoreTypesFactory.CreateTypeManager();
 
         PropertyObjectClassBuilder propClass1 = CoreObjectsFactory.CreatePropertyObjectClassBuilderWithManager(manager, "InheritedClass");
-        propClass1.AddProperty(CoreObjectsFactory.CreateStringProperty("InheritedProp", "foo", true));
+        propClass1.AddProperty(PropertyFactory.StringProperty("InheritedProp", "foo"));
         manager.AddType(propClass1.Build());
 
         PropertyObjectClassBuilder propClass2 = CoreObjectsFactory.CreatePropertyObjectClassBuilderWithManager(manager, "MyClass");
-        propClass2.AddProperty(CoreObjectsFactory.CreateStringProperty("OwnProp", "bar", true));
+        propClass2.AddProperty(PropertyFactory.StringProperty("OwnProp", "bar"));
         propClass2.ParentName = "InheritedClass";
         manager.AddType(propClass2.Build());
 

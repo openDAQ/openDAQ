@@ -48,8 +48,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyFilter, IBaseObject)
 /*!@}*/
 
 /*!
- * @ingroup opendaq_components_search_filter
- * @addtogroup opendaq_components_search_filter_factories Factories
+ * @ingroup objects_property_filter
+ * @addtogroup objects_property_filter_factories Factories
  * @{
  */
 

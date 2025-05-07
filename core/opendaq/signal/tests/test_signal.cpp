@@ -1723,7 +1723,11 @@ TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
 
     // Send our packet
     // Throws becuase we didn't use signal.setDescriptor
-    ASSERT_THROW(signal.sendPacket(dataPacket), NotFoundException);
+
+    // TODO: we optimized the getLastValue, so calculation of last value moved to the the method getLastValue of the signal
+    // ASSERT_THROW(signal.sendPacket(dataPacket), NotFoundException);
+    ASSERT_NO_THROW(signal.sendPacket(dataPacket));
+    ASSERT_THROW(signal.getLastValue(), NotFoundException);
 }
 
 TEST_F(SignalTest, GetLastValueStructNested)

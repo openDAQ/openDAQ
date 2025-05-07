@@ -29,6 +29,186 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+namespace PacketDetails
+{
+BaseObjectPtr dataToObj(void* addr, const SampleType& type);
+BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType);
+StructPtr buildStructFromFields(const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, void*& addr);
+BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager);
+BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager);
+
+inline BaseObjectPtr dataToObj(void* addr, const SampleType& type)
+{
+    switch (type)
+    {
+        case SampleType::Float32:
+        {
+            const auto data = static_cast<float*>(addr);
+            return Floating(*data);
+        }
+        case SampleType::Float64:
+        {
+            const auto data = static_cast<double*>(addr);
+            return Floating(*data);
+        }
+        case SampleType::Int8:
+        {
+            const auto data = static_cast<int8_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt8:
+        {
+            const auto data = static_cast<uint8_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::Int16:
+        {
+            const auto data = static_cast<int16_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt16:
+        {
+            const auto data = static_cast<uint16_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::Int32:
+        {
+            const auto data = static_cast<int32_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt32:
+        {
+            const auto data = static_cast<uint32_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::Int64:
+        {
+            const auto data = static_cast<int64_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::UInt64:
+        {
+            const auto data = static_cast<uint64_t*>(addr);
+            return Integer(*data);
+        }
+        case SampleType::RangeInt64:
+        {
+            const auto data = static_cast<int64_t*>(addr);
+            return Range(data[0], data[1]);
+        }
+        case SampleType::ComplexFloat32:
+        {
+            const auto data = static_cast<float*>(addr);
+            return ComplexNumber(data[0], data[1]);
+        }
+        case SampleType::ComplexFloat64:
+        {
+            const auto data = static_cast<double*>(addr);
+            return ComplexNumber(data[0], data[1]);
+        }
+        default:
+        {
+            return BaseObject();
+        }
+    }
+}
+
+inline BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType)
+{
+    const auto ptr = dataToObj(addr, sampleType);
+    addr = static_cast<char*>(addr) + getSampleSize(sampleType);
+    return ptr;
+}
+
+inline StructPtr buildStructFromFields(const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, void*& addr)
+{
+    const auto builder = StructBuilder(descriptor.getName(), typeManager);
+    const auto fields = descriptor.getStructFields();
+    for (const auto& field : fields)
+    {
+        const auto ptr = buildFromDescriptor(addr, field, typeManager);
+        builder.set(field.getName(), ptr);
+    }
+    return builder.build();
+}
+
+inline BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
+{
+    const auto dimensions = descriptor.getDimensions();
+
+    if (!dimensions.assigned())
+        DAQ_THROW_EXCEPTION(NotAssignedException, "Dimensions of data descriptor not assigned.");
+
+    const auto dimensionCount = dimensions.getCount();
+
+    if (dimensionCount > 1)
+        DAQ_THROW_EXCEPTION(NotSupportedException, "getLastValue on packets with dimensions supports only up to one dimension.");
+
+    const auto sampleType = descriptor.getSampleType();
+
+    if (dimensionCount == 1)
+    {
+        // List
+        auto listPtr = List<IBaseObject>();
+        const auto size = dimensions.getItemAt(0).getSize();
+
+        for (size_t i = 0; i < size; i++)
+        {
+            if (sampleType == SampleType::Struct)
+            {
+                // Struct
+                listPtr.pushBack(buildStructFromFields(descriptor, typeManager, addr));
+            }
+            else
+            {
+                // Not struct
+                listPtr.pushBack(dataToObjAndIncreaseAddr(addr, sampleType));
+            }
+        }
+        return listPtr;
+    }
+    // Not list
+    if (sampleType == SampleType::Struct)
+    {
+        // Struct
+        return buildStructFromFields(descriptor, typeManager, addr);
+    }
+    // Not struct
+    return dataToObjAndIncreaseAddr(addr, sampleType);
+}
+
+inline BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
+{
+    void * rawAddr = addr;
+    std::unique_ptr<char[]> rawData;
+
+    auto scalingCalc = descriptor.asPtr<IScalingCalcPrivate>(true);
+    if (scalingCalc->hasScalingCalc())
+    {
+        rawData = std::make_unique<char[]>(descriptor.getSampleSize());
+        rawAddr = rawData.get();
+        scalingCalc->scaleData(addr, 1, &rawAddr);
+    }
+
+    if (const auto referenceDomainInfo = descriptor.getReferenceDomainInfo(); referenceDomainInfo.assigned())
+    {
+        if (const auto referenceDomainOffset = referenceDomainInfo.getReferenceDomainOffset(); referenceDomainOffset.assigned())
+        {
+            auto referenceDomainOffsetAdder =
+            std::unique_ptr<ReferenceDomainOffsetAdder>(
+                createReferenceDomainOffsetAdderTyped(
+                    descriptor.getSampleType(),
+                    referenceDomainOffset,
+                    1
+                )
+            );
+            referenceDomainOffsetAdder->addReferenceDomainOffset(&rawAddr);
+        }
+    }
+    return buildFromDescriptor(rawAddr, descriptor, typeManager);
+}
+}
+
 template <typename TInterface = IDataPacket>
 class DataPacketImpl : public GenericDataPacketImpl<TInterface, IReusableDataPacket>
 {
@@ -69,6 +249,9 @@ public:
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
     ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT sampleIndex, ITypeManager* typeManager = nullptr) override;
 
+    ErrCode INTERFACE_FUNC getRawLastValue(void** value) override;
+    ErrCode INTERFACE_FUNC getRawValueByIndex(void** value, SizeT sampleIndex) override;
+
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
     ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
     ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
@@ -104,11 +287,6 @@ private:
     bool hasRawDataOnly;
     bool externalMemory;
     bool hasReferenceDomainOffset;
-
-    BaseObjectPtr dataToObj(void* addr, const SampleType& type) const;
-    BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const;
-    StructPtr buildStructFromFields(const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, void*& addr) const;
-    BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager) const;
 };
 
 template <typename TInterface>
@@ -431,165 +609,17 @@ bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) co
 
     return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), rawDataSize) == 0;
 }
-
 template <typename TInterface>
-inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObj(void* addr, const SampleType& type) const
+ErrCode DataPacketImpl<TInterface>::getRawLastValue(void** value)
 {
-    switch (type)
-    {
-        case SampleType::Float32:
-        {
-            const auto data = static_cast<float*>(addr);
-            return Floating(*data);
-        }
-        case SampleType::Float64:
-        {
-            const auto data = static_cast<double*>(addr);
-            return Floating(*data);
-        }
-        case SampleType::Int8:
-        {
-            const auto data = static_cast<int8_t*>(addr);
-            return Integer(*data);
-        }
-        case SampleType::UInt8:
-        {
-            const auto data = static_cast<uint8_t*>(addr);
-            return Integer(*data);
-        }
-        case SampleType::Int16:
-        {
-            const auto data = static_cast<int16_t*>(addr);
-            return Integer(*data);
-        }
-        case SampleType::UInt16:
-        {
-            const auto data = static_cast<uint16_t*>(addr);
-            return Integer(*data);
-        }
-        case SampleType::Int32:
-        {
-            const auto data = static_cast<int32_t*>(addr);
-            return Integer(*data);
-        }
-        case SampleType::UInt32:
-        {
-            const auto data = static_cast<uint32_t*>(addr);
-            return Integer(*data);
-        }
-        case SampleType::Int64:
-        {
-            const auto data = static_cast<int64_t*>(addr);
-            return Integer(*data);
-        }
-        case SampleType::UInt64:
-        {
-            const auto data = static_cast<uint64_t*>(addr);
-            return Integer(*data);
-        }
-        case SampleType::RangeInt64:
-        {
-            const auto data = static_cast<int64_t*>(addr);
-            return Range(data[0], data[1]);
-        }
-        case SampleType::ComplexFloat32:
-        {
-            const auto data = static_cast<float*>(addr);
-            return ComplexNumber(data[0], data[1]);
-        }
-        case SampleType::ComplexFloat64:
-        {
-            const auto data = static_cast<double*>(addr);
-            return ComplexNumber(data[0], data[1]);
-        }
-        default:
-        {
-            return BaseObject();
-        }
-    }
+    return getRawValueByIndex(value, sampleCount - 1);
 }
 
 template <typename TInterface>
-inline BaseObjectPtr DataPacketImpl<TInterface>::dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType) const
-{
-    const auto ptr = dataToObj(addr, sampleType);
-    addr = static_cast<char*>(addr) + getSampleSize(sampleType);
-    return ptr;
-}
-
-template <typename TInterface>
-inline StructPtr DataPacketImpl<TInterface>::buildStructFromFields(const DataDescriptorPtr& descriptor,
-                                                                   const TypeManagerPtr& typeManager,
-                                                                   void*& addr) const
-{
-    const auto builder = StructBuilder(descriptor.getName(), typeManager);
-    const auto fields = descriptor.getStructFields();
-    for (const auto& field : fields)
-    {
-        const auto ptr = buildFromDescriptor(addr, field, typeManager);
-        builder.set(field.getName(), ptr);
-    }
-    return builder.build();
-}
-
-template <typename TInterface>
-inline BaseObjectPtr DataPacketImpl<TInterface>::buildFromDescriptor(void*& addr,
-                                                                     const DataDescriptorPtr& descriptor,
-                                                                     const TypeManagerPtr& typeManager) const
-{
-    const auto dimensions = descriptor.getDimensions();
-
-    if (!dimensions.assigned())
-        DAQ_THROW_EXCEPTION(NotAssignedException, "Dimensions of data descriptor not assigned.");
-
-    const auto dimensionCount = dimensions.getCount();
-
-    if (dimensionCount > 1)
-        DAQ_THROW_EXCEPTION(NotSupportedException, "getLastValue on packets with dimensions supports only up to one dimension.");
-
-    const auto sampleType = descriptor.getSampleType();
-
-    if (dimensionCount == 1)
-    {
-        // List
-        auto listPtr = List<IBaseObject>();
-        const auto size = dimensions.getItemAt(0).getSize();
-
-        for (size_t i = 0; i < size; i++)
-        {
-            if (sampleType == SampleType::Struct)
-            {
-                // Struct
-                listPtr.pushBack(buildStructFromFields(descriptor, typeManager, addr));
-            }
-            else
-            {
-                // Not struct
-                listPtr.pushBack(dataToObjAndIncreaseAddr(addr, sampleType));
-            }
-        }
-        return listPtr;
-    }
-    // Not list
-    if (sampleType == SampleType::Struct)
-    {
-        // Struct
-        return buildStructFromFields(descriptor, typeManager, addr);
-    }
-    // Not struct
-    return dataToObjAndIncreaseAddr(addr, sampleType);
-}
-
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
+ErrCode DataPacketImpl<TInterface>::getRawValueByIndex(void** value, SizeT sampleIndex)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
-    return getValueByIndex(value, sampleCount - 1, typeManager);
-}
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT sampleIndex, ITypeManager* typeManager)
-{
-    OPENDAQ_PARAM_NOT_NULL(value);
+    OPENDAQ_PARAM_NOT_NULL(*value);
 
     const auto dimensionCount = descriptor.getDimensions().getCount();
 
@@ -598,60 +628,51 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT s
 
     std::lock_guard lk{readLock};
 
-    auto calcLastValue = [this, &value, &typeManager, sampleIndex]()
+    if (sampleIndex >= sampleCount)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
+
+    return daqTry([this, &value, sampleIndex]
     {
         if (hasRawDataOnly)
         {
-            void* addr = static_cast<char*>(data) + sampleIndex * descriptor.getSampleSize();
-            auto valuePtr = buildFromDescriptor(addr, descriptor, typeManager);
-            *value = valuePtr.detach();
+            void* src = static_cast<char*>(data) + sampleIndex * sampleSize;
+            memcpy(*value, src, sampleSize);
         }
         else if (hasScalingCalc)
         {
-            void* addr = static_cast<char*>(data) + sampleIndex * descriptor.getRawSampleSize();
-            auto output = std::make_unique<char[]>(descriptor.getSampleSize());
-            void* outputData = output.get();
-            descriptor.asPtr<IScalingCalcPrivate>(true)->scaleData(addr, 1, &outputData);
-            if (hasReferenceDomainOffset)
-            {
-                auto referenceDomainOffsetAdder =
-                    std::unique_ptr<ReferenceDomainOffsetAdder>(
-                        createReferenceDomainOffsetAdderTyped(
-                            descriptor.getSampleType(),
-                            descriptor
-                                .getReferenceDomainInfo()
-                                .getReferenceDomainOffset(),
-                            1
-                        )
-                    );
-                referenceDomainOffsetAdder->addReferenceDomainOffset(&outputData);
-            }
-            *value = buildFromDescriptor(outputData, descriptor, typeManager).detach();
+            void* src = static_cast<char*>(data) + sampleIndex * rawSampleSize;
+            memcpy(*value, src, rawSampleSize);
         }
         else if (hasDataRuleCalc)
         {
-            auto output = std::make_unique<char[]>(descriptor.getSampleSize());
-            void* outputData = output.get();
-            descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateSample(offset, sampleIndex, data, rawDataSize, &outputData);
-            if (hasReferenceDomainOffset)
-            {
-                auto referenceDomainOffsetAdder =
-                    std::unique_ptr<ReferenceDomainOffsetAdder>(
-                        createReferenceDomainOffsetAdderTyped(
-                            descriptor.getSampleType(),
-                            descriptor
-                                .getReferenceDomainInfo()
-                                .getReferenceDomainOffset(),
-                            1
-                        )
-                    );
-                referenceDomainOffsetAdder->addReferenceDomainOffset(&outputData);
-            }
-            *value = buildFromDescriptor(outputData, descriptor, typeManager).detach();
+            descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateSample(offset, sampleIndex, data, rawDataSize, value);
         }
-    };
+    });
+}
 
-    return daqTry(calcLastValue);
+template <typename TInterface>
+ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
+{
+    return getValueByIndex(value, sampleCount - 1, typeManager);
+}
+
+template <typename TInterface>
+ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT sampleIndex, ITypeManager* typeManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    auto rawValue = std::make_unique<char[]>(sampleSize);
+    void* rawValueData = rawValue.get();
+    const ErrCode errCode = getRawValueByIndex(&rawValueData, sampleIndex);
+
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (!rawValue)
+        return OPENDAQ_IGNORED;
+
+    return daqTry([&]
+    {
+        *value = PacketDetails::buildObjectFromDescriptor(rawValueData, descriptor, typeManager).detach();
+    });
 }
 
 template <typename TInterface>

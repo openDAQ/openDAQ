@@ -69,6 +69,8 @@ public:
     ErrCode INTERFACE_FUNC getRawDataSize(SizeT* dataSize) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) override;
     ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager) override;
+    ErrCode INTERFACE_FUNC getRawLastValue(void** value) override;
+    ErrCode INTERFACE_FUNC getRawValueByIndex(void** value, SizeT index) override;
 
 private:
     DataPacketPtr domainPacket;
@@ -212,6 +214,18 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getOffset(INumber** offset)
     *offset = NumberPtr(0).detach();
 
     return OPENDAQ_SUCCESS;
+}
+
+template <bool ExternalMemory>
+ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawLastValue(void** value)
+{
+    return OPENDAQ_IGNORED;
+}
+
+template <bool ExternalMemory>
+ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawValueByIndex(void** value, SizeT index)
+{
+    return OPENDAQ_IGNORED;
 }
 
 END_NAMESPACE_OPENDAQ

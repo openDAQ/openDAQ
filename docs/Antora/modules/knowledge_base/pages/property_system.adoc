@@ -2,8 +2,8 @@
 
 openDAQ(TM) provides a Property system that allows for custom Properties with metadata
 descriptions to be added to data acquisition components represented in its architecture.
-It allows for Properties such as a xref:explanations:device.adoc[Device]'s sampling
-rate or an FFT xref:explanations:function_blocks.adoc[Function Block]'s line count to
+It allows for Properties such as a xref:knowledge_base:device.adoc[Device]'s sampling
+rate or an FFT xref:knowledge_base:function_blocks.adoc[Function Block]'s line count to
 be customized by users. Any Property on a component can be read/written (if the 
 Property is not read-only) by openDAQ(TM) applications. The Properties are the main
 building blocks of any user interface implementation that wishes to interact with openDAQ(TM)
@@ -70,8 +70,8 @@ using Daq.Core.Objects;
 PropertyObject CreateSimplePropertyObject()
 {
     var propObj = CoreObjectsFactory.CreatePropertyObject();
-    propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo", true));
-    propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("MyInteger", 0, true));
+    propObj.AddProperty(PropertyFactory.StringProperty("MyString", "foo"));
+    propObj.AddProperty(PropertyFactory.IntProperty("MyInteger", 0));
     return propObj;
 }
 
@@ -140,7 +140,7 @@ C#::
 [source,csharp]
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
-propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("MyString", "foo", true));
+propObj.AddProperty(PropertyFactory.StringProperty("MyString", "foo"));
 propObj.SetPropertyValue("MyString", "bar");
 Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
 ----
@@ -314,9 +314,9 @@ intProp.MinValue = 0;
 intProp.MaxValue = 15;
 propObj.AddProperty(intProp.Build());
 
-var suggestedValues = CoreTypesFactory.CreateList<BaseObject>(1.23, 3.21, 5.67);
+var suggestedValues = CoreTypesFactory.CreateList<FloatObject>(1.23, 3.21, 5.67);
 var floatProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Float", 3.21);
-floatProp.SuggestedValues = suggestedValues;
+floatProp.SuggestedValues = suggestedValues.CastList();
 
 propObj.AddProperty(floatProp.Build());
 
@@ -413,14 +413,12 @@ C#::
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>("Apple", "Banana", "Kiwi");
+var list = CoreTypesFactory.CreateList<StringObject>("Apple", "Banana", "Kiwi");
 
-propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("ListSelection", list, 0, true));
+propObj.AddProperty(PropertyFactory.SelectionProperty("ListSelection", list.CastList(), 0));
 
-var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
-dict.Add(0, "foo");
-dict.Add(10, "bar");
-propObj.AddProperty(CoreObjectsFactory.CreateSparseSelectionProperty("DictSelection", dict, 10, true));
+var dict = CoreTypesFactory.CreateDict<IntegerObject, StringObject>((0, "foo"), (10, "bar"));
+propObj.AddProperty(PropertyFactory.SparseSelectionProperty("DictSelection", dict.CastDict(), 10));
 
 // Prints "1"
 Console.WriteLine((long)propObj.GetPropertyValue("ListSelection"));
@@ -516,9 +514,9 @@ var child2 = CoreObjectsFactory.CreatePropertyObject();
 
 // The order below is important, as "child1" and "child2" are frozen once
 // used as default property values.
-child2.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
-child1.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child2));
-propObj.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child1));
+child2.AddProperty(PropertyFactory.StringProperty("String", "foo"));
+child1.AddProperty(PropertyFactory.ObjectProperty("Child", child2));
+propObj.AddProperty(PropertyFactory.ObjectProperty("Child", child1));
 
 // Prints out the value of the "String" Property of child2
 Console.WriteLine((string)propObj.GetPropertyValue("Child.Child.String"));
@@ -597,23 +595,19 @@ C#::
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
+var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Apple", "Kiwi");
 
-propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
+propObj.AddProperty(PropertyFactory.ListProperty("List", list.CastList()));
 
-var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
-dict.Add(0, "foo");
-dict.Add(10, "bar");
-propObj.AddProperty(CoreObjectsFactory.CreateDictProperty("Dict", dict, true));
+var dict = CoreTypesFactory.CreateDict<IntegerObject, StringObject>((0, "foo"), (10, "bar"));
+propObj.AddProperty(PropertyFactory.DictProperty("Dict", dict.CastDict()));
 
 // Prints out "Banana"
 Console.WriteLine((string)propObj.GetPropertyValue("List").CastList<StringObject>()[0]);
 // Prints out "bar"
 Console.WriteLine((string)propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>()[10]);
 
-var list2 = CoreTypesFactory.CreateList<BaseObject>();
-list2.Add("Pear");
-list2.Add("Strawberry");
+var list2 = CoreTypesFactory.CreateList<StringObject>("Pear", "Strawberry");
 
 // Sets a new value for the List Property
 propObj.SetPropertyValue("List", (BaseObject)list2);
@@ -693,11 +687,11 @@ C#::
 [source,csharp]
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
-propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 0, true));
-propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("Prop1", "foo", true));
-propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("Prop2", "bar", true));
+propObj.AddProperty(PropertyFactory.IntProperty("Integer", 0));
+propObj.AddProperty(PropertyFactory.StringProperty("Prop1", "foo"));
+propObj.AddProperty(PropertyFactory.StringProperty("Prop2", "bar"));
 
-propObj.AddProperty(CoreObjectsFactory.CreateReferenceProperty("RefProp", CoreObjectsFactory.CreateEvalValue("switch($Integer, 0, %Prop1, 1, %Prop2)")));
+propObj.AddProperty(PropertyFactory.ReferenceProperty("RefProp", CoreObjectsFactory.CreateEvalValue("switch($Integer, 0, %Prop1, 1, %Prop2)")));
 
 // Prints "foo"
 Console.WriteLine((string)propObj.GetPropertyValue("RefProp"));
@@ -799,9 +793,9 @@ C#::
 [source,csharp]
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
-propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
-propObj.AddProperty(CoreObjectsFactory.CreateRatioProperty("Ratio", CoreTypesFactory.CreateRatio(1, 10), true));
-propObj.AddProperty(CoreObjectsFactory.CreateBoolProperty("Bool", true, true));
+propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
+propObj.AddProperty(PropertyFactory.RatioProperty("Ratio", CoreTypesFactory.CreateRatio(1, 10)));
+propObj.AddProperty(PropertyFactory.BoolProperty("Bool", true));
 ----
 ====
 
@@ -876,6 +870,9 @@ In this article, we'll focus on how `EvalValue` objects are used to set up
 a Property Object describing a configuration of dependent Properties. Below, we see an example
 of a simulated channel that can output either a "Sine" or "Counter" signal.
 
+[tabs]
+====
+Cpp::
 [source,cpp]
 ----
 PropertyObjectPtr simulatedChannel = PropertyObject();
@@ -923,6 +920,13 @@ counterSettings.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Res
 
 simulatedChannel.addProperty(ObjectProperty("CounterSettings", counterSettings));
 ----
+C#::
++
+[NOTE]
+The `EvalValue` usage for `PropertyBuilder` settings of the C++ example is not supported in the current version of the .NET Bindings. +
+E.g. this is not possible (conversion of `EvalValue` to `Unit`): +
+`amplitudeProp.Unit = CoreObjectsFactory.CreateEvalValue("Unit(%AmplitudeUnit:SelectedValue)");`
+====
 
 ==== Referencing another Property
 
@@ -981,18 +985,18 @@ C#::
 ----
 PropertyObject simulatedChannel = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>("Sine", "Counter");
+var list = CoreTypesFactory.CreateList<StringObject>("Sine", "Counter");
 
-simulatedChannel.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Waveform", list, 0, true));
-simulatedChannel.AddProperty(CoreObjectsFactory.CreateReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
+simulatedChannel.AddProperty(PropertyFactory.SelectionProperty("Waveform", list.CastList(), 0));
+simulatedChannel.AddProperty(PropertyFactory.ReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
 
-...
+//...
 
-simulatedChannel.AddProperty(CoreObjectsFactory.CreateObjectProperty("SineSettings", sineSettings));
+simulatedChannel.AddProperty(PropertyFactory.ObjectProperty("SineSettings", sineSettings));
 
-...
+//...
 
-simulatedChannel.AddProperty(CoreObjectsFactory.CreateObjectProperty("CounterSettings", counterSettings));
+simulatedChannel.AddProperty(PropertyFactory.ObjectProperty("CounterSettings", counterSettings));
 ----
 ====
 
@@ -1026,7 +1030,7 @@ C#::
 ----
 // If the value of the "Waveform" Property equals 0, the EvalValue evaluates to the
 // "SineSettings" Property. If not, it evaluates to the "CounterSettings" Property.
-CoreObjectsFactory.CreateReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)"));
+PropertyFactory.ReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)"));
 ----
 ====
 
@@ -1076,7 +1080,7 @@ C#::
 ====
 
 We configure the unit of the `"Amplitude"` Property based on the `"AmplitudeUnit"` selected value, using
-the `Unit` token in our expression to indicate we're creating a xref:explanations:glossary.adoc#unit[Unit], and accessing the currently
+the `Unit` token in our expression to indicate we're creating a xref:glossary:glossary.adoc#unit[Unit], and accessing the currently
 selected value of our `"AmplitudeUnit"` Selection Property.
 
 NOTE: The `%Prop:Value` notation is equivalent to `$Prop`, while `%Prop:SelectedValue` uses the
@@ -1248,7 +1252,7 @@ C#::
 [source,csharp]
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
-propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("foo", "bar", true));
+propObj.AddProperty(PropertyFactory.StringProperty("foo", "bar"));
 propObj.RemoveProperty("foo");
 
 // Throws a not found error
@@ -1324,10 +1328,10 @@ C#::
 [source,csharp]
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
-propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
-propObj.AddProperty(CoreObjectsFactory.CreateIntProperty("Int", 10, false));
-propObj.AddProperty(CoreObjectsFactory.CreateFloatProperty("Float", 15.0, true));
-propObj.AddProperty(CoreObjectsFactory.CreateReferenceProperty("FloatRef", CoreObjectsFactory.CreateEvalValue("%Float")));
+propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
+propObj.AddProperty(PropertyFactory.IntProperty("Int", 10, visible: false));
+propObj.AddProperty(PropertyFactory.FloatProperty("Float", 15.0));
+propObj.AddProperty(PropertyFactory.ReferenceProperty("FloatRef", CoreObjectsFactory.CreateEvalValue("%Float")));
 
 // Contains the Properties "String", "Int", "Float", "FloatRef"
 var allProps = propObj.AllProperties;
@@ -1382,13 +1386,11 @@ C#::
 [source,csharp]
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
-propObj.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", false));
+propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
 
 // Prints "foo"
 Console.WriteLine((string)propObj.GetPropertyValue("String"));
-
 propObj.SetPropertyValue("String", "bar");
-
 // Prints "bar"
 Console.WriteLine((string)propObj.GetPropertyValue("String"));
 ----
@@ -1447,9 +1449,9 @@ var propObj = CoreObjectsFactory.CreatePropertyObject();
 var child1 = CoreObjectsFactory.CreatePropertyObject();
 var child2 = CoreObjectsFactory.CreatePropertyObject();
 
-child2.AddProperty(CoreObjectsFactory.CreateStringProperty("String", "foo", true));
-child1.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child2, true));
-propObj.AddProperty(CoreObjectsFactory.CreateObjectProperty("Child", child1, true));
+child2.AddProperty(PropertyFactory.StringProperty("String", "foo"));
+child1.AddProperty(PropertyFactory.ObjectProperty("Child", child2));
+propObj.AddProperty(PropertyFactory.ObjectProperty("Child", child1));
 
 propObj.SetPropertyValue("Child.Child.String", "bar");
 
@@ -1499,9 +1501,9 @@ C#::
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
+var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Kiwi");
 
-propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+propObj.AddProperty(PropertyFactory.SelectionProperty("Selection", list.CastList(), 1));
 
 // Prints "Kiwi"
 Console.WriteLine((string)propObj.GetPropertySelectionValue("Selection"));
@@ -1551,14 +1553,14 @@ C#::
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
+var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Kiwi");
 
-propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
+propObj.AddProperty(PropertyFactory.ListProperty("List", list.CastList()));
 
 // Prints "Banana"
 Console.WriteLine((string)propObj.GetPropertyValue("List[0]"));
 
-var list2 = CoreTypesFactory.CreateList<BaseObject>("Pear", "Strawberry");
+var list2 = CoreTypesFactory.CreateList<StringObject>("Pear", "Strawberry");
 
 // Sets a new value to the List Property.
 propObj.SetPropertyValue("List", (BaseObject)list2);
@@ -1651,10 +1653,8 @@ C#::
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-var dict0 = CoreTypesFactory.CreateDict<BaseObject, BaseObject>();
-dict0.Add(1, "Banana");
-dict0.Add(12, "Kiwi");
-propObj.AddProperty(CoreObjectsFactory.CreateDictProperty("Dict", dict0, true));
+var dict0 = CoreTypesFactory.CreateDict<IntegerObject, StringObject>((1, "Banana"), (2, "Kiwi"));
+propObj.AddProperty(PropertyFactory.DictProperty("Dict", dict0.CastDict()));
 
 IDictObject<IntegerObject, StringObject> dict = propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>();
 dict[3] = "Blueberry";
@@ -1756,13 +1756,11 @@ C#::
 +
 [source,csharp]
 ----
+var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Apple", "Kiwi");
+
 PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
-
-propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
-
-var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
-
-propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
+propClass.AddProperty(PropertyFactory.IntProperty("Integer", 10));
+propClass.AddProperty(PropertyFactory.SelectionProperty("Selection", list.CastList(), 1));
 ----
 ====
 
@@ -1822,14 +1820,11 @@ C#::
 ----
 TypeManager manager = CoreTypesFactory.CreateTypeManager();
 
+var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Apple", "Kiwi");
+
 PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
-
-propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
-
-var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
-
-propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
-
+propClass.AddProperty(PropertyFactory.IntProperty("Integer", 10));
+propClass.AddProperty(PropertyFactory.SelectionProperty("Selection", list.CastList(), 1));
 manager.AddType(propClass.Build());
 
 PropertyObject propObj = CoreObjectsFactory.CreatePropertyObjectWithClassAndManager(manager, "MyClass");
@@ -1899,11 +1894,11 @@ C#::
 TypeManager manager = CoreTypesFactory.CreateTypeManager();
 
 PropertyObjectClassBuilder propClass1 = CoreObjectsFactory.CreatePropertyObjectClassBuilderWithManager(manager, "InheritedClass");
-propClass1.AddProperty(CoreObjectsFactory.CreateStringProperty("InheritedProp", "foo", true));
+propClass1.AddProperty(PropertyFactory.StringProperty("InheritedProp", "foo"));
 manager.AddType(propClass1.Build());
 
 PropertyObjectClassBuilder propClass2 = CoreObjectsFactory.CreatePropertyObjectClassBuilderWithManager(manager, "MyClass");
-propClass2.AddProperty(CoreObjectsFactory.CreateStringProperty("OwnProp", "bar", true));
+propClass2.AddProperty(PropertyFactory.StringProperty("OwnProp", "bar"));
 propClass2.ParentName = "InheritedClass";
 manager.AddType(propClass2.Build());
 
@@ -1922,8 +1917,12 @@ As stated in the events section, users should be careful when adding events to P
 that are part of classes, as the same callback will be invoked independently of the Property
 object that triggered the event.
 
-The example below illustrates a possible case of error-prone behaviour.
+The example below illustrates a possible case of error-prone behavior.
 
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 int readCount = 0;
@@ -1950,3 +1949,8 @@ std::cout << propObj1.getPropertyValue("ReadCount") << std::endl;
 // Prints out 2
 std::cout << propObj2.getPropertyValue("ReadCount") << std::endl;
 ----
+C#::
++
+[NOTE]
+Event handling is not supported in the current version of the .NET Bindings.
+====

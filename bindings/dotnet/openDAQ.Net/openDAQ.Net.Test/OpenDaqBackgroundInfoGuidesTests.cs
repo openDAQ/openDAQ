@@ -1,13 +1,7 @@
-//#define USE_LISTOBJECT
-//#define USE_ITERATOR_NOT_IENUMERABLE
-
 // Ignore Spelling: Opc Ua nullable daqref
 
 
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Numerics;
 
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
@@ -21,7 +15,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
 {
     private const string REFERENCE_DEVICE = "daqref://device0";
 
-    #region ./Antora/background_info/pages/device.adoc
+    #region ./Antora/modules/explanations/pages/device.adoc
 
     [Test]
     public void DeviceComponentsTest()
@@ -78,7 +72,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
 
     #endregion device.adoc
 
-    #region ./Antora/background_info/pages/function_blocks.adoc
+    #region ./Antora/modules/explanations/pages/function_blocks.adoc
 
     [Test]
     public void InputPortsTest()
@@ -128,7 +122,7 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
 
     #endregion function_blocks.adoc
 
-    #region ./Antora/background_info/pages/property_system.adoc
+    #region ./Antora/modules/explanations/pages/property_system.adoc
 
     [Test]
     public void SimplePropertyObjectExampleTest()

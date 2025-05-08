@@ -669,9 +669,6 @@ void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr&
         auto dataPacket = packet.asPtrOrNull<IDataPacket>();
         if (dataPacket.assigned() && dataPacket.getSampleCount() > 0)
         {
-            if (lastDataValue.assigned())
-                lastDataValue = nullptr;
-
             setLastValueFromPacket(dataPacket);
         }
     }
@@ -842,8 +839,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastVal
 {
     auto lock = this->getAcquisitionLock();
 
-    this->lastDataValue = lastValue;
     setLastValueFromPacket(nullptr);
+    this->lastDataValue = lastValue;
     return OPENDAQ_SUCCESS;
 }
 
@@ -1211,7 +1208,6 @@ void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
 
     if (!keepLastPacket)
     {
-        lastDataValue = nullptr;
         setLastValueFromPacket(nullptr);
     }
 }
@@ -1228,7 +1224,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
         return OPENDAQ_SUCCESS;
     }
 
-    if (lastDataDescriptor.assigned())
+    if (!lastDataDescriptor.assigned())
         return OPENDAQ_IGNORED;
 
     return daqTry([&value, this]
@@ -1274,6 +1270,7 @@ void SignalBase<TInterface, Interfaces...>::visibleChanged()
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPacketPtr& packet)
 {
+    lastDataValue = nullptr;
     lastDataRuledPacket = nullptr;
     if (!packet.assigned())
     {

@@ -1,15 +1,13 @@
-//#define USE_LISTOBJECT
-//#define USE_ITERATOR_NOT_IENUMERABLE
-
 // Ignore Spelling: Opc Ua nullable daqref
 
-
-using System.Collections;
-using System.Diagnostics;
 
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 using Daq.Core.Types;
+
+//using static Daq.Core.Objects.CoreObjectsFactory;
+//using static Daq.Core.OpenDAQ.OpenDAQFactory;
+//using static Daq.Core.Types.CoreTypesFactory;
 
 
 namespace openDaq.Net.Test;
@@ -17,8 +15,9 @@ namespace openDaq.Net.Test;
 
 public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 {
-    public const string SKIP_SETUP        = "SkipSetup";
-    public const string SKIP_SETUP_DEVICE = "SkipSetupDevice";
+    public const string SKIP_SETUP                    = "SkipSetup";
+    public const string SKIP_SETUP_DEVICE             = "SkipSetupDevice";
+    public const string SETUP_DEVICE_NATIVE_STREAMING = "SetupDeviceNativeStreaming";
 
     private const string MODULE_PATH = ".";
 
@@ -34,13 +33,15 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         DaqRef,
         OpcUa,
         WinSock,
-        LocalHost
+        LocalHost,
+        NativeStreaming
     }
 
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
     private Instance instance = null;
     private Device   device   = null;
+    private Signal   signal   = null;
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
 
@@ -48,6 +49,9 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [SetUp]
     public void _SetUp()
     {
+        //turn off everything for any test here
+        base.DontCollectAndFinalize();
+        //base.DontCheckAliveObjectCount();
         base.DontWarn();
 
         if (CheckForSkipSetup(SKIP_SETUP)) //ToDo: use [Category(SKIP_SETUP)] to mark a test for not running this method
@@ -64,8 +68,23 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         {
             Console.WriteLine(">>> SetUp() - connect first available device (any)");
 
-            //device = instance.AddDevice(ConnectionStringDaqRef);
-            device = ConnectFirstAvailableDevice(instance, eDesiredConnection.Any);
+            if (!CheckForSkipSetup(SETUP_DEVICE_NATIVE_STREAMING))
+            {
+                //device = instance.AddDevice(ConnectionStringDaqRef);
+                device = ConnectFirstAvailableDevice(instance, eDesiredConnection.Any);
+            }
+            else
+                device = ConnectFirstAvailableDevice(instance, eDesiredConnection.NativeStreaming);
+
+            using var channels = device.GetChannels();
+            if (channels.Count > 0)
+            {
+                using var signals = channels[0].GetSignals();
+                if (signals.Count > 0)
+                {
+                    signal = signals[0];
+                }
+            }
         }
 
 
@@ -82,11 +101,19 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     [TearDown]
     public void _TearDown()
     {
-        //Console.WriteLine("<<< TearDown()");
+        //Console.WriteLine("+ TearDown()");
         if (instance == null)
         {
             Console.WriteLine("* skipping TearDown()");
             return;
+        }
+
+        if (signal != null)
+        {
+            signal.Dispose();
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+            signal = null;
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
         }
 
         //Hack: dispose of all connected devices and then dispose of the instance to avoid GC messing up with that sequence
@@ -133,10 +160,11 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         //take only the first valid connection string
         string? connectionString = null;
 
-        bool doDaqRef    = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.DaqRef);
-        bool doOpcUa     = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.OpcUa);
-        bool doWinSock   = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.WinSock);
-        bool doLocalHost = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.LocalHost);
+        bool doDaqRef          = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.DaqRef);
+        bool doOpcUa           = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.OpcUa);
+        bool doWinSock         = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.WinSock);
+        bool doLocalHost       = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.LocalHost);
+        bool doNativeStreaming =                                                  (desiredConnection == eDesiredConnection.NativeStreaming);
 
         //foreach (var deviceInfo in availableDevicesInfos) { }
 
@@ -158,16 +186,29 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
                     continue;
 
                 //uncomment when only local VM should be used (home office)
-                if (deviceConnectionString.StartsWith("daq.opcua://172."))
-                    continue;
+                //if (deviceConnectionString.StartsWith("daq.opcua://172."))
+                //    continue;
 
-                //connectible device?
-                if ((doOpcUa && deviceConnectionString.StartsWith(ConnectionProtocolOpcUa, StringComparison.InvariantCultureIgnoreCase))
-                    || (doWinSock && deviceConnectionString.StartsWith(ConnectionProtocolWinSock, StringComparison.InvariantCultureIgnoreCase))
-                    || (doDaqRef && deviceConnectionString.StartsWith(ConnectionProtocolDaqRef, StringComparison.InvariantCultureIgnoreCase)))
+                if (!doNativeStreaming)
                 {
-                    connectionString = deviceConnectionString;
-                    break;
+                    //connectible device?
+                    if ((doOpcUa && deviceConnectionString.StartsWith(ConnectionProtocolOpcUa, StringComparison.InvariantCultureIgnoreCase))
+                        || (doWinSock && deviceConnectionString.StartsWith(ConnectionProtocolWinSock, StringComparison.InvariantCultureIgnoreCase))
+                        || (doDaqRef && deviceConnectionString.StartsWith(ConnectionProtocolDaqRef, StringComparison.InvariantCultureIgnoreCase)))
+                    {
+                        connectionString = deviceConnectionString;
+                        break;
+                    }
+                }
+                else
+                {
+                    // Find and connect to a Device hosting an Native Streaming server
+                    using var capability = deviceInfo.ServerCapabilities.FirstOrDefault(capability => capability.ProtocolName == "OpenDAQNativeStreaming");
+                    if (capability != null)
+                    {
+                        connectionString = capability.ConnectionString;
+                        break;
+                    }
                 }
             }
         }
@@ -195,13 +236,13 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
 
-    // Corresponding document: Antora/modules/howto_guides/pages/howto_connect_to_device.adoc
-
     #region Connect to a device
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_connect_to_device.adoc
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void ConnectingAvailableDevicesTest()
+    public void Test_0001_ConnectingAvailableDevicesTest()
     {
         // Create an openDAQ(TM) Instance
         Instance instance = OpenDAQFactory.Instance();
@@ -216,7 +257,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void ConnectingOpcUaDevicesTest()
+    public void Test_0002_ConnectingOpcUaDevicesTest()
     {
         // Create an openDAQ(TM) Instance
         Instance instance = OpenDAQFactory.Instance();
@@ -237,7 +278,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void ConnectingOtherDevicesTest()
+    public void Test_0003_ConnectingOtherDevicesTest()
     {
         // Create an openDAQ(TM) Instance
         Instance instance = OpenDAQFactory.Instance();
@@ -251,15 +292,13 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     #endregion Connect to a device
 
-    #region Configure a device
-
-    #endregion Configure a device
-
     #region Add function block
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
 
     [Test]
     [Category(SKIP_SETUP_DEVICE)]
-    public void FunctionBlockAddingGetAvailableTypesTest()
+    public void Test_0101_FunctionBlockAddingGetAvailableTypesTest()
     {
         // Get available Function Block types
         IDictionary<StringObject, FunctionBlockType> functionBlockTypes = instance.AvailableFunctionBlockTypes;
@@ -269,7 +308,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP_DEVICE)]
-    public void FunctionBlockAddingAddTest()
+    public void Test_0102_FunctionBlockAddingAddTest()
     {
         // Add Function Block on the host computer
         FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
@@ -277,7 +316,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP_DEVICE)]
-    public void FunctionBlockAddingGetTypeInformationTest()
+    public void Test_0103_FunctionBlockAddingGetTypeInformationTest()
     {
         FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
@@ -287,10 +326,9 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         Console.WriteLine(functionBlockType.Description);
     }
 
-    // Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
     [Test(ExpectedResult = 0)]
     [Category(SKIP_SETUP)]
-    public int FunctionBlockAdding_FullListingTest()
+    public int Test_0104_FunctionBlockAdding_FullListingTest()
     {
         // Create an openDAQ(TM) Instance, loading modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
@@ -323,9 +361,11 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     #region Configure function block
 
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_function_block.adoc
+
     [Test]
     [Category(SKIP_SETUP_DEVICE)]
-    public void FunctionBlockConfigureGetVisiblePropertiesTest()
+    public void Test_0201_FunctionBlockConfigureGetVisiblePropertiesTest()
     {
         FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
@@ -336,7 +376,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP_DEVICE)]
-    public void FunctionBlockConfigureGetAndSetPropertyValueTest()
+    public void Test_0202_FunctionBlockConfigureGetAndSetPropertyValueTest()
     {
         FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
@@ -346,7 +386,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void FunctionBlockConfigureConnectInputPortsTest()
+    public void Test_0203_FunctionBlockConfigureConnectInputPortsTest()
     {
         FunctionBlock functionBlock = instance.AddFunctionBlock("RefFBModuleStatistics");
 
@@ -356,10 +396,10 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         // ...
     }
 
-  // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_function_block.adoc
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_function_block.adoc
     [Test]
     [Category(SKIP_SETUP)]
-    public void FunctionBlockConfigure_FullListingTest()
+    public void Test_0204_FunctionBlockConfigure_FullListingTest()
     {
         // Create an openDAQ(TM) Instance, loading modules from the current directory
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
@@ -394,12 +434,387 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     #endregion Configure function block
 
+    #region Instance configuration
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_instance.adoc
+    //T0301_
+
+    #endregion Instance configuration
+
+    #region Configure instance provider
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_instance_providers.adoc
+    //T0401_
+
+    #endregion Configure instance provider
+
+    #region Configure streaming
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_configure_streaming.adoc
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_0501_ConfigureStreamingServerSideConfigurationTest()
+    {
+        // Create an openDAQ(TM) Instance
+        Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+        // Add simulated device
+        instance.SetRootDevice("daqref://device1");
+
+        // Creates and registers a Server capability with the ID `OpenDAQLTStreaming` and the default port number 7414
+        instance.AddServer("OpenDAQLTStreaming", null);
+
+        // Creates and registers a Server capability with the ID `OpenDAQNativeStreaming` and the default port number 7420
+        instance.AddServer("OpenDAQNativeStreaming", null);
+
+        // As the Streaming servers were added first, the registered Server capabilities are published over OPC UA
+        instance.AddServer("OpenDAQOPCUA", null);
+
+        //while (true)
+        //    Thread.Sleep(100);
+
+        Thread.Sleep(2000);
+    }
+
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_0502_ConfigureStreamingForStructureEnabledDeviceAutomaticallyTest()
+    {
+        // Create a new Instance that we will use for all the interactions with the SDK
+        Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+        // Create an empty Property object
+        PropertyObject deviceConfig = CoreObjectsFactory.CreatePropertyObject();
+
+        // Add property to allow multiple Streaming protocols with native protocol having the first priority
+        var prioritizedStreamingProtocols =
+                CoreTypesFactory.CreateList<BaseObject>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
+        deviceConfig.AddProperty(PropertyFactory.ListProperty("PrioritizedStreamingProtocols",
+                                                              prioritizedStreamingProtocols));
+
+        // Set property to disregard direct Streaming connections for nested Devices,
+        // and establish the minimum number of streaming connections possible.
+        var streamingConnectionHeuristicProp =
+                PropertyFactory.SelectionProperty("StreamingConnectionHeuristic",
+                                                  CoreTypesFactory.CreateList<BaseObject>("MinConnections",
+                                                                                          "MinHops",
+                                                                                          "NotConnected"),
+                                                  0);
+        deviceConfig.AddProperty(streamingConnectionHeuristicProp);
+
+        // Find and connect to a Device hosting an OPC UA TMS server
+        var availableDevices = instance.AvailableDevices;
+        Device device = null;
+        foreach (var deviceInfo in availableDevices)
+        {
+            foreach (var capability in deviceInfo.ServerCapabilities)
+            {
+                if (capability.ProtocolName == "OpenDAQOPCUA")
+                {
+                    device = instance.AddDevice(capability.ConnectionString, deviceConfig);
+                    break;
+                }
+            }
+        }
+
+        if (device == null)
+            Console.WriteLine("No relevant Device found!");
+        else
+            // Output the name of the added Device
+            Console.WriteLine(device.Info.Name);
+    }
+
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_0503_ConfigureStreamingForStructureEnabledDeviceManuallyTest()
+    {
+        // Create a new Instance that we will use for all the interactions with the SDK
+        Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+        // Create an empty Property object
+        PropertyObject deviceConfig = CoreObjectsFactory.CreatePropertyObject();
+
+        // Set property to disable automatic Streaming connection
+        var streamingConnectionHeuristicProp =
+                PropertyFactory.SelectionProperty("StreamingConnectionHeuristic",
+                                                  CoreTypesFactory.CreateList<BaseObject>("MinConnections",
+                                                                                          "MinHops",
+                                                                                          "NotConnected"),
+                                                  2);
+        deviceConfig.AddProperty(streamingConnectionHeuristicProp);
+
+        // Connect to a Device hosting an OPC UA TMS server using connection string
+        Device device = instance.AddDevice("daq.opcua://127.0.0.1", deviceConfig);
+
+        if (device == null)
+        {
+            Console.WriteLine("No relevant Device found!");
+            return;
+        }
+        else
+        {
+            // Output the name of the added Device
+            Console.WriteLine(device.Info.Name);
+        }
+
+        // Connect to a Native Streaming protocol using connection string
+        Streaming streaming = device.AddStreaming("daq.ns://127.0.0.1");
+
+        // Get all Device's Signals recursively
+        var deviceSignals = device.GetSignals(OpenDAQFactory.CreateRecursiveSearchFilter(OpenDAQFactory.CreateAnySearchFilter()));
+
+        // Associate Device's Signals with Streaming
+        streaming.AddSignals(deviceSignals);
+    }
+
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_0504_ConfigureStreamingConnectingPseudoDevicesTest()
+    {
+        // Create a new Instance that we will use for all the interactions with the SDK
+        Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+        // Find and connect to a Device hosting an Native Streaming server
+        var availableDevices = instance.AvailableDevices;
+        Device device = null;
+        foreach (var deviceInfo in availableDevices)
+        {
+            foreach (var capability in deviceInfo.ServerCapabilities)
+            {
+                if (capability.ProtocolName == "OpenDAQNativeStreaming")
+                {
+                    device = instance.AddDevice(capability.ConnectionString);
+                    break;
+                }
+            }
+        }
+
+        if (device == null)
+        {
+            Console.WriteLine("No relevant Device found!");
+            return;
+        }
+        else
+        {
+            // Output the name of the added Device
+            Console.WriteLine(device.Info.Name);
+        }
+    }
+
+    [Test]
+    [Category(SETUP_DEVICE_NATIVE_STREAMING)]
+    public void Test_0505_ConfigureStreamingPerSignalTest()
+    {
+        //...
+
+        // Get the first Signal of connected Device
+        // (e.g. running "Reference device simulator" from examples\dotnet\howto_guides\howto_guides_simulator.cs)
+        MirroredSignalConfig signal = device.GetSignalsRecursive()[0].Cast<MirroredSignalConfig>();
+
+        // Find and output the Streaming sources available for Signal
+        string nativeStreamingSource = null;
+        string websocketStreamingSource = null;
+        Console.WriteLine($"Signal supports {signal.StreamingSources.Count} streaming sources:");
+        foreach (string source in signal.StreamingSources)
+        {
+            Console.WriteLine(source);
+            if (source.StartsWith("daq.ns://"))
+                nativeStreamingSource = source;
+            if (source.StartsWith("daq.lt://"))
+                websocketStreamingSource = source;
+        }
+
+        // Output the active Streaming source of Signal
+        Console.WriteLine("Active streaming source of signal: " + signal.ActiveStreamingSource);
+
+        // Output the Streaming status for the Signal to verify that streaming is enabled
+        Console.WriteLine("Streaming enabled status for signal is: " + (signal.Streamed ? "true" : "false"));
+
+        // Change the active Streaming source of Signal
+        signal.ActiveStreamingSource = nativeStreamingSource;
+    }
+
+    [Test(ExpectedResult = 0)]
+    [Category(SKIP_SETUP)]
+    public int Test_0506_ConfigureStreaming_FullListingTest()
+    {
+        // Create a new Instance that we will use for all the interactions with the SDK
+        Instance instance = OpenDAQFactory.Instance();
+
+        // Create an empty Property object
+        PropertyObject deviceConfig = CoreObjectsFactory.CreatePropertyObject();
+
+        // Add property to allow multiple Streaming protocols with native protocol having the first priority
+        var prioritizedStreamingProtocols =
+                CoreTypesFactory.CreateList<BaseObject>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
+        deviceConfig.AddProperty(PropertyFactory.ListProperty("PrioritizedStreamingProtocols",
+                                                              prioritizedStreamingProtocols));
+
+        // Set property to disregard direct Streaming connections for nested Devices,
+        // and establish the minimum number of streaming connections possible.
+        var streamingConnectionHeuristicProp =
+                PropertyFactory.SelectionProperty("StreamingConnectionHeuristic",
+                                                  CoreTypesFactory.CreateList<BaseObject>("MinConnections",
+                                                                                          "MinHops",
+                                                                                          "Fallbacks",
+                                                                                          "NotConnected"),
+                                                  0);
+        deviceConfig.AddProperty(streamingConnectionHeuristicProp);
+
+        // Find and connect to a Device using the device info connection string
+        var availableDevices = instance.AvailableDevices;
+        Device device = null;
+        foreach (var deviceInfo in availableDevices)
+        {
+            if (deviceInfo.ConnectionString.StartsWith("daq://"))
+            {
+                device = instance.AddDevice(deviceInfo.ConnectionString, deviceConfig);
+                break;
+            }
+        }
+
+        // Exit if no Device is found
+        if (device == null)
+        {
+            Console.WriteLine("*** No relevant Device found!");
+            return 1;
+        }
+
+        // Output the name of the added Device
+        Console.WriteLine(device.Info.Name);
+
+        // Find the AI Signal
+        var signals = device.GetSignalsRecursive();
+
+        Channel channel = null;
+        MirroredSignalConfig signal = null;
+        foreach (var sig in signals)
+        {
+            var name = sig.Descriptor.Name;
+
+            if (name.StartsWith("AI"))
+            {
+                signal = sig.Cast<MirroredSignalConfig>();
+                channel = signal.Parent.Parent.Cast<Channel>();
+                break;
+            }
+        }
+
+        if (signal == null)
+        {
+            Console.WriteLine("*** No AI signal found!");
+            return 1;
+        }
+
+        // Find and output the Streaming sources of Signal
+        string nativeStreamingSource = null;
+        string websocketStreamingSource = null;
+        Console.WriteLine($"AI signal has {signal.StreamingSources.Count} Streaming sources:");
+        foreach (string source in signal.StreamingSources)
+        {
+            Console.WriteLine(source);
+            if (source.StartsWith("daq.ns://"))
+                nativeStreamingSource = source;
+            if (source.StartsWith("daq.lt://"))
+                websocketStreamingSource = source;
+        }
+
+        // Check the active Streaming source of Signal
+        if (signal.ActiveStreamingSource != websocketStreamingSource)
+        {
+            Console.WriteLine("*** Wrong active Streaming source of AI signal");
+            return 1;
+        }
+        // Output samples using Reader with Streaming LT
+        ReadSamples(signal);
+
+        // Change the active Streaming source of Signal
+        signal.ActiveStreamingSource = nativeStreamingSource;
+        // Output samples using Reader with native Streaming
+        ReadSamples(signal);
+
+        Console.WriteLine();
+        Console.Write("Press a key to exit the application ...");
+        //Console.ReadKey(intercept: true);
+        Console.WriteLine();
+        return 0;
+
+
+
+        // Function to read samples from the signal
+        void ReadSamples(MirroredSignalConfig signal)
+        {
+            var reader = OpenDAQFactory.CreateStreamReader<double, UInt64>(signal);
+
+            // Get the resolution and origin
+            DataDescriptor descriptor = signal.DomainSignal.Descriptor;
+            Ratio resolution = descriptor.TickResolution;
+            string origin = descriptor.Origin;
+            string unitSymbol = descriptor.Unit.Symbol;
+
+            Console.WriteLine($"\nReading signal: {signal.Name}; active Streaming source: {signal.ActiveStreamingSource}");
+            Console.WriteLine("Origin: " + origin);
+
+            // Allocate buffer for reading double samples
+            double[] samples = new double[100];
+            UInt64[] domainSamples = new UInt64[100];
+            for (int i = 0; i < 40; ++i)
+            {
+                Thread.Sleep(25);
+
+                // Read up to 100 samples every 25 ms, storing the amount read into `count`
+                nuint count = 100;
+                reader.ReadWithDomain(samples, domainSamples, ref count);
+                if (count > 0)
+                {
+                    double domainValue = (long)domainSamples[count - 1] * resolution;
+                    Console.WriteLine("Value: " + samples[count - 1] + ", Domain: " + domainValue + unitSymbol);
+                }
+            }
+        }
+    }
+
+    #endregion Configure streaming
+
+    #region Measure a single value
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_measure_single_value.adoc
+    //T0601
+
+    #endregion Measure a single value
+
+    #region Save and load configuration
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
+
+    [Test]
+    public void Test_0701_ConfigurationSaveTest()
+    {
+        // Save Configuration to string
+        string jsonStr = instance.SaveConfiguration();
+        // Write Configuration string to file
+        File.WriteAllText("openDAQconfig.json", jsonStr, System.Text.Encoding.UTF8);
+    }
+
+    [Test]
+    public void Test_0702_ConfigurationLoadTest()
+    {
+        // Read Configuration from file
+        string jsonStr = File.ReadAllText("openDAQconfig.json", System.Text.Encoding.UTF8);
+        // Load Configuration from string
+        instance.LoadConfiguration(jsonStr);
+    }
+
+    #endregion Save and load configuration
+
     #region Read data with Readers
 
     #region Basic value and domain
 
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_read_with_domain.adoc
+
     [Test]
-    public void ReaderCreateTest()
+    public void Test_0801_ReaderCreateTest()
     {
         Signal signal = device.GetChannels()[0].GetSignals()[0];
 
@@ -409,7 +824,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void ReaderReadingDataTest()
+    public void Test_0802_ReaderReadingDataTest()
     {
         Signal signal = device.GetChannels()[0].GetSignals()[0];
 
@@ -449,19 +864,19 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
     //[Test]
-    public void ReaderHandlingSignalChangesTest()
+    public void Test_0803_ReaderHandlingSignalChangesTest()
     {
         //ToDo: call-backs not yet implemented
     }
 
     //[Test]
-    public void ReaderInvalidationAndReuseTest()
+    public void Test_0804_ReaderInvalidationAndReuseTest()
     {
         //ToDo: call-backs not yet implemented
     }
 
     //[Test]
-    public void ReaderInvalidationAndReuseTest2()
+    public void Test_0805_ReaderInvalidationAndReuseTest2()
     {
         //ToDo: uses createPacketForSignal which is unknown
         //ToDo: uses SignalConfig as signal
@@ -469,49 +884,43 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     #endregion Basic value and domain
 
+    #region Only last N samples
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_read_last_n_samples.adoc
+    //T0901_
+
+    #endregion Only last N samples
+
+    #region Absolute time-stamps
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_read_with_timestamps.adoc
+    //T1001_
+
+    #endregion Absolute time-stamps
+
+    #region Time-outs
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_read_with_timeouts.adoc
+    //T1101_
+
+    #endregion Time-outs
+
+    #region Align multiple signals
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_read_aligned_signals.adoc
+    //T1201_
+
+    #endregion Align multiple signals
+
     #endregion Read data with Readers
-
-    #region Save and load configuration
-
-  // Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
-    [Test]
-    public void ConfigurationSaveTest()
-    {
-        // Save Configuration to string
-        string jsonStr = instance.SaveConfiguration();
-        // Write Configuration string to file
-        File.WriteAllText("openDAQconfig.json", jsonStr, System.Text.Encoding.UTF8);
-    }
-
-  // Corresponding document: Antora/modules/howto_guides/pages/howto_save_load_configuration.adoc
-    [Test]
-    public void ConfigurationLoadTest()
-    {
-        // Read Configuration from file
-        string jsonStr = File.ReadAllText("openDAQconfig.json", System.Text.Encoding.UTF8);
-        // Load Configuration from string
-        instance.LoadConfiguration(jsonStr);
-    }
-
-    #endregion Save and load configuration
-
-    [Test]
-    [Category(SKIP_SETUP_DEVICE)]
-    public void _InternalConnectionTest()
-    {
-        var device = ConnectFirstAvailableDevice(instance, eDesiredConnection.OpcUa, doLog: true);
-        Console.WriteLine($"Connected device: {device.Name}");
-
-        //Hack: dispose device because otherwise we get exception in native code when GC tries to clean up
-        device.Dispose();
-    }
-
-    // Corresponding document: Antora/modules/howto_guides/pages/howto_access_control.adoc
 
     #region Access control
 
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_access_control.adoc
+
     [Test]
-    public void CreateServer()
+    [Category(SKIP_SETUP)]
+    public void Test_1301_AccessControlCreateServerTest()
     {
         var users = CoreTypesFactory.CreateList<BaseObject>();
         users.Add(OpenDAQFactory.User("opendaq", "opendaq123"));
@@ -529,7 +938,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void Hashing()
+    [Category(SKIP_SETUP)]
+    public void Test_1302_AccessControlHashingTest()
     {
         var users = CoreTypesFactory.CreateList<BaseObject>();
         users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
@@ -545,8 +955,9 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         //Console.ReadLine();
     }
 
-    [Test]
-    public void ConnectWithUsername()
+    //[Test]
+    //[Category(SKIP_SETUP)]
+    public void Test_1303_AccessControlConnectWithUserNameTest()
     {
         var prepareAndStartServer = () =>
         {
@@ -580,7 +991,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void ProtectedObject()
+    [Category(SKIP_SETUP)]
+    public void Test_1304_AccessControlProtectedObjectTest()
     {
         var users = CoreTypesFactory.CreateList<BaseObject>();
         users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
@@ -599,7 +1011,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void Allow()
+    [Category(SKIP_SETUP)]
+    public void Test_1305_AccessControlAllowTest()
     {
         var targetObject = CoreObjectsFactory.CreatePropertyObject();
         var parentObject = CoreObjectsFactory.CreatePropertyObject();
@@ -631,7 +1044,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void Deny()
+    [Category(SKIP_SETUP)]
+    public void Test_1306_AccessControlDenyTest()
     {
         var targetObject = CoreObjectsFactory.CreatePropertyObject();
         var parentObject = CoreObjectsFactory.CreatePropertyObject();
@@ -664,7 +1078,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void Assign()
+    [Category(SKIP_SETUP)]
+    public void Test_1307_AccessControlAssignTest()
     {
         var targetObject = CoreObjectsFactory.CreatePropertyObject();
         var parentObject = CoreObjectsFactory.CreatePropertyObject();
@@ -706,8 +1121,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     #endregion Access control
 
     //template snippet - clone these lines and rename the method for a new test
-    [Test]
-    public void _EmptyTest()
-    {
-    }
+    //[Test]
+    //public void _EmptyTest()
+    //{
+    //}
 }

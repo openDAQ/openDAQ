@@ -1267,7 +1267,59 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
     #region Time-outs
 
     // Corresponding document: Antora/modules/howto_guides/pages/howto_read_with_timeouts.adoc
-    //T1101_
+
+    [Test]
+    public void Test_1101_ReadWithTimeoutTest()
+    {
+        var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+
+        // Signal produces 2 samples
+
+        // Normal call will only return existing 2 samples immediately
+        nuint count = 5;
+        double[] values = new double[5];
+        reader.Read(values, ref count);  // count = 2
+
+        // Signal produces 2 samples, then in 100 ms after the read call another 2
+
+        count = 5;
+        double[] newValues = new double[5];
+        reader.Read(newValues, ref count, 200);  // count = 4
+    }
+
+    [Test]
+    public void Test_1102_ReadWithTimeoutTypeAnyTest()
+    {
+        var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal, timeoutType: ReadTimeoutType.Any);
+
+        // Signal produces 2 Packets with 3 samples
+        // [Packet 1]: { 1 }
+        // [Packet 2]: { 2, 3 }
+
+        var available = reader.AvailableCount;  // available = 3
+
+        // Returns immediately with the currently available samples
+        nuint count = 5;
+        double[] values = new double[5];
+        reader.Read(values, ref count, 200);  // count = 3, values = { 1, 2, 3 }
+
+        // There are no samples left in the Reader
+        available = reader.AvailableCount;  // available = 0
+
+        // 50 ms after the read call the Signal produces a Packet with 2 samples { 4, 5 }
+        // then, after another 20 ms, produces the next 3 samples { 6, 7, 8 }
+
+        count = 5;
+        double[] newValues = new double[5];
+        reader.Read(newValues, ref count, 200);  // count = 2, newValues = { 4, 5 }
+    }
+
+    //[Test(ExpectedResult = 0)] //not a real test
+    public int Test_1103_ReadWithTimeout_FullListingTest()
+    {
+        //Since there are several features not available for the .NET Bindings, there is no full listing for this language. Please refer to the specific sections above for the examples.
+        return 0;
+    }
 
     #endregion Time-outs
 

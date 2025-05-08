@@ -69,6 +69,12 @@ namespace details
     }
 }
 
+namespace permissions
+{
+    static const auto DefaultPermissions =
+        PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+}
+
 class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
 {
 protected:
@@ -308,9 +314,7 @@ public:
     {
 #ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
         defaultPermissionManager = PermissionManager();
-        const auto DefaultPermissions =
-            PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-        defaultPermissionManager.setPermissions(DefaultPermissions);
+        defaultPermissionManager.setPermissions(permissions::DefaultPermissions);
 #else
         defaultPermissionManager = DisabledPermissionManager();
 #endif

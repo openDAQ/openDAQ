@@ -10,7 +10,6 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_Removable removable.h)
     rtgen(SRC_ComponentDeserializeContext component_deserialize_context.h INTERNAL)
     rtgen(SRC_DeserializeComponent deserialize_component.h)
-    rtgen(SRC_RecursiveSearch recursive_search.h)
     rtgen(SRC_ComponentPrivate component_private.h)
     rtgen(SRC_Tags tags.h)
     rtgen(SRC_TagsPrivate tags_private.h)
@@ -105,7 +104,6 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/search_filter.h
         ${SDK_HEADERS_DIR}/search_filter_impl.h
         ${SDK_HEADERS_DIR}/search_filter_factory.h
-        ${SDK_HEADERS_DIR}/recursive_search.h
         ${SDK_SRC_DIR}/search_filter_impl.cpp
     )
     

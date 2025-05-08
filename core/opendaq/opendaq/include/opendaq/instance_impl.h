@@ -92,6 +92,7 @@ public:
     ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
+    ErrCode INTERFACE_FUNC findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter = nullptr) override;
 
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
@@ -150,6 +151,7 @@ public:
 
     ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
     ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) override;
+    ErrCode INTERFACE_FUNC findProperties(IList** properties, IPropertyFilter* filter = nullptr) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;

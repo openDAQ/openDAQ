@@ -1229,23 +1229,23 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
     }
 
     if (lastDataDescriptor.assigned())
-    {
-        return daqTry([&value, this]
-        {
-            auto manager = this->context.getTypeManager();
-            if (lastDataRuledPacket.assigned())
-            {
-                *value = lastDataRuledPacket.getLastValue().detach();
-            }
-            else
-            {
-                void* rawValue = lastRawDataValue.data();
-                *value = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager).detach();
-            }
-        });
-    }
+        return OPENDAQ_IGNORED;
 
-    return OPENDAQ_IGNORED;
+    return daqTry([&value, this]
+    {
+        auto manager = this->context.getTypeManager();
+        if (lastDataRuledPacket.assigned())
+        {
+            lastDataValue = lastDataRuledPacket.getLastValue();
+            lastDataRuledPacket = nullptr;
+        }
+        else
+        {
+            void* rawValue = lastRawDataValue.data();
+            lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager);
+        }
+        *value = lastDataValue.addRefAndReturn();
+    });
 }
 
 template <typename TInterface, typename... Interfaces>

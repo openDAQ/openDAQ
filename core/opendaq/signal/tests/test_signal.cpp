@@ -519,7 +519,11 @@ TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
     // Throws because descriptor2 has the same name as descriptor1 (but is different)
     // and hence the the struct type can't be added to the type manager and hence
     // later can't be found in the type manager
-    ASSERT_THROW(signal2.sendPacket(dataPacket2), NotFoundException);
+
+    // Note: the calculation of last value is moved to the method getLastValue
+    // ASSERT_THROW(signal2.sendPacket(dataPacket2), NotFoundException);
+    ASSERT_NO_THROW(signal2.sendPacket(dataPacket2));
+    ASSERT_THROW(signal2.getLastValue(), NotFoundException);
 
     const auto lv1 = signal1.getLastValue();
     StructPtr sp1;

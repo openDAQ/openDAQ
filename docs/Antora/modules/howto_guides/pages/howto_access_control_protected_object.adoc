@@ -64,6 +64,73 @@ PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
     return protectedObject;
 }
 ----
+C#::
++
+[source,csharp]
+----
+PropertyObject createProtectedObject()
+{
+    var func = CoreTypesFactory.CreateFunction(SumLongs);
+
+    var argumentInfos =
+            CoreTypesFactory.CreateList<BaseObject>(CoreObjectsFactory.CreateArgumentInfo("A", CoreType.ctInt),
+                                                    CoreObjectsFactory.CreateArgumentInfo("B", CoreType.ctInt));
+
+    CallableInfo functionInfo = CoreObjectsFactory.CreateCallableInfo(argumentInfos, CoreType.ctInt, true);
+
+    var funcPropBuilder = CoreObjectsFactory.CreateFunctionPropertyBuilder("Sum", functionInfo);
+    funcPropBuilder.ReadOnly = false;
+    var funcProp = funcPropBuilder.Build();
+    var stringProp = CoreObjectsFactory.StringProperty("Owner", "openDAQ TM");
+
+    var protectedObject = CoreObjectsFactory.CreatePropertyObject();
+    protectedObject.AddProperty(stringProp);
+    protectedObject.AddProperty(funcProp);
+    protectedObject.SetPropertyValue("Sum", func);
+
+    var maskR = CoreObjectsFactory.CreatePermissionMaskBuilder();
+    maskR.Read();
+
+    var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
+    maskRwx.Read();
+    maskRwx.Write();
+    maskRwx.Execute();
+
+    // group "everyone" has a read-only access to the protected object
+    // group "admin" can change the protected object and call methods on it
+
+    var permissionsBuilder = CoreObjectsFactory.CreatePermissionsBuilder();
+    permissionsBuilder.Inherit(false);
+    permissionsBuilder.Assign("everyone", maskR);
+    permissionsBuilder.Assign("admin", maskRwx);
+    var permissions = permissionsBuilder.Build();
+
+    protectedObject.PermissionManager.SetPermissions(permissions);
+
+    return protectedObject;
+}
+
+//implement a FuncCallDelegate function
+ErrorCode SumLongs(BaseObject? parameters, out BaseObject? result)
+{
+    //initialize output
+    result = null;
+
+    //expecting two long parameters
+    using var paramsList = parameters?.CastList<IntegerObject>();
+    if ((paramsList == null) || (paramsList.Count != 2))
+    {
+        //tell API that it was not OK
+        return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+    }
+
+    //returning the given boolean parameter as result
+    result = (long)paramsList[0] + (long)paramsList[1];
+
+    //tell API that everything was OK
+    return ErrorCode.OPENDAQ_SUCCESS;
+}
+----
 ====
 
 == Difference between assign, allow and deny

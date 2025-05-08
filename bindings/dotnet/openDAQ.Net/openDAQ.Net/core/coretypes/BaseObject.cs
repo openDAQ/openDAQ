@@ -616,15 +616,41 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     public bool IsDisposed => _disposedValue;
 
     /// <summary>
-    /// Disposes resources of this instance.
+    /// Releases the reference to the object (reduce reference counter in SDK) and marking it as disposed.
     /// </summary>
     /// <param name="disposing">If set to <c>true</c> dispose also managed resources; otherwise only native resources will be freed.</param>
+    //according to https://learn.microsoft.com/en-us/dotnet/api/system.accessviolationexception?view=net-7.0#accessviolationexception-and-trycatch-blocks
+    //Win32 AccessViolationException can be caught by decorating this function with these attributes
+    //[HandleProcessCorruptedStateExceptions, SecurityCritical]
+    //but the former is marked "obsolete" and not doing anything
+    //=> if an object has already been destroyed in native code, there is no way to catch the exception or to find out if it has been destroyed already
+    //see also https://learn.microsoft.com/en-us/archive/msdn-magazine/2009/february/clr-inside-out-handling-corrupted-state-exceptions
+    //where they mention to compile C++ code with /EHa to catch C++ exceptions in C# code but that is not improving things
     protected virtual void Dispose(bool disposing)
     {
 #if DEBUG && DEBUG_PRINT_CREATE_AND_DISPOSE
         System.Diagnostics.Debug.Write($"----- Dispose({_name}) - ");
 #endif
         PrintReferenceCount(debugPrintOnly: true);
+
+        string typeName = this.GetType().Name;
+        if (typeName == "Instance")
+        {
+            //when the Instance object is destroyed, the SDK will destroy also the ModuleManager
+            //which will unload the loaded modules, thus renders all their objects invalid (no ReleaseReference() possible then)
+            //so we need to re-register the Instance finalizer that the ModuleManager will be destroyed last
+            //(so far this could be observed with OPC UA connections only)
+
+            int gcGeneration = GC.GetGeneration(this);
+            if (gcGeneration < GC.MaxGeneration)
+            {
+#if DEBUG && DEBUG_PRINT_CREATE_AND_DISPOSE
+                System.Diagnostics.Debug.Print($"++++> Re-register {typeName} for finalization");
+#endif
+                GC.ReRegisterForFinalize(this);
+                return;
+            }
+        }
 
         if (_disposedValue)
         {
@@ -644,15 +670,10 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             return;
         }
 
-        //according to https://learn.microsoft.com/en-us/dotnet/api/system.accessviolationexception?view=net-7.0#accessviolationexception-and-trycatch-blocks
-        //Win32 AccessViolationException can be caught by decorating this function with these attributes
-        //[HandleProcessCorruptedStateExceptions, SecurityCritical]
-        //but the former is marked "obsolete" and not doing anything
-        //=> if an object has already been destroyed in native code, there is no way to catch the exception or to find out if it has been destroyed already
         try
         {
             //dispose all references held by the C++ object
-            //DisposeObject();
+            //DisposeObject(); //-> bad idea, as we might still have references to those objects in C# code, resulting in AccessViolation
 
             //release this reference, if it was the last reference the C++ object will be destroyed
             int refCount = ((IUnknown)this).ReleaseReference();

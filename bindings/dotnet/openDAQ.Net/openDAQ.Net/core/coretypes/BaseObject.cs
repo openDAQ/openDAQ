@@ -59,6 +59,10 @@ internal unsafe class RawBaseObject : RawIUnknown
     public new delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, ErrorCode> ToString; //new -> hides base member (inherited from Object)
 }
 
+//https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.safehandle?view=net-8.0
+//https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.criticalhandle?view=net-8.0
+//https://learn.microsoft.com/en-us/dotnet/framework/interop/consuming-unmanaged-dll-functions
+
 /// <summary>
 /// The base class for all SDK classes.
 /// </summary>
@@ -69,6 +73,9 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 {
     //wraps this managed object holding a handle to a resource that is passed to unmanaged code using platform invoke.
     private HandleRef _handleRef;
+
+    //lock object for _handleRef
+    private readonly object _handleRefLock = new object();
 
     //holds the function pointers to the C++ class
     internal RawBaseObject _virtualTable;
@@ -166,7 +173,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     {
         get
         {
-            if (_handleRef.Handle == IntPtr.Zero) //this.IsDisposed not usable here since flag set at the beginning of Dispose()
+            if (IsNativePointerZero()) //this.IsDisposed not usable here since flag set at the beginning of Dispose()
             {
                 throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALID_OPERATION, $"{this.GetType().Name} already disposed or 'stolen' through stealRef");
             }
@@ -221,6 +228,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 
     /// <summary>Increments the reference count for an interface on an object.</summary>
     /// <remarks>You should call this method whenever you make a copy of an interface pointer.</remarks>
+    /// <returns>Returns the new reference count of the object.</returns>
     int IUnknown.AddReference()
     {
 #if DEBUG && DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
@@ -252,6 +260,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 
     /// <summary>Decrements the reference count for an interface on an object.</summary>
     /// <remarks>Call this method when you no longer need to use an interface pointer.</remarks>
+    /// <returns>Returns the new reference count of the object.</returns>
     int IUnknown.ReleaseReference()
     {
 #if DEBUG && DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
@@ -358,7 +367,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     {
         IntPtr objPtr = ((IUnknown)this).QueryInterface<TObject>();
 
-        return BaseObject.CreateInstance<TObject>(objPtr, false);
+        return BaseObject.CreateInstance<TObject>(objPtr, incrementReference: false);
     }
 
     //no BorrowInterface() implementation here since it is not needed for managed objects (even dangerous to use it)
@@ -405,7 +414,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             return null;
         }
 
-        return BaseObject.CreateInstance<TObject>(objPtr, false);
+        return BaseObject.CreateInstance<TObject>(objPtr, incrementReference: false);
     }
 
     /// <summary>Casts this instance to <c>ListObject&lt;<typeparamref name="TValue"/>&gt;</c>.</summary>
@@ -416,7 +425,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         where TValue : BaseObject
     {
         if (this.GetType().Name.StartsWith(nameof(ListObject<BaseObject>))) //ToDo: perhaps also check item type being cast-able to TValue?
-            return new ListObject<TValue>(this.NativePointer, true);
+            return new ListObject<TValue>(this.NativePointer, incrementReference: true);
 
         return this.Cast<ListObject<TValue>>();
     }
@@ -431,9 +440,18 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         where TValue : BaseObject
     {
         if (this.GetType().Name.StartsWith(nameof(DictObject<BaseObject, BaseObject>))) //ToDo: perhaps also check key and item type being cast-able to TKey,TValue?
-            return new DictObject<TKey, TValue>(this.NativePointer, true);
+            return new DictObject<TKey, TValue>(this.NativePointer, incrementReference: true);
 
         return this.Cast<DictObject<TKey, TValue>>();
+    }
+
+    /// <summary>
+    /// Checks if the native pointer is zero.
+    /// </summary>
+    /// <returns><c>true</c> when the native pointer is zero; otherwise <c>false</c>.</returns>
+    private bool IsNativePointerZero()
+    {
+        return (_handleRef.Handle == IntPtr.Zero);
     }
 
     /// <summary>
@@ -442,8 +460,11 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// </summary>
     internal void SetNativePointerToZero()
     {
-        if (_handleRef.Handle !=  IntPtr.Zero)
-            _handleRef = new HandleRef(this, IntPtr.Zero);
+        lock (_handleRefLock)
+        {
+            if (!IsNativePointerZero())
+                _handleRef = new HandleRef(this, IntPtr.Zero);
+        }
     }
 
     /// <summary>Disposes all references held by the object.</summary>
@@ -664,7 +685,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             // TODO: dispose managed state (managed objects)
         }
 
-        if (_handleRef.Handle == IntPtr.Zero)
+        if (IsNativePointerZero())
         {
             //already disposed or 'stolen' through stealRef
             return;
@@ -687,7 +708,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         finally
         {
             //don't permit the handle to be used again
-            _handleRef = new HandleRef(this, IntPtr.Zero);
+            SetNativePointerToZero();
         }
     }
 
@@ -718,7 +739,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 #if DEBUG
         string message;
 
-        if (_handleRef.Handle == IntPtr.Zero)
+        if (IsNativePointerZero())
         {
             message = "'{_name}' is IntPtr.Zero";
         }
@@ -736,6 +757,10 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
                 int referenceCount = ((IUnknown)this).ReleaseReference();
 
                 message = $"{referenceCount} references exist to '{_name}'";
+            }
+            catch (Exception ex)
+            {
+                message = $"### {ex.GetType().Name} - {ex.Message}";
             }
             finally
             {

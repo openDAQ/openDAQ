@@ -167,7 +167,7 @@ C#::
 +
 [source,csharp]
 ----
-var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal, timeoutType: ReadTimeoutType.Any);
 
 // Signal produces 2 Packets with 3 samples
 // [Packet 1]: { 1 }
@@ -391,4 +391,8 @@ DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples)
     return daq::DataPacket(signal.getDescriptor(), numSamples);
 }
 ----
+C#::
++
+[NOTE]
+Since there are several features not available for the .NET Bindings, there is no full listing for this language. Please refer to the specific sections above for the examples.
 ====

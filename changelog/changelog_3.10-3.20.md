@@ -2,6 +2,10 @@
 
 ## Features
 
+- [#768](https://github.com/openDAQ/openDAQ/pull/768) Supporting creating empty error info. Add macroses to checking error code
+- [#771](https://github.com/openDAQ/openDAQ/pull/771) Improvements to device operation mode, including changes to the Device API for operation mode handling.
+- [#764](https://github.com/openDAQ/openDAQ/pull/764) Add support restoring device info fields
+- [#773](https://github.com/openDAQ/openDAQ/pull/773) Extend IPropertyObject::hasProperty() to accept nested property lookup via "dot" notation.
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Introduces serializer versioning; openDAQ list objects are now serialized as objects instead of JSON arrays.
 - [#730](https://github.com/openDAQ/openDAQ/pull/730) Provide list of connected clients info via DeviceInfo.
 - [#718](https://github.com/openDAQ/openDAQ/pull/718) Adds new Native Configuration Protocol RPCs for handling sub-function blocks (function blocks that are children of other FBs.
@@ -14,6 +18,8 @@
 - [#606](https://github.com/openDAQ/openDAQ/pull/606) Mechanism for retrieving and monitoring the device's connection statuses, enabling tracking of streaming connections.
 - [#605](https://github.com/openDAQ/openDAQ/pull/605) Add support for View Only client to the openDAQ Native configuration protocol.
 - [#704](https://github.com/openDAQ/openDAQ/pull/704) Support setting operation mode for the device which notifies all sub components
+- [#697](https://github.com/openDAQ/openDAQ/pull/697) [#783](https://github.com/openDAQ/openDAQ/pull/783) Added `IRecorder` interface and the `basic_csv_recorder_module`.
+- [#743](https://github.com/openDAQ/openDAQ/pull/743) Include experimental high-performance implementation of WebSocket Streaming Server; also adds CAN streaming capability to the client when used with the new server.
 
 ## Python
 
@@ -31,13 +37,17 @@
 
 ## Bug fixes
 
+- [#778](https://github.com/openDAQ/openDAQ/pull/778) Fixing calling remote function with enumeration inside
+- [#776](https://github.com/openDAQ/openDAQ/pull/776) Fixing restoring struct fields while loading configuration
 - [#757](https://github.com/openDAQ/openDAQ/pull/757) Device info obtained from device and discovery matching is changed from checking for connection string equality to SN + manufacturer equality.
 - [#753](https://github.com/openDAQ/openDAQ/pull/753) Fixes crash when deserializing struct types that have a type name that's present in the list of protected type names.
 - [#756](https://github.com/openDAQ/openDAQ/pull/756) With CMake 4.0.0 the Windows builds would no longer find the test executables somehow.
 - [#746](https://github.com/openDAQ/openDAQ/pull/746) Initialized IProcedure objects to default value: `nullptr`. Uninitialized objects cause potential use-before-init errors for certain compilers.
 - [#754](https://github.com/openDAQ/openDAQ/pull/754) Treat duplicate OPC-UA properties, with names that differ only in case, as warnings instead of fatal errors.
 - [#751](https://github.com/openDAQ/openDAQ/pull/751) Fix IPv6 addresses discovering on Windows, improve regex parsing of connection strings, fix LT pseudo-device IPv6 connection info
+- [#744](https://github.com/openDAQ/openDAQ/pull/744) Fix leaf device streaming misconfiguration on reconnection
 - [#740](https://github.com/openDAQ/openDAQ/pull/740) Fixes restoring connection signals to dynamic input ports of a function block while loading the configuration when the name of the new input does not match the old one.
+- [#734](https://github.com/openDAQ/openDAQ/pull/734) Using component config while loading configuration for the devices and function blocks.
 - [#733](https://github.com/openDAQ/openDAQ/pull/733) Fixes list/dictionary deserialization not containing key/value/item interface IDs. Requires server-side update.
 - [#731](https://github.com/openDAQ/openDAQ/pull/731) Fixes nested object access over OPC UA. Object properties original PropertyObject is now stored in PropertyObjectImpl; PropertyImpl now contains the clone.
 - [#719](https://github.com/openDAQ/openDAQ/pull/719) Fixes error when accessing selection property values using "dot" notation (eg. `getPropertySelectionValue("child.val")`).
@@ -264,4 +274,16 @@ DeviceInfoPtr ExampleClientModule::populateDiscoveredDevice(const MdnsDiscovered
 
 +   return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
+```
+
+### [#734](https://github.com/openDAQ/openDAQ/pull/734) Using component config while loading configuration for the devices and function blocks.
+
+Introduces new methods on IComponentPrivate interface to manage component initialization config PropertyObject and deprecates similar methods from IDevicePrivate.
+
+Therefore, the getting device config is to be modified as follows:
+
+```diff
+    auto device = instance.getDevices()[0];
+-   PropertyObjectPtr config = device.asPtr<IDevicePrivate>(true).getDeviceConfig();
++   PropertyObjectPtr config = device.asPtr<IComponentPrivate>(true).getComponentConfig();
 ```

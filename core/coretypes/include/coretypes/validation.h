@@ -26,12 +26,23 @@
 
 #ifdef OPENDAQ_ENABLE_PARAMETER_VALIDATION
 
+#define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode)                       \
+    do {                                                                                \
+        if ((errCode) == (expectedErrCode))                                             \
+            daqClearErrorInfo();                                                        \
+        else if (OPENDAQ_FAILED(errCode))                                               \
+            return DAQ_MAKE_ERROR_INFO(errCode, "Error propagated from lower level");   \
+    } while (0)
+
+#define OPENDAQ_RETURN_IF_FAILED(errCode) \
+    do { if (OPENDAQ_FAILED(errCode)) return DAQ_MAKE_ERROR_INFO(errCode, "Error propagated from lower level"); } while (0)
+
 #define OPENDAQ_PARAM_REQUIRE(cond) \
     do { if (!(cond)) return OPENDAQ_ERR_INVALIDPARAMETER; } while (0)
 
 #ifdef NDEBUG
     #define OPENDAQ_PARAM_NOT_NULL(param) \
-        do { if (nullptr == (param)) return OPENDAQ_ERR_ARGUMENT_NULL; } while (0)
+        do { if (nullptr == (param)) return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter %s must not be null in the function \"%s\"", #param, __func__); } while (0)
 #else
     #define OPENDAQ_PARAM_NOT_NULL(param) \
         do { if (nullptr == (param)) return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter %s must not be null", #param); } while (0)

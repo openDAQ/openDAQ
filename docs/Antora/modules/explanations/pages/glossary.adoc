@@ -456,3 +456,11 @@ The generalized transport layer mechanism for continuous and real-time receiving
 acquisition <<device>>.
 
 // TODO: openDAQ(TM) component, tags, Folder, Global ID, Local ID
+
+[#recorder]
+== Recorder
+
+A <<component>> which records input data to a persistent storage medium such as a file,
+database, or cloud storage bucket. Recorders implement the xref:howto_guides:howto_record_data.adoc[IRecorder]
+interface and may expose additional properties for configuring the storage (such as file type,
+storage location, etc.).

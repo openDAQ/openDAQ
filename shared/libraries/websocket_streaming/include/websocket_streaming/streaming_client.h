@@ -91,8 +91,8 @@ protected:
                       const nlohmann::json& params);
     void onProtocolMeta(daq::streaming_protocol::ProtocolHandler& protocolHandler, const std::string& method, const nlohmann::json& params);
     void onMessage(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, uint64_t timeStamp, const uint8_t* data, size_t valueCount);
-    void setDataSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
-    void setTimeSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal);
+    void setDataSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, const ContextPtr& context);
+    void setTimeSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, const ContextPtr& context);
     void publishSignalChanges(const InputSignalBasePtr& signal, bool valueChanged, bool domainChanged);
     void onSignal(const daq::streaming_protocol::SubscribedSignal& subscribedSignal, const nlohmann::json& params);
     void setSignalInitSatisfied(const std::string& signalId);
@@ -102,6 +102,7 @@ protected:
     void unavailableSignalsHandler(const nlohmann::json::const_iterator& unavailableSignalsArray);
     void availableSignalsHandler(const nlohmann::json::const_iterator& availableSignalsArray);
 
+    ContextPtr context;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
     daq::streaming_protocol::LogCallback logCallback;

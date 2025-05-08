@@ -44,6 +44,7 @@ PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::mo
 PyDaqIntf<daq::IChannel, daq::IFunctionBlock> declareIChannel(pybind11::module_ m);
 PyDaqIntf<daq::IFunctionBlock, daq::IFolder> declareIFunctionBlock(pybind11::module_ m);
 PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> declareIFunctionBlockType(pybind11::module_ m);
+PyDaqIntf<daq::IRecorder, daq::IBaseObject> declareIRecorder(pybind11::module_ m);
 PyDaqIntf<daq::ILogger, daq::IBaseObject> declareILogger(pybind11::module_ m);
 PyDaqIntf<daq::ILoggerComponent, daq::IBaseObject> declareILoggerComponent(pybind11::module_ m);
 PyDaqIntf<daq::ILoggerSink, daq::IBaseObject> declareILoggerSink(pybind11::module_ m);
@@ -153,6 +154,7 @@ void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::ICo
 void defineIChannel(pybind11::module_ m, PyDaqIntf<daq::IChannel, daq::IFunctionBlock> cls);
 void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, daq::IFolder> cls);
 void defineIFunctionBlockType(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> cls);
+void defineIRecorder(pybind11::module_ m, PyDaqIntf<daq::IRecorder, daq::IBaseObject> cls);
 void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject> cls);
 void defineILoggerComponent(pybind11::module_ m, PyDaqIntf<daq::ILoggerComponent, daq::IBaseObject> cls);
 void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBaseObject> cls);

@@ -229,7 +229,7 @@ TEST(SignalConverter, subscribedDataSignal)
     ASSERT_EQ(result, 0);
     ASSERT_FALSE(subscribedSignal.isTimeSignal());
 
-    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
     ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 
@@ -262,12 +262,12 @@ TEST(SignalConverter, subscribedDataSignal)
     signalParams[bsp::META_DEFINITION][bsp::META_POSTSCALING][bsp::META_POFFSET] = 3.0;
 
     std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(signalParams);
-    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(std::vector<char>(msgpack.begin(), msgpack.end()));
 
     result = subscribedSignal.processSignalMetaInformation(method, signalParamsToParse);
     ASSERT_EQ(result, 0);
 
-    subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     dataDescriptor = subscribedSignalInfo.dataDescriptor;
 
     range = dataDescriptor.getValueRange();
@@ -317,12 +317,12 @@ TEST(SignalConverter, subscribedBitfieldSignal)
     signalParams[bsp::META_DEFINITION][bsp::META_RULE] = bsp::META_RULETYPE_CONSTANT;
 
     std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(signalParams);
-    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+    nlohmann::json signalParamsToParse = nlohmann::json::from_msgpack(std::vector<char>(msgpack.begin(), msgpack.end()));
 
     result = subscribedSignal.processSignalMetaInformation(method, signalParamsToParse);
     ASSERT_EQ(result, 0);
     ASSERT_FALSE(subscribedSignal.isTimeSignal());
-    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
     ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 
@@ -383,13 +383,13 @@ TEST(SignalConverter, subscribedTimeSignal)
     timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_DENOMINATOR] = ticksPerSecond;
 
     std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(timeSignalParams);
-    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(std::vector<char>(msgpack.begin(), msgpack.end()));
 
     result = subscribedSignal.processSignalMetaInformation(method, timeSignalParamsToParse);
     ASSERT_EQ(result, 0);
     ASSERT_TRUE(subscribedSignal.isTimeSignal());
 
-    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
     ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 
@@ -458,13 +458,13 @@ TEST(SignalConverter, FloatDeltaOfLinearSignal)
     timeSignalParams[bsp::META_DEFINITION][bsp::META_RESOLUTION][bsp::META_DENOMINATOR] = ticksPerSecond;
 
     std::vector < uint8_t > msgpack = nlohmann::json::to_msgpack(timeSignalParams);
-    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(msgpack);
+    nlohmann::json timeSignalParamsToParse = nlohmann::json::from_msgpack(std::vector<char>(msgpack.begin(), msgpack.end()));
 
     result = subscribedSignal.processSignalMetaInformation(method, timeSignalParamsToParse);
     ASSERT_EQ(result, 0);
     ASSERT_TRUE(subscribedSignal.isTimeSignal());
 
-    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal);
+    auto subscribedSignalInfo = SignalDescriptorConverter::ToDataDescriptor(subscribedSignal, NullContext());
     auto dataDescriptor = subscribedSignalInfo.dataDescriptor;
     ASSERT_EQ(subscribedSignalInfo.signalName, memberName);
 

@@ -66,6 +66,7 @@ protected:
     void addSignal(const SignalPtr& signal);
     void removeSignal(const SignalConfigPtr& signal);
 
+    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
     void addNestedFunctionBlock(const FunctionBlockPtr& functionBlock);
     void removeNestedFunctionBlock(const FunctionBlockPtr& functionBlock);
     FunctionBlockPtr createAndAddNestedFunctionBlock(const StringPtr& typeId,
@@ -172,8 +173,7 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::enableCoreEventTrigger()
     for (const auto& component : this->components)
     {
         const ErrCode err = component.template asPtr<IPropertyObjectInternal>()->enableCoreEventTrigger();
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger();
@@ -185,8 +185,7 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::disableCoreEventTrigger()
     for (const auto& component : this->components)
     {
         const ErrCode err = component.template asPtr<IPropertyObjectInternal>()->disableCoreEventTrigger();
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
@@ -206,7 +205,8 @@ template <class Intf, class ... Intfs>
 ErrCode SignalContainerImpl<Intf, Intfs...>::setActive(Bool active)
 {
     const ErrCode err = Super::setActive(active);
-    if (OPENDAQ_FAILED(err) || err == OPENDAQ_IGNORED)
+    OPENDAQ_RETURN_IF_FAILED(err);
+    if (err == OPENDAQ_IGNORED)
         return err;
 
     return daqTry([&]
@@ -285,7 +285,7 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::getItem(IString* localId, IComponen
         }
     }
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 template<class Intf, class ...Intfs>
@@ -372,6 +372,11 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
     if (fb.assigned())
         addNestedFunctionBlock(fb);
     return fb;
+}
+
+template <class Intf, class ... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::onRemoveFunctionBlock(const FunctionBlockPtr& /* functionBlock */)
+{
 }
 
 template <class Intf, class ... Intfs>
@@ -582,7 +587,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
         fbFolder.checkObjectType("Folder");
 
         if (clearFunctionBlocksOnUpdate())
-            functionBlocks.clear();
+            for (const auto& fb : functionBlocks.getItems())
+                onRemoveFunctionBlock(fb);
 
         updateFolder(fbFolder,
                      "Folder",
@@ -660,8 +666,7 @@ template <class Intf, class... Intfs>
 ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
 {
     ErrCode errCode = Super::updateOperationMode(modeType);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     for (const auto& component : components)
     {
@@ -670,8 +675,7 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(Operatio
             continue;
 
         errCode = componentPrivate->updateOperationMode(modeType);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;

@@ -89,9 +89,9 @@ public:
     ErrCode INTERFACE_FUNC getConnectionStatusContainer(IComponentStatusContainer** statusContainer) override;
     
     ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
-    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
-    ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
-    ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
+    ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;

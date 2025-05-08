@@ -947,6 +947,139 @@ TEST_F(InstanceTest, DISABLED_SaveLoadServers)
     ASSERT_EQ(servers[0].getId(), serverId);
 }
 
+TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance();
+
+        auto deviceConfig = instance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
+        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+
+        instance.addDevice("daqmock://phys_device", deviceConfig);
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance();
+    instance2.loadConfiguration(config);
+
+    auto device = instance2.getDevices()[0];
+    const auto deviceConfig = device.asPtr<IDevicePrivate>(true).getDeviceConfig();
+    ASSERT_TRUE(deviceConfig.assigned());
+    ASSERT_TRUE(deviceConfig.hasProperty("General"));
+
+    PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
+    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+}
+
+TEST_F(InstanceTest, SaveLoadDeviceConfig)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance();
+
+        auto deviceConfig = instance.createDefaultAddDeviceConfig();
+        PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
+        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+
+        instance.addDevice("daqmock://phys_device", deviceConfig);
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance();
+    instance2.loadConfiguration(config);
+
+    auto device = instance2.getDevices()[0];
+    const auto deviceConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(deviceConfig.assigned());
+    ASSERT_TRUE(deviceConfig.hasProperty("General"));
+
+    PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
+    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+}
+
+TEST_F(InstanceTest, SaveLoadFunctionBlockConfig)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance();
+
+        auto fbConfig = PropertyObject();
+        fbConfig.addProperty(IntProperty("TestConfigInt", 100));
+        fbConfig.addProperty(StringProperty("TestConfigString", "NewStringValue"));
+
+        instance.addFunctionBlock("mock_fb_uid", fbConfig);
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance();
+    instance2.loadConfiguration(config);
+
+    auto fbs = instance2.getFunctionBlocks();
+    ASSERT_TRUE(fbs.getCount() == 1);
+        
+    auto fb = fbs[0];
+    ASSERT_EQ(fb.getPropertyValue("TestConfigInt"), 100);
+    ASSERT_EQ(fb.getPropertyValue("TestConfigString"), "NewStringValue");
+}
+
+TEST_F(InstanceTest, SaveLoadDeviceStruct)
+{
+    StringPtr config;
+    StringPtr serverId;
+    {
+        auto instance = test_helpers::setupInstance();
+        instance.addDevice("daqmock://phys_device");
+
+        auto device = instance.getDevices()[0];
+        StructPtr deviceStruct = device.getPropertyValue("DeviceStructure");
+        deviceStruct = StructBuilder(deviceStruct).set("value1", 5e-7).build();
+        device.setPropertyValue("DeviceStructure", deviceStruct);
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance = test_helpers::setupInstance();
+    instance.loadConfiguration(config);
+    auto device = instance.getDevices()[0];
+    StructPtr deviceStruct = device.getPropertyValue("DeviceStructure");
+    ASSERT_EQ(deviceStruct.get("value1"), 5e-7);
+    ASSERT_EQ(deviceStruct.get("value2"), 0.0);
+}
+
+TEST_F(InstanceTest, SaveLoadDeviceInfo)
+{
+    StringPtr config;
+    {
+        auto instance = test_helpers::setupInstance();
+        auto device = instance.addDevice("daqmock://phys_device");
+        auto deviceInfo = device.getInfo();
+        deviceInfo.setPropertyValue("userName", "testUser");
+        deviceInfo.setPropertyValue("location", "testLocation");
+        deviceInfo.setPropertyValue("TestChangeableField", "testValue");
+        deviceInfo.addProperty(StringProperty("CustomProperty", "defaultValue"));
+        deviceInfo.setPropertyValue("CustomProperty", "newValue");
+
+        config = instance.saveConfiguration();
+    }
+
+    auto instance2 = test_helpers::setupInstance();
+    instance2.loadConfiguration(config);
+
+    auto devices = instance2.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto device = devices[0];
+    auto deviceInfo = device.getInfo();
+    ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
+    ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
+    ASSERT_EQ(deviceInfo.getPropertyValue("TestChangeableField"), "testValue");
+    ASSERT_TRUE(deviceInfo.hasProperty("CustomProperty"));
+    ASSERT_EQ(deviceInfo.getProperty("CustomProperty").getDefaultValue(), "defaultValue");
+    ASSERT_EQ(deviceInfo.getPropertyValue("CustomProperty"), "newValue");
+}
+
 TEST_F(InstanceTest, TestRemoved1)
 {
     auto instance = test_helpers::setupInstance();

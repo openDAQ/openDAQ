@@ -46,6 +46,7 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
     MOCK_METHOD(daq::ErrCode, getOnComponentCoreEvent, (daq::IEvent** event), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getStatusContainer, (daq::IComponentStatusContainer** statusContainer), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, findComponent, (daq::IString* id, daq::IComponent** outComponent), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getOperationMode, (daq::OperationModeType* modeType), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, getPublic, (daq::Bool* public_), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setPublic, (daq::Bool public_), (override MOCK_CALL));
@@ -106,7 +107,7 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
                     const auto ptr = daq::ObjectPtr<daq::IConnection>::Borrow(connection);
                     auto it = std::find(connections.begin(), connections.end(), ptr);
                     if (it == connections.end())
-                        return OPENDAQ_ERR_NOTFOUND;
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
                     connections.erase(it);
                     return OPENDAQ_SUCCESS;
                 })

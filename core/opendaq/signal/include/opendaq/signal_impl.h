@@ -53,8 +53,8 @@ class SignalBase;
 
 using SignalImpl = SignalBase<ISignalConfig>;
 
-using TempConnectionsAllocator = detail::MemPoolAllocator<ConnectionPtr>;
-using TempConnectionsMemPool = detail::StaticMemPool<ConnectionPtr, 8>;
+using TempConnectionsAllocator = details::MemPoolAllocator<ConnectionPtr>;
+using TempConnectionsMemPool = details::StaticMemPool<ConnectionPtr, 8>;
 using TempConnections = std::vector<ConnectionPtr, TempConnectionsAllocator>;
 
 template <typename TInterface, typename... Interfaces>
@@ -224,7 +224,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
         auto lock = this->getRecursiveConfigLock();
@@ -265,8 +265,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDescriptor(IDataDescriptor** d
     
     DataDescriptorPtr dataDescriptorPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetDescriptor, dataDescriptorPtr);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *descriptor = dataDescriptorPtr.detach();
     return OPENDAQ_SUCCESS;
@@ -453,8 +452,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
 
     SignalPtr signalPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, signalPtr);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *signal = signalPtr.detach();
     return OPENDAQ_SUCCESS;
@@ -572,7 +570,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::addRelatedSignal(ISignal* signal)
 
         const auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
         if (it != relatedSignals.end())
-            return OPENDAQ_ERR_DUPLICATEITEM;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
 
         relatedSignals.push_back(std::move(signalPtr));
     }
@@ -606,7 +604,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::removeRelatedSignal(ISignal* sign
 
         auto it = std::find(relatedSignals.begin(), relatedSignals.end(), signalPtr);
         if (it == relatedSignals.end())
-            return OPENDAQ_ERR_NOTFOUND;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
         relatedSignals.erase(it);
     }
@@ -912,7 +910,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
     {
         const auto it = std::find(remoteConnections.begin(), remoteConnections.end(), connectionPtr);
         if (it != remoteConnections.end())
-            return OPENDAQ_ERR_DUPLICATEITEM;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
 
         remoteConnections.push_back(connectionPtr);
         return OPENDAQ_SUCCESS;
@@ -920,15 +918,14 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* co
 
     const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
     if (it != connections.end())
-        return OPENDAQ_ERR_DUPLICATEITEM;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
     
     const auto packet = createDataDescriptorChangedEventPacket();
 
     if (connections.empty())
     {
         const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     connections.push_back(connectionPtr);
@@ -951,7 +948,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
     {
         const auto it = std::find(remoteConnections.begin(), remoteConnections.end(), connectionPtr);
         if (it == remoteConnections.end())
-            return OPENDAQ_ERR_NOTFOUND;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
         remoteConnections.erase(it);
         return OPENDAQ_SUCCESS;
@@ -959,15 +956,14 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
 
     const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
     if (it == connections.end())
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     connections.erase(it);
 
     if (connections.empty())
     {
         const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, false);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -986,7 +982,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::domainSignalReferenceSet(ISignal*
     for (const auto& refSignal : domainSignalReferences)
     {
         if (refSignal.getRef() == signalPtr)
-            return OPENDAQ_ERR_DUPLICATEITEM;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
     }
 
     domainSignalReferences.push_back(WeakRefPtr<ISignalConfig>(signal));

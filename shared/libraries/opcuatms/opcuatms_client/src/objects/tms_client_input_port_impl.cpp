@@ -32,12 +32,12 @@ ErrCode TmsClientInputPortImpl::getRequiresSignal(Bool* value)
 
 ErrCode TmsClientInputPortImpl::setRequiresSignal(Bool value)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode TmsClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 
     //return daqTry([&]()
     //{
@@ -50,7 +50,7 @@ ErrCode TmsClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
     //    OpcUaCallMethodRequest callRequest(methodId, nodeId, 1, inputArg.get());
     //    OpcUaObject<UA_CallMethodResult> result = client->callMethod(callRequest);
     //    if (OPCUA_STATUSCODE_FAILED(result->statusCode) || (result->outputArgumentsSize != 1))
-    //        return OPENDAQ_ERR_CALLFAILED;
+    //        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
 
     //    *accepts = OpcUaVariant(result->outputArguments[0]).toBool();
     //    
@@ -140,7 +140,7 @@ ErrCode TmsClientInputPortImpl::getConnection(IConnection** connection)
     return daqTry([&]()
     {
         // TODO: Implement. Awaits support to implement
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     });
 }
 

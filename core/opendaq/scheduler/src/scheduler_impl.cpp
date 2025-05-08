@@ -73,7 +73,7 @@ ErrCode SchedulerImpl::checkAndPrepare(const IBaseObject* work, IAwaitable** awa
     OPENDAQ_PARAM_NOT_NULL(awaitable);
 
     if (stopped)
-        return OPENDAQ_ERR_SCHEDULER_STOPPED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SCHEDULER_STOPPED);
 
     return OPENDAQ_SUCCESS;
 }
@@ -82,8 +82,7 @@ ErrCode SchedulerImpl::checkAndPrepare(const IBaseObject* work, IAwaitable** awa
 ErrCode SchedulerImpl::scheduleFunction(IFunction* function, IAwaitable** awaitable)
 {
     ErrCode errCode = checkAndPrepare(function, awaitable);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     auto scheduled = createWithImplementation<IAwaitable, AwaitableFunc>(
         executor->async([func = FunctionPtr(function)]() mutable
@@ -101,7 +100,7 @@ ErrCode SchedulerImpl::scheduleWork(IWork* work)
     OPENDAQ_PARAM_NOT_NULL(work);
 
     if (stopped)
-        return OPENDAQ_ERR_SCHEDULER_STOPPED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SCHEDULER_STOPPED);
 
     executor->silent_async([work = WorkPtr(work)]()
         {
@@ -114,16 +113,15 @@ ErrCode SchedulerImpl::scheduleWork(IWork* work)
 ErrCode SchedulerImpl::scheduleGraph(ITaskGraph* graph, IAwaitable** awaitable)
 {
     ErrCode errCode = checkAndPrepare(graph, awaitable);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     auto scheduled = TaskPtr::Borrow(graph).asPtrOrNull<ITaskInternal>(true);
     if (scheduled == nullptr)
-        return OPENDAQ_ERR_NOT_SUPPORTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
 
     auto flow = scheduled->getFlow();
     if (flow == nullptr)
-        return OPENDAQ_ERR_NOT_SUPPORTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
 
     auto awaitable_ = createWithImplementation<IAwaitable, AwaitableImpl<void>>(executor->run(*flow));
     *awaitable = awaitable_.detach();

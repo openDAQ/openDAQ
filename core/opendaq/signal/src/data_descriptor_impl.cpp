@@ -493,8 +493,7 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
 
     DataDescriptorBuilderPtr dataDescriptor;
     auto errCode = createObject<IDataDescriptorBuilder, DataDescriptorBuilderImpl>(&dataDescriptor);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
 

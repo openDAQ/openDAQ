@@ -26,6 +26,7 @@
 #include <opendaq/search_filter_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/component_update_context_ptr.h>
+#include <opendaq/recorder.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -83,7 +84,7 @@ public:
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
-    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
+    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -113,8 +114,6 @@ protected:
 
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
-
-    void onOperationModeChanged(OperationModeType modeType) override;
 
     template <class Impl>
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
@@ -572,6 +571,13 @@ void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(c
     auto typeId = type.getId();
     serializer.writeString(typeId.getCharPtr(), typeId.getLength());
 
+    serializer.key("isRecorder");
+    FunctionBlockPtr thisPtr = this->template borrowPtr<FunctionBlockPtr>();
+    if (thisPtr.supportsInterface<IRecorder>())
+        serializer.writeBool(true);
+    else
+        serializer.writeBool(false);
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
     this->serializeFolder(serializer, inputPorts, "IP", forUpdate);
 }
@@ -602,7 +608,7 @@ ConstCharPtr FunctionBlockImpl<TInterface, Interfaces...>::SerializeId()
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IBaseObject** obj)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -663,14 +669,6 @@ BaseObjectPtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionB
                    return createWithImplementation<IFunctionBlock, Impl>(
                        fbType, deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
                });
-}
-
-template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::onOperationModeChanged(OperationModeType modeType)
-{
-    bool active = modeType != OperationModeType::Idle;
-    for (const auto& signal : this->signals.getItems())
-        signal.setActive(active);
 }
 
 template <typename TInterface, typename... Interfaces>

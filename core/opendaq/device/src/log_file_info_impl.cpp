@@ -145,47 +145,38 @@ ErrCode LogFileInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
     StringPtr lastModified;
 
     errCode = serialized->readString(String("name"), &name);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     errCode = serialized->readString(String("encoding"), &encoding);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     Bool hasKey;
 
     errCode = serialized->hasKey(String("localPath"), &hasKey);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (hasKey)
     {
         errCode = serialized->readString(String("localPath"), &localPath);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     errCode = serialized->readString(String("id"), &id);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serialized->hasKey(String("description"), &hasKey);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     
     if (hasKey)
     {
         errCode = serialized->readString(String("description"), &description);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     errCode = serialized->readInt(String("size"), &size);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serialized->readString(String("lastModified"), &lastModified);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     LogFileInfoBuilderPtr infoBuilder = LogFileInfoBuilder_Create();
     LogFileInfoPtr info = infoBuilder.setName(name)

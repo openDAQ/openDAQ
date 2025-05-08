@@ -9,6 +9,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <opendaq/mirrored_device_config.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
 
@@ -241,8 +242,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &nativeStreamingServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
     }
     serversPtr.pushBack(nativeStreamingServer);
 
@@ -253,8 +253,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
     }
     serversPtr.pushBack(websocketServer);
 #endif
@@ -264,8 +263,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &opcUaServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
     }
     serversPtr.pushBack(opcUaServer);
 
@@ -319,17 +317,17 @@ ErrCode InstanceImpl::getAvailableOperationModes(IList** availableOpModes)
     return rootDevice->getAvailableOperationModes(availableOpModes);
 }
 
-ErrCode InstanceImpl::setOperationMode(IString* modeType)
+ErrCode InstanceImpl::setOperationMode(OperationModeType modeType)
 {
     return rootDevice->setOperationMode(modeType);
 }
 
-ErrCode InstanceImpl::setOperationModeRecursive(IString* modeType)
+ErrCode InstanceImpl::setOperationModeRecursive(OperationModeType modeType)
 {
     return rootDevice->setOperationModeRecursive(modeType);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getOperationMode(IString** modeType)
+ErrCode INTERFACE_FUNC InstanceImpl::getOperationMode(OperationModeType* modeType)
 {
     return rootDevice->getOperationMode(modeType);
 }
@@ -361,6 +359,9 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
     const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
+
+    if (newRootDevice.supportsInterface<IMirroredDeviceConfig>())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Cannot set mirrored device as root device");
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;
@@ -761,7 +762,7 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
     OPENDAQ_PARAM_NOT_NULL(serialized);
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)

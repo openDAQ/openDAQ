@@ -10,7 +10,10 @@ set(SDK_OPTION_PREFIX OPENDAQ)
 
 file(READ "opendaq_version" package_version)
 string(STRIP ${package_version} package_version)
-set(OPENDAQ_PACKAGE_VERSION "${package_version}")
+
+string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" package_version_major_minor_patch "${package_version}")
+
+set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}")
 
 set(CMAKE_MESSAGE_CONTEXT ${SDK_NAME})
 set(CMAKE_MESSAGE_CONTEXT_SHOW ON CACHE BOOL "Show CMake message context")
@@ -172,6 +175,7 @@ option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
 option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
+option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder module" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
 

@@ -566,6 +566,13 @@ std::set<OperationModeType> RefDeviceImpl::onGetAvailableOperationModes()
     return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
 }
 
+void RefDeviceImpl::onOperationModeChanged(OperationModeType modeType)
+{
+    bool active = modeType != OperationModeType::Idle;
+    for (const auto& ch : this->channels)
+        ch.setActive(active);
+}
+
 void RefDeviceImpl::createSignals()
 {
     timeSignal = createAndAddSignal("Time", nullptr, true);

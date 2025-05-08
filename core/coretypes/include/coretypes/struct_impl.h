@@ -340,15 +340,13 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::serialize(ISerializer
     ErrCode errCode = this->fields->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableFields));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializableFields->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();
 
@@ -407,17 +405,15 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(
 {
     TypeManagerPtr typeManager;
     if (context == nullptr || OPENDAQ_FAILED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager))))
-        return OPENDAQ_ERR_NO_TYPE_MANAGER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_TYPE_MANAGER, "Type manager is required for deserialization of Struct");
 
     StringPtr typeName;
     ErrCode errCode = ser->readString("typeName"_daq, &typeName);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr fields;
     errCode = ser->readObject("fields"_daq, context, factoryCallback, &fields);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     try
     {
@@ -431,7 +427,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(
     }
     catch(...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;

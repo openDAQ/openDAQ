@@ -26,6 +26,10 @@ add_test(NAME ${TEST_APP}
 target_link_libraries(${TEST_APP} PRIVATE daq::opendaq_mocks
 )
 
+if (MSVC)
+    target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
+
 if (OPENDAQ_ENABLE_COVERAGE)
     setup_target_for_coverage(${TEST_APP}coverage ${TEST_APP} ${TEST_APP}coverage)
 endif()

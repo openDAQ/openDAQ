@@ -64,9 +64,9 @@ public:
     ErrCode INTERFACE_FUNC forceUnlock() override;
 
     ErrCode INTERFACE_FUNC getAvailableOperationModes(IList** availableOpModes) override;
-    ErrCode INTERFACE_FUNC setOperationMode(IString* modeType) override;
-    ErrCode INTERFACE_FUNC setOperationModeRecursive(IString* modeType) override;
-    ErrCode INTERFACE_FUNC getOperationMode(IString** modeType) override;
+    ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -80,6 +80,7 @@ private:
     void deviceDomainChanged(const CoreEventArgsPtr& args);
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
     void connectionStatusChanged(const CoreEventArgsPtr& args);
+    void operationModeChanged(const CoreEventArgsPtr& args);
     bool handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args);
     bool handleDeviceInfoPropertyAdded(const CoreEventArgsPtr& args);
     bool handleDeviceInfoPropertyRemoved(const CoreEventArgsPtr& args);
@@ -225,7 +226,7 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
     auto parentDevice = this->getParentDevice();
 
     if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
-        return OPENDAQ_ERR_DEVICE_LOCKED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED);
 
     return daqTry([this] { this->clientComm->unlock(this->remoteGlobalId); });
 }
@@ -238,7 +239,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
     auto parentDevice = this->getParentDevice();
 
     if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
-        return OPENDAQ_ERR_DEVICE_LOCKED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED);
 
     return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
 }
@@ -248,37 +249,43 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
 {
     OPENDAQ_PARAM_NOT_NULL(availableOpModes);
     return daqTry([this, availableOpModes] 
-    { 
-        *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
+    {
+        if (this->clientComm->getProtocolVersion() < 12)
+            *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
+        else
+            checkErrorInfo(Super::getAvailableOperationModes(availableOpModes));   
     });
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(IString* modeType)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType)
 {
-    return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
-    { 
-        this->clientComm->setOperationMode(this->remoteGlobalId, modeType); 
+    return daqTry([this, modeType] 
+    {
+        this->clientComm->setOperationMode(this->remoteGlobalId, OperationModeTypeToString(modeType));
     });
 }
 
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecursive(IString* modeType)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecursive(OperationModeType modeType)
 {
-    return daqTry([this, modeType = StringPtr::Borrow(modeType)] 
+    return daqTry([this, modeType] 
     { 
-        this->clientComm->setOperationModeRecursive(this->remoteGlobalId, modeType); 
+        this->clientComm->setOperationModeRecursive(this->remoteGlobalId, OperationModeTypeToString(modeType));
     });
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(IString** modeType)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(OperationModeType* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
     return daqTry([this, modeType] 
     { 
-        *modeType = this->clientComm->getOperationMode(this->remoteGlobalId).detach(); 
+        if (this->clientComm->getProtocolVersion() < 12)
+            *modeType = OperationModeTypeFromString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
+        else
+            checkErrorInfo(Super::getOperationMode(modeType));   
     });
 }
 
@@ -315,6 +322,9 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
             break;
         case CoreEventId::ConnectionStatusChanged:
             connectionStatusChanged(args);
+            break;
+        case CoreEventId::DeviceOperationModeChanged:
+            operationModeChanged(args);
             break;
         case CoreEventId::PropertyValueChanged:
         {
@@ -413,9 +423,8 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
                     const BaseObjectPtr& context,
                     const FunctionPtr& factoryCallback)
                 {
-                    return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
-                },
-                nullptr);
+                    return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
+                });
 
             if (deserializedObj.assigned())
                 this->addExistingComponent(deserializedObj);
@@ -430,6 +439,12 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     if (serialized.hasKey("deviceInfo"))
     {
         this->deviceInfo = serialized.readObject("deviceInfo");
+    }
+
+    if (serialized.hasKey("OperationMode"))
+    {
+        Int mode = serialized.readInt("OperationMode");
+        this->updateOperationModeNoCoreEvent(static_cast<OperationModeType>(mode));
     }
 }
 
@@ -493,6 +508,13 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::connectionStatusChanged(const C
     // ignores status change if it was not added initially
     if (addedStatuses.hasKey(statusName))
         connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(connectionString, value, nullptr, message);
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::operationModeChanged(const CoreEventArgsPtr& args)
+{
+    const Int mode = args.getParameters().get("OperationMode");
+    this->updateOperationModeInternal(static_cast<OperationModeType>(mode));
 }
 
 template <class TDeviceBase>

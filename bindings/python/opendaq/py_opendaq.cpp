@@ -50,6 +50,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIFunctionBlock = declareIFunctionBlock(m);
     auto classIChannel = declareIChannel(m);
     auto classIFunctionBlockType = declareIFunctionBlockType(m);
+    auto classIRecorder = declareIRecorder(m);
     auto classILogger = declareILogger(m);
     auto classILoggerComponent = declareILoggerComponent(m);
     auto classILoggerSink = declareILoggerSink(m);
@@ -153,6 +154,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIFunctionBlock(m, classIFunctionBlock);
     defineIChannel(m, classIChannel);
     defineIFunctionBlockType(m, classIFunctionBlockType);
+    defineIRecorder(m, classIRecorder);
     defineILogger(m, classILogger);
     defineILoggerComponent(m, classILoggerComponent);
     defineILoggerSink(m, classILoggerSink);

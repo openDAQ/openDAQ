@@ -118,7 +118,7 @@ void EvalValueImpl::onCreate()
     node = std::move(params.node);
     propertyReferences = std::move(params.propertyReferences);
 
-    parseErrCode = parsed ? OPENDAQ_SUCCESS :  OPENDAQ_ERR_PARSEFAILED;
+    parseErrCode = parsed ? OPENDAQ_SUCCESS : OPENDAQ_ERR_PARSEFAILED;
     if (!parsed)
         parseErrMessage = params.errMessage;
 }
@@ -243,14 +243,10 @@ int EvalValueImpl::resolveReferences(bool lock)
 
 ErrCode EvalValueImpl::checkParseAndResolve(bool lock)
 {
-    if (OPENDAQ_FAILED(parseErrCode))
-    {
-        return parseErrCode;
-    }
-
+    OPENDAQ_RETURN_IF_FAILED(parseErrCode);
     int r = resolveReferences(lock);
     if (r != 0)
-        return OPENDAQ_ERR_RESOLVEFAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_RESOLVEFAILED);
 
     return OPENDAQ_SUCCESS;
 }
@@ -260,8 +256,7 @@ ErrCode EvalValueImpl::getCoreType(CoreType* coreType)
     OPENDAQ_PARAM_NOT_NULL(coreType);
 
     ErrCode err = checkParseAndResolve(false);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     try
     {
@@ -270,7 +265,7 @@ ErrCode EvalValueImpl::getCoreType(CoreType* coreType)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_CALCFAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALCFAILED);
     };
 }
 
@@ -293,8 +288,7 @@ ErrCode EvalValueImpl::getResult(IBaseObject** obj)
     OPENDAQ_PARAM_NOT_NULL(obj);
 
     ErrCode err = checkParseAndResolve(true);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     try
     {
@@ -303,7 +297,7 @@ ErrCode EvalValueImpl::getResult(IBaseObject** obj)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_CALCFAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALCFAILED);
     };
 }
 
@@ -312,8 +306,7 @@ ErrCode EvalValueImpl::getResultNoLock(IBaseObject** obj)
     OPENDAQ_PARAM_NOT_NULL(obj);
 
     ErrCode err = checkParseAndResolve(false);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     try
     {
@@ -322,7 +315,7 @@ ErrCode EvalValueImpl::getResultNoLock(IBaseObject** obj)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_CALCFAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALCFAILED);
     };
 }
 
@@ -334,8 +327,7 @@ ErrCode EvalValueImpl::equalsValueInternal(const T value, Bool* equals)
 
     T thisValue;
     ErrCode errCode = getValueInternal<T>(thisValue);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *equals = value == thisValue;
     return OPENDAQ_SUCCESS;
@@ -399,8 +391,7 @@ template <typename T>
 ErrCode EvalValueImpl::getValueInternal(T& value)
 {
     auto err = checkParseAndResolve(false);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     try
     {
@@ -409,7 +400,7 @@ ErrCode EvalValueImpl::getValueInternal(T& value)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_CALCFAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALCFAILED);
     };
 }
 
@@ -418,8 +409,7 @@ ErrCode EvalValueImpl::toString(CharPtr* str)
     OPENDAQ_PARAM_NOT_NULL(str);
 
     ErrCode errCode = getValueInternal<std::string>(strResult);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const auto len = std::strlen(strResult.c_str()) + 1;
     *str = static_cast<CharPtr>(daqAllocateMemory(len));
@@ -461,8 +451,7 @@ ErrCode EvalValueImpl::getItemAt(SizeT index, IBaseObject** obj)
     OPENDAQ_PARAM_NOT_NULL(obj);
 
     auto err = checkParseAndResolve(false);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     ListPtr<IBaseObject> list = node->getResult();
     auto res = list.getItemAt(index);
@@ -476,8 +465,7 @@ ErrCode EvalValueImpl::getCount(SizeT* size)
     OPENDAQ_PARAM_NOT_NULL(size);
 
     auto err = checkParseAndResolve(false);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     ListPtr<IBaseObject> list = node->getResult();
 
@@ -488,66 +476,63 @@ ErrCode EvalValueImpl::getCount(SizeT* size)
 
 ErrCode EvalValueImpl::setItemAt(SizeT /*index*/, IBaseObject* /*obj*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::pushBack(IBaseObject* /*obj*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::moveBack(IBaseObject* /*obj*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::moveFront(IBaseObject* /*obj*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::pushFront(IBaseObject* /*obj*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::popBack(IBaseObject** /*obj*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::popFront(IBaseObject** /*obj*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::insertAt(SizeT /*index*/, IBaseObject* /*obj*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::removeAt(SizeT /*index*/, IBaseObject** /*obj*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::deleteAt(SizeT /*index*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::clear()
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::createStartIterator(IIterator** iterator)
 {
     ErrCode errCode = checkParseAndResolve(false);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     ListPtr<IBaseObject> list;
 
@@ -568,10 +553,7 @@ ErrCode EvalValueImpl::createStartIterator(IIterator** iterator)
 ErrCode EvalValueImpl::createEndIterator(IIterator** iterator)
 {
     ErrCode errCode = checkParseAndResolve(false);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     ListPtr<IBaseObject> list = node->getResult();
     errCode = list->createEndIterator(iterator);
@@ -591,117 +573,117 @@ ErrCode EvalValueImpl::getIntValue(Int* value)
 
 ErrCode EvalValueImpl::Property_GetValueType(CoreType* /*type*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetKeyType(CoreType* /*type*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetItemType(CoreType* /*type*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetName(IString** /*name*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetDescription(IString** /*description*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetUnit(IUnit** /*unit*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetMinValue(INumber** /*min*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetMaxValue(INumber** /*max*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetDefaultValue(IBaseObject** /*value*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetSuggestedValues(IList** /*values*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetVisible(Bool* /*visible*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetReadOnly(Bool* /*readOnly*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetSelectionValues(IBaseObject** /*values*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetReferencedProperty(IProperty** /*property*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetIsReferenced(Bool* /*isReferenced*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetValidator(IValidator** /*validator*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetCoercer(ICoercer** /*coercer*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetCallableInfo(ICallableInfo** /*callable*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetStructType(IStructType** /*structType*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetOnPropertyValueWrite(IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetOnPropertyValueRead(IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_GetValue(IBaseObject** /*value*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::Property_SetValue(IBaseObject* /*value*/)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode EvalValueImpl::UnitObject_GetId(Int* id)
@@ -710,15 +692,13 @@ ErrCode EvalValueImpl::UnitObject_GetId(Int* id)
 
     UnitPtr unit;
     ErrCode err = getValueInternal<UnitPtr>(unit);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
-    return daqTry(
-        [&]()
-        {
-            *id = unit.getId();
-            return OPENDAQ_SUCCESS;
-        });
+    return daqTry([&]
+    {
+        *id = unit.getId();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode EvalValueImpl::UnitObject_GetSymbol(IString** symbol)
@@ -727,15 +707,13 @@ ErrCode EvalValueImpl::UnitObject_GetSymbol(IString** symbol)
 
     UnitPtr unit;
     ErrCode err = getValueInternal<UnitPtr>(unit);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
-    return daqTry(
-        [&]()
-        {
-            *symbol = unit.getSymbol().addRefAndReturn();
-            return OPENDAQ_SUCCESS;
-        });
+    return daqTry([&]
+    {
+        *symbol = unit.getSymbol().addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode EvalValueImpl::UnitObject_GetName(IString** name)
@@ -744,15 +722,13 @@ ErrCode EvalValueImpl::UnitObject_GetName(IString** name)
 
     UnitPtr unit;
     ErrCode err = getValueInternal<UnitPtr>(unit);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
-    return daqTry(
-        [&]()
-        {
-            *name = unit.getName().addRefAndReturn();
-            return OPENDAQ_SUCCESS;
-        });
+    return daqTry([&]
+    {
+        *name = unit.getName().addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode EvalValueImpl::UnitObject_GetQuantity(IString** quantity)
@@ -761,45 +737,43 @@ ErrCode EvalValueImpl::UnitObject_GetQuantity(IString** quantity)
 
     UnitPtr unit;
     ErrCode err = getValueInternal<UnitPtr>(unit);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
-    return daqTry(
-        [&]()
-        {
-            *quantity = unit.getQuantity().addRefAndReturn();
-            return OPENDAQ_SUCCESS;
-        });
+    return daqTry([&]
+    {
+        *quantity = unit.getQuantity().addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode EvalValueImpl::StructObject_getStructType(IStructType** /*type*/)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode EvalValueImpl::StructObject_getFieldNames(IList** /*names*/)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode EvalValueImpl::StructObject_getFieldValues(IList** /*values*/)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode EvalValueImpl::StructObject_get(IString* /*name*/, IBaseObject** /*field*/)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode EvalValueImpl::StructObject_hasField(IString* /*name*/, Bool* /*contains*/)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode EvalValueImpl::StructObject_getAsDictionary(IDict** /*dictionary*/)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 // static
@@ -838,18 +812,11 @@ ErrCode EvalValueImpl::Deserialize(ISerializedObject* serialized,
 {
     StringPtr eval;
     ErrCode errCode = serialized->readString(String("eval"), &eval);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     IEvalValue* evalValue;
     errCode = createEvalValue(&evalValue, eval);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *obj = evalValue;
 
@@ -872,7 +839,7 @@ ErrCode EvalValueImpl::cloneWithOwner(IPropertyObject* newOwner, IEvalValue** cl
 
     if (newEvalValue == nullptr)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
     
     newEvalValue->addRef();

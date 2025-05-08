@@ -10,3 +10,8 @@ openDAQ.Net.Test
 openDAQDemo.Net
 icmp_header.h
 ipv4_header.h
+httprequestparser.h
+httpresponseparser.h
+request.h
+response.h
+urlparser.h

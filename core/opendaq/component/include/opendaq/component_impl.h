@@ -21,7 +21,7 @@
 #include <opendaq/removable.h>
 #include <coreobjects/core_event_args_ptr.h>
 #include <coreobjects/property_object_impl.h>
-#include <opendaq/component_ptr.h>
+#include <opendaq/component_factory.h>
 #include <coretypes/weakrefptr.h>
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
@@ -96,6 +96,7 @@ public:
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
+    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -104,6 +105,8 @@ public:
     ErrCode INTERFACE_FUNC unlockAllAttributes() override;
     ErrCode INTERFACE_FUNC triggerComponentCoreEvent(ICoreEventArgs* args) override;
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
+    ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -132,9 +135,6 @@ protected:
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
 
-    static std::string OperationModeTypeToString(OperationModeType mode);
-    static OperationModeType OperationModeTypeFromString(const std::string& mode);
-
     ContextPtr context;
 
     bool isComponentRemoved;
@@ -156,6 +156,7 @@ protected:
     StringPtr name;
     StringPtr description;
     ComponentStatusContainerPtr statusContainer;
+    PropertyObjectPtr componentConfig;
 
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
@@ -180,7 +181,6 @@ protected:
     ComponentPtr findComponentInternal(const ComponentPtr& component, const std::string& id);
 
     PropertyObjectPtr getPropertyObjectParent() override;
-    ComponentPtr getParentDevice();
 
     static bool validateComponentId(const std::string& id);
 
@@ -295,13 +295,13 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
         auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
-            return OPENDAQ_ERR_COMPONENT_REMOVED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
     
         if (lockedAttributes.count("Active"))
         {
@@ -320,7 +320,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
             return OPENDAQ_IGNORED;
 
         if (active && isComponentRemoved)
-            return OPENDAQ_ERR_INVALIDSTATE;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
 
         this->active = active;
         activeChanged();
@@ -379,13 +379,13 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
         auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
-            return OPENDAQ_ERR_COMPONENT_REMOVED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
         if (StringPtr namePtr = name; this->name == namePtr)
             return OPENDAQ_IGNORED;
@@ -430,13 +430,13 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
         auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
-            return OPENDAQ_ERR_COMPONENT_REMOVED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
         if (StringPtr descriptionPtr = description; this->description == descriptionPtr)
             return OPENDAQ_IGNORED;
@@ -491,13 +491,13 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
 {
     if (this->frozen)
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
         auto lock = this->getRecursiveConfigLock();
 
         if (this->isComponentRemoved)
-            return OPENDAQ_ERR_COMPONENT_REMOVED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
         if (lockedAttributes.count("Visible"))
         {
@@ -545,7 +545,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
@@ -565,7 +565,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributes()
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     return lockAllAttributesInternal();
 }
@@ -579,7 +579,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
@@ -599,7 +599,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAllAttributes()
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     lockedAttributes.clear();
     return OPENDAQ_SUCCESS;
@@ -613,7 +613,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getLockedAttributes(IList** attributes)
     auto lock = this->getRecursiveConfigLock();
 
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     ListPtr<IString> attributesList = List<IString>();
     for (const auto& str : lockedAttributes)
@@ -650,31 +650,17 @@ ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs*
 }
 
 template <class Intf, class ... Intfs>
-std::string ComponentImpl<Intf, Intfs...>::OperationModeTypeToString(OperationModeType mode)
+ErrCode ComponentImpl<Intf, Intfs...>::getOperationMode(OperationModeType* modeType)
 {
-    switch (mode)
-    {
-        case OperationModeType::Idle:
-            return "Idle";
-        case OperationModeType::Operation:
-            return "Operation";
-        case OperationModeType::SafeOperation:
-            return "SafeOperation";
-        default:
-            return "Unknown";
-    };
-}
+    OPENDAQ_PARAM_NOT_NULL(modeType);
 
-template <class Intf, class ... Intfs>
-OperationModeType ComponentImpl<Intf, Intfs...>::OperationModeTypeFromString(const std::string& mode)
-{
-    if (mode == "Idle")
-        return OperationModeType::Idle;
-    if (mode == "Operation")
-        return OperationModeType::Operation;
-    if (mode == "SafeOperation")
-        return OperationModeType::SafeOperation;
-    return OperationModeType::Unknown;
+    ComponentPtr parent;
+    this->getParent(&parent);
+    if (parent.assigned())
+        return parent->getOperationMode(modeType);
+
+    *modeType = OperationModeType::Unknown;
+    return OPENDAQ_IGNORED;
 }
 
 template <class Intf, class ... Intfs>
@@ -687,6 +673,24 @@ ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType mod
 {
     auto lock = this->getRecursiveConfigLock();
     return wrapHandler(this, &Self::onOperationModeChanged, modeType);
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setComponentConfig(IPropertyObject* config)
+{
+    if (componentConfig.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Component config already set");
+
+    componentConfig = config;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getComponentConfig(IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = componentConfig.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>
@@ -729,7 +733,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::remove()
     auto lock = this->getRecursiveConfigLock();
 
     if (isComponentRemoved)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     isComponentRemoved = true;
 
@@ -983,8 +987,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serial
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
     auto errCode = Super::serializeCustomValues(serializer, forUpdate);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return daqTry(
     [&serializerPtr, forUpdate, this]
@@ -1031,7 +1034,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /* forUpdate */)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     if (!active)
     {
@@ -1067,6 +1070,19 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
     {
         serializer.key("statuses");
         statusContainer.serialize(serializer);
+    }
+
+    if (forUpdate)
+    {
+        PropertyObjectPtr componentConfig = this->componentConfig;
+        if (!componentConfig.assigned())
+            this->getComponentConfig(&componentConfig);
+
+        if (componentConfig.assigned())
+        {
+            serializer.key("ComponentConfig");
+            componentConfig.serialize(serializer);
+        }
     }
 }
 
@@ -1109,21 +1125,6 @@ PropertyObjectPtr ComponentImpl<Intf, Intfs...>::getPropertyObjectParent()
 {
     if (parent.assigned())
         return parent.getRef();
-
-    return nullptr;
-}
-
-template <class Intf, class ... Intfs>
-ComponentPtr ComponentImpl<Intf, Intfs...>::getParentDevice()
-{
-    ComponentPtr parent;
-    this->getParent(&parent);
-    while (parent.assigned())
-    {
-        if (parent.supportsInterface<IDevice>())
-            return parent;
-        parent = parent.getParent();
-    }
 
     return nullptr;
 }

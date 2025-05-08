@@ -110,6 +110,12 @@ public:
     void setOperationModeRecursive(const std::string& globalId, const StringPtr& modeType);
     StringPtr getOperationMode(const std::string& globalId);
 
+    PropertyObjectPtr getComponentConfig(const std::string& globalId);
+
+    void startRecording(const std::string& globalId);
+    void stopRecording(const std::string& globalId);
+    BooleanPtr getIsRecording(const std::string& globalId);
+
     bool getConnected() const;
     ContextPtr getDaqContext();
 
@@ -125,8 +131,7 @@ public:
     BaseObjectPtr deserializeConfigComponent(const StringPtr& typeId,
                                              const SerializedObjectPtr& serObj,
                                              const BaseObjectPtr& context,
-                                             const FunctionPtr& factoryCallback,
-                                             ComponentDeserializeCallback deviceDeserialzeCallback);
+                                             const FunctionPtr& factoryCallback);
     bool isComponentNested(const StringPtr& componentGlobalId);
     void connectExternalSignalToServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
     void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
@@ -148,10 +153,10 @@ private:
     void requireMinServerVersion(const ClientCommand& command);
     ComponentDeserializeContextPtr createDeserializeContext(const std::string& remoteGlobalId,
                                                             const ContextPtr& context,
-                                                            const ComponentPtr& root,
-                                                            const ComponentPtr& parent,
-                                                            const StringPtr& localId,
-                                                            IntfID* intfID);
+                                                            const ComponentPtr& root = nullptr,
+                                                            const ComponentPtr& parent = nullptr,
+                                                            const StringPtr& localId = nullptr,
+                                                            IntfID* intfID = nullptr);
     BaseObjectPtr createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const;
     StringPtr createRpcRequestJson(const StringPtr& name, const ParamsDictPtr& params);
     PacketBuffer createRpcRequestPacketBuffer(uint64_t id, const StringPtr& name, const ParamsDictPtr& params);
@@ -341,6 +346,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
             ErrCode errCode = localTypeManager->addType(type);
             if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
             {
+                daqClearErrorInfo();
                 const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
                 LOG_D("Type {} already exists in local type manager", type.getName());
             }
@@ -453,7 +459,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationPacket(const Pack
     const auto obj = deserializer.deserialize(json, deserializeContext,
                                               [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
                                               {
-                                                  return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                                                  return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
                                               });
     // handle notifications in callback provided in constructor
     const bool processed = serverNotificationReceivedCallback ? serverNotificationReceivedCallback(obj) : false;

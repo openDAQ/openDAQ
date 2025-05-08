@@ -11,6 +11,7 @@ void wrapDaqComponentCoreObjects(pybind11::module_ m)
     auto classIOwnable = declareIOwnable(m);
     auto classIProperty = declareIProperty(m);
     auto classIPropertyBuilder = declareIPropertyBuilder(m);
+    auto classIPropertyFilter = declareIPropertyFilter(m);
     auto classIPropertyObject = declareIPropertyObject(m);
     auto classIPropertyObjectClass = declareIPropertyObjectClass(m);
     auto classIPropertyObjectClassBuilder = declareIPropertyObjectClassBuilder(m);
@@ -34,6 +35,7 @@ void wrapDaqComponentCoreObjects(pybind11::module_ m)
     defineIOwnable(m, classIOwnable);
     defineIProperty(m, classIProperty);
     defineIPropertyBuilder(m, classIPropertyBuilder);
+    defineIPropertyFilter(m, classIPropertyFilter);
     defineIPropertyObject(m, classIPropertyObject);
     defineIPropertyObjectClass(m, classIPropertyObjectClass);
     defineIPropertyObjectClassBuilder(m, classIPropertyObjectClassBuilder);

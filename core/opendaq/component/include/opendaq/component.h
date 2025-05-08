@@ -20,6 +20,7 @@
 #include <coreobjects/property_object.h>
 #include <opendaq/tags.h>
 #include <opendaq/component_status_container.h>
+#include <coreobjects/property_filter.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -37,6 +38,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IComponent, GenericComponentPtr)]
  * [interfaceLibrary(ICoreEventArgs, "coreobjects")]
  * [includeHeader("<coretypes/event_wrapper.h>")]
+ * [interfaceSmartPtr(IProperty, GenericPropertyPtr, "<coreobjects/property_ptr.h>")]
+ * [interfaceLibrary(IPropertyFilter, "coreobjects")]
  */
 
 enum class OperationModeType: EnumType
@@ -214,6 +217,17 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * @param[out] modeType The current operation mode.
      */
     virtual ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) = 0;
+
+    // [elementType(properties, IProperty)]
+    /*!
+     * @brief Returns a list of properties from the component and its child components that match the specified property filter.
+     * @param filter An optional filter that excludes unwanted properties and enables recursive search through the child object-properties.
+     * @param[out] properties The list of matching properties.
+     *
+     * If no filter is provided, only visible properties from the component and its child components are returned.
+     * Matching properties from child property objects are included only if the specified filter enables recursion.
+     */
+    virtual ErrCode INTERFACE_FUNC findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter = nullptr) = 0;
 };
 /*!@}*/
 

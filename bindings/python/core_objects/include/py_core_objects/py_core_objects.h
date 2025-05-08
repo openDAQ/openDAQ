@@ -29,6 +29,7 @@ PyDaqIntf<daq::IEvalValue, daq::IBaseObject> declareIEvalValue(pybind11::module_
 PyDaqIntf<daq::IOwnable, daq::IBaseObject> declareIOwnable(pybind11::module_ m);
 PyDaqIntf<daq::IProperty, daq::IBaseObject> declareIProperty(pybind11::module_ m);
 PyDaqIntf<daq::IPropertyBuilder, daq::IBaseObject> declareIPropertyBuilder(pybind11::module_ m);
+PyDaqIntf<daq::IPropertyFilter, daq::IBaseObject> declareIPropertyFilter(pybind11::module_ m);
 PyDaqIntf<daq::IPropertyObject, daq::IBaseObject> declareIPropertyObject(pybind11::module_ m);
 PyDaqIntf<daq::IPropertyObjectClass, daq::IType> declareIPropertyObjectClass(pybind11::module_ m);
 PyDaqIntf<daq::IPropertyObjectClassBuilder, daq::IBaseObject> declareIPropertyObjectClassBuilder(pybind11::module_ m);
@@ -52,6 +53,7 @@ void defineIEvalValue(pybind11::module_ m, PyDaqIntf<daq::IEvalValue, daq::IBase
 void defineIOwnable(pybind11::module_ m, PyDaqIntf<daq::IOwnable, daq::IBaseObject> cls);
 void defineIProperty(pybind11::module_ m, PyDaqIntf<daq::IProperty, daq::IBaseObject> cls);
 void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder, daq::IBaseObject> cls);
+void defineIPropertyFilter(pybind11::module_ m, PyDaqIntf<daq::IPropertyFilter, daq::IBaseObject> cls);
 void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, daq::IBaseObject> cls);
 void defineIPropertyObjectClass(pybind11::module_ m, PyDaqIntf<daq::IPropertyObjectClass, daq::IType> cls);
 void defineIPropertyObjectClassBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyObjectClassBuilder, daq::IBaseObject> cls);

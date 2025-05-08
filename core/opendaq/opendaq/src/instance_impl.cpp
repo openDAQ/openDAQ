@@ -282,27 +282,27 @@ ErrCode InstanceImpl::getServers(IList** instanceServers)
     return rootDevice->getServers(instanceServers);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::lock()
+ErrCode InstanceImpl::lock()
 {
     return rootDevice->lock();
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::unlock()
+ErrCode InstanceImpl::unlock()
 {
     return rootDevice->unlock();
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::isLocked(Bool* locked)
+ErrCode InstanceImpl::isLocked(Bool* locked)
 {
     return rootDevice->isLocked(locked);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getLogFileInfos(IList** logFileInfos)
+ErrCode InstanceImpl::getLogFileInfos(IList** logFileInfos)
 {
     return rootDevice->getLogFileInfos(logFileInfos);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getLog(IString** log, IString* id, Int size, Int offset)
+ErrCode InstanceImpl::getLog(IString** log, IString* id, Int size, Int offset)
 {
     return rootDevice->getLog(log, id, size, offset);
 }
@@ -327,9 +327,14 @@ ErrCode InstanceImpl::setOperationModeRecursive(OperationModeType modeType)
     return rootDevice->setOperationModeRecursive(modeType);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getOperationMode(OperationModeType* modeType)
+ErrCode InstanceImpl::getOperationMode(OperationModeType* modeType)
 {
     return rootDevice->getOperationMode(modeType);
+}
+
+ErrCode InstanceImpl::findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter)
+{
+    return rootDevice->findPropertiesRecursive(properties, propertyFilter);
 }
 
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
@@ -436,7 +441,7 @@ ErrCode InstanceImpl::setActive(Bool active)
     return rootDevice->setActive(active);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getParent(IComponent** parent)
+ErrCode InstanceImpl::getParent(IComponent** parent)
 {
     OPENDAQ_PARAM_NOT_NULL(parent);
 
@@ -505,7 +510,7 @@ ErrCode InstanceImpl::getItem(IString* localId, IComponent** item)
     return rootDevice->getItem(localId, item);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::isEmpty(Bool* empty)
+ErrCode InstanceImpl::isEmpty(Bool* empty)
 {
     return rootDevice->isEmpty(empty);
 }
@@ -515,7 +520,7 @@ ErrCode InstanceImpl::hasItem(IString* localId, Bool* value)
     return rootDevice->hasItem(localId, value);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::findComponent(IString* id, IComponent** outComponent)
+ErrCode InstanceImpl::findComponent(IString* id, IComponent** outComponent)
 {
     return rootDevice->findComponent(id, outComponent);
 }
@@ -723,12 +728,14 @@ ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
     return rootDevice->endUpdate();
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
+ErrCode InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
 {
-    OPENDAQ_PARAM_NOT_NULL(permissionManager);
+    return rootDevice->getPermissionManager(permissionManager);
+}
 
-    *permissionManager = rootDevice.getPermissionManager().addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+ErrCode InstanceImpl::findProperties(IList** properties, IPropertyFilter* filter)
+{
+    return rootDevice->findProperties(properties, filter);
 }
 
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)

@@ -194,4 +194,13 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             return objectPtr.getOperationMode();
         },
         "Gets the operation mode of the device.");
+    cls.def("find_properties_recursive",
+        [](daq::IComponent *object, daq::IPropertyFilter* propertyFilter)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.findPropertiesRecursive(propertyFilter).detach();
+        },
+        py::arg("property_filter") = nullptr,
+        "Returns a list of properties from the component and its child components that match the specified property filter.");
 }

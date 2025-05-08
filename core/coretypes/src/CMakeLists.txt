@@ -235,6 +235,9 @@ set(SRC_PublicHeaders
     filesystem.h
     
     utility_sync.h
+
+    recursive_search.h
+    recursive_search_ptr.h
 )
 
 set(SRC_PrivateHeaders baseobject_impl.h

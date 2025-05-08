@@ -8,30 +8,11 @@
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/io_folder_factory.h>
 #include <gtest/gtest.h>
+#include <coreobjects/property_filter_factory.h>
 
 using TreeTraversalTest = testing::Test;
 using namespace daq;
 using namespace daq::search;
-
-class TestFolder : public FolderImpl<>
-{
-public:
-    TestFolder(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& id, Bool visible) 
-        : FolderImpl<>(context, parent, id)
-    {
-        this->visible = visible;
-    }
-};
-
-class TestComponent : public ComponentImpl<>
-{
-public:
-    TestComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& id, Bool visible) 
-        : ComponentImpl<>(context, parent,id)
-    {
-        this->visible = visible;
-    }
-};
 
 class TestSignal : public SignalImpl
 {
@@ -40,6 +21,9 @@ public:
         : SignalImpl(context, nullptr, parent, id)
     {
         this->visible = visible;
+
+        objPtr.addProperty(StringProperty("SignalProp", "DefaultValue"));
+        objPtr.addProperty(StringProperty("CommonProp", "DefaultValue"));
     }
 };
 
@@ -51,11 +35,21 @@ public:
     {
         this->visible = visible;
         
+        this->functionBlocks.addProperty(StringProperty("CommonProp", "DefaultValue"));
 
         this->signals.addItem(createWithImplementation<ISignal, TestSignal>(context, this->signals, "sigVis", true));
         this->signals.addItem(createWithImplementation<ISignal, TestSignal>(context, this->signals, "sigInvis", false));
+        this->signals.addProperty(StringProperty("CommonProp", "DefaultValue"));
 
-        this->inputPorts.addItem(InputPort(context, this->inputPorts, "ip"));
+        auto inputPort = InputPort(context, this->inputPorts, "ip");
+        inputPort.addProperty(StringProperty("InputPortProp", "DefaultValue"));
+        inputPort.addProperty(StringProperty("CommonProp", "DefaultValue"));
+
+        this->inputPorts.addItem(inputPort);
+        this->inputPorts.addProperty(StringProperty("CommonProp", "DefaultValue"));
+
+        objPtr.addProperty(StringProperty("FunctionBlockProp", "DefaultValue"));
+        objPtr.addProperty(StringProperty("CommonProp", "DefaultValue"));
     }
 };
 
@@ -66,11 +60,19 @@ public:
         : ChannelImpl<>(nullptr, context, parent, id)
     {
         this->visible = visible;
+
+        this->inputPorts.addProperty(StringProperty("CommonProp", "DefaultValue"));
+
         this->signals.addItem(createWithImplementation<ISignal, TestSignal>(context, this->signals, "sigVis", true));
         this->signals.addItem(createWithImplementation<ISignal, TestSignal>(context, this->signals, "sigInvis", false));
+        this->signals.addProperty(StringProperty("CommonProp", "DefaultValue"));
 
         this->functionBlocks.addItem(createWithImplementation<IFunctionBlock, TestFunctionBlock>(context, this->functionBlocks, "fbVis", true));
         this->functionBlocks.addItem(createWithImplementation<IFunctionBlock, TestFunctionBlock>(context, this->functionBlocks, "fbInvis", false));
+        this->functionBlocks.addProperty(StringProperty("CommonProp", "DefaultValue"));
+
+        objPtr.addProperty(StringProperty("ChannelProp", "DefaultValue"));
+        objPtr.addProperty(StringProperty("CommonProp", "DefaultValue"));
     }
 };
 
@@ -90,6 +92,8 @@ public:
             this->addItemInternal(createWithImplementation<IIoFolderConfig, TestIOFolder>(context, thisPtr, "ioVis", true, false));
             this->addItemInternal(createWithImplementation<IIoFolderConfig, TestIOFolder>(context, thisPtr, "ioInvis", false, false));
         }
+
+        objPtr.addProperty(StringProperty("CommonProp", "DefaultValue"));
     }
 };
 
@@ -105,15 +109,24 @@ public:
             this->devices.addItem(createWithImplementation<IDevice, TestDevice>(context, this->devices, "devVis", true, false));
             this->devices.addItem(createWithImplementation<IDevice, TestDevice>(context, this->devices, "devInvis", false, false));
         }
+        this->devices.addProperty(StringProperty("CommonProp", "DefaultValue"));
+        this->servers.addProperty(StringProperty("CommonProp", "DefaultValue"));
+        this->syncComponent.addProperty(StringProperty("CommonProp", "DefaultValue"));
 
         this->signals.addItem(createWithImplementation<ISignal, TestSignal>(context, this->signals, "sigVis", true));
         this->signals.addItem(createWithImplementation<ISignal, TestSignal>(context, this->signals, "sigInvis", false));
+        this->signals.addProperty(StringProperty("CommonProp", "DefaultValue"));
 
         this->functionBlocks.addItem(createWithImplementation<IFunctionBlock, TestFunctionBlock>(context, this->functionBlocks, "fbVis", true));
         this->functionBlocks.addItem(createWithImplementation<IFunctionBlock, TestFunctionBlock>(context, this->functionBlocks, "fbInvis", false));
+        this->functionBlocks.addProperty(StringProperty("CommonProp", "DefaultValue"));
 
         this->ioFolder.addItem(createWithImplementation<IIoFolderConfig, TestIOFolder>(context, this->ioFolder, "ioVis", true));
         this->ioFolder.addItem(createWithImplementation<IIoFolderConfig, TestIOFolder>(context, this->ioFolder, "ioInvis", false));
+        this->ioFolder.addProperty(StringProperty("CommonProp", "DefaultValue"));
+
+        objPtr.addProperty(StringProperty("DeviceProp", "DefaultValue"));
+        objPtr.addProperty(StringProperty("CommonProp", "DefaultValue"));
     }
 
     DeviceInfoPtr onGetInfo() override
@@ -129,6 +142,20 @@ TEST_F(TreeTraversalTest, SubDevices)
     ASSERT_EQ(device.getDevices(Any()).getCount(), 2u);
     ASSERT_EQ(device.getDevices(Visible()).getCount(), 1u);
     ASSERT_EQ(device.getItems(Recursive(InterfaceId(IDevice::Id))).getCount(), 2u);
+
+    const auto devices = device.getDevices(Recursive(Any()));
+    const auto properties = device.findPropertiesRecursive(search::properties::Name("DeviceProp"));
+    // each nested device has matching property + one property device has on its own
+    ASSERT_EQ(properties.getCount(), devices.getCount() + 1u);
+    for (const auto& property : properties)
+    {
+        ASSERT_EQ(property.getValue(), "DefaultValue");
+        property.setValue("NewValue");
+    }
+    for (const auto& dev : devices)
+    {
+        ASSERT_EQ(dev.getPropertyValue("DeviceProp"), "NewValue");
+    }
 }
 
 TEST_F(TreeTraversalTest, FunctionBlocks)
@@ -140,6 +167,20 @@ TEST_F(TreeTraversalTest, FunctionBlocks)
     ASSERT_EQ(device.getFunctionBlocks(Recursive(Any())).getCount(), 6u);
     // 3 Devices, 2 FB per Device, 12 Ch per Device, 2 FB per Channel
     ASSERT_EQ(device.getItems(Recursive(InterfaceId(IFunctionBlock::Id))).getCount(), 3u * (2 + 12 + 12 * 2));
+
+    const auto functionBlocks =
+        device.getItems(Recursive(And(InterfaceId(IFunctionBlock::Id), Not(InterfaceId(IChannel::Id)))));
+    const auto properties = device.findPropertiesRecursive(search::properties::Name("FunctionBlockProp"));
+    ASSERT_EQ(properties.getCount(), functionBlocks.getCount());
+    for (const auto& property : properties)
+    {
+        ASSERT_EQ(property.getValue(), "DefaultValue");
+        property.setValue("NewValue");
+    }
+    for (const auto& fb : functionBlocks)
+    {
+        ASSERT_EQ(fb.getPropertyValue("FunctionBlockProp"), "NewValue");
+    }
 }
 
 TEST_F(TreeTraversalTest, Channels)
@@ -149,8 +190,21 @@ TEST_F(TreeTraversalTest, Channels)
     ASSERT_EQ(device.getChannels(Any()).getCount(), 12u);
     ASSERT_EQ(device.getChannels(Recursive(Visible())).getCount(), 4u);
     ASSERT_EQ(device.getChannelsRecursive().getCount(), 4u);
-    ASSERT_EQ(device.getChannels(Recursive(Any())).getCount(), 36u);
+    const auto channels = device.getChannels(Recursive(Any()));
+    ASSERT_EQ(channels.getCount(), 36u);
     ASSERT_EQ(device.getItems(Recursive(InterfaceId(IChannel::Id))).getCount(), 36u);
+
+    const auto properties = device.findPropertiesRecursive(search::properties::Name("ChannelProp"));
+    ASSERT_EQ(properties.getCount(), channels.getCount());
+    for (const auto& property : properties)
+    {
+        ASSERT_EQ(property.getValue(), "DefaultValue");
+        property.setValue("NewValue");
+    }
+    for (const auto& ch : channels)
+    {
+        ASSERT_EQ(ch.getPropertyValue("ChannelProp"), "NewValue");
+    }
 }
 
 TEST_F(TreeTraversalTest, Signals)
@@ -160,9 +214,22 @@ TEST_F(TreeTraversalTest, Signals)
     ASSERT_EQ(device.getSignals(Any()).getCount(), 2u);
     ASSERT_EQ(device.getSignalsRecursive().getCount(), 12u);
     ASSERT_EQ(device.getSignals(Recursive(Visible())).getCount(), 12u);
-    ASSERT_EQ(device.getSignals(Recursive(Any())).getCount(), 234u);
+    const auto signals = device.getSignals(Recursive(Any()));
+    ASSERT_EQ(signals.getCount(), 234u);
     ASSERT_EQ(device.getItems(Recursive(InterfaceId(ISignal::Id))).getCount(), 234u);
     ASSERT_EQ(device.getItems(Recursive(LocalId("sigVis"))).getCount(), 117u);
+
+    const auto properties = device.findPropertiesRecursive(search::properties::Name("SignalProp"));
+    ASSERT_EQ(properties.getCount(), signals.getCount());
+    for (const auto& property : properties)
+    {
+        ASSERT_EQ(property.getValue(), "DefaultValue");
+        property.setValue("NewValue");
+    }
+    for (const auto& sig : signals)
+    {
+        ASSERT_EQ(sig.getPropertyValue("SignalProp"), "NewValue");
+    }
 }
 
 TEST_F(TreeTraversalTest, InputPorts)
@@ -170,7 +237,20 @@ TEST_F(TreeTraversalTest, InputPorts)
     auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
     auto fb = device.getFunctionBlocks()[0];
     ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
-    ASSERT_EQ(device.getItems(Recursive(InterfaceId(IInputPort::Id))).getCount(), 78u);
+    const auto inputPorts = device.getItems(Recursive(InterfaceId(IInputPort::Id)));
+    ASSERT_EQ(inputPorts.getCount(), 78u);
+
+    const auto properties = device.findPropertiesRecursive(search::properties::Name("InputPortProp"));
+    ASSERT_EQ(properties.getCount(), inputPorts.getCount());
+    for (const auto& property : properties)
+    {
+        ASSERT_EQ(property.getValue(), "DefaultValue");
+        property.setValue("NewValue");
+    }
+    for (const auto& ip : inputPorts)
+    {
+        ASSERT_EQ(ip.getPropertyValue("InputPortProp"), "NewValue");
+    }
 }
 
 TEST_F(TreeTraversalTest, SetActive)
@@ -185,4 +265,26 @@ TEST_F(TreeTraversalTest, SetActive)
     device.setActive(true);
     for (const auto& comp : components)
         ASSERT_TRUE(comp.getActive());
+}
+
+TEST_F(TreeTraversalTest, FindAndChangeCommonProperties)
+{
+    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    ASSERT_EQ(device.findProperties(search::properties::Name("CommonProp")).getCount(), 1u);
+    ASSERT_GT(device.findProperties().getCount(), 0u);
+    ASSERT_GT(device.findPropertiesRecursive().getCount(), 0u);
+
+    const auto components = device.getItems(Recursive(Any()));
+    const auto properties = device.findPropertiesRecursive(search::properties::Name("CommonProp"));
+    // each nested component has matching property + one property device has on its own
+    ASSERT_EQ(properties.getCount(), components.getCount() + 1u);
+    for (const auto& property : properties)
+    {
+        ASSERT_EQ(property.getValue(), "DefaultValue");
+        property.setValue("NewValue");
+    }
+    for (const auto& component : components)
+    {
+        ASSERT_EQ(component.getPropertyValue("CommonProp"), "NewValue");
+    }
 }

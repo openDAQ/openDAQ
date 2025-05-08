@@ -1339,48 +1339,13 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     #region Access control
 
-    // Corresponding document: Antora/modules/howto_guides/pages/howto_access_control.adoc
+    #region Connect with username and password
 
-    [Test]
-    [Category(SKIP_SETUP)]
-    public void Test_1301_AccessControlCreateServerTest()
-    {
-        var users = CoreTypesFactory.CreateList<BaseObject>();
-        users.Add(OpenDAQFactory.User("opendaq", "opendaq123"));
-        users.Add(OpenDAQFactory.User("root", "root123", new List<string>{ "admin" }));
-
-        var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
-
-        var builder = OpenDAQFactory.CreateInstanceBuilder();
-        builder.AuthenticationProvider = authenticationProvider;
-
-        var instance = builder.Build();
-        instance.AddStandardServers();
-
-        //Console.ReadLine();
-    }
-
-    [Test]
-    [Category(SKIP_SETUP)]
-    public void Test_1302_AccessControlHashingTest()
-    {
-        var users = CoreTypesFactory.CreateList<BaseObject>();
-        users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
-        users.Add(OpenDAQFactory.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", new List<string> { "admin" }));
-        var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
-
-        var builder = OpenDAQFactory.CreateInstanceBuilder();
-        builder.AuthenticationProvider = authenticationProvider;
-
-        var instance = builder.Build();
-        instance.AddStandardServers();
-
-        //Console.ReadLine();
-    }
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_access_control_connect.adoc
 
     //[Test]
     //[Category(SKIP_SETUP)]
-    public void Test_1303_AccessControlConnectWithUserNameTest()
+    public void Test_1301_AccessControlConnectWithUserNameTest()
     {
         var prepareAndStartServer = () =>
         {
@@ -1413,13 +1378,19 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         Console.WriteLine("Connected to: " + device.Name);
     }
 
+    #endregion Connect with username and password
+
+    #region Defining a list of users
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_access_control_user_list.adoc
+
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_1304_AccessControlProtectedObjectTest()
+    public void Test_1311_AccessControlCreateServerTest()
     {
         var users = CoreTypesFactory.CreateList<BaseObject>();
-        users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
-        users.Add(OpenDAQFactory.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", new List<string> { "admin" }));
+        users.Add(OpenDAQFactory.User("opendaq", "opendaq123"));
+        users.Add(OpenDAQFactory.User("root", "root123", new List<string> { "admin" }));
 
         var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
 
@@ -1428,14 +1399,107 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
         var instance = builder.Build();
         instance.AddStandardServers();
-        instance.AddDevice("daqref://device0");
 
         //Console.ReadLine();
     }
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_1305_AccessControlAllowTest()
+    public void Test_1312_AccessControlHashingTest()
+    {
+        var users = CoreTypesFactory.CreateList<BaseObject>();
+        users.Add(OpenDAQFactory.User("opendaq", "$2a$12$MmSt1b9YEHB5SpLNyikiD.37NvN23UA7zLH6Y98ob5HF0OsKH0IuO"));
+        users.Add(OpenDAQFactory.User("root", "$2a$12$ceV7Q2j.vZcuz05hy1EkC.GHH8PIrv0D5wz7iLH9twsyumgZ4tGI2", new List<string> { "admin" }));
+        var authenticationProvider = CoreObjectsFactory.CreateStaticAuthenticationProvider(true, users);
+    }
+
+    #endregion Defining a list of users
+
+    #region Adding a protected object
+
+    // Corresponding document: Antora/modules/howto_guides/pages/howto_access_control_protected_object.adoc
+
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_1321_AccessControlAssignPermissionsToPropertyObjectTest()
+    {
+        #region not for documentation
+        //ToDo: find out to use a delegate or how to better support managed functions/procedures
+        //FuncCallDelegate f = (BaseObject? p, out BaseObject? r) => { r = null; return ErrorCode.OPENDAQ_SUCCESS; };
+
+        var protectedObject = createProtectedObject();
+        #endregion not for documentation
+
+
+        PropertyObject createProtectedObject()
+        {
+            var func = CoreTypesFactory.CreateFunction(SumLongs);
+
+            var argumentInfos =
+                    CoreTypesFactory.CreateList<BaseObject>(CoreObjectsFactory.CreateArgumentInfo("A", CoreType.ctInt),
+                                                            CoreObjectsFactory.CreateArgumentInfo("B", CoreType.ctInt));
+
+            CallableInfo functionInfo = CoreObjectsFactory.CreateCallableInfo(argumentInfos, CoreType.ctInt, true);
+
+            var funcPropBuilder = CoreObjectsFactory.CreateFunctionPropertyBuilder("Sum", functionInfo);
+            funcPropBuilder.ReadOnly = false;
+            var funcProp = funcPropBuilder.Build();
+            var stringProp = PropertyFactory.StringProperty("Owner", "openDAQ TM");
+
+            var protectedObject = CoreObjectsFactory.CreatePropertyObject();
+            protectedObject.AddProperty(stringProp);
+            protectedObject.AddProperty(funcProp);
+            protectedObject.SetPropertyValue("Sum", func);
+
+            var maskR = CoreObjectsFactory.CreatePermissionMaskBuilder();
+            maskR.Read();
+
+            var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
+            maskRwx.Read();
+            maskRwx.Write();
+            maskRwx.Execute();
+
+            // group "everyone" has a read-only access to the protected object
+            // group "admin" can change the protected object and call methods on it
+
+            var permissionsBuilder = CoreObjectsFactory.CreatePermissionsBuilder();
+            permissionsBuilder.Inherit(false);
+            permissionsBuilder.Assign("everyone", maskR);
+            permissionsBuilder.Assign("admin", maskRwx);
+            var permissions = permissionsBuilder.Build();
+
+            protectedObject.PermissionManager.SetPermissions(permissions);
+
+            return protectedObject;
+        }
+
+        //implement a FuncCallDelegate function
+        ErrorCode SumLongs(BaseObject? parameters, out BaseObject? result)
+        {
+            //initialize output
+            result = null;
+
+            //expecting two long parameters
+            using var paramsList = parameters?.CastList<IntegerObject>();
+            if ((paramsList == null) || (paramsList.Count != 2))
+            {
+                Console.WriteLine($"-> 'parameters' is not a 'ListObject<IntegerObject>' with 2 entries");
+
+                //tell API that it was not OK
+                return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            }
+
+            //returning the sum of the given integer parameters as result
+            result = (long)paramsList[0] + (long)paramsList[1];
+
+            //tell API that everything was OK
+            return ErrorCode.OPENDAQ_SUCCESS;
+        }
+    }
+
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_1322_AccessControlAllowTest()
     {
         var targetObject = CoreObjectsFactory.CreatePropertyObject();
         var parentObject = CoreObjectsFactory.CreatePropertyObject();
@@ -1468,7 +1532,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_1306_AccessControlDenyTest()
+    public void Test_1323_AccessControlDenyTest()
     {
         var targetObject = CoreObjectsFactory.CreatePropertyObject();
         var parentObject = CoreObjectsFactory.CreatePropertyObject();
@@ -1502,7 +1566,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_1307_AccessControlAssignTest()
+    public void Test_1324_AccessControlAssignTest()
     {
         var targetObject = CoreObjectsFactory.CreatePropertyObject();
         var parentObject = CoreObjectsFactory.CreatePropertyObject();
@@ -1540,6 +1604,8 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         Assert.That(targetObject.PermissionManager.IsAuthorized(guest, Permission.Write), Is.False);
         Assert.That(targetObject.PermissionManager.IsAuthorized(guest, Permission.Execute), Is.False);
     }
+
+    #endregion Adding a protected object
 
     #endregion Access control
 

@@ -153,7 +153,7 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      * @brief Gets the last raw value of the data packet.
      * @param[out] value A pointer to a memory location where the raw value will be stored.
      *
-     * This method writes the raw value of the last samoke to the provided memory location.
+     * This method writes the raw value of the last sample to the provided memory location.
      * It does not allocate memory and assumes that sufficient memory has already been allocated.
      * The value is not cast to any specific type; it remains a raw data pointer.
      * The method does not verify whether the allocated memory size matches the sample size.

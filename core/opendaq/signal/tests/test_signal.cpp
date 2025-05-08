@@ -1279,6 +1279,25 @@ TEST_F(SignalTest, GetLastValueLinearDataRule)
     ASSERT_EQ(ptr, 21.0);
 }
 
+TEST_F(SignalTest, GetLastValueConstantDataRule)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setRule(ConstantDataRule()).setName("test").setSampleType(SampleType::Int64).build();
+
+    auto dataPacket = ConstantDataPacketWithDomain<Int>(nullptr,
+                                                                         descriptor,
+                                                                         100,
+                                                                         12,
+                                                                         {{10, 16}, {70, 18}, {90, 20}});
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    IntegerPtr ptr;
+    ASSERT_NO_THROW(ptr = lastValuePacket.asPtr<IInteger>());
+    ASSERT_EQ(ptr, 20);
+}
+
 TEST_F(SignalTest, GetLastValueLinearScaling)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");

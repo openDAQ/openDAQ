@@ -147,8 +147,6 @@ protected:
     // variables for raw and scaled data 
     std::vector<char> lastRawDataValue;
     DataDescriptorPtr lastDataDescriptor;
-    // variables for ruled data
-    DataPacketPtr lastDataRuledPacket;
 
 private:
     bool isPublic{};
@@ -1230,16 +1228,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
     return daqTry([&value, this]
     {
         auto manager = this->context.getTypeManager();
-        if (lastDataRuledPacket.assigned())
-        {
-            lastDataValue = lastDataRuledPacket.getLastValue();
-            lastDataRuledPacket = nullptr;
-        }
-        else
-        {
-            void* rawValue = lastRawDataValue.data();
-            lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager);
-        }
+        void* rawValue = lastRawDataValue.data();
+        lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager);
         *value = lastDataValue.addRefAndReturn();
     });
 }
@@ -1271,7 +1261,6 @@ template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPacketPtr& packet)
 {
     lastDataValue = nullptr;
-    lastDataRuledPacket = nullptr;
     if (!packet.assigned())
     {
         lastDataDescriptor = nullptr;
@@ -1280,18 +1269,11 @@ void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPac
 
     lastDataDescriptor = packet.getDataDescriptor();
 
-    if (lastDataDescriptor.asPtr<IDataRuleCalcPrivate>(true)->hasDataRuleCalc())
-    {
-        lastDataRuledPacket = packet;
-    }
-    else 
-    {
-        lastRawDataValue.resize(lastDataDescriptor.getSampleSize());
-        void* rawValue = lastRawDataValue.data();
-        const ErrCode errCode = packet->getRawLastValue(&rawValue);
-        if (errCode != OPENDAQ_SUCCESS)
-            lastDataDescriptor = nullptr;
-    }
+    lastRawDataValue.resize(lastDataDescriptor.getSampleSize());
+    void* rawValue = lastRawDataValue.data();
+    const ErrCode errCode = packet->getRawLastValue(&rawValue);
+    if (errCode != OPENDAQ_SUCCESS)
+        lastDataDescriptor = nullptr;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)

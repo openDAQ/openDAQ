@@ -10,7 +10,7 @@
 
 ## Bug fixes
 
-- [#781](https://github.com/openDAQ/openDAQ/pull/781) Fix how lists are interpreted for functions in Python
+- [#781](https://github.com/openDAQ/openDAQ/pull/781) Fix how Lists are interpreted for Function Property in Python.
 
 ## Misc
 

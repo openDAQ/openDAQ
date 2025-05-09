@@ -3,7 +3,7 @@
 Components of openDAQ SDK create a Data Path when they are connected. The components that form the data
 path are:
 
- * xref:explanations:signals.adoc[Signal]. 
+ * xref:explanations:signals.adoc[Signal], 
  * Connection, 
  * Input Port, 
  * xref:explanations:function_blocks.adoc[Function Block], 

@@ -36,6 +36,7 @@
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/mem_pool_allocator.h>
+#include <opendaq/data_packet_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -96,7 +97,6 @@ public:
     ErrCode INTERFACE_FUNC sendPacketsAndStealRef(IList* packet) override;
     ErrCode INTERFACE_FUNC setLastValue(IBaseObject* lastValue) override;
 
-
     // ISignalEvents
     ErrCode INTERFACE_FUNC listenerConnected(IConnection* connection) override;
     ErrCode INTERFACE_FUNC listenerDisconnected(IConnection* connection) override;
@@ -143,6 +143,10 @@ protected:
     StringPtr deserializedDomainSignalId;
     BaseObjectPtr lastDataValue;
 
+    // variables for calculating last value
+    std::vector<char> lastRawDataValue;
+    DataDescriptorPtr lastDataDescriptor;
+
 private:
     bool isPublic{};
     std::vector<SignalPtr> relatedSignals;
@@ -173,6 +177,8 @@ private:
 
     template <class ListOfPackets>
     bool keepLastPacketAndEnqueueMultiple(ListOfPackets&& packets);
+
+    void setLastValueFromPacket(const DataPacketPtr& packet = nullptr);
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -401,7 +407,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
                 if (signalPtr.assigned())
                     valueSignalsOfDomainSignal.push_back(std::move(signalPtr));
             }
-            try {
+            try
+            {
                 if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
                 {
                     auto typeManager = this->context.getTypeManager();
@@ -659,8 +666,7 @@ void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr&
         auto dataPacket = packet.asPtrOrNull<IDataPacket>();
         if (dataPacket.assigned() && dataPacket.getSampleCount() > 0)
         {
-            auto typeManager = this->context.getTypeManager();
-            lastDataValue = dataPacket.getLastValue(typeManager);
+            setLastValueFromPacket(dataPacket);
         }
     }
 }
@@ -801,12 +807,12 @@ ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendPackets(IList*
     const auto packetsPtr = ListPtr<IPacket>::Borrow(packets);
 
     return daqTry([&packetsPtr, this]
-        {
-            if (!keepLastPacketAndEnqueueMultiple(packetsPtr))
-                return OPENDAQ_IGNORED;
+    {
+        if (!keepLastPacketAndEnqueueMultiple(packetsPtr))
+            return OPENDAQ_IGNORED;
 
-            return OPENDAQ_SUCCESS;
-        });    
+        return OPENDAQ_SUCCESS;
+    });    
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -816,14 +822,13 @@ ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendPacketsAndStea
 
     auto packetsPtr = ListPtr<IPacket>::Adopt(packets);
 
-    return daqTry(
-        [this, packets = std::move(packetsPtr)] () mutable
-        {
-            if (!keepLastPacketAndEnqueueMultiple(std::move(packets)))
-                return OPENDAQ_IGNORED;
+    return daqTry([this, packets = std::move(packetsPtr)] () mutable
+    {
+        if (!keepLastPacketAndEnqueueMultiple(std::move(packets)))
+            return OPENDAQ_IGNORED;
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -831,8 +836,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastVal
 {
     auto lock = this->getAcquisitionLock();
 
+    setLastValueFromPacket(nullptr);
     this->lastDataValue = lastValue;
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -1199,7 +1204,9 @@ void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
     keepLastPacket = keepLastValue && isPublic && this->visible;
 
     if (!keepLastPacket)
-        lastDataValue = nullptr;
+    {
+        setLastValueFromPacket(nullptr);
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1208,11 +1215,22 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
     OPENDAQ_PARAM_NOT_NULL(value);
     auto lock = this->getRecursiveConfigLock();
 
-    if (!lastDataValue.assigned())
+    if (lastDataValue.assigned())
+    {
+        *value = lastDataValue.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (!lastDataDescriptor.assigned())
         return OPENDAQ_IGNORED;
 
-    *value = lastDataValue.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return daqTry([&value, this]
+    {
+        auto manager = this->context.getTypeManager();
+        void* rawValue = lastRawDataValue.data();
+        lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager);
+        *value = lastDataValue.addRefAndReturn();
+    });
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1238,6 +1256,24 @@ void SignalBase<TInterface, Interfaces...>::visibleChanged()
     setKeepLastPacket();
 }
 
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPacketPtr& packet)
+{
+    lastDataValue = nullptr;
+    if (!packet.assigned())
+    {
+        lastDataDescriptor = nullptr;
+        return;
+    }
+
+    lastDataDescriptor = packet.getDataDescriptor();
+
+    lastRawDataValue.resize(lastDataDescriptor.getSampleSize());
+    void* rawValue = lastRawDataValue.data();
+    const ErrCode errCode = packet->getRawLastValue(&rawValue);
+    if (errCode != OPENDAQ_SUCCESS)
+        lastDataDescriptor = nullptr;
+}
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)
 

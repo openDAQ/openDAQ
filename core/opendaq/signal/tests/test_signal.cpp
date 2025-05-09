@@ -519,7 +519,11 @@ TEST_F(SignalTest, SignalDescriptorStructSameNameDifferentDescriptor)
     // Throws because descriptor2 has the same name as descriptor1 (but is different)
     // and hence the the struct type can't be added to the type manager and hence
     // later can't be found in the type manager
-    ASSERT_THROW(signal2.sendPacket(dataPacket2), NotFoundException);
+
+    // Note: the calculation of last value is moved to the method getLastValue
+    // ASSERT_THROW(signal2.sendPacket(dataPacket2), NotFoundException);
+    ASSERT_NO_THROW(signal2.sendPacket(dataPacket2));
+    ASSERT_THROW(signal2.getLastValue(), NotFoundException);
 
     const auto lv1 = signal1.getLastValue();
     StructPtr sp1;
@@ -1275,6 +1279,25 @@ TEST_F(SignalTest, GetLastValueLinearDataRule)
     ASSERT_EQ(ptr, 21.0);
 }
 
+TEST_F(SignalTest, GetLastValueConstantDataRule)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setRule(ConstantDataRule()).setName("test").setSampleType(SampleType::Int64).build();
+
+    auto dataPacket = ConstantDataPacketWithDomain<Int>(nullptr,
+                                                                         descriptor,
+                                                                         100,
+                                                                         12,
+                                                                         {{10, 16}, {70, 18}, {90, 20}});
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValuePacket = signal.getLastValue();
+    IntegerPtr ptr;
+    ASSERT_NO_THROW(ptr = lastValuePacket.asPtr<IInteger>());
+    ASSERT_EQ(ptr, 20);
+}
+
 TEST_F(SignalTest, GetLastValueLinearScaling)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
@@ -1723,7 +1746,11 @@ TEST_F(SignalTest, GetLastValueStructNoSetDescriptor)
 
     // Send our packet
     // Throws becuase we didn't use signal.setDescriptor
-    ASSERT_THROW(signal.sendPacket(dataPacket), NotFoundException);
+
+    // TODO: we optimized the getLastValue, so calculation of last value moved to the the method getLastValue of the signal
+    // ASSERT_THROW(signal.sendPacket(dataPacket), NotFoundException);
+    ASSERT_NO_THROW(signal.sendPacket(dataPacket));
+    ASSERT_THROW(signal.getLastValue(), NotFoundException);
 }
 
 TEST_F(SignalTest, GetLastValueStructNested)

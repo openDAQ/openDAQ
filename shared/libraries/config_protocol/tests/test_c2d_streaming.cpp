@@ -238,30 +238,66 @@ public:
     void sendNoReplyReqToServer(const PacketBuffer& packetBuffer)
     {
         std::scoped_lock lock(sync);
-        packetsQueue.push(std::make_shared<PacketBuffer>(packetBuffer.getBuffer(), true));
+        packetsQueue.push({std::make_shared<PacketBuffer>(packetBuffer.getBuffer(), true), std::nullopt});
+    }
+
+    PacketBuffer sendReqToServer(const PacketBuffer& packetBuffer)
+    {
+        std::promise<PacketBuffer> replyPromise;
+        std::future<PacketBuffer> replyFuture = replyPromise.get_future();
+
+        {
+            std::scoped_lock lock(sync);
+            packetsQueue.push(
+                std::make_pair(
+                    std::make_shared<PacketBuffer>(packetBuffer.getBuffer(), true),
+                    std::move(replyPromise)
+                )
+            );
+        }
+
+        if (replyFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready)
+        {
+            return replyFuture.get();
+        }
+        else // std::future_status::timeout
+        {
+            throw ConfigProtocolException("Request timed out");
+        }
     }
 
 private:
     using PacketBufferPtr = std::shared_ptr<PacketBuffer>;
+    using OptionalReplyPromise = std::optional<std::promise<PacketBuffer>>;
     void threadFunc()
     {
         while(running)
         {
             bool hasPacket = false;
             PacketBufferPtr packetPtr;
+            OptionalReplyPromise optionalReplyPromise;
             {
                 std::scoped_lock lock(sync);
                 hasPacket = !packetsQueue.empty();
                 if (hasPacket)
                 {
-                    packetPtr = std::move(packetsQueue.front());
+                    packetPtr = std::move(packetsQueue.front().first);
+                    optionalReplyPromise = std::move(packetsQueue.front().second);
                     packetsQueue.pop();
                 }
             }
             if (hasPacket)
             {
-                assert(packetPtr->getPacketType() == config_protocol::PacketType::NoReplyRpc);
-                serverPtr->processNoReplyRequest(*packetPtr);
+                if (!optionalReplyPromise.has_value())
+                {
+                    assert(packetPtr->getPacketType() == config_protocol::PacketType::NoReplyRpc);
+                    serverPtr->processNoReplyRequest(*packetPtr);
+                }
+                else
+                {
+                    auto reply = serverPtr->processRequestAndGetReply(*packetPtr);
+                    optionalReplyPromise.value().set_value(std::move(reply));
+                }
             }
         }
     }
@@ -269,7 +305,7 @@ private:
     std::thread workerThread;
     bool running;
     ConfigServerPtr& serverPtr;
-    std::queue<PacketBufferPtr> packetsQueue;
+    std::queue<std::pair<PacketBufferPtr, OptionalReplyPromise>> packetsQueue;
     std::mutex sync;
 };
 
@@ -299,7 +335,7 @@ public:
     {
         clientPtr = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
             NullContext(),
-            std::bind(&ClientToDeviceStreamingTest::sendRequestAndGetReply, this, std::ref(serverPtr), std::placeholders::_1),
+            std::bind(&ClientToDeviceStreamingTest::sendRequestAndGetReply, this, std::ref(helper), std::placeholders::_1),
             std::bind(&ClientToDeviceStreamingTest::sendNoReplyRequest, this, std::ref(helper), std::placeholders::_1),
             nullptr,
             nullptr,
@@ -464,9 +500,9 @@ protected:
     }
 
     // client handling
-    PacketBuffer sendRequestAndGetReply(ConfigServerPtr& serverPtr, const PacketBuffer& requestPacket) const
+    PacketBuffer sendRequestAndGetReply(AsyncRpcHelper& helper, const PacketBuffer& requestPacket) const
     {
-        return serverPtr->processRequestAndGetReply(requestPacket);
+        return helper.sendReqToServer(requestPacket);
     }
 
     void sendNoReplyRequest(AsyncRpcHelper& helper, const PacketBuffer& requestPacket) const

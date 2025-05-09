@@ -143,8 +143,7 @@ protected:
     StringPtr deserializedDomainSignalId;
     BaseObjectPtr lastDataValue;
 
-    // Last value of the signal
-    // variables for raw and scaled data 
+    // variables for calculating last value
     std::vector<char> lastRawDataValue;
     DataDescriptorPtr lastDataDescriptor;
 

@@ -1,6 +1,6 @@
 = Record Data
 
-openDAQ(TM) provides an interface for xref:knowledge_base:components.adoc[Components] which
+openDAQ(TM) provides an interface for xref:explanations:components.adoc[Components] which
 record data to persistent storage media such as files. The `BasicCsvRecorder` module provides a
 simple reference implementation.
 

@@ -332,11 +332,6 @@ ErrCode InstanceImpl::getOperationMode(OperationModeType* modeType)
     return rootDevice->getOperationMode(modeType);
 }
 
-ErrCode InstanceImpl::findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter)
-{
-    return rootDevice->findPropertiesRecursive(properties, propertyFilter);
-}
-
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
 {
     OPENDAQ_PARAM_NOT_NULL(currentRootDevice);
@@ -730,12 +725,10 @@ ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
 
 ErrCode InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
 {
-    return rootDevice->getPermissionManager(permissionManager);
-}
+    OPENDAQ_PARAM_NOT_NULL(permissionManager);
 
-ErrCode InstanceImpl::findProperties(IList** properties, IPropertyFilter* filter)
-{
-    return rootDevice->findProperties(properties, filter);
+    *permissionManager = rootDevice.getPermissionManager().addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)

@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <coretypes/baseobject.h>
+#include <opendaq/component.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

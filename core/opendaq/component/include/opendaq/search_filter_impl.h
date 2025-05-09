@@ -19,7 +19,8 @@
 #include <coretypes/list_factory.h>
 #include <opendaq/component_ptr.h>
 #include <opendaq/search_filter_ptr.h>
-#include <coretypes/recursive_search.h>
+#include <opendaq/recursive_search_ptr.h>
+
 
 BEGIN_NAMESPACE_OPENDAQ
 

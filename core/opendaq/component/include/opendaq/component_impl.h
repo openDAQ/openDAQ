@@ -34,7 +34,7 @@
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <opendaq/deserialize_component_ptr.h>
 #include <coreobjects/core_event_args_impl.h>
-#include <coretypes/recursive_search_ptr.h>
+#include <opendaq/recursive_search_ptr.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>
@@ -48,7 +48,6 @@
 #include <opendaq/component_update_context_ptr.h>
 #include <opendaq/component_status_container_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
-#include <opendaq/search_filter_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -98,7 +97,6 @@ public:
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
-    ErrCode INTERFACE_FUNC findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter = nullptr) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -666,31 +664,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::getOperationMode(OperationModeType* modeT
 }
 
 template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter)
-{
-    OPENDAQ_PARAM_NOT_NULL(properties);
-
-    auto lock = this->getRecursiveConfigLock();
-
-    return daqTry([&properties, &propertyFilter, this]
-    {
-        auto thisComponent = this->template borrowPtr<ComponentPtr>();
-        ListPtr<IProperty> foundProperties = thisComponent.findProperties(propertyFilter);
-
-        if (auto thisFolder = thisComponent.template asPtrOrNull<IFolder>(); thisFolder.assigned())
-        {
-            ListPtr<IComponent> nestedComponents = thisFolder.getItems(search::Recursive(search::Any()));
-            for (const auto& nestedComponent : nestedComponents)
-                for (const auto& property : nestedComponent.findProperties(propertyFilter))
-                    foundProperties.pushBack(property);
-        }
-
-        *properties = foundProperties.detach();
-        return OPENDAQ_SUCCESS;
-    });
-}
-
-template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::onOperationModeChanged(OperationModeType /* modeType */)
 {
 }
@@ -987,8 +960,8 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
     }
     
     ListPtr<IComponent> childList = List<IComponent>();
-    for (const auto& item : allItems)
-        childList.pushBack(item);
+    for (const auto& signal : allItems)
+        childList.pushBack(signal);
 
     return childList.detach();
 }

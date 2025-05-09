@@ -47,7 +47,6 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
     MOCK_METHOD(daq::ErrCode, getStatusContainer, (daq::IComponentStatusContainer** statusContainer), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, findComponent, (daq::IString* id, daq::IComponent** outComponent), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getOperationMode, (daq::OperationModeType* modeType), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, findPropertiesRecursive, (daq::IList** properties, daq::IPropertyFilter* propertyFilter), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, getPublic, (daq::Bool* public_), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setPublic, (daq::Bool public_), (override MOCK_CALL));

@@ -19,7 +19,6 @@
 #include <coretypes/type_manager.h>
 #include <coretypes/event.h>
 #include <coreobjects/permission_manager.h>
-#include <coreobjects/property_filter.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -376,17 +375,6 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * @param[out] permissionManager The permission manager of property object.
      */
     virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) = 0;
-
-    // [elementType(properties, IProperty)]
-    /*!
-     * @brief Returns a list of properties contained in the Property object that are accepted by the specified property filter.
-     * @param filter An optional filter used to exclude unwanted properties and optionally enable recursive search.
-     * @param[out] properties The list of properties found.
-     *
-     * If no filter is provided, only visible properties directly belonging to the current object are returned.
-     * Recursion enabled through corresponding wrapper filter includes properties from child property objects into search results.
-     */
-    virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, IPropertyFilter* filter = nullptr) = 0;
 };
 
 /*!@}*/

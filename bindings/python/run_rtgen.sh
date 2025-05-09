@@ -63,7 +63,6 @@ run_rtgen CoreObjects coreobjects coreobjects core_objects/generated ownable
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_builder
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_object
-run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_filter
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_object_class
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_object_class_builder
 run_rtgen CoreObjects coreobjects coreobjects core_objects/generated property_object_protected

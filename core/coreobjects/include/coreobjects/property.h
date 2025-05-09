@@ -590,6 +590,24 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 )
 
 /*!
+ * @brief Creates a Selection Property object with a list of selection values. The default value
+ * is an integer index into the default selected value.
+ * @param name The name of the Property.
+ * @param selectionValues The list of selectable values.
+ * @param defaultValue The default index into the list of selection values.
+ * @param visible If true, the Property is visible. Can be an EvalValue.
+ *
+ * The Property Value type is `ctInt`.
+ */
+ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, StringSelectionProperty, IProperty,
+    IString*, name,
+    IList*, selectionValues,
+    IString*, defaultValue,
+    IBoolean*, visible
+)
+
+/*!
  * @brief Creates a Selection Property object with a dictionary of selection values. The default value
  * is an integer key into the provided dictionary.
  * @param name The name of the Property.

@@ -186,7 +186,7 @@ ErrCode StringImpl::getCoreType(CoreType* coreType)
 ErrCode StringImpl::compareTo(IBaseObject* obj)
 {
     if (obj == nullptr)
-        return  OPENDAQ_LOWER;
+        return OPENDAQ_LOWER;
 
     ConstCharPtr otherValue = nullptr;
     CharPtr otherValueOwned = nullptr;

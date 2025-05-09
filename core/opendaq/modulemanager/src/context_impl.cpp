@@ -98,18 +98,18 @@ ErrCode ContextImpl::getModuleManager(IBaseObject** manager)
 {
     OPENDAQ_PARAM_NOT_NULL(manager);
 
-    return daqTry([&]()
+    return daqTry([&]
+    {
+        if (this->moduleManagerWeakRef.assigned())
         {
-            if (this->moduleManagerWeakRef.assigned())
-            {
-                *manager = moduleManagerWeakRef.getRef().asPtr<IBaseObject>().detach();
-            }
-            else
-            {
-                *manager = nullptr;
-            }
-            return OPENDAQ_SUCCESS;
-        });
+            *manager = moduleManagerWeakRef.getRef().asPtr<IBaseObject>().detach();
+        }
+        else
+        {
+            *manager = nullptr;
+        }
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode ContextImpl::getTypeManager(ITypeManager** manager)
@@ -158,13 +158,15 @@ ErrCode ContextImpl::getOptions(IDict** options)
 {
     OPENDAQ_PARAM_NOT_NULL(options);
 
-    if (!this->options.assigned())
+    if (this->options.assigned())
+    {
+        *options = this->options.addRefAndReturn();
+    }
+    else
     {
         *options = Dict<IString, IBaseObject>().detach();
-        return OPENDAQ_SUCCESS;
     }
 
-    *options = this->options.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -216,12 +218,15 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
 ErrCode ContextImpl::getDiscoveryServers(IDict** servers)
 {
     OPENDAQ_PARAM_NOT_NULL(servers);
-    if (!this->discoveryServers.assigned())
+    if (this->discoveryServers.assigned())
+    {
+        *servers = this->discoveryServers.addRefAndReturn();
+    }
+    else 
     {
         *servers = Dict<IString, IDiscoveryServer>().detach();
-        return OPENDAQ_SUCCESS;
     }
-    *servers = this->discoveryServers.addRefAndReturn();
+    
     return OPENDAQ_SUCCESS;
 }
 

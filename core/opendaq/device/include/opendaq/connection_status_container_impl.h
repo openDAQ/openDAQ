@@ -349,7 +349,7 @@ inline ErrCode ConnectionStatusContainerImpl::Deserialize(ISerializedObject* ser
     OPENDAQ_PARAM_NOT_NULL(obj);
 
     const auto contextPtr = BaseObjectPtr::Borrow(context);
-    const auto deserializerContext = contextPtr.assigned() ? contextPtr.asPtrOrNull<IComponentDeserializeContext>() : nullptr;
+    const auto deserializerContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>();
     const ProcedurePtr triggerCoreEvent = deserializerContext.assigned() ? deserializerContext.getTriggerCoreEvent() : nullptr;
     const ContextPtr daqContext = deserializerContext.assigned() ? deserializerContext.getContext() : nullptr;
 

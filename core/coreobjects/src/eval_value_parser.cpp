@@ -265,7 +265,15 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::valref()
         consume(TokenType::CloseBracket);
     }
 
-    auto node = std::make_unique<daq::RefNode>(str, daq::RefType::Value);
+    daq::RefType refType = daq::RefType::Value;
+    if (isAt(TokenType::OpenParen))
+    {
+        consume(TokenType::OpenParen);
+        consume(TokenType::CloseParen);
+        refType = daq::RefType::Procedure;
+    }
+
+    auto node = std::make_unique<daq::RefNode>(str, refType);
     node->onResolveReference = params->onResolveReference;
     return node;
 }

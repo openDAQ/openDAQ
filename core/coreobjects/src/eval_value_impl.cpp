@@ -166,6 +166,11 @@ BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& pro
         }
         value = propNames;
     }
+    else if (refType == RefType::Procedure)
+    {
+        FunctionPtr proc = propObject.getPropertyValue(str);
+        value = proc();
+    }
     
     return value;
 }

@@ -615,12 +615,9 @@ EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEve
             else
             {
                 const SignalPtr domain = this->onGetDomainSignal();
-                if (domain.assigned())
+                if (const auto mirroredDomain = domain.asPtrOrNull<IMirroredSignalPrivate>(); mirroredDomain.assigned())
                 {
-                    if (const auto mirroredDomain = domain.asPtrOrNull<IMirroredSignalPrivate>(); mirroredDomain.assigned())
-                    {
-                        mirroredDomain.setMirroredDataDescriptor(mirroredDomainDataDescriptor);
-                    }
+                    mirroredDomain.setMirroredDataDescriptor(mirroredDomainDataDescriptor);
                 }
             }
         }

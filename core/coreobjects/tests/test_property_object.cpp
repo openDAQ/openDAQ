@@ -17,7 +17,6 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/listobject_factory.h>
-#include <thread>
 
 using namespace daq;
 
@@ -2187,4 +2186,47 @@ TEST_F(PropertyObjectTest, DotAccessSelectionValue)
     ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "a");
     parent.setPropertyValue("child.child.foo", 1);
     ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "b");
+}
+
+TEST_F(PropertyObjectTest, DynamicSelectionValue)
+{
+    auto propObj = PropertyObject();
+
+    auto selectionList = List<IString>("val1", "val2");
+
+    propObj.addProperty(FunctionProperty("SelectionListFunction", FunctionInfo(daq::ctList)));
+    auto func = Function([&selectionList]   
+    {
+        return selectionList;
+    });
+    propObj.setPropertyValue("SelectionListFunction", func);
+    propObj.addProperty(StringSelectionProperty("Selection", EvalValue("$SelectionListFunction()"), "val0"));
+
+    PropertyPtr selectionProp = propObj.getProperty("Selection");
+
+    // initial state
+    ASSERT_EQ(selectionProp.getSelectionValues(), selectionList);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val0");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val0");
+    
+    // set val1
+    ASSERT_NO_THROW(propObj.setPropertyValue("Selection", "val1"));
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val1");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // set to invalid value
+    ASSERT_THROW(propObj.setPropertyValue("Selection", "val3"), NotFoundException);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val1");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // change selection list
+    selectionList = List<IString>("val10", "val20");
+    ASSERT_EQ(selectionProp.getSelectionValues(), selectionList);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val1");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // set to invalid value
+    ASSERT_NO_THROW(propObj.setPropertyValue("Selection", "val20"));
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val20");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val20");
 }

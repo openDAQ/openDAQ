@@ -35,7 +35,8 @@ enum class RefType
     Argument,
     Func,
     SelectedValue,
-    PropertyNames
+    PropertyNames,
+    Procedure
 };
 
 using GetReferenceEvent = std::function<BaseObjectPtr(std::string, RefType, int, std::string&, bool)>;

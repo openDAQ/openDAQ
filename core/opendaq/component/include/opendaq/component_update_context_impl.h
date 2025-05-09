@@ -44,6 +44,7 @@ public:
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
 
     ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
+    ErrCode INTERFACE_FUNC getConfig(IUpdateParameters** config) override;
 
 private:
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
@@ -52,7 +53,7 @@ private:
     static DevicePtr GetDevice(const StringPtr& id, const DevicePtr& parentDevice);
     static std::string GetRootDeviceId(const std::string& id);
 
-    UpdateParametersPtr config;
+    const UpdateParametersPtr config;
 
     DictPtr<IString, IDict> connections;
     DictPtr<IString, IString> signalDependencies;
@@ -220,6 +221,9 @@ inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId
 
 inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* signalId, ISignal** signal)
 {
+    OPENDAQ_PARAM_NOT_NULL(signalId);
+    OPENDAQ_PARAM_NOT_NULL(signal);
+
     // Check that signal has parent
     if (!signalDependencies.hasKey(signalId))
         return OPENDAQ_NOTFOUND;
@@ -248,8 +252,6 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     
     ComponentPtr signalComponent;
     parentComponent->findComponent(signalLocalId, &signalComponent);
-    if (!signalComponent.assigned())
-        return OPENDAQ_NOTFOUND;
 
     SignalPtr singalPtr = signalComponent.asPtrOrNull<ISignal>();
     if (!singalPtr.assigned())
@@ -261,7 +263,15 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
 
 inline ErrCode ComponentUpdateContextImpl::getReAddDevicesEnabled(Bool* enabled)
 {
+    OPENDAQ_PARAM_NOT_NULL(enabled);
     return config->getReAddDevicesEnabled(enabled);
+}
+
+inline ErrCode ComponentUpdateContextImpl::getConfig(IUpdateParameters** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = this->config.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

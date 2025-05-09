@@ -1877,6 +1877,10 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
     }
+    catch (const DaqException& e)
+    {
+        LOG_W("Failed to update device: {}", e.getErrorMessage());
+    }
     catch (const std::exception& e)
     {
         LOG_W("Failed to update device: {}", e.what());

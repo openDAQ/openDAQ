@@ -1073,10 +1073,25 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
     const auto selectionValues = prop.asPtr<IPropertyInternal>().getSelectionValuesNoLock();
     if (selectionValues.assigned())
     {
-        const SizeT key = value;
         const auto list = selectionValues.asPtrOrNull<IList>();
-        if (list.assigned() && key < list.getCount())
-            return OPENDAQ_SUCCESS;
+        if (list.assigned())
+        {
+            if (prop.getValueType() == ctString)
+            {
+                StringPtr strValue = value;
+                for (const auto& item : list)
+                {
+                    if (item == strValue)
+                        return OPENDAQ_SUCCESS;
+                }
+            }
+            else
+            {
+                const SizeT key = value;
+                if (key < list.getCount())
+                    return OPENDAQ_SUCCESS;
+            }
+        }
 
         const auto dict = selectionValues.asPtrOrNull<IDict>();
         if (dict.assigned() && dict.hasKey(value))
@@ -2004,20 +2019,19 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         if (!values.assigned())
             DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" has no selection values assigned)", propName);
 
-        auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true);
-        if (!valuesList.assigned())
+        if (auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true); valuesList.assigned())
         {
-            auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true);
-            if (!valuesDict.assigned())
-            {
-                DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" values is not a list or dictionary)", propName);
-            }
-
+            // valuePtr can be string if this is a string selection property
+            if (valuePtr.getCoreType() != ctString)
+                valuePtr = valuesList.getItemAt(valuePtr);
+        }
+        else if (auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true); valuesDict.assigned())
+        {
             valuePtr = valuesDict.get(valuePtr);
         }
         else
         {
-            valuePtr = valuesList.getItemAt(valuePtr);
+            DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" values is not a list or dictionary)", propName);
         }
 
         if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())

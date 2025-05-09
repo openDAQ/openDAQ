@@ -2203,5 +2203,30 @@ TEST_F(PropertyObjectTest, DynamicSelectionValue)
     propObj.addProperty(StringSelectionProperty("Selection", EvalValue("$SelectionListFunction()"), "val0"));
 
     PropertyPtr selectionProp = propObj.getProperty("Selection");
-    ListPtr<IString> s = selectionProp.getSelectionValues();
+
+    // initial state
+    ASSERT_EQ(selectionProp.getSelectionValues(), selectionList);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val0");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val0");
+    
+    // set val1
+    ASSERT_NO_THROW(propObj.setPropertyValue("Selection", "val1"));
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val1");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // set to invalid value
+    ASSERT_THROW(propObj.setPropertyValue("Selection", "val3"), NotFoundException);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val1");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // change selection list
+    selectionList = List<IString>("val10", "val20");
+    ASSERT_EQ(selectionProp.getSelectionValues(), selectionList);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val1");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // set to invalid value
+    ASSERT_NO_THROW(propObj.setPropertyValue("Selection", "val20"));
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val20");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val20");
 }

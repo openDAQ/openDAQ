@@ -103,7 +103,8 @@ class FunctionDialog(Dialog):
             args = []
             if self.node.callable_info.arguments:
                 for argument in self.node.callable_info.arguments:
-                    args.append(self.create_argument(argument.Type, self.arguments[argument.Name].get()))
+                    args.append(self.create_argument(argument.Type,
+                                self.arguments[argument.Name].get()))
 
             ret = self.function(*args)
         except (Exception, ValueError) as e:

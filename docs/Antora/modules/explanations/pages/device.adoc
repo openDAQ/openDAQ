@@ -155,9 +155,13 @@ Remote Devices are those that are running their own openDAQ(TM) instance with a 
 UA) or streaming (eg. WebSocket) server. When we connect to such devices from another instance, 
 they are considered remote. 
 
-NOTE: openDAQ(TM) compatible devices can be integrated at the protocol level, where they do not 
+:note-caption: Note
+[NOTE]
+===
+openDAQ(TM) compatible devices can be integrated at the protocol level, where they do not 
 contain an instance of the SDK, but instead only adhere to the OPC UA and Streaming protocols
 that openDAQ(TM) is compliant with.
+===
 
 When connecting to a remote Device its structure is mirrored in the Sub-Device visible in the
 `dev` xref:components.adoc#folder[Folder]. All Components of the remote Device are dummy versions
@@ -239,9 +243,13 @@ Console.WriteLine(availableDeviceInfo.Name);
 ----
 ====
 
-NOTE: The Device Info objects can contain additional, non-standardized fields. The
+:note-caption: Note
+[NOTE]
+===
+The Device Info objects can contain additional, non-standardized fields. The
 objects themselves are xref:property_system.adoc[Property Objects] and can be parsed to
 obtain a full list of Properties defined by the Device Info.
+===
 
 == Instance and the Root Device
 

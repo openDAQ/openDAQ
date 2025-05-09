@@ -36,7 +36,11 @@ Connection string is used to connect to the device. Prefix of connection string 
 == Connecting to Devices
 To connect to device developer can use either connection string from the device Info or if there is a need to connect with required protocol, use connection string from server capability. Some server capabilities may contain multiple connection strings for the same protocol. The primary connection string can be view with the method `getConnectionString` and all possible addresses with the method `getConnectionStrings`.
 
-NOTE: Device info may contain server capability only for OpcUa, Native and streaming Lt protocol. Devices like reference device and audio does not have server capabilities.
+:note-caption: Note
+[NOTE]
+===
+Device info may contain server capability only for OpcUa, Native and streaming Lt protocol. Devices like reference device and audio does not have server capabilities.
+===
 
 == Connecting to openDAQ(TM) OPC UA devices
 

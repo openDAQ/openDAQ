@@ -111,8 +111,12 @@ A Property always describes the value located in a Property Object associated wi
 equal to the name of the Property. In other words, a Property's metadata describes the
 Property Value in an object with the key that is the same as the name of the Property.
 
-NOTE: Non-builder factories for basic Properties of each type exist, but they only allow users to specify
+:note-caption: Note
+[NOTE]
+===
+Non-builder factories for basic Properties of each type exist, but they only allow users to specify
 a minimal set of metadata fields.
+===
 
 [tabs]
 ====
@@ -764,8 +768,12 @@ std::cout << sumFunc(12, 30) << std::endl;
 
 // TODO
 
-NOTE: Struct Properties can currently not be transmitted over OPC UA unless their Struct type name matches 
+:note-caption: Note
+[NOTE]
+===
+Struct Properties can currently not be transmitted over OPC UA unless their Struct type name matches 
 a Structure type and key names/value types in the imported OPC UA nodesets.  
+===
 
 ==== Remaining Property types
 
@@ -1090,9 +1098,13 @@ We configure the unit of the `"Amplitude"` Property based on the `"AmplitudeUnit
 the `Unit` token in our expression to indicate we're creating a xref:explanations:glossary.adoc#unit[Unit], and accessing the currently
 selected value of our `"AmplitudeUnit"` Selection Property.
 
-NOTE: The `%Prop:Value` notation is equivalent to `$Prop`, while `%Prop:SelectedValue` uses the
+:note-caption: Note
+[NOTE]
+===
+The `%Prop:Value` notation is equivalent to `$Prop`, while `%Prop:SelectedValue` uses the
 value of the Property to retrieve the corresponding _Selection_ value from the list / dictionary
 of Selection values.
+===
 
 [tabs]
 ====
@@ -1274,8 +1286,12 @@ imagine, the list of visible Properties contains a subset of Properties that are
 A Property is visible if its Visible metadata field is set to `true`, and its IsReferenced field
 is `false`. 
 
-NOTE: Remember that IsReferenced is true for Properties that are referenced by another 
+:note-caption: Note
+[NOTE]
+===
+Remember that IsReferenced is true for Properties that are referenced by another 
 Reference Property.
+===
 
 Properties are listed in the order they're added to the Property Object if no custom order
 is specified. At any given point, a new order can be specified by providing an ordered
@@ -1479,8 +1495,12 @@ Selection Properties always have a Value type of _Integer_. As such, the value g
 return the integer key/index into the list/dictionary of Selection values. To directly obtain
 the selected value, a Selection value getter is available.
 
-NOTE: The "dot" notation used to get/set values of nested objects does not work on the Selection
+:note-caption: Note
+[NOTE]
+===
+The "dot" notation used to get/set values of nested objects does not work on the Selection
 value getter function.
+===
 
 [tabs]
 ====

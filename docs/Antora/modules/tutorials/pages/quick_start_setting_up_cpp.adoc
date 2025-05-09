@@ -45,7 +45,12 @@ Linux::
  * CMake (3.20 or newer)
  * CMake generator and {cpp} compiler ({gpp} is recommended)
 
-NOTE: Run `sudo apt install cmake build-essential` to install the required build tools.
+:note-caption: Note
+[NOTE]
+===
+Run `sudo apt install cmake build-essential` to install the required build tools.
+===
+
 --
 ====
 

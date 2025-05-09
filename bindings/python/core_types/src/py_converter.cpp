@@ -27,6 +27,11 @@ daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle, 
     {
         return intf;
     }
+    else if (py::isinstance<py::bool_>(handle))
+    {
+        const daq::Bool value = handle.cast<py::bool_>();
+        return daq::Boolean(value);
+    }
     else if (py::isinstance<py::int_>(handle))
     {
         const daq::Int value = handle.cast<py::int_>();
@@ -36,11 +41,6 @@ daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle, 
     {
         const daq::Float value = handle.cast<py::float_>();
         return daq::Floating(value);
-    }
-    else if (py::isinstance<py::bool_>(handle))
-    {
-        const daq::Bool value = handle.cast<py::bool_>();
-        return daq::Boolean(value);
     }
     else if (py::isinstance<py::str>(handle))
     {
@@ -52,6 +52,17 @@ daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle, 
         const daq::Int numerator = handle.attr("numerator").cast<py::int_>();
         const daq::Int denominator = handle.attr("denominator").cast<py::int_>();
         return daq::Ratio(numerator, denominator);
+    }
+    else if (py::isinstance<py::list>(handle))
+    {
+        auto pyList = handle.cast<py::list>();
+        daq::ListPtr<daq::IBaseObject> daqList = daq::List<daq::IBaseObject>();
+        
+        for (size_t i = 0; i < pyList.size(); i++)
+        {
+            daqList.pushBack(pyObjectToBaseObject(pyList[i], false));
+        }
+        return daqList;
     }
 
     auto obj = py::reinterpret_borrow<py::object>(handle);

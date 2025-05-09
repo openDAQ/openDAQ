@@ -285,7 +285,11 @@ multiReader.setOnDataAvailable(readData);
 
 To simplify the creation of output domain signals in function blocks that uses the Multi Reader, the read status provides a "main descriptor" that can be obtained through the `getMainDescriptor()` reader function. In function blocks that aggregate signals (ie. multiplication or summation of signals), the output signal likely has the same sampling rate and timestamps as its inputs. As such, the domain descriptor of the "main signal" can be used as the descriptor for the output domain signal.
 
-NOTE: The main descriptor simply corresponds to the first signal in the list of signals read by the Multi Reader.
+:note-caption: Note
+[NOTE]
+===
+The main descriptor simply corresponds to the first signal in the list of signals read by the Multi Reader.
+===
 
 [tabs]
 ====

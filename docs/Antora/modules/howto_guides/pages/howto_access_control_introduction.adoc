@@ -18,7 +18,15 @@ should be able to adjust calibration factors on the device. The openDAQ Access C
 In an openDAQ device implementation, it is possible to define a list of users that can access it. Each user is a member of one or more user groups. 
 When connecting to a device, it is possible to authenticate as one of the defined users. Access to various device components is restricted based on the user's group membership.
 
-NOTE: The authentication and access level enforcement happens at the transport layer level. The openDAQ server authenticates the client, declining requests that the client
+:note-caption: Note
+[NOTE]
+===
+The authentication and access level enforcement happens at the transport layer level. The openDAQ server authenticates the client, declining requests that the client
 does not have access to it.
+===
 
-NOTE: The access control system is available only over the openDAQ "Native protocol".
+:note-caption: Note
+[NOTE]
+===
+The access control system is available only over the openDAQ "Native protocol".
+===

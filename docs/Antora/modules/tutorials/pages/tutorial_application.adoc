@@ -87,7 +87,11 @@ You will be greeted by a prompt to press a key (which will end the simulation). 
 
 Having set up a simulator Device that is running openDAQ(TM) servers, we now move on to implement the client application that connects to the simulated Device. The client-side application uses a Client module to connect to an openDAQ(TM) Server. When connected, the application is used to read the Device's Signal data, read/modify its Properties, and perform structural changes such as adding/removing/re-routing Function Blocks or Devices - all of which will be explained throughout this guide.
 
-NOTE: There are several server/client modules available in the SDK. Throughout this guide will will be using the default "native" openDAQ protocol to connect to our devices.
+:note-caption: Note
+[NOTE]
+===
+There are several server/client modules available in the SDK. Throughout this guide will will be using the default "native" openDAQ protocol to connect to our devices.
+===
 
 [tabs]
 ====
@@ -141,7 +145,11 @@ var instance = OpenDAQFactory.Instance();
 
 The openDAQ(TM) Instance acts as our entry point to the application. It loads all available modules that allow for connecting to Devices, starting Servers, as well as doing data processing and calculations.
 
-NOTE: Modules are dynamic libraries that are loaded when creating an openDAQ(TM) instance. They look at a default or user-provided directory path, which points to our openDAQ(TM) binaries. They provide functions to connect to devices, start servers, and add function blocks that are used to process data and perform calculations.
+:note-caption: Note
+[NOTE]
+===
+Modules are dynamic libraries that are loaded when creating an openDAQ(TM) instance. They look at a default or user-provided directory path, which points to our openDAQ(TM) binaries. They provide functions to connect to devices, start servers, and add function blocks that are used to process data and perform calculations.
+===
 
 === Discovering devices
 
@@ -242,7 +250,11 @@ Connection strings in openDAQ(TM) are used to connect to a device. They always a
 * "Simulator device" has a connection string that starts with `daq://`. Devices running an openDAQ(TM) server have a connection string of the format `daq://Manufacturer_SerialNumber`. We might discover multiple servers of the same device. They will be grouped under the same connection string, and their information made available in the "Server capabilities" field as shown in the previous code snippet. When connecting via a connection string with the `daq://` prefix, openDAQ(TM) will automatically choose the most optimal connection protocol.
 * "Reference device" has a connection string that starts with `daqref://`. Said prefix corresponds to the openDAQ(TM) simulator devices that can be created locally. They are used by our simulator application.
 
-NOTE: Any device with an undefined manufacturer, serial number, or without an openDAQ(TM) server (with no "server capabilities") will not use the  `daq://Manufacturer_SerialNumber` connection string format, but will use the one provided by an individual device/client implementation (Eg. `daqref://`)
+:note-caption: Note
+[NOTE]
+===
+Any device with an undefined manufacturer, serial number, or without an openDAQ(TM) server (with no "server capabilities") will not use the  `daq://Manufacturer_SerialNumber` connection string format, but will use the one provided by an individual device/client implementation (Eg. `daqref://`)
+===
 
 === Connecting to a remote device
 
@@ -351,7 +363,11 @@ Adding a remote Device with its connection string connects to said Device. The D
 
 The Device we connect to is added as a child below the openDAQ(TM) Instance, or more accurately, below our Root Device.
 
-NOTE: Later examples in this guide will only extend the examples from the previous section. As such, the code from the previous examples will not be duplicated; only new additions will be displayed and explained.
+:note-caption: Note
+[NOTE]
+===
+Later examples in this guide will only extend the examples from the previous section. As such, the code from the previous examples will not be duplicated; only new additions will be displayed and explained.
+===
 
 === The openDAQ(TM) Instance and Root Device
 
@@ -760,7 +776,11 @@ Conversely, a file writer Function Block has no output Signals, but only receive
 .Function Blocks with different combinations of Input Ports and output Signals
 image::opendaq:tutorials:function-block-types.svg[Function Blocks,align="center"]
 
-NOTE: As with Devices, we can list the metadata of all Function Blocks made available by loaded Modules by getting all available Function Blocks. Doing so we can obtain a list of Function Block information objects, providing metadata, as well as the IDs of the Function Blocks.
+:note-caption: Note
+[NOTE]
+===
+As with Devices, we can list the metadata of all Function Blocks made available by loaded Modules by getting all available Function Blocks. Doing so we can obtain a list of Function Block information objects, providing metadata, as well as the IDs of the Function Blocks.
+===
 
 [tabs]
 ====
@@ -892,7 +912,11 @@ renderer.GetInputPorts()[1].Connect(statistics.GetSignals()[0]);
 --
 ====
 
-NOTE: We now connected the statistics Signal to the 2nd Input Port of the renderer. Both the renderer and the statistics Function Blocks are designed to always have an available Input Port. Whenever a Signal is connected to one of its ports, a new Input Port is created.
+:note-caption: Note
+[NOTE]
+===
+We now connected the statistics Signal to the 2nd Input Port of the renderer. Both the renderer and the statistics Function Blocks are designed to always have an available Input Port. Whenever a Signal is connected to one of its ports, a new Input Port is created.
+===
 
 When running the above example, we should be able to see the renderer display two Signals - the original sine wave, and the averaged Signal below.
 

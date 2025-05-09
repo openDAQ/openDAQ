@@ -3,12 +3,12 @@
 Components of openDAQ SDK create a Data Path when they are connected. The components that form the data
 path are:
 
- * xref:explanations:signals.adoc[Signal]. 
+ * xref:explanations:signals.adoc[Signal], 
  * Connection, 
  * Input Port, 
  * xref:explanations:function_blocks.adoc[Function Block], 
  * xref:explanations:function_blocks.adoc#channel[Channel], 
- * xref:explanations:readers.adoc[reader]. 
+ * xref:explanations:readers.adoc[Reader]. 
  
  
 image::datapath1.svg[image,align="center"]

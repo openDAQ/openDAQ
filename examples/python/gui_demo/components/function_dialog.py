@@ -94,7 +94,7 @@ class FunctionDialog(Dialog):
         if value_type == daq.CoreType.ctString:
             return str(*args)
         if value_type == daq.CoreType.ctList:
-            return list(*args)
+            return eval(*args)
         return None
 
     def exec_clicked(self):

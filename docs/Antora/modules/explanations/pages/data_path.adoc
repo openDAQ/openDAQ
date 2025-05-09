@@ -8,7 +8,7 @@ path are:
  * Input Port, 
  * xref:explanations:function_blocks.adoc[Function Block], 
  * xref:explanations:function_blocks.adoc#channel[Channel], 
- * xref:explanations:readers.adoc[reader]. 
+ * xref:explanations:readers.adoc[Reader]. 
  
  
 image::datapath1.svg[image,align="center"]

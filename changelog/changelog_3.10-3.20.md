@@ -37,6 +37,7 @@
 
 ## Bug fixes
 
+- [#790](https://github.com/openDAQ/openDAQ/pull/790) Fix input port to signal notification
 - [#778](https://github.com/openDAQ/openDAQ/pull/778) Fixing calling remote function with enumeration inside
 - [#776](https://github.com/openDAQ/openDAQ/pull/776) Fixing restoring struct fields while loading configuration
 - [#757](https://github.com/openDAQ/openDAQ/pull/757) Device info obtained from device and discovery matching is changed from checking for connection string equality to SN + manufacturer equality.

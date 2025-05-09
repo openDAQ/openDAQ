@@ -645,7 +645,10 @@ ErrCode DataPacketImpl<TInterface>::getRawValueByIndex(void** value, SizeT sampl
         }
         else if (hasDataRuleCalc)
         {
-            descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateSample(offset, sampleIndex, data, rawDataSize, value);
+            if (sampleIndex == sampleCount - 1)
+                descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateLastSample(offset, sampleCount, data, rawDataSize, value);
+            else
+                descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateSample(offset, sampleIndex, data, rawDataSize, value);
         }
     });
 }

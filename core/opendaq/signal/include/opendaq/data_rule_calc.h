@@ -399,13 +399,46 @@ inline void DataRuleCalcTyped<T>::calculateConstantSample(const SizeT sampleInde
 template <typename T>
 inline void DataRuleCalcTyped<T>::calculateLastLinearSample(const NumberPtr& packetOffset, const SizeT sampleCount, void** output) const
 {
-    this->calculateLinearRule(packetOffset, sampleCount - 1, output);
+    this->calculateLinearSample(packetOffset, sampleCount - 1, output);
 }
 
 template <typename T>
 inline void DataRuleCalcTyped<T>::calculateLastConstantSample(const SizeT sampleCount, void* input, SizeT inputSize, void** output)
 {
-    this->calculateConstantSample(sampleCount - 1, input, inputSize, output);
+    if (inputSize < sizeof(T))
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Constant rule data packet must have at least one value");
+
+    constexpr size_t entrySize = sizeof(T) + sizeof(uint32_t);
+    const size_t entryCount = (inputSize - sizeof(T)) / entrySize;
+
+    T* outputTyped = static_cast<T*>(*output);
+    auto* basePtr = reinterpret_cast<uint8_t*>(input);
+    T initialConstant = *reinterpret_cast<T*>(basePtr);
+
+    if (entryCount == 0)
+    {
+        *outputTyped = initialConstant;
+        return;
+    }
+
+    auto* entriesStart = basePtr + sizeof(T);
+    auto* entryPtr = entriesStart + (entryCount - 1) * entrySize;
+
+    // Walk backwards until we find the largest upToSamples < sampleCount
+    for (SizeT i = entryCount; i > 0; --i, entryPtr -= entrySize)
+    {
+        uint32_t upToSamples = *reinterpret_cast<uint32_t*>(entryPtr);
+        T value = *reinterpret_cast<T*>(entryPtr + sizeof(uint32_t));
+
+        if (sampleCount - 1 > upToSamples)
+        {
+            *outputTyped = value;
+            return;
+        }
+    }
+
+    // If all upToSamples are >= sampleCount - 1, use the initial constant
+    *outputTyped = initialConstant;
 }
 
 static DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType)

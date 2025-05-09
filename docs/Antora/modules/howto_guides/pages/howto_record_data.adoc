@@ -5,11 +5,11 @@
 ====
 By the end of this guide, learners will be able to:
 
-- 📁 Setup Data Recording: Learn how to configure and initialize a CSV data recorder within openDAQ(tm).
-- 🔌 Connect Signals: Understand the process of linking specific device signals to recorder input ports.
-- ⏯️ Control Data Capture: Master starting and stopping data recording using programmatic control.
-- 📊 Data Storage Management: Gain insights into managing the recorded data, including file paths and generated file structures.
-- 🛠️ Customization & Extensions: Explore creating custom implementations for recording data beyond numeric scalars, including handling complex signals and alternative storage formats.
+- 📁 Setup Data Recording — Learn how to configure and initialize a CSV data recorder within openDAQ(TM).
+- 🔌 Connect Signals — Understand the process of linking specific device signals to recorder input ports.
+- ⏯️ Control Data Capture — Master starting and stopping data recording using programmatic control.
+- 📊 Data Storage Management — Gain insights into managing the recorded data, including file paths and generated file structures.
+- 🛠️ Customization & Extensions — Explore creating custom implementations for recording data beyond numeric scalars, including handling complex signals and alternative storage formats.
 ====
 
 openDAQ(TM) provides an interface for xref:explanations:components.adoc[Components] which

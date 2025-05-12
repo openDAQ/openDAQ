@@ -1,36 +1,289 @@
-//#define USE_LISTOBJECT
-//#define USE_ITERATOR_NOT_IENUMERABLE
-
 // Ignore Spelling: Opc Ua nullable daqref
 
 
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Numerics;
+using System.Drawing;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 using Daq.Core.Types;
 
+//using static Daq.Core.Objects.CoreObjectsFactory;
+//using static Daq.Core.OpenDAQ.OpenDAQFactory;
+//using static Daq.Core.Types.CoreTypesFactory;
+
 
 namespace openDaq.Net.Test;
 
 
-public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
+public class OpenDaqExplanationsTests : OpenDAQTestsBase
 {
-    private const string REFERENCE_DEVICE = "daqref://device0";
+    public const string SKIP_SETUP                    = "SkipSetup";
+    public const string SKIP_SETUP_DEVICE             = "SkipSetupDevice";
+    public const string SETUP_DEVICE_NATIVE_STREAMING = "SetupDeviceNativeStreaming";
 
-    #region ./Antora/background_info/pages/device.adoc
+    private const string MODULE_PATH = ".";
+
+    private const string ConnectionProtocolDaqRef  = "daqref://";
+    private const string ConnectionProtocolOpcUa   = "daq.opcua://";
+    private const string ConnectionProtocolWinSock = "daq.lt://";
+
+    private const string ConnectionStringDaqRef = "daqref://device0";
+
+    public enum eDesiredConnection
+    {
+        Any = 0,
+        DaqRef,
+        OpcUa,
+        WinSock,
+        LocalHost,
+        NativeStreaming
+    }
+
+
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+    private Instance            instance = null;
+    private Device              device   = null;
+    private Signal              signal   = null;
+//    private IListObject<Signal> signals  = null;
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+
+
+
+    [SetUp]
+    public void _SetUp()
+    {
+        //turn off everything for any test here
+        base.DontCollectAndFinalize();
+        //base.DontCheckAliveObjectCount();
+        base.DontWarn();
+
+        if (CheckForSkipSetup(SKIP_SETUP)) //ToDo: use [Category(SKIP_SETUP)] to mark a test for not running this method
+        {
+            Console.WriteLine($"* skipping Setup()");
+            return;
+        }
+
+        Console.WriteLine(">>> SetUp() - create instance");
+
+        instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+        if (!CheckForSkipSetup(SKIP_SETUP_DEVICE)) //ToDo: use [Category(SKIP_SETUP_DEVICE)] to mark a test for not connecting the default device
+        {
+            Console.WriteLine(">>> SetUp() - connect first available device (any)");
+
+            if (!CheckForSkipSetup(SETUP_DEVICE_NATIVE_STREAMING))
+            {
+                //device = instance.AddDevice(ConnectionStringDaqRef);
+                device = ConnectFirstAvailableDevice(instance, eDesiredConnection.Any);
+            }
+            else
+                device = ConnectFirstAvailableDevice(instance, eDesiredConnection.NativeStreaming);
+
+            using var allSignals = device.GetChannels()[0].GetSignals();
+            signal = allSignals[0];
+//            signals = CoreTypesFactory.CreateList<Signal>();
+        }
+
+
+        // local functions ========================================================================
+
+        static bool CheckForSkipSetup(string category)
+        {
+            var categories = TestContext.CurrentContext.Test.Properties["Category"];
+            bool skipSetup = categories.Contains(category);
+            return skipSetup;
+        }
+    }
+
+    [TearDown]
+    public void _TearDown()
+    {
+        //Console.WriteLine("+ TearDown()");
+        if (instance == null)
+        {
+            Console.WriteLine("* skipping TearDown()");
+            return;
+        }
+
+//        if (signals != null)
+//        {
+//            signals.Dispose();
+//#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+//            signals = null;
+//#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+//        }
+
+        if (signal != null)
+        {
+            signal.Dispose();
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+            signal = null;
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+        }
+
+        //Hack: dispose of all connected devices and then dispose of the instance to avoid GC messing up with that sequence
+        if (device != null)
+        {
+            Console.WriteLine(">>> TearDown() - disconnect device");
+
+            instance.RemoveDevice(device);
+            device.Dispose();
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+            device = null;
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+        }
+
+        IListObject<Device> devices = instance.GetDevices();
+
+        Console.WriteLine($">>> TearDown() - disconnect {devices.Count} still connected devices");
+        foreach (var connectedDevice in devices)
+            connectedDevice.Dispose();
+
+        devices.Dispose();
+
+        Console.WriteLine($">>> TearDown() - dispose instance");
+
+        instance.Dispose();
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+        instance = null;
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+    }
+
+
+
+    private static Device ConnectFirstAvailableDevice(Instance daqInstance,
+                                                      eDesiredConnection desiredConnection = eDesiredConnection.DaqRef,
+                                                      bool doLog = false)
+    {
+        Console.WriteLine($"Trying to connect to {desiredConnection} device");
+
+        if (doLog) Console.WriteLine("daqInstance.AvailableDevices");
+        var availableDevicesInfos = daqInstance.AvailableDevices;
+        var deviceInfoCount = availableDevicesInfos.Count;
+        if (doLog) Console.WriteLine($"  {deviceInfoCount} devices available");
+
+        //take only the first valid connection string
+        string? connectionString = null;
+
+        bool doDaqRef          = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.DaqRef);
+        bool doOpcUa           = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.OpcUa);
+        bool doWinSock         = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.WinSock);
+        bool doLocalHost       = (desiredConnection == eDesiredConnection.Any) || (desiredConnection == eDesiredConnection.LocalHost);
+        bool doNativeStreaming =                                                  (desiredConnection == eDesiredConnection.NativeStreaming);
+
+        //foreach (var deviceInfo in availableDevicesInfos) { }
+
+        using (var deviceInfoIterator = availableDevicesInfos.GetEnumerator())
+        {
+            while (deviceInfoIterator.MoveNext())
+            {
+                using var deviceInfo       = deviceInfoIterator.Current;
+                var deviceName             = deviceInfo.Name;
+                var deviceConnectionString = deviceInfo.ConnectionString;
+
+                if (deviceName.StartsWith("HBK-CAL"))
+                    continue;
+
+                if (deviceName.StartsWith("HBK-HF-"))
+                    continue;
+
+                if (deviceName.StartsWith("HBK-SY-"))
+                    continue;
+
+                //uncomment when only local VM should be used (home office)
+                //if (deviceConnectionString.StartsWith("daq.opcua://172."))
+                //    continue;
+
+                if (!doNativeStreaming)
+                {
+                    //connectible device?
+                    if ((doOpcUa && deviceConnectionString.StartsWith(ConnectionProtocolOpcUa, StringComparison.InvariantCultureIgnoreCase))
+                        || (doWinSock && deviceConnectionString.StartsWith(ConnectionProtocolWinSock, StringComparison.InvariantCultureIgnoreCase))
+                        || (doDaqRef && deviceConnectionString.StartsWith(ConnectionProtocolDaqRef, StringComparison.InvariantCultureIgnoreCase)))
+                    {
+                        connectionString = deviceConnectionString;
+                        break;
+                    }
+                }
+                else
+                {
+                    // Find and connect to a Device hosting an Native Streaming server
+                    using var capability = deviceInfo.ServerCapabilities.FirstOrDefault(capability => capability.ProtocolName == "OpenDAQNativeStreaming");
+                    if (capability != null)
+                    {
+                        connectionString = capability.ConnectionString;
+                        break;
+                    }
+                }
+            }
+        }
+
+        availableDevicesInfos.Dispose();
+
+        if (doLocalHost && string.IsNullOrEmpty(connectionString))
+        {
+            connectionString = "daq.opcua://127.0.0.1";
+        }
+
+        Assert.That(connectionString, Is.Not.Null, $"*** Test aborted - No connectible device available ({nameof(desiredConnection)} = {desiredConnection}).");
+
+        Console.WriteLine($"daqInstance.AddDevice(\"{connectionString}\")");
+        using var connectionStringObject = (StringObject)connectionString;
+        //using var propertyObject = CoreObjectsFactory.CreatePropertyObject();
+        var addedDevice = daqInstance.AddDevice(connectionStringObject/*, propertyObject*/);
+
+        Assert.That(addedDevice, Is.Not.Null, "*** Test aborted - Device connection failed.");
+
+        var deviceNameStr = addedDevice.Name;
+        Console.WriteLine($"- Device to test: '{deviceNameStr}'");
+
+        return addedDevice;
+    }
+
+
+    // Component Tree
+
+    #region Components ./Antora/modules/explanations/pages/components.adoc
 
     [Test]
-    public void DeviceComponentsTest()
+    [Category(SKIP_SETUP_DEVICE)]
+    public void Test_0001_ComponentTreeComponentStatusesTest()
     {
-        #region just for the test to compile
-        var daqInstance = OpenDAQFactory.Instance(".");
-        var device = daqInstance.AddDevice(REFERENCE_DEVICE);
-        #endregion
+        var scalingFb = instance.AddFunctionBlock("RefFBModuleScaling");
+        Console.Write("The Scaling Function Block available statuses: ");
+        foreach (string statusName in scalingFb.StatusContainer.Statuses.Keys)
+            Console.Write($"\"{statusName}\"; ");
+        Console.WriteLine();
+        Console.WriteLine("The Scaling Function Block \"ComponentStatus\" is {0}",
+                          scalingFb.StatusContainer.GetStatus("ComponentStatus"));
+        Console.WriteLine("The message is {0}",
+                          scalingFb.StatusContainer.GetStatusMessage("ComponentStatus"));
+    }
 
+    [Test]
+    public void Test_0002_ComponentTreeTraversingFoldersTest()
+    {
+        #region not for documentation
+        FindSignals(device);
+        #endregion not for documentation
+
+        void FindSignals(Device device)
+        {
+            foreach (var signal in device.GetSignals(SearchFactory.Recursive(SearchFactory.Any())))
+                Console.WriteLine(signal.GlobalId);
+        }
+    }
+
+    #endregion Components
+
+    #region Device ./Antora/modules/explanations/pages/device.adoc
+
+    [Test]
+    public void Test_0101_ComponentTreeDeviceComponentsTest()
+    {
         // Assumes a Device object is available in the `device` variable
 
         // Gets the Device's function blocks
@@ -47,16 +300,14 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
 
         // Gets all custom Components of the Device
         IListObject<Component> customComponents = device.CustomComponents;
+
+        // Gets the SyncComponent of the Device
+        SyncComponent syncComponent = device.SyncComponent;
     }
 
     [Test]
-    public void DeviceInformationTest()
+    public void Test_0102_ComponentTreeDeviceInformationTest()
     {
-        #region just for the test to compile
-        var daqInstance = OpenDAQFactory.Instance(".");
-        var device = daqInstance.AddDevice(REFERENCE_DEVICE);
-        #endregion
-
         // Gets the Device information and prints its serial number
         DeviceInfo info = device.Info;
         Console.WriteLine(info.SerialNumber);
@@ -67,7 +318,8 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void InstanceAndRootDeviceTest()
+    [Category(SKIP_SETUP)]
+    public void Test_0103_ComponentTreeInstanceAndRootDeviceTest()
     {
         Instance instance = OpenDAQFactory.Instance();
 
@@ -76,20 +328,17 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         var availableDevices2 = instance.RootDevice.AvailableDevices;
     }
 
-    #endregion device.adoc
+    #endregion Device
 
-    #region ./Antora/background_info/pages/function_blocks.adoc
+    #region Function Block ./Antora/modules/explanations/pages/components.adoc
 
     [Test]
-    public void InputPortsTest()
+    public void Test_0201_ComponentTreeFunctionBlockInputPortsTest()
     {
-        #region just for the test to compile
-        var daqInstance = OpenDAQFactory.Instance(".");
-        var device = daqInstance.AddDevice(REFERENCE_DEVICE);
-        var signal = device.GetChannels()[0].GetSignals()[0];
-        var functionBlock = daqInstance.AddFunctionBlock("RefFBModuleStatistics");
-        var inputPort = functionBlock.GetInputPorts()[0];
-        #endregion
+        #region not for documentation
+        var fb = instance.AddFunctionBlock("RefFBModuleScaling");
+        var inputPort = fb.GetInputPorts()[0];
+        #endregion not for documentation
 
         inputPort.Connect(signal);
         // signal is now connected to the inputPort
@@ -98,40 +347,71 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void FunctionBlockInstantiationTest()
+    [Category(SKIP_SETUP_DEVICE)]
+    public void Test_0202_ComponentTreeFunctionBlockInstantiationTest()
     {
-        #region just for the test to compile
-        var daqInstance = OpenDAQFactory.Instance(".");
-
-        //foreach (var key in daqInstance.AvailableFunctionBlockTypes.Keys)
-        //    Console.WriteLine((string)key);
-        #endregion
-
-        FunctionBlock fb = daqInstance.AddFunctionBlock("RefFBModuleFFT");
+        FunctionBlock fb = instance.AddFunctionBlock("RefFBModuleFFT");
         // Function Block appears under FunctionBlocks of the instance
-        IListObject<FunctionBlock> fbs = daqInstance.GetFunctionBlocks();
+        IListObject<FunctionBlock> fbs = instance.GetFunctionBlocks();
         FunctionBlock fb1 = fbs[fbs.Count - 1];
         Debug.Assert(fb == fb1);
     }
 
     [Test]
-    public void ChannelsTest()
+    public void Test_0203_ComponentTreeFunctionBlockChannelsTest()
     {
-        #region just for the test to compile
-        var daqInstance = OpenDAQFactory.Instance(".");
-        var device = daqInstance.AddDevice(REFERENCE_DEVICE);
-        #endregion
-
         // get a flat list of channels
         IListObject<Channel> channels = device.GetChannels();
     }
 
-    #endregion function_blocks.adoc
+    #endregion Function Block
 
-    #region ./Antora/background_info/pages/property_system.adoc
+    #region Signal ./Antora/modules/explanations/pages/signals.adoc
+    //Test_0301_
+
+    #endregion Signal
+
+    #region Data Path ./Antora/modules/explanations/pages/data_path.adoc
 
     [Test]
-    public void SimplePropertyObjectExampleTest()
+    public void Test_0401_ComponentTreeDataPathConnectionTest()
+    {
+        #region not for documentation
+        var fb = instance.AddFunctionBlock("RefFBModuleScaling");
+        var inputPort = fb.GetInputPorts()[0];
+        #endregion not for documentation
+
+        inputPort.Connect(signal);
+        // connection object is now accessible on inputPort
+        Connection connection = inputPort.Connection;
+    }
+
+    [Test]
+    public void Test_0402_ComponentTreeDataPathInputPortTest()
+    {
+        #region not for documentation
+        var fb = instance.AddFunctionBlock("RefFBModuleScaling");
+        var inputPort = fb.GetInputPorts()[0];
+        inputPort.Connect(signal);
+        #endregion not for documentation
+
+        Packet packet = inputPort.Connection.Dequeue();
+        // process packet, i.e. read samples from the packet
+        //ProcessPacket(packet);
+    }
+
+    #endregion Data Path
+
+
+    // Features
+
+    #region Property system ./Antora/modules/explanations/pages/property_system.adoc
+
+    #region Simple Property Object
+
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_0501_FeaturesPropertySystemSimplePropertyObjectTest()
     {
         PropertyObject CreateSimplePropertyObject()
         {
@@ -149,8 +429,13 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
     }
 
+    #endregion Simple Property Object
+
+    #region Property
+
     [Test]
-    public void PropertyTest()
+    [Category(SKIP_SETUP)]
+    public void Test_0511_FeaturesPropertySystemPropertyTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         propObj.AddProperty(PropertyFactory.StringProperty("MyString", "foo"));
@@ -158,8 +443,11 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         Console.WriteLine((string)propObj.GetPropertyValue("MyString"));
     }
 
+    #region Types of Properties
+
     [Test]
-    public void NumericalPropertiesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05121_FeaturesPropertySystemNumericalPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         var intProp = CoreObjectsFactory.CreateIntPropertyBuilder("Integer", 10);
@@ -167,9 +455,9 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         intProp.MaxValue = 15;
         propObj.AddProperty(intProp.Build());
 
-        var suggestedValues = CoreTypesFactory.CreateList<BaseObject>(1.23, 3.21, 5.67);
+        var suggestedValues = CoreTypesFactory.CreateList<FloatObject>(1.23, 3.21, 5.67);
         var floatProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Float", 3.21);
-        floatProp.SuggestedValues = suggestedValues;
+        floatProp.SuggestedValues = suggestedValues.CastList();
 
         propObj.AddProperty(floatProp.Build());
 
@@ -183,15 +471,17 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void SelectionPropertiesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05122_FeaturesPropertySystemSelectionPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>("Apple", "Banana", "Kiwi");
-        propObj.AddProperty(PropertyFactory.SelectionProperty("ListSelection", list, 0));
+        var list = CoreTypesFactory.CreateList<StringObject>("Apple", "Banana", "Kiwi");
 
-        var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>((0, "foo"), (10, "bar"));
-        propObj.AddProperty(PropertyFactory.SparseSelectionProperty("DictSelection", dict, 10));
+        propObj.AddProperty(PropertyFactory.SelectionProperty("ListSelection", list.CastList(), 0));
+
+        var dict = CoreTypesFactory.CreateDict<IntegerObject, StringObject>((0, "foo"), (10, "bar"));
+        propObj.AddProperty(PropertyFactory.SparseSelectionProperty("DictSelection", dict.CastDict(), 10));
 
         // Prints "1"
         Console.WriteLine((long)propObj.GetPropertyValue("ListSelection"));
@@ -207,7 +497,8 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void ObjectPropertiesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05123_FeaturesPropertySystemObjectPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         var child1 = CoreObjectsFactory.CreatePropertyObject();
@@ -224,30 +515,32 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void ContainerPropertiesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05124_FeaturesPropertySystemContainerPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
+        var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Apple", "Kiwi");
 
-        propObj.AddProperty(PropertyFactory.ListProperty("List", list));
+        propObj.AddProperty(PropertyFactory.ListProperty("List", list.CastList()));
 
-        var dict = CoreTypesFactory.CreateDict<BaseObject, BaseObject>((0, "foo"), (10, "bar"));
-        propObj.AddProperty(PropertyFactory.DictProperty("Dict", dict));
+        var dict = CoreTypesFactory.CreateDict<IntegerObject, StringObject>((0, "foo"), (10, "bar"));
+        propObj.AddProperty(PropertyFactory.DictProperty("Dict", dict.CastDict()));
 
         // Prints out "Banana"
         Console.WriteLine((string)propObj.GetPropertyValue("List").CastList<StringObject>()[0]);
         // Prints out "bar"
         Console.WriteLine((string)propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>()[10]);
 
-        var list2 = CoreTypesFactory.CreateList<BaseObject>("Pear", "Strawberry");
+        var list2 = CoreTypesFactory.CreateList<StringObject>("Pear", "Strawberry");
 
         // Sets a new value for the List Property
         propObj.SetPropertyValue("List", (BaseObject)list2);
     }
 
     [Test]
-    public void ReferencePropertiesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05125_FeaturesPropertySystemReferencePropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         propObj.AddProperty(PropertyFactory.IntProperty("Integer", 0));
@@ -266,7 +559,55 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void RemainingPropertyTypesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05126_FeaturesPropertySystemProcedurePropertiesTest()
+    {
+        var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+        var arguments = CoreTypesFactory.CreateList(CoreObjectsFactory.CreateArgumentInfo("Val1", CoreType.ctInt),
+                                                    CoreObjectsFactory.CreateArgumentInfo("Val2", CoreType.ctInt));
+
+        propObj.AddProperty(PropertyFactory.FunctionProperty("SumFunction",
+                                                             CoreObjectsFactory.CreateCallableInfo(arguments.CastList(),
+                                                                                                   CoreType.ctInt,
+                                                                                                   constFlag: true)));
+
+        var func = CoreTypesFactory.CreateFunction(SumLongs);
+        propObj.SetPropertyValue("SumFunction", func);
+
+        Function sumFunc = propObj.GetPropertyValue("SumFunction").Cast<Function>();
+
+        // Prints out 42
+        Console.WriteLine((long)sumFunc.Call(((ListObject<IntegerObject>)CoreTypesFactory.CreateList<IntegerObject>(12, 30))
+                                                                                         .Cast<BaseObject>()));
+
+        //implement a FuncCallDelegate function
+        ErrorCode SumLongs(BaseObject? parameters, out BaseObject? result)
+        {
+            //initialize output
+            result = null;
+
+            //expecting two long parameters
+            using var paramsList = parameters?.CastList<IntegerObject>();
+            if ((paramsList == null) || (paramsList.Count != 2))
+            {
+                Console.WriteLine($"-> 'parameters' is not a 'ListObject<IntegerObject>' with 2 entries");
+
+                //tell API that it was not OK
+                return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            }
+
+            //returning the sum of the given integer parameters as result
+            result = (long)paramsList[0] + (long)paramsList[1];
+
+            //tell API that everything was OK
+            return ErrorCode.OPENDAQ_SUCCESS;
+        }
+    }
+
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_05127_FeaturesPropertySystemRemainingPropertyTypesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
@@ -274,8 +615,11 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         propObj.AddProperty(PropertyFactory.BoolProperty("Bool", true));
     }
 
+    #endregion Types of Properties
+
     [Test]
-    public void CreatingAndConfiguringAPropertyTest()
+    [Category(SKIP_SETUP)]
+    public void Test_0513_FeaturesPropertySystemCreatingAndConfiguringAPropertyTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
@@ -286,8 +630,76 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         propObj.AddProperty(floatProp.Build());
     }
 
+    #region Properties and EvalValue
+
     [Test]
-    public void ReferencingAnotherPropertyTest1()
+    [Category(SKIP_SETUP)]
+    public void Test_05141_FeaturesPropertySystemPropertiesAndEvalValueTest()
+    {
+#if !conversion_of_EvalValue_possible
+        /*
+            [NOTE]
+            The `EvalValue` usage for `PropertyBuilder` settings of the C++ example is not supported in the current version of the .NET Bindings. +
+            E.g. this is not possible (conversion of `EvalValue` to `Unit`): +
+            `amplitudeProp.Unit = CoreObjectsFactory.CreateEvalValue("Unit(%AmplitudeUnit:SelectedValue)");`
+        */
+#else
+        PropertyObject simulatedChannel = CoreObjectsFactory.CreatePropertyObject();
+        simulatedChannel.AddProperty(PropertyFactory.SelectionProperty("Waveform", CoreTypesFactory.CreateList<StringObject>("Sine", "Counter").CastList(), 0));
+        simulatedChannel.AddProperty(PropertyFactory.ReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
+
+        PropertyBuilder freqProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Frequency", 10.0);
+        freqProp.Unit = CoreObjectsFactory.CreateUnit(-1, "Hz", "", "");
+        freqProp.MinValue = 0.1;
+        freqProp.MaxValue = 1000.0;
+        freqProp.SuggestedValues = CoreTypesFactory.CreateList<FloatObject>(0.1, 10.0, 100.0, 1000.0).CastList();
+
+        simulatedChannel.AddProperty(freqProp.Build());
+
+        // Sine settings
+
+        PropertyObject sineSettings = CoreObjectsFactory.CreatePropertyObject();
+
+        sineSettings.AddProperty(PropertyFactory.SelectionProperty("AmplitudeUnit", CoreTypesFactory.CreateList<StringObject>("V", "mV").CastList(), 0));
+
+        PropertyBuilder amplitudeProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Amplitude", 5);
+        amplitudeProp.Unit = CoreObjectsFactory.CreateEvalValue("Unit(%AmplitudeUnit:SelectedValue)");          @@@//ToDo: convert EvalValue to Unit
+        sineSettings.AddProperty(amplitudeProp.Build());
+
+        sineSettings.AddProperty(PropertyFactory.BoolProperty("EnableScaling", false));
+
+        PropertyBuilder scalingFactor = CoreObjectsFactory.CreateFloatPropertyBuilder("ScalingFactor", 1.0);
+        scalingFactor.Visible = CoreObjectsFactory.CreateEvalValue("$EnableScaling");                           @@@//ToDo: convert EvalValue to bool??
+        sineSettings.AddProperty(scalingFactor.Build());
+
+        simulatedChannel.AddProperty(PropertyFactory.ObjectProperty("SineSettings", sineSettings));
+
+        // Counter settings
+
+        PropertyObject counterSettings = CoreObjectsFactory.CreatePropertyObject();
+
+        counterSettings.AddProperty(PropertyFactory.IntProperty("Increment", 1));
+
+        counterSettings.AddProperty(PropertyFactory.SelectionProperty("Mode", CoreTypesFactory.CreateList<StringObject>("Infinite", "Loop").CastList(), 0));
+
+        PropertyBuilder loopThreshold = CoreObjectsFactory.CreateIntPropertyBuilder("LoopThreshold", 100);
+        loopThreshold.MinValue = 1;
+        loopThreshold.Visible = CoreObjectsFactory.CreateEvalValue("$Mode == 1");                               @@@//ToDo: convert EvalValue to bool??
+        counterSettings.AddProperty(loopThreshold.Build());
+
+        PropertyBuilder resetProp = CoreObjectsFactory.CreateFunctionPropertyBuilder("Reset", CoreObjectsFactory.CreateCallableInfo(null, CoreType.ctUndefined, constFlag: false));
+        resetProp.ReadOnly = true;
+        resetProp.Visible = CoreObjectsFactory.CreateEvalValue("$Mode == 0");                                   @@@//ToDo: convert EvalValue to bool??
+        counterSettings.AddProperty(resetProp.Build());
+        counterSettings.Cast<PropertyObjectProtected>().SetProtectedPropertyValue("Reset", CoreTypesFactory.CreateProcedure(_ => { /* reset counter */ return ErrorCode.OPENDAQ_SUCCESS; }));
+
+        simulatedChannel.AddProperty(PropertyFactory.ObjectProperty("CounterSettings", counterSettings));
+#endif
+    }
+
+    //[Test]
+    [Category(SKIP_SETUP)]
+    public void Test_05142_FeaturesPropertySystemReferencingAnotherPropertyTest1()
     {
         #region just for the test to compile
         PropertyObject sineSettings = CoreObjectsFactory.CreatePropertyObject();
@@ -296,9 +708,9 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
 
         PropertyObject simulatedChannel = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>("Sine", "Counter");
+        var list = CoreTypesFactory.CreateList<StringObject>("Sine", "Counter");
 
-        simulatedChannel.AddProperty(PropertyFactory.SelectionProperty("Waveform", list, 0));
+        simulatedChannel.AddProperty(PropertyFactory.SelectionProperty("Waveform", list.CastList(), 0));
         simulatedChannel.AddProperty(PropertyFactory.ReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
 
         //...
@@ -311,7 +723,8 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void ReferencingAnotherPropertyTest2()
+    [Category(SKIP_SETUP)]
+    public void Test_05143_FeaturesPropertySystemReferencingAnotherPropertyTest2()
     {
         // If the value of the "Waveform" Property equals 0, the EvalValue evaluates to the
         // "SineSettings" Property. If not, it evaluates to the "CounterSettings" Property.
@@ -319,9 +732,14 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     //[Test]
-    public void ReferencingAnotherPropertyTest3()
+    [Category(SKIP_SETUP)]
+    public void Test_05144_FeaturesPropertySystemReferencingAnotherPropertyTest3()
     {
-        // Not supported in .NET
+        /*
+            [NOTE]
+            The `EvalValue` usage of the C++ example is not supported in the current version of the .NET Bindings. +
+            I.e. it is not possible to convert an `EvalValue` to `BoolObject`.
+         */
 
         //#region just for the test to compile
         //PropertyBuilder scalingFactor = CoreObjectsFactory.CreateFloatPropertyBuilder("ScalingFactor", 1.0);
@@ -341,26 +759,34 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     //[Test]
-    public void ReferencingAnotherPropertyTest4()
+    [Category(SKIP_SETUP)]
+    public void Test_05145_FeaturesPropertySystemReferencingAnotherPropertyTest4()
     {
-        // Not supported in .NET
+        /*
+            [NOTE]
+            The `EvalValue` usage of the C++ example is not supported in the current version of the .NET Bindings. +
+            I.e. it is not possible to convert an `EvalValue` to `Unit`.
+         */
 
         //#region just for the test to compile
         //PropertyObject sineSettings = CoreObjectsFactory.CreatePropertyObject();
         //PropertyBuilder amplitudeProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Amplitude", 5);
         //#endregion
 
-        //var list = CoreTypesFactory.CreateList<BaseObject>("V", "mV");
+        //var list = CoreTypesFactory.CreateList<StringObject>("V", "mV");
 
-        //sineSettings.AddProperty(PropertyFactory.SelectionProperty("AmplitudeUnit", list, 0));
+        //sineSettings.AddProperty(PropertyFactory.SelectionProperty("AmplitudeUnit", list.CastList(), 0));
 
         ////...
 
         //amplitudeProp.Unit = CoreObjectsFactory.CreateEvalValue("Unit(%AmplitudeUnit:SelectedValue)");
     }
 
+    #endregion Properties and EvalValue
+
     [Test]
-    public void ValidationAndCoercionTest()
+    [Category(SKIP_SETUP)]
+    public void Test_0515_FeaturesPropertySystemValidationAndCoercionTest()
     {
         OpenDaqException ex = Assert.Throws<OpenDaqException>(() =>
         {
@@ -378,18 +804,21 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
 
             // Throws a validation error
             propObj.SetPropertyValue("ValidatedProp", 15);
-        });
+        }, "*** No exception thrown");
 
-        if (ex != null)
-            Console.WriteLine($"{ex.GetType().Name} thrown with error code = {ex.ErrorCode}");
-        else
-            Console.WriteLine($"No exception thrown");
+        //here always ex != null
+        Console.WriteLine($"{ex.GetType().Name} thrown with error code = {ex.ErrorCode}");
 
         Assert.That(ex.ErrorCode, Is.EqualTo(ErrorCode.OPENDAQ_ERR_VALIDATE_FAILED), "*** Wrong exception error code");
     }
 
+    #endregion Property
+
+    #region Property Object
+
     [Test]
-    public void AddingRemovingPropertiesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05211_FeaturesPropertySystemAddingRemovingPropertiesTest()
     {
         OpenDaqException ex = Assert.Throws<OpenDaqException>(() =>
         {
@@ -408,11 +837,12 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void ListingPropertiesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05212_FeaturesPropertySystemListingPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
-        propObj.AddProperty(PropertyFactory.IntProperty("Int", 10, false));
+        propObj.AddProperty(PropertyFactory.IntProperty("Int", 10, visible: false));
         propObj.AddProperty(PropertyFactory.FloatProperty("Float", 15.0));
         propObj.AddProperty(PropertyFactory.ReferenceProperty("FloatRef", CoreObjectsFactory.CreateEvalValue("%Float")));
 
@@ -429,10 +859,11 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void ReadingWritingPropertyValuesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05213_FeaturesPropertySystemReadingWritingPropertyValuesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
-        propObj.AddProperty(PropertyFactory.StringProperty("String", "foo", false));
+        propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
 
         // Prints "foo"
         Console.WriteLine((string)propObj.GetPropertyValue("String"));
@@ -442,7 +873,8 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void RWNestedPropertyObjectsTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05214_FeaturesPropertySystemRWNestedPropertyObjectsTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         var child1 = CoreObjectsFactory.CreatePropertyObject();
@@ -459,31 +891,33 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void RWSelectionPropertiesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05215_FeaturesPropertySystemRWSelectionPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
+        var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Kiwi");
 
-        propObj.AddProperty(PropertyFactory.SelectionProperty("Selection", list, 1));
+        propObj.AddProperty(PropertyFactory.SelectionProperty("Selection", list.CastList(), 1));
 
         // Prints "Kiwi"
         Console.WriteLine((string)propObj.GetPropertySelectionValue("Selection"));
     }
 
     [Test]
-    public void RWListPropertiesTest1()
+    [Category(SKIP_SETUP)]
+    public void Test_05216_FeaturesPropertySystemRWListPropertiesTest1()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
+        var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Kiwi");
 
-        propObj.AddProperty(PropertyFactory.ListProperty("List", list));
+        propObj.AddProperty(PropertyFactory.ListProperty("List", list.CastList()));
 
         // Prints "Banana"
         Console.WriteLine((string)propObj.GetPropertyValue("List[0]"));
 
-        var list2 = CoreTypesFactory.CreateList<BaseObject>("Pear", "Strawberry");
+        var list2 = CoreTypesFactory.CreateList<StringObject>("Pear", "Strawberry");
 
         // Sets a new value to the List Property.
         propObj.SetPropertyValue("List", (BaseObject)list2);
@@ -493,14 +927,15 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void RWListPropertiesTest2()
+    [Category(SKIP_SETUP)]
+    public void Test_05217_FeaturesPropertySystemRWListPropertiesTest2()
     {
         #region just for the test to compile
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var list0 = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
+        var list0 = CoreTypesFactory.CreateList<StringObject>("Banana", "Kiwi");
 
-        propObj.AddProperty(PropertyFactory.ListProperty("List", list0));
+        propObj.AddProperty(PropertyFactory.ListProperty("List", list0.CastList()));
         #endregion
 
         IListObject<BaseObject> list = propObj.GetPropertyValue("List").CastList<BaseObject>();
@@ -512,12 +947,13 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void RWDictionaryPropertiesTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05218_FeaturesPropertySystemRWDictionaryPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-        var dict0 = CoreTypesFactory.CreateDict<BaseObject, BaseObject>((1, "Banana"), (12, "Kiwi"));
-        propObj.AddProperty(PropertyFactory.DictProperty("Dict", dict0));
+        var dict0 = CoreTypesFactory.CreateDict<IntegerObject, StringObject>((1, "Banana"), (2, "Kiwi"));
+        propObj.AddProperty(PropertyFactory.DictProperty("Dict", dict0.CastDict()));
 
         IDictObject<IntegerObject, StringObject> dict = propObj.GetPropertyValue("Dict").CastDict<IntegerObject, StringObject>();
         dict[3] = "Blueberry";
@@ -526,31 +962,75 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         propObj.SetPropertyValue("Dict", (BaseObject)dict);
     }
 
-    [Test]
-    public void PropertyObjectClassTest()
+    //[Test]
+    [Category(SKIP_SETUP)]
+    public void Test_05219_FeaturesPropertySystemRWEventsTest()
     {
+        /*
+            [NOTE]
+            Events are not supported in the current version of the .NET Bindings.
+         */
+
+        /*
+            auto propObj = PropertyObject();
+            propObj.addProperty(IntProperty("IntReadCount", 0));
+
+            propObj.addProperty(IntProperty("Int", 10));
+
+            // Coerce the value of "Int" to a maximum of 20.
+            propObj.getOnPropertyValueWrite("Int") +=
+              [](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+              {
+                Int writtenValue = args.getValue();
+                if (writtenValue > 20)
+                {
+                  args.setValue(20);
+                }
+              };
+
+            // Increment IntReadCount whenever the "Int" Property Value is read.
+            propObj.getOnPropertyValueRead("Int") +=
+              [](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+              {
+                IntegerPtr readCount = sender.getPropertyValue("IntReadCount");
+                sender.setPropertyValue("IntReadCount", readCount + 1);
+              };
+
+
+            propObj.setPropertyValue("Int", 30);
+            // Prints out 20
+            std::cout << propObj.getPropertyValue("Int") << std::endl;
+            // Prints out 1
+            std::cout << propObj.getPropertyValue("IntReadCount") << std::endl;
+         */
+    }
+
+    #endregion Property Object
+
+    #region Property Object Class
+
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_05311_FeaturesPropertySystemPropertyObjectClassTest()
+    {
+        var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Apple", "Kiwi");
+
         PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
-
         propClass.AddProperty(PropertyFactory.IntProperty("Integer", 10));
-
-        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
-
-        propClass.AddProperty(PropertyFactory.SelectionProperty("Selection", list, 1));
+        propClass.AddProperty(PropertyFactory.SelectionProperty("Selection", list.CastList(), 1));
     }
 
     [Test]
-    public void POCManageTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05312_FeaturesPropertySystemPOCManageTest()
     {
         TypeManager manager = CoreTypesFactory.CreateTypeManager();
 
+        var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Apple", "Kiwi");
+
         PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilder("MyClass");
-
         propClass.AddProperty(PropertyFactory.IntProperty("Integer", 10));
-
-        var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
-
-        propClass.AddProperty(PropertyFactory.SelectionProperty("Selection", list, 1));
-
+        propClass.AddProperty(PropertyFactory.SelectionProperty("Selection", list.CastList(), 1));
         manager.AddType(propClass.Build());
 
         PropertyObject propObj = CoreObjectsFactory.CreatePropertyObjectWithClassAndManager(manager, "MyClass");
@@ -560,7 +1040,8 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void POCClassInheritanceTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05314_FeaturesPropertySystemPOCClassInheritanceTest()
     {
         TypeManager manager = CoreTypesFactory.CreateTypeManager();
 
@@ -581,11 +1062,43 @@ public class OpenDaqBackgroundInfoGuidesTests : OpenDAQTestsBase
         Console.WriteLine((string)propObj.GetPropertyValue("OwnProp"));
     }
 
-    #endregion property_system.adoc
-
-    //template snippet - clone these lines and rename the method for a new test
     //[Test]
-    public void _EmptyTest()
+    [Category(SKIP_SETUP)]
+    public void Test_05315_FeaturesPropertySystemPOCPropertyEventsOnClassesTest()
     {
+#if !supports_events
+        /*
+            [NOTE]
+            Event handling is not supported in the current version of the .NET Bindings.
+         */
+#else
+        int readCount = 0;
+
+        var intProp = PropertyFactory.IntProperty("ReadCount", 0);
+        intProp.OnPropertyValueRead.AddHandler((PropertyObject sender, PropertyValueEventArgs args) => //ToDo: AddHandler() @@@
+        {
+            readCount++;
+            sender.Cast<PropertyObjectProtected>().SetProtectedPropertyValue("ReadCount", readCount + 1);
+            args.Value = readCount;
+        });
+
+        TypeManager manager = CoreTypesFactory.CreateTypeManager();
+        PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectClassBuilderWithManager(manager, "MyClass");
+        propClass.AddProperty(intProp);
+
+        manager.AddClass(propClass.Build()); //ToDo: AddClass() not available @@@
+
+        var propObj1 = CoreObjectsFactory.CreatePropertyObjectWithClassAndManager(manager, "MyClass");
+        var propObj2 = CoreObjectsFactory.CreatePropertyObjectWithClassAndManager(manager, "MyClass");
+
+        // Prints out 1
+        Console.WriteLine((long)propObj1.GetPropertyValue("ReadCount"));
+        // Prints out 2
+        Console.WriteLine((long)propObj2.GetPropertyValue("ReadCount"));
+#endif
     }
+
+    #endregion Property Object Class
+
+    #endregion Property system
 }

@@ -23,7 +23,7 @@ namespace Daq.Core.OpenDAQ;
 
 
 //SearchFilter-Factory functions of the &apos;OpenDAQ&apos; library.
-public static partial class SearchFactory
+public static class SearchFactory
 {
     /// <summary> Creates a search filter that accepts only visible components. "Visit children" returns <c>true</c>
     /// only if the component being evaluated is visible. </summary>

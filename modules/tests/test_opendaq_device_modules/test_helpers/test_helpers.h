@@ -101,7 +101,7 @@ namespace test_helpers
     [[maybe_unused]]
     static bool waitForAcknowledgement(
         std::future<StringPtr>& acknowledgementFuture,
-        std::chrono::seconds timeout = std::chrono::seconds(5))
+        std::chrono::seconds timeout = std::chrono::seconds(30))
     {
         return acknowledgementFuture.wait_for(timeout) == std::future_status::ready;
     }

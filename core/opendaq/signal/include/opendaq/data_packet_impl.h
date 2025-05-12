@@ -621,11 +621,6 @@ ErrCode DataPacketImpl<TInterface>::getRawValueByIndex(void** value, SizeT sampl
     OPENDAQ_PARAM_NOT_NULL(value);
     OPENDAQ_PARAM_NOT_NULL(*value);
 
-    const auto dimensionCount = descriptor.getDimensions().getCount();
-
-    if (dimensionCount > 1)
-        return OPENDAQ_IGNORED;
-
     std::lock_guard lk{readLock};
 
     if (sampleIndex >= sampleCount)

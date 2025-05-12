@@ -32,7 +32,6 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <coretypes/validation.h>
-#include <iostream>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
@@ -274,6 +273,18 @@ public:
             throwExceptionFromErrorCode(err);
     }
 
+    // StringSelectionProperty()
+    PropertyImpl(const StringPtr& name, IList* selectionValues, IString* defaultValue, const BooleanPtr& visible)
+        : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
+    {
+        this->valueType = ctString;
+        this->selectionValues = BaseObjectPtr(selectionValues);
+
+        const auto err = validateDuringConstruction();
+        if (err != OPENDAQ_SUCCESS)
+            throwExceptionFromErrorCode(err);
+    }
+
     // SparseSelectionProperty()
     PropertyImpl(const StringPtr& name, IDict* selectionValues, IInteger* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
@@ -363,9 +374,6 @@ public:
         BaseObjectPtr defVal;
         auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
         OPENDAQ_RETURN_IF_FAILED(err);
-
-        if (!defVal.assigned())
-            return OPENDAQ_SUCCESS;
 
         const auto value = defVal.asPtrOrNull<IDict>();
         if (!value.assigned())
@@ -582,14 +590,14 @@ public:
 	    OPENDAQ_PARAM_NOT_NULL(value);
 
 	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *value = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
-		        else
-			        *value = bindAndGet<BaseObjectPtr>(this->defaultValue, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *value = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
+            else
+                *value = bindAndGet<BaseObjectPtr>(this->defaultValue, lock).detach();
+                
+            return OPENDAQ_SUCCESS;
+        });
     }
         
     ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) override
@@ -1005,7 +1013,7 @@ public:
 
         if (selectionValues.assigned())
         {
-            bool valid = valueType == ctInt;
+            bool valid = valueType == ctInt || valueType == ctString;
             valid = valid && (selectionValues.supportsInterface<IList>() || selectionValues.supportsInterface<IDict>());
             if (!valid)
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE,
@@ -1226,12 +1234,9 @@ public:
         {
             auto defaultValueObj = defaultValue;
 
-            if (defaultValueObj.assigned())
-            {
-                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
-                if (cloneableDefaultValue.assigned())
-                    defaultValueObj = cloneableDefaultValue.clone();
-            }
+            auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+            if (cloneableDefaultValue.assigned())
+                defaultValueObj = cloneableDefaultValue.clone();
 
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
@@ -1485,9 +1490,6 @@ private:
     template <typename TPtr>
     TPtr bindAndGet(const BaseObjectPtr& metadata, bool lock) const
     {
-	    if (!metadata.assigned())
-		    return nullptr;
-		    
 	    auto eval = metadata.asPtrOrNull<IEvalValue>();
 	    if (!eval.assigned())
 		    return metadata;
@@ -1501,9 +1503,6 @@ private:
 
     BaseObjectPtr getUnresolved(const BaseObjectPtr& localMetadata) const
     {
-        if (!localMetadata.assigned())
-            return nullptr;
-
         if (const auto eval = localMetadata.asPtrOrNull<IEvalValue>(); eval.assigned())
         {
             const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;

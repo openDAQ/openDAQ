@@ -20,8 +20,17 @@ PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
     : permissions(detail::DefaultPermissions)
     , localPermissions(detail::DefaultPermissions)
 {
-    if (parent.assigned())
-        setParent(parent);
+    this->internalAddRef();
+    try
+    {
+        if (parent.assigned())
+            setParent(parent);
+    }
+    catch (...)
+    {
+        this->releaseWeakRefOnException();
+        throw;
+    }
 }
 
 PermissionManagerImpl::~PermissionManagerImpl()
@@ -104,7 +113,7 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::clone(IBaseObject** cloneOut)
 
 ErrCode INTERFACE_FUNC PermissionManagerImpl::setParent(IPermissionManager* parentManager)
 {
-    const auto self = borrowPtr<PermissionManagerPtr>();
+    const auto self = this->template thisPtr<PermissionManagerPtr>();
 
     if (const auto parent = getParentManager(); parent.assigned())
         parent.removeChildManager(self);

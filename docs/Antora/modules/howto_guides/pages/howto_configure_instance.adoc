@@ -1,5 +1,16 @@
 = Instance Configuration
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🧩 Create default and custom-configured Instances.
+- 🧾 Configure using JSON, environment variables, or CLI.
+- 🧮 Set global and component-specific logging levels.
+- 🛠️ Apply configuration snippets.
+====
+
 :tip-caption: Assumptions
 [TIP]
 ====
@@ -10,7 +21,7 @@ The Instance is the top-level openDAQ(TM) object, serving as a container for the
 
 **Related articles:**
 
-  * xref:knowledge_base:opendaq_architecture.adoc#instance[Architecture - Instance]
+  * xref:explanations:opendaq_architecture.adoc#instance[Architecture - Instance]
 
 == Creating the default openDAQ(TM) Instance
 
@@ -146,6 +157,7 @@ Instance instance = instanceBuilder.Build();
 ----
 ====
 
+:note-caption: Logger
 [NOTE]
 ====
 Alternatively, a developer can create their own implementation of the Logger, which implements the `ILogger` interface.

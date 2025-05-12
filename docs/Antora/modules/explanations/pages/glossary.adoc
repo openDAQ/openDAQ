@@ -73,7 +73,7 @@ They contain an event id, and a dictionary payload containing key-value pairs re
 [#descriptor_changed]
 A common event in openDAQ(TM) is the _Signal-descriptor-changed_ event, which notifies all listeners that the <<signal>>'s description has been changed.
 
-* xref:knowledge_base:packets.adoc#event_packet[More in the architecture section]
+* xref:explanations:packets.adoc#event_packet[More in the architecture section]
 
 [#data_descriptor]
 == Data Descriptor
@@ -186,12 +186,12 @@ Examples of Function Blocks:
 * *File Writer* writes input signal data into text files
 
 .Function blocks with different combinations of input ports and output signals
-image::opendaq:getting_started:function-block-types.svg[Function Blocks,align="center"]
+image::opendaq:tutorials:function-block-types.svg[Function Blocks,align="center"]
 
 Some more complex Function Blocks might have Function Blocks nested within them, to provide a better representation of hierarchical <<property,Properties>>, <<signal>>s, and <<input_port, Ports>>.
 For example, a __File Writer__ Function Block might have a nested __Trigger__ Function Block that specifies trigger conditions on when <<signal>> data should be written to a file.
 
-* xref:knowledge_base:function_blocks.adoc[More in the architecture section]
+* xref:explanations:function_blocks.adoc[More in the architecture section]
 
 [#channel]
 == Channel
@@ -199,7 +199,7 @@ For example, a __File Writer__ Function Block might have a nested __Trigger__ Fu
 Specialization of a <<function_block>> that represents a channel on physical hardware. openDAQ(TM) physical <<device>>s contain a list of channels.
 Examples might include channels representing Analog inputs / outputs and CAN buses.
 
-* xref:knowledge_base:function_blocks.adoc#channel[More in the architecture section]
+* xref:explanations:function_blocks.adoc#channel[More in the architecture section]
 
 [#input_port]
 == Input Port
@@ -212,7 +212,7 @@ If it is not, the <<signal>> can't be connected.
 
 Input Ports are most often used by <<function_block>>s to obtain input data to process and <<reader>>s which read data sent by <<signal>>s.
 
-* xref:knowledge_base:function_blocks.adoc#input_port[More in the architecture section]
+* xref:explanations:function_blocks.adoc#input_port[More in the architecture section]
 
 [#connection]
 == Connection
@@ -229,14 +229,14 @@ Readers connect to <<signal>>s and provide an easy way of reading signal data in
 
 openDAQ(TM) provides different types of readers that can be used depending on user requirements:
 
-* xref:knowledge_base:readers.adoc#packet_reader[*Packet reader*] reads one-or-more packets at a time
-* xref:knowledge_base:readers.adoc#stream_reader[*Stream reader*] reads data as a stream of values, merging data packets into a continuous data buffer.
-* xref:knowledge_base:readers.adoc#tail_reader[*Tail reader*] reads the last n values output by the signal.
-* xref:knowledge_base:readers.adoc#block_reader[*Block reader*] reads the data in predefined block size and can't read less than a full block.
-* xref:knowledge_base:readers.adoc#multi_reader[*Multi reader*] reads aligned data from multiple signals.
+* xref:explanations:readers.adoc#packet_reader[*Packet reader*] reads one-or-more packets at a time
+* xref:explanations:readers.adoc#stream_reader[*Stream reader*] reads data as a stream of values, merging data packets into a continuous data buffer.
+* xref:explanations:readers.adoc#tail_reader[*Tail reader*] reads the last n values output by the signal.
+* xref:explanations:readers.adoc#block_reader[*Block reader*] reads the data in predefined block size and can't read less than a full block.
+* xref:explanations:readers.adoc#multi_reader[*Multi reader*] reads aligned data from multiple signals.
 
 // split from the above list
-* xref:knowledge_base:readers.adoc[More in the architecture section]
+* xref:explanations:readers.adoc[More in the architecture section]
 
 [#property_object]
 == Property Object
@@ -290,8 +290,8 @@ This can be output on the console, written to a file or otherwise displayed to t
 == Instance
 
 The Instance is the entry point object to every openDAQ(TM) application.
-On creation, it initializes a xref:opendaq:knowledge_base:modules.adoc[Module Manager] that loads all available modules from a specified directory (and its subdirectories).
-By default, it creates a standard openDAQ(TM) <<root_device>>, which allows access to all loaded <<module>> capabilities (adding <<function_block>>s, adding <<device>>s, starting xref:glossary.adoc#opendaq_opcua_server_module[Servers]).
+On creation, it initializes a xref:opendaq:explanations:modules.adoc[Module Manager] that loads all available modules from a specified directory (and its subdirectories).
+By default, it creates a standard openDAQ(TM) <<root_device>>, which allows access to all loaded <<module>> capabilities (adding <<function_block>>s, adding <<device>>s, starting xref:explanations:glossary.adoc#opendaq_opcua_server_module[Servers]).
 
 The openDAQ(TM) Instance forwards all <<device>> function calls to its Root Device.
 
@@ -301,9 +301,9 @@ The openDAQ(TM) Instance forwards all <<device>> function calls to its Root Devi
 The top-level <<device>> in the openDAQ(TM) <<device>> hierarchy.
 It is the <<device>> that is directly accessed when calling <<device>> functions on the <<instance>>.
 When an <<instance>> is constructed, it creates a default root device.
-That <<device>>, when doing actions such as adding a <<device>>, or enumerating available <<device>>s, iterates through all loaded xref:glossary.adoc#module[Modules] and asks them whether they can add a given <<device>> or what <<function_block>>s they have available.
+That <<device>>, when doing actions such as adding a <<device>>, or enumerating available <<device>>s, iterates through all loaded xref:explanations:glossary.adoc#module[Modules] and asks them whether they can add a given <<device>> or what <<function_block>>s they have available.
 
-When an <<instance>> (device) hosts an xref:glossary.adoc#opendaq_opcua_server_module[OPC UA Server], any client connecting to it will see the <<device>>'s structure, starting with the Root Device at the top.
+When an <<instance>> (device) hosts an xref:explanations:glossary.adoc#opendaq_opcua_server_module[OPC UA Server], any client connecting to it will see the <<device>>'s structure, starting with the Root Device at the top.
 
 [#module]
 == Module
@@ -328,8 +328,8 @@ For example, openDAQ(TM) provides:
 
 When enumerating available <<device>>s, each <<module>> is queried for what <<device>>s it can connect to / create.
 This is done with the <<module>>'s provided discovery mechanism.
-The openDAQ(TM) xref:glossary.adoc#opendaq_opcua_client_module[OPC-UA Client Module], xref:glossary.adoc#opendaq_native_client_module[Native Streaming Module] and
-xref:glossary.adoc#opendaq_streaming_lt_client_module[Streaming LT Client Module] use a {mdns-wiki}[mDNS] query to discover all supported devices on the network.
+The openDAQ(TM) xref:explanations:glossary.adoc#opendaq_opcua_client_module[OPC UA Client Module], xref:explanations:glossary.adoc#opendaq_native_client_module[Native Streaming Module] and
+xref:explanations:glossary.adoc#opendaq_streaming_lt_client_module[Streaming LT Client Module] use a {mdns-wiki}[mDNS] query to discover all supported devices on the network.
 Those <<device>>s are assumed to be running a {mdns-wiki}[mDNS] discovery service, 
 advertising the `_opcua-tcp._tcp.local.` service, with a `TXT` record entry of `caps=TMS` if device is openDAQ(TM) OPC UA-supported,
 a {mdns-wiki}[mDNS] discovery service, advertising the `_opendaq-streaming-native._tcp.local.` service, with a `TXT` record entry of `caps=OPENDAQ_NS` if device is Native-streaming-supported.
@@ -342,7 +342,7 @@ and a {mdns-wiki}[mDNS] discovery service, advertising the `_streaming-lt._tcp.l
 The {opc-foundation-website}[OPC Foundation] (Open Platform Communications) is an industry consortium that creates and maintains standards for open connectivity of industrial automation devices and systems, such as industrial control systems and process control generally.
 
 [#opc_ua]
-== OPC-UA
+== OPC UA
 :opcua-website: https://opcfoundation.org/about/opc-technologies/opc-ua/
 :iec-opcua: https://webstore.iec.ch/publication/61114
 
@@ -354,10 +354,10 @@ The {opc-foundation-website}[OPC Foundation] (Open Platform Communications) is a
 // suppress inspection "GrazieInspection"
 A test-and-measurement standard that describes openDAQ devices based on the OPC UA for devices standard.
 It is a protocol that describes the structure of a <<device>>.
-The openDAQ(TM) xref:glossary.adoc#opendaq_opcua_client_module[OPC-UA Client Module] can connect to <<device>>s that adhere to this protocol.
+The openDAQ(TM) xref:explanations:glossary.adoc#opendaq_opcua_client_module[OPC UA Client Module] can connect to <<device>>s that adhere to this protocol.
 
 [#opendaq_opcua_server_module]
-== OPC-UA Server Module
+== OPC UA Server Module
 
 Allows for the creation of an OPC UA server on an openDAQ(TM) <<instance>>.
 It publishes the structure of the <<root_device>> and all its descendants (other <<device>>s and <<function_block>>s), and allows for changing the <<property_value>>s of all the structures from a remote client.
@@ -366,16 +366,16 @@ The structure is as of this moment locked to the state it is when the Server is 
 If a new <<function_block>>, <<device>>, <<channel>>, or other <<component>> is added, the Server doesn't yet react to that change.
 
 [#opendaq_opcua_client_module]
-== OPC-UA Client Module
+== OPC UA Client Module
 
-Allows for connecting to xref:glossary.adoc#opendaq_opcua[openDAQ(TM) OPC UA]-enabled devices running an OPC UA server.
+Allows for connecting to xref:explanations:glossary.adoc#opendaq_opcua[openDAQ(TM) OPC UA]-enabled devices running an OPC UA server.
 It reads the structure of the remote <<device>> and mirrors it as a sub-device.
 Settings changed on the <<device>> mirror are also changed on the actual <<device>> itself.
 
-The openDAQ(TM) OPC-UA Client <<module>> also can use xref:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client Module]
-and xref:glossary.adoc#opendaq_streaming_lt_client_module[openDAQ(TM) Streaming LT Client Module]
+The openDAQ(TM) OPC UA Client <<module>> also can use xref:explanations:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client Module]
+and xref:explanations:glossary.adoc#opendaq_streaming_lt_client_module[openDAQ(TM) Streaming LT Client Module]
 to connect to the server component created by the corresponding Streaming Server Module.
-Doing so enables transferring <<data_packet>>s from server <<signal>>s into client xref:glossary.adoc#device[Signals].
+Doing so enables transferring <<data_packet>>s from server <<signal>>s into client xref:explanations:glossary.adoc#device[Signals].
 
 [#opendaq_streaming_lt_server_module]
 == Streaming LT Server Module
@@ -390,7 +390,7 @@ It publishes <<device>> <<signal>>s and streams <<device>> data.
 Allows for connecting to <<device>>s running a web-socket streaming-lt server.
 
 The openDAQ(TM) Streaming LT Client Module enables its own web-socket streaming client, which connects
-to the server component created by the xref:glossary.adoc#opendaq_streaming_lt_server_module[openDAQ(TM) Streaming LT Server Module].
+to the server component created by the xref:explanations:glossary.adoc#opendaq_streaming_lt_server_module[openDAQ(TM) Streaming LT Server Module].
 Doing so reads server signals and transfers data packets from server signals into client signals.
 
 The openDAQ(TM) Streaming LT Client Module allows to read the list of all signals of
@@ -402,8 +402,8 @@ and does not provide a mechanism to change settings of the remote <<device>>.
 == openDAQ(TM) Streaming LT protocol
 
 The data transfer protocol used by openDAQ(TM) to publish <<device>> available <<signal>>s and send data from <<device>>s running an
-xref:glossary.adoc#opendaq_streaming_lt_server_module[openDAQ(TM) Streaming LT Server]
-to an xref:glossary.adoc#opendaq_streaming_lt_client_module[openDAQ(TM) Streaming LT Client].
+xref:explanations:glossary.adoc#opendaq_streaming_lt_server_module[openDAQ(TM) Streaming LT Server]
+to an xref:explanations:glossary.adoc#opendaq_streaming_lt_client_module[openDAQ(TM) Streaming LT Client].
 
 [#opendaq_native_server_module]
 == Native Server Module
@@ -427,7 +427,7 @@ It reads the structure of the remote <<device>> and mirrors it as a sub-device.
 Settings changed on the <<device>> mirror are also changed on the actual <<device>> itself.
 
 The openDAQ(TM) Native Client Module enables its own native streaming client, which connects
-to the server streaming component created by the xref:glossary.adoc#opendaq_native_server_module[openDAQ(TM) Native Server Module].
+to the server streaming component created by the xref:explanations:glossary.adoc#opendaq_native_server_module[openDAQ(TM) Native Server Module].
 Doing so reads server signals and transfers data packets from server signals into client signals.
 
 The openDAQ(TM) Native Client Module also allows to read the list of all signals of
@@ -439,15 +439,15 @@ and does not provide a mechanism to change settings of the remote <<device>>.
 == openDAQ(TM) Native streaming protocol
 
 The data transfer protocol used by openDAQ(TM) to publish <<device>> available <<signal>>s and send data from <<device>>s running an
-xref:glossary.adoc#opendaq_native_server_module[openDAQ(TM) Native Server]
-to an xref:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client].
+xref:explanations:glossary.adoc#opendaq_native_server_module[openDAQ(TM) Native Server]
+to an xref:explanations:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client].
 
 [#native_configuration_protocol]
 == openDAQ(TM) Native configuration protocol
 
 // suppress inspection "GrazieInspection"
 It is a protocol that describes the structure of a <<device>>.
-The openDAQ(TM) xref:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client] can connect to <<device>>s that adhere to this protocol.
+The openDAQ(TM) xref:explanations:glossary.adoc#opendaq_native_client_module[openDAQ(TM) Native Client] can connect to <<device>>s that adhere to this protocol.
 
 [#streaming]
 == Streaming

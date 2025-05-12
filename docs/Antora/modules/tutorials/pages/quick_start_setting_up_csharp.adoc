@@ -1,6 +1,6 @@
 = Setting up (C#)
 
-To start working with openDAQ(TM), the requisite binaries are required. They can be obtained as a NuGet package at {docs-website}[the openDAQ(TM) documentation and releases webpage] or from http://nuget.org (recommended way).  
+To start working with openDAQ(TM), the requisite binaries are required. They can be obtained from http://nuget.org (the recommended way) or from https://docs.opendaq.com (https://docs-dev.opendaq.com for the development version).
 
 NOTE: The .NET binaries are available from the Windows(TM) SDK packages, but they only contain the Windows(TM) libraries. +
       For both, Windows(TM) and Linux(TM) all binaries are available in the NuGet package, which is the recommended consumption method for .NET developers.  
@@ -9,7 +9,7 @@ All commands in this guide use the .NET command-line interface (dotnet CLI) whic
 
 == Creating an openDAQ(TM) project
 
-Below, we start a Console Project in Visual Studio(TM) from scratch but there are also example files which can be found in the examples archive from the {docs-website}[openDAQ(TM) documentation and releases webpage].
+Below, we start a Console Project in Visual Studio(TM) from scratch but there are also example files which can be found in the examples archive from https://docs.opendaq.com.
 
 === Requirements
 
@@ -109,4 +109,4 @@ dotnet add package openDAQ.Net
 ----
 
 Congratulations, if you have managed to reach this point, you have successfully created your first openDAQ(TM) project! +
-To find out more about using openDAQ(TM) in applications to connect to, configure, and read data of Devices, continue with the xref:quick_start_application.adoc[openDAQ(TM) application quick start guide].
+To find out more about using openDAQ(TM) in applications to connect to, configure, and read data of Devices, continue with the xref:tutorial_application.adoc[openDAQ(TM) application tutorial].

@@ -8,7 +8,12 @@ image::opendaq-schematic.png[image,align="center"]
 
 This documentation is split into 4 parts:
 
-* xref:getting_started:quick_start.adoc[**Getting started**]: A perfect place to start if you are completely new to openDAQ(TM). Contains tutorials guiding you through basic SDK usage examples.
+* xref:tutorials:quick_start.adoc[**Tutorials**]: A perfect place to start if you are completely new to openDAQ(TM). Contains tutorials guiding you through basic SDK usage examples.
 * xref:howto_guides:howto.adoc[**How-to guides**]: A collection of example code snippets aimed at helping you solve specific problems.
-* xref:knowledge_base:opendaq_architecture.adoc[**Knowledge base**]: Explanations of the core concepts and inner workings of the SDK.
-* xref:glossary:glossary.adoc[**Glossary**]: Glossary of commonly used terms used to represent data acquisition concepts found in openDAQ(TM).
+* xref:explanations:opendaq_architecture.adoc[**Explanations**]: Explanations of the core concepts and inner workings of the SDK.
+ifeval::["{docs-prefix}" != "docs-dev"]
+* https://docs.opendaq.com/doxygen/index.html[**Reference**]
+endif::[]
+ifeval::["{docs-prefix}" == "docs-dev"]
+* https://docs-dev.opendaq.com/doxygen/index.html[**Reference**]
+endif::[]

@@ -95,7 +95,7 @@ protected:
         PropertyObjectClassPtr objectClass = PropertyObjectClassBuilder(objManager, "ObjectClass")
                                                     .addProperty(ObjectProperty("Child", defaultObj1))
                                                     .build();
-         objManager.addType(objectClass);
+        objManager.addType(objectClass);
 
         const auto defaultObj2 = PropertyObject();
         defaultObj2.addProperty(ObjectProperty("Child", defaultObj1));
@@ -2188,7 +2188,33 @@ TEST_F(PropertyObjectTest, DotAccessSelectionValue)
     ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "b");
 }
 
-TEST_F(PropertyObjectTest, DynamicSelectionValue)
+TEST_F(PropertyObjectTest, StringSelectionProperty)
+{
+    auto propObj = PropertyObject();
+
+    auto selectionList = List<IString>("val1", "val2");
+
+    propObj.addProperty(StringSelectionProperty("Selection", selectionList, "val0"));
+
+    PropertyPtr selectionProp = propObj.getProperty("Selection");
+
+    // initial state
+    ASSERT_EQ(selectionProp.getSelectionValues(), selectionList);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val0");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val0");
+    
+    // set val1
+    ASSERT_NO_THROW(propObj.setPropertyValue("Selection", "val1"));
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val1");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // set to invalid value
+    ASSERT_THROW(propObj.setPropertyValue("Selection", "val3"), NotFoundException);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), "val1");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+}
+
+TEST_F(PropertyObjectTest, DynamicSelectionListForStringSelectionProperty)
 {
     auto propObj = PropertyObject();
 
@@ -2225,8 +2251,123 @@ TEST_F(PropertyObjectTest, DynamicSelectionValue)
     ASSERT_EQ(propObj.getPropertyValue("Selection"), "val1");
     ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
 
-    // set to invalid value
+    // set to new value
     ASSERT_NO_THROW(propObj.setPropertyValue("Selection", "val20"));
     ASSERT_EQ(propObj.getPropertyValue("Selection"), "val20");
     ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val20");
+}
+
+TEST_F(PropertyObjectTest, DynamicSelectionListForSelectionProperty)
+{
+    auto propObj = PropertyObject();
+
+    auto selectionList = List<IString>("val0", "val1");
+
+    propObj.addProperty(FunctionProperty("SelectionListFunction", FunctionInfo(daq::ctList)));
+    auto func = Function([&selectionList]   
+    {
+        return selectionList;
+    });
+    propObj.setPropertyValue("SelectionListFunction", func);
+    propObj.addProperty(SelectionProperty("Selection", EvalValue("$SelectionListFunction()"), 0));
+
+    PropertyPtr selectionProp = propObj.getProperty("Selection");
+
+    // initial state
+    ASSERT_EQ(selectionProp.getSelectionValues(), selectionList);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 0);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val0");
+    
+    // set val1
+    ASSERT_NO_THROW(propObj.setPropertyValue("Selection", 1));
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // set to invalid value
+    ASSERT_THROW(propObj.setPropertyValue("Selection", 2), NotFoundException);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // change selection list
+    selectionList = List<IString>("val10", "val20");
+    ASSERT_EQ(selectionProp.getSelectionValues(), selectionList);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val20");
+
+    // set to new value
+    ASSERT_NO_THROW(propObj.setPropertyValue("Selection", 0));
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 0);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val10");
+}
+
+TEST_F(PropertyObjectTest, DynamicSelectionDictForSelectionProperty)
+{
+    auto propObj = PropertyObject();
+
+    auto selectionDict = Dict<IInteger, IString>({{0, "val0"}, {1, "val1"}});
+
+    propObj.addProperty(FunctionProperty("SelectionDictFunction", FunctionInfo(daq::ctDict)));
+    auto func = Function([&selectionDict]   
+    {
+        return selectionDict;
+    });
+    propObj.setPropertyValue("SelectionDictFunction", func);
+    propObj.addProperty(SelectionProperty("Selection", EvalValue("$SelectionDictFunction()"), 0));
+
+    PropertyPtr selectionProp = propObj.getProperty("Selection");
+
+    // initial state
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 0);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val0");
+
+    // set to new value
+    ASSERT_NO_THROW(propObj.setPropertyValue("Selection", 1));
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // set to invalid value
+    ASSERT_THROW(propObj.setPropertyValue("Selection", 2), NotFoundException);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val1");
+
+    // change selection list
+    selectionDict = Dict<IInteger, IString>({{10, "val10"}, {20, "val20"}});
+    ASSERT_EQ(selectionProp.getSelectionValues(), selectionDict);
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 1);
+    ASSERT_THROW(propObj.getPropertySelectionValue("Selection"), NotFoundException);
+
+    // set to new value
+    ASSERT_NO_THROW(propObj.setPropertyValue("Selection", 20));
+    ASSERT_EQ(propObj.getPropertyValue("Selection"), 20);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Selection"), "val20");
+}
+
+TEST_F(PropertyObjectTest, PropertyValueFromFunction)
+{
+    auto propObj = PropertyObject();
+
+    StringPtr stringValue = "defaultValue";
+
+    propObj.addProperty(FunctionProperty("StringFunction", FunctionInfo(daq::ctString)));
+    auto func = Function([&stringValue]   
+    {
+        return stringValue;
+    });
+    propObj.setPropertyValue("StringFunction", func);
+    propObj.addProperty(StringProperty("Reference", EvalValue("$StringFunction()")));
+
+    // initial state
+    ASSERT_EQ(propObj.getPropertyValue("Reference"), "defaultValue");
+
+    // change the the string value
+    stringValue = "newValue";
+    ASSERT_EQ(propObj.getPropertyValue("Reference"), "newValue");
+
+    // set to new value (you will not change the string value, but unbind the property from StringFunction)
+    ASSERT_NO_THROW(propObj.setPropertyValue("Reference", "newValue2"));
+    ASSERT_EQ(propObj.getPropertyValue("Reference"), "newValue2");
+
+    //BUG: eval value has no owner...
+    // ASSERT_NO_THROW(propObj.setPropertyValue("Reference", EvalValue("$StringFunction())));
+    // ASSERT_EQ(propObj.getPropertyValue("Reference"), "newValue2");
 }

@@ -2157,14 +2157,15 @@ ObjectPtr<IBaseObject> ObjectPtr<T>::convertTo(CoreType ct) const
             CharPtr val;
             checkErrorInfo(convObj->toString(&val));
 
-            Finally final([&val]() {
+            Finally final([&val]
+            {
                 if (val != nullptr)
                     daqFreeMemory(val);
             });
             return ObjectPtr<IBaseObject>(val);
         }
         default:
-        DAQ_THROW_EXCEPTION(ConversionFailedException);
+            DAQ_THROW_EXCEPTION(ConversionFailedException);
     }
 }
 
@@ -2427,7 +2428,7 @@ ErrCode tryFreeze(T* obj)
     using Ptr = typename InterfaceToSmartPtr<T>::SmartPtr;
 
     auto ptr = Ptr::Adopt(obj);
-    auto freezable = ptr.template asOrNull<IFreezable>(true);
+    auto freezable = ptr.template as<IFreezable>(true);
     ErrCode errCode = freezable->freeze();
 
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -2445,7 +2446,7 @@ ErrCode createObjectFrozen(Interface** intf, Params... params)
     ErrCode errCode = daq::createObject<Interface, Impl>(&ptr, std::forward<Params>(params)...);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    auto freezable = ptr.template asOrNull<IFreezable>(true);
+    auto freezable = ptr.template as<IFreezable>(true);
     errCode = freezable->freeze();
 
     if (OPENDAQ_SUCCEEDED(errCode))

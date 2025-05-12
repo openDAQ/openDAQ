@@ -590,14 +590,14 @@ public:
 	    OPENDAQ_PARAM_NOT_NULL(value);
 
 	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *value = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
-		        else
-			        *value = bindAndGet<BaseObjectPtr>(this->defaultValue, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *value = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
+            else
+                *value = bindAndGet<BaseObjectPtr>(this->defaultValue, lock).detach();
+                
+            return OPENDAQ_SUCCESS;
+        });
     }
         
     ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) override

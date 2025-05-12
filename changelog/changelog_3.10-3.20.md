@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#789](https://github.com/openDAQ/openDAQ/pull/789) Optimize Signal Packet Handling by Deferring Last Value Calculation
 - [#768](https://github.com/openDAQ/openDAQ/pull/768) Supporting creating empty error info. Add macroses to checking error code
 - [#771](https://github.com/openDAQ/openDAQ/pull/771) Improvements to device operation mode, including changes to the Device API for operation mode handling.
 - [#764](https://github.com/openDAQ/openDAQ/pull/764) Add support restoring device info fields

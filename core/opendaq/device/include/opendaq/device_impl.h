@@ -853,7 +853,7 @@ ListPtr<IFunctionBlock> GenericDevice<TInterface, Interfaces...>::getFunctionBlo
     tsl::ordered_set<FunctionBlockPtr, ComponentHash, ComponentEqualTo> allFbs;
 
     for (const FunctionBlockPtr& fb : this->functionBlocks.getItems(search::Any()))
-        if (searchFilter.acceptsComponent(fb))
+        if (searchFilter.acceptsObject(fb))
             allFbs.insert(fb);
 
     for (const DevicePtr& dev : this->devices.getItems(search::Any()))
@@ -1218,7 +1218,7 @@ void GenericDevice<TInterface, Interfaces...>::getChannelsFromFolder(ListPtr<ICh
     {
         if (item.supportsInterface<IChannel>())
         {
-            if (filterChannels && !searchFilter.acceptsComponent(item))
+            if (filterChannels && !searchFilter.acceptsObject(item))
                 continue;
 
             channelList.pushBack(item);
@@ -1447,7 +1447,7 @@ ListPtr<IDevice> GenericDevice<TInterface, Interfaces...>::getDevicesRecursive(c
     tsl::ordered_set<DevicePtr, ComponentHash, ComponentEqualTo> allDevices;
 
     for (const DevicePtr& dev : this->devices.getItems(search::Any()))
-        if (searchFilter.acceptsComponent(dev))
+        if (searchFilter.acceptsObject(dev))
             allDevices.insert(dev);
 
     for (const DevicePtr& dev : this->devices.getItems(search::Any()))

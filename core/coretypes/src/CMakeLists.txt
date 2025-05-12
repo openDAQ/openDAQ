@@ -40,6 +40,7 @@ set(SRC_Cpp version.cpp
             struct_builder_impl.cpp
             enumeration_impl.cpp
             enumeration_type_impl.cpp
+            search_filter_impl.cpp
 )
 
 set(SRC_PublicHeaders
@@ -236,6 +237,10 @@ set(SRC_PublicHeaders
     
     utility_sync.h
 
+    search_filter.h
+    search_filter_ptr.h
+    search_filter_factory.h
+
     recursive_search.h
     recursive_search_ptr.h
 )
@@ -265,6 +270,7 @@ set(SRC_PrivateHeaders baseobject_impl.h
                        simple_type_impl.h
                        enumeration_impl.h
                        enumeration_type_impl.h
+                       search_filter_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)

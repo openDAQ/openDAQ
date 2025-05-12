@@ -1,25 +1,44 @@
 #include <opendaq/search_filter_impl.h>
 #include <coretypes/validation.h>
+#include <opendaq/component_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-VisibleSearchFilterImpl::VisibleSearchFilterImpl() = default;
-
-ErrCode VisibleSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
+static ErrCode validateType(IBaseObject* obj)
 {
-    OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
-    
-    return component->getVisible(accepts);
+    auto objPtr = BaseObjectPtr::Borrow(obj);
+    if (objPtr.supportsInterface<IComponent>())
+        return OPENDAQ_SUCCESS;
+
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Search filter input mismatch acceptable object type - IComponent expected");
 }
 
-ErrCode VisibleSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
+VisibleSearchFilterImpl::VisibleSearchFilterImpl() = default;
+
+ErrCode VisibleSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
+
+    return daqTry(
+        [&]{
+            const auto& componentPtr = ComponentPtr::Borrow(obj);
+            *accepts = componentPtr.getVisible();
+        });
+}
+
+ErrCode VisibleSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
 {
     OPENDAQ_PARAM_NOT_NULL(visit);
-    OPENDAQ_PARAM_NOT_NULL(component);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    component->getVisible(visit);
-    return OPENDAQ_SUCCESS;
+    return daqTry(
+        [&]{
+            const auto& componentPtr = ComponentPtr::Borrow(obj);
+            *visit = componentPtr.getVisible();
+        });
 }
 
 RequiredTagsSearchFilterImpl::RequiredTagsSearchFilterImpl(const ListPtr<IString>& requiredTags)
@@ -28,31 +47,35 @@ RequiredTagsSearchFilterImpl::RequiredTagsSearchFilterImpl(const ListPtr<IString
         this->requiredTags.insert(tag);
 }
 
-ErrCode RequiredTagsSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
+ErrCode RequiredTagsSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
 {
     OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    TagsPtr tags;
-    const ErrCode err = component->getTags(&tags);
-    OPENDAQ_RETURN_IF_FAILED(err);
+    return daqTry(
+        [&]{
+            const auto& componentPtr = ComponentPtr::Borrow(obj);
+            TagsPtr tags = componentPtr.getTags();
 
-    *accepts = true;
-    for (const auto& requiredTag : requiredTags)
-    {
-        if (!tags.contains(requiredTag))
-        {
-            *accepts = false;
-            break;
-        }
-    }
-
-    return OPENDAQ_SUCCESS;
+            *accepts = true;
+            for (const auto& requiredTag : requiredTags)
+            {
+                if (!tags.contains(requiredTag))
+                {
+                    *accepts = false;
+                    break;
+                }
+            }
+            return OPENDAQ_SUCCESS;
+        });
 }
 
-ErrCode RequiredTagsSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
+ErrCode RequiredTagsSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
 {
     OPENDAQ_PARAM_NOT_NULL(visit);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
     *visit = true;
     return OPENDAQ_SUCCESS;
@@ -64,31 +87,35 @@ ExcludedTagsSearchFilterImpl::ExcludedTagsSearchFilterImpl(const ListPtr<IString
         this->excludedTags.insert(tag);
 }
 
-ErrCode ExcludedTagsSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
+ErrCode ExcludedTagsSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
 {
     OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    TagsPtr tags;
-    const ErrCode err = component->getTags(&tags);
-    OPENDAQ_RETURN_IF_FAILED(err);
+    return daqTry(
+        [&]{
+            const auto& componentPtr = ComponentPtr::Borrow(obj);
+            TagsPtr tags = componentPtr.getTags();
 
-    *accepts = true;
-    for (const auto tag : tags.getList())
-    {
-        if (excludedTags.count(tag))
-        {
-            *accepts = false;
-            break;
-        }
-    }
-
-    return OPENDAQ_SUCCESS;
+            *accepts = true;
+            for (const auto& tag : tags.getList())
+            {
+                if (excludedTags.count(tag))
+                {
+                    *accepts = false;
+                    break;
+                }
+            }
+            return OPENDAQ_SUCCESS;
+        });
 }
 
-ErrCode ExcludedTagsSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
+ErrCode ExcludedTagsSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
 {
     OPENDAQ_PARAM_NOT_NULL(visit);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
     *visit = true;
     return OPENDAQ_SUCCESS;
@@ -99,22 +126,28 @@ InterfaceIdSearchFilterImpl::InterfaceIdSearchFilterImpl(const IntfID& id)
 {
 }
 
-ErrCode InterfaceIdSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
+ErrCode InterfaceIdSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
 {
     OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    const auto& componentPtr = ComponentPtr::Borrow(component);
-    *accepts = true;
-    if (!componentPtr.supportsInterface(intfId))
-        *accepts = false;
+    return daqTry(
+        [&]{
+            const auto& componentPtr = ComponentPtr::Borrow(obj);
+            *accepts = true;
+            if (!componentPtr.supportsInterface(intfId))
+                *accepts = false;
 
-    return OPENDAQ_SUCCESS;
+            return OPENDAQ_SUCCESS;
+        });
 }
 
-ErrCode InterfaceIdSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
+ErrCode InterfaceIdSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
 {
     OPENDAQ_PARAM_NOT_NULL(visit);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
     *visit = true;
     return OPENDAQ_SUCCESS;
@@ -125,169 +158,28 @@ LocalIdSearchFilterImpl::LocalIdSearchFilterImpl(const StringPtr& localId)
 {
 }
 
-ErrCode INTERFACE_FUNC LocalIdSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
+ErrCode LocalIdSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
 {
     OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
-
-    const auto& componentPtr = ComponentPtr::Borrow(component);
-    *accepts = componentPtr.getLocalId() == localId ? True : False;
-
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode INTERFACE_FUNC LocalIdSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
-{
-    OPENDAQ_PARAM_NOT_NULL(visit);
-
-    *visit = true;
-    return OPENDAQ_SUCCESS;
-}
-
-AnySearchFilterImpl::AnySearchFilterImpl() = default;
-
-ErrCode AnySearchFilterImpl::acceptsComponent(IComponent* /*component*/, Bool* accepts)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepts);
-
-    *accepts = true;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode AnySearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
-{
-    OPENDAQ_PARAM_NOT_NULL(visit);
-
-    *visit = true;
-    return OPENDAQ_SUCCESS;
-}
-
-OrSearchFilterImpl::OrSearchFilterImpl(const SearchFilterPtr& left, const SearchFilterPtr& right)
-    : left(left)
-    , right(right)
-{
-}
-
-ErrCode OrSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
-
-    *accepts = left.acceptsComponent(component) || right.acceptsComponent(component);
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode OrSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
-{
-    OPENDAQ_PARAM_NOT_NULL(visit);
-
-    *visit = left.visitChildren(component) || right.visitChildren(component);
-    return OPENDAQ_SUCCESS;
-}
-
-AndSearchFilterImpl::AndSearchFilterImpl(const SearchFilterPtr& left, const SearchFilterPtr& right)
-    : left(left)
-    , right(right)
-{
-}
-
-ErrCode AndSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
-    
-    *accepts = left.acceptsComponent(component) && right.acceptsComponent(component);
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode AndSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
-{
-    OPENDAQ_PARAM_NOT_NULL(visit);
-
-    *visit = left.visitChildren(component) && right.visitChildren(component);
-    return OPENDAQ_SUCCESS;
-}
-
-NotSearchFilterImpl::NotSearchFilterImpl(const SearchFilterPtr& filter)
-    : filter(filter)
-{
-}
-
-ErrCode NotSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
-    
-    *accepts = !filter.acceptsComponent(component);
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode NotSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
-{
-    OPENDAQ_PARAM_NOT_NULL(visit);
-
-    *visit = true;
-    return OPENDAQ_SUCCESS;
-}
-
-CustomSearchFilterImpl::CustomSearchFilterImpl(const FunctionPtr& acceptsFunction, const FunctionPtr& visitFunction)
-    : acceptsFunc(acceptsFunction)
-    , visitFunc(visitFunction)
-{
-}
-
-ErrCode CustomSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
-{
-
-    OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
     return daqTry(
-        [&]()
-        {
-            *accepts = acceptsFunc(component);
+        [&]{
+            const auto& componentPtr = ComponentPtr::Borrow(obj);
+            *accepts = componentPtr.getLocalId() == localId ? True : False;
+
             return OPENDAQ_SUCCESS;
         });
 }
 
-ErrCode CustomSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
+ErrCode LocalIdSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
 {
     OPENDAQ_PARAM_NOT_NULL(visit);
-    OPENDAQ_PARAM_NOT_NULL(component);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    if (!visitFunc.assigned())
-    {
-        *visit = True;
-        return OPENDAQ_SUCCESS;
-    }
-
-    return daqTry(
-        [&]()
-        {
-            *visit = visitFunc(component);
-            return OPENDAQ_SUCCESS;
-        });
-}
-
-RecursiveSearchFilterImpl::RecursiveSearchFilterImpl(const SearchFilterPtr& filter)
-    : filter(filter)
-{
-}
-
-ErrCode RecursiveSearchFilterImpl::acceptsComponent(IComponent* component, Bool* accepts)
-{
-    OPENDAQ_PARAM_NOT_NULL(accepts);
-    OPENDAQ_PARAM_NOT_NULL(component);
-    
-    *accepts = filter.acceptsComponent(component);
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode RecursiveSearchFilterImpl::visitChildren(IComponent* component, Bool* visit)
-{
-    OPENDAQ_PARAM_NOT_NULL(visit);
-
-    *visit = filter.visitChildren(component);
+    *visit = true;
     return OPENDAQ_SUCCESS;
 }
 
@@ -320,41 +212,6 @@ ErrCode PUBLIC_EXPORT createInterfaceIdSearchFilter(ISearchFilter** objTmp, cons
 extern "C" ErrCode PUBLIC_EXPORT createLocalIdSearchFilter(ISearchFilter** objTmp, IString* localId)
 {
     return createObject<ISearchFilter, LocalIdSearchFilterImpl>(objTmp, localId);
-}
-
-extern "C" ErrCode PUBLIC_EXPORT createAnySearchFilter(ISearchFilter** objTmp)
-{
-    return createObject<ISearchFilter, AnySearchFilterImpl>(objTmp);
-}
-
-extern "C"
-ErrCode PUBLIC_EXPORT createAndSearchFilter(ISearchFilter** objTmp, ISearchFilter* left, ISearchFilter* right)
-{
-    return createObject<ISearchFilter, AndSearchFilterImpl, ISearchFilter*, ISearchFilter*>(objTmp, left, right);
-}
-
-extern "C"
-ErrCode PUBLIC_EXPORT createOrSearchFilter(ISearchFilter** objTmp, ISearchFilter* left, ISearchFilter* right)
-{
-    return createObject<ISearchFilter, OrSearchFilterImpl, ISearchFilter*, ISearchFilter*>(objTmp, left, right);
-}
-
-extern "C"
-ErrCode PUBLIC_EXPORT createNotSearchFilter(ISearchFilter** objTmp, ISearchFilter* filter)
-{
-    return createObject<ISearchFilter, NotSearchFilterImpl, ISearchFilter*>(objTmp, filter);
-}
-
-extern "C"
-ErrCode PUBLIC_EXPORT createCustomSearchFilter(ISearchFilter** objTmp, IFunction* acceptsFunction, IFunction* visitFunction)
-{
-    return createObject<ISearchFilter, CustomSearchFilterImpl, IFunction*, IFunction*>(objTmp, acceptsFunction, visitFunction);
-}
-
-extern "C"
-ErrCode PUBLIC_EXPORT createRecursiveSearchFilter(ISearchFilter** objTmp, ISearchFilter* filter)
-{
-    return createObject<ISearchFilter, RecursiveSearchFilterImpl, ISearchFilter*>(objTmp, filter);
 }
 
 #endif

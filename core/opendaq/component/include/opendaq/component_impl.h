@@ -25,7 +25,7 @@
 #include <coretypes/weakrefptr.h>
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
-#include <opendaq/search_filter_ptr.h>
+#include <coretypes/search_filter_ptr.h>
 #include <opendaq/folder_ptr.h>
 #include <mutex>
 #include <opendaq/component_keys.h>
@@ -970,7 +970,7 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
 {
     tsl::ordered_set<ComponentPtr, ComponentHash, ComponentEqualTo> allItems;
     for (const auto& item : items)
-        if (searchFilter.acceptsComponent(item))
+        if (searchFilter.acceptsObject(item))
             allItems.insert(item);
 
     if (searchFilter.supportsInterface<IRecursiveSearch>())

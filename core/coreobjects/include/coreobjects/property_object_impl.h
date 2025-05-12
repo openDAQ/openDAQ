@@ -44,6 +44,7 @@
 #include <coretypes/updatable.h>
 #include <coretypes/validation.h>
 #include <tsl/ordered_map.h>
+#include <atomic>
 #include <map>
 #include <thread>
 #include <utility>
@@ -379,7 +380,7 @@ protected:
     PropertyObjectPtr objPtr;
     int updateCount;
     UpdatingActions updatingPropsAndValues;
-    bool coreEventMuted;
+    std::atomic<bool> coreEventMuted;
     WeakRefPtr<ITypeManager> manager;
     PropertyOrderedMap localProperties;
     StringPtr path;
@@ -1453,7 +1454,8 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkIsChildObj
 template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned)
 {
-    writeLocalValue(propName, cloned);
+    writeLocalValue(propName, cloned, true);
+    setOwnerToPropertyValue(cloned);
     configureClonedObj(propName, cloned);
 }
 
@@ -1461,8 +1463,6 @@ template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedObj(const StringPtr& objPropName,
                                                                                     const PropertyObjectPtr& obj)
 {
-    obj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(permissionManager);
-
     const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>();
     if (!coreEventMuted && objInternal.assigned())
     {
@@ -2135,14 +2135,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         if (checkIsChildObjectProperty(propPtr))
         {
             auto defaultValue = propPtr.getDefaultValue();
+            setChildPropertyObject(propPtr.getName(), defaultValue);
 
             const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
             PropertyObjectPtr clone;
             ErrCode err = cloneable->clone(&clone);
             OPENDAQ_RETURN_IF_FAILED(err);
-
-            propPtr.asPtrOrNull<IPropertyInternal>().overrideDefaultValue(cloneable.clone());
-            setChildPropertyObject(propPtr.getName(), defaultValue);
+            
+            propPtr.asPtrOrNull<IPropertyInternal>().overrideDefaultValue(clone);
         }
         
         triggerCoreEventInternal(CoreEventArgsPropertyAdded(objPtr, propPtr, path));
@@ -2720,7 +2720,8 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getCoreEventTrigger(IProcedure** trigger)
 {
     OPENDAQ_PARAM_NOT_NULL(trigger);
-
+    
+    auto lock = getRecursiveConfigLock();
     *trigger = this->triggerCoreEvent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -2728,6 +2729,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getCoreEvent
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setCoreEventTrigger(IProcedure* trigger)
 {
+    auto lock = getRecursiveConfigLock();
     this->triggerCoreEvent = trigger;
     return OPENDAQ_SUCCESS;
 }
@@ -2762,6 +2764,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPath(IStr
 {
     OPENDAQ_PARAM_NOT_NULL(path);
 
+    auto lock = getRecursiveConfigLock();
     if (this->path.getLength())
         return OPENDAQ_IGNORED;
 

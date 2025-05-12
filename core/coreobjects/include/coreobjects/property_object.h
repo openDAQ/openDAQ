@@ -19,7 +19,7 @@
 #include <coretypes/type_manager.h>
 #include <coretypes/event.h>
 #include <coreobjects/permission_manager.h>
-#include <coreobjects/property_filter.h>
+#include <coretypes/search_filter.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,6 +34,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [templated(defaultAliasName: PropertyObjectPtr)]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr)]
  * [interfaceSmartPtr(IPermissionManager, PermissionManagerPtr, "<coreobjects/permission_manager_ptr.h>")]
+ * [interfaceLibrary(ISearchFilter, "coretypes")]
  */
 
 /*!
@@ -386,7 +387,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * If no filter is provided, only visible properties directly belonging to the current object are returned.
      * Recursion enabled through corresponding wrapper filter includes properties from child property objects into search results.
      */
-    virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, IPropertyFilter* filter = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) = 0;
 };
 
 /*!@}*/

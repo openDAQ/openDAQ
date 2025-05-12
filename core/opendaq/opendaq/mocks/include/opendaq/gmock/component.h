@@ -51,7 +51,6 @@ struct MockGenericComponent : GenericPropertyObjectImpl<TInterface>
     MOCK_METHOD(daq::ErrCode, findComponent, (IString* id, IComponent** outComponent), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getStatusContainer, (daq::IComponentStatusContainer** statusContainer), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getOperationMode, (daq::OperationModeType* modeType), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, findPropertiesRecursive, (daq::IList** properties, daq::IPropertyFilter* propertyFilter), (override MOCK_CALL));
 
     MockGenericComponent()
         : GenericPropertyObjectImpl<TInterface>()

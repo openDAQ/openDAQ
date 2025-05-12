@@ -291,7 +291,7 @@ public:
 
     virtual ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
     virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) override;
-    virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, IPropertyFilter* filter = nullptr) override;
+    virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) override;
 
     // IPropertyObjectInternal
     virtual ErrCode INTERFACE_FUNC checkForReferences(IProperty* property, Bool* isReferenced) override;
@@ -2598,15 +2598,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPermissio
 }
 
 template <typename PropObjInterface, typename... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperties(IList** properties, IPropertyFilter* filter)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* /*componentFilter*/)
 {
     OPENDAQ_PARAM_NOT_NULL(properties);
 
-    if (filter)
+    if (propertyFilter)
     {
         return daqTry([&]
         {
-            auto filterPtr = PropertyFilterPtr::Borrow(filter);
+            auto filterPtr = SearchFilterPtr::Borrow(propertyFilter);
             ListPtr<IProperty> allProperties;
             auto foundProperties = List<IProperty>();
 
@@ -2615,7 +2615,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperti
 
             for (const auto& property : allProperties)
             {
-                if (filterPtr.acceptsProperty(property))
+                if (filterPtr.acceptsObject(property))
                     foundProperties.pushBack(property);
 
                 if (checkIsChildObjectProperty(property))

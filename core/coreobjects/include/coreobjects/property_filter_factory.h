@@ -15,7 +15,9 @@
  */
 
 #pragma once
-#include <coreobjects/property_filter_ptr.h>
+#include <coretypes/search_filter_ptr.h>
+#include <coreobjects/property_filter.h>
+#include <coretypes/string_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_SEARCH
 
@@ -31,28 +33,18 @@ namespace properties
 /*!
  * @brief Creates a search filter that accepts only visible properties.
  */
-inline PropertyFilterPtr Visible()
+inline SearchFilterPtr Visible()
 {
-    PropertyFilterPtr obj(VisiblePropertyFilter_Create());
+    SearchFilterPtr obj(VisiblePropertyFilter_Create());
     return obj;
 }
 
 /*!
  * @brief Creates a search filter that accepts only read-only properties.
  */
-inline PropertyFilterPtr ReadOnly()
+inline SearchFilterPtr ReadOnly()
 {
-    PropertyFilterPtr obj(ReadOnlyPropertyFilter_Create());
-    return obj;
-}
-
-/*!
- * @brief Creates a search filter that accepts properties of the specified core type.
- * @param type The value type of accepted properties.
- */
-inline PropertyFilterPtr Type(const CoreType& type)
-{
-    PropertyFilterPtr obj(TypePropertyFilter_Create(type));
+    SearchFilterPtr obj(ReadOnlyPropertyFilter_Create());
     return obj;
 }
 
@@ -60,72 +52,9 @@ inline PropertyFilterPtr Type(const CoreType& type)
  * @brief Creates a search filter that accepts properties with the specified name.
  * @param name The name of the accepted properties.
  */
-inline PropertyFilterPtr Name(const StringPtr& name)
+inline SearchFilterPtr Name(const StringPtr& name)
 {
-    PropertyFilterPtr obj(NamePropertyFilter_Create(name));
-    return obj;
-}
-
-/*!
- * @brief Creates a search filter that accepts all properties.
- */
-inline PropertyFilterPtr Any()
-{
-    PropertyFilterPtr obj(AnyPropertyFilter_Create());
-    return obj;
-}
-
-/*!
- * @brief Creates a "conjunction" search filter that combines 2 filters, accepting a property only if both filters accept it.
- * @param left The first argument of the conjunction operation.
- * @param right The second argument of the conjunction operation.
- */
-inline PropertyFilterPtr And(const PropertyFilterPtr& left, const PropertyFilterPtr& right)
-{
-    PropertyFilterPtr obj(AndPropertyFilter_Create(left, right));
-    return obj;
-}
-
-/*!
- * @brief Creates a "disjunction" search filter that combines 2 filters, accepting a property if any of the two filters accepts it.
- * @param left The first argument of the disjunction operation.
- * @param right The second argument of the disjunction operation.
- */
-inline PropertyFilterPtr Or(const PropertyFilterPtr& left, const PropertyFilterPtr& right)
-{
-    PropertyFilterPtr obj(OrPropertyFilter_Create(left, right));
-    return obj;
-}
-
-/*!
- * @brief Creates a search filter that negates the "accepts property" result of the filter provided as construction argument.
- * @param filter The filter of which results should be negated.
- */
-inline PropertyFilterPtr Not(const PropertyFilterPtr& filter)
-{
-    PropertyFilterPtr obj(NotPropertyFilter_Create(filter));
-    return obj;
-}
-
-/*!
- * @brief Creates a custom search filter with a user-defined "accepts" function.
- * @param acceptsFunction The function to be called when "accepts property" is called. Should return `true` or `false`.
- */
-inline PropertyFilterPtr Custom(const FunctionPtr& acceptsFunction)
-{
-    PropertyFilterPtr obj(CustomPropertyFilter_Create(acceptsFunction));
-    return obj;
-}
-
-/*!
- * @brief Creates a search filter that instructs the property search method to be called recursively for child property objects.
- * This filter constructor should always be the final filter wrapper, and should not be used as a constructor argument
- * for another filter.
- * @param filter The filter to be wrapped with a "recursive" flag.
- */
-inline PropertyFilterPtr Recursive(const PropertyFilterPtr& filter)
-{
-    PropertyFilterPtr obj(RecursivePropertyFilter_Create(filter));
+    SearchFilterPtr obj(NamePropertyFilter_Create(name));
     return obj;
 }
 

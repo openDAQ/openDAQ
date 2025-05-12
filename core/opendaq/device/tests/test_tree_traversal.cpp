@@ -144,7 +144,7 @@ TEST_F(TreeTraversalTest, SubDevices)
     ASSERT_EQ(device.getItems(Recursive(InterfaceId(IDevice::Id))).getCount(), 2u);
 
     const auto devices = device.getDevices(Recursive(Any()));
-    const auto properties = device.findPropertiesRecursive(search::properties::Name("DeviceProp"));
+    const auto properties = device.findProperties(search::properties::Name("DeviceProp"), search::Recursive(search::Any()));
     // each nested device has matching property + one property device has on its own
     ASSERT_EQ(properties.getCount(), devices.getCount() + 1u);
     for (const auto& property : properties)
@@ -170,7 +170,7 @@ TEST_F(TreeTraversalTest, FunctionBlocks)
 
     const auto functionBlocks =
         device.getItems(Recursive(And(InterfaceId(IFunctionBlock::Id), Not(InterfaceId(IChannel::Id)))));
-    const auto properties = device.findPropertiesRecursive(search::properties::Name("FunctionBlockProp"));
+    const auto properties = device.findProperties(search::properties::Name("FunctionBlockProp"), search::Recursive(search::Any()));
     ASSERT_EQ(properties.getCount(), functionBlocks.getCount());
     for (const auto& property : properties)
     {
@@ -194,7 +194,7 @@ TEST_F(TreeTraversalTest, Channels)
     ASSERT_EQ(channels.getCount(), 36u);
     ASSERT_EQ(device.getItems(Recursive(InterfaceId(IChannel::Id))).getCount(), 36u);
 
-    const auto properties = device.findPropertiesRecursive(search::properties::Name("ChannelProp"));
+    const auto properties = device.findProperties(search::properties::Name("ChannelProp"), search::Recursive(search::Any()));
     ASSERT_EQ(properties.getCount(), channels.getCount());
     for (const auto& property : properties)
     {
@@ -219,7 +219,7 @@ TEST_F(TreeTraversalTest, Signals)
     ASSERT_EQ(device.getItems(Recursive(InterfaceId(ISignal::Id))).getCount(), 234u);
     ASSERT_EQ(device.getItems(Recursive(LocalId("sigVis"))).getCount(), 117u);
 
-    const auto properties = device.findPropertiesRecursive(search::properties::Name("SignalProp"));
+    const auto properties = device.findProperties(search::properties::Name("SignalProp"), search::Recursive(search::Any()));
     ASSERT_EQ(properties.getCount(), signals.getCount());
     for (const auto& property : properties)
     {
@@ -240,7 +240,7 @@ TEST_F(TreeTraversalTest, InputPorts)
     const auto inputPorts = device.getItems(Recursive(InterfaceId(IInputPort::Id)));
     ASSERT_EQ(inputPorts.getCount(), 78u);
 
-    const auto properties = device.findPropertiesRecursive(search::properties::Name("InputPortProp"));
+    const auto properties = device.findProperties(search::properties::Name("InputPortProp"), search::Recursive(search::Any()));
     ASSERT_EQ(properties.getCount(), inputPorts.getCount());
     for (const auto& property : properties)
     {
@@ -271,11 +271,11 @@ TEST_F(TreeTraversalTest, FindAndChangeCommonProperties)
 {
     auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
     ASSERT_EQ(device.findProperties(search::properties::Name("CommonProp")).getCount(), 1u);
-    ASSERT_GT(device.findProperties().getCount(), 0u);
-    ASSERT_GT(device.findPropertiesRecursive().getCount(), 0u);
+    ASSERT_GT(device.findProperties(search::Any()).getCount(), 0u);
+    ASSERT_GT(device.findProperties(search::Recursive(search::Any())).getCount(), 0u);
 
     const auto components = device.getItems(Recursive(Any()));
-    const auto properties = device.findPropertiesRecursive(search::properties::Name("CommonProp"));
+    const auto properties = device.findProperties(search::properties::Name("CommonProp"), search::Recursive(search::Any()));
     // each nested component has matching property + one property device has on its own
     ASSERT_EQ(properties.getCount(), components.getCount() + 1u);
     for (const auto& property : properties)

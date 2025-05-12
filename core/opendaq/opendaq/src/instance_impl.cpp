@@ -332,9 +332,9 @@ ErrCode InstanceImpl::getOperationMode(OperationModeType* modeType)
     return rootDevice->getOperationMode(modeType);
 }
 
-ErrCode InstanceImpl::findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter)
+ErrCode InstanceImpl::findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter)
 {
-    return rootDevice->findPropertiesRecursive(properties, propertyFilter);
+    return rootDevice->findProperties(properties, propertyFilter, componentFilter);
 }
 
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
@@ -731,11 +731,6 @@ ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
 ErrCode InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
 {
     return rootDevice->getPermissionManager(permissionManager);
-}
-
-ErrCode InstanceImpl::findProperties(IList** properties, IPropertyFilter* filter)
-{
-    return rootDevice->findProperties(properties, filter);
 }
 
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)

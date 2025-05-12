@@ -98,7 +98,7 @@ public:
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
-    ErrCode INTERFACE_FUNC findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter = nullptr) override;
+    ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -666,20 +666,20 @@ ErrCode ComponentImpl<Intf, Intfs...>::getOperationMode(OperationModeType* modeT
 }
 
 template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::findPropertiesRecursive(IList** properties, IPropertyFilter* propertyFilter)
+ErrCode ComponentImpl<Intf, Intfs...>::findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(properties);
 
     auto lock = this->getRecursiveConfigLock();
 
-    return daqTry([&properties, &propertyFilter, this]
+    return daqTry([&properties, &propertyFilter, &componentFilter, this]
     {
         auto thisComponent = this->template borrowPtr<ComponentPtr>();
         ListPtr<IProperty> foundProperties = thisComponent.findProperties(propertyFilter);
 
         if (auto thisFolder = thisComponent.template asPtrOrNull<IFolder>(); thisFolder.assigned())
         {
-            ListPtr<IComponent> nestedComponents = thisFolder.getItems(search::Recursive(search::Any()));
+            ListPtr<IComponent> nestedComponents = thisFolder.getItems(componentFilter);
             for (const auto& nestedComponent : nestedComponents)
                 for (const auto& property : nestedComponent.findProperties(propertyFilter))
                     foundProperties.pushBack(property);

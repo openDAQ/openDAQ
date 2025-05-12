@@ -47,7 +47,6 @@ rtgen(SRC_PermisisonMaskBuilder permission_mask_builder.h)
 rtgen(SRC_Permisisons permissions.h)
 rtgen(SRC_PermisisonsInternal permissions_internal.h)
 rtgen(SRC_ObjectLockGuard object_lock_guard.h)
-rtgen(SRC_PropertyFilter property_filter.h)
 
 get_target_property(CORE_CONTAINERS_SRCS core_containers INTERFACE_SOURCES)
 
@@ -331,7 +330,6 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_PermisisonMaskBuilder}
                                ${SRC_Permisisons}
                                ${SRC_ObjectLockGuard}
-                               ${SRC_PropertyFilter}
                                coreobjects.natvis
 )
 

@@ -16,133 +16,45 @@
 
 #pragma once
 #include <coreobjects/property_filter.h>
-#include <coretypes/list_factory.h>
-#include <coreobjects/property_ptr.h>
-#include <coreobjects/property_filter_ptr.h>
-#include <coretypes/recursive_search.h>
+#include <coretypes/intfs.h>
+#include <coretypes/string_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 // Filter by Visible
 
-class VisiblePropertyFilterImpl final : public ImplementationOf<IPropertyFilter>
+class VisiblePropertyFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
     explicit VisiblePropertyFilterImpl();
 
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 };
 
 // Filter by Read-only flag
 
-class ReadOnlyPropertyFilterImpl final : public ImplementationOf<IPropertyFilter>
+class ReadOnlyPropertyFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
     explicit ReadOnlyPropertyFilterImpl();
 
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
-};
-
-// Filter by type
-
-class TypePropertyFilterImpl final : public ImplementationOf<IPropertyFilter>
-{
-public:
-    explicit TypePropertyFilterImpl(const CoreType& type);
-
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
-
-private:
-    CoreType type;
+    ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 };
 
 // Filter by name
 
-class NamePropertyFilterImpl final : public ImplementationOf<IPropertyFilter>
+class NamePropertyFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
     explicit NamePropertyFilterImpl(const StringPtr& name);
 
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 
 private:
     StringPtr name;
-};
-
-// No filter
-
-class AnyPropertyFilterImpl final : public ImplementationOf<IPropertyFilter>
-{
-public:
-    explicit AnyPropertyFilterImpl();
-
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
-};
-
-// Disjunction
-
-class OrPropertyFilterImpl final : public ImplementationOf<IPropertyFilter>
-{
-public:
-    explicit OrPropertyFilterImpl(const PropertyFilterPtr& left, const PropertyFilterPtr& right);
-
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
-
-private:
-    PropertyFilterPtr left;
-    PropertyFilterPtr right;
-};
-
-// Conjunction
-
-class AndPropertyFilterImpl final : public ImplementationOf<IPropertyFilter>
-{
-public:
-    explicit AndPropertyFilterImpl(const PropertyFilterPtr& left, const PropertyFilterPtr& right);
-
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
-
-private:
-    PropertyFilterPtr left;
-    PropertyFilterPtr right;
-};
-
-// Negation
-
-class NotPropertyFilterImpl final : public ImplementationOf<IPropertyFilter>
-{
-public:
-    explicit NotPropertyFilterImpl(const PropertyFilterPtr& filter);
-
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
-
-private:
-    PropertyFilterPtr filter;
-};
-
-// Custom filter
-
-class CustomPropertyFilterImpl final : public ImplementationOf<IPropertyFilter>
-{
-public:
-    explicit CustomPropertyFilterImpl(const FunctionPtr& acceptsFunction);
-
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
-private:
-    FunctionPtr acceptsFunc;
-};
-
-// Recursive filter
-
-class RecursivePropertyFilterImpl final : public ImplementationOf<IPropertyFilter, IRecursiveSearch>
-{
-public:
-    explicit RecursivePropertyFilterImpl(const PropertyFilterPtr& filter);
-
-    ErrCode INTERFACE_FUNC acceptsProperty(IProperty* property, Bool* accepts) override;
-
-private:
-    PropertyFilterPtr filter;
 };
 
 END_NAMESPACE_OPENDAQ

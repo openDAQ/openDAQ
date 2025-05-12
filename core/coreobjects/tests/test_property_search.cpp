@@ -9,6 +9,7 @@
 #include <coreobjects/property_object_protected_ptr.h>
 
 using namespace daq;
+using namespace search;
 using namespace search::properties;
 
 class PropertySearchTest : public testing::Test
@@ -63,19 +64,12 @@ protected:
     }
 };
 
-TEST_F(PropertySearchTest, FindWithDefaultFilterInEmptyObject)
+TEST_F(PropertySearchTest, FindAnyInEmptyObject)
 {
     auto propertyObject = PropertyObject();
-    auto foundProperties = propertyObject.findProperties();
+    auto foundProperties = propertyObject.findProperties(Any());
 
     ASSERT_EQ(foundProperties.getCount(), 0u);
-}
-
-// only top level visible properties
-TEST_F(PropertySearchTest, FindWithDefaultFilter)
-{
-    auto foundProperties = testPropertyObject.findProperties();
-    ASSERT_EQ(foundProperties.getCount(), 10u);
 }
 
 TEST_F(PropertySearchTest, FindAny)
@@ -112,38 +106,6 @@ TEST_F(PropertySearchTest, FindByName)
 
     auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(Name("FloatProp")));
     ASSERT_EQ(recursivelyFoundProperties.getCount(), 2u);
-}
-
-TEST_F(PropertySearchTest, FindByType)
-{
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctStruct)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctBool)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctEnumeration)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctList)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctDict)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctObject)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctFloat)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctProc)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctFunc)).getCount(), 1u);
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctString)).getCount(), 1u);
-    // selection props are also of type ctInt
-    ASSERT_EQ(testPropertyObject.findProperties(Type(CoreType::ctInt)).getCount(), 3u);
-}
-
-TEST_F(PropertySearchTest, FindByTypeRecursively)
-{
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctStruct))).getCount(), 2u);
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctBool))).getCount(), 2u);
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctEnumeration))).getCount(), 2u);
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctList))).getCount(), 2u);
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctDict))).getCount(), 2u);
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctObject))).getCount(), 2u);
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctFloat))).getCount(), 2u);
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctProc))).getCount(), 2u);
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctFunc))).getCount(), 2u);
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctString))).getCount(), 2u);
-    // selection props are also of type ctInt
-    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Type(CoreType::ctInt))).getCount(), 6u);
 }
 
 TEST_F(PropertySearchTest, FindCustom)

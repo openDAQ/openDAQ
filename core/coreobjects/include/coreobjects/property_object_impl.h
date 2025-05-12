@@ -1454,7 +1454,8 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkIsChildObj
 template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned)
 {
-    writeLocalValue(propName, cloned);
+    writeLocalValue(propName, cloned, true);
+    setOwnerToPropertyValue(cloned);
     configureClonedObj(propName, cloned);
 }
 
@@ -1462,8 +1463,6 @@ template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedObj(const StringPtr& objPropName,
                                                                                     const PropertyObjectPtr& obj)
 {
-    obj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(permissionManager);
-
     const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>();
     if (!coreEventMuted && objInternal.assigned())
     {
@@ -2136,14 +2135,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         if (checkIsChildObjectProperty(propPtr))
         {
             auto defaultValue = propPtr.getDefaultValue();
+            setChildPropertyObject(propPtr.getName(), defaultValue);
 
             const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
             PropertyObjectPtr clone;
             ErrCode err = cloneable->clone(&clone);
             OPENDAQ_RETURN_IF_FAILED(err);
-
-            propPtr.asPtrOrNull<IPropertyInternal>().overrideDefaultValue(cloneable.clone());
-            setChildPropertyObject(propPtr.getName(), defaultValue);
+            
+            propPtr.asPtrOrNull<IPropertyInternal>().overrideDefaultValue(clone);
         }
         
         triggerCoreEventInternal(CoreEventArgsPropertyAdded(objPtr, propPtr, path));

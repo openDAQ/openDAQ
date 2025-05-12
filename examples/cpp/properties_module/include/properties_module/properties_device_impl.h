@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 Blueberry d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,25 @@
  */
 
 #pragma once
-#include <opendaq/module_impl.h>
+#include <opendaq/channel_ptr.h>
+#include <opendaq/device_impl.h>
 #include <properties_module/common.h>
+#include <chrono>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-class PropertiesModule final : public Module
+class PropertiesDeviceImpl final : public Device
 {
 public:
-    explicit PropertiesModule(ContextPtr context);
+    explicit PropertiesDeviceImpl(const ContextPtr& ctx,
+                                  const ComponentPtr& parent,
+                                  const StringPtr& localId,
+                                  const StringPtr& name = nullptr);
 
-    ListPtr<IDeviceInfo> onGetAvailableDevices() override;
+    static DeviceInfoPtr CreateDeviceInfo(size_t id = 0, const StringPtr& serialNumber = nullptr);
+    static DeviceTypePtr CreateType();
+
+    bool allowAddDevicesFromModules() override;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

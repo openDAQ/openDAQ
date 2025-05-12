@@ -30,7 +30,7 @@ TEST_F(PropertiesModuleTest, CreateModule)
 TEST_F(PropertiesModuleTest, ModuleName)
 {
     auto module = createModule();
-    ASSERT_EQ(module.getModuleInfo().getName(), "Properties module");
+    ASSERT_EQ(module.getModuleInfo().getName(), "PropertiesModule");
 }
 
 TEST_F(PropertiesModuleTest, VersionAvailable)
@@ -55,7 +55,8 @@ TEST_F(PropertiesModuleTest, EnumerateDevices)
 
     ListPtr<IDeviceInfo> deviceInfo;
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
-    ASSERT_EQ(deviceInfo.getCount(), static_cast<SizeT>(0));
+    ASSERT_EQ(deviceInfo.getCount(), static_cast<SizeT>(1));
+    ASSERT_EQ(deviceInfo[0].getName(), "Device 0");
 }
 
 TEST_F(PropertiesModuleTest, CreateDeviceConnectionStringNull)

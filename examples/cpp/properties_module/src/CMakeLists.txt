@@ -4,19 +4,23 @@ set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 set(SRC_Include common.h
                 module_dll.h
                 properties_module_impl.h
+                properties_device_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
              properties_module_impl.cpp
+             properties_device_impl.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
 source_group("module" FILES ${MODULE_HEADERS_DIR}/common.h
                             ${MODULE_HEADERS_DIR}/properties_module_impl.h
+                            ${MODULE_HEADERS_DIR}/properties_device_impl.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             module_dll.cpp
                             properties_module_impl.cpp
+                            properties_device_impl.cpp
 )
 
 
@@ -25,6 +29,10 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
 )
 
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
+
+if (MSVC)
+    target_compile_options(${LIB_NAME} PRIVATE /bigobj)
+endif()
 
 target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
 )

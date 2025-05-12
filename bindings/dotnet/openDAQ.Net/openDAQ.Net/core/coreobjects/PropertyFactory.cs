@@ -22,7 +22,7 @@ namespace Daq.Core.Objects;
 
 
 // Property-factory functions of the &apos;CoreObjects&apos; library.
-public static partial class PropertyFactory
+public static class PropertyFactory
 {
     /// <summary>
     /// Creates a boolean Property object with a default value and optional Visible state.
@@ -189,7 +189,8 @@ public static partial class PropertyFactory
     /// <param name="name">The name of the Property.</param>
     /// <param name="referencedPropertyEval">The evaluation expression that evaluates to another property.</param>
     /// <returns>The Property object.</returns>
-    public static Property ReferenceProperty(string name, EvalValue referencedPropertyEval)
+    public static Property ReferenceProperty(string name,
+                                             EvalValue referencedPropertyEval)
     {
         Property obj = CoreObjectsFactory.CreateReferenceProperty(name, referencedPropertyEval);
         return obj;

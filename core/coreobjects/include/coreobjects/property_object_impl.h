@@ -44,6 +44,7 @@
 #include <coretypes/updatable.h>
 #include <coretypes/validation.h>
 #include <tsl/ordered_map.h>
+#include <atomic>
 #include <map>
 #include <thread>
 #include <utility>
@@ -379,7 +380,7 @@ protected:
     PropertyObjectPtr objPtr;
     int updateCount;
     UpdatingActions updatingPropsAndValues;
-    bool coreEventMuted;
+    std::atomic<bool> coreEventMuted;
     WeakRefPtr<ITypeManager> manager;
     PropertyOrderedMap localProperties;
     StringPtr path;
@@ -2720,7 +2721,8 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getCoreEventTrigger(IProcedure** trigger)
 {
     OPENDAQ_PARAM_NOT_NULL(trigger);
-
+    
+    auto lock = getRecursiveConfigLock();
     *trigger = this->triggerCoreEvent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -2728,6 +2730,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getCoreEvent
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setCoreEventTrigger(IProcedure* trigger)
 {
+    auto lock = getRecursiveConfigLock();
     this->triggerCoreEvent = trigger;
     return OPENDAQ_SUCCESS;
 }
@@ -2762,6 +2765,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPath(IStr
 {
     OPENDAQ_PARAM_NOT_NULL(path);
 
+    auto lock = getRecursiveConfigLock();
     if (this->path.getLength())
         return OPENDAQ_IGNORED;
 

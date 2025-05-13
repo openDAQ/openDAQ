@@ -46,7 +46,7 @@ DevicePtr PropertiesModuleImpl::onCreateDevice(const StringPtr& connectionString
     if (deviceAdded)
         throw std::runtime_error("Only one device can be created");
 
-    auto device = createWithImplementation<IDevice, PropertiesDeviceImpl>(context, parent, "random");
+    auto device = createWithImplementation<IDevice, PropertiesDeviceImpl>(context, parent, "Properties Example Device");
 
     device.addProperty(BoolPropertyBuilder("PropBool", False).build());
     device.addProperty(IntPropertyBuilder("PropInt", 42).build());

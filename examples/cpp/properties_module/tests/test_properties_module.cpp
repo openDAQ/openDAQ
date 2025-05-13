@@ -73,7 +73,7 @@ TEST_F(PropertiesModuleTest, CreateDeviceConnectionStringProperties)
 
     DevicePtr device;
     ASSERT_NO_THROW(device = module.createDevice("properties://device", nullptr));
-    ASSERT_EQ(device.getName(), "random");
+    ASSERT_EQ(device.getName(), "Properties Example Device");
 }
 
 TEST_F(PropertiesModuleTest, GetAvailableComponentTypes)

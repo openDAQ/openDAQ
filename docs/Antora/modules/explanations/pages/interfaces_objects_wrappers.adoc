@@ -63,7 +63,11 @@ In the following example, we declare a new interface `ICustomInterface` with a `
 The `DECLARE_OPENDAQ_INTERFACE` macro defines a struct, named as input in the 1st macro parameter, that inherits the interface
 in the 2nd parameter. The macro generates an interface ID that is used when querying the interface.
 
-NOTE: INTERFACE_FUNC evaluates to `__stdcall` on Windows systems.
+:note-caption: Note
+[NOTE]
+===
+INTERFACE_FUNC evaluates to `__stdcall` on Windows systems.
+===
 
 [source,cpp]
 ----
@@ -89,8 +93,12 @@ a set of properties, with each property having a string key, value, and metadata
 and other similar concepts are featured here. A lot of the concepts (the three mentioned earlier for example) are property objects
 that inherit the `IPropertyObject` interface.
 
-NOTE: openDAQ(TM) creates interfaces for basic structures such as integers and floating point numbers to allow for them to be contained
+:note-caption: Note
+[NOTE]
+===
+openDAQ(TM) creates interfaces for basic structures such as integers and floating point numbers to allow for them to be contained
 within openDAQ(TM) containers such as lists, dictionaries, and property objects.
+===
 
 == Objects
 

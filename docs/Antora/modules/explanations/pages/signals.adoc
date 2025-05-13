@@ -165,8 +165,12 @@ To define the Labels, the following Rule types are available:
 | The Rule parameters contain a `list` parameters member. The list contains all dimension labels.
 |===
 
-// NOTE: To get more info on configuring Signal Dimensions, the following how-to guide illustrates
+// :note-caption: Note
+//[NOTE]
+//===
+//To get more info on configuring Signal Dimensions, the following how-to guide illustrates
 // how to xref:howto_guides:howto_create_dimension_objects.adoc[Create and Configure Signal Dimensions].
+//===
 
 === Post Scaling
 

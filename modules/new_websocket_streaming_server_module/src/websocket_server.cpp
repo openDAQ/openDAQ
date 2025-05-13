@@ -33,16 +33,38 @@ daq::ws_streaming::server::server(daq::DevicePtr device, std::uint16_t ws_port, 
     {
         if (listeners.find(signal.getGlobalId()) == listeners.end())
         {
+            try
+            {
+                daq::InputPortNotificationsPtr notifications = WebSocketSignalListener_Create(device, signal, signo++);
+                listeners.emplace(std::piecewise_construct, std::make_tuple(signal.getGlobalId()), std::make_tuple(std::move(notifications)));
+            }
+
+            catch (const std::exception& ex)
+            {
+                std::cerr << "[ws-streaming] ignoring signal '"
+                    << signal.getGlobalId()
+                    << "': " << ex.what() << std::endl;
+            }
+
             available.push_back(signal.getGlobalId());
-            daq::InputPortNotificationsPtr notifications = WebSocketSignalListener_Create(device, signal, signo++);
-            listeners.emplace(std::piecewise_construct, std::make_tuple(signal.getGlobalId()), std::make_tuple(std::move(notifications)));
         }
 
         if (auto domainSignal = signal.getDomainSignal(); domainSignal.assigned() && listeners.find(domainSignal.getGlobalId()) == listeners.end())
         {
+            try
+            {
+                daq::InputPortNotificationsPtr notifications = WebSocketSignalListener_Create(device, domainSignal, signo++);
+                listeners.emplace(std::piecewise_construct, std::make_tuple(domainSignal.getGlobalId()), std::make_tuple(std::move(notifications)));
+            }
+
+            catch (const std::exception& ex)
+            {
+                std::cerr << "[ws-streaming] ignoring signal '"
+                    << domainSignal.getGlobalId()
+                    << "': " << ex.what() << std::endl;
+            }
+
             available.push_back(domainSignal.getGlobalId());
-            daq::InputPortNotificationsPtr notifications = WebSocketSignalListener_Create(device, domainSignal, signo++);
-            listeners.emplace(std::piecewise_construct, std::make_tuple(domainSignal.getGlobalId()), std::make_tuple(std::move(notifications)));
         }
     }
 

@@ -1,3 +1,4 @@
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -13,9 +14,18 @@
 daq::ws_streaming::signal_writer_factory daq::ws_streaming::create_signal_writer_factory(daq::SignalPtr& signal)
 {
     if (!signal.getDescriptor().assigned())
-        throw std::domain_error("can't determine appropriate signal_writer implementation: signal has no descriptor or no attached rule");
+    {
+        std::cerr << "[ws-streaming] can't determine appropriate signal_writer for '"
+            << signal.getGlobalId() << "': signal has no descriptor" << std::endl;
+        return {};
+    }
+
     if (!signal.getDescriptor().getRule().assigned())
-        throw std::domain_error("can't determine appropriate signal_writer implementation: signal descriptor has no attached rule");
+    {
+        std::cerr << "[ws-streaming] can't determine appropriate signal_writer for '"
+            << signal.getGlobalId() << "': signal descriptor has no attached rule" << std::endl;
+        return {};
+    }
 
     switch (signal.getDescriptor().getRule().getType())
     {
@@ -32,8 +42,9 @@ daq::ws_streaming::signal_writer_factory daq::ws_streaming::create_signal_writer
                 { return std::make_unique<explicit_signal_writer>(signo, client); };
 
         default:
-            throw std::domain_error(
-                "can't determine appropriate signal_writer implementation: unsupported rule: " +
-                std::to_string(static_cast<int>(signal.getDescriptor().getRule().getType())));
+            std::cerr << "[ws-streaming] can't determine appropriate signal_writer for '"
+                << signal.getGlobalId() << "': unsupported rule: "
+                << std::to_string(static_cast<int>(signal.getDescriptor().getRule().getType())) << std::endl;
+            return {};
     }
 }

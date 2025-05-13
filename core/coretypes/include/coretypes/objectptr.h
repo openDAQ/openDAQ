@@ -1053,6 +1053,22 @@ bool operator==(ConstCharPtr lhs, const ObjectPtr<T>& rhs)
     return rhs == lhs;
 }
 
+template <class T, typename V, typename std::enable_if<is_ct_conv<V>::value, int>::type = 0>
+bool operator!=(const ObjectPtr<T>& lhs, V rhs)
+{
+    IBaseObject* obj = lhs.getObject();
+    if (obj != nullptr)
+        return !(baseObjectToValue<V>(obj) == rhs);
+
+    DAQ_THROW_EXCEPTION(InvalidParameterException);
+}
+
+template <class T, typename V, typename std::enable_if<is_ct_conv<V>::value, int>::type = 0>
+bool operator!=(V lhs, const ObjectPtr<T>& rhs)
+{
+    return !(rhs == lhs);
+}
+
 template <class T>
 bool operator!=(const ObjectPtr<T>& lhs, ConstCharPtr rhs)
 {

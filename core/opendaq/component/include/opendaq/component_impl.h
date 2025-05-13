@@ -674,15 +674,29 @@ ErrCode ComponentImpl<Intf, Intfs...>::findProperties(IList** properties, ISearc
 
     return daqTry([&properties, &propertyFilter, &componentFilter, this]
     {
+        auto componentFilterPtr = SearchFilterPtr::Borrow(componentFilter);
         auto thisComponent = this->template borrowPtr<ComponentPtr>();
-        ListPtr<IProperty> foundProperties = thisComponent.findProperties(propertyFilter);
+        ListPtr<IProperty> foundProperties = List<IProperty>();
 
-        if (auto thisFolder = thisComponent.template asPtrOrNull<IFolder>(); thisFolder.assigned())
+        if (!componentFilterPtr.assigned() && componentFilterPtr.acceptsObject(thisComponent))
         {
-            ListPtr<IComponent> nestedComponents = thisFolder.getItems(componentFilter);
-            for (const auto& nestedComponent : nestedComponents)
-                for (const auto& property : nestedComponent.findProperties(propertyFilter))
-                    foundProperties.pushBack(property);
+            // searches only properties using base implementation simply ignoring component filter
+            Super::findProperties(&foundProperties, propertyFilter, nullptr);
+        }
+
+        if (componentFilterPtr.assigned() && componentFilterPtr.supportsInterface<IRecursiveSearch>())
+        {
+            // filter always results in empty component list
+            auto noneComponentFilter = search::Custom(Function([](const BaseObjectPtr&) { return false; }));
+
+            // searches for properties in each component found by input recursive filter
+            if (auto thisFolder = thisComponent.template asPtrOrNull<IFolder>(); thisFolder.assigned())
+            {
+                ListPtr<IComponent> foundChildComponents = thisFolder.getItems(componentFilter);
+                for (const auto& foundChildComponent : foundChildComponents)
+                    for (const auto& property : foundChildComponent.findProperties(propertyFilter, noneComponentFilter))
+                        foundProperties.pushBack(property);
+            }
         }
 
         *properties = foundProperties.detach();

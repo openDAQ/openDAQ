@@ -270,9 +270,19 @@ TEST_F(TreeTraversalTest, SetActive)
 TEST_F(TreeTraversalTest, FindAndChangeCommonProperties)
 {
     auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+
+    // Default behavior: non-recursive search looks only in the device's own properties
+    ASSERT_EQ(device.findProperties(search::properties::Name("CommonProp"), Any()).getCount(), 1u);
     ASSERT_EQ(device.findProperties(search::properties::Name("CommonProp")).getCount(), 1u);
-    ASSERT_GT(device.findProperties(search::Any()).getCount(), 0u);
-    ASSERT_GT(device.findProperties(search::Recursive(search::Any())).getCount(), 0u);
+
+    // Since the device is visible, it doesn't pass the component filter, so its properties are not searched
+    ASSERT_EQ(device.findProperties(search::properties::Name("CommonProp"), Not(Visible())).getCount(), 0u);
+
+    // No object-type properties exist, so both search variants return the same result
+    ASSERT_EQ(
+        device.findProperties(search::Any(), search::Recursive(search::Any())).getCount(),
+        device.findProperties(search::Recursive(search::Any()), search::Recursive(search::Any())).getCount()
+    );
 
     const auto components = device.getItems(Recursive(Any()));
     const auto properties = device.findProperties(search::properties::Name("CommonProp"), search::Recursive(search::Any()));

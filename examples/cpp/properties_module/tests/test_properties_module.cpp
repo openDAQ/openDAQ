@@ -66,12 +66,12 @@ TEST_F(PropertiesModuleTest, CreateDeviceConnectionStringNull)
     ASSERT_THROW(device = module.createDevice(nullptr, nullptr), ArgumentNullException);
 }
 
-TEST_F(PropertiesModuleTest, CreateDeviceConnectionStringProperties)
+TEST_F(PropertiesModuleTest, CreateDeviceConnectionString)
 {
     auto module = createModule();
 
     DevicePtr device;
-    ASSERT_NO_THROW(device = module.createDevice("properties://device", nullptr));
+    ASSERT_NO_THROW(device = module.createDevice("random://device", nullptr));
     ASSERT_EQ(device, nullptr);
 }
 
@@ -100,9 +100,17 @@ TEST_F(PropertiesModuleTest, CreateFunctionBlockIdNull)
     ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "id"), ArgumentNullException);
 }
 
-TEST_F(PropertiesModuleTest, CreateFunctionBlockIdProperties)
+TEST_F(PropertiesModuleTest, CreateFunctionBlockIdEmpty)
 {
     auto module = createModule();
 
     ASSERT_THROW(module.createFunctionBlock("", nullptr, "id"), NotFoundException);
+}
+
+TEST_F(PropertiesModuleTest, FunctionBlockCreateAndTest)
+{
+    auto module = createModule();
+
+    auto fb = module.createFunctionBlock("PropertiesFb", nullptr, "id");
+    ASSERT_EQ(fb.getAllProperties().getCount(), 4);
 }

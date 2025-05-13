@@ -42,7 +42,7 @@ public:
         }
 
         BaseObjectPtr baseObj;
-        checkErrorInfo(object->deserialize(serialized, context, factoryCallback, &baseObj));
+        DAQ_CHECK_ERROR_INFO(object->deserialize(serialized, context, factoryCallback, &baseObj));
 
         return baseObj;
     }
@@ -54,7 +54,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
         }
 
-        checkErrorInfo(object->update(updatable, serialized, config));
+        DAQ_CHECK_ERROR_INFO(object->update(updatable, serialized, config));
     }
 
 
@@ -65,7 +65,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
         }
 
-        checkErrorInfo(object->callCustomProc(customProc, serialized));
+        DAQ_CHECK_ERROR_INFO(object->callCustomProc(customProc, serialized));
     }
 };
 

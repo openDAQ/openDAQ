@@ -121,7 +121,7 @@ py::object baseObjectToPyObject(const daq::ObjectPtr<daq::IBaseObject>& baseObje
             {
                 py::object p;
                 const daq::ErrCode err = po->getPyObject(p);
-                daq::checkErrorInfo(err);
+                DAQ_CHECK_ERROR_INFO(err);
                 return p;
             }
 

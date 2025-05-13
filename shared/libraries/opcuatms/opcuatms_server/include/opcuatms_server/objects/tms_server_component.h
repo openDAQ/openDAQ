@@ -171,6 +171,11 @@ void TmsServerComponent<Ptr>::bindCallbacks()
                 selfChange = true;
                 this->object.setName(utils::ToStdString(name->text));
             }
+            catch (const DaqException& e)
+            {
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
+                LOG_D("OPC UA Component {} failed to set component name: {}", this->object.getLocalId(), e.getErrorMessage());
+            }
             catch ([[maybe_unused]] const std::exception& e)
             {
                 const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
@@ -196,6 +201,11 @@ void TmsServerComponent<Ptr>::bindCallbacks()
             {
                 selfChange = true;
                 this->object.setDescription(utils::ToStdString(description->text));
+            }
+            catch (const DaqException& e)
+            {
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
+                LOG_D("OPC UA Component {} failed to set component description: {}", this->object.getLocalId(), e.getErrorMessage());
             }
             catch ([[maybe_unused]] const std::exception& e)
             {
@@ -258,6 +268,11 @@ void TmsServerComponent<Ptr>::onCoreEvent(const CoreEventArgsPtr& args)
                 this->server->setDisplayName(this->nodeId, args.getParameters().get("Name"));
             else if (attrName == "Description")
                 this->server->setDescription(this->nodeId, args.getParameters().get("Description"));
+        }
+        catch (const DaqException& e)
+        {
+            const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
+            LOG_D("OPC UA Component {} failed to set node attribute \"{}\": {}", this->object.getLocalId(), attrName, e.getErrorMessage());
         }
         catch ([[maybe_unused]] const std::exception& e)
         {

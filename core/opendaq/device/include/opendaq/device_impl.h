@@ -1386,7 +1386,7 @@ PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onCreateDefaultAddDe
 {
     PropertyObjectPtr obj;
     const ModuleManagerUtilsPtr manager = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
-    checkErrorInfo(manager->createDefaultAddDeviceConfig(&obj));
+    DAQ_CHECK_ERROR_INFO(manager->createDefaultAddDeviceConfig(&obj));
 
     return obj;
 }
@@ -1546,7 +1546,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
     {
         auto serializer = JsonSerializer(True);
 
-        checkErrorInfo(this->serialize(serializer));
+        DAQ_CHECK_ERROR_INFO(this->serialize(serializer));
 
         auto str = serializer.getOutput();
 
@@ -1590,6 +1590,10 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::createAndAddSubDevice(const 
     catch (NotFoundException&)
     {
         LOG_W("{}: Device with connection string \"{}\" is not available", this->globalId, connectionString);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_W("{}: Failed to create device with connection string \"{}\" - \"{}\"", this->globalId, connectionString, e.getErrorMessage());
     }
     catch (const std::exception& e)
     {
@@ -1691,7 +1695,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     }
 
     DeviceInfoPtr deviceInfo;
-    checkErrorInfo(this->getInfo(&deviceInfo));
+    DAQ_CHECK_ERROR_INFO(this->getInfo(&deviceInfo));
 
     if (!forUpdate)
     {
@@ -1870,12 +1874,16 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (devices.hasItem(deviceId))
         {
             DevicePtr device = devices.getItem(deviceId);
-            checkErrorInfo(this->removeDevice(device));
+            DAQ_CHECK_ERROR_INFO(this->removeDevice(device));
         }
 
         DevicePtr device = onAddDevice(connectionString, deviceConfig);
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_W("Failed to update device: {}", e.getErrorMessage());
     }
     catch (const std::exception& e)
     {

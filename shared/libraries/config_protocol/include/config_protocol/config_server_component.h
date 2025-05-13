@@ -187,7 +187,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
     if (propValueCoreType == CoreType::ctFunc)
     {
         BaseObjectPtr result;
-        checkErrorInfo(propValue.asPtr<IFunction>()->call(callParams, &result));
+        DAQ_CHECK_ERROR_INFO(propValue.asPtr<IFunction>()->call(callParams, &result));
         return result;
     }
 

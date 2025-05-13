@@ -385,7 +385,7 @@ protected:
     {
         Interface* thisInterface;
         auto err = this->borrowInterface(Interface::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return T<Interface>::Borrow(thisInterface);
     }
@@ -397,7 +397,7 @@ protected:
 
         Interface* thisInterface;
         auto err = this->borrowInterface(Interface::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return TPtr::Borrow(thisInterface);
     }
@@ -407,7 +407,7 @@ protected:
     {
         Intf* thisInterface;
         auto err = this->queryInterface(Intf::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return thisInterface;
     }
@@ -417,7 +417,7 @@ protected:
     {
         Intf* thisInterface;
         auto err = this->borrowInterface(Intf::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return thisInterface;
     }
@@ -429,7 +429,7 @@ protected:
 
         Interface* thisInterface;
         auto err = this->queryInterface(Interface::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return thisInterface;
     }

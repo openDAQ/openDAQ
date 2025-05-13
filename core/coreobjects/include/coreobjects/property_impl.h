@@ -120,7 +120,7 @@ public:
 
         if (this->defaultValue.supportsInterface<IPropertyObject>())
             initDefaultPermissionManager();
-        checkErrorInfo(validateDuringConstruction());
+        DAQ_CHECK_ERROR_INFO(validateDuringConstruction());
     }
 
     PropertyImpl(const StringPtr& name, const BaseObjectPtr& defaultValue, const BooleanPtr& visible)
@@ -835,9 +835,9 @@ public:
 		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
 			        defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
                 else if (lock)
-                    checkErrorInfo(this->getDefaultValue(&defaultStruct));
+                    DAQ_CHECK_ERROR_INFO(this->getDefaultValue(&defaultStruct));
                 else
-                    checkErrorInfo(this->getDefaultValueNoLock(&defaultStruct));
+                    DAQ_CHECK_ERROR_INFO(this->getDefaultValueNoLock(&defaultStruct));
 
                 *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
 		        return OPENDAQ_SUCCESS;
@@ -1475,7 +1475,7 @@ private:
     PropertyPtr bindAndGetRefProp(bool lock)
     {
 	    PropertyPtr refPropPtr;
-	    checkErrorInfo(getReferencedPropertyInternal(&refPropPtr, lock));
+	    DAQ_CHECK_ERROR_INFO(getReferencedPropertyInternal(&refPropPtr, lock));
 	    if (!refPropPtr.assigned())
 		    return nullptr;
 		    

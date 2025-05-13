@@ -115,7 +115,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const auto errCode = this->object->addType(type);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     /*!
@@ -132,7 +132,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         const auto errCode = this->object->removeType(name);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     /*!
@@ -148,7 +148,7 @@ public:
 
         TypePtr type;
         const auto errCode = this->object->getType(name, &type);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return type;
     }
@@ -164,7 +164,7 @@ public:
 
         ListPtr<IString> types;
         const auto errCode = this->object->getTypes(&types);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return types;
     }
@@ -181,7 +181,7 @@ public:
 
         Bool hasType;
         const auto errCode = this->object->hasType(typeName, &hasType);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return hasType;
     }

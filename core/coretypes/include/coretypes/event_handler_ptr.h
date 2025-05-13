@@ -93,7 +93,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->handleEvent(sender, eventArgs);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 };
 

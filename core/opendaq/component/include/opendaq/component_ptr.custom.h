@@ -35,11 +35,11 @@ void remove() const
             daqClearErrorInfo();
             return;
         }
-        daq::checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     errCode = removable->remove();
-    daq::checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 }
 
 /*!
@@ -53,11 +53,11 @@ bool isRemoved() const
 
     IRemovable* removable;
     auto errCode = this->object->borrowInterface(IRemovable::Id, reinterpret_cast<void**>(&removable));
-    daq::checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     Bool removed;
     errCode = removable->isRemoved(&removed);
-    daq::checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return removed;
 }

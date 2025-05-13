@@ -167,7 +167,7 @@ ErrCode wrapHandlerReturn(FunctionPtr handler, TReturn& output, Params... params
     }
     catch (const std::exception& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, e.what());
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {

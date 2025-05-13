@@ -5,6 +5,6 @@
             throw daq::InvalidParameterException();
 
         auto errCode = this->object->$NameInInterface$($ArgumentNames$);
-        daq::checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return this->addRefAndReturn();
     }

@@ -85,8 +85,8 @@ ErrCode ServerCapabilityConfigImpl::setConnectionString(IString* connectionStrin
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     return daqTry([&]
     {
-        checkErrorInfo(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
-        checkErrorInfo(addConnectionString(connectionString));
+        DAQ_CHECK_ERROR_INFO(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
+        DAQ_CHECK_ERROR_INFO(addConnectionString(connectionString));
         return OPENDAQ_SUCCESS;
     });
 }
@@ -107,10 +107,10 @@ ErrCode ServerCapabilityConfigImpl::addConnectionString(IString* connectionStrin
     {
         ListPtr<IString> connectionStrings = getTypedProperty<IList>(ConnectionStrings);
         connectionStrings.pushBack(connectionString);
-        checkErrorInfo(Super::setPropertyValue(String(ConnectionStrings), connectionStrings));
+        DAQ_CHECK_ERROR_INFO(Super::setPropertyValue(String(ConnectionStrings), connectionStrings));
 
         if (connectionStrings.getCount() == 1)
-            checkErrorInfo(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
+            DAQ_CHECK_ERROR_INFO(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
 
         return OPENDAQ_SUCCESS;
     });
@@ -239,7 +239,7 @@ ErrCode ServerCapabilityConfigImpl::addAddress(IString* address)
     {
         ListPtr<IString> addresses = getTypedProperty<IList>(Addresses);
         addresses.pushBack(address);
-        checkErrorInfo(Super::setPropertyValue(String(Addresses), addresses));
+        DAQ_CHECK_ERROR_INFO(Super::setPropertyValue(String(Addresses), addresses));
         return OPENDAQ_SUCCESS;
     });
 }

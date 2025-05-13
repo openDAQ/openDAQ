@@ -148,7 +148,7 @@ public:
     explicit ScopedRemoteUpdate(const PropertyObjectPtr& obj)
         : obj(obj)
     {
-        checkErrorInfo(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(True));
+        DAQ_CHECK_ERROR_INFO(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(True));
     }
 
     ScopedRemoteUpdate operator=(const ScopedRemoteUpdate&) = delete;
@@ -156,7 +156,7 @@ public:
 
     ~ScopedRemoteUpdate()
     {
-        checkErrorInfo(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(False));
+        DAQ_CHECK_ERROR_INFO(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(False));
     }
 
 private:
@@ -224,7 +224,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
     {
         // TODO: Refactor this
         PropertyPtr prop;
-        checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
+        DAQ_CHECK_ERROR_INFO(Impl::getProperty(propertyNamePtr, &prop));
         if (clientComm->getConnected() && (prop.getValueType() == ctFunc || prop.getValueType() == ctProc))
         {
             bool setValue;
@@ -371,10 +371,10 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([this, &obj]()
+    return daqTry([this, &obj]
     {
         StringPtr serialized;
-        checkErrorInfo(obj->toJson(&serialized));
+        DAQ_CHECK_ERROR_INFO(obj->toJson(&serialized));
         clientComm->update(remoteGlobalId, serialized, this->path);
     });
 }
@@ -419,6 +419,14 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreEvent(ICompone
     try
     {
         handleRemoteCoreObjectInternal(sender, args);
+    }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
+        StringPtr globalId;
+        const auto argsPtr = CoreEventArgsPtr::Borrow(args);
+        sender->getGlobalId(&globalId);
+        LOG_D("Component {} failed to handle core event {}: {}", globalId, argsPtr.getEventName(), e.getErrorMessage());
     }
     catch ([[maybe_unused]] const std::exception& e)
     {
@@ -472,7 +480,7 @@ BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getValueFromServer(const
         case ctObject:
         {
             BaseObjectPtr obj;
-            checkErrorInfo(Impl::getPropertyValue(propName, &obj));
+            DAQ_CHECK_ERROR_INFO(Impl::getPropertyValue(propName, &obj));
             return obj;
         }
         default:
@@ -542,7 +550,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
                     continue;
             }
 
-            checkErrorInfo(Impl::clearProtectedPropertyValue(prop.getName()));
+            DAQ_CHECK_ERROR_INFO(Impl::clearProtectedPropertyValue(prop.getName()));
         }
 
         return;
@@ -568,7 +576,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
 
         if (!propValues.hasKey(propName))
         {
-            checkErrorInfo(Impl::clearProtectedPropertyValue(propName));
+            DAQ_CHECK_ERROR_INFO(Impl::clearProtectedPropertyValue(propName));
             continue;
         }
 
@@ -576,12 +584,12 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
         {
             const ObjectPtr<IConfigClientObject> clientObj = thisPtr.getPropertyValue(propName);
             const auto childSerObj = propValues.readSerializedObject(propName);
-            checkErrorInfo(clientObj->remoteUpdate(childSerObj));
+            DAQ_CHECK_ERROR_INFO(clientObj->remoteUpdate(childSerObj));
         }
         else
         {
             const auto propValue = propValues.readObject(propName, typeManager);
-            checkErrorInfo(Impl::setProtectedPropertyValue(propName, propValue));
+            DAQ_CHECK_ERROR_INFO(Impl::setProtectedPropertyValue(propName, propValue));
         }
     }
 }
@@ -740,9 +748,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyValueChanged(const CoreEv
     else
     {
         if (val.assigned())
-            checkErrorInfo(Impl::setProtectedPropertyValue(propName, val));
+            DAQ_CHECK_ERROR_INFO(Impl::setProtectedPropertyValue(propName, val));
         else
-            checkErrorInfo(Impl::clearProtectedPropertyValue(propName));
+            DAQ_CHECK_ERROR_INFO(Impl::clearProtectedPropertyValue(propName));
     }
 }
 
@@ -775,17 +783,17 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectUpdateEnd(const Cor
     {
         ScopedRemoteUpdate update(obj);
 
-        checkErrorInfo(Impl::beginUpdateInternal(false));
+        DAQ_CHECK_ERROR_INFO(Impl::beginUpdateInternal(false));
 
         for (const auto& val : updatedProperties)
         {
             if (val.second.assigned())
-                checkErrorInfo(Impl::setProtectedPropertyValue(val.first, val.second));
+                DAQ_CHECK_ERROR_INFO(Impl::setProtectedPropertyValue(val.first, val.second));
             else
-                checkErrorInfo(Impl::clearProtectedPropertyValue(val.first));
+                DAQ_CHECK_ERROR_INFO(Impl::clearProtectedPropertyValue(val.first));
         }
 
-        checkErrorInfo(Impl::endUpdateInternal(false));
+        DAQ_CHECK_ERROR_INFO(Impl::endUpdateInternal(false));
     }
 }
 
@@ -805,7 +813,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyAdded(const CoreEventArgs
         obj.addProperty(prop);
     }
     else
-        checkErrorInfo(Impl::addProperty(prop));
+        DAQ_CHECK_ERROR_INFO(Impl::addProperty(prop));
 }
 
 template <class Impl>
@@ -824,7 +832,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyRemoved(const CoreEventAr
         obj.removeProperty(propName);
     }
     else
-        checkErrorInfo(Impl::removeProperty(propName));
+        DAQ_CHECK_ERROR_INFO(Impl::removeProperty(propName));
 }
 
 template <class Impl>

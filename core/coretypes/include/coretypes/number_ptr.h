@@ -69,7 +69,7 @@ public:
 
         Float value;
         auto errCode = this->object->getFloatValue(&value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return value;
     }
@@ -85,7 +85,7 @@ public:
 
         Int value;
         auto errCode = this->object->getIntValue(&value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return value;
     }

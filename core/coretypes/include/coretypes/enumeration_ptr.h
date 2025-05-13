@@ -138,7 +138,7 @@ public:
 
         EnumerationTypePtr type;
         auto errCode = this->object->getEnumerationType(&type);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return type;
     }
@@ -154,7 +154,7 @@ public:
 
         StringPtr value;
         auto errCode = this->object->getValue(&value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return value;
     }
@@ -170,7 +170,7 @@ public:
 
         Int value;
         auto errCode = this->object->getIntValue(&value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return value;
     }
@@ -184,7 +184,7 @@ private:
 
         StringPtr val;
         auto errCode = this->object->getValue(&val);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         if (val == value)
         {
@@ -193,7 +193,7 @@ private:
 
         EnumerationTypePtr type;
         errCode = this->object->getEnumerationType(&type);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         EnumerationPtr other = EnumerationWithType_Create(type, value);
 

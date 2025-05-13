@@ -360,6 +360,11 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
     {
         typeManager.addType(structType);
     }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_W("Couldn't add type {} to type manager: {}", structType.getName(), e.getErrorMessage());
+    }
     catch (const std::exception& e)
     {
         const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
@@ -401,12 +406,18 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
                 if (signalPtr.assigned())
                     valueSignalsOfDomainSignal.push_back(std::move(signalPtr));
             }
-            try {
+            try
+            {
                 if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
                 {
                     auto typeManager = this->context.getTypeManager();
                     addToTypeManagerRecursively(typeManager, dataDescriptor);
                 }
+            }
+            catch (const DaqException& e)
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+                LOG_W("There was an exception in setDescriptor method: {}", e.getErrorMessage());
             }
             catch (const std::exception& e)
             {

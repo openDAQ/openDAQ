@@ -13,7 +13,7 @@ void defineIIterable(pybind11::module_ m, PyDaqIntf<daq::IIterable> cls)
         [](daq::IIterable* object)
         {
             daq::IIterator* it;
-            daq::checkErrorInfo(object->createStartIterator(&it));
+            DAQ_CHECK_ERROR_INFO(object->createStartIterator(&it));
 
             return it;
         },

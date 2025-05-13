@@ -599,7 +599,7 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
         {
             auto serializer = JsonSerializer(True);
 
-            checkErrorInfo(this->serializeForUpdate(serializer));
+            DAQ_CHECK_ERROR_INFO(this->serializeForUpdate(serializer));
 
             auto str = serializer.getOutput();
 

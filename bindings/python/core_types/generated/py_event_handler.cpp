@@ -25,7 +25,7 @@
 daq::EventHandlerPtr<> createEventHandler(const EventHandler& eventHandler) {
     daq::EventHandlerPtr<> handler;
     daq::ErrCode err = daq::createObjectForwarding<daq::IEventHandler, daq::PyEventHandlerImpl>(&handler, eventHandler);
-    daq::checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
     return handler;
 }
 

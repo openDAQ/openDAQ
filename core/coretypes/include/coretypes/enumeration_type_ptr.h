@@ -121,7 +121,7 @@ public:
 
         ListPtr<IString> names;
         auto errCode = this->object->getEnumeratorNames(&names);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return names;
     }
@@ -137,7 +137,7 @@ public:
 
         DictPtr<IString, IInteger> dictionary;
         auto errCode = this->object->getAsDictionary(&dictionary);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return dictionary;
     }
@@ -154,7 +154,7 @@ public:
 
         Int value;
         auto errCode = this->object->getEnumeratorIntValue(name, &value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return value;
     }
@@ -170,7 +170,7 @@ public:
 
         SizeT count;
         auto errCode = this->object->getCount(&count);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return count;
     }

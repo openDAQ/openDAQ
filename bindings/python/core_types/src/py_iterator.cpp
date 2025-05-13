@@ -15,13 +15,13 @@ void defineIIterator(pybind11::module_ m, PyDaqIntf<daq::IIterator> cls)
             const daq::ErrCode errCode = it->moveNext();
             if (errCode == OPENDAQ_NO_MORE_ITEMS)
                 throw pybind11::stop_iteration();
-            daq::checkErrorInfo(errCode);
+            DAQ_CHECK_ERROR_INFO(errCode);
 
             daq::ObjectPtr<daq::IBaseObject> objectPtr;
-            daq::checkErrorInfo(it->getCurrent(&objectPtr));
+            DAQ_CHECK_ERROR_INFO(it->getCurrent(&objectPtr));
 
             daq::IntfID interfaceId{};
-            daq::checkErrorInfo(daq::ObjectPtr<daq::IListElementType>::Borrow(it)->getElementInterfaceId(&interfaceId));
+            DAQ_CHECK_ERROR_INFO(daq::ObjectPtr<daq::IListElementType>::Borrow(it)->getElementInterfaceId(&interfaceId));
 
             return baseObjectToPyObject(objectPtr, interfaceId);
         });

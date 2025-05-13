@@ -113,7 +113,7 @@ public:
 
         ListPtr<IString> names;
         const auto errCode = this->object->getFieldNames(&names);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return names;
     }
@@ -129,7 +129,7 @@ public:
 
         ListPtr<IBaseObject> defaultValues;
         const auto errCode = this->object->getFieldDefaultValues(&defaultValues);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return defaultValues;
     }
@@ -145,7 +145,7 @@ public:
 
         ListPtr<CoreType> types;
         const auto errCode = this->object->getFieldTypes(&types);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return types;
     }

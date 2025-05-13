@@ -451,12 +451,12 @@ void MirroredSignalBase<Interfaces...>::onListenedStatusChanged(bool listened)
     if (this->listened)
     {
         if (streamed)
-            checkErrorInfo(subscribeInternal());
+            DAQ_CHECK_ERROR_INFO(subscribeInternal());
     }
     else
     {
         if (streamed)
-            checkErrorInfo(unsubscribeInternal());
+            DAQ_CHECK_ERROR_INFO(unsubscribeInternal());
     }
 }
 

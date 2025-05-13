@@ -112,7 +112,7 @@ public:
 
         StructPtr struct_;
         const auto errCode = this->object->build(&struct_);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return struct_;
     }
@@ -128,7 +128,7 @@ public:
 
         StructTypePtr type;
         const auto errCode = this->object->getStructType(&type);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return type;
     }
@@ -147,7 +147,7 @@ public:
 
         ListPtr<IString> names;
         const auto errCode = this->object->getFieldNames(&names);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return names;
     }
@@ -165,7 +165,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
         
         const auto errCode = this->object->setFieldValues(values);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return this->addRefAndReturn();
     }
 
@@ -183,7 +183,7 @@ public:
 
         ListPtr<IBaseObject> values;
         const auto errCode = this->object->getFieldValues(&values);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return values;
     }
@@ -199,7 +199,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
         
         const auto errCode = this->object->set(name, field);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return this->addRefAndReturn();
     }
 
@@ -216,7 +216,7 @@ public:
 
         BaseObjectPtr field;
         const auto errCode = this->object->get(name, &field);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return field;
     }
@@ -232,7 +232,7 @@ public:
 
         DictPtr<IString, IBaseObject> dict;
         const auto errCode = this->object->getAsDictionary(&dict);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return dict;
     }
@@ -249,7 +249,7 @@ public:
 
         Bool hasField;
         const auto errCode = this->object->hasField(name, &hasField);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return hasField;
     }

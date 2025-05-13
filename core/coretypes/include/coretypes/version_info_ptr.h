@@ -91,7 +91,7 @@ public:
 
         SizeT major;
         auto errCode = this->object->getMajor(&major);
-        daq::checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return major;
     }
@@ -103,7 +103,7 @@ public:
 
         SizeT minor;
         auto errCode = this->object->getMinor(&minor);
-        daq::checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return minor;
     }
@@ -115,7 +115,7 @@ public:
 
         SizeT patch;
         auto errCode = this->object->getPatch(&patch);
-        daq::checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return patch;
     }

@@ -471,7 +471,7 @@ private:
         }
         catch (const DaqException& e)
         {
-            LOG_W("Failed to merge configuration: {}", e.what())
+            LOG_W("Failed to merge configuration: {}", e.getErrorMessage())
             return configIn;
         }
         catch (const std::exception& e)

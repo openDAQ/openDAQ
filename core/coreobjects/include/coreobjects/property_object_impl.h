@@ -1274,6 +1274,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
     }
     catch (const DaqException& e)
     {
+        errorFromException(e);
         return DAQ_MAKE_ERROR_INFO(e.getErrCode(), "Value type is different than Property type and conversion failed");
     }
 
@@ -1350,8 +1351,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwnerToPrope
         }
         catch (const DaqException& e)
         {
+            errorFromException(e);
             DAQ_MAKE_ERROR_INFO(e.getErrCode(), "Failed to set owner to property value");
-            throw;
+            DAQ_CHECK_ERROR_INFO(e.getErrCode());
         }
     }
 }
@@ -1389,7 +1391,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUnbou
         return nullptr;
     }
 
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
     return property;
 }
 
@@ -2526,7 +2528,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
             getPropertyAndValueInternal(name, item.second.value, prop);
         }
 
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     for (const auto& propName : ignoredProps)
@@ -2917,16 +2919,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
 
         auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-        checkErrorInfo(serializer->key("properties"));
-        checkErrorInfo(serializer->startList());
+        DAQ_CHECK_ERROR_INFO(serializer->key("properties"));
+        DAQ_CHECK_ERROR_INFO(serializer->startList());
         for (const auto& prop : localProperties)
         {
             if (!hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
                 continue;
 
-            checkErrorInfo(serializeProperty(prop.second, serializer));
+            DAQ_CHECK_ERROR_INFO(serializeProperty(prop.second, serializer));
         }
-        checkErrorInfo(serializer->endList());
+        DAQ_CHECK_ERROR_INFO(serializer->endList());
 
         return OPENDAQ_SUCCESS;
     });
@@ -3366,7 +3368,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
     try
     {
         ListPtr<IProperty> allProps;
-        checkErrorInfo(getPropertiesInternal(True, False, &allProps));
+        DAQ_CHECK_ERROR_INFO(getPropertiesInternal(True, False, &allProps));
 
         return updateObjectProperties(this->thisInterface(), serialized, allProps);
     }

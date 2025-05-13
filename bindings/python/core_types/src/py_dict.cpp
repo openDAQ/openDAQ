@@ -90,7 +90,7 @@ void defineIDict(pybind11::module_ m, PyDaqIntf<daq::IDict> cls)
             const auto iterablePtr = dictPtr.getKeys();
 
             daq::ObjectPtr<daq::IIterator> it;
-            daq::checkErrorInfo(iterablePtr->createStartIterator(&it));
+            DAQ_CHECK_ERROR_INFO(iterablePtr->createStartIterator(&it));
 
             auto pythonIterator = baseObjectToPyObjectUsingType<daq::IIterator>(it);
 

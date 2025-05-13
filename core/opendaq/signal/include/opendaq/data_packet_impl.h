@@ -392,7 +392,7 @@ ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::equals(IBaseObject* other, Bo
         [this, &other, &equals]()
         {
             ErrCode errCode = Super::equals(other, equals);
-            checkErrorInfo(errCode);
+            DAQ_CHECK_ERROR_INFO(errCode);
 
             if (!(*equals))
                 return errCode;

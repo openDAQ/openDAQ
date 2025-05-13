@@ -635,6 +635,11 @@ ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs*
         const ComponentPtr thisPtr = this->template borrowPtr<ComponentPtr>();
         this->componentCoreEvent(thisPtr, argsPtr);
     }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        LOG_W("Component {} failed while triggering core event {} with: {}", this->localId, argsPtr.getEventName(), e.getErrorMessage());
+    }
     catch (const std::exception& e)
     {
         const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
@@ -1136,6 +1141,11 @@ void ComponentImpl<Intf, Intfs...>::triggerCoreEvent(const CoreEventArgsPtr& arg
     {
         const ComponentPtr thisPtr = this->template borrowPtr<ComponentPtr>();
         this->coreEvent(thisPtr, args);
+    }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        LOG_W("Component {} failed while triggering core event {} with: {}", this->localId, args.getEventName(), e.getErrorMessage());
     }
     catch (const std::exception& e)
     {

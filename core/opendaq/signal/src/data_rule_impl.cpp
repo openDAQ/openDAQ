@@ -39,7 +39,7 @@ DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const DictPtr<IString, IBaseOb
     , ruleType(ruleType)
     , params(params)
 {
-    checkErrorInfo(verifyParametersInternal());
+    DAQ_CHECK_ERROR_INFO(verifyParametersInternal());
 }
 
 DataRuleImpl::DataRuleImpl(DataRuleType ruleType, const NumberPtr& param1, const NumberPtr& param2)

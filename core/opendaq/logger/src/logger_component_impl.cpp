@@ -18,7 +18,7 @@ static ILoggerThreadPoolPrivate::ThreadPoolPtr getThreadPool(const LoggerThreadP
 {
     ILoggerThreadPoolPrivate::ThreadPoolPtr threadPoolImpl;
     ErrCode err = threadPool.asPtr<ILoggerThreadPoolPrivate>()->getThreadPoolImpl(&threadPoolImpl);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 
     return threadPoolImpl;
 }

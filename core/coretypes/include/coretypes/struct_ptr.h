@@ -132,7 +132,7 @@ public:
 
         StructTypePtr type;
         const auto errCode = this->object->getStructType(&type);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return type;
     }
@@ -151,7 +151,7 @@ public:
 
         ListPtr<IString> names;
         const auto errCode = this->object->getFieldNames(&names);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return names;
     }
@@ -170,7 +170,7 @@ public:
 
         ListPtr<IBaseObject> values;
         const auto errCode = this->object->getFieldValues(&values);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return values;
     }
@@ -187,7 +187,7 @@ public:
 
         BaseObjectPtr field;
         const auto errCode = this->object->get(name, &field);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return field;
     }
@@ -203,7 +203,7 @@ public:
 
         DictPtr<IString, IBaseObject> dict;
         const auto errCode = this->object->getAsDictionary(&dict);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return dict;
     }
@@ -220,7 +220,7 @@ public:
 
         Bool hasField;
         const auto errCode = this->object->hasField(name, &hasField);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return hasField;
     }

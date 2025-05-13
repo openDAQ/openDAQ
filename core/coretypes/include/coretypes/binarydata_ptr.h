@@ -77,7 +77,7 @@ public:
 
         void* data;
         auto errCode = this->object->getAddress(&data);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return data;
     }
@@ -93,7 +93,7 @@ public:
 
         SizeT size;
         auto errCode = this->object->getSize(&size);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return size;
     }

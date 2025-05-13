@@ -225,10 +225,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
             {
                 events.listenerConnected(connection);
             }
-            catch (const DaqException& e)
+            catch (const NotImplementedException&)
             {
-                if (e.getErrCode() != OPENDAQ_ERR_NOTIMPLEMENTED)
-                    throw;
             }
         }
     }
@@ -355,8 +353,9 @@ ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNo
         notifyMethod = PacketReadyNotification::SameThread;
     }
     else
+    {
         notifyMethod = method;
-
+    }
     return OPENDAQ_SUCCESS;
 }
 
@@ -372,6 +371,10 @@ void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedSameThread()
             {
                 listener.packetReceived(this->template thisInterface<IInputPort>());
             }
+            catch (const DaqException& e)
+            {
+                LOG_E("Input port notification failed: {}", e.getErrorMessage());
+            }
             catch (const std::exception& e)
             {
                 LOG_E("Input port notification failed: {}", e.what());
@@ -385,7 +388,7 @@ void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedScheduler()
 {
     const auto errCode = scheduler->scheduleWork(notifySchedulerCallback);
     if (OPENDAQ_FAILED(errCode) && (errCode != OPENDAQ_ERR_SCHEDULER_STOPPED))
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 }
 
 template <class... Interfaces>
@@ -462,6 +465,10 @@ ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications
                 try
                 {
                     notify.packetReceived(port);
+                }
+                catch (const DaqException& e)
+                {
+                    LOG_E("Input port notification failed: {}", e.getErrorMessage());
                 }
                 catch (const std::exception& e)
                 {

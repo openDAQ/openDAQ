@@ -611,7 +611,7 @@ void StreamingServer::handleDataDescriptorChanges(OutputSignalBasePtr& outputSig
             catch (const DaqException& e)
             {
                 writeSignalsUnavailable(writer, {valueSignalId});
-                LOG_W("Failed to change value descriptor for signal {}, reason: {}", valueSignalId, e.what());
+                LOG_W("Failed to change value descriptor for signal {}, reason: {}", valueSignalId, e.getErrorMessage());
                 outputSignals.insert_or_assign(valueSignalId, std::make_shared<OutputNullSignal>(daqValueSignal, logCallback));
                 outputSignal = outputSignals.at(valueSignalId);
                 if (newValueDescriptor.assigned())
@@ -631,7 +631,7 @@ void StreamingServer::handleDataDescriptorChanges(OutputSignalBasePtr& outputSig
                 }
                 catch (const DaqException& e)
                 {
-                    LOG_W("Failed to change domain descriptor for signal {}, reason: {}", valueSignalId, e.what());
+                    LOG_W("Failed to change domain descriptor for signal {}, reason: {}", valueSignalId, e.getErrorMessage());
                     const auto domainSignalId = daqDomainSignal.getGlobalId();
                     writeSignalsUnavailable(writer, {domainSignalId, valueSignalId});
                     outputSignals.insert_or_assign(valueSignalId, std::make_shared<OutputNullSignal>(daqValueSignal, logCallback));
@@ -664,7 +664,7 @@ void StreamingServer::updateOutputPlaceholderSignal(OutputSignalBasePtr& outputS
     }
     catch (const DaqException& e)
     {
-        LOG_W("Failed to re-create an output LT streaming signal for {}, reason: {}", daqSignal.getGlobalId(), e.what());
+        LOG_W("Failed to re-create an output LT streaming signal for {}, reason: {}", daqSignal.getGlobalId(), e.getErrorMessage());
     }
 }
 
@@ -687,7 +687,7 @@ void StreamingServer::publishSignalsToClient(const StreamWriterPtr& writer,
         }
         catch (const DaqException& e)
         {
-            LOG_W("Failed to create an output LT streaming signal for {}, reason: {}", signalId, e.what());
+            LOG_W("Failed to create an output LT streaming signal for {}, reason: {}", signalId, e.getErrorMessage());
             auto placeholderSignal = std::make_shared<OutputNullSignal>(daqSignal, logCallback);
             outputSignals.insert({signalId, placeholderSignal});
         }

@@ -82,7 +82,7 @@ WeakRefPtr<TInterface, TSmartPtr>::WeakRefPtr(const ObjectPtr<ISupportsWeakRef>&
         return;
 
     IWeakRef* weakRefToObject;
-    checkErrorInfo(obj->getWeakRef(&weakRefToObject));
+    DAQ_CHECK_ERROR_INFO(obj->getWeakRef(&weakRefToObject));
 
     object = weakRefToObject;
     borrowed = false;
@@ -95,7 +95,7 @@ WeakRefPtr<TInterface, TSmartPtr>::WeakRefPtr(ISupportsWeakRef* intf)
         return;
 
     IWeakRef* weakRefToObject;
-    checkErrorInfo(intf->getWeakRef(&weakRefToObject));
+    DAQ_CHECK_ERROR_INFO(intf->getWeakRef(&weakRefToObject));
 
     object = weakRefToObject;
     borrowed = false;
@@ -108,10 +108,10 @@ WeakRefPtr<TInterface, TSmartPtr>::WeakRefPtr(IBaseObject* intf)
         return;
 
     ISupportsWeakRef* objectWithWeakRefSupport;
-    checkErrorInfo(intf->borrowInterface(ISupportsWeakRef::Id, reinterpret_cast<void**>(&objectWithWeakRefSupport)));
+    DAQ_CHECK_ERROR_INFO(intf->borrowInterface(ISupportsWeakRef::Id, reinterpret_cast<void**>(&objectWithWeakRefSupport)));
 
     IWeakRef* weakRefToObject;
-    checkErrorInfo(objectWithWeakRefSupport->getWeakRef(&weakRefToObject));
+    DAQ_CHECK_ERROR_INFO(objectWithWeakRefSupport->getWeakRef(&weakRefToObject));
 
     object = weakRefToObject;
     borrowed = false;
@@ -133,10 +133,10 @@ WeakRefPtr<TInterface, TSmartPtr>::WeakRefPtr(const ObjectPtr<V>& obj)
         return;
 
     ISupportsWeakRef* objectWithWeakRefSupport;
-    checkErrorInfo(obj->borrowInterface(ISupportsWeakRef::Id, reinterpret_cast<void**>(&objectWithWeakRefSupport)));
+    DAQ_CHECK_ERROR_INFO(obj->borrowInterface(ISupportsWeakRef::Id, reinterpret_cast<void**>(&objectWithWeakRefSupport)));
 
     IWeakRef* weakRefToObject;
-    checkErrorInfo(objectWithWeakRefSupport->getWeakRef(&weakRefToObject));
+    DAQ_CHECK_ERROR_INFO(objectWithWeakRefSupport->getWeakRef(&weakRefToObject));
 
     object = weakRefToObject;
     borrowed = false;
@@ -157,7 +157,7 @@ TSmartPtr WeakRefPtr<TInterface, TSmartPtr>::getRef() const
     }
     else if (errCode != OPENDAQ_ERR_NOTASSIGNED)
     {
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
     return TSmartPtr(std::move(intf));
 }

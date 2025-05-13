@@ -56,7 +56,11 @@ void BasicCsvRecorderThread::threadMain()
         {
             recorderSignal->onPacketReceived(packet);
         }
-
+        catch (const DaqException& ex)
+        {
+            LOG_E("BasicCsvRecorder failed to write packet; closing CSV file: {}", ex.getErrorMessage());
+            recorderSignal.reset();
+        }
         catch (const std::exception& ex)
         {
             LOG_E("BasicCsvRecorder failed to write packet; closing CSV file: {}", ex.what());

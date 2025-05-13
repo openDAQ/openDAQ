@@ -40,13 +40,13 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", connectionStatus);
 
     const auto thisPtr = this->template borrowPtr<DevicePtr>();
-    checkErrorInfo(nativeStreaming.asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
+    DAQ_CHECK_ERROR_INFO(nativeStreaming.asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
 }
 
 void NativeStreamingDeviceImpl::removed()
 {
     this->connectionStatusContainer.removeStreamingConnectionStatus(connectionString);
-    checkErrorInfo(nativeStreaming.asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr));
+    DAQ_CHECK_ERROR_INFO(nativeStreaming.asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr));
     nativeStreaming.release();
     Device::removed();
 }
@@ -119,7 +119,7 @@ SignalPtr NativeStreamingDeviceImpl::createSignal(const StringPtr& signalStringI
             if (typeId != "Signal")
                 return nullptr;
             BaseObjectPtr obj;
-            checkErrorInfo(NativeStreamingSignalImpl::Deserialize(object, context, factoryCallback, &obj));
+            DAQ_CHECK_ERROR_INFO(NativeStreamingSignalImpl::Deserialize(object, context, factoryCallback, &obj));
             return obj;
         });
 

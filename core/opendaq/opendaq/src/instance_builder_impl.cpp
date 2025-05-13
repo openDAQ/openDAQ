@@ -360,7 +360,7 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
         }
         catch (const DaqException& e)
         {
-            LOG_I("Failed to populate instance builder options with given provider. Error message: {}", e.what());
+            LOG_I("Failed to populate instance builder options with given provider. Error message: {}", e.getErrorMessage());
         }
         catch (...)
         {
@@ -375,7 +375,7 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
         }
         catch (const DaqException& e)
         {
-            LOG_I("Failed to populate instance builder options with given provider. Error message: {}", e.what());
+            LOG_I("Failed to populate instance builder options with given provider. Error message: {}", e.getErrorMessage());
         }
         catch (...)
         {

@@ -185,7 +185,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         }
         catch (const daq::DaqException& e)
         {
-            LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.what(), e.getErrCode())
+            LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.getErrorMessage(), e.getErrCode())
         }
         catch (const std::exception& e)
         {
@@ -209,7 +209,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         }
         catch (const daq::DaqException& e)
         {
-            LOG_W(R"(Error loading module "{}": {} [{:#x}])", modulePath.string(), e.what(), e.getErrCode())
+            LOG_W(R"(Error loading module "{}": {} [{:#x}])", modulePath.string(), e.getErrorMessage(), e.getErrCode())
         }
         catch (const std::exception& e)
         {
@@ -382,6 +382,10 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
         {
             LOG_I("{}: GetAvailableDevices not implemented", module.getModuleInfo().getName())
         }
+        catch (const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableDevices failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
+        }
         catch (const std::exception& e)
         {
             LOG_W("{}: GetAvailableDevices failed: {}", module.getModuleInfo().getName(), e.what())
@@ -481,6 +485,10 @@ ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
         {
             LOG_I("{}: GetAvailableDeviceTypes not implemented", module.getModuleInfo().getName())
         }
+        catch (const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableDeviceTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
+        }
         catch ([[maybe_unused]] const std::exception& e)
         {
             LOG_W("{}: GetAvailableDeviceTypes failed: {}", module.getModuleInfo().getName(), e.what())
@@ -510,9 +518,9 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         const bool inputIsDefaultAddDeviceConfig = isDefaultAddDeviceConfig(inputConfig);
 
         if (inputIsDefaultAddDeviceConfig)
-            checkErrorInfo(inputConfig.asPtr<IPropertyObjectInternal>()->clone(&addDeviceConfig));
+            DAQ_CHECK_ERROR_INFO(inputConfig.asPtr<IPropertyObjectInternal>()->clone(&addDeviceConfig));
         else
-            checkErrorInfo(createDefaultAddDeviceConfig(&addDeviceConfig));
+            DAQ_CHECK_ERROR_INFO(createDefaultAddDeviceConfig(&addDeviceConfig));
 
 
         PropertyObjectPtr generalConfig =
@@ -558,7 +566,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
             const auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
-            checkErrorInfo(err);
+            DAQ_CHECK_ERROR_INFO(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned())
@@ -609,6 +617,10 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
         catch (const NotImplementedException&)
         {
             LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getModuleInfo().getName())
+        }
+        catch (const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
@@ -721,6 +733,10 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         {
             LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getModuleInfo().getName())
         }
+        catch (const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
+        }
         catch ([[maybe_unused]] const std::exception& e)
         {
             LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.what())
@@ -813,6 +829,10 @@ ErrCode ModuleManagerImpl::getAvailableStreamingTypes(IDict** streamingTypes)
         catch (const NotImplementedException&)
         {
             LOG_I("{}: GetAvailableStreamingTypes not implemented", module.getModuleInfo().getName())
+        }
+        catch (const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableStreamingTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
@@ -1060,7 +1080,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     StreamingPtr streaming = nullptr;
     PropertyObjectPtr inputConfig;
     if(config.assigned())
-        checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
+        DAQ_CHECK_ERROR_INFO(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
 
     for (const auto& library : libraries)
     {
@@ -1104,6 +1124,11 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         {
             streaming = module.createStreaming(connectionString, streamingTypeConfig);
         }
+        catch (const DaqException& e)
+        {
+            LOG_E("{}: createStreaming failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
+            throw;
+        }
         catch ([[maybe_unused]] const std::exception& e)
         {
             LOG_E("{}: createStreaming failed: {}", module.getModuleInfo().getName(), e.what())
@@ -1137,6 +1162,10 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
             catch (const NotImplementedException&)
             {
                 LOG_D("{}: completeServerCapability not implemented", module.getModuleInfo().getName());
+            }
+            catch (const DaqException& e)
+            {
+                LOG_W("{}: completeServerCapability failed: {}", module.getModuleInfo().getName(), e.getErrorMessage());
             }
             catch ([[maybe_unused]] const std::exception& e)
             {
@@ -1425,6 +1454,11 @@ void ModuleManagerImpl::mergeDiscoveryAndDeviceCapabilities(const DevicePtr& dev
                 {
                     capPtr = mergeDiscoveryAndDeviceCapability(capability, connectedDeviceInfo.getServerCapability(capId));
                 }
+                catch (const DaqException& e)
+                {
+                    capPtr = capability;
+                    LOG_W("{}: Failed to merge discovery and device server capability with ID {}: {}", discoveredDeviceInfo.getName(), capId, e.getErrorMessage())
+                }
                 catch ([[maybe_unused]] const std::exception& e)
                 {
                     capPtr = capability;
@@ -1506,10 +1540,10 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
     std::error_code errCode;
     if (!fs::exists(searchFolder, errCode))
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" does not exist.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path does not exist.");
 
     if (!fs::is_directory(searchFolder, errCode))
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" is not a folder.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path is not a folder.");
 
     fs::recursive_directory_iterator dirIterator(searchFolder);
 
@@ -1556,6 +1590,10 @@ static void printComponentTypes(Functor func, const std::string& kind, const Log
                 );
             }
         }
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Failed to enumerate module's supported {} types: {}", kind, e.getErrorMessage());
     }
     catch (const std::exception& e)
     {

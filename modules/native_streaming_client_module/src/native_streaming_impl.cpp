@@ -73,7 +73,7 @@ void NativeStreamingImpl::signalAvailableHandler(const StringPtr& signalStringId
     if (onDeviceSignalAvailableCallback.assigned())
     {
         ErrCode errCode = wrapHandler(onDeviceSignalAvailableCallback, signalStringId, serializedSignal);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 }
 
@@ -83,7 +83,7 @@ void NativeStreamingImpl::signalUnavailableHandler(const StringPtr& signalString
     if (onDeviceSignalUnavailableCallback.assigned())
     {
         ErrCode errCode = wrapHandler(onDeviceSignalUnavailableCallback, signalStringId);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 }
 

@@ -1235,7 +1235,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
                 if (propsToIgnore.count(key))
                     continue;
                 const auto propValue = propValues.readObject(key, context, nullptr);
-                checkErrorInfo(this->setProtectedPropertyValue(key, propValue));
+                DAQ_CHECK_ERROR_INFO(this->setProtectedPropertyValue(key, propValue));
             }
         }
     });

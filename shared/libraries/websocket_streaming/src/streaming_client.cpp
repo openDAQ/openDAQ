@@ -707,7 +707,7 @@ void StreamingClient::onSignal(const daq::streaming_protocol::SubscribedSignal& 
     }
     catch (const DaqException& e)
     {
-        LOG_W("Failed to interpret received input signal: {}.", e.what());        
+        LOG_W("Failed to interpret received input signal: {}.", e.getErrorMessage());        
     }
 }
 

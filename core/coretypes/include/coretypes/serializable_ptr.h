@@ -61,7 +61,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->serialize(serializator);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 };
 

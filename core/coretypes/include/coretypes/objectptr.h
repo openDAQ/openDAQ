@@ -693,7 +693,7 @@ static std::wstring getWString(Intf* obj)
 {
     CharPtr str;
     auto err = obj->toString(&str);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 
     std::string s = str;
     daqFreeMemory(str);
@@ -704,7 +704,7 @@ template <typename T, class Intf = typename CoreTypeHelper<T>::Interface>
 static T getValueFromObject(Intf* typeObj)
 {
     typename CoreTypeHelper<T>::TrueType trueTypeValue;
-    checkErrorInfo(typeObj->getValue(&trueTypeValue));
+    DAQ_CHECK_ERROR_INFO(typeObj->getValue(&trueTypeValue));
 
     T value = static_cast<T>(trueTypeValue);
     return value;
@@ -714,7 +714,7 @@ template <>
 inline std::wstring getValueFromObject<std::wstring, IString>(IString* typeObj)
 {
     ConstCharPtr value;
-    checkErrorInfo(typeObj->getCharPtr(&value));
+    DAQ_CHECK_ERROR_INFO(typeObj->getCharPtr(&value));
     std::string str(value);
 
     return CoreTypeHelper<std::wstring>::stringToWString(str);
@@ -724,7 +724,7 @@ template <>
 inline std::string getValueFromObject<std::string, IString>(IString* typeObj)
 {
     ConstCharPtr value;
-    checkErrorInfo(typeObj->getCharPtr(&value));
+    DAQ_CHECK_ERROR_INFO(typeObj->getCharPtr(&value));
     return std::string(value);
 }
 
@@ -741,11 +741,11 @@ static T getValueFromConvertible(IBaseObject* obj)
 {
     IConvertible* convObj;
     ErrCode err = obj->borrowInterface(IConvertible::Id, reinterpret_cast<void**>(&convObj));
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 
     T value;
     err = CoreTypeHelper<T>::FromConvertible(value, convObj);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
     return value;
 }
 
@@ -843,8 +843,8 @@ ObjectPtr<IBaseObject> baseObjectBinOpOfTwoList(const ObjectPtr<U>& left,
     auto rightList = right.template asPtr<IList, ObjectPtr<IList>>(true);
     size_t leftCount;
     size_t rightCount;
-    checkErrorInfo(leftList->getCount(&leftCount));
-    checkErrorInfo(leftList->getCount(&rightCount));
+    DAQ_CHECK_ERROR_INFO(leftList->getCount(&leftCount));
+    DAQ_CHECK_ERROR_INFO(leftList->getCount(&rightCount));
 
     if (leftCount != rightCount)
         DAQ_THROW_EXCEPTION(InvalidTypeException);
@@ -853,12 +853,12 @@ ObjectPtr<IBaseObject> baseObjectBinOpOfTwoList(const ObjectPtr<U>& left,
     for (size_t i = 0; i < leftCount; i++)
     {
         IBaseObject* leftObj;
-        checkErrorInfo(leftList->getItemAt(i, &leftObj));
+        DAQ_CHECK_ERROR_INFO(leftList->getItemAt(i, &leftObj));
         IBaseObject* rightObj;
-        checkErrorInfo(rightList->getItemAt(i, &rightObj));
+        DAQ_CHECK_ERROR_INFO(rightList->getItemAt(i, &rightObj));
 
         auto resultObj = baseObjectBinOp<IBaseObject, IBaseObject, O>(std::move(leftObj), std::move(rightObj));
-        checkErrorInfo(list->moveBack(resultObj.detach()));
+        DAQ_CHECK_ERROR_INFO(list->moveBack(resultObj.detach()));
     }
     return list;
 }
@@ -883,15 +883,15 @@ ObjectPtr<IBaseObject> baseObjectBinOpOfListAndScalar(const ObjectPtr<U>& left,
     }
 
     size_t count;
-    checkErrorInfo(listObj->getCount(&count));
+    DAQ_CHECK_ERROR_INFO(listObj->getCount(&count));
     ObjectPtr<IList> list = List_Create();
     for (size_t i = 0; i < count; i++)
     {
         IBaseObject* itemObj;
-        checkErrorInfo(listObj->getItemAt(i, &itemObj));
+        DAQ_CHECK_ERROR_INFO(listObj->getItemAt(i, &itemObj));
 
         auto resultObj = baseObjectBinOp<IBaseObject, IBaseObject, O>(std::move(itemObj), scalarObj);
-        checkErrorInfo(list->moveBack(resultObj.detach()));
+        DAQ_CHECK_ERROR_INFO(list->moveBack(resultObj.detach()));
     }
     return list;
 }
@@ -1082,7 +1082,7 @@ bool compareObjectPtr(const ObjectPtr<T>& lhs, const ObjectPtr<U>& rhs)
     if (lhsComp.assigned())
     {
         ErrCode err = lhsComp->compareTo(rhs.getObject());
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
         return err == Op;
     }
 
@@ -1181,7 +1181,7 @@ ObjectPtr<T>::ObjectPtr(const ObjectPtr<U>& objPtr)
     {
         T* newIntf;
         ErrCode err = objPtr->queryInterface(T::Id, (void**) &newIntf);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         object = newIntf;
     }
@@ -1243,7 +1243,7 @@ ObjectPtr<T>::ObjectPtr(IWeakRef* obj)
 
         T* newIntf;
         ErrCode err = obj->getRefAs(T::Id, (void**) &newIntf);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         object = newIntf;
     }
@@ -1264,7 +1264,7 @@ ObjectPtr<T>::ObjectPtr(U*& obj)
 
         auto* nonConst = const_cast<typename std::remove_const<U>::type*>(obj);
         ErrCode err = nonConst->queryInterface(T::Id, (void**) &newIntf);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         object = newIntf;
     }
@@ -1285,7 +1285,7 @@ ObjectPtr<T>::ObjectPtr(U*&& obj)
 
         T* newIntf;
         ErrCode err = obj->queryInterface(T::Id, (void**) &newIntf);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         object = newIntf;
     }
@@ -1307,7 +1307,7 @@ ObjectPtr<T>::ObjectPtr(const TComPtr& unknown)
     IUnknown* intf = (IUnknown*) unknown.GetInterfacePtr();
 
     ErrCode err = intf->queryInterface(T::Id, (void**) &object);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 }
 
 template <class T>
@@ -1334,7 +1334,7 @@ ObjectPtr<T>::ObjectPtr(const U& value)
     if constexpr (supports_conv_from_coretype<T>::value)
     {
         auto intf = CoreTypeHelper<U>::Create(value);
-        checkErrorInfo(intf->borrowInterface(T::Id, reinterpret_cast<void**>(&object)));
+        DAQ_CHECK_ERROR_INFO(intf->borrowInterface(T::Id, reinterpret_cast<void**>(&object)));
     }
     else if constexpr (!std::is_same_v<T, IBaseObject> && !std::is_same_v<T, CreateInterface>)
     {
@@ -1379,7 +1379,7 @@ typename InterfaceToSmartPtr<U>::SmartPtr ObjectPtr<T>::Adopt(T* obj)
 //
 //     typename InterfaceToSmartPtr<TInterface>::SmartPtr ptr;
 //     ErrCode err = intf->queryInterface(TInterface::Id, (void**) &ptr);
-//     checkErrorInfo(err);
+//     DAQ_CHECK_ERROR_INFO(err);
 //
 //     return ptr;
 // }
@@ -1392,7 +1392,7 @@ typename InterfaceToSmartPtr<V>::SmartPtr ObjectPtr<T>::Borrow(U*& obj)
 
     T* intf;
     auto res = obj->borrowInterface(T::Id, reinterpret_cast<void**>(&intf));
-    checkErrorInfo(res);
+    DAQ_CHECK_ERROR_INFO(res);
 
     objPtr.object = intf;
     objPtr.borrowed = true;
@@ -1423,7 +1423,7 @@ bool ObjectPtr<T>::equals(ObjectPtr<IBaseObject> other) const
 
     Bool eq;
     ErrCode errCode = object->equals(other, &eq);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return eq;
 }
@@ -1591,7 +1591,7 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(const TComPtr& unknown)
     auto* intf = (IUnknown*) unknown.GetInterfacePtr();
 
     ErrCode err = intf->queryInterface(T::Id, (void**) &object);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
     borrowed = false;
 
     return *this;
@@ -1609,7 +1609,7 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(const U& value)
     if constexpr (supports_conv_from_coretype<T>::value)
     {
         auto intf = CoreTypeHelper<U>::Create(value);
-        checkErrorInfo(intf->borrowInterface(T::Id, reinterpret_cast<void**>(&object)));
+        DAQ_CHECK_ERROR_INFO(intf->borrowInterface(T::Id, reinterpret_cast<void**>(&object)));
     }
     else if constexpr (!std::is_same_v<T, IBaseObject> && !std::is_same_v<T, CreateInterface>)
     {
@@ -1688,12 +1688,12 @@ IIterator* ObjectPtr<T>::createStartIteratorInterface() const
     else
     {
         errCode = object->borrowInterface(IIterable::Id, reinterpret_cast<void**>(&iterable));
-        checkErrorInfo(errCode);        
+        DAQ_CHECK_ERROR_INFO(errCode);        
     }
 
     IIterator* iterator;
     errCode = iterable->createStartIterator(&iterator);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     iterator->moveNext();
     return iterator;
@@ -1713,12 +1713,12 @@ IIterator* ObjectPtr<T>::createEndIteratorInterface() const
     else
     {
         errCode = object->borrowInterface(IIterable::Id, reinterpret_cast<void**>(&iterable));
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     IIterator* iterator;
     errCode = iterable->createEndIterator(&iterator);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     iterator->moveNext();
     return iterator;
@@ -1937,7 +1937,7 @@ U* ObjectPtr<T>::as(bool borrow) const
     else
         res = object->queryInterface(U::Id, reinterpret_cast<void**>(&intf));
 
-    checkErrorInfo(res);
+    DAQ_CHECK_ERROR_INFO(res);
     return intf;
 }
 
@@ -1977,13 +1977,13 @@ Ptr ObjectPtr<T>::asPtr(const bool borrow) const
     if (borrow)
     {
         auto res = object->borrowInterface(U::Id, reinterpret_cast<void**>(&intf));
-        checkErrorInfo(res);
+        DAQ_CHECK_ERROR_INFO(res);
 
         return Ptr::Borrow(intf);
     }
 
     auto res = object->queryInterface(U::Id, reinterpret_cast<void**>(&intf));
-    checkErrorInfo(res);
+    DAQ_CHECK_ERROR_INFO(res);
 
     return Ptr(std::move(intf));
 }
@@ -2089,7 +2089,7 @@ CoreType ObjectPtr<T>::getCoreType() const
     if (coreTypeObj.assigned())
     {
         CoreType coreType;
-        checkErrorInfo(coreTypeObj->getCoreType(&coreType));
+        DAQ_CHECK_ERROR_INFO(coreTypeObj->getCoreType(&coreType));
         return coreType;
     }
 
@@ -2104,7 +2104,7 @@ inline CoreType ObjectPtr<ICoreType>::getCoreType() const
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     CoreType coreType;
-    checkErrorInfo(object->getCoreType(&coreType));
+    DAQ_CHECK_ERROR_INFO(object->getCoreType(&coreType));
 
     return coreType;
 }
@@ -2119,36 +2119,36 @@ ObjectPtr<IBaseObject> ObjectPtr<T>::convertTo(CoreType ct) const
         case ctBool:
         {
             Bool val;
-            checkErrorInfo(convObj->toBool(&val));
+            DAQ_CHECK_ERROR_INFO(convObj->toBool(&val));
             return ObjectPtr<IBaseObject>(val);
         }
         case ctInt:
         {
             Int val;
-            checkErrorInfo(convObj->toInt(&val));
+            DAQ_CHECK_ERROR_INFO(convObj->toInt(&val));
             return ObjectPtr<IBaseObject>(val);
         }
         case ctFloat:
         {
             Float val;
-            checkErrorInfo(convObj->toFloat(&val));
+            DAQ_CHECK_ERROR_INFO(convObj->toFloat(&val));
             return ObjectPtr<IBaseObject>(val);
         }
         case ctRatio:
         {
             Int val;
-            checkErrorInfo(convObj->toInt(&val));
+            DAQ_CHECK_ERROR_INFO(convObj->toInt(&val));
 
             IRatio* ratio;
             auto errCode = createRatio(&ratio, val, 1);
-            checkErrorInfo(errCode);
+            DAQ_CHECK_ERROR_INFO(errCode);
 
             return ObjectPtr<IBaseObject>(std::move(ratio));
         }
         case ctString:
         {
             CharPtr val;
-            checkErrorInfo(convObj->toString(&val));
+            DAQ_CHECK_ERROR_INFO(convObj->toString(&val));
 
             Finally final([&val]() {
                 if (val != nullptr)
@@ -2170,7 +2170,7 @@ SizeT ObjectPtr<T>::getHashCode() const
     }
 
     SizeT hash;
-    checkErrorInfo(object->getHashCode(&hash));
+    DAQ_CHECK_ERROR_INFO(object->getHashCode(&hash));
 
     return hash;
 }
@@ -2185,13 +2185,13 @@ ObjectPtr<IString> ObjectPtr<T>::toString() const
 
     CharPtr data;
     ErrCode errCode = object->toString(&data);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     ObjectPtr<IString> ptr;
     errCode = createString(&ptr, data);
 
     daqFreeMemory(data);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
     return ptr;
 }
 
@@ -2202,7 +2202,7 @@ void ObjectPtr<T>::freeze() const
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     auto freezableObj = asPtr<IFreezable>(true);
-    checkErrorInfo(freezableObj->freeze());
+    DAQ_CHECK_ERROR_INFO(freezableObj->freeze());
 }
 
 /// @cond TEMPLATE_SPECIALIZATION
@@ -2212,7 +2212,7 @@ inline void ObjectPtr<IFreezable>::freeze() const
     if (!object)
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
-    checkErrorInfo(object->freeze());
+    DAQ_CHECK_ERROR_INFO(object->freeze());
 }
 /// @endcond
 
@@ -2225,7 +2225,7 @@ Bool ObjectPtr<T>::isFrozen() const
     auto freezableObj = asPtr<IFreezable>(true);
 
     Bool frozen;
-    checkErrorInfo(freezableObj->isFrozen(&frozen));
+    DAQ_CHECK_ERROR_INFO(freezableObj->isFrozen(&frozen));
 
     return frozen;
 }
@@ -2238,7 +2238,7 @@ inline Bool ObjectPtr<IFreezable>::isFrozen() const
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     Bool frozen;
-    checkErrorInfo(object->isFrozen(&frozen));
+    DAQ_CHECK_ERROR_INFO(object->isFrozen(&frozen));
 
     return frozen;
 }
@@ -2254,7 +2254,7 @@ ConstCharPtr ObjectPtr<T>::getSerializeId() const
 
     ConstCharPtr id;
     ErrCode errCode = serializable->getSerializeId(&id);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return id;
 }
@@ -2268,7 +2268,7 @@ inline ConstCharPtr ObjectPtr<ISerializable>::getSerializeId() const
 
     ConstCharPtr id;
     ErrCode errCode = object->getSerializeId(&id);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return id;
 }
@@ -2283,7 +2283,7 @@ void ObjectPtr<T>::serialize(const ObjectPtr<ISerializer>& serializer) const
     ISerializable* serializable = as<ISerializable>(true);
 
     ErrCode errCode = serializable->serialize(serializer);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 }
 
 /// @cond TEMPLATE_SPECIALIZATION
@@ -2293,7 +2293,7 @@ inline void ObjectPtr<ISerializable>::serialize(const ObjectPtr<ISerializer>& se
     if (!object)
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
-    checkErrorInfo(object->serialize(serializer));
+    DAQ_CHECK_ERROR_INFO(object->serialize(serializer));
 }
 /// @endcond
 
@@ -2305,7 +2305,7 @@ void ObjectPtr<T>::dispatch(const ObjectPtr<IBaseObject>& params) const
 
     auto procObj = asPtr<IProcedure>(true);
     ErrCode err = procObj->dispatch(params);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 }
 
 /// @cond TEMPLATE_SPECIALIZATION
@@ -2316,7 +2316,7 @@ inline void ObjectPtr<IProcedure>::dispatch(const ObjectPtr<IBaseObject>& params
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     ErrCode err = object->dispatch(params);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 }
 /// @endcond
 
@@ -2328,7 +2328,7 @@ void ObjectPtr<T>::dispatch() const
 
     auto procObj = asPtr<IProcedure>(true);
     ErrCode err = procObj->dispatch(nullptr);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 }
 
 /// @cond TEMPLATE_SPECIALIZATION
@@ -2339,7 +2339,7 @@ inline void ObjectPtr<IProcedure>::dispatch() const
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     ErrCode err = object->dispatch(nullptr);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 }
 /// @endcond
 
@@ -2379,7 +2379,7 @@ ObjectPtr<IBaseObject> ObjectPtr<T>::call(Params... params) const
 
     ObjectPtr<IBaseObject> result;
     ErrCode err = funcObj->call(args, &result);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 
     return result;
 }

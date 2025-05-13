@@ -41,7 +41,7 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
     {
         this->moduleManagerWeakRef = this->moduleManager;
         // Have to increment the ref-count with `thisInterface()` so passing it to the module doesn't crash
-        checkErrorInfo(this->moduleManager.asPtr<IModuleManager>()->loadModules(this->thisInterface()));
+        DAQ_CHECK_ERROR_INFO(this->moduleManager.asPtr<IModuleManager>()->loadModules(this->thisInterface()));
 
         // manually remove the reference count without deleting the object (as reference count should drop to 0)
         this->internalReleaseRef();
@@ -200,6 +200,11 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
     {
         component.asPtr<IComponentPrivate>()->triggerComponentCoreEvent(eventArgs);
     }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = this->logger.getOrAddComponent("Component");
+        LOG_W("Component {} failed while triggering core event {} with: {}", component.getLocalId(), eventArgs.getEventName(), e.getErrorMessage());
+    }
     catch (const std::exception& e)
     {
         const auto loggerComponent = this->logger.getOrAddComponent("Component");
@@ -210,7 +215,6 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
         const auto loggerComponent = this->logger.getOrAddComponent("Component");
         LOG_W("Component {} failed while triggering core event {}", component.getLocalId(), eventArgs.getEventName())
     }
-
 }
 
 ErrCode ContextImpl::getDiscoveryServers(IDict** servers)

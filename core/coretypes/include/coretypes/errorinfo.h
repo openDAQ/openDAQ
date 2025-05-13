@@ -37,7 +37,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * in case of an error, it can check if `IErrorInfo` is stored in thread-local storage using `daqGetErrorInfo` for
  * additional error information.
  *
- * `DAQ_MAKE_ERROR_INFO` automatically creates IErrorInfo and calls `daqSetErrorInfo`. In case of an error, `checkErrorInfo`
+ * `DAQ_MAKE_ERROR_INFO` automatically creates IErrorInfo and calls `daqSetErrorInfo`. In case of an error, `DAQ_CHECK_ERROR_INFO`
  * calls `daqGetErrorInfo` to get extended error information and throws an exception.
  *
  * Example:
@@ -50,7 +50,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * };
  *
  * auto errCode = someInterface->checkValue(-1);
- * checkErrorInfo(errCode); // this will throw InvalidParameterException with above error message
+ * DAQ_CHECK_ERROR_INFO(errCode); // this will throw InvalidParameterException with above error message
  * @endcode
  */
 

@@ -353,6 +353,11 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     {
         ctx.getTypeManager().addType(statusType);
     }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = ctx.getLogger().getOrAddComponent("TestUtils");
+        LOG_W("Couldn't add type {} to type manager: {}", statusType.getName(), e.getErrorMessage());
+    }
     catch (const std::exception& e)
     {
         const auto loggerComponent = ctx.getLogger().getOrAddComponent("TestUtils");

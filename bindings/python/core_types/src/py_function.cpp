@@ -18,11 +18,11 @@ void defineIFunction(pybind11::module_ m, PyDaqIntf<daq::IFunction> cls)
             const auto funcObjPtr = daq::FunctionPtr::Borrow(function);
             daq::BaseObjectPtr result;
             if (args.empty())
-                daq::checkErrorInfo(funcObjPtr->call(nullptr, &result));
+                DAQ_CHECK_ERROR_INFO(funcObjPtr->call(nullptr, &result));
             else if (args.size() == 1)
             {
                 const py::object param = args[0];
-                daq::checkErrorInfo(funcObjPtr->call(pyObjectToBaseObject(param), &result));
+                DAQ_CHECK_ERROR_INFO(funcObjPtr->call(pyObjectToBaseObject(param), &result));
             }
             else
             {
@@ -32,7 +32,7 @@ void defineIFunction(pybind11::module_ m, PyDaqIntf<daq::IFunction> cls)
                     const py::object param = args[i];
                     daqList.pushBack(pyObjectToBaseObject(param));
                 }
-                daq::checkErrorInfo(funcObjPtr->call(daqList, &result));
+                DAQ_CHECK_ERROR_INFO(funcObjPtr->call(daqList, &result));
             }
                 
             return baseObjectToPyObject(result);

@@ -115,7 +115,7 @@ void ConfigMirroredExternalSignalImpl::deserializeCustomObjectValues(const Seria
                                                              const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
-    checkErrorInfo(setMirroredDataDescriptor(this->dataDescriptor));
+    DAQ_CHECK_ERROR_INFO(setMirroredDataDescriptor(this->dataDescriptor));
 }
 
 SignalPtr ConfigMirroredExternalSignalImpl::onGetDomainSignal()

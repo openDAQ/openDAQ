@@ -143,7 +143,7 @@ ReadTask ServerSessionHandler::readSignalSubscribe(const void* data, size_t size
     }
     catch (const DaqException& e)
     {
-        LOG_E("Protocol error: {}", e.what());
+        LOG_E("Protocol error: {}", e.getErrorMessage());
         errorHandler(std::string("Protocol error - readSignalSubscribe - ") + e.what(), session);
         return createReadStopTask();
     }
@@ -184,7 +184,7 @@ ReadTask ServerSessionHandler::readSignalUnsubscribe(const void* data, size_t si
     }
     catch (const DaqException& e)
     {
-        LOG_E("Protocol error: {}", e.what());
+        LOG_E("Protocol error: {}", e.getErrorMessage());
         errorHandler(std::string("Protocol error - readSignalUnsubscribe - ") + e.what(), session);
         return createReadStopTask();
     }
@@ -227,8 +227,8 @@ ReadTask ServerSessionHandler::readTransportLayerProperties(const void* data, si
     }
     catch (const DaqException& e)
     {
-        LOG_E("Protocol error: {}", e.what());
-        errorHandler(std::string("Protocol error - readTransportLayerProperties - ") + e.what(), session);
+        LOG_E("Protocol error: {}", e.getErrorMessage());
+        errorHandler(std::string("Protocol error - readTransportLayerProperties - ") + e.getErrorMessage(), session);
         return createReadStopTask();
     }
 

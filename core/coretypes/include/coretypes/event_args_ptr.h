@@ -94,7 +94,7 @@ public:
 
         Int id;
         auto errCode = this->object->getEventId(&id);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return id;
     }
@@ -106,7 +106,7 @@ public:
 
         StringPtr name;
         auto errCode = this->object->getEventName(&name);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return name;
     }

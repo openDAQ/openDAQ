@@ -139,7 +139,7 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
                                                                            deserializeContext.getLocalId(),
                                                                            className);
             }
-            checkErrorInfo(errCode);
+            DAQ_CHECK_ERROR_INFO(errCode);
             return typename InterfaceToSmartPtr<Interface>::SmartPtr();
         });
 }
@@ -182,11 +182,11 @@ void ConfigClientBaseFolderImpl<Impl>::componentAdded(const CoreEventArgsPtr& ar
 {
     const ComponentPtr comp = args.getParameters().get("Component");
     Bool hasItem{false};
-    checkErrorInfo(Impl::hasItem(comp.getLocalId(), &hasItem));
+    DAQ_CHECK_ERROR_INFO(Impl::hasItem(comp.getLocalId(), &hasItem));
     if (!hasItem)
     {
         this->clientComm->connectDomainSignals(comp);
-        checkErrorInfo(Impl::addItem(comp));
+        DAQ_CHECK_ERROR_INFO(Impl::addItem(comp));
         this->clientComm->connectInputPorts(comp);
     }
 }
@@ -196,9 +196,9 @@ void ConfigClientBaseFolderImpl<Impl>::componentRemoved(const CoreEventArgsPtr& 
 {
     const StringPtr id = args.getParameters().get("Id");
     Bool hasItem{false};
-    checkErrorInfo(Impl::hasItem(id, &hasItem));
+    DAQ_CHECK_ERROR_INFO(Impl::hasItem(id, &hasItem));
     if (hasItem)
-        checkErrorInfo(Impl::removeItemWithLocalId(id));
+        DAQ_CHECK_ERROR_INFO(Impl::removeItemWithLocalId(id));
 }
 
 template <class Impl>

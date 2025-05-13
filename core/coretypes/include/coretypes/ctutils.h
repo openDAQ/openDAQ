@@ -89,6 +89,18 @@ inline std::string objectToString(IBaseObject* object)
     return stream.str();
 }
 
+inline std::ostringstream& ErrorFormatPath(std::ostringstream& ss, ConstCharPtr fileName, Int fileLine)
+{
+    if (fileName != nullptr)
+    {
+        ss << " [ File " << fileName;
+        if (fileLine != -1)
+            ss << ":" << fileLine;
+        ss << " ]";
+    }
+    return ss;
+}
+
 inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* errorInfo)
 {
     if (errorInfo == nullptr)
@@ -115,19 +127,13 @@ inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* error
     errorInfo->getFileName(&fileNameCharPtr);
     errorInfo->getFileLine(&fileLine);
 
-    if (fileNameCharPtr != nullptr)
-    {
-        ss << " [ File " << fileNameCharPtr;
-        if (fileLine != -1)
-            ss << ":" << fileLine;
-        ss << " ]";
-    }
+    ErrorFormatPath(ss, fileNameCharPtr, fileLine);
 #endif
     
     return ss;
 }
 
-inline void checkErrorInfo(ErrCode errCode)
+inline void checkErrorInfo(ErrCode errCode, ConstCharPtr fileName, Int fileLine)
 {
     IList* errorInfoList;
     daqGetErrorInfoList(&errorInfoList);
@@ -164,12 +170,19 @@ inline void checkErrorInfo(ErrCode errCode)
         }
     }
 
+    ErrorFormatPath(ss, fileName, fileLine);
+
     if (errorInfoList != nullptr)
         errorInfoList->releaseRef();
 
     throwExceptionFromErrorCode(errCode, ss.str());
 }
 
+#ifdef NDEBUG
+    #define DAQ_CHECK_ERROR_INFO(errCode) daq::checkErrorInfo(errCode)
+#else
+    #define DAQ_CHECK_ERROR_INFO(errCode) daq::checkErrorInfo(errCode, __FILE__, __LINE__)
+#endif
 
 template <typename... Params>
 ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObject* sourceObj, const std::string& message, Params... params)
@@ -379,7 +392,7 @@ inline std::string toStdString(IString* rtStr)
 
     ConstCharPtr ptr;
     ErrCode err = rtStr->getCharPtr(&ptr);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 
     return { ptr };
 }

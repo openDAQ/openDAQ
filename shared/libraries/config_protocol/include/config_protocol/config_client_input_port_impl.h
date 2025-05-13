@@ -93,7 +93,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
             {
                 StringPtr signalRemoteGlobalId;
-                checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+                DAQ_CHECK_ERROR_INFO(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
                 clientComm->connectSignal(remoteGlobalId, signalRemoteGlobalId);
             }
             else
@@ -155,7 +155,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
             if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
             {
                 StringPtr signalRemoteGlobalId;
-                checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+                DAQ_CHECK_ERROR_INFO(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
                 BooleanPtr acceptsPtr = clientComm->acceptsSignal(remoteGlobalId, signalRemoteGlobalId);
                 *accepts = acceptsPtr.getValue(False);
                 return OPENDAQ_SUCCESS;
@@ -196,11 +196,11 @@ inline void ConfigClientInputPortImpl::handleRemoteCoreObjectInternal(const Comp
         case CoreEventId::SignalConnected:
             {
                 const SignalPtr signal = args.getParameters().get("Signal");
-                checkErrorInfo(this->assignSignal(signal));
+                DAQ_CHECK_ERROR_INFO(this->assignSignal(signal));
             }
             break;
         case CoreEventId::SignalDisconnected:
-            checkErrorInfo(this->assignSignal(nullptr));
+            DAQ_CHECK_ERROR_INFO(this->assignSignal(nullptr));
             break;
         case CoreEventId::ComponentUpdateEnd:
         case CoreEventId::AttributeChanged:

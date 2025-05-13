@@ -55,7 +55,7 @@ DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBui
     this->scalingCalc = nullptr;
     this->dataRuleCalc = nullptr;
     this->referenceDomainInfo = dataDescriptorBuilderPtr.getReferenceDomainInfo();
-    checkErrorInfo(validate());
+    DAQ_CHECK_ERROR_INFO(validate());
     calculateSampleMemSize();
 }
 

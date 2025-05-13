@@ -61,9 +61,9 @@ ErrCode createObjectForwarding(Interface** intf, Params... params)
     {
         return errorFromException(e);
     }
-    catch (const std::bad_alloc&)
+    catch (const std::bad_alloc& e)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_NOMEMORY);
     }
     catch (const std::exception& e)
     {
@@ -98,9 +98,9 @@ ErrCode createObject(Interface** intf, Params... params)
     {
         return errorFromException(e);
     }
-    catch (const std::bad_alloc&)
+    catch (const std::bad_alloc& e)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_NOMEMORY);
     }
     catch (const std::exception& e)
     {

@@ -8,6 +8,6 @@ opendaq_dependency(
     NAME                streaming_protocol
     REQUIRED_VERSION    1.4.0
     GIT_REPOSITORY      https://github.com/openDAQ/streaming-protocol-lt.git
-    GIT_REF             v1.4-rc-test
+    GIT_REF             v1.4.0
     EXPECT_TARGET       daq::streaming_protocol
 )

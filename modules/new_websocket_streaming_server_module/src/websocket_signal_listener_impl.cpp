@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <utility>
 
 #include <boost/asio.hpp>
@@ -29,6 +30,11 @@ daq::ws_streaming::WebSocketSignalListenerImpl::WebSocketSignalListenerImpl(
     , signo(signo)
     , writer_factory(create_signal_writer_factory(signal))
 {
+    // XXX TODO: We should lazy-initialize metadata and handle signals that
+    // change writer types (maybe even from unsupported to supported) at runtime.
+    if (!writer_factory)
+        throw std::runtime_error("Signal '" + signal.getGlobalId() + "' is of an unsupported type");
+
     internalAddRef();
 }
 

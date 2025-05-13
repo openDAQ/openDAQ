@@ -29,6 +29,9 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     add_compile_definitions(MODULE_PATH="")
 
     add_subdirectory(cpp/properties_module)
+    
+    add_executable(properties_app cpp/properties_app/properties_app.cpp)
+    target_link_libraries(properties_app PRIVATE daq::opendaq)
 
     add_executable(client_discovery cpp/client_discovery/client_discovery.cpp)
     target_link_libraries(client_discovery PRIVATE daq::opendaq)

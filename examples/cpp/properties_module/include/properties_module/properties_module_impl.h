@@ -20,12 +20,18 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-class PropertiesModule final : public Module
+class PropertiesModuleImpl final : public Module
 {
 public:
-    explicit PropertiesModule(ContextPtr context);
+    explicit PropertiesModuleImpl(ContextPtr ctx);
 
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr&) override;
+
+private:
+    std::mutex sync;
+    bool deviceAdded;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

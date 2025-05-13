@@ -15,7 +15,6 @@
  */
 
 #pragma once
-#include <opendaq/channel_ptr.h>
 #include <opendaq/device_impl.h>
 #include <properties_module/common.h>
 #include <chrono>
@@ -25,15 +24,12 @@ BEGIN_NAMESPACE_PROPERTIES_MODULE
 class PropertiesDeviceImpl final : public Device
 {
 public:
-    explicit PropertiesDeviceImpl(const ContextPtr& ctx,
-                                  const ComponentPtr& parent,
-                                  const StringPtr& localId,
-                                  const StringPtr& name = nullptr);
-
-    static DeviceInfoPtr CreateDeviceInfo(size_t id = 0, const StringPtr& serialNumber = nullptr);
+    explicit PropertiesDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    static DeviceInfoPtr CreateDeviceInfo();
     static DeviceTypePtr CreateType();
 
-    bool allowAddDevicesFromModules() override;
+    // IDevice
+    DeviceInfoPtr onGetInfo() override;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

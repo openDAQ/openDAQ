@@ -5,5 +5,5 @@
 
 using namespace daq::modules::properties_module;
 
-DEFINE_MODULE_EXPORTS(PropertiesModule)
+DEFINE_MODULE_EXPORTS(PropertiesModuleImpl)
 

@@ -12,36 +12,32 @@ BEGIN_NAMESPACE_PROPERTIES_MODULE
 
 static StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
-PropertiesDeviceImpl::PropertiesDeviceImpl(const daq::ContextPtr& ctx,
-                                           const daq::ComponentPtr& parent,
-                                           const StringPtr& localId,
-                                           const StringPtr& name)
-    : GenericDevice<>(ctx, parent, localId, nullptr, name)
+PropertiesDeviceImpl::PropertiesDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    : GenericDevice<>(ctx, parent, localId)
 {
 }
 
-DeviceInfoPtr PropertiesDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
+DeviceInfoPtr PropertiesDeviceImpl::CreateDeviceInfo()
 {
-    auto devInfo = DeviceInfoWithChanegableFields({"userName", "location"});
-    devInfo.setName(fmt::format("Device {}", id));
-    devInfo.setConnectionString(fmt::format("daqref://device{}", id));
+    auto devInfo = DeviceInfo("properties://device");
+
+    devInfo.setName("PropertiesDevice");
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Properties device");
+    devInfo.setSerialNumber("ExamplePD1234");
     devInfo.setDeviceType(CreateType());
-    std::string currentTime = ToIso8601(std::chrono::system_clock::now());
-    devInfo.addProperty(StringProperty("SetupDate", currentTime));
+
     return devInfo;
 }
 
 DeviceTypePtr PropertiesDeviceImpl::CreateType()
 {
-    const auto defaultConfig = PropertyObject();
-    return DeviceType("properties", "Properties device", "Properties device", "properties", defaultConfig);
+    return DeviceType("prop_dev", "Properties device", "Properties device", "properties");
 }
 
-bool PropertiesDeviceImpl::allowAddDevicesFromModules()
+DeviceInfoPtr PropertiesDeviceImpl::onGetInfo()
 {
-    return true;
+    return CreateDeviceInfo();
 }
 
 StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint)

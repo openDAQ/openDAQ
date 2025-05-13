@@ -11,7 +11,11 @@ The SDK is structured in a manner where each device represents its structure in 
 * **Configuration**: The server sends information on its tree structure and properties to the client, allowing the client to produce a mirror of the device's component tree. This allows the client-side application to act as if the device was local to the client instance, traversing its tree, and modifying its property values. A configuration connection does not transfer signal data.
 * **Streaming**: The server sends information on what signals it has available to the client. The client can subscribe to any available signal. If subscribed, the server forwards all signal data to the client. This form of connection is usually combined with a configuration connection, allowing users to see the whole device structure, as well as read the device's signal data. If only a streaming connection is formed, the client will not see the full component tree, but will still be able to see a list of the device's signals directly underneath the device's "signals" folder.
 
-NOTE: For more information on components and properties, you can refer to the xref:components.adoc[Components] and xref:property_system.adoc[Property System] articles.
+:note-caption: Note
+[NOTE]
+===
+For more information on components and properties, you can refer to the xref:components.adoc[Components] and xref:property_system.adoc[Property System] articles.
+===
 
 == Protocol overview
 

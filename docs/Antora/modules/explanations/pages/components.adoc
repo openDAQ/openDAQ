@@ -205,4 +205,8 @@ contains only the IO Folder specialization. IO Folders can only have other IO Fo
 allows Devices to organize their channels below the IO Folder in a tree structure but prevents them from placing 
 non-Channel Components into the folder.
 
-NOTE: Each Device always has an `IO` folder as its child, and all its Channels should be children of the IO Folder. 
+:note-caption: Note
+[NOTE]
+===
+Each Device always has an `IO` folder as its child, and all its Channels should be children of the IO Folder. 
+===

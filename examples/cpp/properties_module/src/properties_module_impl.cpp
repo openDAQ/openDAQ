@@ -48,7 +48,10 @@ DevicePtr PropertiesModuleImpl::onCreateDevice(const StringPtr& connectionString
 
     auto device = createWithImplementation<IDevice, PropertiesDeviceImpl>(context, parent, "random");
 
-
+    device.addProperty(BoolPropertyBuilder("PropBool", False).build());
+    device.addProperty(IntPropertyBuilder("PropInt", 42).build());
+    device.addProperty(FloatPropertyBuilder("PropFloat", 1.1).build());
+    device.addProperty(StringPropertyBuilder("PropString", "Hello World").build());
 
     deviceAdded = true;
     return device;

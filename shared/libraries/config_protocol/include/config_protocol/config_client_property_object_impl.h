@@ -420,7 +420,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreEvent(ICompone
     {
         handleRemoteCoreObjectInternal(sender, args);
     }
-    catch (const DaqException& e)
+    catch ([[maybe_unused]] const DaqException& e)
     {
         const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
         StringPtr globalId;

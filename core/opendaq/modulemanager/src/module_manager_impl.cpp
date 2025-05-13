@@ -485,7 +485,7 @@ ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
         {
             LOG_I("{}: GetAvailableDeviceTypes not implemented", module.getModuleInfo().getName())
         }
-        catch (const DaqException& e)
+        catch ([[maybe_unused]] const DaqException& e)
         {
             LOG_W("{}: GetAvailableDeviceTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
         }
@@ -618,7 +618,7 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
         {
             LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getModuleInfo().getName())
         }
-        catch (const DaqException& e)
+        catch ([[maybe_unused]] const DaqException& e)
         {
             LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
         }
@@ -733,7 +733,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         {
             LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getModuleInfo().getName())
         }
-        catch (const DaqException& e)
+        catch ([[maybe_unused]] const DaqException& e)
         {
             LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
         }
@@ -830,7 +830,7 @@ ErrCode ModuleManagerImpl::getAvailableStreamingTypes(IDict** streamingTypes)
         {
             LOG_I("{}: GetAvailableStreamingTypes not implemented", module.getModuleInfo().getName())
         }
-        catch (const DaqException& e)
+        catch ([[maybe_unused]] const DaqException& e)
         {
             LOG_W("{}: GetAvailableStreamingTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
         }
@@ -1124,7 +1124,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         {
             streaming = module.createStreaming(connectionString, streamingTypeConfig);
         }
-        catch (const DaqException& e)
+        catch ([[maybe_unused]] const DaqException& e)
         {
             LOG_E("{}: createStreaming failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
             throw;
@@ -1163,7 +1163,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
             {
                 LOG_D("{}: completeServerCapability not implemented", module.getModuleInfo().getName());
             }
-            catch (const DaqException& e)
+            catch ([[maybe_unused]] const DaqException& e)
             {
                 LOG_W("{}: completeServerCapability failed: {}", module.getModuleInfo().getName(), e.getErrorMessage());
             }

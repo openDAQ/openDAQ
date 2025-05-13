@@ -171,7 +171,7 @@ void TmsServerComponent<Ptr>::bindCallbacks()
                 selfChange = true;
                 this->object.setName(utils::ToStdString(name->text));
             }
-            catch (const DaqException& e)
+            catch ([[maybe_unused]] const DaqException& e)
             {
                 const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
                 LOG_D("OPC UA Component {} failed to set component name: {}", this->object.getLocalId(), e.getErrorMessage());
@@ -202,7 +202,7 @@ void TmsServerComponent<Ptr>::bindCallbacks()
                 selfChange = true;
                 this->object.setDescription(utils::ToStdString(description->text));
             }
-            catch (const DaqException& e)
+            catch ([[maybe_unused]] const DaqException& e)
             {
                 const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
                 LOG_D("OPC UA Component {} failed to set component description: {}", this->object.getLocalId(), e.getErrorMessage());
@@ -269,7 +269,7 @@ void TmsServerComponent<Ptr>::onCoreEvent(const CoreEventArgsPtr& args)
             else if (attrName == "Description")
                 this->server->setDescription(this->nodeId, args.getParameters().get("Description"));
         }
-        catch (const DaqException& e)
+        catch ([[maybe_unused]] const DaqException& e)
         {
             const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
             LOG_D("OPC UA Component {} failed to set node attribute \"{}\": {}", this->object.getLocalId(), attrName, e.getErrorMessage());

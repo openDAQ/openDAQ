@@ -13,7 +13,7 @@ ErrCode AnySearchFilterImpl::acceptsObject(IBaseObject* /*obj*/, Bool* accepts)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode AnySearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
+ErrCode AnySearchFilterImpl::visitChildren(IBaseObject* /*obj*/, Bool* visit)
 {
     OPENDAQ_PARAM_NOT_NULL(visit);
 
@@ -81,7 +81,7 @@ ErrCode NotSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode NotSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
+ErrCode NotSearchFilterImpl::visitChildren(IBaseObject* /*obj*/, Bool* visit)
 {
     OPENDAQ_PARAM_NOT_NULL(visit);
 

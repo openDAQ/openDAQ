@@ -1,9 +1,9 @@
-#include <testutils/testutils.h>
 #include <testutils/bb_memcheck_listener.h>
+#include <testutils/testutils.h>
 
 #include <coreobjects/util.h>
-#include <opendaq/module_manager_init.h>
 #include <coretypes/stringobject_factory.h>
+#include <opendaq/module_manager_init.h>
 
 int main(int argc, char** args)
 {

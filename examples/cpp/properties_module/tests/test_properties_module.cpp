@@ -56,7 +56,7 @@ TEST_F(PropertiesModuleTest, EnumerateDevices)
     ListPtr<IDeviceInfo> deviceInfo;
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
     ASSERT_EQ(deviceInfo.getCount(), static_cast<SizeT>(1));
-    ASSERT_EQ(deviceInfo[0].getName(), "Device 0");
+    ASSERT_EQ(deviceInfo[0].getName(), "PropertiesDevice");
 }
 
 TEST_F(PropertiesModuleTest, CreateDeviceConnectionStringNull)
@@ -72,8 +72,8 @@ TEST_F(PropertiesModuleTest, CreateDeviceConnectionStringProperties)
     auto module = createModule();
 
     DevicePtr device;
-    ASSERT_NO_THROW(device = module.createDevice("", nullptr));
-    ASSERT_EQ(device, nullptr);
+    ASSERT_NO_THROW(device = module.createDevice("properties://device", nullptr));
+    ASSERT_EQ(device.getName(), "random");
 }
 
 TEST_F(PropertiesModuleTest, GetAvailableComponentTypes)
@@ -86,7 +86,7 @@ TEST_F(PropertiesModuleTest, GetAvailableComponentTypes)
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
-    ASSERT_EQ(deviceTypes.getCount(), 0u);
+    ASSERT_EQ(deviceTypes.getCount(), 1u);
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

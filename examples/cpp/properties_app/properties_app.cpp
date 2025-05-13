@@ -28,13 +28,14 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     auto device = instance.addDevice(connectionString);
 
+    std::cout << "Name of device: " << device.getName() << "\n";
+
     if (device.assigned())
     {
         auto properties = device.getAllProperties();
         for (const auto& prop : properties)
         {
-            std::cout << "Property: " << prop.getName() << "\n";
-            std::cout << "Value: " << prop.getValue() << "\n\n";
+            std::cout << "  Property: " << prop.getName() << " Value: " << prop.getValue() << "\n";
         }
     }
 

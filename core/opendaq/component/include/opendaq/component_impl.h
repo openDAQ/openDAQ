@@ -678,7 +678,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::findProperties(IList** properties, ISearc
         auto thisComponent = this->template borrowPtr<ComponentPtr>();
         ListPtr<IProperty> foundProperties = List<IProperty>();
 
-        if (!componentFilterPtr.assigned() && componentFilterPtr.acceptsObject(thisComponent))
+        if (!componentFilterPtr.assigned() || componentFilterPtr.acceptsObject(thisComponent))
         {
             // searches only properties using base implementation simply ignoring component filter
             Super::findProperties(&foundProperties, propertyFilter, nullptr);
@@ -686,16 +686,25 @@ ErrCode ComponentImpl<Intf, Intfs...>::findProperties(IList** properties, ISearc
 
         if (componentFilterPtr.assigned() && componentFilterPtr.supportsInterface<IRecursiveSearch>())
         {
-            // filter always results in empty component list
-            auto noneComponentFilter = search::Custom(Function([](const BaseObjectPtr&) { return false; }));
-
             // searches for properties in each component found by input recursive filter
             if (auto thisFolder = thisComponent.template asPtrOrNull<IFolder>(); thisFolder.assigned())
             {
                 ListPtr<IComponent> foundChildComponents = thisFolder.getItems(componentFilter);
                 for (const auto& foundChildComponent : foundChildComponents)
-                    for (const auto& property : foundChildComponent.findProperties(propertyFilter, noneComponentFilter))
+                {
+                    auto acceptFunc = Function(
+                        [id = foundChildComponent.getGlobalId()](const BaseObjectPtr& obj)
+                        {
+                            auto component = obj.template asPtr<IComponent>();
+                            if (component.getGlobalId() == id)
+                                return true;
+                            return false;
+                        }
+                    );
+                    // filter accepts only component itself
+                    for (const auto& property : foundChildComponent.findProperties(propertyFilter, search::Custom(acceptFunc)))
                         foundProperties.pushBack(property);
+                }
             }
         }
 

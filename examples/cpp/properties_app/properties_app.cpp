@@ -7,38 +7,51 @@
 
 using namespace daq;
 
+void print(FunctionBlockPtr fb)
+{
+    std::cout << "Bool: " << fb.getPropertyValue("myPropBool") << "\n";
+    std::cout << "Int: " << fb.getPropertyValue("myPropInt") << "\n";
+    std::cout << "Float: " << fb.getPropertyValue("myPropFloat") << "\n";
+    std::cout << "String: " << fb.getPropertyValue("myPropString") << "\n";
+}
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules at MODULE_PATH
     const InstancePtr instance = Instance(MODULE_PATH);
 
-    DeviceInfoPtr info;
+    auto fbTypes = instance.getAvailableFunctionBlockTypes();
 
-    auto availableDevices = instance.getAvailableDevices();
+    // Add Function Block by type ID
+    auto fb = instance.addFunctionBlock("PropertiesFb");
 
-    for (const auto& dev : availableDevices)
+    // Print Function Block name
+    std::cout << "Function Block: " << fb.getName() << "\n";
+
+    // Get all properties
+    auto properties = fb.getAllProperties();
+
+    // Print all properties
+    for (const auto& prop : properties)
     {
-        if (dev.getName() == "PropertiesDevice")
-        {
-            info = dev;
-        }
+        std::cout << "Property: " << prop.getName() << " Value: " << prop.getValue() << "\n";
     }
 
-    auto connectionString = info.getConnectionString();
+    // Print before modifications
+    std::cout << "Before modifications:\n";
+    print(fb);
 
-    auto device = instance.addDevice(connectionString);
+    // Make modifications
+    fb.setPropertyValue("myPropBool", true);
+    fb.setPropertyValue("myPropInt", 100);
+    fb.setPropertyValue("myPropFloat", 3.14);
+    fb.setPropertyValue("myPropString", "Hello openDAQ");
 
-    std::cout << "Name of device: " << device.getName() << "\n";
+    // Print after modifications
+    std::cout << "After modifications:\n";
+    print(fb);
 
-    if (device.assigned())
-    {
-        auto properties = device.getAllProperties();
-        for (const auto& prop : properties)
-        {
-            std::cout << "  Property: " << prop.getName() << " Value: " << prop.getValue() << "\n";
-        }
-    }
-
+    // Gracefully exit
     std::cout << "Press \"enter\" to exit the application...\n";
     std::cin.get();
     return 0;

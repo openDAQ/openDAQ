@@ -15,21 +15,21 @@
  */
 
 #pragma once
-#include <opendaq/device_impl.h>
+#include <opendaq/module_impl.h>
 #include <properties_module/common.h>
-#include <chrono>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-class PropertiesDeviceImpl final : public Device
+class PropertiesModule final : public Module
 {
 public:
-    explicit PropertiesDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
-    static DeviceInfoPtr CreateDeviceInfo();
-    static DeviceTypePtr CreateType();
+    explicit PropertiesModule(ContextPtr ctx);
 
-    // IDevice
-    DeviceInfoPtr onGetInfo() override;
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+    FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id,
+                                           const ComponentPtr& parent,
+                                           const StringPtr& localId,
+                                           const PropertyObjectPtr& config) override;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

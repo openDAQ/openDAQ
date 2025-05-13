@@ -15,23 +15,30 @@
  */
 
 #pragma once
-#include <opendaq/module_impl.h>
+#include <opendaq/function_block_impl.h>
+#include <opendaq/opendaq.h>
 #include <properties_module/common.h>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-class PropertiesModuleImpl final : public Module
+class PropertiesFb final : public FunctionBlock
 {
 public:
-    explicit PropertiesModuleImpl(ContextPtr ctx);
+    explicit PropertiesFb(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    ~PropertiesFb() override = default;
 
-    ListPtr<IDeviceInfo> onGetAvailableDevices() override;
-    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
-    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr&) override;
+    static FunctionBlockTypePtr CreateType();
 
 private:
-    std::mutex sync;
-    bool deviceAdded;
+    void initProperties();
+    void propertyChanged(bool configure);
+    void readProperties();
+
+    // Variables
+    BoolPtr myBool;
+    IntegerPtr myInt;
+    FloatPtr myFloat;
+    StringPtr myString;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

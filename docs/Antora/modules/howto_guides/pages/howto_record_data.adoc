@@ -1,6 +1,18 @@
 = Record Data
 
-openDAQ(TM) provides an interface for xref:knowledge_base:components.adoc[Components] which
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 📁 Setup Data Recording — Learn how to configure and initialize a CSV data recorder within openDAQ(TM).
+- 🔌 Connect Signals — Understand the process of linking specific device signals to recorder input ports.
+- ⏯️ Control Data Capture — Master starting and stopping data recording using programmatic control.
+- 📊 Data Storage Management — Gain insights into managing the recorded data, including file paths and generated file structures.
+- 🛠️ Customization & Extensions — Explore creating custom implementations for recording data beyond numeric scalars, including handling complex signals and alternative storage formats.
+====
+
+openDAQ(TM) provides an interface for xref:explanations:components.adoc[Components] which
 record data to persistent storage media such as files. The `BasicCsvRecorder` module provides a
 simple reference implementation.
 

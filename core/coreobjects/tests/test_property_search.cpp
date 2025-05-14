@@ -72,6 +72,13 @@ TEST_F(PropertySearchTest, FindAnyInEmptyObject)
     ASSERT_EQ(foundProperties.getCount(), 0u);
 }
 
+// only visible properties non-recursively
+TEST_F(PropertySearchTest, FindWithDefaultFilter)
+{
+    auto foundProperties = testPropertyObject.findProperties(nullptr);
+    ASSERT_EQ(foundProperties.getCount(), 10u);
+}
+
 TEST_F(PropertySearchTest, FindAny)
 {
     auto foundProperties = testPropertyObject.findProperties(Any());

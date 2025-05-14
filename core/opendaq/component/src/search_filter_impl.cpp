@@ -10,7 +10,7 @@ static ErrCode validateType(IBaseObject* obj)
     if (objPtr.supportsInterface<IComponent>())
         return OPENDAQ_SUCCESS;
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Search filter input mismatch acceptable object type - IComponent expected");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Search filter input mismatch acceptable object type - IComponent expected");
 }
 
 VisibleSearchFilterImpl::VisibleSearchFilterImpl() = default;

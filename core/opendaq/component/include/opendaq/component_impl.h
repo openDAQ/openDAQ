@@ -680,7 +680,8 @@ ErrCode ComponentImpl<Intf, Intfs...>::findProperties(IList** properties, ISearc
         if (!componentFilterPtr.assigned() || componentFilterPtr.acceptsObject(thisComponent))
         {
             // searches only properties using base implementation simply ignoring component filter
-            Super::findProperties(&foundProperties, propertyFilter, nullptr);
+            ErrCode errCode = Super::findProperties(&foundProperties, propertyFilter, nullptr);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
 
         if (componentFilterPtr.assigned() && componentFilterPtr.supportsInterface<IRecursiveSearch>())

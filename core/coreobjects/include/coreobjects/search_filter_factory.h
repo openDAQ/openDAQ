@@ -50,12 +50,12 @@ inline SearchFilterPtr ReadOnly()
 }
 
 /*!
- * @brief Creates a search filter that accepts properties with the specified name.
- * @param name The name of the accepted properties.
+ * @brief Creates a search filter that accepts properties whose names match the specified pattern.
+ * @param regex A regular expression pattern used to match property names.
  */
-inline SearchFilterPtr Name(const StringPtr& name)
+inline SearchFilterPtr Name(const StringPtr& regex)
 {
-    SearchFilterPtr obj(NamePropertyFilter_Create(name));
+    SearchFilterPtr obj(NamePropertyFilter_Create(regex));
     return obj;
 }
 

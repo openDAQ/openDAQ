@@ -10,7 +10,7 @@ static ErrCode validateType(IBaseObject* obj)
     if (objPtr.supportsInterface<IProperty>())
         return OPENDAQ_SUCCESS;
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Search filter input mismatch acceptable object type - IProperty expected");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Search filter input mismatch acceptable object type - IProperty expected");
 }
 
 VisiblePropertyFilterImpl::VisiblePropertyFilterImpl() = default;
@@ -110,9 +110,9 @@ extern "C"
     return createObject<ISearchFilter, ReadOnlyPropertyFilterImpl>(objTmp);
 }
 
-extern "C" ErrCode PUBLIC_EXPORT createNamePropertyFilter(ISearchFilter** objTmp, IString* name)
+extern "C" ErrCode PUBLIC_EXPORT createNamePropertyFilter(ISearchFilter** objTmp, IString* regex)
 {
-    return createObject<ISearchFilter, NamePropertyFilterImpl>(objTmp, name);
+    return createObject<ISearchFilter, NamePropertyFilterImpl>(objTmp, regex);
 }
 
 #endif

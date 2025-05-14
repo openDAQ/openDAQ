@@ -380,12 +380,16 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
 
     // [elementType(properties, IProperty)]
     /*!
-     * @brief Returns a list of properties contained in the Property object that are accepted by the specified property filter.
-     * @param filter An optional filter used to exclude unwanted properties and optionally enable recursive search.
-     * @param[out] properties The list of properties found.
+     * @brief Retrieves a list of properties from the Property object that match the given property filter.
+     * @param propertyFilter A filter used to select relevant properties. Can include a recursive wrapper
+     * to search thru nested property objects.
+     * @param componentFilter An optional filter to determine which components' properties are included in the search.
+     * A recursive wrapper can be used to enable tree-traversal search.
+     * @param[out] properties The list containing the matching properties.
      *
-     * If no filter is provided, only visible properties directly belonging to the current object are returned.
-     * Recursion enabled through corresponding wrapper filter includes properties from child property objects into search results.
+     * If the propertyFilter is nullptr, only the visible properties directly associated with the current object are retrieved.
+     * When searching for properties within a component, if no componentFilter is provided, only the current component is searched.
+     * If a componentFilter is provided but the current component does not match it, the result will be an empty list.
      */
     virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) = 0;
 };

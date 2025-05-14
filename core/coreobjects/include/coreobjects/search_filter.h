@@ -45,10 +45,10 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, VisiblePropertyFil
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, ReadOnlyPropertyFilter, ISearchFilter)
 
 /*!
- * @brief Creates a search filter that accepts properties with the specified name.
- * @param name The name of the accepted properties.
+ * @brief Creates a search filter that accepts properties whose names match the specified pattern.
+ * @param regex A regular expression pattern used to match property names.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, NamePropertyFilter, ISearchFilter, IString*, name)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, NamePropertyFilter, ISearchFilter, IString*, regex)
 
 /*!@}*/
 

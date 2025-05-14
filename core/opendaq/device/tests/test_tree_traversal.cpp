@@ -297,9 +297,20 @@ TEST_F(TreeTraversalTest, SetActive)
         ASSERT_TRUE(comp.getActive());
 }
 
+TEST_F(TreeTraversalTest, IncompatibleFilters)
+{
+    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+
+    ASSERT_THROW(device.findProperties(search::LocalId("id")), InvalidTypeException);
+    ASSERT_THROW(device.findProperties(search::Any(), search::properties::Name("Name")), InvalidTypeException);
+}
+
 TEST_F(TreeTraversalTest, FindAndChangeCommonProperties)
 {
     auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+
+    ASSERT_GT(device.findProperties(search::properties::Visible()).getCount(), 0u);
+    ASSERT_GT(device.findProperties(nullptr).getCount(), 0u);
 
     // Default behavior: non-recursive search looks only in the device's own properties
     ASSERT_EQ(device.findProperties(search::properties::Name("CommonProp"), Any()).getCount(), 1u);

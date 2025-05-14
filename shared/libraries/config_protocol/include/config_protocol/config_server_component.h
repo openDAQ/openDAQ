@@ -271,6 +271,7 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
 
     const auto serializedString = static_cast<std::string>(params["Serialized"]);
     const auto path = static_cast<std::string>(params["Path"]);
+    UpdateParametersPtr updateParams = params.getOrDefault("UpdateParams");
 
     UpdatablePtr updatable;
     if (!path.empty())
@@ -278,9 +279,10 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
     else
         updatable = component;
 
+    if (!updateParams.assigned())
+        updateParams = UpdateParameters();
+
     const auto deserializer = JsonDeserializer();
-    const auto updateParams = UpdateParameters();
-    updateParams.setPropertyValue("RemoteUpdate", true);
     deserializer.update(updatable, serializedString, updateParams);
 
     return nullptr;

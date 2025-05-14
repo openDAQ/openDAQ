@@ -34,6 +34,7 @@ public:
         , parentDependencies(List<IString>())
         , rootComponent(GetRootComponent(curComponent))
     {
+        this->config.freeze();
     }
 
     ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) override;
@@ -45,6 +46,8 @@ public:
 
     ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
 
+    ErrCode INTERFACE_FUNC getUpdateParameters(IUpdateParameters** config) override;
+
 private:
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
 
@@ -52,7 +55,7 @@ private:
     static DevicePtr GetDevice(const StringPtr& id, const DevicePtr& parentDevice);
     static std::string GetRootDeviceId(const std::string& id);
 
-    UpdateParametersPtr config;
+    const UpdateParametersPtr config;
 
     DictPtr<IString, IDict> connections;
     DictPtr<IString, IString> signalDependencies;
@@ -256,6 +259,13 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
         return OPENDAQ_NOTFOUND;
 
     *signal = singalPtr.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::getUpdateParameters(IUpdateParameters** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = this->config.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

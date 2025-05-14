@@ -17,7 +17,6 @@
 #pragma once
 
 #include <coreobjects/property_object.h>
-#include <opendaq/tags.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -55,6 +54,23 @@ DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
      * The configuration is set to the property `ReAddDevices` of configuration object.
      */
     virtual ErrCode INTERFACE_FUNC setReAddDevicesEnabled(Bool enabled) = 0;
+
+    /*!
+     * @brief Returns whether the remote update is enabled. If enabled, the update will be performed on remote device.
+     * @param[out] enabled The flag indicating whether the remote update is enabled.
+     *
+     * The configuration is set from the property `RemoteUpdate` of configuration object.
+     */
+    virtual ErrCode INTERFACE_FUNC getRemoteUpdate(Bool* remoteUpdate) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the remote update enabled flag.
+     * @param remoteUpdate The flag indicating whether the remote update is enabled.
+     *
+     * The configuration is set to the property `RemoteUpdate` of configuration object.
+     */
+    virtual ErrCode INTERFACE_FUNC setRemoteUpdate(Bool remoteUpdate) = 0;
 };
 /*!@}*/
 

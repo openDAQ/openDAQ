@@ -26,6 +26,7 @@
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
 #include <opendaq/context_factory.h>
 #include <config_protocol/errors.h>
+#include <opendaq/component_update_context_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -367,22 +368,35 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([this, &obj]()
+    return daqTry([this, &obj, &context]
     {
+        
+
+        UpdateParametersPtr updateParams;
+        ComponentUpdateContextPtr contextPtr =  BaseObjectPtr::Borrow(context).asPtrOrNull<IComponentUpdateContext>();
+        if (contextPtr.assigned())
+        {
+            updateParams = contextPtr.getUpdateParameters();
+            if (updateParams.getRemoteUpdate() == false)
+                return OPENDAQ_IGNORED;
+        }
+
         StringPtr serialized;
         checkErrorInfo(obj->toJson(&serialized));
-        clientComm->update(remoteGlobalId, serialized, this->path);
+
+        clientComm->update(remoteGlobalId, serialized, this->path, updateParams);
+        return OPENDAQ_SUCCESS;
     });
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj, IBaseObject* config)
 {
-   return updateInternal(obj, nullptr);
+   return updateInternal(obj, config);
 }
 
 template <class Impl>

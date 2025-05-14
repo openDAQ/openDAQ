@@ -928,25 +928,6 @@ TEST_F(InstanceTest, SaveLoadFunctionNeastedFb3)
     ASSERT_EQ(nestedFbs.getCount(), 3u);
 }
 
-TEST_F(InstanceTest, DISABLED_SaveLoadServers)
-{
-    StringPtr config;
-    StringPtr serverId;
-    {
-        auto instance = Instance();
-        auto server = instance.addServer("OpenDAQOPCUA", nullptr);
-        serverId = server.getId();
-        config = instance.saveConfiguration();
-    }
-
-    auto instance2 = Instance();
-    instance2.loadConfiguration(config);
-
-    auto servers = instance2.getServers();
-    ASSERT_EQ(servers.getCount(), 1u);
-    ASSERT_EQ(servers[0].getId(), serverId);
-}
-
 TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
 {
     StringPtr config;

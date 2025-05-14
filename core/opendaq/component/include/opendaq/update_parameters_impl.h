@@ -30,6 +30,13 @@ public:
     ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
     ErrCode INTERFACE_FUNC setReAddDevicesEnabled(Bool enabled) override;
 
+    ErrCode INTERFACE_FUNC getRemoteUpdate(Bool* remoteUpdate) override;
+    ErrCode INTERFACE_FUNC setRemoteUpdate(Bool remoteUpdate) override;
+
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 protected:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);

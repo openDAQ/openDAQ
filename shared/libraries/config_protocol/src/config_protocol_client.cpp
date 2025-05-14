@@ -133,12 +133,14 @@ void ConfigProtocolClientComm::clearProtectedPropertyValue(const std::string& gl
     parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
-void ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path)
+void ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path, const PropertyObjectPtr& updateParams)
 {
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
     dict.set("Serialized", String(serialized));
     dict.set("Path", String(path));
+    if (updateParams.assigned())
+        dict.set("UpdateParams", updateParams);
     auto updateRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "Update", dict);
     const auto updateRpcReplyPacketBuffer = sendRequestCallback(updateRpcRequestPacketBuffer );
 

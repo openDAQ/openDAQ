@@ -9,39 +9,12 @@ using namespace daq;
 
 void print(FunctionBlockPtr fb)
 {
-    std::cout << "Bool: " << fb.getPropertyValue("myPropBool") << "\n";
-    std::cout << "Int: " << fb.getPropertyValue("myPropInt") << "\n";
-    std::cout << "Float: " << fb.getPropertyValue("myPropFloat") << "\n";
-    std::cout << "String: " << fb.getPropertyValue("myPropString") << "\n";
-    std::cout << "Ratio: " << fb.getPropertyValue("myPropRatio") << "\n";
-    std::cout << "List: " << fb.getPropertyValue("myPropList") << "\n";
-    std::cout << "Dict: " << "\n";
-    DictPtr<IString, IString> dict = fb.getPropertyValue("myPropDict");
-    for (const auto& item : dict)
-    {
-        std::cout << "  " << item.first << ": " << item.second << "\n";
-    }
-    std::cout << "Struct: " << fb.getPropertyValue("myPropStruct") << "\n";
-    std::cout << "\n";
-}
-
-int main(int /*argc*/, const char* /*argv*/[])
-{
-    // Create an Instance, loading modules at MODULE_PATH
-    const InstancePtr instance = Instance(MODULE_PATH);
-
-    auto fbTypes = instance.getAvailableFunctionBlockTypes();
-
-    // Add Function Block by type ID
-    auto fb = instance.addFunctionBlock("PropertiesFb");
-
-    // Print Function Block name
-    std::cout << "\nFunction Block: " << fb.getName() << "\n";
-
-    // Get all properties
+    // Get all Properties
     auto properties = fb.getAllProperties();
 
-    // Print all properties
+    // Print all Function Block Properties
+    std::cout << "\nFunction Block: " << fb.getName() << "\n";
+
     for (const auto& prop : properties)
     {
         auto dict = prop.getValue().asPtrOrNull<IDict>();
@@ -59,12 +32,24 @@ int main(int /*argc*/, const char* /*argv*/[])
         }
     }
     std::cout << "\n";
+}
+
+int main(int /*argc*/, const char* /*argv*/[])
+{
+    // Create an Instance, loading modules at MODULE_PATH
+    const InstancePtr instance = Instance(MODULE_PATH);
+
+    auto fbTypes = instance.getAvailableFunctionBlockTypes();
+
+    // Add Function Block by type ID
+    auto fb = instance.addFunctionBlock("PropertiesFb");
 
     // Print before modifications
-    std::cout << "Before modifications:\n";
+    std::cout << "\nBefore modifications:\n";
     print(fb);
 
     // Make modifications
+    std::cout << "\nDuring modifications:\n";
     fb.setPropertyValue("myPropBool", true);
     fb.setPropertyValue("myPropInt", 100);
     fb.setPropertyValue("myPropFloat", 3.14);

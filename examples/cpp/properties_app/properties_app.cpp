@@ -87,6 +87,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto enumVal = Enumeration("myEnum", "third", manager);
     fb.setPropertyValue("myPropEnum", enumVal);
 
+    // Function
+    FunctionPtr oldFun = fb.getPropertyValue("myPropFunction");
+    std::cout << "Old function result (2 + 3): " << oldFun(2, 3) << "\n";
+    auto fun = Function([](Int a, Int b) { return a * b; });
+    fb.setPropertyValue("myPropFunction", fun);
+    FunctionPtr newFun = fb.getPropertyValue("myPropFunction");
+    std::cout << "New function result (2 * 3): " << newFun(2, 3) << "\n";
+
     // Print after modifications
     std::cout << "\nAfter modifications:\n";
     print(fb);

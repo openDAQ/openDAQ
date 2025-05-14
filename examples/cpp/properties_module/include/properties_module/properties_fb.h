@@ -44,6 +44,7 @@ private:
     DictPtr<IString, IString> myDict;
     StructPtr myStruct;
     EnumerationPtr myEnum;
+    FunctionPtr myFunction;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

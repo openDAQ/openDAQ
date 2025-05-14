@@ -1,9 +1,9 @@
+#include <coreobjects/argument_info_factory.h>
+#include <coreobjects/callable_info_factory.h>
 #include <properties_module/properties_fb.h>
-
 #include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
-
 PropertiesFb::PropertiesFb(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
@@ -87,6 +87,15 @@ void PropertiesFb::initProperties()
     objPtr.getOnPropertyValueWrite("myPropEnum") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "myPropEnum changed to: " << args.getValue() << "\n"; };
 
+    // Function
+    auto funProp =
+        FunctionProperty("myPropFunction", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("a", ctInt), ArgumentInfo("b", ctInt))));
+    objPtr.addProperty(funProp);
+    auto fun = Function([](Int a, Int b) { return a + b; });
+    objPtr.setPropertyValue("myPropFunction", fun);
+    objPtr.getOnPropertyValueWrite("myPropFunction") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "myPropFunction changed to: " << args.getValue() << "\n"; };
+
     readProperties();
 }
 
@@ -106,6 +115,7 @@ void PropertiesFb::readProperties()
     myDict = objPtr.getPropertyValue("myPropDict");
     myStruct = objPtr.getPropertyValue("myPropStruct");
     myEnum = objPtr.getPropertyValue("myPropEnum");
+    myFunction = objPtr.getPropertyValue("myPropFunction");
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

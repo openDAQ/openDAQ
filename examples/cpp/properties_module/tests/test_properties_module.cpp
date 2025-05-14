@@ -1,11 +1,9 @@
+#include <coretypes/common.h>
+#include <opendaq/context_factory.h>
+#include <opendaq/module_ptr.h>
 #include <properties_module/module_dll.h>
 #include <properties_module/version.h>
 #include <testutils/testutils.h>
-
-#include <coretypes/common.h>
-#include <opendaq/module_ptr.h>
-
-#include <opendaq/context_factory.h>
 
 using PropertiesModuleTest = testing::Test;
 using namespace daq;

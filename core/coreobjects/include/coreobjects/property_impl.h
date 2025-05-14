@@ -69,12 +69,6 @@ namespace details
     }
 }
 
-namespace permissions
-{
-    static const auto DefaultPermissions =
-        PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-}
-
 class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
 {
 protected:
@@ -118,8 +112,6 @@ public:
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 
-        if (this->defaultValue.supportsInterface<IPropertyObject>())
-            initDefaultPermissionManager();
         DAQ_CHECK_ERROR_INFO(validateDuringConstruction());
     }
 
@@ -219,13 +211,6 @@ public:
         const auto err = validateDuringConstruction();
         if (err != OPENDAQ_SUCCESS)
             throwExceptionFromErrorCode(err);
-
-        if (this->defaultValue.assigned())
-        {
-            initDefaultPermissionManager();
-            auto defaultValueObj = this->defaultValue.asPtr<IPropertyObject>();
-            defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(this->defaultPermissionManager);
-        }
     }
 
     // FunctionProperty()
@@ -308,16 +293,6 @@ public:
         const auto err = validateDuringConstruction();
         if (err != OPENDAQ_SUCCESS)
             throwExceptionFromErrorCode(err);
-    }
-
-    void initDefaultPermissionManager()
-    {
-#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
-        defaultPermissionManager = PermissionManager();
-        defaultPermissionManager.setPermissions(permissions::DefaultPermissions);
-#else
-        defaultPermissionManager = DisabledPermissionManager();
-#endif
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
@@ -1228,7 +1203,7 @@ public:
 
             if (defaultValueObj.assigned())
             {
-                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
                 if (cloneableDefaultValue.assigned())
                     defaultValueObj = cloneableDefaultValue.clone();
             }
@@ -1428,14 +1403,14 @@ public:
 
         if (this->defaultValue.assigned())
         {
-            PermissionManagerPtr parentManager;
-            ErrCode err = owner->getPermissionManager(&parentManager);
-            OPENDAQ_RETURN_IF_FAILED(err);
+            if (const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>(true); defaultValueObj.assigned())
+            {
+                PermissionManagerPtr parentManager;
+                ErrCode err = owner->getPermissionManager(&parentManager);
+                OPENDAQ_RETURN_IF_FAILED(err);
 
-            const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>();
-
-            if (defaultValueObj.assigned())
-                defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(parentManager);
+                defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+            }
         }
 
         return OPENDAQ_SUCCESS;
@@ -1461,7 +1436,6 @@ protected:
     CallableInfoPtr callableInfo;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueWrite;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueRead;
-    PermissionManagerPtr defaultPermissionManager;
 
 private:
 

@@ -361,6 +361,20 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
         daq::makeErrorInfo(__FILE__, __LINE__, errCode, nullptr, ##__VA_ARGS__)
 #endif
 
+#define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode)                       \
+    do {                                                                                \
+        if ((errCode) == (expectedErrCode))                                             \
+            daqClearErrorInfo();                                                        \
+        else if (OPENDAQ_FAILED(errCode))                                               \
+            return DAQ_MAKE_ERROR_INFO(errCode, "Error propagated from lower level");   \
+    } while (0)
+
+#define OPENDAQ_RETURN_IF_FAILED(errCode) \
+    do { if (OPENDAQ_FAILED(errCode)) return DAQ_MAKE_ERROR_INFO(errCode, "Error propagated from lower level"); } while (0)
+
+#define OPENDAQ_PARAM_REQUIRE(cond) \
+    do { if (!(cond)) return OPENDAQ_ERR_INVALIDPARAMETER; } while (0)
+
 inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = nullptr)
 {
 #ifdef NDEBUG

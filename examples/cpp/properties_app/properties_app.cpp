@@ -2,6 +2,8 @@
  * Properties application
  */
 
+#include <coreobjects/argument_info_factory.h>
+#include <coreobjects/callable_info_factory.h>
 #include <opendaq/opendaq.h>
 #include <iostream>
 
@@ -87,12 +89,20 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto enumVal = Enumeration("myEnum", "third", manager);
     fb.setPropertyValue("myPropEnum", enumVal);
 
+    // Procedure
+    ProcedurePtr oldProc = fb.getPropertyValue("myPropProcedure");
+    oldProc(42);
+    auto proc = Procedure([](IntegerPtr a) { std::cout << "New procedure called with: " << a << "\n"; });
+    fb.setPropertyValue("myPropProcedure", proc);
+    ProcedurePtr newProc = fb.getPropertyValue("myPropProcedure");
+    newProc(42);
+
     // Function
     FunctionPtr oldFun = fb.getPropertyValue("myPropFunction");
     auto res = oldFun(2, 3);
     std::cout << "Old function result (2 + 3): " << res << "\n";
     auto fun = Function(
-        [](Int a, Int b)
+        [](IntegerPtr a, IntegerPtr b)
         {
             std::cout << "New function called\n";
             return a * b;

@@ -87,12 +87,20 @@ void PropertiesFb::initProperties()
     objPtr.getOnPropertyValueWrite("myPropEnum") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "myPropEnum changed to: " << args.getValue() << "\n"; };
 
+    // Procedure
+    auto procProp = FunctionProperty("myPropProcedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("a", ctInt))));
+    objPtr.addProperty(procProp);
+    auto proc = Procedure([](IntegerPtr a) { std::cout << "Procedure called with: " << a << "\n"; });
+    objPtr.setPropertyValue("myPropProcedure", proc);
+    objPtr.getOnPropertyValueWrite("myPropProcedure") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "myPropProcedure changed to: " << args.getValue() << "\n"; };
+
     // Function
     auto funProp =
         FunctionProperty("myPropFunction", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("a", ctInt), ArgumentInfo("b", ctInt))));
     objPtr.addProperty(funProp);
     auto fun = Function(
-        [](Int a, Int b)
+        [](IntegerPtr a, IntegerPtr b)
         {
             std::cout << "Function called\n";
             return a + b;

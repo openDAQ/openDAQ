@@ -44,6 +44,7 @@ private:
     DictPtr<IString, IString> myDict;
     StructPtr myStruct;
     EnumerationPtr myEnum;
+    ProcedurePtr myProcedure;
     FunctionPtr myFunction;
 };
 

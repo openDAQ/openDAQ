@@ -18,6 +18,7 @@
 #include <coreobjects/search_filter.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
+#include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -48,13 +49,13 @@ public:
 class NamePropertyFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
-    explicit NamePropertyFilterImpl(const StringPtr& name);
+    explicit NamePropertyFilterImpl(const StringPtr& regex);
 
     ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
     ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 
 private:
-    StringPtr name;
+    const std::regex regex;
 };
 
 END_NAMESPACE_OPENDAQ

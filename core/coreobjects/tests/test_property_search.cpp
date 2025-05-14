@@ -101,11 +101,14 @@ TEST_F(PropertySearchTest, FindReadOnly)
 
 TEST_F(PropertySearchTest, FindByName)
 {
-    auto foundProperties = testPropertyObject.findProperties(Name("FloatProp"));
-    ASSERT_EQ(foundProperties.getCount(), 1u);
+    ASSERT_EQ(testPropertyObject.findProperties(Name("FloatProp")).getCount(), 1u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Name("FloatProp"))).getCount(), 2u);
 
-    auto recursivelyFoundProperties = testPropertyObject.findProperties(Recursive(Name("FloatProp")));
-    ASSERT_EQ(recursivelyFoundProperties.getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Name(".*Prop")).getCount(), 13u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Name(".*Prop"))).getCount(), 26u);
+
+    ASSERT_EQ(testPropertyObject.findProperties(Name(".*Selection.*")).getCount(), 2u);
+    ASSERT_EQ(testPropertyObject.findProperties(Recursive(Name(".*Selection.*"))).getCount(), 4u);
 }
 
 TEST_F(PropertySearchTest, FindCustom)

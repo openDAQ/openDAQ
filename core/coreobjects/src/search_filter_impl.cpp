@@ -66,8 +66,8 @@ ErrCode ReadOnlyPropertyFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
     return OPENDAQ_SUCCESS;
 }
 
-NamePropertyFilterImpl::NamePropertyFilterImpl(const StringPtr& name)
-    : name(name)
+NamePropertyFilterImpl::NamePropertyFilterImpl(const StringPtr& regex)
+    : regex(regex.toStdString())
 {
 }
 
@@ -80,7 +80,7 @@ ErrCode NamePropertyFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
     return daqTry(
         [&]{
             const auto& propertyPtr = PropertyPtr::Borrow(obj);
-            *accepts = propertyPtr.getName() == name ? True : False;
+            *accepts = std::regex_search(propertyPtr.getName().toStdString(), regex);
 
             return OPENDAQ_SUCCESS;
         });

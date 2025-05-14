@@ -50,21 +50,42 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Make modifications
     std::cout << "\nDuring modifications:\n";
+
+    // Bool
     fb.setPropertyValue("myPropBool", true);
+
+    // Int
     fb.setPropertyValue("myPropInt", 100);
+
+    // Float
     fb.setPropertyValue("myPropFloat", 3.14);
+
+    // String
     fb.setPropertyValue("myPropString", "Hello openDAQ");
+
+    // Ratio
     fb.setPropertyValue("myPropRatio", Ratio(1, 2));
+
+    // List
     auto list = List<IInteger>();
     list.pushBack(32);
     list.pushBack(64);
     fb.setPropertyValue("myPropList", list);
+
+    // Dictionary
     auto dict = Dict<IString, IString>();
     dict["key1"] = "horse";
     dict["key2"] = "tired";
     fb.setPropertyValue("myPropDict", dict);
-    auto stru = StructBuilder("myStruct", instance.getContext().getTypeManager()).set("myInt", 100).set("myString", "openDAQ").build();
+
+    // Struct
+    auto manager = instance.getContext().getTypeManager();
+    auto stru = StructBuilder("myStruct", manager).set("myInt", 100).set("myString", "openDAQ").build();
     fb.setPropertyValue("myPropStruct", stru);
+
+    // Enumeration
+    auto enumVal = Enumeration("myEnum", "third", manager);
+    fb.setPropertyValue("myPropEnum", enumVal);
 
     // Print after modifications
     std::cout << "\nAfter modifications:\n";

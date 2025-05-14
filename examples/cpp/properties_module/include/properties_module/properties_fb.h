@@ -43,6 +43,7 @@ private:
     ListPtr<IInteger> myList;
     DictPtr<IString, IString> myDict;
     StructPtr myStruct;
+    EnumerationPtr myEnum;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

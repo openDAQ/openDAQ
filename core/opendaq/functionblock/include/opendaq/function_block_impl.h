@@ -495,8 +495,7 @@ bool FunctionBlockImpl<TInterface, Interfaces...>::onAcceptsSignal(const InputPo
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::connected(IInputPort* port)
 {
-    const ErrCode errCode = wrapHandler(this, &Self::onConnected, port);
-    return errCode;
+    return wrapHandler(this, &Self::onConnected, port);
 }
 
 template <typename TInterface, typename... Interfaces>

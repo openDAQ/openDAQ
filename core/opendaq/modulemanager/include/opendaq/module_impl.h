@@ -78,7 +78,8 @@ public:
         OPENDAQ_PARAM_NOT_NULL(deviceTypes);
 
         DictPtr<IString, IDeviceType> types;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
+        const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types)
         {
@@ -123,6 +124,7 @@ public:
 
         DevicePtr createdDevice;
         errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, mergeConfig(config, deviceType));
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (createdDevice.assigned())
             createdDevice.getInfo();
@@ -140,7 +142,8 @@ public:
         OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
 
         DictPtr<IString, IFunctionBlockType> types;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
+        const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types)
         {
@@ -176,6 +179,7 @@ public:
 
         FunctionBlockPtr block;
         errCode = wrapHandlerReturn(this, &Module::onCreateFunctionBlock, block, id, parent, localId, mergeConfig(config, type));
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (const auto& componentPrivate = block.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
             componentPrivate.setComponentConfig(config);
@@ -193,7 +197,8 @@ public:
         OPENDAQ_PARAM_NOT_NULL(serverTypes);
 
         DictPtr<IString, IServerType> types;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
+        const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types)
         {
@@ -287,7 +292,8 @@ public:
         OPENDAQ_PARAM_NOT_NULL(streamingTypes);
 
         DictPtr<IString, IStreamingType> types;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
+        const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types)
         {

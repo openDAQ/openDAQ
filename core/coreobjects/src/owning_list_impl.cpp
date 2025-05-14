@@ -38,11 +38,9 @@ ErrCode OwningListImpl::setOwner(IBaseObject* value) const
     {
         GenericPropertyObjectPtr lock;
         err = owner->getRefAs(IPropertyObject::Id, reinterpret_cast<void**>(&lock));
+        OPENDAQ_RETURN_IF_FAILED(err);
 
-        if (OPENDAQ_SUCCEEDED(err))
-        {
-            return ownable->setOwner(lock);
-        }
+        return ownable->setOwner(lock);
     }
     return err;
 }

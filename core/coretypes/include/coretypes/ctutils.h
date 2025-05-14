@@ -89,17 +89,6 @@ inline std::string objectToString(IBaseObject* object)
     return stream.str();
 }
 
-inline std::ostringstream& ErrorFormatPath(std::ostringstream& ss, ConstCharPtr fileName, Int fileLine)
-{
-    if (fileName != nullptr)
-    {
-        ss << " [ File " << fileName;
-        if (fileLine != -1)
-            ss << ":" << fileLine;
-        ss << " ]";
-    }
-    return ss;
-}
 
 inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* errorInfo)
 {
@@ -127,62 +116,17 @@ inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* error
     errorInfo->getFileName(&fileNameCharPtr);
     errorInfo->getFileLine(&fileLine);
 
-    ErrorFormatPath(ss, fileNameCharPtr, fileLine);
+    if (fileNameCharPtr != nullptr)
+    {
+        ss << " [ File " << fileNameCharPtr;
+        if (fileLine != -1)
+            ss << ":" << fileLine;
+        ss << " ]";
+    }
 #endif
     
     return ss;
 }
-
-inline void checkErrorInfo(ErrCode errCode, ConstCharPtr fileName, Int fileLine)
-{
-    IList* errorInfoList;
-    daqGetErrorInfoList(&errorInfoList);
-
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        if (errorInfoList != nullptr)
-            errorInfoList->releaseRef();
-        return;
-    }
-
-    std::ostringstream ss;
-    if (errorInfoList != nullptr)
-    {
-        SizeT count = 0;
-        errorInfoList->getCount(&count);
-
-        for (SizeT i = 0; i < count; i++)
-        {
-            IBaseObject* errorInfoObj;
-            errorInfoList->getItemAt(i, &errorInfoObj);
-
-            IErrorInfo* errorInfo;
-            errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-        
-            if (errorInfo != nullptr)
-            {
-                ErrorFormat(ss, errorInfo);
-                if (i != count - 1)
-                    ss << "\n";
-            }
-            if (errorInfoObj != nullptr)
-                errorInfoObj->releaseRef();
-        }
-    }
-
-    ErrorFormatPath(ss, fileName, fileLine);
-
-    if (errorInfoList != nullptr)
-        errorInfoList->releaseRef();
-
-    throwExceptionFromErrorCode(errCode, ss.str());
-}
-
-#ifdef NDEBUG
-    #define DAQ_CHECK_ERROR_INFO(errCode) daq::checkErrorInfo(errCode)
-#else
-    #define DAQ_CHECK_ERROR_INFO(errCode) daq::checkErrorInfo(errCode, __FILE__, __LINE__)
-#endif
 
 template <typename... Params>
 ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObject* sourceObj, const std::string& message, Params... params)
@@ -277,6 +221,62 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     }
 #endif
 
+
+inline void checkErrorInfo(ErrCode errCode, ConstCharPtr fileName, Int fileLine)
+{
+    if (OPENDAQ_SUCCEEDED(errCode))
+        return;
+
+    IList* errorInfoList;
+    daqGetErrorInfoList(&errorInfoList);
+
+    if (errorInfoList == nullptr)
+        errorInfoList = ListWithElementType_Create(IErrorInfo::Id);
+    
+    IErrorInfo* errorInfo;
+#ifndef NDEBUG
+    const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, fileName, fileLine, nullptr, "Error propagated from lower level");
+#else
+    const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, nullptr, "Error propagated from lower level");
+#endif
+    if (OPENDAQ_SUCCEEDED(err))
+    {
+        errorInfoList->moveBack(errorInfo);
+    }    
+
+    std::ostringstream ss;
+    SizeT count = 0;
+    errorInfoList->getCount(&count);
+
+    for (SizeT i = 0; i < count; i++)
+    {
+        IBaseObject* errorInfoObj;
+        errorInfoList->getItemAt(i, &errorInfoObj);
+
+        IErrorInfo* errorInfo;
+        errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+    
+        if (errorInfo != nullptr)
+        {
+            ErrorFormat(ss, errorInfo);
+            if (i != count - 1)
+                ss << "\n";
+        }
+        if (errorInfoObj != nullptr)
+            errorInfoObj->releaseRef();
+    }
+
+    errorInfoList->releaseRef();
+
+    throwExceptionFromErrorCode(errCode, ss.str());
+}
+
+#ifdef NDEBUG
+    #define DAQ_CHECK_ERROR_INFO(errCode) daq::checkErrorInfo(errCode)
+#else
+    #define DAQ_CHECK_ERROR_INFO(errCode) daq::checkErrorInfo(errCode, __FILE__, __LINE__)
+#endif
+
 template <typename... Params>
 void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
 {
@@ -310,21 +310,25 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     return errCode;
 }
 
+inline std::string ErrorCodeMessage(ErrCode errCode)
+{
+    IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
+    std::string msg = fact->getExceptionMessage();
+
+    if (!msg.empty())
+        return msg;
+
+    std::stringstream ss;
+    ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
+    return ss.str();
+}
+
 #ifdef NDEBUG
 
     template <typename... Params>
     ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source)
     {
-        IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
-        std::string msg = fact->getExceptionMessage();
-
-        if (msg.empty())
-        {
-            std::stringstream ss;
-            ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
-            msg = ss.str();
-        }
-
+        const std::string msg = ErrorCodeMessage(errCode);
         setErrorInfoWithSource(source, msg);
         return errCode;
     }
@@ -343,16 +347,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, IBaseObject* source)
     {
-        IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
-        std::string msg = fact->getExceptionMessage();
-
-        if (msg.empty())
-        {
-            std::stringstream ss;
-            ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
-            msg = ss.str();
-        }
-
+        const std::string msg = ErrorCodeMessage(errCode);
         setErrorInfoWithSource(fileName, fileLine, source, msg);
         return errCode;
     }

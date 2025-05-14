@@ -311,6 +311,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
     {
         DeviceInfoPtr devInfo;
         errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
         this->deviceInfo = devInfo.detach();
     }
 
@@ -1122,6 +1123,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(ILi
     {
         std::set<OperationModeType> modes;
         errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
         
         this->availableOperationModes = List<IInteger>();
         for (auto mode : modes)
@@ -1138,9 +1140,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeNoCoreEvent(OperationModeType modeType)
 {
     const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
-    if (OPENDAQ_SUCCEEDED(errCode))
-        this->operationMode = modeType;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    this->operationMode = modeType;
     return errCode;
 }
 
@@ -1148,11 +1150,11 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(OperationModeType modeType)
 {
     const ErrCode errCode = this->updateOperationModeNoCoreEvent(modeType);
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        if (!this->coreEventMuted && this->coreEvent.assigned())
-            this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
+
     return errCode;
 }
 

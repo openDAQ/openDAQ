@@ -1968,8 +1968,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
             err = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
         }
 
-        if (OPENDAQ_SUCCEEDED(err))
-            *value = valuePtr.detach();
+        OPENDAQ_RETURN_IF_FAILED(err);
+        *value = valuePtr.detach();
 
         return err;
     }
@@ -3315,20 +3315,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
         if (!serializedProps.assigned() || !serializedProps.hasKey(propName))
         {
             const auto err = propObj.as<IPropertyObjectProtected>(true)->clearProtectedPropertyValue(propName);
-            if (!OPENDAQ_SUCCEEDED(err) && err != OPENDAQ_ERR_INVALID_OPERATION)
-            {
-                return err;
-            }
-
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_INVALID_OPERATION);
             continue;
         }
 
         const auto err = setPropertyFromSerialized(propName, propObj, serializedProps);
-
-        if (!OPENDAQ_SUCCEEDED(err))
-        {
-            return err;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return OPENDAQ_SUCCESS;

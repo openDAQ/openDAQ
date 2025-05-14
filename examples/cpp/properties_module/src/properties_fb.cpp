@@ -91,7 +91,12 @@ void PropertiesFb::initProperties()
     auto funProp =
         FunctionProperty("myPropFunction", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("a", ctInt), ArgumentInfo("b", ctInt))));
     objPtr.addProperty(funProp);
-    auto fun = Function([](Int a, Int b) { return a + b; });
+    auto fun = Function(
+        [](Int a, Int b)
+        {
+            std::cout << "Function called\n";
+            return a + b;
+        });
     objPtr.setPropertyValue("myPropFunction", fun);
     objPtr.getOnPropertyValueWrite("myPropFunction") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "myPropFunction changed to: " << args.getValue() << "\n"; };

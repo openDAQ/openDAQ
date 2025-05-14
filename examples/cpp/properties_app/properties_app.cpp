@@ -89,11 +89,18 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Function
     FunctionPtr oldFun = fb.getPropertyValue("myPropFunction");
-    std::cout << "Old function result (2 + 3): " << oldFun(2, 3) << "\n";
-    auto fun = Function([](Int a, Int b) { return a * b; });
+    auto res = oldFun(2, 3);
+    std::cout << "Old function result (2 + 3): " << res << "\n";
+    auto fun = Function(
+        [](Int a, Int b)
+        {
+            std::cout << "New function called\n";
+            return a * b;
+        });
     fb.setPropertyValue("myPropFunction", fun);
     FunctionPtr newFun = fb.getPropertyValue("myPropFunction");
-    std::cout << "New function result (2 * 3): " << newFun(2, 3) << "\n";
+    auto newRes = newFun(2, 3);
+    std::cout << "New function result (2 * 3): " << newRes << "\n";
 
     // Print after modifications
     std::cout << "\nAfter modifications:\n";

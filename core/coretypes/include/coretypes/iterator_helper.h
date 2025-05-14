@@ -48,7 +48,7 @@ inline ErrCode compareIterators(const IIterator* it1, const IIterator* it2, Bool
     err = it2->getCurrent(&obj2);
     if (err == OPENDAQ_ERR_NOTASSIGNED)
     {
-        obj1 = nullptr;
+        obj2 = nullptr;
     }
     else if (OPENDAQ_FAILED(err))
     {

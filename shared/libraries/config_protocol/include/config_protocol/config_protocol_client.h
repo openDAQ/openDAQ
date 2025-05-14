@@ -509,7 +509,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationObject(const Base
         {
             handleNonComponentEvent(argsPtr);
         }
-        catch (const DaqException& e)
+        catch([[maybe_unused]] const DaqException& e)
         {
             const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
             LOG_D("Failed to handle non-component event {}: {}", argsPtr.getEventName(), e.getErrorMessage());

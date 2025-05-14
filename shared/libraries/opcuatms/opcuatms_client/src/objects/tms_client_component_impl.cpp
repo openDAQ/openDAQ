@@ -50,6 +50,11 @@ void TmsClientComponentBaseImpl<Impl>::initComponent()
     {
         this->tags = TmsClientTags(this->daqContext, this->clientContext, this->getNodeId("Tags"));
     }
+    catch([[maybe_unused]] const DaqException& e)
+    {
+        const auto loggerComponent = getLoggerComponent();
+        LOG_D("OpcUA Component {} failed to initialize: {}", this->globalId, e.getErrorMessage());
+    }
     catch([[maybe_unused]] const std::exception& e)
     {
         const auto loggerComponent = getLoggerComponent();

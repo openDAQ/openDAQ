@@ -41,6 +41,7 @@ private:
     StringPtr myString;
     RatioPtr myRatio;
     ListPtr<IInteger> myList;
+    DictPtr<IString, IString> myDict;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

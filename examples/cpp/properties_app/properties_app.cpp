@@ -15,6 +15,12 @@ void print(FunctionBlockPtr fb)
     std::cout << "String: " << fb.getPropertyValue("myPropString") << "\n";
     std::cout << "Ratio: " << fb.getPropertyValue("myPropRatio") << "\n";
     std::cout << "List: " << fb.getPropertyValue("myPropList") << "\n";
+    std::cout << "Dict: " << "\n";
+    DictPtr<IString, IString> dict = fb.getPropertyValue("myPropDict");
+    for (const auto& item : dict)
+    {
+        std::cout << "  " << item.first << ": " << item.second << "\n";
+    }
     std::cout << "\n";
 }
 
@@ -37,7 +43,19 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Print all properties
     for (const auto& prop : properties)
     {
-        std::cout << "  Property: " << prop.getName() << " Value: " << prop.getValue() << "\n";
+        auto dict = prop.getValue().asPtrOrNull<IDict>();
+        if (dict.assigned())
+        {
+            std::cout << "  Property: " << prop.getName() << "\n";
+            for (const auto& item : dict)
+            {
+                std::cout << "    Key: " << item.first << " Value: " << item.second << "\n";
+            }
+        }
+        else
+        {
+            std::cout << "  Property: " << prop.getName() << " Value: " << prop.getValue() << "\n";
+        }
     }
     std::cout << "\n";
 
@@ -51,10 +69,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("myPropFloat", 3.14);
     fb.setPropertyValue("myPropString", "Hello openDAQ");
     fb.setPropertyValue("myPropRatio", Ratio(1, 2));
-    auto newList = List<IInteger>();
-    newList.pushBack(32);
-    newList.pushBack(64);
-    fb.setPropertyValue("myPropList", newList);
+    auto list = List<IInteger>();
+    list.pushBack(32);
+    list.pushBack(64);
+    fb.setPropertyValue("myPropList", list);
+    auto dict = Dict<IString, IString>();
+    dict["key1"] = "horse";
+    dict["key2"] = "tired";
+    fb.setPropertyValue("myPropDict", dict);
 
     // Print after modifications
     std::cout << "\nAfter modifications:\n";

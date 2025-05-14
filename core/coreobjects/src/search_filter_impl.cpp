@@ -1,4 +1,4 @@
-#include <coreobjects/property_filter_impl.h>
+#include <coreobjects/search_filter_impl.h>
 #include <coretypes/validation.h>
 #include <coreobjects/property_ptr.h>
 

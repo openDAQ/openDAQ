@@ -8,7 +8,7 @@
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/io_folder_factory.h>
 #include <gtest/gtest.h>
-#include <coreobjects/property_filter_factory.h>
+#include <coreobjects/search_filter_factory.h>
 
 using TreeTraversalTest = testing::Test;
 using namespace daq;

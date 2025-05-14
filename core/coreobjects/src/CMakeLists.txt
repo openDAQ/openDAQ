@@ -88,14 +88,14 @@ source_group("property" FILES ${SDK_HEADERS_DIR}/property.h
                               ${SDK_HEADERS_DIR}/callable_info_factory.h
                               ${SDK_HEADERS_DIR}/callable_info_impl.h
                               ${SDK_HEADERS_DIR}/callable_info.h
-                              ${SDK_HEADERS_DIR}/property_filter.h
-                              ${SDK_HEADERS_DIR}/property_filter_impl.h
-                              ${SDK_HEADERS_DIR}/property_filter_factory.h
+                              ${SDK_HEADERS_DIR}/search_filter.h
+                              ${SDK_HEADERS_DIR}/search_filter_impl.h
+                              ${SDK_HEADERS_DIR}/search_filter_factory.h
                               property_impl.cpp
                               property_builder_impl.cpp
                               argument_info_impl.cpp
                               callable_info_impl.cpp
-                              property_filter_impl.cpp
+                              search_filter_impl.cpp
 )
 
 source_group("property_object" FILES ${SDK_HEADERS_DIR}/property_object.h
@@ -217,7 +217,7 @@ set(SRC_Cpp version.cpp
             permissions_impl.cpp
             permissions_builder_impl.cpp
             permission_mask_builder_impl.cpp
-            property_filter_impl.cpp
+            search_filter_impl.cpp
 )
 
 set(SRC_PublicHeaders coreobjects.h
@@ -265,8 +265,8 @@ set(SRC_PublicHeaders coreobjects.h
                       permission_mask_builder.h
                       permission_mask_builder_factory.h
                       object_lock_guard.h
-                      property_filter.h
-                      property_filter_factory.h
+                      search_filter.h
+                      search_filter_factory.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -294,7 +294,7 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        permissions_impl.h
                        permissions_builder_impl.h
                        permission_mask_builder_impl.h
-                       property_filter_impl.h
+                       search_filter_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)

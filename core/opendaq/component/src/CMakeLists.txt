@@ -145,7 +145,8 @@ set(SRC_PublicHeaders_Component
     component_factory.h
     component_keys.h
     component_deserialize_context_factory.h
-    component_deserialize_context_impl.h    
+    component_deserialize_context_impl.h
+    search_filter.h
     search_filter_factory.h
     tags_factory.h
     tags_impl.h

@@ -25,7 +25,6 @@
 #include <coretypes/weakrefptr.h>
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
-#include <coretypes/search_filter_ptr.h>
 #include <opendaq/folder_ptr.h>
 #include <mutex>
 #include <opendaq/component_keys.h>

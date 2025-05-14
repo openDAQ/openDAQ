@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <coretypes/search_filter.h>
+#include <coreobjects/search_filter.h>
 #include <coretypes/stringobject.h>
 #include <coretypes/listobject.h>
 

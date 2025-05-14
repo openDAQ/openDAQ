@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <coretypes/search_filter_factory.h>
+#include <coreobjects/search_filter_factory.h>
 #include <opendaq/search_filter.h>
 
 BEGIN_NAMESPACE_OPENDAQ_SEARCH

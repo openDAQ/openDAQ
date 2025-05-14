@@ -2,7 +2,7 @@
 #include <testutils/testutils.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
-#include <coreobjects/property_filter_factory.h>
+#include <coreobjects/search_filter_factory.h>
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/property_object_class_factory.h>

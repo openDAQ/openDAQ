@@ -14,40 +14,53 @@
  * limitations under the License.
  */
 
-#include <coretypes/search_filter.h>
-#include <coretypes/stringobject.h>
-#include <coretypes/listobject.h>
+#pragma once
+#include <coretypes/search_filter_factory.h>
+#include <coreobjects/search_filter.h>
+#include <coretypes/string_ptr.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ_SEARCH
+
+namespace properties
+{
 
 /*!
- * @ingroup objects_property
- * @addtogroup objects_property_filter Property filter
+ * @ingroup objects_property_search_filter
+ * @addtogroup objects_property_search_filter_factories Factories
  * @{
  */
 
 /*!
- * @ingroup objects_property_filter
- * @addtogroup objects_property_filter_factories Factories
- * @{
+ * @brief Creates a search filter that accepts only visible properties. "Visit children" returns `true`
+ * only if the property being evaluated is visible.
  */
-
-/*!
- * @brief Creates a search filter that accepts only visible properties.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, VisiblePropertyFilter, ISearchFilter)
+inline SearchFilterPtr Visible()
+{
+    SearchFilterPtr obj(VisiblePropertyFilter_Create());
+    return obj;
+}
 
 /*!
  * @brief Creates a search filter that accepts only read-only properties.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, ReadOnlyPropertyFilter, ISearchFilter)
+inline SearchFilterPtr ReadOnly()
+{
+    SearchFilterPtr obj(ReadOnlyPropertyFilter_Create());
+    return obj;
+}
 
 /*!
  * @brief Creates a search filter that accepts properties with the specified name.
  * @param name The name of the accepted properties.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, NamePropertyFilter, ISearchFilter, IString*, name)
+inline SearchFilterPtr Name(const StringPtr& name)
+{
+    SearchFilterPtr obj(NamePropertyFilter_Create(name));
+    return obj;
+}
 
 /*!@}*/
 
-END_NAMESPACE_OPENDAQ
+}
+
+END_NAMESPACE_OPENDAQ_SEARCH

@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <coreobjects/property_filter.h>
+#include <coreobjects/search_filter.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 

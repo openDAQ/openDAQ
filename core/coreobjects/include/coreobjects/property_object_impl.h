@@ -1643,15 +1643,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
         res = readLocalValue(propName, value);
     }
 
-    if (res != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(res))
-    {
-        return DAQ_MAKE_ERROR_INFO(res);
-    }
-    daqClearErrorInfo();
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(res, OPENDAQ_ERR_NOTFOUND);
 
     if (res == OPENDAQ_ERR_NOTFOUND)
     {
-        this->clearErrorInfo();
         const auto propInternal = property.asPtr<IPropertyInternal>();
         res = propInternal->getDefaultValueNoLock(&value);
 

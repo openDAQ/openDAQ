@@ -566,7 +566,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
             const auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
-            DAQ_CHECK_ERROR_INFO(err);
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned())

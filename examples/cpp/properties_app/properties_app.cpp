@@ -21,6 +21,7 @@ void print(FunctionBlockPtr fb)
     {
         std::cout << "  " << item.first << ": " << item.second << "\n";
     }
+    std::cout << "Struct: " << fb.getPropertyValue("myPropStruct") << "\n";
     std::cout << "\n";
 }
 
@@ -77,6 +78,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     dict["key1"] = "horse";
     dict["key2"] = "tired";
     fb.setPropertyValue("myPropDict", dict);
+    auto stru = StructBuilder("myStruct", instance.getContext().getTypeManager()).set("myInt", 100).set("myString", "openDAQ").build();
+    fb.setPropertyValue("myPropStruct", stru);
 
     // Print after modifications
     std::cout << "\nAfter modifications:\n";

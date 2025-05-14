@@ -62,6 +62,16 @@ void PropertiesFb::initProperties()
         }
     };
 
+    // Create a custom type
+    auto manager = context.getTypeManager();
+    manager.addType(StructType("myStruct", List<IString>("myInt", "myString"), List<IType>(SimpleType(ctInt), SimpleType(ctString))));
+    // Create a struct property
+    auto stru = StructBuilder("myStruct", manager).set("myInt", 42).set("myString", "flowers").build();
+    const auto structProp = StructProperty("myPropStruct", stru);
+    objPtr.addProperty(structProp);
+    objPtr.getOnPropertyValueWrite("myPropStruct") += [this](PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
+    { std::cout << "myPropStruct changed to: " << args.getValue() << "\n"; };
+
     readProperties();
 }
 
@@ -79,6 +89,7 @@ void PropertiesFb::readProperties()
     myRatio = objPtr.getPropertyValue("myPropRatio");
     myList = objPtr.getPropertyValue("myPropList");
     myDict = objPtr.getPropertyValue("myPropDict");
+    myStruct = objPtr.getPropertyValue("myPropStruct");
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

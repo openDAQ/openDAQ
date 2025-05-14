@@ -13,7 +13,9 @@ void print(FunctionBlockPtr fb)
     std::cout << "Int: " << fb.getPropertyValue("myPropInt") << "\n";
     std::cout << "Float: " << fb.getPropertyValue("myPropFloat") << "\n";
     std::cout << "String: " << fb.getPropertyValue("myPropString") << "\n";
-    std::cout << "Ratio: " << fb.getPropertyValue("myPropRatio") << "\n\n";
+    std::cout << "Ratio: " << fb.getPropertyValue("myPropRatio") << "\n";
+    std::cout << "List: " << fb.getPropertyValue("myPropList") << "\n";
+    std::cout << "\n";
 }
 
 int main(int /*argc*/, const char* /*argv*/[])
@@ -49,6 +51,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("myPropFloat", 3.14);
     fb.setPropertyValue("myPropString", "Hello openDAQ");
     fb.setPropertyValue("myPropRatio", Ratio(1, 2));
+    auto newList = List<IInteger>();
+    newList.pushBack(32);
+    newList.pushBack(64);
+    fb.setPropertyValue("myPropList", newList);
 
     // Print after modifications
     std::cout << "\nAfter modifications:\n";

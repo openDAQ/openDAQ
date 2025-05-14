@@ -37,6 +37,15 @@ void PropertiesFb::initProperties()
     objPtr.getOnPropertyValueWrite("myPropRatio") += [this](PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
     { std::cout << "myPropRatio changed to: " << args.getValue() << "\n"; };
 
+    auto list = List<IInteger>();
+    list.pushBack(1);
+    list.pushBack(2);
+    list.pushBack(3);
+    const auto listProp = ListProperty("myPropList", list);
+    objPtr.addProperty(listProp);
+    objPtr.getOnPropertyValueWrite("myPropList") += [this](PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
+    { std::cout << "myPropList changed to: " << args.getValue() << "\n"; };
+
     readProperties();
 }
 
@@ -52,6 +61,7 @@ void PropertiesFb::readProperties()
     myFloat = objPtr.getPropertyValue("myPropFloat");
     myString = objPtr.getPropertyValue("myPropString");
     myRatio = objPtr.getPropertyValue("myPropRatio");
+    myList = objPtr.getPropertyValue("myPropList");
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

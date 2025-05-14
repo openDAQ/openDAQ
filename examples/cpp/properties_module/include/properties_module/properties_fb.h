@@ -40,6 +40,7 @@ private:
     FloatPtr myFloat;
     StringPtr myString;
     RatioPtr myRatio;
+    ListPtr<IInteger> myList;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

@@ -115,6 +115,16 @@ void PropertiesFb::initProperties()
     objPtr.getOnPropertyValueWrite("myPropSelection") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "myPropSelection changed to: " << args.getValue() << "\n"; };
 
+    // Sparse selection
+    auto selection = Dict<Int, IString>();
+    selection.set(4, "first");
+    selection.set(5, "second");
+    selection.set(6, "third");
+    auto sparseProp = SparseSelectionProperty("myPropSparse", selection, 1);
+    objPtr.addProperty(sparseProp);
+    objPtr.getOnPropertyValueWrite("myPropSparse") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "myPropSparse changed to: " << args.getValue() << "\n"; };
+
     readProperties();
 }
 

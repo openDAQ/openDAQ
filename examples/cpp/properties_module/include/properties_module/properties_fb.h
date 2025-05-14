@@ -47,6 +47,7 @@ private:
     ProcedurePtr myProcedure;
     FunctionPtr myFunction;
     IntegerPtr mySelection;
+    IntegerPtr mySparse;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

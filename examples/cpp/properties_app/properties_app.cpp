@@ -115,6 +115,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Selection
     fb.setPropertyValue("myPropSelection", 2);
 
+    // Sparse selection
+    fb.setPropertyValue("myPropSparse", 6);
+
     // Print after modifications
     std::cout << "\nAfter modifications:\n";
     print(fb);

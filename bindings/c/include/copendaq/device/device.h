@@ -85,9 +85,9 @@ extern "C"
     ErrCode EXPORTED Device_getLog(Device* self, String** log, String* id, Int size, Int offset);
     ErrCode EXPORTED Device_getConnectionStatusContainer(Device* self, ComponentStatusContainer** statusContainer);
     ErrCode EXPORTED Device_getAvailableOperationModes(Device* self, List** availableOpModes);
-    ErrCode EXPORTED Device_setOperationMode(Device* self, String* modeType);
-    ErrCode EXPORTED Device_setOperationModeRecursive(Device* self, String* modeType);
-    ErrCode EXPORTED Device_getOperationMode(Device* self, String** modeType);
+    ErrCode EXPORTED Device_setOperationMode(Device* self, OperationModeType modeType);
+    ErrCode EXPORTED Device_setOperationModeRecursive(Device* self, OperationModeType modeType);
+    ErrCode EXPORTED Device_getOperationMode(Device* self, OperationModeType* modeType);
 
 #ifdef __cplusplus
 }

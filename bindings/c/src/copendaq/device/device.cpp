@@ -182,17 +182,17 @@ ErrCode Device_getAvailableOperationModes(Device* self, List** availableOpModes)
     return reinterpret_cast<daq::IDevice*>(self)->getAvailableOperationModes(reinterpret_cast<daq::IList**>(availableOpModes));
 }
 
-ErrCode Device_setOperationMode(Device* self, String* modeType)
+ErrCode Device_setOperationMode(Device* self, OperationModeType modeType)
 {
-    return reinterpret_cast<daq::IDevice*>(self)->setOperationMode(reinterpret_cast<daq::IString*>(modeType));
+    return reinterpret_cast<daq::IDevice*>(self)->setOperationMode(static_cast<daq::OperationModeType>(modeType));
 }
 
-ErrCode Device_setOperationModeRecursive(Device* self, String* modeType)
+ErrCode Device_setOperationModeRecursive(Device* self, OperationModeType modeType)
 {
-    return reinterpret_cast<daq::IDevice*>(self)->setOperationModeRecursive(reinterpret_cast<daq::IString*>(modeType));
+    return reinterpret_cast<daq::IDevice*>(self)->setOperationModeRecursive(static_cast<daq::OperationModeType>(modeType));
 }
 
-ErrCode Device_getOperationMode(Device* self, String** modeType)
+ErrCode Device_getOperationMode(Device* self, OperationModeType* modeType)
 {
-    return reinterpret_cast<daq::IDevice*>(self)->getOperationMode(reinterpret_cast<daq::IString**>(modeType));
+    return reinterpret_cast<daq::IDevice*>(self)->getOperationMode(reinterpret_cast<daq::OperationModeType*>(modeType));
 }

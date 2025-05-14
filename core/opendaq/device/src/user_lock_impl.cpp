@@ -20,7 +20,7 @@ ErrCode INTERFACE_FUNC UserLockImpl::lock(IUser* user)
         userPtr = nullptr;
 
     if (userLock.has_value() && userLock != userPtr)
-        return OPENDAQ_ERR_DEVICE_LOCKED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED);
 
     this->userLock = userPtr;
     return OPENDAQ_SUCCESS;
@@ -29,7 +29,7 @@ ErrCode INTERFACE_FUNC UserLockImpl::lock(IUser* user)
 ErrCode INTERFACE_FUNC UserLockImpl::unlock(IUser* user)
 {
     if (userLock.has_value() && userLock != nullptr && userLock != user)
-        return OPENDAQ_ERR_ACCESSDENIED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 
     this->userLock.reset();
     return OPENDAQ_SUCCESS;
@@ -88,13 +88,11 @@ ErrCode UserLockImpl::Deserialize(ISerializedObject* serialized, IBaseObject* co
 
     Bool isLocked;
     ErrCode err = serializedObj->readBool(String("locked"), &isLocked);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     StringPtr username;
     err = serializedObj->readString(String("username"), &username);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return err;
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_NOTFOUND);
 
     UserPtr user = nullptr;
     const auto contextPtr = BaseObjectPtr::Borrow(context);

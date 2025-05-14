@@ -82,7 +82,7 @@ BEGIN_NAMESPACE_OPENDAQ
     }                                                                   \
     catch (...)                                                         \
     {                                                                   \
-        return OPENDAQ_ERR_GENERALERROR;                                \
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);       \
     }
 
 #ifdef NDEBUG
@@ -142,6 +142,7 @@ DEFINE_EXCEPTION(NotSupported, OPENDAQ_ERR_NOT_SUPPORTED, "The operation or type
 DEFINE_EXCEPTION(ListNotHomogeneous, OPENDAQ_ERR_LIST_NOT_HOMOGENEOUS, "List is not homogeneous")
 DEFINE_EXCEPTION(FactoryNotRegistered, OPENDAQ_ERR_FACTORY_NOT_REGISTERED, "Factory not registered")
 DEFINE_EXCEPTION(NoData, OPENDAQ_ERR_NO_DATA, "No data")
+DEFINE_EXCEPTION(ReservedTypeName, OPENDAQ_ERR_RESERVED_TYPE_NAME, "Type name is reserved and can not be used")
 
 extern void checkErrorInfo(ErrCode errCode);
 

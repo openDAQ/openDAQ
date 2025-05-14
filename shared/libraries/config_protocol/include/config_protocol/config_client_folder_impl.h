@@ -252,9 +252,8 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
                     const BaseObjectPtr& context,
                     const FunctionPtr& factoryCallback)
                 {
-                    return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
-                },
-                nullptr);
+                    return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
+                });
 
             if (deserializedObj.assigned())
                 this->addItem(deserializedObj);

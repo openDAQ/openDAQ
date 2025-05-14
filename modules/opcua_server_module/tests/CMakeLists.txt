@@ -17,7 +17,7 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
-         WORKING_DIRECTORY bin
+         WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
 if (MSVC) # Ignoring warning for the Taskflow

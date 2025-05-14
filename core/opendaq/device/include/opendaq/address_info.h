@@ -28,7 +28,7 @@ struct IAddressInfoBuilder;
  * @{
  */
 
-enum class AddressReachabilityStatus: uint32_t
+enum class AddressReachabilityStatus: EnumType
 {
     Unknown = 0,
     Reachable,

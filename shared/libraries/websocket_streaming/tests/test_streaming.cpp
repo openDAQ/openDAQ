@@ -63,6 +63,43 @@ TEST_F(StreamingTest, ConnectAndDisconnect)
     ASSERT_FALSE(client.isConnected());
 }
 
+TEST_F(StreamingTest, ClientConnectDisconnectCallbacks)
+{
+    auto server = std::make_shared<StreamingServer>(context);
+
+    std::string clientId;
+    bool clientConnected{false};
+    server->onClientConnected(
+        [&clientId, &clientConnected](const std::string& id, const std::string& address)
+        {
+            ASSERT_NE(address, "");
+            clientConnected = true;
+            clientId = id;
+        }
+    );
+    std::promise<bool> clientDisconnectedPromise;
+    std::future<bool> clientDisconnectedFuture = clientDisconnectedPromise.get_future();
+    server->onClientDisconnected(
+        [&clientId, &clientConnected, &clientDisconnectedPromise](const std::string& id)
+        {
+            if (clientConnected && id == clientId)
+                clientDisconnectedPromise.set_value(true);
+        }
+    );
+
+    server->start(StreamingPort, ControlPort);
+
+    auto client = std::make_shared<StreamingClient>(context, "127.0.0.1", StreamingPort, StreamingTarget);
+
+    client->connect();
+    ASSERT_TRUE(clientConnected);
+    ASSERT_NE(clientId, "");
+
+    client.reset();
+    ASSERT_EQ(clientDisconnectedFuture.wait_for(std::chrono::milliseconds(1000)), std::future_status::ready);
+    ASSERT_TRUE(clientDisconnectedFuture.get());
+}
+
 TEST_F(StreamingTest, StopServer)
 {
     auto server = std::make_shared<StreamingServer>(context);

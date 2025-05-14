@@ -304,4 +304,13 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
             return objectPtr.getUserName().toStdString();
         },
         "Gets the name of the current user of the device.");
+    cls.def_property_readonly("connected_clients_info",
+        [](daq::IDeviceInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceInfoPtr::Borrow(object);
+            return objectPtr.getConnectedClientsInfo().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the list of connected client information objects.");
 }

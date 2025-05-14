@@ -55,6 +55,8 @@ public:
 
     static std::string getEpoch();
     static RatioPtr getResolution();
+protected:
+    void activeChanged() override;
 private:
     int32_t lowerLimit;
     int32_t upperLimit;

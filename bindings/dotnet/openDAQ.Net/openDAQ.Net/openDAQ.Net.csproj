@@ -94,8 +94,8 @@
 
   <!-- $(BaseOutputPath) -->
   <ItemGroup>
-    <!-- include the RTGen build output; exclude files which are managed manually -->
-    <Compile Include="$(_RTGenOutputPath)\**\*.cs" Exclude="$(_RTGenOutputPath)\**\*Private.cs;$(_RTGenOutputPath)\**\DeserializeComponent.cs;$(_RTGenOutputPath)\shared\**" />
+    <!-- include the RTGen build output (core); exclude files which are meant to be SDK private -->
+    <Compile Include="$(_RTGenOutputPath)\core*\**\*.cs" Exclude="$(_RTGenOutputPath)\**\*Private.cs;$(_RTGenOutputPath)\**\DeserializeComponent.cs" />
     <!-- include the documentation path into the SolutionExplorer -->
     <None Include="$(_DocsPath)\**\*.adoc">
       <Link>docs\%(RecursiveDir)\%(FileName)%(Extension)</Link>

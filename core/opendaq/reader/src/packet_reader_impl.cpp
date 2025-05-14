@@ -2,6 +2,7 @@
 #include <coretypes/list_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/ownable_ptr.h>
+#include <opendaq/connection_internal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -130,8 +131,7 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
     OPENDAQ_PARAM_NOT_NULL(allPackets);
 
     ErrCode errCode = createListWithElementType(allPackets, IPacket::Id);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     std::scoped_lock lock(mutex);
 
@@ -140,8 +140,7 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
 
     SizeT size{};
     errCode = connection->getPacketCount(&size);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     auto readPackets = ListPtr<IPacket>::Borrow(*allPackets);
     for (std::size_t i = 0u; i < size; ++i)

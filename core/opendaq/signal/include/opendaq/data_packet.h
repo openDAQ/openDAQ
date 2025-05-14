@@ -148,6 +148,29 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      * there is exactly one dimension.
      */
     virtual ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager = nullptr) = 0;
+
+    /*!
+     * @brief Gets the last raw value of the data packet.
+     * @param[out] value A pointer to a memory location where the raw value will be stored.
+     *
+     * This method writes the raw value of the last sample to the provided memory location.
+     * It does not allocate memory and assumes that sufficient memory has already been allocated.
+     * The value is not cast to any specific type; it remains a raw data pointer.
+     * The method does not verify whether the allocated memory size matches the sample size.
+     */
+    virtual ErrCode INTERFACE_FUNC getRawLastValue(void** value) = 0;
+
+    /*!
+     * @brief Gets the raw value of the data packet at the specified index.
+     * @param[out] value A pointer to a memory location where the raw value will be stored.
+     * @param[in] index The index of the sample to retrieve.
+     *
+     * This method writes the raw value of the sample at the specified index to the provided memory location.
+     * It does not allocate memory and assumes that sufficient memory has already been allocated.
+     * The value is not cast to any specific type; it remains a raw data pointer.
+     * The method does not verify whether the allocated memory size matches the sample size.
+     */
+    virtual ErrCode INTERFACE_FUNC getRawValueByIndex(void** value, SizeT index) = 0;
 };
 
 /*!@}*/

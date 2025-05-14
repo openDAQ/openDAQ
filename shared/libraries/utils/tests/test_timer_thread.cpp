@@ -68,3 +68,11 @@ TEST_F(TimerThreadTest, ExecuteDelay)
     ASSERT_EQ(timerThread.getNoOfCallbacks(), callbackFunciton.callbackCalls);
     ASSERT_EQ(timerThread.getNoOfCallbacks(), 1);
 }
+
+TEST_F(TimerThreadTest, NamedTimerThread)
+{
+    TestCallbackClass callbackFunciton;
+    NamedTimerThread timerThread{"Test", 1000, [&callbackFunciton] { callbackFunciton.callback(); }};
+    timerThread.start();
+    timerThread.stop();
+}

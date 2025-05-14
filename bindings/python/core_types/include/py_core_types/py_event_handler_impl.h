@@ -48,9 +48,9 @@ public:
         {
             return errorFromException(e);
         }
-        catch (const std::exception&)
+        catch (const std::exception& e)
         {
-            return OPENDAQ_ERR_GENERALERROR;
+            return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
         }
 
         return OPENDAQ_SUCCESS;

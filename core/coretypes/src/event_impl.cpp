@@ -16,7 +16,7 @@ ErrCode EventImpl::addHandler(IEventHandler* eventHandler)
 
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
     handlers.emplace_back(Handler{ eventHandler, false });
@@ -31,16 +31,12 @@ ErrCode EventImpl::removeHandler(IEventHandler* eventHandler)
 
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
     SizeT hashCode;
     ErrCode errCode = eventHandler->getHashCode(&hashCode);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const ConstIterator iterator = std::find_if(handlers.begin(),
                                                 handlers.end(),
@@ -62,7 +58,7 @@ ErrCode EventImpl::clear()
 
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
     handlers.clear();
@@ -108,8 +104,7 @@ ErrCode EventImpl::trigger(IBaseObject* sender, IEventArgs* args)
         if (!handler.muted)
         {
             const ErrCode errCode = handler.eventHandler->handleEvent(sender, args);
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
             continue;
         }
 
@@ -180,8 +175,7 @@ ErrCode EventImpl::setMuted(IEventHandler* eventHandler, bool muted)
     SizeT hashCode;
     ErrCode errCode = eventHandler->getHashCode(&hashCode);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const Iterator iterator = std::find_if(handlers.begin(),
         handlers.end(),

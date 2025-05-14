@@ -1,6 +1,5 @@
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
-#include <opendaq/module_manager_utils_ptr.h>
 
 using ModulesDefaultConfigTest = testing::Test;
 
@@ -25,6 +24,37 @@ TEST_F(ModulesDefaultConfigTest, GeneralConfig)
     ASSERT_TRUE(general.hasProperty("AllowedStreamingProtocols"));
     ASSERT_TRUE(general.hasProperty("AutomaticallyConnectStreaming"));
     ASSERT_TRUE(general.hasProperty("PrimaryAddressType"));
+}
+
+TEST_F(ModulesDefaultConfigTest, AddDeviceWithoutConfig)
+{
+    const auto instance = Instance();
+    const ModulePtr deviceModule(MockDeviceModule_Create(instance.getContext()));
+    instance.getModuleManager().addModule(deviceModule);
+
+    auto device = instance.addDevice("daqmock://phys_device");
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+
+    const auto defaultConfig = instance.createDefaultAddDeviceConfig();
+    test_helpers::testPropObjsEquality(defaultConfig, addedComponentConfig);
+}
+
+TEST_F(ModulesDefaultConfigTest, AddDeviceWithDefConfigFromDeviceType)
+{
+    const auto instance = Instance();
+    const ModulePtr deviceModule(MockDeviceModule_Create(instance.getContext()));
+    instance.getModuleManager().addModule(deviceModule);
+
+    auto deviceTypes = instance.getAvailableDeviceTypes();
+    auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
+
+    auto device = instance.addDevice("daqmock://phys_device", mockDeviceConfig);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+
+    const auto defaultConfig = instance.createDefaultAddDeviceConfig();
+    test_helpers::testPropObjsEquality(defaultConfig, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)
@@ -53,7 +83,12 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
     nativeDeviceConfig.setPropertyValue("Port", 7421);
 
-    ASSERT_TRUE(instance.addDevice("daq.nd://127.0.0.1", config).assigned());
+    auto device = instance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeStreaming)
@@ -95,7 +130,12 @@ TEST_F(ModulesDefaultConfigTest, NativeStreamingDeviceConnect)
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
     nativeDeviceConfig.setPropertyValue("Port", 7415);
 
-    ASSERT_TRUE(instance.addDevice("daq.nd://127.0.0.1", config).assigned());
+    auto device = instance.addDevice("daq.nd://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, LTStreamingDevice)
@@ -120,7 +160,12 @@ TEST_F(ModulesDefaultConfigTest, LTStreamingDeviceConnect)
     const PropertyObjectPtr ltDeviceConfig = deviceConfig.getPropertyValue("OpenDAQLTStreaming");
     ltDeviceConfig.setPropertyValue("Port", 7415);
 
-    ASSERT_TRUE(instance.addDevice("daq.lt://127.0.0.1", config).assigned());
+    auto device = instance.addDevice("daq.lt://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigDevice)
@@ -145,7 +190,12 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigDeviceConnect)
     const PropertyObjectPtr opcuaDeviceConfig = deviceConfig.getPropertyValue("OpenDAQOPCUAConfiguration");
     opcuaDeviceConfig .setPropertyValue("Port", 4841);
 
-    ASSERT_TRUE(instance.addDevice("daq.opcua://127.0.0.1", config).assigned());
+    auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
+    ASSERT_TRUE(device.assigned());
+
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
@@ -171,6 +221,10 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
 
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u);
+
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
@@ -196,6 +250,10 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
 
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2u);
+
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
@@ -216,6 +274,10 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
 
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 0u);
+
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
@@ -247,6 +309,10 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
 
     const auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u);
+
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
@@ -283,6 +349,10 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
 
     const auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2u);
+
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
@@ -290,7 +360,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_native"));
 
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
@@ -309,7 +379,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_native", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -329,7 +399,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_native", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -348,7 +418,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_opcua"));
 
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
@@ -367,7 +437,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_opcua", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -388,7 +458,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_opcua", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -408,7 +478,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_lt"));
 
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
@@ -426,7 +496,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_lt", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -441,171 +511,11 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01", config);
+        const auto device = instance.addDevice("daq://openDAQ_sim01_lt", config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         instance.removeDevice(device);
     }
-}
-
-TEST_F(ModulesDefaultConfigTest, ChangeIpConfig)
-{
-    const auto dhcp4 = False;
-    const auto address4 = String("192.168.2.100/24");
-    const auto gateway4 = String("192.168.2.1");
-    const auto dhcp6 = True;
-    const auto address6 = String("");
-    const auto gateway6 = String("");
-
-    SizeT modifyCallCount = 0;
-    ProcedurePtr modifyIpConfigCallback = Procedure([&](StringPtr ifaceName, PropertyObjectPtr config)
-    {
-        ++modifyCallCount;
-        EXPECT_EQ(ifaceName, "eth0");
-        EXPECT_EQ(config.getPropertyValue("dhcp4"), dhcp4);
-        EXPECT_EQ(config.getPropertyValue("address4"), address4);
-        EXPECT_EQ(config.getPropertyValue("gateway4"), gateway4);
-        EXPECT_EQ(config.getPropertyValue("dhcp6"), dhcp6);
-        EXPECT_EQ(config.getPropertyValue("address6"), address6);
-        EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
-    });
-
-    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
-    serverInstance.getModuleManager().addModule(deviceModule);
-    auto deviceTypes = serverInstance.getAvailableDeviceTypes();
-    auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
-    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
-    mockDeviceConfig.setPropertyValue("onSubmitConfig", modifyIpConfigCallback);
-    serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
-
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
-
-    for (const auto& server : serverInstance.getServers())
-        server.enableDiscovery();
-
-    const auto instance = Instance();
-    auto availableDevices = instance.getAvailableDevices();
-
-    for (const auto& devInfo : availableDevices)
-    {
-        if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
-        {
-            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
-            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth1"));
-            auto ipConfig = devInfo.getNetworkInterface("eth0").createDefaultConfiguration();
-            ipConfig.setPropertyValue("dhcp4", dhcp4);
-            ipConfig.setPropertyValue("address4", address4);
-            ipConfig.setPropertyValue("gateway4", gateway4);
-            ipConfig.setPropertyValue("dhcp6", dhcp6);
-            ipConfig.setPropertyValue("address6", address6);
-            ipConfig.setPropertyValue("gateway6", gateway6);
-            EXPECT_NO_THROW(devInfo.getNetworkInterface("eth0").submitConfiguration(ipConfig));
-        }
-    }
-
-    EXPECT_EQ(modifyCallCount, 1u);
-}
-
-TEST_F(ModulesDefaultConfigTest, ChangeIpConfigError)
-{
-    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
-    serverInstance.getModuleManager().addModule(deviceModule);
-    auto deviceTypes = serverInstance.getAvailableDeviceTypes();
-    auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
-    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0"));
-    serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
-
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
-
-    // Truncated error message with disallowed symbols replaced.
-    auto retrievedErrorMessage = "This Is An Extremely Long Test String With Invalid Characters Like  Tabs, NewLines , "
-                                 "and equals signs                                                                               "
-                                 "?!.,:;-+*/|&^~_\\@#$%\"'`()<>[]             Truncated after this";
-
-    for (const auto& server : serverInstance.getServers())
-        server.enableDiscovery();
-
-    const auto instance = Instance();
-    auto availableDevices = instance.getAvailableDevices();
-
-    for (const auto& devInfo : availableDevices)
-    {
-        if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
-        {
-            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
-            EXPECT_FALSE(devInfo.getNetworkInterfaces().hasKey("eth1"));
-            auto networInterface = devInfo.getNetworkInterface("eth0");
-            auto ipConfig = devInfo.getNetworkInterface("eth0").createDefaultConfiguration();
-            ASSERT_THROW_MSG(networInterface.submitConfiguration(ipConfig), NotImplementedException, retrievedErrorMessage);
-            ASSERT_THROW_MSG(networInterface.requestCurrentConfiguration(), NotImplementedException, retrievedErrorMessage);
-        }
-    }
-}
-
-TEST_F(ModulesDefaultConfigTest, RetrieveIpConfig)
-{
-    const auto dhcp4 = False;
-    const auto address4 = String("192.168.2.100/24");
-    const auto gateway4 = String("192.168.2.1");
-    const auto dhcp6 = False;
-    const auto address6 = String("2001:db8:1:0::100/64");
-    const auto gateway6 = String("2001:db8:1:0::1");
-
-    SizeT retrieveCallCount = 0;
-    FunctionPtr retrieveIpConfigCallback = Function([&](StringPtr ifaceName) -> PropertyObjectPtr
-    {
-        ++retrieveCallCount;
-        EXPECT_EQ(ifaceName, "eth0");
-
-        auto config = PropertyObject();
-        config.addProperty(BoolProperty("dhcp4", dhcp4));
-        config.addProperty(StringProperty("address4", address4));
-        config.addProperty(StringProperty("gateway4", gateway4));
-        config.addProperty(BoolProperty("dhcp6", dhcp6));
-        config.addProperty(StringProperty("address6", address6));
-        config.addProperty(StringProperty("gateway6", gateway6));
-
-        return config;
-    });
-
-    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
-    serverInstance.getModuleManager().addModule(deviceModule);
-    auto deviceTypes = serverInstance.getAvailableDeviceTypes();
-    auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
-    mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
-    mockDeviceConfig.setPropertyValue("onSubmitConfig", Procedure([](StringPtr, PropertyObjectPtr) {}));
-    mockDeviceConfig.setPropertyValue("onRetrieveConfig", retrieveIpConfigCallback);
-    serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
-
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
-
-    for (const auto& server : serverInstance.getServers())
-        server.enableDiscovery();
-
-    const auto instance = Instance();
-    auto availableDevices = instance.getAvailableDevices();
-
-    for (const auto& devInfo : availableDevices)
-    {
-        if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
-        {
-            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
-            EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth1"));
-            PropertyObjectPtr config;
-            ASSERT_NO_THROW(config = devInfo.getNetworkInterface("eth0").requestCurrentConfiguration());
-            EXPECT_EQ(config.getPropertyValue("dhcp4"), dhcp4);
-            EXPECT_EQ(config.getPropertyValue("address4"), address4);
-            EXPECT_EQ(config.getPropertyValue("gateway4"), gateway4);
-            EXPECT_EQ(config.getPropertyValue("dhcp6"), dhcp6);
-            EXPECT_EQ(config.getPropertyValue("address6"), address6);
-            EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
-        }
-    }
-
-    EXPECT_EQ(retrieveCallCount, 1u);
 }

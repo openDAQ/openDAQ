@@ -110,6 +110,8 @@ int64_t TimerThread::getNoOfCallbacks() const
 
 void TimerThread::execute()
 {
+    threadEnter();
+
 #ifndef __linux__
     auto locked = std::unique_lock<std::mutex>(terminateMutex);
 
@@ -179,12 +181,43 @@ void TimerThread::execute()
     }
     pthread_mutex_unlock(terminateMutex.native_handle());
 #endif
+    threadLeave();
 }
 
 void TimerThread::executeTimerCallback()
 {
     if (callback)
         callback();
+}
+
+void TimerThread::threadEnter()
+{
+}
+
+void TimerThread::threadLeave()
+{
+}
+
+NamedTimerThread::NamedTimerThread(std::string name, int intervalMs, CallbackFunction callback, int delayMs, TimerMode timerMode)
+    : TimerThread(intervalMs, std::move(callback), delayMs, timerMode)
+    , name{std::move(name)}
+{
+}
+
+NamedTimerThread::NamedTimerThread(std::string name,
+                                   std::chrono::microseconds interval,
+                                   CallbackFunction callback,
+                                   std::optional<std::chrono::microseconds> delay,
+                                   TimerMode timerMode)
+    : TimerThread(interval, std::move(callback), delay, timerMode)
+    , name{std::move(name)}
+{
+}
+
+void NamedTimerThread::threadEnter()
+{
+    if (!name.empty())
+        setThreadName(name.c_str());
 }
 
 END_NAMESPACE_UTILS

@@ -78,8 +78,7 @@ ErrCode PropertyWrapperImpl::getSelectionValues(IBaseObject** values)
 
     BaseObjectPtr wrappedSelectionValues;
     const auto err = property->getSelectionValues(&wrappedSelectionValues);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (!wrappedSelectionValues.assigned())
     {

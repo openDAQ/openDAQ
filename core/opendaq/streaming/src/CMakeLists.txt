@@ -70,6 +70,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/mirrored_device.h
         ${SDK_HEADERS_DIR}/mirrored_device_config.h
         ${SDK_HEADERS_DIR}/mirrored_device_impl.h
+        ${SDK_HEADERS_DIR}/streaming_source_manager.h
     )
     
     source_group("streaming" FILES 
@@ -80,7 +81,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/streaming_type.h
         ${SDK_HEADERS_DIR}/streaming_type_factory.h
         ${SDK_HEADERS_DIR}/streaming_type_impl.h
-        streaming_type_impl.cpp
+        ${SDK_SRC_DIR}/streaming_type_impl.cpp
     )
 endfunction()
 
@@ -95,6 +96,7 @@ set(SRC_PublicHeaders_Component
     mirrored_device_impl.h
     streaming_type.h
     streaming_type_factory.h
+    streaming_source_manager.h
     PARENT_SCOPE
 )
 

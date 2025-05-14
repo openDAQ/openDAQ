@@ -56,6 +56,7 @@ public:
     static Int getDeltaT(double sr);
 protected:
     void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating) override;
+    void activeChanged() override;
 
 private:
     WaveformType waveformType;

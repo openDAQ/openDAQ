@@ -24,8 +24,7 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::assign(IString* groupId, IPermiss
 
     Int permissionFlags;
     ErrCode err = permissions->build(&permissionFlags);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     assign(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;
@@ -38,8 +37,7 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::allow(IString* groupId, IPermissi
 
     Int permissionFlags;
     ErrCode err = permissions->build(&permissionFlags);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     allow(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;
@@ -52,8 +50,7 @@ ErrCode INTERFACE_FUNC PermissionsBuilderImpl::deny(IString* groupId, IPermissio
 
     Int permissionFlags;
     ErrCode err = permissions->build(&permissionFlags);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     deny(groupId, permissionFlags);
     return OPENDAQ_SUCCESS;

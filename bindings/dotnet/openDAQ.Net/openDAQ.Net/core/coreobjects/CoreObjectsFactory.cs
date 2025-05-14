@@ -15,12 +15,25 @@
  */
 
 
+using Daq.Core.OpenDAQ;
+using Daq.Core.Types;
+
 namespace Daq.Core.Objects;
 
 
 /// <summary>Factory functions of the &apos;CoreObjects&apos; library.</summary>
 public static partial class CoreObjectsFactory
 {
+    /// <summary>
+    /// Initializes the openDAQ SDK.
+    /// </summary>
+    static CoreObjectsFactory()
+    {
+        // initialize the SDK (load all depending SDK libraries)
+        _ = CoreTypesFactory.SdkVersion;
+        _ = CoreObjectsFactory.SdkVersion;
+    }
+
     //void daqCoreObjectsGetVersion(unsigned int* major, unsigned int* minor, unsigned int* revision); cdecl;
     [DllImport(CoreObjectsDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
     private static extern void daqCoreObjectsGetVersion(out int major, out int minor, out int revision);

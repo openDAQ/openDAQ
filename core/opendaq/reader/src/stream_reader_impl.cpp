@@ -457,10 +457,7 @@ ErrCode StreamReaderImpl::readPacketData()
     if (info.values != nullptr)
     {
         ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     if (info.domainValues != nullptr)
@@ -479,13 +476,11 @@ ErrCode StreamReaderImpl::readPacketData()
             {
                 return errCode;
             }
+            daqClearErrorInfo();
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     if (toRead < remainingSampleCount)
@@ -566,6 +561,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                 ErrCode errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
                 if (OPENDAQ_FAILED(errCode))
                 {
+                    daqClearErrorInfo();
                     invalid = true;
                 }
             } 

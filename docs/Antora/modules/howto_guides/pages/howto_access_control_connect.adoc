@@ -1,5 +1,14 @@
-
 = Connect with username and password
+
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🔑️ Provide credentials via configuration.
+- 🧩 Handle anonymous access scenarios.
+- 🖥️ Apply code examples.
+====
 
 To connect to a device, you can provide the username and password using the `config` parameter of the `addDevice` method.
 If you don't provide these credentials, the device will attempt to connect as an anonymous user. Whether anonymous authentication

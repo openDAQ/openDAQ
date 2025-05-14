@@ -108,8 +108,7 @@ ErrCode EventPacketImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
 
     EventPacketPtr eventPacket;
     auto errCode = createObject<IEventPacket, EventPacketImpl>(&eventPacket, eventId, parameters);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *obj = eventPacket.as<IBaseObject>();
 

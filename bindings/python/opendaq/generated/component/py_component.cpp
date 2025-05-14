@@ -186,4 +186,12 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
         },
         py::arg("id"),
         "Finds the component (signal/device/function block) with the specified (global) id.");
+    cls.def_property_readonly("operation_mode",
+        [](daq::IComponent *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.getOperationMode();
+        },
+        "Gets the operation mode of the device.");
 }

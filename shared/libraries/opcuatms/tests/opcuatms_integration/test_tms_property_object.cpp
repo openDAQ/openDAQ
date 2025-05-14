@@ -10,6 +10,7 @@
 #include "tms_object_integration_test.h"
 #include <opcuatms_client/objects/tms_client_property_object_factory.h>
 #include <coreobjects/property_object_class_factory.h>
+#include <opendaq/mock/advanced_components_setup_utils.h>
 
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/context_factory.h>
@@ -261,4 +262,344 @@ TEST_F(TmsPropertyObjectTest, TestReadOnlyWriteFail)
 
     ASSERT_EQ(clientObj.getPropertyValue("ReadOnly"), 0);
     ASSERT_THROW(clientObj.setPropertyValue("ReadOnly", 100), AccessDeniedException);
+}
+
+TEST_F(TmsPropertyObjectTest, DotAccessClient)
+{
+    PropertyObjectPtr obj = PropertyObject();
+    PropertyObjectPtr child1 = PropertyObject();
+    PropertyObjectPtr child2 = PropertyObject();
+
+    child2.addProperty(StringProperty("foo", "bar"));
+    child1.addProperty(ObjectProperty("child", child2));
+    obj.addProperty(ObjectProperty("child", child1));
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    auto prop = clientObj.getProperty("child.child.foo");
+
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "bar");
+    ASSERT_EQ(prop.getValue(), "bar");
+
+    ASSERT_NO_THROW(clientObj.setPropertyValue("child.child.foo", "test"));
+    ASSERT_EQ(obj.getPropertyValue("child.child.foo"), "test");
+    ASSERT_EQ(prop.getValue(), "test");
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "test");
+
+    ASSERT_NO_THROW(prop.setValue("bar"));
+    ASSERT_EQ(obj.getPropertyValue("child.child.foo"), "bar");
+    ASSERT_EQ(prop.getValue(), "bar");
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "bar");
+}
+
+TEST_F(TmsPropertyObjectTest, DotAccessClientSelection)
+{
+    PropertyObjectPtr obj = PropertyObject();
+    PropertyObjectPtr child1 = PropertyObject();
+    PropertyObjectPtr child2 = PropertyObject();
+
+    child2.addProperty(SelectionProperty("fruit", List<IString>("apple", "orange", "banana"), 0));
+    child1.addProperty(ObjectProperty("child", child2));
+    obj.addProperty(ObjectProperty("child", child1));
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    auto prop = clientObj.getProperty("child.child.fruit");
+
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.fruit"), 0);
+    ASSERT_EQ(prop.getValue(), 0);
+    ASSERT_EQ(clientObj.getPropertySelectionValue("child.child.fruit"), "apple");
+    ASSERT_EQ(obj.getPropertySelectionValue("child.child.fruit"), "apple");
+
+    ASSERT_NO_THROW(clientObj.setPropertyValue("child.child.fruit", 1));
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.fruit"), 1);
+    ASSERT_EQ(prop.getValue(), 1);
+    ASSERT_EQ(clientObj.getPropertySelectionValue("child.child.fruit"), "orange");
+    ASSERT_EQ(obj.getPropertySelectionValue("child.child.fruit"), "orange");
+
+    ASSERT_NO_THROW(prop.setValue(2));
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.fruit"), 2);
+    ASSERT_EQ(prop.getValue(), 2);
+    ASSERT_EQ(clientObj.getPropertySelectionValue("child.child.fruit"), "banana");
+    ASSERT_EQ(obj.getPropertySelectionValue("child.child.fruit"), "banana");
+}
+
+TEST_F(TmsPropertyObjectTest, DotAccessClientServerChange)
+{
+    PropertyObjectPtr obj = PropertyObject();
+    PropertyObjectPtr child1 = PropertyObject();
+    PropertyObjectPtr child2 = PropertyObject();
+
+    child2.addProperty(StringProperty("foo", "bar"));
+    child1.addProperty(ObjectProperty("child", child2));
+    obj.addProperty(ObjectProperty("child", child1));
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    auto prop = clientObj.getProperty("child.child.foo");
+    auto serverProp = obj.getProperty("child.child.foo");
+
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "bar");
+    ASSERT_EQ(prop.getValue(), "bar");
+
+    ASSERT_NO_THROW(obj.setPropertyValue("child.child.foo", "test"));
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "test");
+    ASSERT_EQ(prop.getValue(), "test");
+
+    ASSERT_NO_THROW(serverProp.setValue("bar"));
+    ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "bar");
+    ASSERT_EQ(prop.getValue(), "bar");
+}
+
+class TmsNestedPropertyObjectTest : public TmsObjectIntegrationTest
+{
+public:
+
+    void SetUp() override
+    {
+        TmsObjectIntegrationTest::SetUp();
+        serverObj = test_utils::createMockNestedPropertyObject();
+        auto registeredObj = registerPropertyObject(serverObj);
+        serverTMSObj = registeredObj.serverProp;
+        clientObj = registeredObj.clientProp;
+    }
+
+    void TearDown() override
+    {
+        TmsObjectIntegrationTest::TearDown();
+    }
+
+    RegisteredPropertyObject registerPropertyObject(const PropertyObjectPtr& prop)
+    {
+        auto serverProp = std::make_shared<TmsServerPropertyObject>(prop, server, ctx, serverContext);
+        auto nodeId = serverProp->registerOpcUaNode();
+        auto clientProp = TmsClientPropertyObject(NullContext(logger), clientContext, nodeId);
+        return {serverProp, clientProp};
+    }
+
+    PropertyObjectPtr serverObj;
+    TmsServerPropertyObjectPtr serverTMSObj;
+    PropertyObjectPtr clientObj;
+};
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectClientGet)
+{
+    const PropertyObjectPtr child1 = clientObj.getPropertyValue("child1");
+    const PropertyObjectPtr child2 = clientObj.getPropertyValue("child2");
+    const PropertyObjectPtr child1_1 = child1.getPropertyValue("child1_1");
+    const PropertyObjectPtr child1_2 = child1.getPropertyValue("child1_2");
+    const PropertyObjectPtr child1_2_1 = child1_2.getPropertyValue("child1_2_1");
+    const PropertyObjectPtr child2_1 = child2.getPropertyValue("child2_1");
+
+    ASSERT_EQ(child1_2_1.getPropertyValue("String"), "String");
+    ASSERT_DOUBLE_EQ(child1_1.getPropertyValue("Float"), 1.1);
+    ASSERT_EQ(child1_2.getPropertyValue("Int"), 1);
+    ASSERT_EQ(child2_1.getPropertyValue("Ratio"), Ratio(1,2));
+}
+
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectClientGetDotAccess)
+{
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 1.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 1);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 2));
+}
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectClientGetSelectionValueDotAccess)
+{
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.Selection"), 0);
+    ASSERT_EQ(clientObj.getPropertySelectionValue("child1.child1_2.child1_2_1.Selection"), "a");
+    clientObj.setPropertyValue("child1.child1_2.child1_2_1.Selection", 1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.Selection"), 1);
+    ASSERT_EQ(clientObj.getPropertySelectionValue("child1.child1_2.child1_2_1.Selection"), "b");
+}
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectClientSet)
+{
+    const PropertyObjectPtr child1 = clientObj.getPropertyValue("child1");
+    const PropertyObjectPtr child2 = clientObj.getPropertyValue("child2");
+    const PropertyObjectPtr child1_1 = child1.getPropertyValue("child1_1");
+    const PropertyObjectPtr child1_2 = child1.getPropertyValue("child1_2");
+    const PropertyObjectPtr child1_2_1 = child1_2.getPropertyValue("child1_2_1");
+    const PropertyObjectPtr child2_1 = child2.getPropertyValue("child2_1");
+    
+    child1_2_1.setPropertyValue("String", "new_string");
+    child1_1.setPropertyValue("Float", 2.1);
+    child1_2.setPropertyValue("Int", 2);
+    child2_1.setPropertyValue("Ratio", Ratio(1, 5));
+
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "new_string");
+    ASSERT_DOUBLE_EQ(serverObj.getPropertyValue("child1.child1_1.Float"), 2.1);
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.Int"), 2);
+    ASSERT_EQ(serverObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+
+    ASSERT_EQ(child1_2_1.getPropertyValue("String"), "new_string");
+    ASSERT_DOUBLE_EQ(child1_1.getPropertyValue("Float"), 2.1);
+    ASSERT_EQ(child1_2.getPropertyValue("Int"), 2);
+    ASSERT_EQ(child2_1.getPropertyValue("Ratio"), Ratio(1, 5));
+}
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectClientSetDotAccess)
+{
+    clientObj.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");
+    clientObj.setPropertyValue("child1.child1_1.Float", 2.1);
+    clientObj.setPropertyValue("child1.child1_2.Int", 2);
+    clientObj.setPropertyValue("child2.child2_1.Ratio", Ratio(1, 5));
+    
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "new_string");
+    ASSERT_DOUBLE_EQ(serverObj.getPropertyValue("child1.child1_1.Float"), 2.1);
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.Int"), 2);
+    ASSERT_EQ(serverObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+    
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "new_string");
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 2.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 2);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+}
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectClientProtectedSet)
+{
+    ASSERT_THROW(clientObj.setPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString", "new_string"), AccessDeniedException);
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "String");
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "String");
+
+    ASSERT_NO_THROW(clientObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString", "new_string"));
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "new_string");
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "new_string");
+}
+
+// TODO: Enable once clearing property values is supported via OPC UA
+TEST_F(TmsNestedPropertyObjectTest, DISABLED_TestNestedObjectClientClear)
+{
+    clientObj.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");
+    clientObj.setPropertyValue("child1.child1_1.Float", 2.1);
+    clientObj.setPropertyValue("child1.child1_2.Int", 2);
+    clientObj.setPropertyValue("child2.child2_1.Ratio", Ratio(1, 5));
+
+    clientObj.clearPropertyValue("ObjectProperty");
+
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_DOUBLE_EQ(serverObj.getPropertyValue("child1.child1_1.Float"), 1.1);
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.Int"), 1);
+    ASSERT_EQ(serverObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 2));
+
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 1.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 1);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 2));
+
+    clientObj.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");
+    clientObj.setPropertyValue("child1.child1_1.Float", 2.1);
+    clientObj.setPropertyValue("child1.child1_2.Int", 2);
+    clientObj.setPropertyValue("child2.child2_1.Ratio", Ratio(1, 5));
+    
+    clientObj.clearPropertyValue("child1");
+
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_DOUBLE_EQ(serverObj.getPropertyValue("child1.child1_1.Float"), 1.1);
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.Int"), 1);
+    ASSERT_EQ(serverObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 1.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 1);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+}
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectServerSet)
+{
+    serverObj.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");
+    serverObj.setPropertyValue("child1.child1_1.Float", 2.1);
+    serverObj.setPropertyValue("child1.child1_2.Int", 2);
+    serverObj.setPropertyValue("child2.child2_1.Ratio", Ratio(1, 5));
+    
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "new_string");
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 2.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 2);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+}
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectServerClearIndividual)
+{
+    serverObj.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");
+    serverObj.setPropertyValue("child1.child1_1.Float", 2.1);
+    serverObj.setPropertyValue("child1.child1_2.Int", 2);
+    serverObj.setPropertyValue("child2.child2_1.Ratio", Ratio(1, 5));
+
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "new_string");
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 2.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 2);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+    
+    serverObj.clearPropertyValue("child1.child1_2.child1_2_1.String");
+    serverObj.clearPropertyValue("child1.child1_1.Float");
+    serverObj.clearPropertyValue("child1.child1_2.Int");
+    serverObj.clearPropertyValue("child2.child2_1.Ratio");
+
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 1.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 1);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 2));
+}
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectServerClearObject)
+{
+    serverObj.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");
+    serverObj.setPropertyValue("child1.child1_1.Float", 2.1);
+    serverObj.setPropertyValue("child1.child1_2.Int", 2);
+    serverObj.setPropertyValue("child2.child2_1.Ratio", Ratio(1, 5));
+    
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "new_string");
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 2.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 2);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+
+    for (const auto& prop : serverObj.getAllProperties())
+        serverObj.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue(prop.getName());
+    
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_DOUBLE_EQ(serverObj.getPropertyValue("child1.child1_1.Float"), 1.1);
+    ASSERT_EQ(serverObj.getPropertyValue("child1.child1_2.Int"), 1);
+    ASSERT_EQ(serverObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 2));
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 1.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 1);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 2));
+    
+    serverObj.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");
+    serverObj.setPropertyValue("child1.child1_1.Float", 2.1);
+    serverObj.setPropertyValue("child1.child1_2.Int", 2);
+    serverObj.setPropertyValue("child2.child2_1.Ratio", Ratio(1, 5));
+
+    serverObj.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue("child1");
+    
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.child1_2_1.String"), "String");
+    ASSERT_DOUBLE_EQ(clientObj.getPropertyValue("child1.child1_1.Float"), 1.1);
+    ASSERT_EQ(clientObj.getPropertyValue("child1.child1_2.Int"), 1);
+    ASSERT_EQ(clientObj.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+}
+
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectClientFunctionCall)
+{
+    const PropertyObjectPtr child = clientObj.getPropertyValue("child1.child1_2.child1_2_1");
+    FunctionPtr func1 = clientObj.getPropertyValue("child1.child1_2.child1_2_1.Function");
+    FunctionPtr func2 = child.getPropertyValue("Function");
+
+    ASSERT_EQ(func1(1), 1);
+    ASSERT_EQ(func2(5), 5);
+}
+
+// NOTE: OPC UA does not propagate error codes.
+TEST_F(TmsNestedPropertyObjectTest, TestNestedObjectClientProcedureCall)
+{
+    const PropertyObjectPtr child = clientObj.getPropertyValue("child1.child1_2.child1_2_1");
+    ProcedurePtr proc1 = clientObj.getPropertyValue("child1.child1_2.child1_2_1.Procedure");
+    ProcedurePtr proc2 = child.getPropertyValue("Procedure");
+
+    ASSERT_NO_THROW(proc1(5));
+    ASSERT_NO_THROW(proc1(0)); // Outputs warning
+    ASSERT_NO_THROW(proc2(5));
+    ASSERT_NO_THROW(proc2(0)); // Outputs warning
 }

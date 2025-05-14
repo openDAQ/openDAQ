@@ -49,12 +49,12 @@ ErrCode StructBuilderImpl::setFieldValues(IList* values)
 
     const auto valuesPtr = ListPtr<IString>::Borrow(values);
     if (valuesPtr.getCount() != fields.getCount())
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     const auto types = structType.getFieldTypes();
     for (size_t i = 0; i < valuesPtr.getCount(); ++i)
         if (valuesPtr.assigned() && SimpleType(valuesPtr[i].getCoreType()) != types[i])
-            return OPENDAQ_ERR_INVALIDPARAMETER;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     DictPtr<IString, IBaseObject> newDict = Dict<IString, IBaseObject>();
     const auto keyList = fields.getKeyList();
@@ -70,7 +70,7 @@ ErrCode StructBuilderImpl::set(IString* name, IBaseObject* field)
     OPENDAQ_PARAM_NOT_NULL(name);
 
     if (!fields.hasKey(name))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     const auto namePtr = StringPtr::Borrow(name);
     auto fieldPtr = BaseObjectPtr::Borrow(field);
@@ -107,7 +107,7 @@ ErrCode StructBuilderImpl::set(IString* name, IBaseObject* field)
                     type = SimpleType(fieldPtr.getCoreType());
 
                 if (type != structType.getFieldTypes()[i])
-                    return OPENDAQ_ERR_INVALIDPARAMETER;
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
             }
         }
     }

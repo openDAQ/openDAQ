@@ -143,7 +143,8 @@ protected:
     std::map<std::string, std::string> propBrowseName;
     opcua::OpcUaNodeId methodParentNodeId;
     LoggerComponentPtr loggerComponent;
-
+    
+    ErrCode setOPCUAPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite);
     void addProperties(const OpcUaNodeId& parentId,
                        std::map<uint32_t, PropertyPtr>& orderedProperties,
                        std::vector<PropertyPtr>& unorderedProperties);
@@ -153,8 +154,12 @@ protected:
                              std::unordered_map<std::string, BaseObjectPtr>& functionPropValues);
     PropertyPtr addVariableBlockProperty(const StringPtr& propName, const OpcUaNodeId& propNodeId);
     void browseRawProperties();
-    bool isIgnoredMethodPeoperty(const std::string& browseName);
-    virtual ErrCode INTERFACE_FUNC setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite);
+    bool isIgnoredMethodProperty(const std::string& browseName);
+    PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
+
+private:
+    bool isBasePropertyObject(const PropertyObjectPtr& propObj);
 };
+
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

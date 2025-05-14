@@ -127,7 +127,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * @retval OPENDAQ_ERR_INVALIDPARAMETER if attempting to get a value at an index of a non-list Property.
      * @retval OPENDAQ_ERR_OUTOFRANGE if attempting to get a value of a list Property at an out-of-bounds index.
      *
-     * The value is retrieved from a local dictionary of Property values where they are stored when set. If a a value is not
+     * The value is retrieved from a local dictionary of Property values where they are stored when set. If a value is not
      * present under the `propertyName` key, the default value of the corresponding Property is returned. If said property
      * is not part of the Property object, an error occurs.
      *
@@ -175,9 +175,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * This function will remove said value from the dictionary. If the tries to obtain the Property value of
      * a property that does not have a set Property value, then the default value is returned.
      *
-     * Importantly, clearing the value of an Object-type property will release the reference of the current
-     * Property object value of the property. It will then create a new clone of the Default value and set it
-     * as the value of the property.
+     * Importantly, clearing the value of an Object-type property will call `clear` on all the child object's properties.
      */
     virtual ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) = 0;
 

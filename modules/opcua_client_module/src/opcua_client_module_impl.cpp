@@ -9,18 +9,17 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/search_filter_factory.h>
 #include <regex>
-#include <opendaq/device_info_config_ptr.h>
-#include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
 #include <coreobjects/property_factory.h>
-#include <coreobjects/property_object_protected_ptr.h>
-#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 
 static const char* DaqOpcUaDeviceTypeId = "OpenDAQOPCUAConfiguration";
 static const char* DaqOpcUaDevicePrefix = "daq.opcua";
 static const char* OpcUaScheme = "opc.tcp";
+
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
 using namespace discovery;
 using namespace daq::opcua;
@@ -88,7 +87,6 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
 
     TmsClient client(context, parent, endpoint);
     auto device = client.connect();
-    completeServerCapabilities(device, host);
 
     // Set the connection info for the device
     DeviceInfoPtr deviceInfo = device.getInfo();
@@ -115,19 +113,6 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     return device;
 }
 
-void OpcUaClientModule::completeServerCapabilities(const DevicePtr& device, const StringPtr& deviceAddress)
-{
-    auto deviceInfo = device.getInfo();
-    if (deviceInfo.assigned())
-    {
-        for (const auto& capability : deviceInfo.getServerCapabilities())
-        {
-            if (capability.getConnectionType() == "TCP/IP")
-                capability.asPtr<IServerCapabilityConfig>(true).addAddress(deviceAddress);
-        }
-    }
-}
-
 PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectPtr& config)
 {
     const auto defConfig = createDefaultConfig();
@@ -143,9 +128,6 @@ PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectP
 
 DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-
     auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "OpenDAQOPCUA", ProtocolType::Configuration);
     if (!discoveredDevice.ipv4Address.empty())
     {
@@ -187,19 +169,12 @@ DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDe
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
 
 StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config, std::string& host, int& port, std::string& hostType)
 {
     std::string urlString = connectionString.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
     std::smatch match;
 
     std::string prefix = "";
@@ -215,12 +190,12 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
     }
 
     bool parsed = false;
-    parsed = std::regex_search(urlString, match, regexIpv6Hostname);
+    parsed = std::regex_search(urlString, match, RegexIpv6Hostname);
     hostType = "IPv6";
 
     if (!parsed)
     {
-        parsed = std::regex_search(urlString, match, regexIpv4Hostname);
+        parsed = std::regex_search(urlString, match, RegexIpv4Hostname);
         hostType = "IPv4";
     }
 
@@ -229,7 +204,7 @@ StringPtr OpcUaClientModule::formConnectionString(const StringPtr& connectionStr
         prefix = match[1];
         host = match[2];
 
-        if (match[3].matched && port == 4840)
+        if (match[3].matched)
             port = std::stoi(match[3]);
 
         if (match[4].matched)
@@ -248,10 +223,7 @@ bool OpcUaClientModule::acceptsConnectionParameters(const StringPtr& connectionS
 {
     std::string connStr = connectionString;
     auto found = connStr.find(std::string(DaqOpcUaDevicePrefix) + "://");
-    if (found == 0)
-        return true;
-    else
-        return false;
+    return found == 0;
 }
 
 Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
@@ -259,9 +231,6 @@ Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& so
     if (target.getProtocolId() != "OpenDAQOPCUAConfiguration")
         return false;
 
-    if (target.getConnectionString().getLength() != 0)
-        return true;
-    
     if (source.getConnectionType() != "TCP/IP")
         return false;
 
@@ -287,13 +256,22 @@ Bool OpcUaClientModule::onCompleteServerCapability(const ServerCapabilityPtr& so
     }
 
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    const auto targetAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
+        if (auto it = std::find(targetAddress.begin(), targetAddress.end(), address); it != targetAddress.end())
+            continue;
 
-        std::string connectionString = fmt::format("{}://{}:{}/{}", DaqOpcUaDevicePrefix, address, port, path);
+        const auto prefix = target.getPrefix();
+        StringPtr connectionString;
+        if (source.getPrefix() == prefix)
+            connectionString = addrInfo.getConnectionString();
+        else
+            connectionString = fmt::format("{}://{}:{}{}", prefix, address, port, path);
+
         const auto targetAddrInfo = AddressInfoBuilder()
-                                        .setAddress(addrInfo.getAddress())
+                                        .setAddress(address)
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
                                         .setType(addrInfo.getType())
                                         .setConnectionString(connectionString)

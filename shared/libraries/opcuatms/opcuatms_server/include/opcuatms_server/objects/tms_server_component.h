@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/component_ptr.h>
+#include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_ptr.h>
 #include <opendaq/custom_log.h>
 #include <coreobjects/core_event_args_ids.h>
@@ -55,6 +56,7 @@ protected:
     void configureNodeAttributes(opcua::OpcUaObject<UA_ObjectAttributes>& attr) override;
 
     std::unique_ptr<TmsServerPropertyObject> tmsPropertyObject;
+    std::unique_ptr<TmsServerPropertyObject> tmsComponentConfig;
 
 private:
     bool selfChange;
@@ -68,6 +70,12 @@ TmsServerComponent<Ptr>::TmsServerComponent(const ComponentPtr& object, const Op
     , selfChange(false)
 {
     tmsPropertyObject = std::make_unique<TmsServerPropertyObject>(this->object, this->server, this->daqContext, this->tmsContext, std::unordered_set<std::string>{"Name", "Description"});
+    if (auto componentPrivate = this->object.template asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+    {
+        auto componentConfig = componentPrivate.getComponentConfig();
+        if (componentConfig.assigned())
+            tmsComponentConfig = std::make_unique<TmsServerPropertyObject>(componentConfig, this->server, this->daqContext, this->tmsContext, "ComponentConfig");
+    }
 }
 
 template <typename Ptr>
@@ -123,22 +131,22 @@ bool TmsServerComponent<Ptr>::createOptionalNode(const OpcUaNodeId& nodeId)
 template <typename Ptr>
 void TmsServerComponent<Ptr>::bindCallbacks()
 {
-    this->addReadCallback("Tags",[this]
-        {
-            const TagsPtr tags = this->object.getTags();
-            if (tags.assigned())
-                return VariantConverter<IString>::ToArrayVariant(tags.getList());
-            return VariantConverter<IString>::ToArrayVariant(List<IString>());
-        });
+    this->addReadCallback("Tags", [this]
+    {
+        const TagsPtr tags = this->object.getTags();
+        if (tags.assigned())
+            return VariantConverter<IString>::ToArrayVariant(tags.getList());
+        return VariantConverter<IString>::ToArrayVariant(List<IString>());
+    });
 
     this->addReadCallback("Active", [this] { return VariantConverter<IBoolean>::ToVariant( this->object.getActive()); });
     if (!this->object.template supportsInterface<IFreezable>() || !this->object.isFrozen())
     {
         this->addWriteCallback("Active", [this] (const OpcUaVariant& variant)
-            {
-                this->object.setActive(VariantConverter<IBoolean>::ToDaqObject(variant));
-                return UA_STATUSCODE_GOOD;
-            });
+        {
+            this->object.setActive(VariantConverter<IBoolean>::ToDaqObject(variant));
+            return UA_STATUSCODE_GOOD;
+        });
     }
 
 	this->addReadCallback("Visible", [this] { return VariantConverter<IBoolean>::ToVariant( this->object.getVisible()); });
@@ -146,10 +154,10 @@ void TmsServerComponent<Ptr>::bindCallbacks()
     if (!this->object.template supportsInterface<IFreezable>() || !this->object.isFrozen())
     {
         this->addWriteCallback("Visible", [this] (const OpcUaVariant& variant) 
-            {
-                this->object.setVisible(VariantConverter<IBoolean>::ToDaqObject(variant));
-                return UA_STATUSCODE_GOOD;
-            });
+        {
+            this->object.setVisible(VariantConverter<IBoolean>::ToDaqObject(variant));
+            return UA_STATUSCODE_GOOD;
+        });
     }
 
     DisplayNameChangedCallback nameChangedCallback =
@@ -227,7 +235,11 @@ void TmsServerComponent<Ptr>::addChildNodes()
     
     this->server->addVariableNode(params);
 
+    // this property will be added manually
+    tmsPropertyObject->ignoredProps.emplace("ComponentConfig");
     tmsPropertyObject->registerToExistingOpcUaNode(this->nodeId);
+    if (tmsComponentConfig)
+        tmsComponentConfig->registerOpcUaNode(this->nodeId);
 }
 
 template <typename Ptr>

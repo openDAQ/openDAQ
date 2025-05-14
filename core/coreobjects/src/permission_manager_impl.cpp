@@ -14,6 +14,8 @@ namespace detail
     static const auto DefaultPermissions = PermissionsBuilder().inherit(true).build();
 }
 
+// PermissionManagerImpl
+
 PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
     : permissions(detail::DefaultPermissions)
     , localPermissions(detail::DefaultPermissions)
@@ -164,8 +166,63 @@ PermissionManagerInternalPtr PermissionManagerImpl::getParentManager()
     return nullptr;
 }
 
-// Factory
+// DisabledPermissionManagerImpl
+
+DisabledPermissionManagerImpl::DisabledPermissionManagerImpl()
+{
+}
+
+ErrCode DisabledPermissionManagerImpl::setPermissions(IPermissions* /*permissions*/)
+{
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DisabledPermissionManagerImpl::isAuthorized(IUser* /*user*/, Permission /*permission*/, Bool* authorizedOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(authorizedOut);
+    *authorizedOut = true;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DisabledPermissionManagerImpl::clone(IBaseObject** cloneOut)
+{
+    auto manager = DisabledPermissionManager();
+    *cloneOut = manager.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DisabledPermissionManagerImpl::setParent(IPermissionManager* /*parentManager*/)
+{
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DisabledPermissionManagerImpl::addChildManager(IPermissionManager* /*childManager*/)
+{
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DisabledPermissionManagerImpl::removeChildManager(IPermissionManager* /*childManager*/)
+{
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DisabledPermissionManagerImpl::getPermissions(IPermissions** /*permisisonConfigOut*/)
+{
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DisabledPermissionManagerImpl::updateInheritedPermissions()
+{
+    return OPENDAQ_SUCCESS;
+}
+
+// Factories
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionManager, IPermissionManager*, parent)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               DisabledPermissionManagerImpl,
+                                                               IPermissionManager,
+                                                               createDisabledPermissionManager)
 
 END_NAMESPACE_OPENDAQ

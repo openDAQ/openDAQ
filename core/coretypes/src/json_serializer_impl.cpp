@@ -7,6 +7,14 @@ BEGIN_NAMESPACE_OPENDAQ
 template <typename TWriter>
 JsonSerializerImpl<TWriter>::JsonSerializerImpl()
     : writer(buffer)
+    , version(3)
+{
+}
+
+template <typename TWriter>
+JsonSerializerImpl<TWriter>::JsonSerializerImpl(Int version)
+    : writer(buffer)
+    , version(version)
 {
 }
 
@@ -17,11 +25,7 @@ ErrCode JsonSerializerImpl<TWriter>::startTaggedObject(ISerializable* serializab
 
     ConstCharPtr id;
     ErrCode errCode = serializable->getSerializeId(&id);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     writer.StartObject();
     writer.Key("__type");
@@ -42,7 +46,6 @@ template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::startList()
 {
     writer.StartArray();
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -50,7 +53,6 @@ template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::endList()
 {
     writer.EndArray();
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -69,7 +71,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyRaw(ConstCharPtr string, SizeT length)
 
     if (length <= 0)
     {
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     writer.Key(string, static_cast<rapidjson::SizeType>(length));
@@ -82,15 +84,11 @@ ErrCode JsonSerializerImpl<TWriter>::key(ConstCharPtr string)
 {
     SizeT length;
     ErrCode errCode = getCharLen(string, length);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (length == 0)
     {
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     writer.Key(string, static_cast<rapidjson::SizeType>(length));
@@ -105,10 +103,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyStr(IString* name)
 
     ConstCharPtr str;
     ErrCode errCode = name->getCharPtr(&str);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     OPENDAQ_PARAM_NOT_NULL(str);
 
@@ -117,7 +112,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyStr(IString* name)
 
     if (length == 0)
     {
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     writer.Key(str, static_cast<rapidjson::SizeType>(length));
@@ -214,6 +209,15 @@ ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::setUser(IBaseObject* user)
 }
 
 template <typename TWriter>
+ErrCode JsonSerializerImpl<TWriter>::getVersion(Int* version)
+{
+    OPENDAQ_PARAM_NOT_NULL(version);
+
+    *version = this->version;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::getOutput(IString** output)
 {
     *output = String_Create(buffer.GetString());
@@ -239,7 +243,7 @@ ErrCode PUBLIC_EXPORT createJsonSerializer(ISerializer** jsonSerializer, Bool pr
 
     if (!object)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
 
     object->addRef();
@@ -247,5 +251,30 @@ ErrCode PUBLIC_EXPORT createJsonSerializer(ISerializer** jsonSerializer, Bool pr
     return OPENDAQ_SUCCESS;
 }
 
+// createJsonSerializer
+extern "C"
+ErrCode PUBLIC_EXPORT createJsonSerializerWithVersion(ISerializer** jsonSerializer, Int version, Bool pretty = False)
+{
+    OPENDAQ_PARAM_NOT_NULL(jsonSerializer);
+
+    ISerializer* object;
+    if (pretty)
+    {
+        object = new(std::nothrow) PrettyJsonSerializer(version);
+    }
+    else
+    {
+        object = new(std::nothrow) JsonSerializerImpl<>(version);
+    }
+
+    if (!object)
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
+    }
+
+    object->addRef();
+    *jsonSerializer = object;
+    return OPENDAQ_SUCCESS;
+}
 
 END_NAMESPACE_OPENDAQ

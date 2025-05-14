@@ -38,9 +38,9 @@
 #include <coreobjects/permission_manager_internal_ptr.h>
 #include <coreobjects/errors.h>
 #include <coreobjects/permission_mask_builder_factory.h>
+#include <coreobjects/property_object_protected.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 namespace details
 {
     static const std::unordered_map<IntfID, CoreType> intfIdToCoreTypeMap = {
@@ -67,12 +67,6 @@ namespace details
 
         return intfIdToCoreTypeMap.at(intfID);
     }
-}
-
-namespace permissions
-{
-    static const auto DefaultPermissions =
-        PermissionsBuilder().inherit(false).assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
 }
 
 class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
@@ -118,8 +112,6 @@ public:
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 
-        if (this->defaultValue.supportsInterface<IPropertyObject>())
-            initDefaultPermissionManager();
         checkErrorInfo(validateDuringConstruction());
     }
 
@@ -219,13 +211,6 @@ public:
         const auto err = validateDuringConstruction();
         if (err != OPENDAQ_SUCCESS)
             throwExceptionFromErrorCode(err);
-
-        if (this->defaultValue.assigned())
-        {
-            initDefaultPermissionManager();
-            auto defaultValueObj = this->defaultValue.asPtr<IPropertyObject>();
-            defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(this->defaultPermissionManager);
-        }
     }
 
     // FunctionProperty()
@@ -310,12 +295,6 @@ public:
             throwExceptionFromErrorCode(err);
     }
 
-    void initDefaultPermissionManager()
-    {
-        defaultPermissionManager = PermissionManager();
-        defaultPermissionManager.setPermissions(permissions::DefaultPermissions);
-    }
-
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
     {
         return getValueTypeInternal(type, true);
@@ -358,8 +337,7 @@ public:
         *type = ctUndefined;
         BaseObjectPtr defVal;
         auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         if (!defVal.assigned())
             return OPENDAQ_SUCCESS;
@@ -370,8 +348,7 @@ public:
 
         IntfID intfID;
         err = value.asPtr<IDictElementType>()->getKeyInterfaceId(&intfID);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         auto coreType = details::intfIdToCoreType(intfID);
 
@@ -404,13 +381,11 @@ public:
 
             BaseObjectPtr defVal;
             auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             BaseObjectPtr selVal;
             err = lock ? this->getSelectionValues(&selVal) : this->getSelectionValuesNoLock(&selVal);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             BaseObjectPtr value = defVal.assigned() ? defVal : nullptr;
             value = selVal.assigned() ? selVal : value;
@@ -455,7 +430,7 @@ public:
         }
         catch (...)
         {
-            return OPENDAQ_ERR_GENERALERROR;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
         }
     }
 
@@ -730,11 +705,9 @@ public:
         return daqTry([&]()
         {
             *isReferenced = false;
-	        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
-
-            if (owner.assigned())
+            if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
             {
-                const auto ownerInternal = owner.getRef().asPtr<IPropertyObjectInternal>();
+                const auto ownerInternal = ownerPtr.asPtr<IPropertyObjectInternal>();
                 *isReferenced = lock ? ownerInternal.checkForReferences(propPtr) : ownerInternal.checkForReferencesNoLock(propPtr);
             }
 
@@ -827,7 +800,7 @@ public:
 	    return getStructTypeInternal(structType, false);
     }
 
-    ErrCode getStructTypeInternal(IStructType** structType, bool lock)
+    ErrCode INTERFACE_FUNC getStructTypeInternal(IStructType** structType, bool lock)
     {
 	    OPENDAQ_PARAM_NOT_NULL(structType);
 
@@ -844,6 +817,14 @@ public:
                 *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
 		        return OPENDAQ_SUCCESS;
 	        });
+    }
+    
+    ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue)  override
+    {
+        defaultValue = newDefaultValue;
+        if (defaultValue.supportsInterface<IFreezable>())
+            defaultValue.freeze();
+        return OPENDAQ_SUCCESS;
     }
 
     ErrCode INTERFACE_FUNC getClassOnPropertyValueWrite(IEvent** event) override
@@ -863,8 +844,7 @@ public:
         {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
         }
-        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
         {
             return ownerPtr->getOnPropertyValueWrite(this->name, event);
         }
@@ -891,8 +871,7 @@ public:
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
         }
 
-        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
         {
             return ownerPtr->getOnPropertyValueRead(this->name, event);
         }
@@ -903,18 +882,24 @@ public:
 
     ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override
     {
-        if (!owner.assigned() || !owner.getRef().assigned())
-            return OPENDAQ_ERR_NO_OWNER;
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
+            return ownerPtr->getPropertyValue(this->name, value);
 
-        return owner.getRef()->getPropertyValue(this->name, value);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER);
     }
 
     ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override
     {
-        if (!owner.assigned() || !owner.getRef().assigned())
-            return OPENDAQ_ERR_NO_OWNER;
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
+            return ownerPtr->setPropertyValue(this->name, value);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER);
+    }
 
-        return owner.getRef()->setPropertyValue(this->name, value);
+    ErrCode INTERFACE_FUNC setValueProtected(IBaseObject* newValue) override
+    {
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
+            return ownerPtr.asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(this->name, newValue);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER);
     }
 
     ErrCode INTERFACE_FUNC validate()
@@ -946,13 +931,12 @@ public:
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Property {} is missing its default value)", name));
         }
 
-        if (defaultValue.assigned())
+        if (defaultValue.assigned() && valueType != ctObject)
         {
             if (const auto freezable = defaultValue.asPtrOrNull<IFreezable>(); freezable.assigned())
             {
                 const ErrCode err = freezable->freeze();
-                if (OPENDAQ_FAILED(err))
-                    return err;
+                OPENDAQ_RETURN_IF_FAILED(err);
             }
         }
 
@@ -1128,138 +1112,78 @@ public:
     {
         StringPtr name;
         ErrCode errCode = serializedObj->readString(String("name"), &name);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
 
         const auto propObj = PropertyBuilder(name);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
 
         errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", propObj, context, factoryCallback, &IPropertyBuilder::setValueType);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         DESERIALIZE_MEMBER(context, factoryCallback, description, setDescription)
 
         BaseObjectPtr unit;
         errCode = serializedObj->readObject(String("unit"), context, factoryCallback, &unit);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setUnit(unit.asPtr<IUnit>());
-        }
 
         DESERIALIZE_MEMBER(context, factoryCallback, defaultValue, setDefaultValue)
 
         BaseObjectPtr refProp;
         errCode = serializedObj->readObject(String("refProp"), context, factoryCallback, &refProp);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setReferencedProperty(refProp.asPtr<IEvalValue>());
-        }
 
         DESERIALIZE_MEMBER(context, factoryCallback, selectionValues, setSelectionValues)
 
         BaseObjectPtr suggestedValues;
         errCode = serializedObj->readObject(String("suggestedValues"), context, factoryCallback, &suggestedValues);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setSuggestedValues(suggestedValues.asPtr<IList>());
-        }
 
         BaseObjectPtr visible;
         errCode = serializedObj->readObject(String("visible"), context, factoryCallback, &visible);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setVisible(visible.asPtr<IBoolean>());
-        }
 
         BaseObjectPtr readOnly;
         errCode = serializedObj->readObject(String("readOnly"), context, factoryCallback, &readOnly);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setReadOnly(readOnly.asPtr<IBoolean>());
-        }
 
         BaseObjectPtr minValue;
         errCode = serializedObj->readObject(String("minValue"), context, factoryCallback, &minValue);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setMinValue(minValue.asPtr<INumber>());
-        }
 
         BaseObjectPtr maxValue;
         errCode = serializedObj->readObject(String("maxValue"), context, factoryCallback, &maxValue);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setMaxValue(maxValue.asPtr<INumber>());
-        }
 
         BaseObjectPtr coercer;
         errCode = serializedObj->readObject(String("coercer"), context, factoryCallback, &coercer);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setCoercer(coercer.asPtr<ICoercer>());
-        }
 
         BaseObjectPtr validator;
         errCode = serializedObj->readObject(String("validator"), context, factoryCallback, &validator);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setValidator(validator.asPtr<IValidator>());
-        }
 
         BaseObjectPtr callableInfo;
         errCode = serializedObj->readObject(String("callableInfo"), context, factoryCallback, &callableInfo);
-        if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
             propObj->setCallableInfo(callableInfo.asPtr<ICallableInfo>());
-        }
 
         *obj = propObj.build().detach();
         return OPENDAQ_SUCCESS;
@@ -1279,7 +1203,7 @@ public:
 
             if (defaultValueObj.assigned())
             {
-                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
                 if (cloneableDefaultValue.assigned())
                     defaultValueObj = cloneableDefaultValue.clone();
             }
@@ -1311,7 +1235,7 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(clonedProperty);
         
-        if (this->owner.assigned() && owner == this->owner.getRef())
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned() && owner == ownerPtr)
         {
             this->addRef();
             *clonedProperty = this;
@@ -1320,10 +1244,7 @@ public:
 
         PropertyPtr prop;
         ErrCode err = clone(&prop);
-        if (OPENDAQ_FAILED(err))
-        {
-            return err;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         return daqTry([&] {
             prop.asPtr<IOwnable>().setOwner(owner);
@@ -1482,11 +1403,14 @@ public:
 
         if (this->defaultValue.assigned())
         {
-            const auto parentManager = this->owner.getRef().getPermissionManager();
-            const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>();
+            if (const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>(true); defaultValueObj.assigned())
+            {
+                PermissionManagerPtr parentManager;
+                ErrCode err = owner->getPermissionManager(&parentManager);
+                OPENDAQ_RETURN_IF_FAILED(err);
 
-            if (defaultValueObj.assigned())
-                defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>().setParent(parentManager);
+                defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+            }
         }
 
         return OPENDAQ_SUCCESS;
@@ -1512,9 +1436,15 @@ protected:
     CallableInfoPtr callableInfo;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueWrite;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueRead;
-    PermissionManagerPtr defaultPermissionManager;
 
 private:
+
+    PropertyObjectPtr getOwner() const
+    {
+        if (owner.assigned())
+            return owner.getRef();
+        return nullptr;
+    }
 
     PropertyPtr bindAndGetRefProp(bool lock)
     {

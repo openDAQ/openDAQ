@@ -27,11 +27,11 @@ ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticate(IString* usernam
 {
     const auto user = findUserInternal(username);
     if (!user.assigned())
-        return OPENDAQ_ERR_AUTHENTICATION_FAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_AUTHENTICATION_FAILED, "user not found");
 
     const auto hash = user.asPtr<IUserInternal>(true).getPasswordHash();
     if (!isPasswordValid(hash, password))
-        return OPENDAQ_ERR_AUTHENTICATION_FAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_AUTHENTICATION_FAILED, "password for user is invalid");
 
     *userOut = user.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -50,7 +50,7 @@ ErrCode INTERFACE_FUNC AuthenticationProviderImpl::authenticateAnonymous(IUser**
     OPENDAQ_PARAM_NOT_NULL(userOut);
 
     if (!this->allowAnonymous)
-        return OPENDAQ_ERR_AUTHENTICATION_FAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_AUTHENTICATION_FAILED, "Anonymous authentication is not allowed");
 
     *userOut = this->anonymousUser.addRefAndReturn();
     return OPENDAQ_SUCCESS;

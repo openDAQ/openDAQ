@@ -275,10 +275,12 @@ public:
         if (value != nullptr)
         {
             const auto valuePtr = BaseObjectPtr::Borrow(value);
-            if (valuePtr.assigned())
+            if (valuePtr.assigned() && !valuePtr.supportsInterface(IPropertyObject::Id))
                 if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
-                    if (const auto err = freezable->freeze(); OPENDAQ_FAILED(err))
-                        return err;
+                {
+                    const auto err = freezable->freeze();
+                    OPENDAQ_RETURN_IF_FAILED(err);
+                }
         }
 
         this->defaultValue = value;
@@ -300,8 +302,10 @@ public:
             const auto valuePtr = BaseObjectPtr::Borrow(values);
             if (valuePtr.assigned())
                 if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
-                    if (const auto err = freezable->freeze(); OPENDAQ_FAILED(err))
-                        return err;
+                {
+                    const auto err = freezable->freeze();
+                    OPENDAQ_RETURN_IF_FAILED(err);
+                }
         }
 
         this->suggestedValues = values;
@@ -351,8 +355,10 @@ public:
             const auto valuePtr = BaseObjectPtr::Borrow(values);
             if (valuePtr.assigned())
                 if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
-                    if (const auto err = freezable->freeze(); OPENDAQ_FAILED(err))
-                        return err;
+                {
+                    const auto err = freezable->freeze();
+                    OPENDAQ_RETURN_IF_FAILED(err);
+                }
         }
 
         this->selectionValues = values;

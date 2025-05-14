@@ -53,21 +53,15 @@ ErrCode PropertyObjectClassImpl::getProperty(IString* propertyName, IProperty** 
         {
             TypeManagerPtr managerPtr;
             ErrCode err = getManager(managerPtr);
-            if (OPENDAQ_FAILED(err))
-            {
-                return err;
-            }
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             TypePtr type;
             err = managerPtr->getType(parent, &type);
-            if (OPENDAQ_FAILED(err))
-            {
-                return err;
-            }
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto parentClass = type.asPtrOrNull<IPropertyObjectClass>();
             if (!parentClass.assigned())
-                return OPENDAQ_ERR_INVALIDTYPE;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 
             return parentClass->getProperty(propertyName, property);
         }
@@ -92,21 +86,15 @@ ErrCode PropertyObjectClassImpl::hasProperty(IString* propertyName, Bool* hasPro
         {
             TypeManagerPtr managerPtr;
             ErrCode err = getManager(managerPtr);
-            if (OPENDAQ_FAILED(err))
-            {
-                return err;
-            }
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             TypePtr type;
             err = managerPtr->getType(parent, &type);
-            if (OPENDAQ_FAILED(err))
-            {
-                return err;
-            }
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto parentClass = type.asPtrOrNull<IPropertyObjectClass>();
             if (!parentClass.assigned())
-                return OPENDAQ_ERR_INVALIDTYPE;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
 
             return parentClass->hasProperty(propertyName, hasProperty);
         }
@@ -125,10 +113,7 @@ ErrCode PropertyObjectClassImpl::getInheritedProperties(ListPtr<IProperty>& prop
     {
         TypeManagerPtr managerPtr;
         ErrCode err = getManager(managerPtr);
-        if (OPENDAQ_FAILED(err))
-        {
-            return err;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         const auto getParentProps = [&]()
         {
@@ -166,8 +151,7 @@ ErrCode PropertyObjectClassImpl::getWithNormalOrder(Bool includeInherited, IList
     if (includeInherited)
     {
         ErrCode errCode = getInheritedProperties(properties);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
     else
     {
@@ -190,8 +174,7 @@ ErrCode PropertyObjectClassImpl::getWithCustomOrder(Bool includeInherited, IList
     if (includeInherited)
     {
         ErrCode errCode = getInheritedProperties(properties);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
     else
     {
@@ -253,8 +236,7 @@ ErrCode PropertyObjectClassImpl::serializeProperties(ISerializer* serializer)
 
     ListPtr<IProperty> properties;
     ErrCode errCode = getProperties(false, &properties);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     for (auto prop : properties)
     {
@@ -272,16 +254,10 @@ ErrCode PropertyObjectClassImpl::serializeProperties(ISerializer* serializer)
                                      std::string("Property \"" + propName + "\" does not implement ISerializable."));
             }
 
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
+            OPENDAQ_RETURN_IF_FAILED(errCode);
 
             errCode = serializableProp->serialize(serializer);
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
         else
         {
@@ -337,10 +313,7 @@ ErrCode PropertyObjectClassImpl::serialize(ISerializer* serializer)
     }
 
     ErrCode errCode = serializeProperties(serializer);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();
 

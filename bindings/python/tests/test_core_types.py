@@ -546,7 +546,7 @@ class TestStruct(opendaq_test.TestCase):
 
         #check typename validation
         type = daq.StructType(daq.String('invalid struct name'), valid_names, default_values, typeList)
-        with self.assertRaisesRegex(RuntimeError, 'Validate failed'):
+        with self.assertRaisesRegex(RuntimeError, 'Invalid struct name'):
             type_manager.add_type(type)
 
         #check field names validation

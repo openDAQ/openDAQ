@@ -65,8 +65,15 @@ inline MockPhysicalDeviceImpl::MockPhysicalDeviceImpl(const ContextPtr& ctx,
     registerProperties();
     registerNetworkConfigProperties();
 
-    const PropertyObjectPtr thisPtr = this->borrowPtr<PropertyObjectPtr>();
-    thisPtr.addProperty(StringProperty("TestProperty", "Test").detach());
+    this->addProperty(StringProperty("TestProperty", "Test"));
+
+    auto structFields = daq::Dict<daq::IString, daq::IBaseObject>(
+    {
+        {"value1", 0.0},
+        {"value2", 0.0}
+    });
+    this->addProperty(daq::StructProperty("DeviceStructure", daq::Struct("TestMockStructure", structFields, ctx.getTypeManager())));
+
     this->tags.add("phys_device");
 
     this->setDeviceDomain(DeviceDomain(Ratio(123, 456), "Origin", Unit("UnitSymbol", 987, "UnitName", "UnitQuantity")));
@@ -216,15 +223,19 @@ void MockPhysicalDeviceImpl::registerNetworkConfigProperties()
     if (!config.assigned())
         return;
 
-    if (config.hasProperty("ifaceNames"))
+    if (config.hasProperty("netConfigEnabled") && config.getProperty("netConfigEnabled").getValueType() == CoreType::ctBool)
+    {
+        netConfigEnabled = config.getPropertyValue("netConfigEnabled");
+    }
+    if (config.hasProperty("ifaceNames") && config.getProperty("ifaceNames").getValueType() == CoreType::ctList)
     {
         ifaceNames = config.getPropertyValue("ifaceNames");
     }
-    if (config.hasProperty("onSubmitConfig"))
+    if (config.hasProperty("onSubmitConfig") && config.getProperty("onSubmitConfig").getValueType() == CoreType::ctProc)
     {
         onSubmitConfig = config.getPropertyValue("onSubmitConfig");
     }
-    if (config.hasProperty("onRetrieveConfig"))
+    if (config.hasProperty("onRetrieveConfig") && config.getProperty("onRetrieveConfig").getValueType() == CoreType::ctFunc)
     {
         onRetrieveConfig = config.getPropertyValue("onRetrieveConfig");
     }
@@ -251,12 +262,17 @@ PropertyObjectPtr MockPhysicalDeviceImpl::onRetrieveNetworkConfiguration(const S
 
 Bool MockPhysicalDeviceImpl::onGetNetworkConfigurationEnabled()
 {
-    return True;
+    return netConfigEnabled;
 }
 
 ListPtr<IString> MockPhysicalDeviceImpl::onGetNetworkInterfaceNames()
 {
     return ifaceNames;
+}
+
+std::set<daq::OperationModeType> MockPhysicalDeviceImpl::onGetAvailableOperationModes() 
+{ 
+    return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation}; 
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

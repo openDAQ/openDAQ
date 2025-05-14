@@ -319,7 +319,10 @@ ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getOrDefault(const Ke
     ErrCode errCode = this->object->get(key, &obj);
 
     if (errCode == OPENDAQ_ERR_NOTFOUND)
+    {
+        daqClearErrorInfo();
         return defaultValue;
+    }
 
     checkErrorInfo(errCode);
 
@@ -338,6 +341,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryGet(const KeyPtr& key,
 
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
+        daqClearErrorInfo();
         return false;
     }
 
@@ -380,6 +384,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryRemove(const KeyPtr& k
 
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
+        daqClearErrorInfo();
         return false;
     }
 

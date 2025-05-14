@@ -581,22 +581,22 @@ TEST_F(TmsDeviceTest, DeviceInfoNotChangeableField)
         ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
         ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
 
-        serverDeviceInfo.asPtr<IDeviceInfoConfig>(true).setManufacturer("server_manufacturer_3");
-        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_ANY_THROW(serverDeviceInfo.asPtr<IDeviceInfoConfig>(true).setManufacturer("server_manufacturer_3"));
+        ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
         ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
     }
 
     {
         ASSERT_ANY_THROW(clientDeviceInfo.setPropertyValue("manufacturer", "client_manufacturer"));
-        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
         ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
 
-        clientDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "client_manufacturer_2");
-        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
-        ASSERT_EQ("client_manufacturer_2", clientDeviceInfo.getManufacturer());
+        clientDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "client_manufacturer_3");
+        ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
+        ASSERT_EQ("client_manufacturer_3", clientDeviceInfo.getManufacturer());
 
-        clientDeviceInfo.asPtr<IDeviceInfoConfig>(true).setManufacturer("client_manufacturer_3");
-        ASSERT_EQ("server_manufacturer_3", serverDeviceInfo.getManufacturer());
+        ASSERT_ANY_THROW(clientDeviceInfo.asPtr<IDeviceInfoConfig>(true).setManufacturer("client_manufacturer_3"));
+        ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
         ASSERT_EQ("client_manufacturer_3", clientDeviceInfo.getManufacturer());
     }
 }

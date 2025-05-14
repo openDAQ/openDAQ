@@ -20,17 +20,17 @@ ErrCode TmsClientTagsImpl::getList(IList** value)
 
 ErrCode TmsClientTagsImpl::add(IString* name)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 ErrCode TmsClientTagsImpl::replace(IList* tags)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 ErrCode TmsClientTagsImpl::remove(IString* name)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 ErrCode TmsClientTagsImpl::contains(IString* name, Bool* value)

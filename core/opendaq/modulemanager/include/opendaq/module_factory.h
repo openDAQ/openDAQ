@@ -69,7 +69,7 @@ OPENDAQ_MODULE_API daq::ErrCode checkDependencies(daq::IString** errMsg)
 
     if (!isCompatibleVersion("CoreTypes", daqCoreTypesGetVersion, version, errMsg))
     {
-        return OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
     }
 
     version.major = OPENDAQ_COREOBJECTS_MAJOR_VERSION;
@@ -77,7 +77,7 @@ OPENDAQ_MODULE_API daq::ErrCode checkDependencies(daq::IString** errMsg)
     version.patch = OPENDAQ_COREOBJECTS_PATCH_VERSION;
     if (!isCompatibleVersion("CoreObjects", daqCoreObjectsGetVersion, version, errMsg))
     {
-        return OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
     }
 #endif
 
@@ -88,7 +88,7 @@ OPENDAQ_MODULE_API daq::ErrCode checkDependencies(daq::IString** errMsg)
     version.patch = OPENDAQ_OPENDAQ_PATCH_VERSION;
     if (!isCompatibleVersion("OpenDaq", daqOpenDaqGetVersion, version, errMsg))
     {
-        return OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
     }
 #endif
 

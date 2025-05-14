@@ -107,7 +107,7 @@ jobs:
         id: daq_version
         shell: bash
         run: |
-          DAQ_VER=$(cat opendaq_version)
+          DAQ_VER=$(cat opendaq_version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
           echo Head openDAQ version: $DAQ_VER
           echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
 

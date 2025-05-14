@@ -18,7 +18,7 @@
 
 #include <memory>
 
-namespace daq::detail
+namespace daq::details
 {
 
 struct MemPool

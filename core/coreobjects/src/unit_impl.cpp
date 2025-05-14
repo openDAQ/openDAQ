@@ -138,22 +138,22 @@ ErrCode UnitImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*cont
     StringPtr symbol;
     ErrCode err = serializedObj->readString(String("symbol"), &symbol);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return err;
+        return DAQ_MAKE_ERROR_INFO(err, "Failed to read symbol from serialized object.");
 
     Int id = -1;
     err = serializedObj->readInt(String("id"), &id);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return err;
+        return DAQ_MAKE_ERROR_INFO(err, "Failed to read id from serialized object.");
 
     StringPtr name;
     err = serializedObj->readString(String("name"), &name);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return err;
+        return DAQ_MAKE_ERROR_INFO(err, "Failed to read name from serialized object.");
 
     StringPtr quantity;
     err = serializedObj->readString(String("quantity"), &quantity);
     if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return err;
+        return DAQ_MAKE_ERROR_INFO(err, "Failed to read quantity from serialized object.");
 
     return createObject<IUnit, UnitImpl, Int, StringPtr, StringPtr, StringPtr>(reinterpret_cast<IUnit**>(obj), id, symbol, name, quantity);
 }

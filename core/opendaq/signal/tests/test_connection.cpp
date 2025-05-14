@@ -2,8 +2,14 @@
 #include <opendaq/connection_factory.h>
 #include <coretypes/objectptr.h>
 #include <gtest/gtest.h>
+#include <opendaq/connection_internal.h>
 
 #include "opendaq/context_factory.h"
+#include "opendaq/signal_factory.h"
+#include "opendaq/input_port_factory.h"
+#include "opendaq/packet_factory.h"
+#include "opendaq/scheduler_factory.h"
+
 #include "opendaq/gmock/context.h"
 #include "opendaq/gmock/input_port.h"
 #include "opendaq/gmock/packet.h"
@@ -241,4 +247,88 @@ TEST_F(ConnectionTest, NotifyPacketEnqueuedSameThread)
     auto packet = createWithImplementation<IPacket, MockPacket>();
     EXPECT_CALL(inputPort.mock(), notifyPacketEnqueuedOnThisThread()).Times(1);
     connection.enqueueOnThisThread(packet);
+}
+
+TEST_F(ConnectionTest, DequeueUpTo1)
+{
+    auto logger = Logger();
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
+    auto scheduler = context.getScheduler();
+
+    auto signal = Signal(context, nullptr, "sig");
+    signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+
+    auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    auto packet = DataPacket(signal.getDescriptor(), 1);
+    double* data = static_cast<double*>(packet.getRawData());
+    *data = 5.2;
+
+    for (int i = 0; i < 7; ++i)
+        signal.sendPacket(packet);
+
+    scheduler.waitAll();
+
+    ObjectPtr<IConnectionInternal> connection = ip.getConnection(); 
+    std::vector<IPacket*> buf;
+    SizeT count = 3;
+    buf.resize(count);
+
+    connection->dequeueUpTo(buf.data(), &count);
+    ASSERT_EQ(count, 3u);
+    for (SizeT i = 0; i < count; ++i)
+        buf[i]->releaseRef();
+    
+    connection->dequeueUpTo(buf.data(), &count);
+    ASSERT_EQ(count, 3u);
+    for (SizeT i = 0; i < count; ++i)
+        buf[i]->releaseRef();
+    
+    connection->dequeueUpTo(buf.data(), &count);
+    ASSERT_EQ(count, 2u);
+    for (SizeT i = 0; i < count; ++i)
+        buf[i]->releaseRef();
+}
+
+TEST_F(ConnectionTest, DequeueUpTo2)
+{
+    auto logger = Logger();
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
+    auto scheduler = context.getScheduler();
+
+    auto signal = Signal(context, nullptr, "sig");
+    signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+
+    auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    auto packet = DataPacket(signal.getDescriptor(), 1);
+    double* data = static_cast<double*>(packet.getRawData());
+    *data = 5.2;
+
+    for (int i = 0; i < 7; ++i)
+        signal.sendPacket(packet);
+
+    scheduler.waitAll();
+
+    ObjectPtr<IConnectionInternal> connection = ip.getConnection(); 
+    std::vector<IPacket*> buf;
+    SizeT count = 3;
+    buf.resize(count);
+
+    connection->dequeueUpTo(buf.data(), &count);
+    ASSERT_EQ(count, 3u);
+    for (SizeT i = 0; i < count; ++i)
+        PacketPtr pkt = std::move(buf[i]);
+    
+    connection->dequeueUpTo(buf.data(), &count);
+    ASSERT_EQ(count, 3u);
+    for (SizeT i = 0; i < count; ++i)
+        PacketPtr pkt = std::move(buf[i]);
+    
+    connection->dequeueUpTo(buf.data(), &count);
+    ASSERT_EQ(count, 2u);
+    for (SizeT i = 0; i < count; ++i)
+        PacketPtr pkt = std::move(buf[i]);
 }

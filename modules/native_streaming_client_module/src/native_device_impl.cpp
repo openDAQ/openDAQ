@@ -10,11 +10,17 @@
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/component_exceptions.h>
 #include <opendaq/exceptions.h>
+#include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/address_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
+
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv4Hostname(R"(^(.+://)([^:/\s]+))");
+static const std::regex RegexPort(":(\\d+)");
 
 NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        NativeStreamingClientHandlerPtr transportProtocolClient,
@@ -96,163 +102,27 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
     cancelPendingConfigRequests(ComponentRemovedException());
 }
 
-void NativeDeviceHelper::enableStreamingForComponent(const ComponentPtr& component)
-{
-    auto device = deviceRef.getRef();
-    if (!device.assigned())
-        return;
-
-    // collect all related streaming sources for component by getting sources of all devices
-    // which are ancestors of the component
-    auto allStreamingSources = List<IStreaming>();
-    StreamingPtr activeStreamingSource;
-    ComponentPtr ancestorComponent = device.asPtr<IComponent>();
-
-    do
-    {
-        auto mirroredDevice = ancestorComponent.asPtrOrNull<IMirroredDevice>();
-        if (mirroredDevice.assigned())
-        {
-            auto streamingSources = mirroredDevice.getStreamingSources();
-            for (const auto& streaming : streamingSources)
-                allStreamingSources.pushBack(streaming);
-
-            // streaming sources are ordered by priority - cache first to be active
-            if (!streamingSources.empty())
-                activeStreamingSource = streamingSources[0];
-        }
-
-        if (ancestorComponent.supportsInterface<IFolder>())
-        {
-            auto nestedComponents = ancestorComponent.asPtr<IFolder>().getItems();
-            for (const auto& nestedComponent : nestedComponents)
-            {
-                if (IdsParser::isNestedComponentId(nestedComponent.getGlobalId(), component.getGlobalId()) ||
-                    nestedComponent.getGlobalId() == component.getGlobalId())
-                {
-                    ancestorComponent = nestedComponent;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            break;
-        }
-    }
-    while(ancestorComponent != component);
-
-    if (!activeStreamingSource.assigned())
-        return;
-
-    auto setupStreamingForSignal = [this, allStreamingSources, activeStreamingSource](const SignalPtr& signal)
-    {
-        for (const auto& streaming : allStreamingSources)
-            tryAddSignalToStreaming(signal, streaming);
-        setSignalActiveStreamingSource(signal, activeStreamingSource);
-    };
-
-    // setup streaming sources for all signals of the component
-    if (component.supportsInterface<ISignal>())
-    {
-        setupStreamingForSignal(component.asPtr<ISignal>());
-    }
-    else if (component.supportsInterface<IFolder>())
-    {
-        auto nestedComponents = component.asPtr<IFolder>().getItems(search::Recursive(search::Any()));
-        for (const auto& nestedComponent : nestedComponents)
-        {
-            if (nestedComponent.supportsInterface<ISignal>())
-            {
-                setupStreamingForSignal(nestedComponent.asPtr<ISignal>());
-            }
-        }
-    }
-}
-
-void NativeDeviceHelper::componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
-{
-    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
-    if (!device.assigned())
-        return;
-
-    ComponentPtr addedComponent = eventArgs.getParameters().get("Component");
-
-    auto deviceGlobalId = device.getGlobalId().toStdString();
-    auto addedComponentGlobalId = addedComponent.getGlobalId().toStdString();
-    if (!IdsParser::isNestedComponentId(deviceGlobalId, addedComponentGlobalId))
-        return;
-
-    LOG_I("Added Component: {};", addedComponentGlobalId);
-
-    enableStreamingForComponent(addedComponent);
-}
-
 void NativeDeviceHelper::componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
 {
-    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
-    if (!device.assigned())
+    auto deviceSelf = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    if (!deviceSelf.assigned())
         return;
 
     ComponentPtr updatedComponent = sender;
 
-    auto deviceGlobalId = device.getGlobalId().toStdString();
+    auto deviceSelfGlobalId = deviceSelf.getGlobalId().toStdString();
     auto updatedComponentGlobalId = updatedComponent.getGlobalId().toStdString();
-    if (deviceGlobalId == updatedComponentGlobalId ||
-        IdsParser::isNestedComponentId(deviceGlobalId, updatedComponentGlobalId) ||
-        IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceGlobalId))
+    if (deviceSelfGlobalId == updatedComponentGlobalId ||
+        IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceSelfGlobalId))
     {
-        LOG_I("Updated Component: {};", updatedComponentGlobalId);
-
-        if (deviceGlobalId == updatedComponentGlobalId ||
-            IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceGlobalId))
-        {
-            device.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
-            enableStreamingForComponent(device);
-        }
-        else
-        {
-            enableStreamingForComponent(updatedComponent);
-        }
+        deviceSelf.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
     }
-}
-
-void NativeDeviceHelper::tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming)
-{
-    if (!signal.getPublic())
-        return;
-
-    ErrCode errCode =
-        daqTry([&]()
-                {
-                    streaming.addSignals({signal});
-                });
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        LOG_I("Signal {} added to streaming {};", signal.getGlobalId(), streaming.getConnectionString());
-    }
-    else if (errCode != OPENDAQ_ERR_DUPLICATEITEM)
-    {
-        checkErrorInfo(errCode);
-    }
-}
-
-void NativeDeviceHelper::setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming)
-{
-    if (!signal.getPublic())
-        return;
-
-    auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
-    mirroredSignalConfigPtr.setActiveStreamingSource(streaming.getConnectionString());
 }
 
 void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
 {
     switch (static_cast<CoreEventId>(eventArgs.getEventId()))
     {
-        case CoreEventId::ComponentAdded:
-            componentAdded(sender, eventArgs);
-            break;
         case CoreEventId::ComponentUpdateEnd:
             componentUpdated(sender, eventArgs);
             break;
@@ -316,10 +186,10 @@ void NativeDeviceHelper::updateConnectionStatus(const EnumerationPtr& status, co
 {
     connectionStatus = status;
 
-    auto device = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
-    if (!device.assigned())
+    auto deviceSelf = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
+    if (!deviceSelf.assigned())
         return;
-    device.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus, statusMessage);
+    deviceSelf.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus, statusMessage);
 }
 
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
@@ -564,6 +434,20 @@ void NativeDeviceImpl::removed()
     Super::removed();
 }
 
+// retrieves the local configuration object without triggering an RPC call
+ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    *config = this->componentConfig.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+bool NativeDeviceImpl::isAddedToLocalComponentTree()
+{
+    return true;
+}
+
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
 {
     this->deviceHelper = std::move(deviceHelper);
@@ -571,6 +455,8 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
+    uint16_t configProtocolVersion = clientComm->getProtocolVersion();
+
     if (clientComm->getProtocolVersion() < 8)
     {
         auto changeableFields = List<IString>();
@@ -607,6 +493,94 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
     {
         auto propBuilder = IntPropertyBuilder("NativeConfigProtocolVersion", clientComm->getProtocolVersion()).setReadOnly(true);
         deviceInfo.addProperty(propBuilder.build());
+    }
+
+    // Set the connection info for the device
+    ServerCapabilityConfigPtr connectionInfo = deviceInfo.getConfigurationConnectionInfo();
+
+    auto host = ConnectionStringUtils::GetHost(connectionString);
+    const auto addressInfo = AddressInfoBuilder().setAddress(host)
+                                 .setReachabilityStatus(AddressReachabilityStatus::Reachable)
+                                 .setType(ConnectionStringUtils::GetHostType(connectionString))
+                                 .setConnectionString(connectionString)
+                                 .build();
+
+    connectionInfo.setProtocolId(NativeConfigurationDeviceTypeId)
+        .setProtocolName("OpenDAQNativeConfiguration")
+        .setProtocolType(ProtocolType::ConfigurationAndStreaming)
+        .setConnectionType("TCP/IP")
+        .addAddress(host)
+        .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
+        .setPrefix("daq.nd")
+        .setConnectionString(connectionString)
+        .setProtocolVersion(std::to_string(configProtocolVersion))
+        .addAddressInfo(addressInfo)
+        .freeze();
+}
+
+StringPtr ConnectionStringUtils::GetHostType(const StringPtr& url)
+{
+    std::string urlString = url.toStdString();
+    std::smatch match;
+
+    if (std::regex_search(urlString, match, RegexIpv6Hostname))
+        return String("IPv6");
+    if (std::regex_search(urlString, match, RegexIpv4Hostname))
+        return String("IPv4");
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Host type not found in url: {}", url);
+}
+
+StringPtr ConnectionStringUtils::GetHost(const StringPtr& url)
+{
+    std::string urlString = url.toStdString();
+    std::smatch match;
+
+    if (std::regex_search(urlString, match, RegexIpv6Hostname))
+        return String(match[2]);
+    if (std::regex_search(urlString, match, RegexIpv4Hostname))
+        return String(match[2]);
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
+}
+
+StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config)
+{
+    std::string outPort;
+    std::string urlString = url.toStdString();
+    std::smatch match;
+
+    std::string host = GetHost(url).toStdString();
+    std::string suffix = urlString.substr(urlString.find(host) + host.size());
+
+    if (std::regex_search(suffix, match, RegexPort))
+        outPort = match[1];
+    else
+        outPort = "7420";
+
+    if (config.assigned())
+    {
+        std::string ctxPort = config.getPropertyValue("Port");
+        if (ctxPort != "7420")
+            outPort = ctxPort;
+    }
+
+    return outPort;
+}
+
+StringPtr ConnectionStringUtils::GetPath(const StringPtr& url)
+{
+    std::string urlString = url.toStdString();
+
+    std::string host = GetHost(url).toStdString();
+    std::string suffix = urlString.substr(urlString.find(host) + host.size());
+    auto pos = suffix.find("/");
+
+    if (pos != std::string::npos)
+    {
+        return String(suffix.substr(pos));
+    }
+    else
+    {
+        return String("/");
     }
 }
 

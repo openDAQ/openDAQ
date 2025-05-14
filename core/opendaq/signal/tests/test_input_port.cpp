@@ -8,6 +8,8 @@
 #include <opendaq/deserialize_component_ptr.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/scheduler_factory.h>
+#include <opendaq/signal_factory.h>
 
 using namespace daq;
 using namespace testing;
@@ -151,4 +153,23 @@ TEST_F(InputPortTest, SerializeAndDeserialize)
     const auto str2 = serializer2.getOutput();
 
     ASSERT_EQ(str1, str2);
+}
+
+TEST_F(InputPortTest, RemoveDisconnectedSignal)
+{
+    auto logger = Logger();
+    auto context = Context(Scheduler(logger, 1), logger, nullptr, nullptr, nullptr);
+    auto scheduler = context.getScheduler();
+
+    auto signal1 = Signal(context, nullptr, "sig1");
+    auto signal2 = Signal(context, nullptr, "sig2");
+
+    auto ip = InputPort(context, nullptr, "ip");
+
+    ip.connect(signal1);
+    ip.connect(signal2);
+
+    signal1.remove();
+
+    ASSERT_TRUE(ip.getSignal().assigned());
 }

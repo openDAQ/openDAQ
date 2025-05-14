@@ -44,7 +44,7 @@ protected:
     daq::opcua::OpcUaServerPtr server;
     uint16_t opcUaPort = 4840;
     std::string opcUaPath = "/";
-
+    std::unordered_map<std::string, SizeT> registeredClientIds;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA

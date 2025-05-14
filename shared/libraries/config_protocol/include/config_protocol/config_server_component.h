@@ -19,9 +19,10 @@
 #include <coreobjects/property_object_protected.h>
 #include <config_protocol/config_server_access_control.h>
 #include <opendaq/update_parameters_factory.h>
+#include <opendaq/component_private_ptr.h>
 
-#include "opendaq/component_holder_factory.h"
-#include "opendaq/search_filter_factory.h"
+#include <opendaq/component_holder_factory.h>
+#include <opendaq/search_filter_factory.h>
 
 namespace daq::config_protocol
 {
@@ -33,6 +34,7 @@ public:
     static BaseObjectPtr setPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr clearProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr callProperty(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr beginUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr endUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
@@ -41,6 +43,7 @@ public:
     static BaseObjectPtr getAvailableFunctionBlockTypes(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr addFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr removeFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr getComponentConfig(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
 
 private:
     static void applyProps(uint16_t protocolVersion, const PropertyObjectPtr& obj, const ListPtr<IDict>& props);
@@ -130,6 +133,23 @@ inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(const RpcContext&
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
 
     component.clearPropertyValue(propertyName);
+
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerComponent::clearProtectedPropertyValue(const RpcContext& context,
+                                                                        const ComponentPtr& component,
+                                                                        const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
+
+    component.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue(propertyName);
 
     return nullptr;
 }
@@ -364,5 +384,15 @@ inline BaseObjectPtr ConfigServerComponent::removeFunctionBlock(const RpcContext
     return nullptr;
 }
 
+inline BaseObjectPtr ConfigServerComponent::getComponentConfig(const RpcContext& context,
+                                                               const ComponentPtr& component,
+                                                               const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(component, context.user, Permission::Read);
+
+    if (const auto & componentPrivate = component.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+        return componentPrivate.getComponentConfig();
+    return nullptr;
+}
 
 }

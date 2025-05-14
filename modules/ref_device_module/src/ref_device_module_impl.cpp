@@ -66,17 +66,11 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     std::scoped_lock lock(sync);
 
     if (id >= devices.size())
-    {
-        LOG_W("Device with id \"{}\" not found", id);
-        DAQ_THROW_EXCEPTION(NotFoundException);
-    }
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device with id \"{}\" not found", id);
 
     clearRemovedDevices();
     if (devices[id].assigned() && devices[id].getRef().assigned())
-    {
-        LOG_W("Device with id \"{}\" already exist", id);
-        DAQ_THROW_EXCEPTION(AlreadyExistsException);
-    }
+        DAQ_THROW_EXCEPTION(AlreadyExistsException, "Device with id \"{}\" already exist", id);
     
     const auto options = this->context.getModuleOptions(REF_MODULE_NAME);
     StringPtr localId;
@@ -118,10 +112,7 @@ size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionS
     std::string prefixWithDeviceStr = "daqref://device";
     auto found = connectionString.find(prefixWithDeviceStr);
     if (found != 0)
-    {
-        LOG_W("Invalid connection string \"{}\", no prefix", connectionString);
-        DAQ_THROW_EXCEPTION(InvalidParameterException);
-    }
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string \"{}\", no prefix", connectionString);
 
     auto idStr = connectionString.substr(prefixWithDeviceStr.size(), std::string::npos);
     size_t id;
@@ -131,10 +122,8 @@ size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionS
     }
     catch (const std::invalid_argument&)
     {
-        LOG_W("Invalid connection string \"{}\", no id", connectionString);
-        DAQ_THROW_EXCEPTION(InvalidParameterException);
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string \"{}\", no id", connectionString);
     }
-
     return id;
 }
 

@@ -51,8 +51,9 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_EQ(deviceInfo.getLocation(), "");
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
     ASSERT_EQ(deviceInfo.getNetworkInterfaces().getCount(), 0u);
+    ASSERT_EQ(deviceInfo.getConnectedClientsInfo().getCount(), 0u);
 
-    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 26u);
+    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 27u);
 }
 
 TEST_F(DeviceInfoTest, SetGetProperties)
@@ -182,6 +183,11 @@ TEST_F(DeviceInfoTest, Freezable)
 
     auto deviceType = DeviceType("test", "", "", "prefix");
     ASSERT_THROW(deviceInfoConfig.setDeviceType(deviceType), FrozenException);
+
+    SizeT clientNumber = 0;
+    auto connectedClientInfo = ConnectedClientInfo("url", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name");
+    ASSERT_NO_THROW(deviceInfoConfig.asPtr<IDeviceInfoInternal>().addConnectedClient(&clientNumber, connectedClientInfo));
+    ASSERT_EQ(clientNumber, 1u);
 }
 
 TEST_F(DeviceInfoTest, CustomProperties)
@@ -217,6 +223,16 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     info.setRevisionCounter(1);
     info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id1", "test", ProtocolType::Streaming));
     info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability("test_id2", "test", ProtocolType::Configuration));
+    SizeT client1Number = 0;
+    info.asPtr<IDeviceInfoInternal>().addConnectedClient(
+        &client1Number,
+        ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", "", "Host name")
+    );
+    SizeT client2Number = 0;
+    info.asPtr<IDeviceInfoInternal>().addConnectedClient(
+        &client2Number,
+        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name")
+    );
 
     const auto serializer = JsonSerializer();
     info.serialize(serializer);
@@ -229,12 +245,40 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     ASSERT_EQ(newDeviceInfo.getServerCapabilities().getCount(), 2u);
     ASSERT_EQ(newDeviceInfo.getServerCapabilities()[0].getProtocolId(), "test_id1");
     ASSERT_EQ(newDeviceInfo.getServerCapabilities()[1].getProtocolId(), "test_id2");
+    ASSERT_EQ(newDeviceInfo.getConnectedClientsInfo().getCount(), 2u);
 
     serializer.reset();
     newDeviceInfo.serialize(serializer);
     const auto newSerializedDeviceInfo = serializer.getOutput();
 
     ASSERT_EQ(serializedDeviceInfo, newSerializedDeviceInfo);
+}
+
+TEST_F(DeviceInfoTest, SerializeDeserializeForOlderVersion)
+{
+    DeviceInfoConfigPtr info = DeviceInfo("", "");
+
+    SizeT client1Number = 0;
+    info.asPtr<IDeviceInfoInternal>().addConnectedClient(
+        &client1Number,
+        ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", "", "Host name")
+    );
+    SizeT client2Number = 0;
+    info.asPtr<IDeviceInfoInternal>().addConnectedClient(
+        &client2Number,
+        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name")
+    );
+
+    const auto serializer = JsonSerializerWithVersion(2);
+    info.serialize(serializer);
+    const auto serializedDeviceInfo = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const DeviceInfoPtr newDeviceInfo = deserializer.deserialize(serializedDeviceInfo, nullptr, nullptr);
+
+    // default value of "activeClientConnections" constains no nested properties
+    ASSERT_EQ(newDeviceInfo.getConnectedClientsInfo().getCount(), 0u);
 }
 
 TEST_F(DeviceInfoTest, ServerCapabilities)
@@ -292,6 +336,52 @@ TEST_F(DeviceInfoTest, NetworkInterfaces)
     EXPECT_EQ(defaultConfig.getPropertyValue("dhcp6"), True);
     EXPECT_EQ(defaultConfig.getPropertyValue("address6"), String(""));
     EXPECT_EQ(defaultConfig.getPropertyValue("gateway6"), String(""));
+}
+
+TEST_F(DeviceInfoTest, ConnectedClientsInfo)
+{
+    auto context = NullContext();
+    DeviceInfoPtr info = DeviceInfo("", "");
+    DeviceInfoInternalPtr internalInfo = info;
+
+    SizeT client1Number = 0;
+    auto clientInfo1 =
+        ConnectedClientInfo("url1", ProtocolType::Streaming, "Protocol name", "", "Host name");
+
+    SizeT client2Number = 0;
+    auto clientInfo2 =
+        ConnectedClientInfo("url2", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name");
+
+    SizeT client3Number = 10;
+    auto clientInfo3 =
+        ConnectedClientInfo("url3", ProtocolType::ConfigurationAndStreaming, "Protocol name", "ViewOnly", "Host name");
+
+    internalInfo.addConnectedClient(&client1Number, clientInfo1);
+    ASSERT_EQ(client1Number, 1u);
+    internalInfo.addConnectedClient(&client2Number, clientInfo2);
+    ASSERT_EQ(client2Number, 2u);
+    internalInfo.addConnectedClient(&client3Number, clientInfo3);
+    ASSERT_EQ(client3Number, 3u);
+    ASSERT_THROW(internalInfo.addConnectedClient(&client3Number, clientInfo3), AlreadyExistsException);
+
+    ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 3u);
+
+    ASSERT_THROW(internalInfo.removeConnectedClient(4), NotFoundException);
+
+    internalInfo.removeConnectedClient(3);
+    ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 2u);
+    ASSERT_EQ(info.getConnectedClientsInfo()[0].getAddress(), clientInfo1.getPropertyValue("Address"));
+
+    internalInfo.removeConnectedClient(2);
+    internalInfo.removeConnectedClient(1);
+    ASSERT_EQ(info.getConnectedClientsInfo().getCount(), 0u);
+
+    internalInfo.addConnectedClient(&client3Number, clientInfo3);
+    ASSERT_EQ(client3Number, 3u);
+    internalInfo.addConnectedClient(&client2Number, clientInfo2);
+    ASSERT_EQ(client2Number, 2u);
+    internalInfo.addConnectedClient(&client1Number, clientInfo1);
+    ASSERT_EQ(client1Number, 1u);
 }
 
 TEST_F(DeviceInfoTest, OwnerName)

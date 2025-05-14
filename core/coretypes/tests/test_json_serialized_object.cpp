@@ -248,10 +248,7 @@ TEST_F(JsonSerializedObjectTest, testHasKeyTrue)
         Bool hasKey;
         ErrCode errCode = serialized->hasKey(String("str"), &hasKey);
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *obj = Boolean_Create(hasKey);
         return OPENDAQ_SUCCESS;
@@ -272,10 +269,7 @@ TEST_F(JsonSerializedObjectTest, testHasKeyFalse)
         Bool hasKey;
         ErrCode errCode = serialized->hasKey(String("str"), &hasKey);
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *obj = Boolean_Create(hasKey);
         return OPENDAQ_SUCCESS;
@@ -295,10 +289,7 @@ TEST_F(JsonSerializedObjectTest, readEmptyObjectKeys)
     {
         ISerializedObject* serializedObj;
         ErrCode errCode = serialized->readSerializedObject(String("Object"), &serializedObj);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         IList* keys;
         errCode = serializedObj->getKeys(&keys);
@@ -326,10 +317,7 @@ TEST_F(JsonSerializedObjectTest, readObjectKeys)
     {
         ISerializedObject* serializedObj;
         ErrCode errCode = serialized->readSerializedObject(String("Object"), &serializedObj);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         IList* keys;
         errCode = serializedObj->getKeys(&keys);
@@ -357,10 +345,7 @@ TEST_F(JsonSerializedObjectTest, readNonExistentObject)
         [](ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj) -> ErrCode
     {
         ErrCode errCode = serialized->readObject(String("doesNotExist"), nullptr, nullptr, obj);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
         return OPENDAQ_SUCCESS;
     });
 
@@ -375,10 +360,7 @@ TEST_F(JsonSerializedObjectTest, readSerializedObjectInvalidType)
     {
         ISerializedObject* serializedObj;
         ErrCode errCode = serialized->readSerializedObject(String("Object"), &serializedObj);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         serializedObj->releaseRef();
         return OPENDAQ_SUCCESS;
@@ -395,10 +377,7 @@ TEST_F(JsonSerializedObjectTest, readNonExistentSerializedObject)
     {
         ISerializedObject* serializedObj;
         ErrCode errCode = serialized->readSerializedObject(String("Object"), &serializedObj);
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         serializedObj->releaseRef();
         return OPENDAQ_SUCCESS;

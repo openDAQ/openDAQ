@@ -31,6 +31,11 @@ struct IExceptionFactory
     virtual void destroy() const = 0;
 
     [[noreturn]] virtual void throwException(ErrCode errCode, const std::string& msg) const = 0;
+
+    virtual std::string getExceptionMessage() const
+    {
+        return "";
+    }
 };
 
 template <typename TException>
@@ -50,6 +55,11 @@ struct GenericExceptionFactory : IExceptionFactory
     void destroy() const override
     {
         delete this;
+    }
+
+    std::string getExceptionMessage() const override
+    {
+        return TException().what();
     }
 };
 

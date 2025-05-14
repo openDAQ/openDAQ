@@ -31,7 +31,10 @@ void remove() const
     if (OPENDAQ_FAILED(errCode))
     {
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
+        {
+            daqClearErrorInfo();
             return;
+        }
         daq::checkErrorInfo(errCode);
     }
 

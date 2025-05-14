@@ -56,7 +56,7 @@ TEST_F(StreamingConfigTest, StreamingSources)
     PropertyObjectPtr deviceConfig = PropertyObject();
     auto prioritizedStreamingProtocols = List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
     deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
-    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
+    const auto streamingConnectionHeuristicProp = SelectionProperty("StreamingConnectionHeuristic",
                                                                     List<IString>("MinConnections",
                                                                                   "MinHops",
                                                                                   "NotConnected"),

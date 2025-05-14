@@ -37,6 +37,32 @@ inline ComponentPtr Component(const ContextPtr& context, const ComponentPtr& par
     return obj;
 }
 
+inline StringPtr OperationModeTypeToString(OperationModeType mode)
+{
+    switch (mode)
+    {
+        case OperationModeType::Idle:
+            return String("Idle");
+        case OperationModeType::Operation:
+            return String("Operation");
+        case OperationModeType::SafeOperation:
+            return String("SafeOperation");
+        default:
+            return String("Unknown");
+    }
+}
+
+inline OperationModeType OperationModeTypeFromString(const StringPtr& str)
+{
+    if (str == "Idle")
+        return OperationModeType::Idle;
+    if (str == "Operation")
+        return OperationModeType::Operation;
+    if (str == "SafeOperation")
+        return OperationModeType::SafeOperation;
+    return OperationModeType::Unknown;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

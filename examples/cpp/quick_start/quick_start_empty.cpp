@@ -16,4 +16,4 @@ int main(int /*argc*/, const char* /*argv*/[])
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();
     return 0;
-}
+} 

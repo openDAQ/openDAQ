@@ -85,7 +85,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatus(IString* name, IEnumerat
 
     const auto nameObj = StringPtr::Borrow(name);
     if (nameObj == "")
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
@@ -98,7 +98,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatus(IString* name, IEnumerat
         }
     }
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 inline ErrCode ConnectionStatusContainerImpl::getStatusMessage(IString* name, IString** message)
@@ -108,7 +108,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatusMessage(IString* name, IS
 
     const auto nameObj = StringPtr::Borrow(name);
     if (nameObj == "")
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
@@ -121,7 +121,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatusMessage(IString* name, IS
         }
     }
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 inline ErrCode ConnectionStatusContainerImpl::getStatuses(IDict** statuses)
@@ -149,12 +149,12 @@ inline ErrCode ConnectionStatusContainerImpl::addConfigurationConnectionStatus(I
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
     if (connectionStringObj == "")
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
     if (configConnectionStatusAdded || statuses.hasKey(connectionStringObj) || messages.hasKey(connectionStringObj))
-        return OPENDAQ_ERR_ALREADYEXISTS;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS);
 
     const auto message = String("");
     statuses[connectionStringObj] = initialValue;
@@ -185,12 +185,12 @@ inline ErrCode ConnectionStatusContainerImpl::addStreamingConnectionStatus(IStri
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
     if (connectionStringObj == "")
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
 
     if (statuses.hasKey(connectionStringObj) || messages.hasKey(connectionStringObj))
-        return OPENDAQ_ERR_ALREADYEXISTS;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS);
 
     ++streamingConnectionsCounter;
     const auto message = String("");
@@ -222,7 +222,7 @@ inline ErrCode ConnectionStatusContainerImpl::removeStreamingConnectionStatus(IS
     std::scoped_lock lock(sync);
 
     if (!statuses.hasKey(connectionString) || !messages.hasKey(connectionString))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     const StringPtr statusNameAlias =
         statusNameAliases.hasKey(connectionString)
@@ -262,30 +262,28 @@ inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatusWithMessage(
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
     if (connectionStringObj == "")
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     const auto messageObj = StringPtr::Borrow(message);
 
     std::scoped_lock lock(sync);
 
     if (!statuses.hasKey(connectionStringObj) || !messages.hasKey(connectionStringObj))
-        return OPENDAQ_ERR_NOTFOUND;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
     const auto valueObj = EnumerationPtr::Borrow(value);
     const auto oldValue = statuses.get(connectionStringObj);
     const auto oldMessage = messages.get(connectionStringObj);
 
     if (valueObj.getEnumerationType() != oldValue.getEnumerationType())
-        return OPENDAQ_ERR_INVALIDTYPE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
     if (valueObj == oldValue && oldMessage == messageObj)
         return OPENDAQ_IGNORED;
 
     auto errCode = statuses->set(connectionStringObj, value);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = messages->set(connectionStringObj, message);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const StringPtr statusNameAlias = statusNameAliases.getOrDefault(connectionStringObj);
 
@@ -357,8 +355,7 @@ inline ErrCode ConnectionStatusContainerImpl::Deserialize(ISerializedObject* ser
 
     ObjectPtr<IConnectionStatusContainerPrivate> statusContainer;
     auto errCode = createObject<IConnectionStatusContainerPrivate, ConnectionStatusContainerImpl>(&statusContainer, daqContext, triggerCoreEvent);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
 
@@ -375,13 +372,11 @@ inline ErrCode ConnectionStatusContainerImpl::Deserialize(ISerializedObject* ser
         if (nameAlias == ConfigurationConnectionStatusAlias && statuses.hasKey(connString))
         {
             errCode = statusContainer->addConfigurationConnectionStatus(connString, statuses.get(connString));
-            if (OPENDAQ_FAILED(errCode))
-                return errCode;
+            OPENDAQ_RETURN_IF_FAILED(errCode);
             if (messages.hasKey(connString))
             {
                 errCode = statusContainer->updateConnectionStatusWithMessage(connString, statuses.get(connString), nullptr, messages.get(connString));
-                if (OPENDAQ_FAILED(errCode))
-                    return errCode;
+                OPENDAQ_RETURN_IF_FAILED(errCode);
             }
             break;
         }

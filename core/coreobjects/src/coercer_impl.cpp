@@ -37,7 +37,7 @@ ErrCode CoercerImpl::coerce(IBaseObject* propObj, IBaseObject* value, IBaseObjec
     }
     catch (...)
     {
-        return OPENDAQ_ERR_COERCE_FAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COERCE_FAILED);
     }
 
     return OPENDAQ_SUCCESS;
@@ -63,7 +63,7 @@ ErrCode CoercerImpl::coerceNoLock(IBaseObject* propObj, IBaseObject* value, IBas
     }
     catch (...)
     {
-        return OPENDAQ_ERR_COERCE_FAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COERCE_FAILED);
     }
 
     return OPENDAQ_SUCCESS;
@@ -107,8 +107,7 @@ ErrCode CoercerImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*c
 
     CoercerPtr coercerPtr;
     ErrCode errCode = createCoercer(&coercerPtr, str);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *obj = coercerPtr.addRefAndReturn();
     return OPENDAQ_SUCCESS;

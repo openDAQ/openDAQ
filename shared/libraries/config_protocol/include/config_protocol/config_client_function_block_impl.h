@@ -30,7 +30,7 @@ template <class Impl>
 class ConfigClientBaseFunctionBlockImpl : public ConfigClientComponentBaseImpl<Impl>
 {
 public:
-    using Super = ConfigClientBaseFunctionBlockImpl<FunctionBlockImpl<IFunctionBlock, IConfigClientObject>>;
+    using Super = ConfigClientComponentBaseImpl<Impl>;
 
     ConfigClientBaseFunctionBlockImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                       const std::string& remoteGlobalId,
@@ -46,9 +46,27 @@ public:
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
-
 protected:
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+};
+
+class ConfigClientRecorderFunctionBlockImpl : public ConfigClientBaseFunctionBlockImpl<FunctionBlockImpl<IFunctionBlock, IRecorder, IConfigClientObject>>
+{
+public:
+    using Super = ConfigClientBaseFunctionBlockImpl<FunctionBlockImpl<IFunctionBlock, IRecorder, IConfigClientObject>>;
+
+    ConfigClientRecorderFunctionBlockImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                          const std::string& remoteGlobalId,
+                                          const FunctionBlockTypePtr& functionBlockType,
+                                          const ContextPtr& ctx,
+                                          const ComponentPtr& parent,
+                                          const StringPtr& localId,
+                                          const StringPtr& className = nullptr);
+
+    // IRecorder
+    ErrCode INTERFACE_FUNC startRecording() override;
+    ErrCode INTERFACE_FUNC stopRecording() override;
+    ErrCode INTERFACE_FUNC getIsRecording(Bool* isRecording) override;
 };
 
 template <class Impl>
@@ -60,7 +78,7 @@ ConfigClientBaseFunctionBlockImpl<Impl>::ConfigClientBaseFunctionBlockImpl(
     const ComponentPtr& parent,
     const StringPtr& localId,
     const StringPtr& className)
-    : ConfigClientComponentBaseImpl<Impl>(configProtocolClientComm, remoteGlobalId, type, ctx, parent, localId, className)
+    : Super(configProtocolClientComm, remoteGlobalId, type, ctx, parent, localId, className)
 {
 }
 
@@ -89,14 +107,28 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
 
                             const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
 
-                            return createWithImplementation<IFunctionBlock, ConfigClientFunctionBlockImpl>(
-                                configDeserializeContext->getClientComm(),
-                                configDeserializeContext->getRemoteGlobalId(),
-                                fbType,
-                                deserializeContext.getContext(),
-                                deserializeContext.getParent(),
-                                deserializeContext.getLocalId(),
-                                className);
+                            bool isRecorder = false;
+                            if (serialized.hasKey("isRecorder"))
+                                isRecorder = serialized.readBool("isRecorder");
+
+                            if (isRecorder)
+                                return createWithImplementation<IFunctionBlock, ConfigClientRecorderFunctionBlockImpl>(
+                                    configDeserializeContext->getClientComm(),
+                                    configDeserializeContext->getRemoteGlobalId(),
+                                    fbType,
+                                    deserializeContext.getContext(),
+                                    deserializeContext.getParent(),
+                                    deserializeContext.getLocalId(),
+                                    className);
+                            else
+                                return createWithImplementation<IFunctionBlock, ConfigClientFunctionBlockImpl>(
+                                    configDeserializeContext->getClientComm(),
+                                    configDeserializeContext->getRemoteGlobalId(),
+                                    fbType,
+                                    deserializeContext.getContext(),
+                                    deserializeContext.getParent(),
+                                    deserializeContext.getLocalId(),
+                                    className);
                        })
                        .detach();
         });
@@ -153,4 +185,38 @@ void ConfigClientBaseFunctionBlockImpl<Impl>::onRemoteUpdate(const SerializedObj
         }
     }
 }
+
+inline ConfigClientRecorderFunctionBlockImpl::ConfigClientRecorderFunctionBlockImpl(
+    const ConfigProtocolClientCommPtr& configProtocolClientComm,
+    const std::string& remoteGlobalId,
+    const FunctionBlockTypePtr& type,
+    const ContextPtr& ctx,
+    const ComponentPtr& parent,
+    const StringPtr& localId,
+    const StringPtr& className)
+    : Super(configProtocolClientComm, remoteGlobalId, type, ctx, parent, localId, className)
+{
+}
+
+inline ErrCode ConfigClientRecorderFunctionBlockImpl::startRecording()
+{
+    return daqTry([this] { this->clientComm->startRecording(this->remoteGlobalId); });
+}
+
+inline ErrCode ConfigClientRecorderFunctionBlockImpl::stopRecording()
+{
+    return daqTry([this] { this->clientComm->stopRecording(this->remoteGlobalId); });
+}
+
+inline ErrCode ConfigClientRecorderFunctionBlockImpl::getIsRecording(Bool* isRecording)
+{
+    return daqTry(
+        [this, &isRecording]
+        {
+            BooleanPtr isRecordingPtr = clientComm->getIsRecording(remoteGlobalId);
+            *isRecording = isRecordingPtr.getValue(False);
+            return OPENDAQ_SUCCESS;
+        });
+}
+
 }

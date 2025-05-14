@@ -7,7 +7,7 @@
 #include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/argument_info_factory.h>
-#include "test_utils.h"
+#include <opendaq/mock/advanced_components_setup_utils.h>
 
 
 using namespace daq;
@@ -23,7 +23,7 @@ public:
 
     DevicePtr createDevice()
     {
-        return daq::config_protocol::test_utils::createTestDevice();
+        return test_utils::createTestDevice();
     }
 
     void setupServerAndClient(const DevicePtr& device, const UserPtr& user)

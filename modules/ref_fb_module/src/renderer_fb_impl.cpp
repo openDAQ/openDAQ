@@ -9,8 +9,10 @@
 #include <opendaq/custom_log.h>
 #include <ref_fb_module/dispatch.h>
 #include <coreobjects/eval_value_factory.h>
+#include <opendaq/thread_name.h>
 #include <date/date.h>
 #include <iomanip>
+
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -737,6 +739,8 @@ void RendererFbImpl::updateSingleXAxis() {
 
 void RendererFbImpl::renderLoop()
 {
+    daqNameThread("Renderer");
+
     unsigned int width;
     unsigned int height;
     getWidthAndHeight(width, height);

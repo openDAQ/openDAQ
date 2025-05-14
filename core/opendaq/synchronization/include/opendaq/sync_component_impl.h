@@ -130,8 +130,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaces(ID
     BaseObjectPtr interfacesValue;
     StringPtr str = "Interfaces";
     ErrCode err = this->getPropertyValue(str, &interfacesValue);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
     for (const auto& prop : InterfacesPtr.getAllProperties())
@@ -141,8 +140,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::getInterfaces(ID
             StringPtr name = prop.getName();
             BaseObjectPtr interfaceProperty;
             err = InterfacesPtr->getPropertyValue(name, &interfaceProperty);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             interfacesDict.set(name, interfaceProperty);
         }
@@ -205,16 +203,12 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::addInterface(IPr
     }
 
     ErrCode errCode = checkClassNameIsSyncInterface(className, typeManager);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr interfacesValue;
     StringPtr str = "Interfaces";
     errCode = this->getPropertyValue(str, &interfacesValue);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const auto interfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
     return interfacesPtr->addProperty(ObjectProperty(className, syncInterface));
@@ -228,8 +222,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
     BaseObjectPtr interfacesValue;
     StringPtr str = "Interfaces";
     ErrCode err = this->getPropertyValue(str, &interfacesValue);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     Int selectedSource = 0;
     getSelectedSource(&selectedSource);
@@ -244,8 +237,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
         if (equals)
         {
             err = InterfacesPtr->removeProperty(interfaceName);
-            if (OPENDAQ_FAILED(err))
-                return err;
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             if (selectedSource == idx)
             {

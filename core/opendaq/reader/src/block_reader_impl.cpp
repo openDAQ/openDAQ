@@ -235,10 +235,8 @@ ErrCode BlockReaderImpl::readPacketData()
 
     auto* packetData = getValuePacketData(*info.currentDataPacketIter);
     ErrCode errCode = valueReader->readData(packetData, info.prevSampleIndex, &info.values, sampleCountToRead);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     if (info.domainValues != nullptr)
     {
         auto dataPacket = *info.currentDataPacketIter;
@@ -256,13 +254,11 @@ ErrCode BlockReaderImpl::readPacketData()
             {
                 return errCode;
             }
+            daqClearErrorInfo();
             errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         }
 
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     info.writtenSampleCount += sampleCountToRead;

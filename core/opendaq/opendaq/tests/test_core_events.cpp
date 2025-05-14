@@ -757,6 +757,14 @@ TEST_F(CoreEventTest, ComponentUpdated)
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
+            if (args.getEventId() == static_cast<int>(CoreEventId::PropertyObjectUpdateEnd))
+            {
+                // this updating of device info
+                ASSERT_EQ(args.getEventName(), "PropertyObjectUpdateEnd");
+                ASSERT_EQ(comp, instance.getRootDevice().getInfo());
+                return;
+            }
+            
             ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::ComponentUpdateEnd));
             ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
             ASSERT_EQ(comp, instance.getRootDevice());

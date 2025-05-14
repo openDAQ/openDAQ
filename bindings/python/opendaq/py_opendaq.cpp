@@ -45,10 +45,12 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIDeviceInfoConfig = declareIDeviceInfoConfig(m);
     auto classINetworkInterface = declareINetworkInterface(m);
     auto classIServerCapability = declareIServerCapability(m);
+    auto classIConnectedClientInfo = declareIConnectedClientInfo(m);
     auto classIDeviceType = declareIDeviceType(m);
     auto classIFunctionBlock = declareIFunctionBlock(m);
     auto classIChannel = declareIChannel(m);
     auto classIFunctionBlockType = declareIFunctionBlockType(m);
+    auto classIRecorder = declareIRecorder(m);
     auto classILogger = declareILogger(m);
     auto classILoggerComponent = declareILoggerComponent(m);
     auto classILoggerSink = declareILoggerSink(m);
@@ -147,10 +149,12 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIDeviceInfoConfig(m, classIDeviceInfoConfig);
     defineINetworkInterface(m, classINetworkInterface);
     defineIServerCapability(m, classIServerCapability);
+    defineIConnectedClientInfo(m, classIConnectedClientInfo);
     defineIDeviceType(m, classIDeviceType);
     defineIFunctionBlock(m, classIFunctionBlock);
     defineIChannel(m, classIChannel);
     defineIFunctionBlockType(m, classIFunctionBlockType);
+    defineIRecorder(m, classIRecorder);
     defineILogger(m, classILogger);
     defineILoggerComponent(m, classILoggerComponent);
     defineILoggerSink(m, classILoggerSink);

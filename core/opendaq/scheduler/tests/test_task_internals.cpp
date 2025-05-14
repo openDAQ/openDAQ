@@ -10,6 +10,7 @@
 using TaskInternalsTest = testing::Test;
 
 using namespace daq;
+using namespace std::chrono_literals;
 
 TEST_F(TaskInternalsTest, TaskFlowFutureDestructorDoesNotBlock)
 {

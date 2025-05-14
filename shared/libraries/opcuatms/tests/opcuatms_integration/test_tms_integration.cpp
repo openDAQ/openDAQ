@@ -409,6 +409,36 @@ TEST_F(TmsIntegrationTest, BeginEndUpdateDevice)
     ASSERT_NO_THROW(clientDevice.endUpdate());
 }
 
+
+TEST_F(TmsIntegrationTest, SyncComponentNoSubdevices)
+{
+    auto inst = Instance();
+    auto serverTypeManager = inst.getContext().getTypeManager();
+    auto serverSync = inst.getSyncComponent();
+    SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);
+
+    syncComponentPrivate.addInterface(PropertyObject(serverTypeManager, "PtpSyncInterface"));
+    syncComponentPrivate.addInterface(PropertyObject(serverTypeManager, "InterfaceClockSync"));
+
+    serverSync.setSelectedSource(1);
+
+    TmsServer tmsServer(inst);
+    tmsServer.start();
+
+    TmsClient tmsClient(inst.getContext(), nullptr, OPC_URL);
+    DevicePtr clientDevice = tmsClient.connect();
+    auto clientSync = clientDevice.getSyncComponent();
+
+    ASSERT_EQ(serverSync.getSelectedSource(), clientSync.getSelectedSource());
+    ASSERT_EQ(serverSync.getSyncLocked(), clientSync.getSyncLocked());
+
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
+
+    ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
+    ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
+}
+
 TEST_F(TmsIntegrationTest, SyncComponent)
 {
     InstancePtr device = createDevice();

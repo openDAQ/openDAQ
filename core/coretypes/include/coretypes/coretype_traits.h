@@ -50,7 +50,7 @@ struct CoreTypeHelper
 
     static ErrCode FromConvertible(T& /*val*/, IConvertible* /*convObj*/)
     {
-        return OPENDAQ_ERR_CONVERSIONFAILED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CONVERSIONFAILED);
     }
 
     static void Print(std::ostringstream& os, const T& val)
@@ -242,7 +242,7 @@ struct CoreTypeHelper<std::wstring>
 
             CharPtr s = new (std::nothrow) char[maxLen + 1];
             if (s == nullptr)
-                return OPENDAQ_ERR_NOMEMORY;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
 
             err = convObj->toString(s, &maxLen);
             if (OPENDAQ_FAILED(err))
@@ -353,7 +353,7 @@ struct CoreTypeHelper<std::string>
 
             CharPtr s = new (std::nothrow) char[maxLen + 1];
             if (s == nullptr)
-                return OPENDAQ_ERR_NOMEMORY;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
 
             err = convObj->toString(s, &maxLen);
             if (OPENDAQ_FAILED(err))

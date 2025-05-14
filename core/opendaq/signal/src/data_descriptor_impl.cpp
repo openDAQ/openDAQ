@@ -393,6 +393,12 @@ void DataDescriptorImpl::calculateSample(
         dataRuleCalc->calculateSample(packetOffset, sampleIndex, input, inputSize, output);
 }
 
+void DataDescriptorImpl::calculateLastSample(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) const
+{
+    if (dataRuleCalc)
+        dataRuleCalc->calculateLastSample(packetOffset, sampleCount, input, inputSize, output);
+}
+
 Bool DataDescriptorImpl::hasDataRuleCalc() const
 {
     return (dataRuleCalc != nullptr) ? True : False;
@@ -493,8 +499,7 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
 
     DataDescriptorBuilderPtr dataDescriptor;
     auto errCode = createObject<IDataDescriptorBuilder, DataDescriptorBuilderImpl>(&dataDescriptor);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
 

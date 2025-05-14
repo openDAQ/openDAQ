@@ -27,10 +27,7 @@ ErrCode OwningDictImpl::removeOwner(IBaseObject* value) const
 ErrCode OwningDictImpl::set(IBaseObject* key, IBaseObject* value)
 {
     ErrCode err = DictImpl::set(key, value);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     auto ownable = BaseObjectPtr::Borrow(value).asPtrOrNull<IOwnable>();
     if (ownable.assigned())
@@ -44,10 +41,7 @@ ErrCode OwningDictImpl::set(IBaseObject* key, IBaseObject* value)
 ErrCode OwningDictImpl::remove(IBaseObject* key, IBaseObject** value)
 {
     ErrCode err = DictImpl::remove(key, value);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (*value != nullptr)
     {
@@ -63,10 +57,7 @@ ErrCode OwningDictImpl::deleteItem(IBaseObject* key)
     IBaseObject* value;
 
     ErrCode err = deleteItemInternal(key, &value, deleted);
-    if (OPENDAQ_FAILED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (!deleted)
     {
@@ -80,7 +71,7 @@ ErrCode OwningDictImpl::clear()
 {
     if (frozen)
     {
-        return OPENDAQ_ERR_FROZEN;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
     ErrCode err;
@@ -89,7 +80,7 @@ ErrCode OwningDictImpl::clear()
         err = removeOwner(value);
         if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_FROZEN)
         {
-            return err;
+            return DAQ_MAKE_ERROR_INFO(err);
         }
     }
 

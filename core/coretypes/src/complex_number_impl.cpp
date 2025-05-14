@@ -26,8 +26,7 @@ ComplexNumberImpl::ComplexNumberImpl(const Float real, const Float imaginary)
 
 ErrCode ComplexNumberImpl::getValue(ComplexFloat64* value)
 {
-    if (value == nullptr)
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(value);
 
     *value = this->value;
     return OPENDAQ_SUCCESS;
@@ -44,8 +43,7 @@ ErrCode ComplexNumberImpl::equalsValue(const ComplexFloat64 value, Bool* equals)
 
 ErrCode INTERFACE_FUNC ComplexNumberImpl::getReal(Float* real)
 {
-    if (real == nullptr)
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+    OPENDAQ_PARAM_NOT_NULL(real);
 
     *real = this->value.real;
     return OPENDAQ_SUCCESS;

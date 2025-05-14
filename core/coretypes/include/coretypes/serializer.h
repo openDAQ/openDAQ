@@ -63,6 +63,8 @@ DECLARE_OPENDAQ_INTERFACE(ISerializer, IBaseObject)
 
     virtual ErrCode INTERFACE_FUNC getUser(IBaseObject** user) = 0;
     virtual ErrCode INTERFACE_FUNC setUser(IBaseObject* user) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getVersion(Int * version) = 0;
 };
 
 /*!
@@ -77,21 +79,15 @@ DECLARE_OPENDAQ_INTERFACE(ISerializer, IBaseObject)
                                                                                                              \
         if (errCode == OPENDAQ_ERR_NOINTERFACE)                                                              \
         {                                                                                                    \
-            return OPENDAQ_ERR_NOT_SERIALIZABLE;                                                             \
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);                                        \
         }                                                                                                    \
                                                                                                              \
-        if (OPENDAQ_FAILED(errCode))                                                                         \
-        {                                                                                                    \
-            return errCode;                                                                                  \
-        }                                                                                                    \
+        OPENDAQ_RETURN_IF_FAILED(errCode);                                                                   \
                                                                                                              \
         serializer->key(#name);                                                                              \
         errCode = serializable->serialize(serializer);                                                       \
                                                                                                              \
-        if (OPENDAQ_FAILED(errCode))                                                                         \
-        {                                                                                                    \
-            return errCode;                                                                                  \
-        }                                                                                                    \
+        OPENDAQ_RETURN_IF_FAILED(errCode);                                                                   \
     }
 
 END_NAMESPACE_OPENDAQ

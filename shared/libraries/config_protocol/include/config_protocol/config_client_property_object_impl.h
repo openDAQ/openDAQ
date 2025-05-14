@@ -80,7 +80,7 @@ protected:
 
     virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
-    void cloneAndSetChildPropertyObject(const PropertyPtr& prop) override;
+    PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
 
 /*
     void beginApplyUpdate() override;
@@ -261,10 +261,15 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearPropertyValue(IString* pr
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IString* propertyName)
 {
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
     if (!deserializationComplete)
         return Impl::clearProtectedPropertyValue(propertyName);
 
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    const auto propertyNamePtr = StringPtr::Borrow(propertyName);
+    return daqTry([this, &propertyNamePtr]()
+    {
+        clientComm->clearProtectedPropertyValue(remoteGlobalId, propertyNamePtr);
+    });
 }
 
 template <class Impl>
@@ -279,37 +284,37 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::addProperty(IProperty* propert
     if (!deserializationComplete)
         return Impl::addProperty(property);
 
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* propertyName)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* /*propertyName*/, IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* /*propertyName*/, IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueWrite(IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueRead(IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
@@ -333,7 +338,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getAllProperties(IList** prope
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* orderedPropertyNames)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>
@@ -611,7 +616,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(const SerializedOb
 }
 
 template <class Impl>
-void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(const PropertyPtr& prop)
+PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyObject(const PropertyPtr& prop)
 {
     const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
     if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
@@ -619,15 +624,10 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
         const auto propName = prop.getName();
         const auto defaultValueObj = prop.getDefaultValue().asPtrOrNull<IPropertyObject>();
         if (!defaultValueObj.assigned())
-            return;
+            return nullptr;
 
         if (!isBasePropertyObject(defaultValueObj))
-        {
-            auto clonedValue = defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
-            this->writeLocalValue(propName, clonedValue);
-            this->configureClonedObj(propName, clonedValue);
-            return;
-        }
+            return defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
 
         // This feels hacky...
         const auto serializer = JsonSerializer();
@@ -646,16 +646,18 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::cloneAndSetChildPropertyObject(co
                                             const BaseObjectPtr& context,
                                             const FunctionPtr& factoryCallback)
                                      {
-                                         return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback, nullptr);
+                                         return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
                                      });
         
         const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(clientPropObj.getObject());
         if (impl == nullptr)
             DAQ_THROW_EXCEPTION(InvalidStateException, "Failed to cast to ConfigClientPropertyObjectImpl");
         impl->unfreeze();
-        this->writeLocalValue(propName, clientPropObj);
-        this->configureClonedObj(propName, clientPropObj);
+
+        return clientPropObj;
     }
+
+    return nullptr;
 }
 
 /*
@@ -861,8 +863,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const St
 template <class Impl>
 bool ConfigClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const PropertyObjectPtr& propObj)
 {
-    return !propObj.supportsInterface<IServerCapabilityConfig>() 
-            && !propObj.supportsInterface<IAddressInfo>();
+    return !propObj.supportsInterface<IServerCapabilityConfig>()
+            && !propObj.supportsInterface<IAddressInfo>()
+            && !propObj.supportsInterface<IConnectedClientInfo>();
 }
 
 

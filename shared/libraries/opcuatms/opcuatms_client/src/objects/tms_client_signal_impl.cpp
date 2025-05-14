@@ -47,7 +47,7 @@ ErrCode TmsClientSignalImpl::setPublic(Bool valPublic)
 
 ErrCode TmsClientSignalImpl::setDescriptor(IDataDescriptor* /*descriptor*/)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 SignalPtr TmsClientSignalImpl::onGetDomainSignal()
@@ -104,7 +104,7 @@ bool TmsClientSignalImpl::clearDescriptorOnUnsubscribe()
 
 ErrCode TmsClientSignalImpl::setDomainSignal(ISignal* signal)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
@@ -114,6 +114,7 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
     *signals = signalsPtr.detach();
     if (OPENDAQ_FAILED(errCode))
     {
+        daqClearErrorInfo();
         LOG_W("Failed to get related signals on OpcUA client signal \"{}\"", this->globalId);
     }
     return OPENDAQ_SUCCESS;
@@ -141,22 +142,22 @@ ListPtr<ISignal> TmsClientSignalImpl::onGetRelatedSignals()
 
 ErrCode TmsClientSignalImpl::setRelatedSignals(IList* signals)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 ErrCode TmsClientSignalImpl::addRelatedSignal(ISignal* signal)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 ErrCode TmsClientSignalImpl::removeRelatedSignal(ISignal* signal)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 ErrCode TmsClientSignalImpl::clearRelatedSignals()
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 Bool TmsClientSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)

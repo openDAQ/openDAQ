@@ -45,6 +45,7 @@ public:
     virtual void processSamples(const NumberPtr& startDomainValue, const uint8_t* data, size_t sampleCount);
     virtual DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
                                              const uint8_t* data,
+                                             size_t dataSize,
                                              size_t sampleCount,
                                              const DataPacketPtr& domainPacket) = 0;
     virtual bool isDomainSignal() const = 0;
@@ -64,6 +65,9 @@ public:
     void setSubscribed(bool subscribed);
     bool getSubscribed();
 
+    const DataPacketPtr& getLastPacket() const noexcept;
+    void setLastPacket(const DataPacketPtr& packet);
+
 protected:
     const std::string signalId;
     const std::string tableId;
@@ -76,6 +80,8 @@ protected:
     daq::streaming_protocol::LogCallback logCallback;
     mutable std::mutex descriptorsSync;
     bool subscribed;
+
+    daq::DataPacketPtr lastPacket;
 };
 
 /// Used as a placeholder for uninitialized or incomplete signals which aren't supported by LT-streaming
@@ -90,6 +96,7 @@ public:
 
     DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
                                      const uint8_t* data,
+                                     size_t dataSize,
                                      size_t sampleCount,
                                      const DataPacketPtr& domainPacket) override;
     bool isDomainSignal() const override;
@@ -106,6 +113,7 @@ public:
 
     DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
                                      const uint8_t* data,
+                                     size_t dataSize,
                                      size_t sampleCount,
                                      const DataPacketPtr& domainPacket) override;
     bool isDomainSignal() const override;
@@ -126,6 +134,7 @@ public:
 
     DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
                                      const uint8_t* data,
+                                     size_t dataSize,
                                      size_t sampleCount,
                                      const DataPacketPtr& domainPacket) override;
     bool isDomainSignal() const override;
@@ -148,6 +157,7 @@ public:
     void processSamples(const NumberPtr& absoluteStartDomainValue, const uint8_t* data, size_t sampleCount) override;
     DataPacketPtr generateDataPacket(const NumberPtr& packetOffset,
                                      const uint8_t* data,
+                                     size_t dataSize,
                                      size_t sampleCount,
                                      const DataPacketPtr& domainPacket) override;
     bool isDomainSignal() const override;
@@ -196,6 +206,8 @@ inline InputSignalBasePtr InputSignal(const std::string& signalId,
     {
         if (dataRuleType == daq::DataRuleType::Linear)
             return std::make_shared<InputDomainSignal>(signalId, tabledId, signalInfo, logCb);
+        if (dataRuleType == daq::DataRuleType::Explicit)
+            return std::make_shared<InputExplicitDataSignal>(signalId, tabledId, signalInfo, nullptr, logCb);
         else
             DAQ_THROW_EXCEPTION(ConversionFailedException, "Unsupported input domain signal rule");
     }

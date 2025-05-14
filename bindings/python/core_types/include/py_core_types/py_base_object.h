@@ -61,8 +61,7 @@ daq::ErrCode PyObjectImpl<PyT, Interfaces...>::getPyObject(PyT& pyObj)
 template <class PyT, class... Interfaces>
 inline daq::ErrCode PyObjectImpl<PyT, Interfaces...>::toString(daq::CharPtr* str)
 {
-    if (str == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     std::string str1 = pybind11::repr(pyObject);
     const daq::ErrCode err = daqDuplicateCharPtr(str1.c_str(), str);

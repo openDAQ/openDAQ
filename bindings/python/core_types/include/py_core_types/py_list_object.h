@@ -65,8 +65,7 @@ protected:
 template <class F>
 daq::ErrCode PyListImpl<F>::getCoreType(daq::CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = daq::ctList;
     return OPENDAQ_SUCCESS;
@@ -87,11 +86,10 @@ PyListImpl<F>::PyListImpl(pybind11::list&& obj)
 template <class F>
 daq::ErrCode PyListImpl<F>::getItemAt(daq::SizeT index, daq::IBaseObject** item)
 {
-    if (item == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(item);
 
     if (index >= pyObject.size())
-        return OPENDAQ_ERR_OUTOFRANGE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
 
     pybind11::object obj = pyObject[index];
 
@@ -105,8 +103,7 @@ daq::ErrCode PyListImpl<F>::getItemAt(daq::SizeT index, daq::IBaseObject** item)
 template <class F>
 daq::ErrCode PyListImpl<F>::getCount(daq::SizeT* size)
 {
-    if (size == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(size);
 
     *size = pyObject.size();
     return OPENDAQ_SUCCESS;
@@ -151,8 +148,7 @@ daq::ErrCode PyListImpl<F>::moveFront(daq::IBaseObject* obj)
 template <class F>
 daq::ErrCode PyListImpl<F>::popBack(daq::IBaseObject** obj)
 {
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     pybind11::object pyobj = pyObject[pyObject.size() - 1];
 
@@ -166,8 +162,7 @@ daq::ErrCode PyListImpl<F>::popBack(daq::IBaseObject** obj)
 template <class F>
 daq::ErrCode PyListImpl<F>::popFront(daq::IBaseObject** obj)
 {
-    if (obj == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     pybind11::object pyobj = pyObject[0];
 
@@ -216,13 +211,13 @@ daq::ErrCode PyListImpl<F>::clear()
 template <class F>
 daq::ErrCode PyListImpl<F>::createStartIterator(daq::IIterator** /* iterator */)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Start iterator not implemented");
 }
 
 template <class F>
 daq::ErrCode PyListImpl<F>::createEndIterator(daq::IIterator** /* iterator */)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "End iterator not implemented");
 }
 
 template <class F>

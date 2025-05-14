@@ -47,11 +47,6 @@ private:
     DeviceTypePtr createDeviceType();
     StreamingTypePtr createStreamingType();
 
-    static StringPtr GetHostType(const StringPtr& url);
-    static StringPtr GetHost(const StringPtr& url);
-    static StringPtr GetPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
-    static StringPtr GetPath(const StringPtr& url);
-
     static bool ConnectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     static bool ValidateConnectionString(const StringPtr& connectionString);
 

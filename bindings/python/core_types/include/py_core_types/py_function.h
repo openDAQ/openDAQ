@@ -98,8 +98,7 @@ daq::ErrCode PyFunctionImpl<F>::call(daq::IBaseObject* params, daq::IBaseObject*
 template <class F>
 daq::ErrCode PyFunctionImpl<F>::getCoreType(daq::CoreType* coreType)
 {
-    if (coreType == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+    OPENDAQ_PARAM_NOT_NULL(coreType);
 
     *coreType = daq::ctFunc;
     return OPENDAQ_SUCCESS;

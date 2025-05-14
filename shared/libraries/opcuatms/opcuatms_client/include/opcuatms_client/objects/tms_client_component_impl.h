@@ -73,6 +73,8 @@ public:
 protected:
     bool isChildComponent(const ComponentPtr& component);
 
+    PropertyObjectPtr findAndCreateComponentConfig();
+
 private:
     LoggerComponentPtr getLoggerComponent();
     void initComponent();

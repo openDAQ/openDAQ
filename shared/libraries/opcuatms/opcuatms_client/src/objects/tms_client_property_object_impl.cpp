@@ -27,7 +27,7 @@ namespace detail
 }
 
 template <class Impl>
-ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite)
+ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(IString* propertyName, IBaseObject* value, bool protectedWrite)
 {
     if (propertyName == nullptr)
     {
@@ -36,55 +36,69 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValueInternal(IString*
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
+    if (this->isChildProperty(propertyNamePtr))
+    {
+        PropertyPtr prop;
+        ErrCode err = getProperty(propertyNamePtr, &prop);
+        OPENDAQ_RETURN_IF_FAILED(err);
+
+        if (!prop.assigned())
+            throw NotFoundException(R"(Child property "{}" not found)", propertyNamePtr);
+        if (protectedWrite)
+            return prop.asPtr<IPropertyInternal>()->setValueProtected(value);
+        return prop->setValue(value);
+    }
+
     StringPtr lastProcessDescription = "";
-    ErrCode errCode = daqTry(
-        [&]()
+    ErrCode errCode = daqTry([&]
+    {
+        if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
         {
-            if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
+            PropertyPtr prop;
+            checkErrorInfo(getProperty(propertyName, &prop));
+            if (!protectedWrite)
             {
-                PropertyPtr prop;
-                checkErrorInfo(getProperty(propertyName, &prop));
-                if (!protectedWrite)
-                {
-                    lastProcessDescription = "Checking existing property is read-only";
-                    if (prop.getReadOnly())
-                        return OPENDAQ_ERR_ACCESSDENIED;
-                }
-
-                BaseObjectPtr valuePtr = value;
-                const auto ct = prop.getValueType();
-                const auto valueCt = valuePtr.getCoreType();
-                if (ct != valueCt)
-                    valuePtr = valuePtr.convertTo(ct);
-
-                lastProcessDescription = "Writing property value";
-                const auto variant = VariantConverter<IBaseObject>::ToVariant(valuePtr, nullptr, daqContext);
-                client->writeValue(it->second, variant);
-                return OPENDAQ_SUCCESS;
+                lastProcessDescription = "Checking existing property is read-only";
+                if (prop.getReadOnly())
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
             }
 
-            if (const auto& it = referenceVariableIdMap.find(propertyNamePtr); it != referenceVariableIdMap.cend())
-            {
-                lastProcessDescription = "Setting property value";
-                const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
-                return setPropertyValue(refProp.getName(), value);
-            }
+            BaseObjectPtr valuePtr = value;
+            const auto ct = prop.getValueType();
+            const auto valueCt = valuePtr.getCoreType();
+            if (ct != valueCt)
+                valuePtr = valuePtr.convertTo(ct);
 
-            if (const auto& it = objectTypeIdMap.find((propertyNamePtr)); it != objectTypeIdMap.cend())
-            {
-                lastProcessDescription = "Object type properties cannot be set over OpcUA";
-                return OPENDAQ_ERR_NOTIMPLEMENTED;
-            }
+            lastProcessDescription = "Writing property value";
+            const auto variant = VariantConverter<IBaseObject>::ToVariant(valuePtr, nullptr, daqContext);
+            client->writeValue(it->second, variant);
+            return OPENDAQ_SUCCESS;
+        }
 
-            lastProcessDescription = "Property not found";
-            return OPENDAQ_ERR_NOTFOUND;
-        });
+        if (const auto& it = referenceVariableIdMap.find(propertyNamePtr); it != referenceVariableIdMap.cend())
+        {
+            lastProcessDescription = "Setting property value";
+            const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
+            return setPropertyValue(refProp.getName(), value);
+        }
+
+        if (const auto& it = objectTypeIdMap.find((propertyNamePtr)); it != objectTypeIdMap.cend())
+        {
+            lastProcessDescription = "Object type properties cannot be set over OpcUA";
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+        }
+
+        lastProcessDescription = "Property not found";
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+    });
 
     if (OPENDAQ_FAILED(errCode))
         LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProcessDescription);
-    
+
     if (errCode == OPENDAQ_ERR_NOTFOUND || errCode == OPENDAQ_ERR_ACCESSDENIED)
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format("Property \"{}\" not found or access denied", propertyNamePtr));
+    else if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
 
     return OPENDAQ_SUCCESS;
 }
@@ -103,13 +117,13 @@ void TmsClientPropertyObjectBaseImpl<Impl>::init()
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    return setPropertyValueInternal(propertyName, value, false);
+    return setOPCUAPropertyValueInternal(propertyName, value, false);
 }
 
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    return setPropertyValueInternal(propertyName, value, true);
+    return setOPCUAPropertyValueInternal(propertyName, value, true);
 }
 
 template <typename Impl>
@@ -121,6 +135,18 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         return OPENDAQ_SUCCESS;
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
+
+    if (this->isChildProperty(propertyNamePtr))
+    {
+        PropertyPtr prop;
+        ErrCode err = getProperty(propertyNamePtr, &prop);
+        OPENDAQ_RETURN_IF_FAILED(err);
+
+        if (!prop.assigned())
+            throw NotFoundException(R"(Child property "{}" not found)", propertyNamePtr);
+
+        return prop->getValue(value);
+    }
 
     StringPtr lastProccessDescription = "";
     ErrCode errCode = daqTry([&]
@@ -136,16 +162,12 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
             return getPropertyValue(refProp.getName(), value);
         }
-        else if (const auto& objIt = objectTypeIdMap.find(propertyNamePtr); objIt != objectTypeIdMap.cend())
-        {
-            *value = TmsClientPropertyObject(daqContext, clientContext, objIt->second).detach();
-            return OPENDAQ_SUCCESS;
-        }
 
         return Impl::getPropertyValue(propertyName, value);
     });
     if (OPENDAQ_FAILED(errCode))
     {
+        daqClearErrorInfo();
         LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
     }
     return OPENDAQ_SUCCESS;
@@ -162,13 +184,13 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertySelecti
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::clearPropertyValue(IString* propertyName)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IString* propertyName)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <typename Impl>
@@ -180,37 +202,37 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getProperty(IStrin
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::addProperty(IProperty* property)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <typename Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::removeProperty(IString* propertyName)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueWrite(IString* /*propertyName*/, IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <typename Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* /*propertyName*/, IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueWrite(IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueRead(IEvent** /*event*/)
 {
-    return OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <typename Impl>
@@ -234,7 +256,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getAllProperties(I
 template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* orderedPropertyNames)
 {
-    return OPENDAQ_ERR_INVALID_OPERATION;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 template <class Impl>
@@ -332,7 +354,14 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             try
             {
                 if (!hasProp)
+                {
                     prop = addVariableBlockProperty(propName, childNodeId);
+                }
+                else if (this->objPtr.template supportsInterface<ISyncComponent>())
+                {
+                    Impl::removeProperty(propName);
+                    prop = addVariableBlockProperty(propName, childNodeId);
+                }
 
                 objectTypeIdMap.emplace(propName, childNodeId);
             }
@@ -371,7 +400,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
         const auto typeId = OpcUaNodeId(ref->typeDefinition.nodeId);
         const auto propName = String(utils::ToStdString(ref->browseName.name));
 
-        if (isIgnoredMethodPeoperty(propName))
+        if (isIgnoredMethodProperty(propName))
             continue;
 
         Bool hasProp;
@@ -500,19 +529,63 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
         addMethodProperties(nodeId, orderedProperties, unorderedProperties, functionPropValues);
     }
 
+    auto addPropertyIgnoreDuplicates = [this](const daq::PropertyPtr& prop)
+    {
+        auto ec = Impl::addProperty(prop);
+        if (ec != OPENDAQ_ERR_ALREADYEXISTS)
+            return ec;
+        LOG_W("OPC UA exposes two properties with the same name \"{}\". The duplicate property will be ignored.", prop.getName())
+        return OPENDAQ_SUCCESS;
+    };
+
     for (const auto& val : orderedProperties)
-        daq::checkErrorInfo(Impl::addProperty(val.second));
+        daq::checkErrorInfo(addPropertyIgnoreDuplicates(val.second));
     for (const auto& val : unorderedProperties)
-        daq::checkErrorInfo(Impl::addProperty(val));
+        daq::checkErrorInfo(addPropertyIgnoreDuplicates(val));
     for (const auto& val : functionPropValues)
         daq::checkErrorInfo(Impl::setProtectedPropertyValue(String(val.first), val.second));
 
 }
 
 template <class Impl>
-bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodPeoperty(const std::string& browseName)
+bool TmsClientPropertyObjectBaseImpl<Impl>::isIgnoredMethodProperty(const std::string& browseName)
 {
     return browseName == "BeginUpdate" || browseName == "EndUpdate" || browseName == "GetErrorInformation";
+}
+
+template <class Impl>
+PropertyObjectPtr TmsClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyObject(const PropertyPtr& prop)
+{
+    const auto propPtrInternal = prop.asPtr<IPropertyInternal>();
+    if (propPtrInternal.assigned() && propPtrInternal.getValueTypeUnresolved() == ctObject && prop.getDefaultValue().assigned())
+    {
+        const auto propName = prop.getName();
+        const auto defaultValueObj = prop.getDefaultValue().asPtrOrNull<IPropertyObject>();
+        if (!defaultValueObj.assigned())
+            return nullptr;
+
+        if (!isBasePropertyObject(defaultValueObj))
+        {
+            return defaultValueObj.asPtr<IPropertyObjectInternal>(true).clone();
+        }
+
+        if (const auto& objIt = objectTypeIdMap.find(propName); objIt != objectTypeIdMap.cend())
+        {
+            return TmsClientPropertyObject(daqContext, clientContext, objIt->second);
+        }
+        
+        throw NotFoundException{"Object property with name {} not found", propName};
+    }
+
+    return nullptr;
+}
+
+template <class Impl>
+bool TmsClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const PropertyObjectPtr& propObj)
+{
+    return !propObj.supportsInterface<IServerCapabilityConfig>()
+            && !propObj.supportsInterface<IAddressInfo>()
+            && !propObj.supportsInterface<IConnectedClientInfo>();
 }
 
 template class TmsClientPropertyObjectBaseImpl<PropertyObjectImpl>;

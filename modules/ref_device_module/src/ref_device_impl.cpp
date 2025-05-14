@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
+#include <opendaq/thread_name.h>
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
 #ifdef __linux__
@@ -27,7 +28,6 @@
 #endif
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
-
 StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
 RefDeviceImpl::RefDeviceImpl(size_t id,
@@ -214,6 +214,8 @@ void RefDeviceImpl::initSyncComponent()
 
 void RefDeviceImpl::acqLoop()
 {
+    daqNameThread("RefDevice");
+
     using namespace std::chrono_literals;
     using milli = std::chrono::milliseconds;
 
@@ -562,6 +564,13 @@ StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
 std::set<OperationModeType> RefDeviceImpl::onGetAvailableOperationModes()
 {
     return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
+}
+
+void RefDeviceImpl::onOperationModeChanged(OperationModeType modeType)
+{
+    bool active = modeType != OperationModeType::Idle;
+    for (const auto& ch : this->channels)
+        ch.setActive(active);
 }
 
 void RefDeviceImpl::createSignals()

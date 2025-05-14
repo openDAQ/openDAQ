@@ -1,5 +1,9 @@
 #include <discovery_common/daq_discovery_common.h>
 #include <cctype>
+#include <map>
+#include <set>
+#include <coreobjects/property_object_protected_ptr.h>
+#include <coreobjects/property_object_internal_ptr.h>
 
 BEGIN_NAMESPACE_DISCOVERY_COMMON
 
@@ -114,6 +118,104 @@ std::string DiscoveryUtils::toTxtValue(const char* source, size_t length)
     }
 
     return result;
+}
+
+TxtProperties DiscoveryUtils::connectedClientsInfoToTxt(const PropertyObjectPtr& connectedClientsInfo)
+{
+    TxtProperties result;
+
+    const auto zeroPadNumber =
+        [width = std::to_string(connectedClientsInfo.getAllProperties().getCount() - 1).size()](size_t index)
+        {
+            return std::string(width - std::to_string(index).size(), '0') + std::to_string(index);
+        };
+
+    size_t index = 0;
+    for (const auto& clientInfoProperty : connectedClientsInfo.getAllProperties())
+    {
+        const PropertyObjectPtr connectedClientPropObject = clientInfoProperty.getValue();
+
+        // replace client ID string with lexicographically ordered index string
+        std::string keyPrefix = std::string(CONNECTED_CLIENT_INFO_KEY_PREFIX) + zeroPadNumber(index) + "--";
+        ++index;
+
+        for (const auto& property : connectedClientPropObject.getAllProperties())
+        {
+            if (property.getValueType() == CoreType::ctString)
+            {
+                std::string propName = property.getName().toStdString();
+                bool invalidTxtKey = std::any_of(propName.begin(), propName.end(),
+                                                 [](unsigned char c) { return c == '=' || !std::isprint(c); });
+                if (invalidTxtKey)
+                    continue;
+                std::string key = keyPrefix + propName;
+                if (key.size() < 254) // insert if at least first symbol of value fits into TXT record
+                {
+                    std::string propValue = property.getValue().asPtr<IString>().toStdString();
+                    std::string txtValue = toTxtValue(propValue.c_str(), 254 - key.size());
+                    result.insert({key, txtValue});
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+void DiscoveryUtils::populateConnectedClientsInfo(PropertyObjectPtr& deviceInfo,
+                                                  const PropertyObjectPtr& defaultClientInfo,
+                                                  const TxtProperties& txtKeyValuePairs)
+{
+    if (!defaultClientInfo.assigned() || !deviceInfo.assigned())
+        return;
+
+    const auto setProtectedPropertyValue = [](PropertyObjectPtr propertyObject,
+                                              const StringPtr& propertyName,
+                                              const BaseObjectPtr& propertyValue)
+    {
+        if (auto protectedObj = propertyObject.asPtrOrNull<IPropertyObjectProtected>(); protectedObj.assigned())
+            protectedObj.setProtectedPropertyValue(propertyName, propertyValue);
+        else
+            propertyObject->setPropertyValue(propertyName, propertyValue); // Ignore errors
+    };
+
+    std::set<std::string> orderedClientIds;
+    PropertyObjectPtr clientsInfo = deviceInfo.getPropertyValue("activeClientConnections");
+    for (const auto& [txtKey, txtValue] : txtKeyValuePairs)
+    {
+        std::string prefix(CONNECTED_CLIENT_INFO_KEY_PREFIX);
+        if (txtKey.find(prefix) == std::string::npos)
+            continue;
+
+        auto prefixSize = prefix.size();
+        if (const auto pos = txtKey.find("--", prefixSize); pos != std::string::npos && pos < (txtKey.size() - 2))
+        {
+            std::string clientId = txtKey.substr(prefixSize, pos - prefixSize);
+            std::string propName = txtKey.substr(pos + 2);
+
+            if (!clientsInfo.hasProperty(clientId))
+            {
+                orderedClientIds.insert(clientId);
+                clientsInfo.addProperty(ObjectProperty(clientId, defaultClientInfo.asPtr<IPropertyObjectInternal>().clone()));
+            }
+
+            PropertyObjectPtr clientInfo = clientsInfo.getPropertyValue(clientId);
+            if (clientInfo.hasProperty(propName))
+                setProtectedPropertyValue(clientInfo, String(propName), static_cast<daq::BaseObjectPtr>(txtValue));
+            else
+                clientInfo.addProperty(StringPropertyBuilder(propName, txtValue).setReadOnly(true).build());
+
+            setProtectedPropertyValue(clientsInfo, String(clientId), clientInfo);
+        }
+    }
+
+    // restore lexicographical order to match the original server order
+    auto propertyOrder = List<IString>();
+    for (const auto& clientId : orderedClientIds)
+        propertyOrder.pushBack(String(clientId));
+    clientsInfo.setPropertyOrder(propertyOrder);
+
+    setProtectedPropertyValue(deviceInfo, "activeClientConnections", clientsInfo);
 }
 
 END_NAMESPACE_DISCOVERY_COMMON

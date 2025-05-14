@@ -1,0 +1,44 @@
+= Record Data
+
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 📁 Setup Data Recording — Learn how to configure and initialize a CSV data recorder within openDAQ(TM).
+- 🔌 Connect Signals — Understand the process of linking specific device signals to recorder input ports.
+- ⏯️ Control Data Capture — Master starting and stopping data recording using programmatic control.
+- 📊 Data Storage Management — Gain insights into managing the recorded data, including file paths and generated file structures.
+- 🛠️ Customization & Extensions — Explore creating custom implementations for recording data beyond numeric scalars, including handling complex signals and alternative storage formats.
+====
+
+openDAQ(TM) provides an interface for xref:explanations:components.adoc[Components] which
+record data to persistent storage media such as files. The `BasicCsvRecorder` module provides a
+simple reference implementation.
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+// Create and configure a CSV recorder
+auto recorder = instance.addFunctionBlock("BasicCsvRecorder");
+recorder.setPropertyValue("Path", "/tmp");
+
+// Connect signal AI0 to the recorder's first input
+SignalPtr signal = device.getSignalsRecursive(daq::search::LocalId("AI0"))[0];
+auto input1 = recorder.getInputPorts(daq::search::LocalId("Value1"))[0];
+input1.connect(signal);
+
+// Record 5 seconds of data
+recorder.startRecording();
+std::this_thread::sleep_for(5s);
+recorder.stopRecording();
+----
+====
+
+The reference implementation supports scalar signals of numeric type. No domain alignment is
+performed, and a separate CSV file is generated for each signal. Custom implementations of
+`IRecorder` can be designed to support additional file formats or storage media, and to support
+more complicated signal types.

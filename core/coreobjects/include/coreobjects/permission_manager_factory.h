@@ -43,6 +43,15 @@ inline PermissionManagerPtr PermissionManager(const PermissionManagerPtr& parent
     return obj;
 }
 
+/*!
+ * @brief Creates a permission manager which never restricts any access to any object.
+ */
+inline PermissionManagerPtr DisabledPermissionManager()
+{
+    PermissionManagerPtr obj(DisabledPermissionManager_Create());
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

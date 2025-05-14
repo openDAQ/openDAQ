@@ -117,7 +117,7 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
 {
     const size_t packetsToGenerate = 5;
     const size_t initialEventPackets = 1;
-    const size_t packetsPerChange = 2;  // one triggered by data signal and one trigegred by domain signal
+    const size_t packetsPerChange = 2;  // one triggered by data signal and one triggered by domain signal
     const size_t packetsToRead = initialEventPackets + packetsToGenerate + (packetsToGenerate - 1) * packetsPerChange;
 
     auto serverSignal = getSignal(serverInstance, "ChangingSignal");

@@ -91,7 +91,10 @@ ErrCode INTERFACE_FUNC UserImpl::serialize(ISerializer* serializer)
     if (groups.assigned())
     {
         serializer->key("groups");
-        groups.serialize(serializer);
+        serializer->startList();
+        for (const auto& group : groups)
+            group.serialize(serializer);
+        serializer->endList();
     }
 
     serializer->endObject();
@@ -118,18 +121,15 @@ ErrCode UserImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunc
 
     StringPtr username;
     ErrCode err = serializedObj->readString(String("username"), &username);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     StringPtr passwordHash;
     err = serializedObj->readString(String("passwordHash"), &passwordHash);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     ListPtr<IUser> groups;
     err = serializedObj->readList(String("groups"), nullptr, nullptr, &groups);
-    if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_NOTFOUND)
-        return err;
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_NOTFOUND);
 
     auto user = User(username, passwordHash, groups);
     *obj = user.addRefAndReturn();

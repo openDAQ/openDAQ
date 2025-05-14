@@ -242,13 +242,25 @@ public:
         return userObject;
     }
 
-    void setUser(const BaseObjectPtr& user)
+    void setUser(const BaseObjectPtr& user) const
     {
         if (!object)
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->setUser(user);
         checkErrorInfo(errCode);
+    }
+
+    Int getVersion() const
+    {
+        if (!object)
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+        Int version;
+        ErrCode errCode = object->getVersion(&version);
+        checkErrorInfo(errCode);
+
+        return version;
     }
 };
 

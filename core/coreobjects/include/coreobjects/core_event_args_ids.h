@@ -25,7 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-enum class CoreEventId : uint32_t
+enum class CoreEventId : EnumType
 {
     PropertyValueChanged = 0,
     PropertyObjectUpdateEnd = 10,

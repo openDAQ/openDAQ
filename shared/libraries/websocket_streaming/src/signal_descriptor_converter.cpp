@@ -1,5 +1,6 @@
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/dimension_factory.h>
 #include <coreobjects/unit_factory.h>
 
 #include <opendaq/range_factory.h>
@@ -25,7 +26,9 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 /**
  *  @todo Only scalar values are supported for now. No structs. No dimensions.
  */
-SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::streaming_protocol::SubscribedSignal& subscribedSignal)
+SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(
+    const daq::streaming_protocol::SubscribedSignal& subscribedSignal,
+    const daq::ContextPtr& context)
 {
     SubscribedSignalInfo sInfo;
     auto dataDescriptorBuilder = DataDescriptorBuilder();
@@ -45,6 +48,63 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(const daq::stre
     daq::streaming_protocol::SampleType streamingSampleType = subscribedSignal.dataValueType();
     daq::SampleType daqSampleType = Convert(streamingSampleType);
     dataDescriptorBuilder.setSampleType(daqSampleType);
+
+    if (daqSampleType == daq::SampleType::Struct)
+    {
+        const auto& details = subscribedSignal.datatypeDetails();
+        auto fields = List<daq::IDataDescriptor>();
+
+        auto fieldNames = List<daq::IString>();
+        auto fieldTypes = List<daq::IType>();
+
+        for (const auto& field : details)
+        {
+            auto fieldBuilder = DataDescriptorBuilder();
+            fieldBuilder.setName(field.at("name"));
+            fieldBuilder.setSampleType(ConvertSampleTypeString(field.value("dataType", "")));
+            fieldNames.pushBack(fieldBuilder.getName());
+
+            if (field.count("dimensions") > 0)
+            {
+                auto daqDimensions = List<daq::IDimension>();
+                fieldTypes.pushBack(SimpleType(daq::CoreType::ctList));
+
+                auto dimensions = field["dimensions"];
+                for (const auto& dimension : dimensions)
+                {
+                    if (dimension.at("rule") != "linear")
+                        DAQ_THROW_EXCEPTION(ConversionFailedException, "Struct has field with unsupported dimension");
+
+                    daqDimensions.pushBack(
+                        DimensionBuilder()
+                            .setName(dimension.at("name"))
+                            .setRule(LinearDimensionRule(
+                                static_cast<unsigned>(dimension.at("linear").at("delta")),
+                                static_cast<unsigned>(dimension.at("linear").at("start")),
+                                static_cast<unsigned>(dimension.at("linear").at("size"))))
+                            .build());
+                }
+
+                fieldBuilder.setDimensions(daqDimensions);
+            }
+
+            else
+            {
+                fieldTypes.pushBack(SimpleType(daq::CoreType::ctInt));
+            }
+
+            fields.pushBack(fieldBuilder.build());
+        }
+
+        dataDescriptorBuilder.setStructFields(fields);
+
+        context.getTypeManager().addType(
+            StructType(
+                "CAN", // dataDescriptorBuilder.getName(), // XXX TODO
+                fieldNames,
+                fieldTypes
+            ));
+    }
 
     sInfo.signalName = subscribedSignal.memberName();
 
@@ -287,9 +347,40 @@ daq::SampleType SignalDescriptorConverter::Convert(daq::streaming_protocol::Samp
             return daq::SampleType::UInt32;
         case daq::streaming_protocol::SampleType::SAMPLETYPE_BITFIELD64:
             return daq::SampleType::UInt64;
+        case daq::streaming_protocol::SampleType::SAMPLETYPE_STRUCT:
+            return daq::SampleType::Struct;
         default:
             DAQ_THROW_EXCEPTION(ConversionFailedException, "Unsupported input sample type");
     }
+}
+
+/**
+ *  @throws ConversionFailedException
+ */
+daq::SampleType SignalDescriptorConverter::ConvertSampleTypeString(const std::string& sampleType)
+{
+    if (sampleType == "uint8")
+        return daq::SampleType::UInt8;
+    if (sampleType == "uint16")
+        return daq::SampleType::UInt16;
+    if (sampleType == "uint32")
+        return daq::SampleType::UInt32;
+    if (sampleType == "uint64")
+        return daq::SampleType::UInt64;
+    if (sampleType == "int8")
+        return daq::SampleType::Int8;
+    if (sampleType == "int16")
+        return daq::SampleType::Int16;
+    if (sampleType == "int32")
+        return daq::SampleType::Int32;
+    if (sampleType == "int64")
+        return daq::SampleType::Int64;
+    if (sampleType == "real32")
+        return daq::SampleType::Float32;
+    if (sampleType == "real64")
+        return daq::SampleType::Float64;
+
+    DAQ_THROW_EXCEPTION(ConversionFailedException, "Unsupported input sample type");
 }
 
 /**

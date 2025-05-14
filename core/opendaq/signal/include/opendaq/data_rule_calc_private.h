@@ -71,6 +71,15 @@ DECLARE_OPENDAQ_INTERFACE(IDataRuleCalcPrivate, IBaseObject)
      * @returns True if the Data Rule Calculator is initialized within the implementation; false otherwise.
      */
     virtual Bool INTERFACE_FUNC hasDataRuleCalc() const = 0;
+
+    /*!
+     * @brief Calculates the last sample according to the rule.
+     * @param packetOffset Packet offset.
+     * @param sampleCount The number of samples in the packet.
+     * @param[out] output A pointer to the calculated data.
+     */
+    virtual void INTERFACE_FUNC calculateLastSample(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output)
+        const = 0;
 };
 /*!@}*/
 

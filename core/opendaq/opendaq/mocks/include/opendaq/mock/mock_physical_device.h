@@ -47,6 +47,7 @@ protected:
     PropertyObjectPtr onRetrieveNetworkConfiguration(const StringPtr& ifaceName) override;
     Bool onGetNetworkConfigurationEnabled() override;
     ListPtr<IString> onGetNetworkInterfaceNames() override;
+    std::set<daq::OperationModeType> onGetAvailableOperationModes() override;
 
     PropertyObjectPtr config;
     FolderConfigPtr mockFolderA; // InputsOutputs/mockFolderA
@@ -63,6 +64,7 @@ protected:
     ComponentPtr componentB;
     uint64_t time;
 
+    Bool netConfigEnabled{False};
     ListPtr<IString> ifaceNames;
     ProcedurePtr onSubmitConfig;
     FunctionPtr onRetrieveConfig;

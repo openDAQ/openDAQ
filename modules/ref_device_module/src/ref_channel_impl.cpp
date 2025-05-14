@@ -296,8 +296,8 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
                 const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
                 auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
 
-                valueSignal.sendPacket(std::move(dataPacket));
                 timeSignal.sendPacket(std::move(domainPacket));
+                valueSignal.sendPacket(std::move(dataPacket));
             }
 
             samplesGenerated = samplesSinceStart;
@@ -322,8 +322,8 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 
 			if (!packets.empty())
             {           
-                valueSignal.sendPackets(std::move(packets));
                 timeSignal.sendPackets(std::move(domainPackets));
+                valueSignal.sendPackets(std::move(packets));
             }
         }
     }
@@ -508,6 +508,12 @@ void RefChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, b
         signalTypeChanged();
         needsSignalTypeChanged = false;
     }
+}
+
+void RefChannelImpl::activeChanged()
+{
+    for (const auto& signal : this->signals.getItems())
+        signal.setActive(this->active);
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

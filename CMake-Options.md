@@ -23,6 +23,7 @@ The following options might be used to customize the build passing them in the *
 | `OPENDAQ_ENABLE_NATIVE_STREAMING` | Bool | `OFF` | Enable openDAQ native protocol streaming | - |
 | `OPENDAQ_ENABLE_OPCUA` | Bool | `OFF` | Enable OpcUa | - |
 | `OPCUA_ENABLE_ENCRYPTION` | Bool | `OFF` | Enable OpcUa encryption | Only relevant if `OPENDAQ_ENABLE_OPCUA` is ON |
+| `OPENDAQ_ENABLE_ACCESS_CONTROL` | Bool | `ON` | Enable object-level access control | - |
 
 ## Bindings options
 | Option name | Type | Default value | Description | Conditions, if any |

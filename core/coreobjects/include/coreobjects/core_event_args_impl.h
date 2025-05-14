@@ -136,15 +136,13 @@ inline ErrCode CoreEventArgsImpl::serialize(ISerializer* serializer)
     ErrCode errCode = this->parameters->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableParams));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializableParams->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();
 
@@ -167,24 +165,22 @@ inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObjec
 {
     Int id;
     ErrCode errCode = ser->readInt("id"_daq, &id);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     StringPtr name;
     errCode = ser->readString("name"_daq, &name);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
+        daqClearErrorInfo();
         name = core_event_args_impl::getCoreEventName((CoreEventId) id);
         errCode = OPENDAQ_SUCCESS;
     }
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr params;
     errCode = ser->readObject("params"_daq, context, factoryCallback, &params);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     try
     {
@@ -194,11 +190,11 @@ inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObjec
     }
     catch(const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch(...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while deserializing CoreEventArgs");
     }
 
     return OPENDAQ_SUCCESS;

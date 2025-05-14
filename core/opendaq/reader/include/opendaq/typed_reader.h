@@ -62,7 +62,7 @@ public:
 
     ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) override
     {
-        return OPENDAQ_ERR_INVALIDSTATE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
     }
 
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) override

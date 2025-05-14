@@ -1,0 +1,6 @@
+ifeval::["{docs-prefix}" != "docs-dev"]
+* https://docs.opendaq.com/doxygen/index.html[**Reference**]
+endif::[]
+ifeval::["{docs-prefix}" == "docs-dev"]
+* https://docs-dev.opendaq.com/doxygen/index.html[**Reference**]
+endif::[]

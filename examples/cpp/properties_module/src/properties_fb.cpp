@@ -109,6 +109,12 @@ void PropertiesFb::initProperties()
     objPtr.getOnPropertyValueWrite("myPropFunction") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "myPropFunction changed to: " << args.getValue() << "\n"; };
 
+    // Selection
+    auto selectionProp = SelectionProperty("myPropSelection", List<IString>("first", "second", "third"), 1);
+    objPtr.addProperty(selectionProp);
+    objPtr.getOnPropertyValueWrite("myPropSelection") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "myPropSelection changed to: " << args.getValue() << "\n"; };
+
     readProperties();
 }
 
@@ -129,6 +135,7 @@ void PropertiesFb::readProperties()
     myStruct = objPtr.getPropertyValue("myPropStruct");
     myEnum = objPtr.getPropertyValue("myPropEnum");
     myFunction = objPtr.getPropertyValue("myPropFunction");
+    mySelection = objPtr.getPropertyValue("myPropSelection");
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

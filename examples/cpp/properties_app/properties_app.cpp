@@ -112,6 +112,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto newRes = newFun(2, 3);
     std::cout << "New function result (2 * 3): " << newRes << "\n";
 
+    // Selection
+    fb.setPropertyValue("myPropSelection", 2);
+
     // Print after modifications
     std::cout << "\nAfter modifications:\n";
     print(fb);

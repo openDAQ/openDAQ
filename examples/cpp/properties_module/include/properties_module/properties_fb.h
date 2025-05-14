@@ -46,6 +46,7 @@ private:
     EnumerationPtr myEnum;
     ProcedurePtr myProcedure;
     FunctionPtr myFunction;
+    IntegerPtr mySelection;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

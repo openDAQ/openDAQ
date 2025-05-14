@@ -39,6 +39,7 @@ private:
     IntegerPtr myInt;
     FloatPtr myFloat;
     StringPtr myString;
+    RatioPtr myRatio;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

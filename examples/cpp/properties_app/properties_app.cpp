@@ -13,6 +13,7 @@ void print(FunctionBlockPtr fb)
     std::cout << "Int: " << fb.getPropertyValue("myPropInt") << "\n";
     std::cout << "Float: " << fb.getPropertyValue("myPropFloat") << "\n";
     std::cout << "String: " << fb.getPropertyValue("myPropString") << "\n";
+    std::cout << "Ratio: " << fb.getPropertyValue("myPropRatio") << "\n\n";
 }
 
 int main(int /*argc*/, const char* /*argv*/[])
@@ -26,7 +27,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto fb = instance.addFunctionBlock("PropertiesFb");
 
     // Print Function Block name
-    std::cout << "Function Block: " << fb.getName() << "\n";
+    std::cout << "\nFunction Block: " << fb.getName() << "\n";
 
     // Get all properties
     auto properties = fb.getAllProperties();
@@ -34,8 +35,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Print all properties
     for (const auto& prop : properties)
     {
-        std::cout << "Property: " << prop.getName() << " Value: " << prop.getValue() << "\n";
+        std::cout << "  Property: " << prop.getName() << " Value: " << prop.getValue() << "\n";
     }
+    std::cout << "\n";
 
     // Print before modifications
     std::cout << "Before modifications:\n";
@@ -46,9 +48,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("myPropInt", 100);
     fb.setPropertyValue("myPropFloat", 3.14);
     fb.setPropertyValue("myPropString", "Hello openDAQ");
+    fb.setPropertyValue("myPropRatio", Ratio(1, 2));
 
     // Print after modifications
-    std::cout << "After modifications:\n";
+    std::cout << "\nAfter modifications:\n";
     print(fb);
 
     // Gracefully exit

@@ -35,7 +35,7 @@ void PropertiesFb::initProperties()
     readProperties();
 }
 
-void PropertiesFb::propertyChanged(bool configure)
+void PropertiesFb::propertyChanged()
 {
     readProperties();
 }

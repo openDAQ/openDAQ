@@ -31,7 +31,7 @@ public:
 
 private:
     void initProperties();
-    void propertyChanged(bool configure);
+    void propertyChanged();
     void readProperties();
 
     // Variables

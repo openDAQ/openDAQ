@@ -287,9 +287,9 @@ To simplify the creation of output domain signals in function blocks that uses t
 
 :note-caption: Note
 [NOTE]
-===
+====
 The main descriptor simply corresponds to the first signal in the list of signals read by the Multi Reader.
-===
+====
 
 [tabs]
 ====

@@ -207,6 +207,6 @@ non-Channel Components into the folder.
 
 :note-caption: Note
 [NOTE]
-===
+====
 Each Device always has an `IO` folder as its child, and all its Channels should be children of the IO Folder. 
-===
+====

@@ -47,9 +47,9 @@ Linux::
 
 :note-caption: Note
 [NOTE]
-===
+====
 Run `sudo apt install cmake build-essential` to install the required build tools.
-===
+====
 
 --
 ====
@@ -118,7 +118,7 @@ If you managed to reach this point, you have successfully created your first ope
 Windows::
 +
 --
-1. If, when running a CMake command, the following error is displayed: "`cmake` is not recognized as an internal or external command, operable program or batch file.", make sure that https://learn.microsoft.com/en-us/previous-versions/office/developer/sharepoint-2010/ee537574(v=office.14[CMake is added to the `PATH` environment variable].
+1. If, when running a CMake command, the following error is displayed: "`cmake` is not recognized as an internal or external command, operable program or batch file.", make sure that CMake is added to the `PATH` environment variable.
 2. If openDAQ(TM) is not found when running CMake, create a new environment variable named `openDAQ_ROOT`, with its value being the directory where openDAQ(TM) is installed.
 3. If the `.dll` shared libraries are not found when running the above example, add the `openDAQ/bin` folder path https://learn.microsoft.com/en-us/previous-versions/office/developer/sharepoint-2010/ee537574(v=office.14)[to the `PATH` environment variable]. The `bin` folder is located within the openDAQ(TM) installation folder.
 4. If no devices are found when discovering devices, check the `MODULE_PATH` variable if it points to the folder where modules are located. This is usually `c:\Program Files\openDAQ\bin\modules`. If not, replace the `MODULE_PATH` with folder string.

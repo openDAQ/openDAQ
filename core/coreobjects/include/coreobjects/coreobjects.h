@@ -54,6 +54,8 @@
 #include <coreobjects/user_factory.h>
 #include <coreobjects/authentication_provider_factory.h>
 
+#include <coreobjects/search_filter_factory.h>
+
 /*!
  * @ingroup coreobjects
  * @defgroup objects_property Property

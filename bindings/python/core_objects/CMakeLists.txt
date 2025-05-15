@@ -12,6 +12,7 @@ set(SRC_Cpp
     generated/py_ownable.cpp
     generated/py_property.cpp
     generated/py_property_builder.cpp
+    generated/py_search_filter.cpp
     generated/py_property_object.cpp
     generated/py_property_object_class.cpp
     generated/py_property_object_class_builder.cpp

@@ -2,7 +2,7 @@
 
 ## Features
 
-
+- [#804](https://github.com/openDAQ/openDAQ/pull/804) Add example Properties module and application using said module showcasing all possible Property types.
 
 ## Python
 

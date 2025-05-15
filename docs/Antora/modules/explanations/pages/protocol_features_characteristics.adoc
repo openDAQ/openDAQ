@@ -13,9 +13,9 @@ The SDK is structured in a manner where each device represents its structure in 
 
 :note-caption: Note
 [NOTE]
-===
+====
 For more information on components and properties, you can refer to the xref:components.adoc[Components] and xref:property_system.adoc[Property System] articles.
-===
+====
 
 == Protocol overview
 

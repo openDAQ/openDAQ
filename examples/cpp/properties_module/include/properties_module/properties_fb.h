@@ -48,6 +48,7 @@ private:
     FunctionPtr myFunction;
     IntegerPtr mySelection;
     IntegerPtr mySparse;
+    PropertyObjectPtr myObject;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

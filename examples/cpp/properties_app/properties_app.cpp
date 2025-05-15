@@ -2,12 +2,33 @@
  * Properties application
  */
 
-#include <coreobjects/argument_info_factory.h>
-#include <coreobjects/callable_info_factory.h>
 #include <opendaq/opendaq.h>
 #include <iostream>
 
 using namespace daq;
+
+void printProperty(PropertyPtr property, size_t indent = 0)
+{
+    for (size_t i = 0; i < indent; i++)
+    {
+        std::cout << "  ";
+    }
+    std::cout << "Property: " << property.getName() << " ";
+    auto content = property.getValue().asPtrOrNull<IPropertyObject>();
+    if (content.assigned())
+    {
+        std::cout << "\n";
+
+        for (const auto& prop : content.getAllProperties())
+        {
+            printProperty(prop, indent + 1);
+        }
+    }
+    else
+    {
+        std::cout << property.getValue() << "\n";
+    }
+}
 
 void print(FunctionBlockPtr fb)
 {
@@ -19,20 +40,9 @@ void print(FunctionBlockPtr fb)
 
     for (const auto& prop : properties)
     {
-        auto dict = prop.getValue().asPtrOrNull<IDict>();
-        if (dict.assigned())
-        {
-            std::cout << "  Property: " << prop.getName() << "\n";
-            for (const auto& item : dict)
-            {
-                std::cout << "    Key: " << item.first << " Value: " << item.second << "\n";
-            }
-        }
-        else
-        {
-            std::cout << "  Property: " << prop.getName() << " Value: " << prop.getValue() << "\n";
-        }
+        printProperty(prop);
     }
+
     std::cout << "\n";
 }
 
@@ -51,7 +61,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     print(fb);
 
     // Make modifications
-    std::cout << "\nDuring modifications:\n";
+    std::cout << "\nDuring setting property values:\n";
 
     // Bool
     fb.setPropertyValue("myPropBool", true);
@@ -117,6 +127,12 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Sparse selection
     fb.setPropertyValue("myPropSparse", 6);
+
+    // Object
+    PropertyObjectPtr propObj = fb.getPropertyValue("myPropObject");
+    fb.setPropertyValue("myPropObject.myPropInnerObject.myBool", True);
+    fb.setPropertyValue("myPropObject.myInt", 987);
+    fb.setPropertyValue("myPropObject.myFloat", 4.44);
 
     // Print after modifications
     std::cout << "\nAfter modifications:\n";

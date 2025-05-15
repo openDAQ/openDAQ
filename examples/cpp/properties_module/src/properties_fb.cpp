@@ -15,39 +15,27 @@ void PropertiesFb::initProperties()
     // Bool
     const auto boolProp = BoolProperty("myPropBool", False);
     objPtr.addProperty(boolProp);
-    objPtr.getOnPropertyValueWrite("myPropBool") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropBool changed to: " << args.getValue() << "\n"; };
 
     // Int
     const auto intProp = IntProperty("myPropInt", 42);
     objPtr.addProperty(intProp);
-    objPtr.getOnPropertyValueWrite("myPropInt") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropInt changed to: " << args.getValue() << "\n"; };
 
     // Float
     const auto floatProp = FloatProperty("myPropFloat", 7.2);
     objPtr.addProperty(floatProp);
-    objPtr.getOnPropertyValueWrite("myPropFloat") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropFloat changed to: " << args.getValue() << "\n"; };
 
     // String
     const auto stringProp = StringProperty("myPropString", "Hello World");
     objPtr.addProperty(stringProp);
-    objPtr.getOnPropertyValueWrite("myPropString") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropString changed to: " << args.getValue() << "\n"; };
 
     // Ratio
     const auto ratioProp = RatioProperty("myPropRatio", Ratio(1, 12));
     objPtr.addProperty(ratioProp);
-    objPtr.getOnPropertyValueWrite("myPropRatio") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropRatio changed to: " << args.getValue() << "\n"; };
 
     // List
     auto list = List<IInteger>();
     const auto listProp = ListProperty("myPropList", list);
     objPtr.addProperty(listProp);
-    objPtr.getOnPropertyValueWrite("myPropList") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropList changed to: " << args.getValue() << "\n"; };
 
     // Dictionary
     auto dict = Dict<IString, IString>();
@@ -56,15 +44,6 @@ void PropertiesFb::initProperties()
     dict["key3"] = "lady";
     const auto dictProp = DictProperty("myPropDict", dict);
     objPtr.addProperty(dictProp);
-    objPtr.getOnPropertyValueWrite("myPropDict") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    {
-        DictPtr<IString, IString> dict = args.getValue();
-        std::cout << "myPropDict changed to: " << "\n";
-        for (const auto& item : dict)
-        {
-            std::cout << "  " << item.first << ": " << item.second << "\n";
-        }
-    };
 
     // Struct
     auto manager = context.getTypeManager();
@@ -72,8 +51,6 @@ void PropertiesFb::initProperties()
     auto stru = StructBuilder("myStruct", manager).set("myInt", 42).set("myString", "flowers").build();
     const auto structProp = StructProperty("myPropStruct", stru);
     objPtr.addProperty(structProp);
-    objPtr.getOnPropertyValueWrite("myPropStruct") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropStruct changed to: " << args.getValue() << "\n"; };
 
     // Enumeration
     auto enumNames = List<IString>();
@@ -84,16 +61,12 @@ void PropertiesFb::initProperties()
     auto enu = Enumeration("myEnum", "second", manager);
     const auto enumProp = EnumerationProperty("myPropEnum", enu);
     objPtr.addProperty(enumProp);
-    objPtr.getOnPropertyValueWrite("myPropEnum") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropEnum changed to: " << args.getValue() << "\n"; };
 
     // Procedure
     auto procProp = FunctionProperty("myPropProcedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("a", ctInt))));
     objPtr.addProperty(procProp);
     auto proc = Procedure([](IntegerPtr a) { std::cout << "Procedure called with: " << a << "\n"; });
     objPtr.setPropertyValue("myPropProcedure", proc);
-    objPtr.getOnPropertyValueWrite("myPropProcedure") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropProcedure changed to: " << args.getValue() << "\n"; };
 
     // Function
     auto funProp =
@@ -106,24 +79,29 @@ void PropertiesFb::initProperties()
             return a + b;
         });
     objPtr.setPropertyValue("myPropFunction", fun);
-    objPtr.getOnPropertyValueWrite("myPropFunction") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropFunction changed to: " << args.getValue() << "\n"; };
 
     // Selection
     auto selectionProp = SelectionProperty("myPropSelection", List<IString>("first", "second", "third"), 1);
     objPtr.addProperty(selectionProp);
-    objPtr.getOnPropertyValueWrite("myPropSelection") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropSelection changed to: " << args.getValue() << "\n"; };
 
     // Sparse selection
     auto selection = Dict<Int, IString>();
     selection.set(4, "first");
     selection.set(5, "second");
     selection.set(6, "third");
-    auto sparseProp = SparseSelectionProperty("myPropSparse", selection, 1);
+    auto sparseProp = SparseSelectionProperty("myPropSparse", selection, 4);
     objPtr.addProperty(sparseProp);
-    objPtr.getOnPropertyValueWrite("myPropSparse") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "myPropSparse changed to: " << args.getValue() << "\n"; };
+
+    // Object
+    auto innerObj = PropertyObject();
+    innerObj.addProperty(BoolProperty("myBool", False));
+    auto innerProp = ObjectProperty("myPropInnerObject", innerObj);
+    auto propObj = PropertyObject();
+    propObj.addProperty(innerProp);
+    propObj.addProperty(IntProperty("myInt", 42));
+    propObj.addProperty(FloatProperty("myFloat", 7.2));
+    auto objProp = ObjectProperty("myPropObject", propObj);
+    objPtr.addProperty(objProp);
 
     readProperties();
 }
@@ -144,8 +122,11 @@ void PropertiesFb::readProperties()
     myDict = objPtr.getPropertyValue("myPropDict");
     myStruct = objPtr.getPropertyValue("myPropStruct");
     myEnum = objPtr.getPropertyValue("myPropEnum");
+    myProcedure = objPtr.getPropertyValue("myPropProcedure");
     myFunction = objPtr.getPropertyValue("myPropFunction");
     mySelection = objPtr.getPropertyValue("myPropSelection");
+    mySparse = objPtr.getPropertyValue("myPropSparse");
+    myObject = objPtr.getPropertyValue("myPropObject");
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

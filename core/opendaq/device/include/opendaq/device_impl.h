@@ -374,9 +374,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
-            if (OPENDAQ_FAILED(revertStatus))
-                return DAQ_MAKE_ERROR_INFO(revertStatus);
-            OPENDAQ_RETURN_IF_FAILED(status);
+            OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            return DAQ_EXTEND_ERROR_INFO(status);
         }
     }
 
@@ -413,9 +412,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
-            if (OPENDAQ_FAILED(revertStatus))
-                return DAQ_MAKE_ERROR_INFO(revertStatus);
-            return DAQ_MAKE_ERROR_INFO(status);
+            OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            return DAQ_EXTEND_ERROR_INFO(status);
         }
     }
 
@@ -2066,13 +2064,12 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
 {
     ErrCode errCode = Super::enableCoreEventTrigger();
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-    
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     DeviceInfoPtr deviceInfo;
     errCode = this->getInfo(&deviceInfo);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     if (!deviceInfo.assigned())
         return errCode;
     
@@ -2083,13 +2080,12 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
 {
     ErrCode errCode = Super::disableCoreEventTrigger();
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     
     DeviceInfoPtr deviceInfo;
     errCode = this->getInfo(&deviceInfo);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     if (!deviceInfo.assigned())
         return errCode;
     

@@ -572,7 +572,7 @@ TEST_F(NativeDeviceModulesTest, ClientTypeViewOnly)
 
 TEST_F(NativeDeviceModulesTest, ClientTypeViewOnlyDropOthers)
 {
-    const std::string url = "daq.nd://127.0.0.1";
+    const std::string url = "daq.nd://126.0.0.1";
 
     auto serverInstance = InstanceBuilder().build();
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);

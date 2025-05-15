@@ -542,8 +542,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
         {
             const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
-            if (OPENDAQ_FAILED(errCode))
-                return DAQ_MAKE_ERROR_INFO(errCode, "Failed getting available devices");
+            OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
         }
 
         // Connection strings with the "daq" prefix automatically choose the best method of connection

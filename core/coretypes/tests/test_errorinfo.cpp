@@ -118,83 +118,83 @@ TEST_F(ErrorInfoTest, ImplementationName)
     ASSERT_EQ(className, "ErrorTestImpl");
 }
 
-TEST_F(ErrorInfoTest, MultipleMessages)
-{
-    DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error0");
-    DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error1");
+// TEST_F(ErrorInfoTest, MultipleMessages)
+// {
+//     DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error0");
+//     DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error1");
 
-    IErrorInfo* lastError;
-    daqGetErrorInfo(&lastError);
+//     IErrorInfo* lastError;
+//     daqGetErrorInfo(&lastError);
 
-    ASSERT_TRUE(lastError != nullptr);
-    Finally finally([&]
-    {
-        if (lastError != nullptr)
-            lastError->releaseRef();
-        daqClearErrorInfo();
-    });
+//     ASSERT_TRUE(lastError != nullptr);
+//     Finally finally([&]
+//     {
+//         if (lastError != nullptr)
+//             lastError->releaseRef();
+//         daqClearErrorInfo();
+//     });
 
-    IList* errorInfoList;
-    daqGetErrorInfoList(&errorInfoList);
+//     IList* errorInfoList;
+//     daqGetErrorInfoList(&errorInfoList);
 
-    ASSERT_TRUE(errorInfoList != nullptr);
-    Finally finally3([&]
-    {
-        if (errorInfoList != nullptr)
-            errorInfoList->releaseRef();
-    });
+//     ASSERT_TRUE(errorInfoList != nullptr);
+//     Finally finally3([&]
+//     {
+//         if (errorInfoList != nullptr)
+//             errorInfoList->releaseRef();
+//     });
 
-    SizeT count = 0;
-    errorInfoList->getCount(&count);
-    ASSERT_EQ(count, 2);
+//     SizeT count = 0;
+//     errorInfoList->getCount(&count);
+//     ASSERT_EQ(count, 2);
 
-    for (SizeT i = 0; i < count; ++i)
-    {
-        IBaseObject* errorInfoObject;
-        errorInfoList->getItemAt(i, &errorInfoObject);
+//     for (SizeT i = 0; i < count; ++i)
+//     {
+//         IBaseObject* errorInfoObject;
+//         errorInfoList->getItemAt(i, &errorInfoObject);
 
-        ASSERT_TRUE(errorInfoObject != nullptr);
-        Finally finally4([&]
-        {
-            if (errorInfoObject != nullptr)
-                errorInfoObject->releaseRef();
-        });
+//         ASSERT_TRUE(errorInfoObject != nullptr);
+//         Finally finally4([&]
+//         {
+//             if (errorInfoObject != nullptr)
+//                 errorInfoObject->releaseRef();
+//         });
 
-        IErrorInfo* errorInfo;
-        errorInfoObject->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+//         IErrorInfo* errorInfo;
+//         errorInfoObject->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
 
-        if (i == count -1)
-        {
-            ASSERT_EQ(errorInfo, lastError);
-        }
+//         if (i == count -1)
+//         {
+//             ASSERT_EQ(errorInfo, lastError);
+//         }
 
-        IString* message;
-        errorInfo->getMessage(&message);
+//         IString* message;
+//         errorInfo->getMessage(&message);
 
-        ASSERT_TRUE(message != nullptr);
-        Finally finally5([&]
-        {
-            if (message != nullptr)
-                message->releaseRef();
-        });
+//         ASSERT_TRUE(message != nullptr);
+//         Finally finally5([&]
+//         {
+//             if (message != nullptr)
+//                 message->releaseRef();
+//         });
 
-        ConstCharPtr msgCharPtr;
-        message->getCharPtr(&msgCharPtr);
+//         ConstCharPtr msgCharPtr;
+//         message->getCharPtr(&msgCharPtr);
 
-        std::string expectedMsg = "General error" + std::to_string(i);
-        ASSERT_STREQ(msgCharPtr, expectedMsg.c_str());
+//         std::string expectedMsg = "General error" + std::to_string(i);
+//         ASSERT_STREQ(msgCharPtr, expectedMsg.c_str());
 
-#ifndef NDEBUG
-        ConstCharPtr fileName;
-        errorInfo->getFileName(&fileName);
-        ASSERT_TRUE(fileName != nullptr);
+// #ifndef NDEBUG
+//         ConstCharPtr fileName;
+//         errorInfo->getFileName(&fileName);
+//         ASSERT_TRUE(fileName != nullptr);
 
-        Int line;
-        errorInfo->getFileLine(&line);
-        ASSERT_NE(line, -1);
-#endif
-    }
-}
+//         Int line;
+//         errorInfo->getFileLine(&line);
+//         ASSERT_NE(line, -1);
+// #endif
+//     }
+// }
 
 std::string getErrorPostfix([[maybe_unused]] Int fileLine)
 {

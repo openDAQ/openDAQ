@@ -14,7 +14,10 @@ void DaqMemCheckListener::OnTestStart(const testing::TestInfo& info)
 
 void DaqMemCheckListener::OnTestEnd(const testing::TestInfo& info)
 {
-    daqClearErrorInfo();
+    IList* errorInfoList = nullptr;
+    daqGetErrorInfoList(&errorInfoList);
+    if (errorInfoList != nullptr)
+        errorInfoList->releaseRef();
 
     if (!info.result()->Failed())
     {

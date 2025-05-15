@@ -3160,8 +3160,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
         splitOnLastDot(propName, propName, childStr);
 
         ErrCode err = getPropertyValue(propName, &val);
-        if (OPENDAQ_FAILED(err))
-            return DAQ_MAKE_ERROR_INFO(err, fmt::format(R"(Failed to retrieve child object with name {})", propName));
+        OPENDAQ_RETURN_IF_FAILED(err, fmt::format(R"(Failed to retrieve child object with name {})", propName));
 
         PropertyObjectPtr obj = val.asPtrOrNull<IPropertyObject>(true);
         if (!obj.assigned())

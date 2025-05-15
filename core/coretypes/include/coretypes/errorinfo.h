@@ -100,6 +100,26 @@ DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
      * @param fileLine Line number.
      */
     virtual ErrCode INTERFACE_FUNC getFileLine(Int* fileLine) = 0;
+
+    /*!
+     * @brief Extends the current error information with additional error details.
+     * @param errorInfo The additional error information to merge into the current error info.
+     *
+     * This method allows appending or merging additional error information from another
+     * `IErrorInfo` object into the current error info. It is useful for tracing errors
+     * across multiple layers or modules.
+     */
+    virtual ErrCode INTERFACE_FUNC extend(IErrorInfo* errorInfo) = 0;
+
+    /*!
+     * @brief Gets a formatted error message containing the error description, file name, and line number.
+     * @param message A pointer to store the formatted error message.
+     *
+     * This method returns a string that combines the error message, the file name where the error occurred,
+     * and the line number in a human-readable format. It is useful for logging or displaying detailed error
+     * information.
+     */
+    virtual ErrCode INTERFACE_FUNC getFormatMessage(IString** message) = 0;
 };
 
 /*!@}*/
@@ -109,6 +129,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, ErrorInfo)
 END_NAMESPACE_OPENDAQ
 
 extern "C" void PUBLIC_EXPORT daqSetErrorInfo(daq::IErrorInfo* errorInfo);
+extern "C" void PUBLIC_EXPORT daqExtendErrorInfo(daq::IErrorInfo* errorInfo);
 extern "C" void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo);
 extern "C" void PUBLIC_EXPORT daqGetErrorInfoList(daq::IList** errorInfoList);
 extern "C" void PUBLIC_EXPORT daqClearErrorInfo();

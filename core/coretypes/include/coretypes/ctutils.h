@@ -89,45 +89,6 @@ inline std::string objectToString(IBaseObject* object)
     return stream.str();
 }
 
-
-inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* errorInfo)
-{
-    if (errorInfo == nullptr)
-        return ss;
-
-    IString* message;
-    errorInfo->getMessage(&message);
-
-    if (message != nullptr)
-    {
-        ConstCharPtr msgCharPtr;
-        message->getCharPtr(&msgCharPtr);
-
-        if (msgCharPtr != nullptr)
-            ss << msgCharPtr;
-        
-        message->releaseRef();
-    }
-
-#ifndef NDEBUG
-    ConstCharPtr fileNameCharPtr;
-    Int fileLine = -1;
-    
-    errorInfo->getFileName(&fileNameCharPtr);
-    errorInfo->getFileLine(&fileLine);
-
-    if (fileNameCharPtr != nullptr)
-    {
-        ss << " [ File " << fileNameCharPtr;
-        if (fileLine != -1)
-            ss << ":" << fileLine;
-        ss << " ]";
-    }
-#endif
-    
-    return ss;
-}
-
 template <typename... Params>
 ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObject* sourceObj, const std::string& message, Params... params)
 {
@@ -227,48 +188,51 @@ inline void checkErrorInfo(ErrCode errCode, ConstCharPtr fileName, Int fileLine)
     if (OPENDAQ_SUCCEEDED(errCode))
         return;
 
-    IList* errorInfoList;
-    daqGetErrorInfoList(&errorInfoList);
-
-    if (errorInfoList == nullptr)
-        errorInfoList = ListWithElementType_Create(IErrorInfo::Id);
+    IErrorInfo* errorInfo = nullptr;
+    daqGetErrorInfo(&errorInfo);
+    if (errorInfo != nullptr)
+        daqClearErrorInfo();
     
-    IErrorInfo* errorInfo;
+    IErrorInfo* lastErrorInfo;
 #ifndef NDEBUG
-    const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, fileName, fileLine, nullptr, "Error propagated from lower level");
+    const ErrCode err = createErrorInfoObjectWithSource(&lastErrorInfo, fileName, fileLine, nullptr, "Error propagated from lower level");
 #else
-    const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, nullptr, "Error propagated from lower level");
+    const ErrCode err = createErrorInfoObjectWithSource(&lastErrorInfo, nullptr, "Error propagated from lower level");
 #endif
     if (OPENDAQ_SUCCEEDED(err))
     {
-        errorInfoList->moveBack(errorInfo);
-    }    
-
-    std::ostringstream ss;
-    SizeT count = 0;
-    errorInfoList->getCount(&count);
-
-    for (SizeT i = 0; i < count; i++)
-    {
-        IBaseObject* errorInfoObj;
-        errorInfoList->getItemAt(i, &errorInfoObj);
-
-        IErrorInfo* errorInfo;
-        errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-    
-        if (errorInfo != nullptr)
+        if (errorInfo == nullptr)
         {
-            ErrorFormat(ss, errorInfo);
-            if (i != count - 1)
-                ss << "\n";
+            errorInfo = lastErrorInfo;
         }
-        if (errorInfoObj != nullptr)
-            errorInfoObj->releaseRef();
+        else
+        {
+            errorInfo->extend(lastErrorInfo);
+            lastErrorInfo->releaseRef();
+        }
     }
 
-    errorInfoList->releaseRef();
+    std::string message;
 
-    throwExceptionFromErrorCode(errCode, ss.str());
+    if (errorInfo != nullptr)
+    {
+        IString* errorMessage = nullptr;
+        errorInfo->getFormatMessage(&errorMessage);
+        if (errorMessage != nullptr)
+        {
+            ConstCharPtr msgCharPtr;
+            errorMessage->getCharPtr(&msgCharPtr);
+            if (msgCharPtr != nullptr)
+                message = msgCharPtr;
+
+            errorMessage->releaseRef();
+        }
+
+        errorInfo->releaseRef();
+        errorInfo = nullptr;
+    }
+
+    throwExceptionFromErrorCode(errCode, message);
 }
 
 #ifdef NDEBUG
@@ -329,8 +293,7 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
     ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source)
     {
         const std::string msg = ErrorCodeMessage(errCode);
-        setErrorInfoWithSource(source, msg);
-        return errCode;
+        return makeErrorInfo(errCode, source, msg);
     }
 
     #define DAQ_MAKE_ERROR_INFO(errCode, ...) \
@@ -348,24 +311,72 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
     ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, IBaseObject* source)
     {
         const std::string msg = ErrorCodeMessage(errCode);
-        setErrorInfoWithSource(fileName, fileLine, source, msg);
-        return errCode;
+        return makeErrorInfo(fileName, fileLine, errCode, source, msg);
     }
 
     #define DAQ_MAKE_ERROR_INFO(errCode, ...) \
         daq::makeErrorInfo(__FILE__, __LINE__, errCode, nullptr, ##__VA_ARGS__)
 #endif
 
-#define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode)                       \
+#ifdef NDEBUG
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& message, Params... params)
+    {
+        IErrorInfo* errorInfo;
+        auto err = createErrorInfoObjectWithSource(&errorInfo, source, message, std::forward<Params>(params)...);
+        if (OPENDAQ_FAILED(err))
+            return errCode;
+
+        daqExtendErrorInfo(errorInfo);
+        errorInfo->releaseRef();
+        return errCode;
+    }
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ErrCode errCode, IBaseObject* source)
+    {
+        return errCode;
+    }
+
+    #define DAQ_EXTEND_ERROR_INFO(errCode, ...) \
+        daq::extendErrorInfo(errCode, nullptr, ##__VA_ARGS__)
+#else
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, IBaseObject* source, const std::string& message, Params... params)
+    {
+        IErrorInfo* errorInfo;
+        auto err = createErrorInfoObjectWithSource(&errorInfo, fileName, fileLine, source, message, std::forward<Params>(params)...);
+        if (OPENDAQ_FAILED(err))
+            return errCode;
+
+        daqExtendErrorInfo(errorInfo);
+        errorInfo->releaseRef();
+        return errCode;
+    }
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, IBaseObject* source)
+    {
+        extendErrorInfo(fileName, fileLine, errCode, source, "");
+        return errCode;
+    }
+
+    #define DAQ_EXTEND_ERROR_INFO(errCode, ...) \
+        daq::extendErrorInfo(__FILE__, __LINE__, errCode, nullptr, ##__VA_ARGS__)
+#endif
+
+#define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode, ...)                       \
     do {                                                                                \
         if ((errCode) == (expectedErrCode))                                             \
             daqClearErrorInfo();                                                        \
         else if (OPENDAQ_FAILED(errCode))                                               \
-            return DAQ_MAKE_ERROR_INFO(errCode, "Error propagated from lower level");   \
+            return DAQ_EXTEND_ERROR_INFO(errCode, ##__VA_ARGS__);   \
     } while (0)
 
-#define OPENDAQ_RETURN_IF_FAILED(errCode) \
-    do { if (OPENDAQ_FAILED(errCode)) return DAQ_MAKE_ERROR_INFO(errCode, "Error propagated from lower level"); } while (0)
+#define OPENDAQ_RETURN_IF_FAILED(errCode, ...) \
+    do { if (OPENDAQ_FAILED(errCode)) return DAQ_EXTEND_ERROR_INFO(errCode, ##__VA_ARGS__); } while (0)
 
 #define OPENDAQ_PARAM_REQUIRE(cond) \
     do { if (!(cond)) return OPENDAQ_ERR_INVALIDPARAMETER; } while (0)

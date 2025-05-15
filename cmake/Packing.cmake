@@ -143,6 +143,7 @@ set(COMPONENTS
     coreobjects
     corecontainers
     opendaq
+    copendaq
     empty_module
     ref_device_module
     ref_fb_module

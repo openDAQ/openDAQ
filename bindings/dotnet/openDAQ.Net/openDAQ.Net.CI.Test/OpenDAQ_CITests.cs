@@ -461,62 +461,62 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
     }
 
     [Test]
-    public void Test_0101_InstanceManualDispose()
+    public void Test_0101_ObjectManualDispose()
     {
         //instruct TearDown function not to collect and finalize managed objects explicitly
         base.DontCollectAndFinalize();
 
-        Instance daqInstance = OpenDAQFactory.Instance(".");
-        Assert.That(daqInstance.IsDisposed, Is.False);
+        var openDaqObject = OpenDAQFactory.CreateLinearScaling(1.1, 0.2, SampleType.Float64, ScaledSampleType.Float64);
+        Assert.That(openDaqObject.IsDisposed, Is.False);
 
         //can do something with 'daqInstance' here
-        using var info = daqInstance.Info;
+        using var parameters = openDaqObject.Parameters;
 
-        var name = info.Name;
-        Console.WriteLine($"daqInstance name = '{name}'");
+        var count = parameters.Count;
+        Console.WriteLine($"openDaqObject.Parameters.Count = '{count}'");
 
-        //finally free managed resources (release reference)
-        daqInstance.Dispose();
-        Assert.That(daqInstance.IsDisposed, Is.True);
+        //finally free resources (release reference)
+        openDaqObject.Dispose();
+        Assert.That(openDaqObject.IsDisposed, Is.True);
     }
 
     [Test]
-    public void Test_0102_InstanceAutoDispose1()
+    public void Test_0102_ObjectAutoDispose1()
     {
         //instruct TearDown function not to collect and finalize managed objects explicitly
         base.DontCollectAndFinalize();
 
-        Instance daqInstance;
+        Scaling openDaqObject;
 
-        using (daqInstance = OpenDAQFactory.Instance("."))
+        using (openDaqObject = OpenDAQFactory.CreateLinearScaling(1.1, 0.2, SampleType.Float64, ScaledSampleType.Float64))
         {
-            Assert.That(daqInstance.IsDisposed, Is.False);
+            Assert.That(openDaqObject.IsDisposed, Is.False);
 
             //can do something with 'daqInstance' here
-            using var info = daqInstance.Info;
+            using var parameters = openDaqObject.Parameters;
 
-            var name = info.Name;
-            Console.WriteLine($"daqInstance name = '{name}'");
+            var count = parameters.Count;
+            Console.WriteLine($"openDaqObject.Parameters.Count = '{count}'");
         } //losing scope here, automatically calling Dispose() and thus freeing managed resources (release reference)
 
-        Assert.That(daqInstance.IsDisposed, Is.True);
+        Assert.That(openDaqObject.IsDisposed, Is.True);
     }
 
     [Test]
-    public void Test_0103_InstanceAutoDispose2()
+    public void Test_0103_ObjectAutoDispose2()
     {
         //instruct TearDown function not to collect and finalize managed objects explicitly
         base.DontCollectAndFinalize();
 
-        using var daqInstance = OpenDAQFactory.Instance(".");
+        using var openDaqObject = OpenDAQFactory.CreateLinearScaling(1.1, 0.2, SampleType.Float64, ScaledSampleType.Float64);
 
-        Assert.That(daqInstance.IsDisposed, Is.False);
+        Assert.That(openDaqObject.IsDisposed, Is.False);
 
         //can do something with 'daqInstance' here
-        using var info = daqInstance.Info;
+        using var parameters = openDaqObject.Parameters;
 
-        var name = info.Name;
-        Console.WriteLine($"daqInstance name = '{name}'");
+        var count = parameters.Count;
+        Console.WriteLine($"openDaqObject.Parameters.Count = '{count}'");
 
         //losing scope at the end of this method, automatically calling Dispose() and thus freeing managed resources (release reference)
     }

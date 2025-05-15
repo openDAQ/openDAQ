@@ -14,6 +14,7 @@ set(SRC_Cpp
     generated/component/py_removable.cpp
     generated/component/py_folder.cpp
     generated/component/py_folder_config.cpp
+    generated/component/py_search_filter.cpp
     generated/component/py_component_private.cpp
     generated/component/py_folder_config.cpp
     generated/component/py_tags.cpp

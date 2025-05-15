@@ -151,5 +151,14 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
         instance_builder.add_config_provider(config_provider)
         instance = instance_builder.build()
 
+    def test_search(self):
+        instance = opendaq.Instance()
+        device = instance.add_device('daqref://device0')
+        property = device.find_properties(opendaq.NamePropertyFilter('Amplitude'), opendaq.RecursiveSearchFilter(opendaq.LocalIdSearchFilter('RefCh0')))[0]
+        print('Property: ', property.name, ', Value:', property.value)
+        property.value = 7
+        channel = device.get_items(opendaq.RecursiveSearchFilter(opendaq.LocalIdSearchFilter('RefCh0')))[0]
+        print(channel.get_property_value('Amplitude'))
+
 if __name__ == '__main__':
     unittest.main()

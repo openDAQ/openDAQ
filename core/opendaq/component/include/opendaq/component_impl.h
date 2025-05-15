@@ -1158,16 +1158,21 @@ ComponentPtr ComponentImpl<Intf, Intfs...>::findComponentInternal(const Componen
     if (!folder.assigned())
         return nullptr;
 
-    if (folder.hasItem(startStr))
+    ComponentPtr subComponent;
+    const auto errCode = folder->getItem(String(startStr), &subComponent);
+    if (OPENDAQ_SUCCEEDED(errCode))
     {
-        const auto subComponent = folder.getItem(startStr);
         if (hasSubComponentStr)
             return findComponentInternal(subComponent, restStr);
-
-        return subComponent;
     }
+    else if (errCode == OPENDAQ_ERR_NOTFOUND)
+    {
+        daqClearErrorInfo();
+    }
+    else
+        checkErrorInfo(errCode);
 
-    return nullptr;
+    return subComponent;
 }
 
 template <class Intf, class ... Intfs>

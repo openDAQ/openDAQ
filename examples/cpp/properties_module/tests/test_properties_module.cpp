@@ -112,5 +112,5 @@ TEST_F(PropertiesModuleTest, FunctionBlockCreateAndTest)
     auto module = createModule();
 
     auto fb = module.createFunctionBlock("PropertiesFb", nullptr, "id");
-    ASSERT_EQ(fb.getAllProperties().getCount(), 4);
+    ASSERT_EQ(fb.getAllProperties().getCount(), 14);
 }

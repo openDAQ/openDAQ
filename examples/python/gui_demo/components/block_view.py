@@ -1,4 +1,3 @@
-import tkinter
 import tkinter as tk
 from tkinter import ttk
 
@@ -117,7 +116,7 @@ class BlockView(ttk.Frame):
                 elif op_mode == daq.OperationModeType.SafeOperation:
                     mode_string = "SafeOperation"
 
-                opt = tkinter.StringVar(value=mode_string)
+                opt = tk.StringVar(value=mode_string)
                 def on_option_change(*args):
                     var = opt.get()
                     if var == "Unknown":
@@ -136,7 +135,7 @@ class BlockView(ttk.Frame):
 
                 label = tk.Label(combined, text="Operation mode: ")
                 label.pack(side="left")
-                options = tkinter.OptionMenu(combined, opt, *available_op_modes)
+                options = tk.OptionMenu(combined, opt, *available_op_modes)
                 options.pack(side="left")
 
 

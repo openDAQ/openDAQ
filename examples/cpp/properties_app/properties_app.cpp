@@ -9,10 +9,7 @@ using namespace daq;
 
 void printProperty(PropertyPtr property, size_t indent = 0)
 {
-    std::cout << std::string(indent * 2, ' ')
-    {
-        std::cout << "  ";
-    }
+    std::cout << std::string(indent * 2, ' ');
     std::cout << "Property: " << property.getName() << " ";
     auto content = property.getValue().asPtrOrNull<IPropertyObject>();
     if (content.assigned())

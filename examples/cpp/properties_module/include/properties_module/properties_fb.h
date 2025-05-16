@@ -31,24 +31,6 @@ public:
 
 private:
     void initProperties();
-    void propertyChanged();
-    void readProperties();
-
-    // Variables
-    BoolPtr myBool;
-    IntegerPtr myInt;
-    FloatPtr myFloat;
-    StringPtr myString;
-    RatioPtr myRatio;
-    ListPtr<IInteger> myList;
-    DictPtr<IString, IString> myDict;
-    StructPtr myStruct;
-    EnumerationPtr myEnum;
-    ProcedurePtr myProcedure;
-    FunctionPtr myFunction;
-    IntegerPtr mySelection;
-    IntegerPtr mySparse;
-    PropertyObjectPtr myObject;
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

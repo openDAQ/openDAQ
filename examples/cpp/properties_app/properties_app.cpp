@@ -9,7 +9,7 @@ using namespace daq;
 
 void printProperty(PropertyPtr property, size_t indent = 0)
 {
-    for (size_t i = 0; i < indent; i++)
+    std::cout << std::string(indent * 2, ' ')
     {
         std::cout << "  ";
     }

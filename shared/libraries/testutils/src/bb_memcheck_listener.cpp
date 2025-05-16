@@ -17,7 +17,38 @@ void DaqMemCheckListener::OnTestEnd(const testing::TestInfo& info)
     IList* errorInfoList = nullptr;
     daqGetErrorInfoList(&errorInfoList);
     if (errorInfoList != nullptr)
+    {
+        // SizeT count = 0;
+        // errorInfoList->getCount(&count);
+        // for (SizeT i = 0; i < count; i++)
+        // {
+        //     IBaseObject* errorInfoObj = nullptr;
+        //     errorInfoList->getItemAt(i, &errorInfoObj);
+
+        //     if (errorInfoObj == nullptr)
+        //         continue;
+
+        //     IErrorInfo* errorInfo = nullptr;
+        //     errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+            
+        //     if (errorInfo != nullptr)
+        //     {
+        //         IString* message;
+        //         errorInfo->getFormatMessage(&message);
+
+        //         if (message != nullptr)
+        //         {
+        //             ConstCharPtr messageStr;
+        //             message->getCharPtr(&messageStr);
+        //             if (messageStr != nullptr)
+        //                 std::cout << i << "." << messageStr << std::endl;
+        //             message->releaseRef();
+        //         }
+        //     }
+        //     errorInfoObj->releaseRef();
+        // }
         errorInfoList->releaseRef();
+    }
 
     if (!info.result()->Failed())
     {

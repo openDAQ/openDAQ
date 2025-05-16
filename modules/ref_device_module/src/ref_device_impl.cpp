@@ -589,9 +589,9 @@ void RefDeviceImpl::onSubmitNetworkConfiguration(const StringPtr& ifaceName, con
     {
         if (!dhcp)
         {
-            if (gateway.getLength() == 0)
+            if (gateway.empty())
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "No gateway address specified");
-            if (address.getLength() == 0)
+            if (address.empty())
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Empty static address specified");
         }
     };

@@ -110,7 +110,7 @@ void SubTask::initialize(TaskGraph& g)
         callable(nullptr);
     });
 
-    if (!name.assigned() || name.getLength() == 0)
+    if (!name.assigned() || name.empty())
     {
         task.name(std::to_string(id));
     }

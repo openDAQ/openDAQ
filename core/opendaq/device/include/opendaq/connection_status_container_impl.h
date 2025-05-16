@@ -84,7 +84,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatus(IString* name, IEnumerat
     OPENDAQ_PARAM_NOT_NULL(value);
 
     const auto nameObj = StringPtr::Borrow(name);
-    if (nameObj == "")
+    if (nameObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
@@ -107,7 +107,7 @@ inline ErrCode ConnectionStatusContainerImpl::getStatusMessage(IString* name, IS
     OPENDAQ_PARAM_NOT_NULL(message);
 
     const auto nameObj = StringPtr::Borrow(name);
-    if (nameObj == "")
+    if (nameObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
@@ -148,7 +148,7 @@ inline ErrCode ConnectionStatusContainerImpl::addConfigurationConnectionStatus(I
     OPENDAQ_PARAM_NOT_NULL(initialValue);
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
-    if (connectionStringObj == "")
+    if (connectionStringObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
@@ -184,7 +184,7 @@ inline ErrCode ConnectionStatusContainerImpl::addStreamingConnectionStatus(IStri
     OPENDAQ_PARAM_NOT_NULL(initialValue);
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
-    if (connectionStringObj == "")
+    if (connectionStringObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
@@ -261,7 +261,7 @@ inline ErrCode ConnectionStatusContainerImpl::updateConnectionStatusWithMessage(
     OPENDAQ_PARAM_NOT_NULL(message);
 
     const auto connectionStringObj = StringPtr::Borrow(connectionString);
-    if (connectionStringObj == "")
+    if (connectionStringObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     const auto messageObj = StringPtr::Borrow(message);
 

@@ -18,7 +18,7 @@ BEGIN_NAMESPACE_OPENDAQ
 JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
     :filename(filename)
 {
-    if (!this->filename.assigned() || this->filename.getLength() == 0)
+    if (!this->filename.assigned() || this->filename.empty())
         this->filename = GetEnvironmentVariableValue("OPENDAQ_CONFIG_PATH", StringPtr());
 
     if (!this->filename.assigned())
@@ -31,7 +31,7 @@ JsonConfigProviderImpl::JsonConfigProviderImpl(const StringPtr& filename)
 
 StringPtr JsonConfigProviderImpl::GetEnvironmentVariableValue(StringPtr variableName, StringPtr defaultValue)
 {
-    if (!variableName.assigned() || variableName.getLength() == 0)
+    if (!variableName.assigned() || variableName.empty())
         return defaultValue;
     
     const char* value = std::getenv(variableName.toStdString().c_str());

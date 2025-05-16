@@ -129,7 +129,7 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& roo
 
     std::string interfaces;
     for(const auto& ifaceName : rootDevice.asPtr<IDeviceNetworkConfig>().getNetworkInterfaceNames())
-        interfaces += ifaceName.getLength() == 0 ? "" : (ifaceName.toStdString() + ";");
+        interfaces += ifaceName.empty() ? "" : (ifaceName.toStdString() + ";");
     if (interfaces.empty())
     {
         LOG_W("Cannot register IP modification service without at least one non-empty interface name specified");
@@ -139,7 +139,7 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& roo
 
     if (const auto deviceInfo = rootDevice.getInfo(); deviceInfo.assigned())
     {
-        if (deviceInfo.getManufacturer().getLength() == 0 || deviceInfo.getSerialNumber().getLength() == 0)
+        if (deviceInfo.getManufacturer().empty() || deviceInfo.getSerialNumber().empty())
         {
             LOG_W("Cannot register IP modification service without \"manufacturer\" and \"serialNumber\" "
                   "specified within device info");

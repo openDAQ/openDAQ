@@ -96,7 +96,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
         LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProcessDescription);
 
     if (errCode == OPENDAQ_ERR_NOTFOUND || errCode == OPENDAQ_ERR_ACCESSDENIED)
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format("Property \"{}\" not found or access denied", propertyNamePtr));
+        return DAQ_EXTEND_ERROR_INFO(errCode, fmt::format("Property \"{}\" not found or access denied", propertyNamePtr));
     else if (OPENDAQ_FAILED(errCode))
         daqClearErrorInfo();
 

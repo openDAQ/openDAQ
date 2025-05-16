@@ -964,7 +964,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addNetworkInteface(IStr
     OPENDAQ_PARAM_NOT_NULL(name);
 
     const auto nameObj = StringPtr::Borrow(name);
-    if (nameObj == "")
+    if (nameObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     if (networkInterfaces.hasKey(name))

@@ -182,6 +182,15 @@ public:
         return size;
     }
 
+    /*!
+     * @brief Checks if the string is empty.
+     * @return True if the string is empty, false otherwise.
+     */
+    [[nodiscard]] bool empty() const
+    {
+        return getLength() == 0;
+    }
+
     char operator[](std::size_t index) const
     {
         return getCharPtr()[index];

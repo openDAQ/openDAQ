@@ -151,7 +151,7 @@ inline ErrCode ComponentStatusContainerImpl::addStatusWithMessage(IString* name,
     OPENDAQ_PARAM_NOT_NULL(message);
 
     const auto nameObj = StringPtr::Borrow(name);
-    if (nameObj == "")
+    if (nameObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
@@ -186,7 +186,7 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
     OPENDAQ_PARAM_NOT_NULL(message);
 
     const auto nameObj = StringPtr::Borrow(name);
-    if (nameObj == "")
+    if (nameObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     const auto messageObj = StringPtr::Borrow(message);
 

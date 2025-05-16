@@ -391,7 +391,7 @@ Authentication NativeStreamingClientImpl::initClientAuthenticationObject(const P
     const StringPtr username = authenticationObject.getPropertyValue("Username");
     const StringPtr password = authenticationObject.getPropertyValue("Password");
 
-    if (username.getLength() == 0)
+    if (username.empty())
         return Authentication();
 
     return Authentication(username, password);

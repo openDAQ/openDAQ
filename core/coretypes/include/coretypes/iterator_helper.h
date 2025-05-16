@@ -29,13 +29,11 @@ inline ErrCode compareIterators(const IIterator* it1, const IIterator* it2, Bool
 
     IBaseObject* obj1;
     auto err = it1->getCurrent(&obj1);
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_NOTASSIGNED);
+    
     if (err == OPENDAQ_ERR_NOTASSIGNED)
     {
         obj1 = nullptr;
-    }
-    else if (OPENDAQ_FAILED(err))
-    {
-        return DAQ_MAKE_ERROR_INFO(err);
     }
 
     Finally final2([&obj1]()
@@ -46,13 +44,11 @@ inline ErrCode compareIterators(const IIterator* it1, const IIterator* it2, Bool
 
     IBaseObject* obj2;
     err = it2->getCurrent(&obj2);
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_NOTASSIGNED);
+
     if (err == OPENDAQ_ERR_NOTASSIGNED)
     {
         obj2 = nullptr;
-    }
-    else if (OPENDAQ_FAILED(err))
-    {
-        return DAQ_MAKE_ERROR_INFO(err);
     }
 
     Finally final3([&obj2]()

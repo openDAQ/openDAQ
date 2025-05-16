@@ -401,7 +401,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
             // Group devices that have manufacturer, serial number and at least 1 server capability,
             // the rest use their connection string as key.
-            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0 || !deviceInfo.getServerCapabilities().getCount())
+            if (manufacturer.empty() || serialNumber.empty() || !deviceInfo.getServerCapabilities().getCount())
             {
                 groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
             }
@@ -534,7 +534,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         const auto [pureConnectionString, connectionStringOptions] = splitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
         auto connectionStringPtr = String(pureConnectionString);
 
-        if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
+        if (!connectionStringPtr.assigned() || connectionStringPtr.empty())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
         // Scan for devices if not yet done so, or timeout is exceeded

@@ -19,10 +19,10 @@ LogFileInfoImpl::LogFileInfoImpl(const LogFileInfoBuilderPtr& builder)
     size = builder.getSize();
     lastModified = builder.getLastModified();
 
-    if (!name.assigned() || name.getLength() == 0)
+    if (!name.assigned() || name.empty())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Log file name is not assigned or empty.");
     
-    if (!lastModified.assigned() || lastModified.getLength() == 0)
+    if (!lastModified.assigned() || lastModified.empty())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Last modified date is not assigned or empty.");
 
     if (id.assigned() && id.getLength() > 0)

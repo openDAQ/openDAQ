@@ -1276,7 +1276,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
     catch (const DaqException& e)
     {
         errorFromException(e);
-        return DAQ_MAKE_ERROR_INFO(e.getErrCode(), "Value type is different than Property type and conversion failed");
+        return DAQ_EXTEND_ERROR_INFO(e.getErrCode(), "Value type is different than Property type and conversion failed");
     }
 
     return OPENDAQ_SUCCESS;
@@ -1353,7 +1353,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwnerToPrope
         catch (const DaqException& e)
         {
             errorFromException(e);
-            DAQ_MAKE_ERROR_INFO(e.getErrCode(), "Failed to set owner to property value");
+            DAQ_EXTEND_ERROR_INFO(e.getErrCode(), "Failed to set owner to property value");
             DAQ_CHECK_ERROR_INFO(e.getErrCode());
         }
     }
@@ -2823,7 +2823,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            daqClearErrorInfo();
             return OPENDAQ_SUCCESS;
         }
 

@@ -192,25 +192,26 @@ inline void checkErrorInfo(ErrCode errCode, ConstCharPtr fileName, Int fileLine)
     daqGetErrorInfo(&errorInfo);
     if (errorInfo != nullptr)
         daqClearErrorInfo();
-    
-    IErrorInfo* lastErrorInfo;
+
 #ifndef NDEBUG
-    const ErrCode err = createErrorInfoObjectWithSource(&lastErrorInfo, fileName, fileLine, nullptr, "Error propagated from lower level");
-#else
-    const ErrCode err = createErrorInfoObjectWithSource(&lastErrorInfo, nullptr, "Error propagated from lower level");
-#endif
-    if (OPENDAQ_SUCCEEDED(err))
+    if (fileName != nullptr)
     {
-        if (errorInfo == nullptr)
+        IErrorInfo* lastErrorInfo;
+        const ErrCode err = createErrorInfoObjectWithSource(&lastErrorInfo, fileName, fileLine, nullptr, std::string());
+        if (OPENDAQ_SUCCEEDED(err))
         {
-            errorInfo = lastErrorInfo;
-        }
-        else
-        {
-            errorInfo->extend(lastErrorInfo);
-            lastErrorInfo->releaseRef();
+            if (errorInfo == nullptr)
+            {
+                errorInfo = lastErrorInfo;
+            }
+            else
+            {
+                errorInfo->extend(lastErrorInfo);
+                lastErrorInfo->releaseRef();
+            }
         }
     }
+#endif
 
     std::string message;
 
@@ -359,7 +360,7 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
     template <typename... Params>
     ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, IBaseObject* source)
     {
-        extendErrorInfo(fileName, fileLine, errCode, source, "");
+        extendErrorInfo(fileName, fileLine, errCode, source, std::string());
         return errCode;
     }
 

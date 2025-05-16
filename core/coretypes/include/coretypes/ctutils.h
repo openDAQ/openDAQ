@@ -183,7 +183,7 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
 #endif
 
 
-inline void checkErrorInfo(ErrCode errCode, ConstCharPtr fileName, Int fileLine)
+inline void checkErrorInfo(ErrCode errCode, [[maybe_unused]] ConstCharPtr fileName, [[maybe_unused]] Int fileLine)
 {
     if (OPENDAQ_SUCCEEDED(errCode))
         return;

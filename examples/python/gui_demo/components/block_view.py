@@ -96,7 +96,17 @@ class BlockView(ttk.Frame):
                 self.cols = [0, 1]
                 self.rows = [0]
 
-                opts = ["Unknown", "Idle", "Operation", "SafeOperation"]
+                available_op_modes = []
+                op_modes_nums = list(self.node.available_operation_modes)
+                if 0 in op_modes_nums:
+                    available_op_modes.append("Unknown")
+                if 1 in op_modes_nums:
+                    available_op_modes.append("Idle")
+                if 2 in op_modes_nums:
+                    available_op_modes.append("Operation")
+                if 3 in op_modes_nums:
+                    available_op_modes.append("SafeOperation")
+
                 op_mode = self.node.operation_mode
                 mode_string = ""
                 if op_mode == OperationModeType.Unknown:
@@ -127,7 +137,7 @@ class BlockView(ttk.Frame):
 
                 label = tk.Label(combined, text="Operation mode: ")
                 label.pack(side="left")
-                options = tkinter.OptionMenu(combined, opt, *opts)
+                options = tkinter.OptionMenu(combined, opt, *available_op_modes)
                 options.pack(side="left")
 
 

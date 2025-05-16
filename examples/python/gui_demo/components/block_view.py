@@ -1,7 +1,9 @@
+import tkinter
 import tkinter as tk
 from tkinter import ttk
 
 import opendaq as daq
+from opendaq import OperationModeType
 
 from ..event_port import EventPort
 from .input_ports_view import InputPortsView
@@ -9,9 +11,7 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .attributes_dialog import AttributesDialog
 
-
 class BlockView(ttk.Frame):
-
     def __init__(self, parent, node, context=None, expanded=False, **kwargs):
         ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
@@ -95,6 +95,42 @@ class BlockView(ttk.Frame):
                 self.label_icon.config(image=self.device_img)
                 self.cols = [0, 1]
                 self.rows = [0]
+
+                opts = ["Unknown", "Idle", "Operation", "SafeOperation"]
+                op_mode = self.node.operation_mode
+                mode_string = ""
+                if op_mode == OperationModeType.Unknown:
+                    mode_string = "Unknown"
+                elif op_mode == OperationModeType.Idle:
+                    mode_string = "Idle"
+                elif op_mode == OperationModeType.Operation:
+                    mode_string = "Operation"
+                elif op_mode == OperationModeType.SafeOperation:
+                    mode_string = "SafeOperation"
+
+                opt = tkinter.StringVar(value=mode_string)
+                def on_option_change(*args):
+                    var = opt.get()
+                    if var == "Unknown":
+                        self.node.operation_mode = OperationModeType.Unknown
+                    elif var == "Idle":
+                        self.node.operation_mode = OperationModeType.Idle
+                    elif var == "Operation":
+                        self.node.operation_mode = OperationModeType.Operation
+                    elif var == "SafeOperation":
+                        self.node.operation_mode = OperationModeType.SafeOperation
+
+                opt.trace_add("write", on_option_change)
+
+                combined = tk.Frame(self.expanded_frame)
+                combined.grid(row=1, column=0, padx=5, pady=5)
+
+                label = tk.Label(combined, text="Operation mode: ")
+                label.pack(side="left")
+                options = tkinter.OptionMenu(combined, opt, *opts)
+                options.pack(side="left")
+
+
             elif daq.IFunctionBlock.can_cast_from(self.node):
                 self.node = daq.IFunctionBlock.cast_from(self.node)
                 self.properties = PropertiesView(

@@ -3,10 +3,10 @@
  * example can be found in app_quick_start_full.cpp
  */
 
-#include <opendaq/opendaq.h>
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <opendaq/opendaq.h>
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
@@ -16,4 +16,4 @@ int main(int /*argc*/, const char* /*argv*/[])
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();
     return 0;
-}
+} 

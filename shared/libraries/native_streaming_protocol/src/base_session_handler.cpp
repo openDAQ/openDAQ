@@ -119,7 +119,7 @@ ReadTask BaseSessionHandler::readConfigurationPacket(const void* data, size_t si
     }
     catch (const DaqException& e)
     {
-        LOG_E("Protocol error: {}", e.what());
+        LOG_E("Protocol error: {}", e.getErrorMessage());
         errorHandler(std::string("Protocol error - readConfigurationPacket - ") + e.what(), session);
         return createReadHeaderTask();
     }
@@ -317,7 +317,7 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
     }
     catch (const DaqException& e)
     {
-        LOG_E("Protocol error: {}", e.what());
+        LOG_E("Protocol error: {}", e.getErrorMessage());
         errorHandler(std::string("Protocol error - readPacket - ") + e.what(), session);
         return createReadStopTask();
     }

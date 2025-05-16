@@ -38,11 +38,9 @@ ErrCode OwningListImpl::setOwner(IBaseObject* value) const
     {
         GenericPropertyObjectPtr lock;
         err = owner->getRefAs(IPropertyObject::Id, reinterpret_cast<void**>(&lock));
+        OPENDAQ_RETURN_IF_FAILED(err);
 
-        if (OPENDAQ_SUCCEEDED(err))
-        {
-            return ownable->setOwner(lock);
-        }
+        return ownable->setOwner(lock);
     }
     return err;
 }
@@ -151,10 +149,7 @@ ErrCode OwningListImpl::clear()
     for (IBaseObject* value : list)
     {
         err = removeOwner(value);
-        if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_FROZEN)
-        {
-            return DAQ_MAKE_ERROR_INFO(err);
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_FROZEN);
     }
 
     err = ListImpl::clear();

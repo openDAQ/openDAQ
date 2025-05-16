@@ -45,7 +45,7 @@ public:
     ErrCode INTERFACE_FUNC multipleErrorInfoTest() override
     {
         DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed once");
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed twice");
+        return DAQ_EXTEND_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed twice");
     }
 
     ErrCode INTERFACE_FUNC argumentNotNullTest(IBaseObject* obj) override
@@ -201,7 +201,7 @@ std::string getErrorPostfix([[maybe_unused]] Int fileLine)
 #ifdef NDEBUG
     return "";
 #else
-    return " [ File " + std::string(__FILE__) + ":" + std::to_string(fileLine) + " ]";
+    return " [ " + std::string(__FILE__) + ":" + std::to_string(fileLine) + " ]";
 #endif
 }
 
@@ -219,7 +219,8 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
     auto obj = CreateTestObject();
 
     std::string expected = "multipleErrorInfoTest failed once" + getErrorPostfix(47);
-    expected += "\nmultipleErrorInfoTest failed twice" + getErrorPostfix(48);
+    expected += "\nCaused by:";
+    expected += "\n - multipleErrorInfoTest failed twice" + getErrorPostfix(48);
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 

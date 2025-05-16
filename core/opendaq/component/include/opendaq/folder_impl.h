@@ -424,7 +424,7 @@ BaseObjectPtr FolderImpl<Intf, Intfs...>::DeserializeFolder(const SerializedObje
                     deserializeContext.getLocalId(),
                     className);
             }
-            checkErrorInfo(errCode);
+            DAQ_CHECK_ERROR_INFO(errCode);
 
             return typename InterfaceToSmartPtr<Interface>::SmartPtr();
         });

@@ -311,6 +311,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
     {
         DeviceInfoPtr devInfo;
         errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
         this->deviceInfo = devInfo.detach();
     }
 
@@ -373,9 +374,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
-            if (OPENDAQ_FAILED(revertStatus))
-                return DAQ_MAKE_ERROR_INFO(revertStatus);
-            OPENDAQ_RETURN_IF_FAILED(status);
+            OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            return DAQ_EXTEND_ERROR_INFO(status);
         }
     }
 
@@ -412,9 +412,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
-            if (OPENDAQ_FAILED(revertStatus))
-                return DAQ_MAKE_ERROR_INFO(revertStatus);
-            return DAQ_MAKE_ERROR_INFO(status);
+            OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            return DAQ_EXTEND_ERROR_INFO(status);
         }
     }
 
@@ -1122,6 +1121,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(ILi
     {
         std::set<OperationModeType> modes;
         errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
         
         this->availableOperationModes = List<IInteger>();
         for (auto mode : modes)
@@ -1138,9 +1138,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeNoCoreEvent(OperationModeType modeType)
 {
     const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
-    if (OPENDAQ_SUCCEEDED(errCode))
-        this->operationMode = modeType;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    this->operationMode = modeType;
     return errCode;
 }
 
@@ -1148,11 +1148,11 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(OperationModeType modeType)
 {
     const ErrCode errCode = this->updateOperationModeNoCoreEvent(modeType);
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        if (!this->coreEventMuted && this->coreEvent.assigned())
-            this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
+
     return errCode;
 }
 
@@ -1386,7 +1386,7 @@ PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onCreateDefaultAddDe
 {
     PropertyObjectPtr obj;
     const ModuleManagerUtilsPtr manager = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
-    checkErrorInfo(manager->createDefaultAddDeviceConfig(&obj));
+    DAQ_CHECK_ERROR_INFO(manager->createDefaultAddDeviceConfig(&obj));
 
     return obj;
 }
@@ -1546,7 +1546,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
     {
         auto serializer = JsonSerializer(True);
 
-        checkErrorInfo(this->serialize(serializer));
+        DAQ_CHECK_ERROR_INFO(this->serialize(serializer));
 
         auto str = serializer.getOutput();
 
@@ -1590,6 +1590,10 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::createAndAddSubDevice(const 
     catch (NotFoundException&)
     {
         LOG_W("{}: Device with connection string \"{}\" is not available", this->globalId, connectionString);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_W("{}: Failed to create device with connection string \"{}\" - \"{}\"", this->globalId, connectionString, e.getErrorMessage());
     }
     catch (const std::exception& e)
     {
@@ -1691,7 +1695,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     }
 
     DeviceInfoPtr deviceInfo;
-    checkErrorInfo(this->getInfo(&deviceInfo));
+    DAQ_CHECK_ERROR_INFO(this->getInfo(&deviceInfo));
 
     if (!forUpdate)
     {
@@ -1870,12 +1874,16 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (devices.hasItem(deviceId))
         {
             DevicePtr device = devices.getItem(deviceId);
-            checkErrorInfo(this->removeDevice(device));
+            DAQ_CHECK_ERROR_INFO(this->removeDevice(device));
         }
 
         DevicePtr device = onAddDevice(connectionString, deviceConfig);
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_W("Failed to update device: {}", e.getErrorMessage());
     }
     catch (const std::exception& e)
     {
@@ -2056,13 +2064,12 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
 {
     ErrCode errCode = Super::enableCoreEventTrigger();
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-    
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     DeviceInfoPtr deviceInfo;
     errCode = this->getInfo(&deviceInfo);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     if (!deviceInfo.assigned())
         return errCode;
     
@@ -2073,13 +2080,12 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
 {
     ErrCode errCode = Super::disableCoreEventTrigger();
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     
     DeviceInfoPtr deviceInfo;
     errCode = this->getInfo(&deviceInfo);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     if (!deviceInfo.assigned())
         return errCode;
     

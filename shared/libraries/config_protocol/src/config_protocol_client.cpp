@@ -444,7 +444,7 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
                     {
                         rootDeviceDeserialized = true;
                         BaseObjectPtr obj;
-                        checkErrorInfo(this->rootDeviceDeserializeCallback(object, context, factoryCallback, &obj));
+                        DAQ_CHECK_ERROR_INFO(this->rootDeviceDeserializeCallback(object, context, factoryCallback, &obj));
                         return obj;
                     }
                     return deserializeConfigComponent(typeId, object, context, factoryCallback);
@@ -460,6 +460,10 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
                     return deserializeConfigComponent(typeId, object, context, factoryCallback);
                 });
         }
+    }
+    catch (const DaqException& e)
+    {
+        throw ConfigProtocolException(fmt::format("Invalid reply: {}", e.getErrorMessage()));
     }
     catch (const std::exception& e)
     {
@@ -487,14 +491,14 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     if (typeId == "Folder")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
     if (typeId == "Component")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
@@ -508,42 +512,42 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     if (typeId == "IoFolder")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientIoFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientIoFolderImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
     if (typeId == "InputPort")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientInputPortImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientInputPortImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
     if (typeId == "Signal")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientSignalImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientSignalImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
     if (typeId == "Channel")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientChannelImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientChannelImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
     if (typeId == "FunctionBlock")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientFunctionBlockImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientFunctionBlockImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
     if (typeId == "Device" || typeId == "Instance")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
@@ -552,28 +556,28 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
         if (protocolVersion < 8)
             return nullptr;
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientDeviceInfoImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientDeviceInfoImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
     if (typeId == "PropertyObject")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientPropertyObjectImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientPropertyObjectImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }    
 
     if (typeId == "SyncComponent")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientSyncComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientSyncComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
     if (typeId == "Server")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientServerImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        DAQ_CHECK_ERROR_INFO(ConfigClientServerImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
@@ -768,7 +772,7 @@ void ConfigProtocolClientComm::connectDomainSignals(const ComponentPtr& componen
                 {
                     const auto domainSingalRemoteId = domainSignalId.toStdString();
                     StringPtr topComponentRemoteId;
-                    checkErrorInfo(topComponent.asPtr<IConfigClientObject>(true)->getRemoteGlobalId(&topComponentRemoteId));
+                    DAQ_CHECK_ERROR_INFO(topComponent.asPtr<IConfigClientObject>(true)->getRemoteGlobalId(&topComponentRemoteId));
                     if (domainSingalRemoteId.find(topComponentRemoteId.toStdString() + "/") == 0)
                     {
                         auto restStr = domainSingalRemoteId.substr(topComponentRemoteId.toStdString().size() + 1);
@@ -839,7 +843,7 @@ void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)
                                      if (signalId.assigned())
                                      {
                                          const auto signal = findSignalByRemoteGlobalId(dev, signalId);
-                                         checkErrorInfo(configClientInputPort->assignSignal(signal));
+                                         DAQ_CHECK_ERROR_INFO(configClientInputPort->assignSignal(signal));
                                      }
                                      else
                                      {
@@ -863,7 +867,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Clien
     {
         const auto configClientObject = parentComponent.asPtr<IConfigClientObject>(true);
         StringPtr temp;
-        checkErrorInfo(configClientObject->getRemoteGlobalId(&temp));
+        DAQ_CHECK_ERROR_INFO(configClientObject->getRemoteGlobalId(&temp));
         remoteGlobalId = temp.toStdString();
     }
 

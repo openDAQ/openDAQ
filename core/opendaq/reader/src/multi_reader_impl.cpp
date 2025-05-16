@@ -233,12 +233,12 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
             DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId());
         }
 
-        if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
+        if (!domainQuantity.assigned() || domainQuantity.empty())
         {
             domainQuantity = domainUnit.getQuantity();
             domainUnitSymbol = domainUnit.getSymbol();
 
-            if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
+            if (!domainQuantity.assigned() || domainQuantity.empty())
             {
                 DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain quantity set.)", signal.getLocalId());
             }
@@ -282,7 +282,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
         {
             auto referenceDomainID = referenceDomainInfo.getReferenceDomainId();
 
-            if (!referenceDomainID.assigned() || referenceDomainID.getLength() == 0)
+            if (!referenceDomainID.assigned() || referenceDomainID.empty())
             {
                 // This will perhaps be bumped up to a higher severity later on (warning)
                 LOG_D(R"(Domain signal "{}" Reference Domain ID not assigned.)", domain.getLocalId());

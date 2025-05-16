@@ -198,7 +198,7 @@ void MirroredDeviceBase<Interfaces...>::removed()
     for (const auto& streamingSource : streamingSources)
     {
         this->connectionStatusContainer.removeStreamingConnectionStatus(streamingSource.getConnectionString());
-        checkErrorInfo(streamingSource.template asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr));
+        DAQ_CHECK_ERROR_INFO(streamingSource.template asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr));
     }
 
     // disconnects all streaming connections
@@ -262,7 +262,7 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
                                                                  streamingPtr.getConnectionStatus(),
                                                                  streamingPtr);
     const auto thisPtr = this->template borrowPtr<DevicePtr>();
-    checkErrorInfo(streamingPtr.template asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
+    DAQ_CHECK_ERROR_INFO(streamingPtr.template asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
 
     return streamingPtr;
 }

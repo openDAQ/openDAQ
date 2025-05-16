@@ -101,7 +101,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->addHandler(eventHandler);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void removeHandler(const EventHandlerPtr<TSender, TEventArgs>& eventHandler) const
@@ -110,7 +110,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->removeHandler(eventHandler);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void trigger(TSender& sender, TEventArgs& args) const
@@ -119,7 +119,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->trigger(sender, args);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void clear() const
@@ -128,7 +128,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->clear();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     bool hasListeners() const
@@ -145,7 +145,7 @@ public:
 
         SizeT count;
         auto errCode = this->object->getSubscriberCount(&count);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return count;
     }
@@ -157,7 +157,7 @@ public:
 
         ListPtr<IEventHandler> listeners;
         auto errCode = this->object->getSubscribers(&listeners);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return listeners;
     }
@@ -168,7 +168,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->mute();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void unmute() const
@@ -177,7 +177,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->unmute();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void muteListener(const EventHandlerPtr<TSender, TEventArgs>& eventHandler) const
@@ -186,7 +186,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->muteListener(eventHandler);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void unmuteListener(const EventHandlerPtr<TSender, TEventArgs>& eventHandler) const
@@ -195,7 +195,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         auto errCode = this->object->unmuteListener(eventHandler);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 };
 

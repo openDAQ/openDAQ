@@ -368,7 +368,7 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
     
     FunctionBlockPtr fb;
 
-    checkErrorInfo(managerUtils->createFunctionBlock(&fb, typeId, functionBlocks, config, localId));
+    DAQ_CHECK_ERROR_INFO(managerUtils->createFunctionBlock(&fb, typeId, functionBlocks, config, localId));
     if (fb.assigned())
         addNestedFunctionBlock(fb);
     return fb;

@@ -138,7 +138,7 @@ ErrCode StringImpl::toFloat(Float* val)
     }
     catch (const std::exception& e)
     {
-        return errorFromException(e, nullptr, OPENDAQ_ERR_CONVERSIONFAILED);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_CONVERSIONFAILED);
     }
 }
 
@@ -151,7 +151,7 @@ ErrCode StringImpl::toInt(Int* val)
     }
     catch (const std::exception& e)
     {
-        return errorFromException(e, nullptr, OPENDAQ_ERR_CONVERSIONFAILED);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_CONVERSIONFAILED);
     }
 }
 

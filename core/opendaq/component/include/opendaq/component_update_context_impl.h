@@ -248,8 +248,6 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     
     ComponentPtr signalComponent;
     parentComponent->findComponent(signalLocalId, &signalComponent);
-    if (!signalComponent.assigned())
-        return OPENDAQ_NOTFOUND;
 
     SignalPtr singalPtr = signalComponent.asPtrOrNull<ISignal>();
     if (!singalPtr.assigned())

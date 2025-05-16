@@ -32,6 +32,11 @@ bool parseEvalValue(const std::string& str, ParseParams* params)
         params->propertyReferences = parser.getPropertyReferences();
         return true;
     }
+    catch (const daq::DaqException& e)
+    {
+        params->errMessage = e.getErrorMessage();
+        return false;
+    }
     catch (const std::exception& e)
     {
         params->errMessage = e.what();

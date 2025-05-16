@@ -285,7 +285,7 @@ struct CoreTypeHelper<std::wstring>
 
         ConstCharPtr data;
         ErrCode err = string->getCharPtr(&data);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return converter.from_bytes(data);
     }

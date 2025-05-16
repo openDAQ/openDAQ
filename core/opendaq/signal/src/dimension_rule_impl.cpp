@@ -23,7 +23,7 @@ DimensionRuleImpl::DimensionRuleImpl(DimensionRuleType ruleType, const DictPtr<I
       , ruleType(ruleType)
       , params(this->fields.get("Parameters"))
 {
-    checkErrorInfo(verifyParametersInternal());
+    DAQ_CHECK_ERROR_INFO(verifyParametersInternal());
     if (params.supportsInterface<IFreezable>())
         params.freeze();
 }

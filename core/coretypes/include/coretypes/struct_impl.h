@@ -423,7 +423,7 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(
     }
     catch(const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch(...)
     {

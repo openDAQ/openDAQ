@@ -59,7 +59,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ISerializedList* value;
-        checkErrorInfo(object->readSerializedList(&value));
+        DAQ_CHECK_ERROR_INFO(object->readSerializedList(&value));
 
         return SerializedListPtr(std::move(value));
     }
@@ -71,7 +71,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         IList* value;
-        checkErrorInfo(object->readList(context, factoryCallback, &value));
+        DAQ_CHECK_ERROR_INFO(object->readList(context, factoryCallback, &value));
 
         return ListPtr<T>(std::move(value));
     }
@@ -82,7 +82,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         IBaseObject* value;
-        checkErrorInfo(object->readObject(context, factoryCallback, &value));
+        DAQ_CHECK_ERROR_INFO(object->readObject(context, factoryCallback, &value));
 
         return BaseObjectPtr(std::move(value));
     }
@@ -93,7 +93,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         IString* value;
-        checkErrorInfo(object->readString(&value));
+        DAQ_CHECK_ERROR_INFO(object->readString(&value));
 
         return StringPtr(std::move(value));
     }
@@ -104,7 +104,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Bool value;
-        checkErrorInfo(object->readBool(&value));
+        DAQ_CHECK_ERROR_INFO(object->readBool(&value));
 
         return value;
     }
@@ -115,7 +115,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Int value;
-        checkErrorInfo(object->readInt(&value));
+        DAQ_CHECK_ERROR_INFO(object->readInt(&value));
 
         return value;
     }
@@ -126,7 +126,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Float value;
-        checkErrorInfo(object->readFloat(&value));
+        DAQ_CHECK_ERROR_INFO(object->readFloat(&value));
 
         return value;
     }
@@ -137,7 +137,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         SizeT value;
-        checkErrorInfo(object->getCount(&value));
+        DAQ_CHECK_ERROR_INFO(object->getCount(&value));
 
         return value;
     }
@@ -148,7 +148,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ObjectPtr<ISerializedObject> value;
-        checkErrorInfo(object->readSerializedObject(&value));
+        DAQ_CHECK_ERROR_INFO(object->readSerializedObject(&value));
 
         return value;
     }
@@ -159,7 +159,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         CoreType ct;
-        checkErrorInfo(object->getCurrentItemType(&ct));
+        DAQ_CHECK_ERROR_INFO(object->getCurrentItemType(&ct));
         return ct;
     }
 };

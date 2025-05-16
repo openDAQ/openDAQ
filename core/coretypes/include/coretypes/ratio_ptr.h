@@ -117,7 +117,7 @@ public:
 
         Int numerator;
         auto errCode = this->object->getNumerator(&numerator);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return numerator;
     }
@@ -133,7 +133,7 @@ public:
 
         Int denominator;
         auto errCode = this->object->getDenominator(&denominator);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return denominator;
     }
@@ -151,16 +151,16 @@ public:
 
         RatioPtr simplifiedRatio;
         const auto errCode = this->object->simplify(&simplifiedRatio);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return simplifiedRatio;
     }
 
     explicit operator double() const
     {
         Int denominator;
-        checkErrorInfo(this->object->getDenominator(&denominator));
+        DAQ_CHECK_ERROR_INFO(this->object->getDenominator(&denominator));
         Int numerator;
-        checkErrorInfo(this->object->getNumerator(&numerator));
+        DAQ_CHECK_ERROR_INFO(this->object->getNumerator(&numerator));
 
         return static_cast<double>(numerator) / static_cast<double>(denominator);
     }

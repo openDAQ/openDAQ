@@ -351,7 +351,11 @@ ErrCode DictImpl::clone(IBaseObject** cloned)
         lst->hashTable.insert(std::make_pair(key, val));
     }
 
-    return lst->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(cloned));
+    ErrCode err = lst->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(cloned));
+    if (err == OPENDAQ_ERR_NOINTERFACE)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE);
+
+    return err;
 }
 
 ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const

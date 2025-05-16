@@ -112,7 +112,7 @@ public:
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 
-        checkErrorInfo(validateDuringConstruction());
+        DAQ_CHECK_ERROR_INFO(validateDuringConstruction());
     }
 
     PropertyImpl(const StringPtr& name, const BaseObjectPtr& defaultValue, const BooleanPtr& visible)
@@ -810,9 +810,9 @@ public:
 		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
 			        defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
                 else if (lock)
-                    checkErrorInfo(this->getDefaultValue(&defaultStruct));
+                    DAQ_CHECK_ERROR_INFO(this->getDefaultValue(&defaultStruct));
                 else
-                    checkErrorInfo(this->getDefaultValueNoLock(&defaultStruct));
+                    DAQ_CHECK_ERROR_INFO(this->getDefaultValueNoLock(&defaultStruct));
 
                 *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
 		        return OPENDAQ_SUCCESS;
@@ -1201,12 +1201,9 @@ public:
         {
             auto defaultValueObj = defaultValue;
 
-            if (defaultValueObj.assigned())
-            {
-                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
-                if (cloneableDefaultValue.assigned())
-                    defaultValueObj = cloneableDefaultValue.clone();
-            }
+            auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
+            if (cloneableDefaultValue.assigned())
+                defaultValueObj = cloneableDefaultValue.clone();
 
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
@@ -1401,16 +1398,13 @@ public:
 
         this->owner = owner;
 
-        if (this->defaultValue.assigned())
+        if (const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>(true); defaultValueObj.assigned())
         {
-            if (const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>(true); defaultValueObj.assigned())
-            {
-                PermissionManagerPtr parentManager;
-                ErrCode err = owner->getPermissionManager(&parentManager);
-                OPENDAQ_RETURN_IF_FAILED(err);
+            PermissionManagerPtr parentManager;
+            ErrCode err = owner->getPermissionManager(&parentManager);
+            OPENDAQ_RETURN_IF_FAILED(err);
 
-                defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
-            }
+            defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
         }
 
         return OPENDAQ_SUCCESS;
@@ -1449,7 +1443,7 @@ private:
     PropertyPtr bindAndGetRefProp(bool lock)
     {
 	    PropertyPtr refPropPtr;
-	    checkErrorInfo(getReferencedPropertyInternal(&refPropPtr, lock));
+	    DAQ_CHECK_ERROR_INFO(getReferencedPropertyInternal(&refPropPtr, lock));
 	    if (!refPropPtr.assigned())
 		    return nullptr;
 		    
@@ -1459,9 +1453,6 @@ private:
     template <typename TPtr>
     TPtr bindAndGet(const BaseObjectPtr& metadata, bool lock) const
     {
-	    if (!metadata.assigned())
-		    return nullptr;
-		    
 	    auto eval = metadata.asPtrOrNull<IEvalValue>();
 	    if (!eval.assigned())
 		    return metadata;
@@ -1475,9 +1466,6 @@ private:
 
     BaseObjectPtr getUnresolved(const BaseObjectPtr& localMetadata) const
     {
-        if (!localMetadata.assigned())
-            return nullptr;
-
         if (const auto eval = localMetadata.asPtrOrNull<IEvalValue>(); eval.assigned())
         {
             const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;

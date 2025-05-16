@@ -262,13 +262,13 @@ ErrCode createFunctionWrapper(IFunction** obj, [[maybe_unused]] TFunctor func)
     {
         return errorFromException(e);
     }
-    catch (const std::bad_alloc&)
+    catch (const std::bad_alloc& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_NOMEMORY);
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
 
     (*obj)->addRef();
@@ -291,13 +291,13 @@ ErrCode createFunctionWrapper(IFunction** obj, TFunctor func)
     {
         return errorFromException(e);
     }
-    catch (const std::bad_alloc&)
+    catch (const std::bad_alloc& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_NOMEMORY);
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
 
     (*obj)->addRef();
@@ -320,13 +320,13 @@ ErrCode createFunctionWrapper(IFunction** obj, TFunctor* func)
     {
         return errorFromException(e);
     }
-    catch (const std::bad_alloc&)
+    catch (const std::bad_alloc& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_NOMEMORY);
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
 
     (*obj)->addRef();
@@ -341,7 +341,7 @@ IFunction* FunctionWrapper_Create(TFunctor func)
 {
    IFunction* obj;
    const ErrCode res = createFunctionWrapper<TFunctor>(&obj, std::move(func));
-   checkErrorInfo(res);
+   DAQ_CHECK_ERROR_INFO(res);
 
    return obj;
 }
@@ -353,7 +353,7 @@ IFunction* FuncObject_Create2(TFunctor* func)
 {
    IFunction* obj;
    const ErrCode res = createFunctionWrapper<TFunctor>(&obj, func);
-   checkErrorInfo(res);
+   DAQ_CHECK_ERROR_INFO(res);
 
    return obj;
 }

@@ -53,6 +53,14 @@ public:
         return fileLine;
     }
 
+    [[nodiscard]]
+    std::string getErrorMessage() const
+    {
+        if (fileName != nullptr)
+            return fmt::format("{} [ File {}:{} ]", what(), fileName, fileLine);
+        return what();
+    }
+
 protected:
     template <typename... Params>
     explicit DaqException(bool defaultMsg, ErrCode errCode, const std::string& msg, ConstCharPtr fileName = nullptr, Int fileLine = -1)

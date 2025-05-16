@@ -79,7 +79,7 @@ template <class U>
 NativeIterator<U>& NativeIterator<U>::operator++()
 {
     const auto res = iterator->moveNext();
-    checkErrorInfo(res);
+    DAQ_CHECK_ERROR_INFO(res);
 
     return *this;
 }
@@ -89,7 +89,7 @@ bool NativeIterator<U>::operator!=(const NativeIterator<U>& other) const
 {
     Bool eq{false};
     const ErrCode errCode = iterator->equals(other.iterator, &eq);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return !eq;
 }
@@ -105,7 +105,7 @@ U NativeIterator<U>::operator*() const
 {
     ObjectPtr<IBaseObject> obj;
     ErrCode errCode = iterator->getCurrent(&obj);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     if (obj == nullptr)
         return U();
@@ -116,11 +116,11 @@ U NativeIterator<U>::operator*() const
 
         ObjectPtr<IBaseObject> key;
         errCode = list->getItemAt(0, &key);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         ObjectPtr<IBaseObject> value;
         errCode = list->getItemAt(1, &value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return std::make_pair(std::move(key), std::move(value));
     }

@@ -234,13 +234,13 @@ ErrCode createProcedureWrapper(IProcedure** obj, [[maybe_unused]] TFunctor proc)
     {
         return errorFromException(e);
     }
-    catch (const std::bad_alloc&)
+    catch (const std::bad_alloc& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_NOMEMORY);
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
 
     (*obj)->addRef();
@@ -263,13 +263,13 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor proc)
     {
         return errorFromException(e);
     }
-    catch (const std::bad_alloc&)
+    catch (const std::bad_alloc& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_NOMEMORY);
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
 
     (*obj)->addRef();
@@ -292,13 +292,13 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor* proc)
     {
         return errorFromException(e);
     }
-    catch (const std::bad_alloc&)
+    catch (const std::bad_alloc& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_NOMEMORY);
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
 
     (*obj)->addRef();
@@ -313,7 +313,7 @@ IProcedure* ProcedureWrapper_Create(TFunctor proc)
 {
     IProcedure* obj = nullptr;
     const ErrCode res = createProcedureWrapper<TFunctor>(&obj, std::move(proc));
-    checkErrorInfo(res);
+    DAQ_CHECK_ERROR_INFO(res);
 
     return obj;
 }
@@ -325,7 +325,7 @@ IProcedure* ProcedureWrapper_Create(TFunctor* proc)
 {
     IProcedure* obj = nullptr;
     const ErrCode res = createProcedureWrapper<TFunctor>(&obj, proc);
-    checkErrorInfo(res);
+    DAQ_CHECK_ERROR_INFO(res);
 
     return obj;
 }

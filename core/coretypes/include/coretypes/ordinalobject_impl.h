@@ -195,6 +195,8 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
     {
         IConvertible* convObj;
         err = obj->borrowInterface(IConvertible::Id, reinterpret_cast<void**>(&convObj));
+        if (err == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE);
         OPENDAQ_RETURN_IF_FAILED(err);
 
         err = CoreTypeHelper<V>::FromConvertible(otherValue, convObj);
@@ -207,11 +209,11 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
     }
 
     if (value > otherValue)
-        return  OPENDAQ_GREATER;
+        return OPENDAQ_GREATER;
     else if (value < otherValue)
-        return  OPENDAQ_LOWER;
+        return OPENDAQ_LOWER;
     else
-        return  OPENDAQ_EQUAL;
+        return OPENDAQ_EQUAL;
 }
 
 template <class V, class Intf, class ... Intfs>

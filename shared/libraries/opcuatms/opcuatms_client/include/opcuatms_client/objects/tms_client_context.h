@@ -54,9 +54,7 @@ public:
     Ptr getObject(const opcua::OpcUaNodeId& nodeId)
     {
         auto obj = this->getObject(nodeId);
-        if (obj.assigned())
-            return obj.asPtrOrNull<I, Ptr>();
-        return Ptr();
+        return obj.asPtrOrNull<I, Ptr>();
     }
 
     template <class I, class Ptr = typename InterfaceToSmartPtr<I>::SmartPtr>

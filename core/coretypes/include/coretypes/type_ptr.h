@@ -111,7 +111,7 @@ public:
 
         StringPtr typeName;
         const auto errCode = this->object->getName(&typeName);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return typeName;
     }

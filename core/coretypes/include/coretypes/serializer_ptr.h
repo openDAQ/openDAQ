@@ -54,7 +54,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->startObject();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void startTaggedObject(const SerializablePtr& objPtr) const
@@ -63,7 +63,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->startTaggedObject(objPtr);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void endObject() const
@@ -72,7 +72,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->endObject();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void startList() const
@@ -81,7 +81,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->startList();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void endList() const
@@ -90,7 +90,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->endList();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     StringPtr getOutput() const
@@ -100,7 +100,7 @@ public:
 
         StringPtr serialized;
         ErrCode errCode = object->getOutput(&serialized);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return serialized;
     }
@@ -111,7 +111,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->keyStr(name);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void key(ConstCharPtr name) const
@@ -120,7 +120,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->key(name);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void key(ConstCharPtr name, SizeT length) const
@@ -129,7 +129,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->keyRaw(name, length);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void writeInt(Int integer) const
@@ -138,7 +138,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeInt(integer);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void writeBool(Bool bolean) const
@@ -147,7 +147,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeBool(bolean);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void writeFloat(Float real) const
@@ -156,7 +156,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeFloat(real);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void writeNull() const
@@ -165,7 +165,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeNull();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void writeString(const StringPtr& string) const
@@ -177,10 +177,10 @@ public:
         string->getLength(&length);
 
         ConstCharPtr value;
-        checkErrorInfo(string->getCharPtr(&value));
+        DAQ_CHECK_ERROR_INFO(string->getCharPtr(&value));
 
         ErrCode errCode = object->writeString(value, length);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void writeString(const std::string& str) const
@@ -189,7 +189,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeString(str.data(), str.size());
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void writeString(ConstCharPtr string) const
@@ -198,7 +198,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeString(string, strlen(string));
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     void writeString(ConstCharPtr string, SizeT length) const
@@ -207,7 +207,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->writeString(string, length);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     Bool isComplete() const
@@ -217,7 +217,7 @@ public:
 
         Bool complete;
         ErrCode errCode = object->isComplete(&complete);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return complete;
     }
@@ -228,7 +228,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->reset();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     BaseObjectPtr getUser() const
@@ -238,7 +238,7 @@ public:
 
         BaseObjectPtr userObject;
         ErrCode errCode = object->getUser(&userObject);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return userObject;
     }
 
@@ -248,7 +248,7 @@ public:
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         ErrCode errCode = object->setUser(user);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     Int getVersion() const
@@ -258,7 +258,7 @@ public:
 
         Int version;
         ErrCode errCode = object->getVersion(&version);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return version;
     }

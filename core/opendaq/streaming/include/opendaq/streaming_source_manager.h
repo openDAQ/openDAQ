@@ -235,7 +235,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
             }
             else if (errCode != OPENDAQ_ERR_DUPLICATEITEM)
             {
-                checkErrorInfo(errCode);
+                DAQ_CHECK_ERROR_INFO(errCode);
             }
             else
             {

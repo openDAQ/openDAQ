@@ -164,6 +164,12 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
                 signalSubscribedHandler(signal);
             }
         }
+        catch (const DaqException& e)
+        {
+            LOG_W("Failed subscribing of signal: {}, numeric Id {}; {}",
+                  signalStringId, signalNumericId, e.getErrorMessage());
+            return false;
+        }
         catch (const std::exception& e)
         {
             LOG_W("Failed subscribing of signal: {}, numeric Id {}; {}",
@@ -181,6 +187,12 @@ bool NativeStreamingServerHandler::handleSignalSubscription(const SignalNumericI
             {
                 signalUnsubscribedHandler(signal);
             }
+        }
+        catch (const DaqException& e)
+        {
+            LOG_W("Failed unsubscribing of signal: {}, numeric Id {}; {}",
+                  signalStringId, signalNumericId, e.getErrorMessage());
+            return false;
         }
         catch (const std::exception& e)
         {
@@ -209,7 +221,7 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
             }
             catch (const DaqException& e)
             {
-                LOG_W("Anonymous authentication rejected: ", e.what());
+                LOG_W("Anonymous authentication rejected: ", e.getErrorMessage());
             }
 
             break;
@@ -224,7 +236,7 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
             }
             catch (const DaqException& e)
             {
-                LOG_W("Username authentication rejected: {}", e.what());
+                LOG_W("Username authentication rejected: {}", e.getErrorMessage());
             }
 
             break;

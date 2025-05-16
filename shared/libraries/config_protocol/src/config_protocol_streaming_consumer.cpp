@@ -64,7 +64,7 @@ MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::createMirroredExternalS
             if (typeId != "Signal")
                 return nullptr;
             BaseObjectPtr obj;
-            checkErrorInfo(ConfigMirroredExternalSignalImpl::Deserialize(object, context, factoryCallback, &obj));
+            DAQ_CHECK_ERROR_INFO(ConfigMirroredExternalSignalImpl::Deserialize(object, context, factoryCallback, &obj));
             return obj;
         });
 

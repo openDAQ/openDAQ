@@ -151,7 +151,7 @@ inline ErrCode ComponentStatusContainerImpl::addStatusWithMessage(IString* name,
     OPENDAQ_PARAM_NOT_NULL(message);
 
     const auto nameObj = StringPtr::Borrow(name);
-    if (nameObj == "")
+    if (nameObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::scoped_lock lock(sync);
@@ -168,7 +168,7 @@ inline ErrCode ComponentStatusContainerImpl::addStatusWithMessage(IString* name,
         // Rollback
         statuses.remove(name);
         // Return error
-        return DAQ_MAKE_ERROR_INFO(errCode);
+        return DAQ_EXTEND_ERROR_INFO(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -186,7 +186,7 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
     OPENDAQ_PARAM_NOT_NULL(message);
 
     const auto nameObj = StringPtr::Borrow(name);
-    if (nameObj == "")
+    if (nameObj.empty())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     const auto messageObj = StringPtr::Borrow(message);
 
@@ -228,7 +228,7 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
                 // Rollback
                 statuses.set(name, oldStatus);
                 // Return error
-                return DAQ_MAKE_ERROR_INFO(errCode);
+                return DAQ_EXTEND_ERROR_INFO(errCode);
             }
         }
     }
@@ -281,7 +281,7 @@ inline ErrCode ComponentStatusContainerImpl::Deserialize(ISerializedObject* seri
     OPENDAQ_PARAM_NOT_NULL(obj);
 
     const auto contextPtr = BaseObjectPtr::Borrow(context);
-    const auto deserializerContext = contextPtr.assigned() ? contextPtr.asPtrOrNull<IComponentDeserializeContext>() : nullptr;
+    const auto deserializerContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>();
     const ProcedurePtr triggerCoreEvent = deserializerContext.assigned() ? deserializerContext.getTriggerCoreEvent() : nullptr;
 
     ObjectPtr<IComponentStatusContainerPrivate> statusContainer;

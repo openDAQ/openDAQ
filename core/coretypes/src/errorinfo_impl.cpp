@@ -13,7 +13,8 @@ thread_local ErrorInfoHolder errorInfoHolder;
 #ifndef __MINGW32__
 ErrorInfoHolder::~ErrorInfoHolder()
 {
-    releaseRefIfNotNull(errorInfoList);
+    for (auto item : errorInfoList)
+        releaseRefIfNotNull(item);
 }
 #endif
 
@@ -21,43 +22,57 @@ void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
 {
     if (errorInfo == nullptr)
     {
-        releaseRefIfNotNull(errorInfoList);
-        errorInfoList = nullptr;
+        if (!errorInfoList.empty())
+        {
+            auto lastErrorInfo = errorInfoList.back();
+            errorInfoList.pop_back();
+            releaseRefIfNotNull(lastErrorInfo);
+        }
         return;
     }
 
-    if (errorInfoList == nullptr)
-        errorInfoList = ListWithElementType_Create(IErrorInfo::Id);
-    errorInfoList->pushBack(errorInfo);
+    errorInfoList.push_back(errorInfo);
+    addRefIfNotNull(errorInfo);
+}
+
+void ErrorInfoHolder::extendErrorInfo(IErrorInfo* errorInfo)
+{
+    if (errorInfo == nullptr)
+        return;
+
+    if (errorInfoList.empty())
+    {
+        errorInfoList.push_back(errorInfo);
+        addRefIfNotNull(errorInfo);
+        return;
+    }
+
+    errorInfoList.back()->extend(errorInfo);
 }
 
 IErrorInfo* ErrorInfoHolder::getErrorInfo() const
 {
-    if (errorInfoList == nullptr)
-        return nullptr;
-    
-    SizeT count = 0;
-    errorInfoList->getCount(&count);
-    if (count == 0)
-        return nullptr;
-    
-    IBaseObject* errorInfoObject;
-    errorInfoList->getItemAt(count - 1, &errorInfoObject);
-
-    if (errorInfoObject == nullptr)
+    if (errorInfoList.empty())
         return nullptr;
 
-    IErrorInfo* errorInfo;
-    errorInfoObject->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+    IErrorInfo* errorInfo = errorInfoList.back();
+    addRefIfNotNull(errorInfo);
 
     return errorInfo;
 }
 
 IList* ErrorInfoHolder::getErrorInfoList()
 {
-    IList* tmp = errorInfoList;
-    errorInfoList = nullptr;
-    return tmp;
+    IList* list = ListWithElementType_Create(IErrorInfo::Id);
+    for (auto item : errorInfoList)
+    {
+        IBaseObject* errorInfoObject = nullptr;
+        item->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&errorInfoObject));
+        if (errorInfoObject != nullptr)
+            list->moveBack(errorInfoObject);
+    }
+    errorInfoList.clear();
+    return list;
 }
 
 // ErrorInfoImpl
@@ -68,6 +83,7 @@ ErrorInfoImpl::ErrorInfoImpl()
     , fileName(nullptr)
     , line(-1)
     , frozen(False)
+    , childErrorInfoList(nullptr)
 {
 }
 
@@ -75,6 +91,7 @@ ErrorInfoImpl::~ErrorInfoImpl()
 {
     releaseRefIfNotNull(message);
     releaseRefIfNotNull(source);
+    releaseRefIfNotNull(childErrorInfoList);
 }
 
 ErrCode ErrorInfoImpl::getMessage(IString** message)
@@ -163,6 +180,107 @@ ErrCode ErrorInfoImpl::setSource(IString* source)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ErrorInfoImpl::extend(IErrorInfo* errorInfo)
+{
+    if (errorInfo == nullptr)
+        return OPENDAQ_IGNORED;
+
+    if (childErrorInfoList == nullptr)
+        childErrorInfoList = ListWithElementType_Create(IErrorInfo::Id);
+
+    return childErrorInfoList->pushBack(errorInfo);
+}
+
+std::ostringstream& CreateErrorMessage(std::ostringstream& ss, IErrorInfo* errorInfo)
+{
+    if (errorInfo == nullptr)
+        return ss;
+
+    IString* message;
+    errorInfo->getMessage(&message);
+
+    if (message != nullptr)
+    {
+        ConstCharPtr msgCharPtr;
+        message->getCharPtr(&msgCharPtr);
+
+        if (msgCharPtr != nullptr)
+            ss << msgCharPtr;
+
+        message->releaseRef();
+    }
+
+#ifndef NDEBUG
+    ConstCharPtr fileNameCharPtr;
+    Int fileLine = -1;
+    
+    errorInfo->getFileName(&fileNameCharPtr);
+    errorInfo->getFileLine(&fileLine);
+
+    if (fileNameCharPtr != nullptr)
+    {
+        ss << " [ " << fileNameCharPtr;
+        if (fileLine != -1)
+            ss << ":" << fileLine;
+        ss << " ]";
+    }
+#endif
+    
+    return ss;
+}
+
+ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
+{
+    if (message == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    std::ostringstream ss;
+    CreateErrorMessage(ss, this->borrowInterface());
+
+    if (childErrorInfoList != nullptr)
+    {
+        SizeT count = 0;
+        childErrorInfoList->getCount(&count);
+
+        if (count)
+            ss << "\nCaused by:";
+
+        for (SizeT i = 0; i < count; i++)
+        {
+            IBaseObject* errorInfoObject = nullptr;
+            childErrorInfoList->getItemAt(i, &errorInfoObject);
+
+            if (errorInfoObject == nullptr)
+                continue;
+
+            IErrorInfo* errorInfo = nullptr;
+            errorInfoObject->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+
+            if (errorInfo != nullptr)
+            {
+                IString* childMessage = nullptr;
+                errorInfo->getFormatMessage(&childMessage);
+                if (childMessage != nullptr)
+                {
+                    ConstCharPtr childMsgCharPtr;
+                    childMessage->getCharPtr(&childMsgCharPtr);
+
+                    if (childMsgCharPtr != nullptr)
+                        ss << "\n - " << childMsgCharPtr;
+
+                    childMessage->releaseRef();
+                }
+            }
+
+            if (errorInfoObject != nullptr)
+                errorInfoObject->releaseRef();
+        }
+    }
+
+    auto str = ss.str();
+    return createString(message, str.c_str());
+}
+
 ErrCode ErrorInfoImpl::isFrozen(Bool* frozen) const
 {
     if (frozen == nullptr)
@@ -197,6 +315,18 @@ void PUBLIC_EXPORT daqSetErrorInfo(daq::IErrorInfo* errorInfo)
             freezable->freeze();
     }
     daq::errorInfoHolder.setErrorInfo(errorInfo);
+}
+
+extern "C" 
+void PUBLIC_EXPORT daqExtendErrorInfo(daq::IErrorInfo* errorInfo)
+{
+    if (errorInfo != nullptr)
+    {
+        daq::IFreezable* freezable;
+        if (OPENDAQ_SUCCEEDED(errorInfo->borrowInterface(daq::IFreezable::Id, reinterpret_cast<void**>(&freezable))))
+            freezable->freeze();
+    }
+    daq::errorInfoHolder.extendErrorInfo(errorInfo);
 }
 
 extern "C"

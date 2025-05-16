@@ -850,9 +850,7 @@ ErrCode EvalValueImpl::cloneWithOwner(IPropertyObject* newOwner, IEvalValue** cl
 
 ErrCode EvalValueImpl::getParseErrorCode()
 {
-    if (OPENDAQ_FAILED(parseErrCode))
-        return DAQ_MAKE_ERROR_INFO(parseErrCode, parseErrMessage);
-
+    OPENDAQ_RETURN_IF_FAILED(parseErrCode, parseErrMessage);
     return OPENDAQ_SUCCESS;
 }
 
@@ -861,8 +859,7 @@ ErrCode EvalValueImpl::getPropertyReferences(IList** propertyReferences)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyReferences);
 
-    if (OPENDAQ_FAILED(parseErrCode))
-        return DAQ_MAKE_ERROR_INFO(parseErrCode, parseErrMessage);
+    OPENDAQ_RETURN_IF_FAILED(parseErrCode, parseErrMessage);
 
     if (this->propertyReferences)
     {

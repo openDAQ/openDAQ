@@ -67,3 +67,5 @@ void defineIPermissionsBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionsB
 void defineIPermissionMaskBuilder(pybind11::module_ m, PyDaqIntf<daq::IPermissionMaskBuilder, daq::IBaseObject> cls);
 void defineIPermissionManager(pybind11::module_ m, PyDaqIntf<daq::IPermissionManager, daq::IBaseObject> cls);
 void defineIPermissions(pybind11::module_ m, PyDaqIntf<daq::IPermissions, daq::IBaseObject> cls);
+
+void definePropertySearchFilterFactories(pybind11::module_ m);

@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#788](https://github.com/openDAQ/openDAQ/pull/788) Enables property search within a property object, as well as recursive search through a component and its child components.
 
 
 ## Python

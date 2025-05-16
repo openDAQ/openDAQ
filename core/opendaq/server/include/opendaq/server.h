@@ -32,6 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [templated(defaultAliasName: ServerPtr)]
  * [interfaceSmartPtr(IServer, GenericServerPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceLibrary(ISearchFilter, "coretypes")]
  */
 
 /*!

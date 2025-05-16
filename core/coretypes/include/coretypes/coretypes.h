@@ -82,6 +82,8 @@
 
 #include <coretypes/version_info_factory.h>
 
+#include <coretypes/search_filter_factory.h>
+
 /*!
  * @defgroup coretypes Core Types
  * @brief Core types
@@ -168,4 +170,10 @@
  * @page types_errors Error Codes
  * @brief Core types error codes
  * @}
+ */
+
+/*!
+ * @ingroup coretypes
+ * @defgroup types_search Search
+ * @brief Core types search filter objects and utilities
  */

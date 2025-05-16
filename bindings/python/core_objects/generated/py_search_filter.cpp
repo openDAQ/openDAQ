@@ -27,22 +27,14 @@
 
 #include <pybind11/gil.h>
 
-#include "py_opendaq/py_opendaq.h"
+#include "py_core_objects/py_core_objects.h"
 #include "py_core_objects/py_variant_extractor.h"
 
-void defineComponentSearchFilterFactories(pybind11::module_ m)
+void definePropertySearchFilterFactories(pybind11::module_ m)
 {
-    m.def("VisibleSearchFilter", &daq::VisibleSearchFilter_Create);
-    m.def("RequiredTagsSearchFilter", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& requiredTags){
-        return daq::RequiredTagsSearchFilter_Create(getVariantValue<daq::IList*>(requiredTags));
-    }, py::arg("required_tags"));
-
-    m.def("ExcludedTagsSearchFilter", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& excludedTags){
-        return daq::ExcludedTagsSearchFilter_Create(getVariantValue<daq::IList*>(excludedTags));
-    }, py::arg("excluded_tags"));
-
-    m.def("InterfaceIdSearchFilter", &daq::InterfaceIdSearchFilter_Create);
-    m.def("LocalIdSearchFilter", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId){
-        return daq::LocalIdSearchFilter_Create(getVariantValue<daq::IString*>(localId));
-    }, py::arg("local_id"));
+    m.def("VisiblePropertyFilter", &daq::VisiblePropertyFilter_Create);
+    m.def("ReadOnlyPropertyFilter", &daq::ReadOnlyPropertyFilter_Create);
+    m.def("NamePropertyFilter", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& regex){
+        return daq::NamePropertyFilter_Create(getVariantValue<daq::IString*>(regex));
+    }, py::arg("regex"));
 }

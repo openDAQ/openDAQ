@@ -392,7 +392,7 @@ TEST_F(ConfigProtocolTest, RemoveFunctionBlock)
                 auto outFbs = List<IFunctionBlock>();
                 const auto sf = SearchFilterPtr::Borrow(searchFilter);
                 for (const auto fb : functionBlocks)
-                    if (sf.acceptsComponent(fb))
+                    if (sf.acceptsObject(fb))
                         outFbs.pushBack(fb);
                 *fbs = outFbs.detach();
                 return OPENDAQ_SUCCESS;

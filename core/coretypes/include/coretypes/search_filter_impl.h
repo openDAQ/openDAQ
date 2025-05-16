@@ -15,76 +15,92 @@
  */
 
 #pragma once
-#include <opendaq/search_filter.h>
-#include <coretypes/list_factory.h>
+#include <coretypes/search_filter_ptr.h>
+#include <coretypes/recursive_search.h>
+#include <coretypes/function_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// Filter by Visible
+// No filter
 
-class VisibleSearchFilterImpl final : public ImplementationOf<ISearchFilter>
+class AnySearchFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
-    explicit VisibleSearchFilterImpl();
+    explicit AnySearchFilterImpl();
 
     ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
     ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 };
 
-// Filter by Required tags
+// Disjunction
 
-class RequiredTagsSearchFilterImpl final : public ImplementationOf<ISearchFilter>
+class OrSearchFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
-    explicit RequiredTagsSearchFilterImpl(const ListPtr<IString>& requiredTags);
+    explicit OrSearchFilterImpl(const SearchFilterPtr& left, const SearchFilterPtr& right);
 
     ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
     ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 
 private:
-    std::unordered_set<std::string> requiredTags;
+    SearchFilterPtr left;
+    SearchFilterPtr right;
 };
 
-// Filter by Excluded tags
+// Conjunction
 
-class ExcludedTagsSearchFilterImpl final : public ImplementationOf<ISearchFilter>
+class AndSearchFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
-    explicit ExcludedTagsSearchFilterImpl(const ListPtr<IString>& excludedTags);
+    explicit AndSearchFilterImpl(const SearchFilterPtr& left, const SearchFilterPtr& right);
 
     ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
     ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 
 private:
-    std::unordered_set<std::string> excludedTags;
+    SearchFilterPtr left;
+    SearchFilterPtr right;
 };
 
-// Filter by interface ID
+// Negation
 
-class InterfaceIdSearchFilterImpl final : public ImplementationOf<ISearchFilter>
+class NotSearchFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
-    explicit InterfaceIdSearchFilterImpl(const IntfID& id);
+    explicit NotSearchFilterImpl(const SearchFilterPtr& filter);
 
     ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
     ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 
 private:
-    IntfID intfId;
+    SearchFilterPtr filter;
 };
 
-// Filter by local ID
+// Custom filter
 
-class LocalIdSearchFilterImpl final : public ImplementationOf<ISearchFilter>
+class CustomSearchFilterImpl final : public ImplementationOf<ISearchFilter>
 {
 public:
-    explicit LocalIdSearchFilterImpl(const StringPtr& localId);
+    explicit CustomSearchFilterImpl(const FunctionPtr& acceptsFunction, const FunctionPtr& visitFunction);
 
     ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
     ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
-
 private:
-    StringPtr localId;
+    FunctionPtr acceptsFunc;
+    FunctionPtr visitFunc;
+};
+
+// Recursive filter
+
+class RecursiveSearchFilterImpl final : public ImplementationOf<ISearchFilter, IRecursiveSearch>
+{
+public:
+    explicit RecursiveSearchFilterImpl(const SearchFilterPtr& filter);
+
+    ErrCode INTERFACE_FUNC acceptsObject(IBaseObject* obj, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
+private:
+    SearchFilterPtr filter;
 };
 
 END_NAMESPACE_OPENDAQ

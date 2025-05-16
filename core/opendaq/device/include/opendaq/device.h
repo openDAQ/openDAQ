@@ -38,6 +38,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object.h>")]
  * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user.h>")]
  * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceLibrary(ISearchFilter, "coretypes")]
  */
 
 /*!

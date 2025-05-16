@@ -44,6 +44,7 @@ core_type_files=(
 "struct_builder"
 #"enumeration"
 #"enumeration_type"
+"search_filter"
 )
 for file in "${core_type_files[@]}" 
 do
@@ -88,7 +89,6 @@ run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component   
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        removable
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        folder
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        folder_config
-run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        search_filter
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_private
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_status_container
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_status_container_private

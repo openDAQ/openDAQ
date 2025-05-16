@@ -27,6 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [templated(defaultAliasName: FunctionBlockPtr)]
  * [interfaceSmartPtr(IFunctionBlock, GenericFunctionBlockPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceLibrary(ISearchFilter, "coretypes")]
  */
 
 /*!

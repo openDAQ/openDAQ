@@ -187,8 +187,9 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
         return;
 
     auto isAncestorComponent = Function(
-        [addedComponentId = addedComponent.getGlobalId()](const ComponentPtr& comp)
+        [addedComponentId = addedComponent.getGlobalId()](const BaseObjectPtr& obj)
         {
+            const auto comp = obj.asPtr<IComponent>();
             return IdsParser::isNestedComponentId(comp.getGlobalId(), addedComponentId) || comp.getGlobalId() == addedComponentId;
         }
     );
@@ -274,18 +275,18 @@ inline void StreamingSourceManager::enableStreamingForUpdatedComponent(const Com
     else if (auto updatedFolder = updatedComponent.asPtrOrNull<IFolder>(); updatedFolder.assigned())
     {
         auto isNewlyAddedDomainSignal = Function(
-            [](const ComponentPtr& comp)
+            [](const BaseObjectPtr& obj)
             {
-                auto signal = comp.asPtrOrNull<IMirroredSignalConfig>();
+                auto signal = obj.asPtrOrNull<IMirroredSignalConfig>();
                 return signal.assigned()
                        && signal.getStreamingSources().getCount() == 0
                        && !signal.getDomainSignal().assigned();
             }
         );
         auto isNewlyAddedValueSignal = Function(
-            [](const ComponentPtr& comp)
+            [](const BaseObjectPtr& obj)
             {
-                auto signal = comp.asPtrOrNull<IMirroredSignalConfig>();
+                auto signal = obj.asPtrOrNull<IMirroredSignalConfig>();
                 return signal.assigned()
                        && signal.getStreamingSources().getCount() == 0
                        && signal.getDomainSignal().assigned();

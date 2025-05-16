@@ -3,7 +3,6 @@ import tkinter as tk
 from tkinter import ttk
 
 import opendaq as daq
-from opendaq import OperationModeType
 
 from ..event_port import EventPort
 from .input_ports_view import InputPortsView
@@ -109,26 +108,26 @@ class BlockView(ttk.Frame):
 
                 op_mode = self.node.operation_mode
                 mode_string = ""
-                if op_mode == OperationModeType.Unknown:
+                if op_mode == daq.OperationModeType.Unknown:
                     mode_string = "Unknown"
-                elif op_mode == OperationModeType.Idle:
+                elif op_mode == daq.OperationModeType.Idle:
                     mode_string = "Idle"
-                elif op_mode == OperationModeType.Operation:
+                elif op_mode == daq.OperationModeType.Operation:
                     mode_string = "Operation"
-                elif op_mode == OperationModeType.SafeOperation:
+                elif op_mode == daq.OperationModeType.SafeOperation:
                     mode_string = "SafeOperation"
 
                 opt = tkinter.StringVar(value=mode_string)
                 def on_option_change(*args):
                     var = opt.get()
                     if var == "Unknown":
-                        self.node.operation_mode = OperationModeType.Unknown
+                        self.node.operation_mode = daq.OperationModeType.Unknown
                     elif var == "Idle":
-                        self.node.operation_mode = OperationModeType.Idle
+                        self.node.operation_mode = daq.OperationModeType.Idle
                     elif var == "Operation":
-                        self.node.operation_mode = OperationModeType.Operation
+                        self.node.operation_mode = daq.OperationModeType.Operation
                     elif var == "SafeOperation":
-                        self.node.operation_mode = OperationModeType.SafeOperation
+                        self.node.operation_mode = daq.OperationModeType.SafeOperation
 
                 opt.trace_add("write", on_option_change)
 

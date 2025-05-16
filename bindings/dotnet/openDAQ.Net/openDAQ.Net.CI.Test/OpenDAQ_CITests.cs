@@ -1670,8 +1670,8 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(properties.Count, Is.GreaterThan((nuint)0));
 
         using var property = properties[0];
-        Console.WriteLine($"Channel found property {property.GetName()} original value: {property.GetValue()}");
-        property.SetValue(7);
+        Console.WriteLine($"Channel found property {property.Name} original value: {property.Value}");
+        property.Value = 7;
 
         var channels = device.GetItems(componentFilter);
         Assert.That(channels.Count, Is.GreaterThan((nuint)0));

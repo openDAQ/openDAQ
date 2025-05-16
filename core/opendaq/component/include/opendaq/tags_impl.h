@@ -236,7 +236,7 @@ inline ErrCode TagsImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
     OPENDAQ_PARAM_NOT_NULL(obj);
 
     const auto contextPtr = BaseObjectPtr::Borrow(context);
-    const auto deserializerContext = contextPtr.assigned() ? contextPtr.asPtrOrNull<IComponentDeserializeContext>() : nullptr;
+    const auto deserializerContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>();
     const ProcedurePtr triggerCoreEvent = deserializerContext.assigned() ? deserializerContext.getTriggerCoreEvent() : nullptr;
 
     ObjectPtr<ITagsPrivate> tags;

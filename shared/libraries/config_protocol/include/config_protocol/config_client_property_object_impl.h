@@ -975,9 +975,6 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
             DAQ_THROW_EXCEPTION(ArgumentNullException, "Serialized object not assigned");
 
         const auto contextPtr = BaseObjectPtr::Borrow(context);
-        if (!contextPtr.assigned())
-            DAQ_THROW_EXCEPTION(ArgumentNullException, "Deserialization context not assigned");
-
         const auto componentDeserializeContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>(true);
         if (!componentDeserializeContext.assigned())
             DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid deserialization context");

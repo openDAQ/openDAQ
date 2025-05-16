@@ -1113,12 +1113,9 @@ template <typename TInterface, typename ... Interfaces>
 void SignalBase<TInterface, Interfaces...>::disconnectInputPort(const ConnectionPtr& connection)
 {
     const auto inputPort = connection.getInputPort();
-    if (inputPort.assigned())
-    {
-        const auto inputPortPrivate = inputPort.template asPtrOrNull<IInputPortPrivate>(true);
+    const auto inputPortPrivate = inputPort.template asPtrOrNull<IInputPortPrivate>(true);
         if (inputPortPrivate.assigned())
             inputPortPrivate.disconnectWithoutSignalNotification();
-    }
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -1138,13 +1135,9 @@ void SignalBase<TInterface, Interfaces...>::removed()
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {
         auto sig = it->getRef();
-        if (sig.assigned())
-        {
-            auto sigPrivate = sig.template asPtrOrNull<ISignalPrivate>(true);
-            if (sigPrivate.assigned())
-                sigPrivate.clearDomainSignalWithoutNotification();
-        }
-
+        auto sigPrivate = sig.template asPtrOrNull<ISignalPrivate>(true);
+        if (sigPrivate.assigned())
+            sigPrivate.clearDomainSignalWithoutNotification();
     }
 
     domainSignalReferences.clear();

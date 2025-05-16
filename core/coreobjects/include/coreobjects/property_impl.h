@@ -1201,12 +1201,9 @@ public:
         {
             auto defaultValueObj = defaultValue;
 
-            if (defaultValueObj.assigned())
-            {
-                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
-                if (cloneableDefaultValue.assigned())
-                    defaultValueObj = cloneableDefaultValue.clone();
-            }
+            auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
+            if (cloneableDefaultValue.assigned())
+                defaultValueObj = cloneableDefaultValue.clone();
 
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
@@ -1401,16 +1398,13 @@ public:
 
         this->owner = owner;
 
-        if (this->defaultValue.assigned())
+        if (const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>(true); defaultValueObj.assigned())
         {
-            if (const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>(true); defaultValueObj.assigned())
-            {
-                PermissionManagerPtr parentManager;
-                ErrCode err = owner->getPermissionManager(&parentManager);
-                OPENDAQ_RETURN_IF_FAILED(err);
+            PermissionManagerPtr parentManager;
+            ErrCode err = owner->getPermissionManager(&parentManager);
+            OPENDAQ_RETURN_IF_FAILED(err);
 
-                defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
-            }
+            defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
         }
 
         return OPENDAQ_SUCCESS;
@@ -1459,9 +1453,6 @@ private:
     template <typename TPtr>
     TPtr bindAndGet(const BaseObjectPtr& metadata, bool lock) const
     {
-	    if (!metadata.assigned())
-		    return nullptr;
-		    
 	    auto eval = metadata.asPtrOrNull<IEvalValue>();
 	    if (!eval.assigned())
 		    return metadata;
@@ -1475,9 +1466,6 @@ private:
 
     BaseObjectPtr getUnresolved(const BaseObjectPtr& localMetadata) const
     {
-        if (!localMetadata.assigned())
-            return nullptr;
-
         if (const auto eval = localMetadata.asPtrOrNull<IEvalValue>(); eval.assigned())
         {
             const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;

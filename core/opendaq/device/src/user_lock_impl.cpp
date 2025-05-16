@@ -96,7 +96,7 @@ ErrCode UserLockImpl::Deserialize(ISerializedObject* serialized, IBaseObject* co
 
     UserPtr user = nullptr;
     const auto contextPtr = BaseObjectPtr::Borrow(context);
-    const auto deserializerContext = contextPtr.assigned() ? contextPtr.asPtrOrNull<IComponentDeserializeContext>() : nullptr;
+    const auto deserializerContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>();
 
     if (deserializerContext.assigned() && username.assigned())
     {

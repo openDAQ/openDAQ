@@ -597,9 +597,6 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 
         const TypePtr type = manager.getType(className);
 
-        if (!type.assigned())
-            DAQ_THROW_EXCEPTION(NotFoundException, "Class with name {} is not available in module manager", className);
-
         const auto objClass = type.asPtrOrNull<IPropertyObjectClass>();
         if (!objClass.assigned())
             DAQ_THROW_EXCEPTION(InvalidTypeException, "Type with name {} is not a property object class", className);
@@ -621,12 +618,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::internalDispose
 {
     for (auto& item : propValues)
     {
-        if (item.second.assigned())
-        {
-            OwnablePtr ownablePtr = item.second.template asPtrOrNull<IOwnable>(true);
-            if (ownablePtr.assigned())
-                ownablePtr.setOwner(nullptr);
-        }
+        OwnablePtr ownablePtr = item.second.template asPtrOrNull<IOwnable>(true);
+        if (ownablePtr.assigned())
+            ownablePtr.setOwner(nullptr);
     }
     propValues.clear();
 
@@ -1340,22 +1334,19 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue
 template <class PropObjInterface, class... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwnerToPropertyValue(const BaseObjectPtr& value)
 {
-    if (!value.assigned())
-        return;
-
     auto ownablePtr = value.asPtrOrNull<IOwnable>(true);
-    if (ownablePtr.assigned())
+    if (!ownablePtr.assigned())
+        return;
+    
+    try
     {
-        try
-        {
-            ownablePtr.setOwner(this->template borrowThis<GenericPropertyObjectPtr, IPropertyObject>());
-        }
-        catch (const DaqException& e)
-        {
-            errorFromException(e);
-            DAQ_EXTEND_ERROR_INFO(e.getErrCode(), "Failed to set owner to property value");
-            DAQ_CHECK_ERROR_INFO(e.getErrCode());
-        }
+        ownablePtr.setOwner(this->template borrowThis<GenericPropertyObjectPtr, IPropertyObject>());
+    }
+    catch (const DaqException& e)
+    {
+        errorFromException(e);
+        DAQ_EXTEND_ERROR_INFO(e.getErrCode(), "Failed to set owner to property value");
+        DAQ_CHECK_ERROR_INFO(e.getErrCode());
     }
 }
 
@@ -2392,13 +2383,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdate
     for (const auto& item : propValues)
     {
         const auto value = item.second;
-        if (value.assigned())
+        const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned())
         {
-            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-            if (propObj.assigned())
-            {
-                propObj.beginUpdate();
-            }
+            propObj.beginUpdate();
         }
     }
 }
@@ -2409,13 +2397,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOn
     for (const auto& item : propValues)
     {
         const auto value = item.second;
-        if (value.assigned())
+        const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned())
         {
-            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-            if (propObj.assigned())
-            {
-                propObj.endUpdate();
-            }
+            propObj.endUpdate();
         }
     }
 }
@@ -2684,12 +2669,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::disableCoreE
 
     for (auto& item : propValues)
     {
-        if (item.second.assigned())
-        {
-            const auto objInternal = item.second.template asPtrOrNull<IPropertyObjectInternal>();
-            if (objInternal.assigned())
-                objInternal.disableCoreEventTrigger();
-        }
+        const auto objInternal = item.second.template asPtrOrNull<IPropertyObjectInternal>();
+        if (objInternal.assigned())
+            objInternal.disableCoreEventTrigger();
     }
 
     for (const auto& item : localProperties)
@@ -2700,12 +2682,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::disableCoreE
             if (propInternal.getValueTypeUnresolved() == ctObject)
             {
                 const auto defaultVal = item.second.getDefaultValue();
-                if (defaultVal.assigned())
-                {
-                    const auto objInternal = defaultVal.template asPtrOrNull<IPropertyObjectInternal>();
-                    if (objInternal.assigned())
-                        objInternal.disableCoreEventTrigger();
-                }
+                const auto objInternal = defaultVal.template asPtrOrNull<IPropertyObjectInternal>();
+                if (objInternal.assigned())
+                    objInternal.disableCoreEventTrigger();
             }
         }
     }
@@ -3323,9 +3302,6 @@ template <typename PropObjInterface, typename... Interfaces>
 bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadAccess(const BaseObjectPtr& userContext,
                                                                                    const BaseObjectPtr& obj)
 {
-    if (!obj.assigned())
-        return true;
-
     auto objPtr = obj.asPtrOrNull<IPropertyObject>();
     if (!objPtr.assigned())
         return true;

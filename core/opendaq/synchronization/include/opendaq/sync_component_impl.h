@@ -158,7 +158,10 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::checkClassNameIs
 
     TypePtr type;
     ErrCode errCode = manager->getType(className, &type);
-    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Interface '{}' is not registered in type manager.", className));
+    if (OPENDAQ_FAILED(errCode))
+    {
+        return DAQ_EXTEND_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not registered in type manager.", className));
+    }
 
     if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
     {

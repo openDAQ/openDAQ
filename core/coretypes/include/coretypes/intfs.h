@@ -367,10 +367,8 @@ protected:
     template <typename... Params>
     ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, Params... params) const
     {
-        IBaseObject* thisBaseObject;
-        ErrCode err = this->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&thisBaseObject));
-        OPENDAQ_RETURN_IF_FAILED(err);
-
+        IBaseObject* thisBaseObject = nullptr;
+        this->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&thisBaseObject));
         setErrorInfoWithSource(thisBaseObject, message, std::forward<Params>(params)...);
         return errCode;
     }

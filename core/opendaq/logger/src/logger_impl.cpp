@@ -73,7 +73,7 @@ ErrCode LoggerImpl::getOrAddComponent(IString* name, ILoggerComponent** componen
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
     }
 
-    if (StringPtr::Borrow(name).gempty())
+    if (StringPtr::Borrow(name).empty())
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Name can not be empty.");
     }

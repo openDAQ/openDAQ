@@ -335,7 +335,7 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
     }
 
     template <typename... Params>
-    ErrCode extendErrorInfo(ErrCode errCode, IBaseObject* source)
+    ErrCode extendErrorInfo(ErrCode errCode, IBaseObject* /* source */)
     {
         return errCode;
     }

@@ -9,7 +9,9 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .attributes_dialog import AttributesDialog
 
+
 class BlockView(ttk.Frame):
+
     def __init__(self, parent, node, context=None, expanded=False, **kwargs):
         ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent

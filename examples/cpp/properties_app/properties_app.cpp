@@ -11,14 +11,24 @@ void printProperty(PropertyPtr property, size_t indent = 0)
 {
     std::cout << std::string(indent * 2, ' ');
     std::cout << "Property: " << property.getName() << " ";
-    auto content = property.getValue().asPtrOrNull<IPropertyObject>();
-    if (content.assigned())
+    auto propObj = property.getValue().asPtrOrNull<IPropertyObject>();
+    auto dictObj = property.getValue().asPtrOrNull<IDict>();
+    if (propObj.assigned())
     {
         std::cout << "\n";
 
-        for (const auto& prop : content.getAllProperties())
+        for (const auto& prop : propObj.getAllProperties())
         {
             printProperty(prop, indent + 1);
+        }
+    }
+    else if (dictObj.assigned())
+    {
+        std::cout << "\n";
+
+        for (const auto& [key, value] : dictObj)
+        {
+            std::cout << "  " << key << ": " << value << "\n";
         }
     }
     else
@@ -61,51 +71,51 @@ int main(int /*argc*/, const char* /*argv*/[])
     std::cout << "\nDuring setting property values:\n";
 
     // Bool
-    fb.setPropertyValue("myPropBool", true);
+    fb.setPropertyValue("Bool", true);
 
     // Int
-    fb.setPropertyValue("myPropInt", 100);
+    fb.setPropertyValue("Int", 100);
 
     // Float
-    fb.setPropertyValue("myPropFloat", 3.14);
+    fb.setPropertyValue("Float", 3.14);
 
     // String
-    fb.setPropertyValue("myPropString", "Hello openDAQ");
+    fb.setPropertyValue("String", "Hello openDAQ");
 
     // Ratio
-    fb.setPropertyValue("myPropRatio", Ratio(1, 2));
+    fb.setPropertyValue("Ratio", Ratio(1, 2));
 
     // List
     auto list = List<IInteger>();
     list.pushBack(32);
     list.pushBack(64);
-    fb.setPropertyValue("myPropList", list);
+    fb.setPropertyValue("List", list);
 
     // Dictionary
     auto dict = Dict<IString, IString>();
-    dict["key1"] = "horse";
-    dict["key2"] = "tired";
-    fb.setPropertyValue("myPropDict", dict);
+    dict["key1"] = "Horse";
+    dict["key2"] = "Tired";
+    fb.setPropertyValue("Dict", dict);
 
     // Struct
     auto manager = instance.getContext().getTypeManager();
-    auto stru = StructBuilder("myStruct", manager).set("myInt", 100).set("myString", "openDAQ").build();
-    fb.setPropertyValue("myPropStruct", stru);
+    auto stru = StructBuilder("Struct", manager).set("Int", 100).set("String", "openDAQ").build();
+    fb.setPropertyValue("Struct", stru);
 
     // Enumeration
-    auto enumVal = Enumeration("myEnum", "third", manager);
-    fb.setPropertyValue("myPropEnum", enumVal);
+    auto enumVal = Enumeration("Enum", "Third", manager);
+    fb.setPropertyValue("Enum", enumVal);
 
     // Procedure
-    ProcedurePtr oldProc = fb.getPropertyValue("myPropProcedure");
+    ProcedurePtr oldProc = fb.getPropertyValue("Procedure");
     oldProc(42);
     auto proc = Procedure([](IntegerPtr a) { std::cout << "New procedure called with: " << a << "\n"; });
-    fb.setPropertyValue("myPropProcedure", proc);
-    ProcedurePtr newProc = fb.getPropertyValue("myPropProcedure");
+    fb.setPropertyValue("Procedure", proc);
+    ProcedurePtr newProc = fb.getPropertyValue("Procedure");
     newProc(42);
 
     // Function
-    FunctionPtr oldFun = fb.getPropertyValue("myPropFunction");
+    FunctionPtr oldFun = fb.getPropertyValue("Function");
     auto res = oldFun(2, 3);
     std::cout << "Old function result (2 + 3): " << res << "\n";
     auto fun = Function(
@@ -114,22 +124,22 @@ int main(int /*argc*/, const char* /*argv*/[])
             std::cout << "New function called\n";
             return a * b;
         });
-    fb.setPropertyValue("myPropFunction", fun);
-    FunctionPtr newFun = fb.getPropertyValue("myPropFunction");
+    fb.setPropertyValue("Function", fun);
+    FunctionPtr newFun = fb.getPropertyValue("Function");
     auto newRes = newFun(2, 3);
     std::cout << "New function result (2 * 3): " << newRes << "\n";
 
     // Selection
-    fb.setPropertyValue("myPropSelection", 2);
+    fb.setPropertyValue("Selection", 2);
 
     // Sparse selection
-    fb.setPropertyValue("myPropSparse", 6);
+    fb.setPropertyValue("Sparse", 6);
 
     // Object
-    PropertyObjectPtr propObj = fb.getPropertyValue("myPropObject");
-    fb.setPropertyValue("myPropObject.myPropInnerObject.myBool", True);
-    fb.setPropertyValue("myPropObject.myInt", 987);
-    fb.setPropertyValue("myPropObject.myFloat", 4.44);
+    PropertyObjectPtr propObj = fb.getPropertyValue("Object");
+    fb.setPropertyValue("Object.InnerObject.Bool", True);
+    fb.setPropertyValue("Object.Int", 987);
+    fb.setPropertyValue("Object.Float", 4.44);
 
     // Print after modifications
     std::cout << "\nAfter modifications:\n";

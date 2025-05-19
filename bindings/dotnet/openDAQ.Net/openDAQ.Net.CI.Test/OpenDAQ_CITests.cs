@@ -1667,15 +1667,20 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(propertyFilter, Is.Not.Null);
 
         var properties = device.FindProperties(propertyFilter, componentFilter);
-        Assert.That(properties.Count, Is.GreaterThan((nuint)0));
+        ulong propertyCount = (ulong)properties.Count;
+        Console.WriteLine($"  found {propertyCount} properties");
+        Assert.That(propertyCount, Is.EqualTo(1));
 
         using var property = properties[0];
         Console.WriteLine($"Channel found property {property.Name} original value: {property.Value}");
         property.Value = 7;
 
-        var channels = device.GetItems(componentFilter);
-        Assert.That(channels.Count, Is.GreaterThan((nuint)0));
+        var components = device.GetItems(componentFilter);
+        ulong componentCount = (ulong)components.Count;
+        Console.WriteLine($"  found {componentCount} components");
+        Assert.That(componentCount, Is.EqualTo(1));
 
-        using var channel = channels[0];
-        Console.WriteLine($"Found channel Amplitude property modified value: {channel.GetPropertyValue("Amplitude")}");    }
+        using var component = components[0];
+        Console.WriteLine($"Found component Amplitude property modified value: {component.GetPropertyValue("Amplitude")}");
+    }
 }

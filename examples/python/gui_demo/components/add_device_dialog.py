@@ -101,8 +101,6 @@ class AddDeviceDialog(Dialog):
 
         self.dialog_parent_device = None
 
-        self.initial_update_func = lambda: self.initial_update()
-
     def initial_update(self):
         self.update_parent_devices(
             self.parent_device_tree, '', self.context.instance)

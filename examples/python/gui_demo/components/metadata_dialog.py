@@ -40,7 +40,9 @@ class MetadataDialog(Dialog):
         tree.bind('<Button-3>', self.handle_right_click)
 
         self.tree = tree
-        self.initial_update_func = self.update
+
+    def initial_update(self):
+        self.update()
 
     def update(self):
         self.tree.delete(*self.tree.get_children())

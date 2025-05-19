@@ -457,38 +457,38 @@ class App(tk.Tk):
     def create_function_block_menu(self, node):
         popup = self.create_property_object_menu(node)
         
-        if daq.IFunctionBlock.can_cast_from(node):
-            node = daq.IFunctionBlock.cast_from(node)
-            if node.available_function_block_types:
-                popup.add_command(
-                    label='Add Function block',
-                    command=lambda: self.add_function_block_dialog_show(node)
-                )
-            if not daq.IChannel.can_cast_from(node):
-                popup.add_command(
-                    label='Remove',
-                    command=lambda: self.handle_tree_menu_remove_function_block(node)
-                )
+        if node.available_function_block_types:
+            popup.add_command(
+                label='Add Function block',
+                command=lambda: self.add_function_block_dialog_show(node)
+            )
+        if not daq.IChannel.can_cast_from(node):
+            popup.add_command(
+                label='Remove',
+                command=lambda: self.handle_tree_menu_remove_function_block(node)
+            )
+ 
         return popup
     
     def create_device_menu(self, node):
         popup = self.create_property_object_menu(node)
         
-        if daq.IDevice.can_cast_from(node):
-            node = daq.IDevice.cast_from(node)
-            if node.available_function_block_types:
-                popup.add_command(
-                    label='Add Function block',
-                    command=lambda: self.add_function_block_dialog_show(node)
-                )
-            popup.add_command(label='Lock', command=self.handle_lock)
-            popup.add_command(label='Unlock', command=self.handle_unlock)
+        popup.add_command(label='Lock', command=self.handle_lock)
+        popup.add_command(label='Unlock', command=self.handle_unlock)
 
-            if node.global_id != self.context.instance.global_id:
-                popup.add_command(
-                    label='Remove',
-                    command=lambda: self.handle_tree_menu_remove_device(node)
-                )
+        if node.available_function_block_types:
+            popup.add_command(
+                label='Add Function block',
+                command=lambda: self.add_function_block_dialog_show(node)
+            )
+
+
+        if node.global_id != self.context.instance.global_id:
+            popup.add_command(
+                label='Remove',
+                command=lambda: self.handle_tree_menu_remove_device(node)
+            )
+
         return popup        
 
     def handle_tree_right_button_release(self, event):
@@ -501,9 +501,9 @@ class App(tk.Tk):
         popup = None
         if node:
             if daq.IFunctionBlock.can_cast_from(node):
-                popup = self.create_function_block_menu(node)
+                popup = self.create_function_block_menu(daq.IFunctionBlock.cast_from(node))
             elif daq.IDevice.can_cast_from(node):
-                popup = self.create_device_menu(node)
+                popup = self.create_device_menu(daq.IDevice.cast_from(node))
                 
         if popup is None:
             popup = self.create_property_object_menu(node)

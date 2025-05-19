@@ -58,9 +58,7 @@ class ErrorInfoHolder
 {
 public:
     ErrorInfoHolder() = default;
-#ifndef __MINGW32__
     ~ErrorInfoHolder();
-#endif
 
     // adds the error ingo to the list of errors
     void setErrorInfo(IErrorInfo* errorInfo);
@@ -73,7 +71,7 @@ public:
 
     IList* getErrorInfoList();
 private:
-    std::list<IErrorInfo*> errorInfoList;
+    std::list<IErrorInfo*>* errorInfoList {nullptr};
 };
 
 END_NAMESPACE_OPENDAQ

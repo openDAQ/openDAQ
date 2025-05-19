@@ -10,28 +10,33 @@ thread_local ErrorInfoHolder errorInfoHolder;
 
 // mingw has a bug which causes segmentation fault on thread_local destructor
 // disabling produces memory leak on mingw on thread exit if errorInfo object is assigned
-#ifndef __MINGW32__
+
 ErrorInfoHolder::~ErrorInfoHolder()
 {
-    for (auto item : errorInfoList)
+    if (errorInfoList == nullptr)
+        return;
+    for (auto item : *errorInfoList)
         releaseRefIfNotNull(item);
+    delete errorInfoList;
 }
-#endif
 
 void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
 {
     if (errorInfo == nullptr)
     {
-        if (!errorInfoList.empty())
+        if (errorInfoList != nullptr && !errorInfoList->empty())
         {
-            auto lastErrorInfo = errorInfoList.back();
-            errorInfoList.pop_back();
+            auto lastErrorInfo = errorInfoList->back();
+            errorInfoList->pop_back();
             releaseRefIfNotNull(lastErrorInfo);
         }
         return;
     }
 
-    errorInfoList.push_back(errorInfo);
+    if (errorInfoList == nullptr)
+        errorInfoList = new std::list<IErrorInfo*>();
+
+    errorInfoList->push_back(errorInfo);
     addRefIfNotNull(errorInfo);
 }
 
@@ -40,22 +45,25 @@ void ErrorInfoHolder::extendErrorInfo(IErrorInfo* errorInfo)
     if (errorInfo == nullptr)
         return;
 
-    if (errorInfoList.empty())
+    if (errorInfoList == nullptr)
+        errorInfoList = new std::list<IErrorInfo*>();
+
+    if (errorInfoList->empty())
     {
-        errorInfoList.push_back(errorInfo);
+        errorInfoList->push_back(errorInfo);
         addRefIfNotNull(errorInfo);
         return;
     }
 
-    errorInfoList.back()->extend(errorInfo);
+    errorInfoList->back()->extend(errorInfo);
 }
 
 IErrorInfo* ErrorInfoHolder::getErrorInfo() const
 {
-    if (errorInfoList.empty())
+    if (errorInfoList == nullptr || errorInfoList->empty())
         return nullptr;
 
-    IErrorInfo* errorInfo = errorInfoList.back();
+    IErrorInfo* errorInfo = errorInfoList->back();
     addRefIfNotNull(errorInfo);
 
     return errorInfo;
@@ -64,14 +72,17 @@ IErrorInfo* ErrorInfoHolder::getErrorInfo() const
 IList* ErrorInfoHolder::getErrorInfoList()
 {
     IList* list = ListWithElementType_Create(IErrorInfo::Id);
-    for (auto item : errorInfoList)
+    if (errorInfoList == nullptr)
+        return list;
+    for (auto item : *errorInfoList)
     {
         IBaseObject* errorInfoObject = nullptr;
         item->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&errorInfoObject));
         if (errorInfoObject != nullptr)
             list->moveBack(errorInfoObject);
     }
-    errorInfoList.clear();
+    delete errorInfoList;
+    errorInfoList = nullptr;
     return list;
 }
 

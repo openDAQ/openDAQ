@@ -1,7 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(OPENDAQ_EXAMPLES_VERSION ${OPENDAQ_PACKAGE_VERSION})
+if(NOT DEFINED OPENDAQ_PACKAGE_VERSION)
+  set(OPENDAQ_EXAMPLES_VERSION "0.0.0")
+elseif ()
+  set(OPENDAQ_EXAMPLES_VERSION ${OPENDAQ_PACKAGE_VERSION})
+endif()
+
 project(opendaq_examples VERSION ${OPENDAQ_EXAMPLES_VERSION})
+
+add_compile_definitions(MODULE_PATH="${OPENDAQ_MODULES_DIR}")
 
 option(OPENDAQ_CONSOLE_APP "Console application example." ON)
 option(OPENDAQ_DEVICE "Device example without a discovery server." ON)

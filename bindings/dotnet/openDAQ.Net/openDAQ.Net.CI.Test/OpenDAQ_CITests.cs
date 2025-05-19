@@ -1663,7 +1663,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         using var componentFilter = CoreTypesFactory.CreateRecursiveSearchFilter(OpenDAQFactory.CreateLocalIdSearchFilter("RefCh0"));
         Assert.That(componentFilter, Is.Not.Null);
 
-        using var propertyFilter = CoreObjectsFactory.CreateNamePropertyFilter("Amplitude");
+        using var propertyFilter = CoreObjectsFactory.CreateNamePropertyFilter("^Amplitude$");
         Assert.That(propertyFilter, Is.Not.Null);
 
         var properties = device.FindProperties(propertyFilter, componentFilter);

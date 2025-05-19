@@ -38,9 +38,9 @@ To connect to device developer can use either connection string from the device 
 
 :note-caption: Note
 [NOTE]
-===
+====
 Device info may contain server capability only for OpcUa, Native and streaming Lt protocol. Devices like reference device and audio does not have server capabilities.
-===
+====
 
 == Connecting to openDAQ(TM) OPC UA devices
 

@@ -44,6 +44,10 @@ public:
     virtual void calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize, void** output)
     {
     }
+
+    virtual void calculateLastSample(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output)
+    {
+    }
 };
 
 [[maybe_unused]]
@@ -57,6 +61,7 @@ public:
     void calculateRule(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) override;
     void* calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize) override;
     void calculateSample(const NumberPtr& packetOffset, SizeT sampleIndex, void* input, SizeT inputSize, void** output) override;
+    void calculateLastSample(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) override;
 
 private:
     friend DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType);
@@ -75,6 +80,9 @@ private:
 
     void calculateLinearSample(const NumberPtr& packetOffset, const SizeT sampleIndex, void** output) const;
     void calculateConstantSample(const SizeT sampleIndex, void* input, SizeT inputSize, void** output);
+
+    void calculateLastLinearSample(const NumberPtr& packetOffset, const SizeT sampleCount, void** output) const;
+    void calculateLastConstantSample(const SizeT sampleCount, void* input, SizeT inputSize, void** output);
 
     DataRuleType type;
     std::vector<T> parameters;
@@ -195,6 +203,26 @@ inline void DataRuleCalcTyped<T>::calculateSample(
             return;
         case DataRuleType::Constant:
             calculateConstantSample(sampleIndex, input, inputSize, output);
+            return;
+        case DataRuleType::Other:
+        case DataRuleType::Explicit:
+            break;
+    }
+
+    DAQ_THROW_EXCEPTION(UnknownRuleTypeException);
+}
+
+template <typename T>
+inline void DataRuleCalcTyped<T>::calculateLastSample(
+    const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output)
+{
+    switch (type)
+    {
+        case DataRuleType::Linear:
+            calculateLastLinearSample(packetOffset, sampleCount, output);
+            return;
+        case DataRuleType::Constant:
+            calculateLastConstantSample(sampleCount, input, inputSize, output);
             return;
         case DataRuleType::Other:
         case DataRuleType::Explicit:
@@ -358,14 +386,59 @@ inline void DataRuleCalcTyped<T>::calculateConstantSample(const SizeT sampleInde
             entryPtr += sizeof(T);
         }
 
-        if (currentSampleIndex + upToSamples >= sampleIndex)
+        if (upToSamples >= sampleIndex)
             break;
 
-        currentSampleIndex += upToSamples;
+        currentSampleIndex = upToSamples;
         constant = nextConstantValue;
     }
 
     *outputTyped = constant;
+}
+
+template <typename T>
+inline void DataRuleCalcTyped<T>::calculateLastLinearSample(const NumberPtr& packetOffset, const SizeT sampleCount, void** output) const
+{
+    this->calculateLinearSample(packetOffset, sampleCount - 1, output);
+}
+
+template <typename T>
+inline void DataRuleCalcTyped<T>::calculateLastConstantSample(const SizeT sampleCount, void* input, SizeT inputSize, void** output)
+{
+    if (inputSize < sizeof(T))
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Constant rule data packet must have at least one value");
+
+    constexpr size_t entrySize = sizeof(T) + sizeof(uint32_t);
+    const size_t entryCount = (inputSize - sizeof(T)) / entrySize;
+
+    T* outputTyped = static_cast<T*>(*output);
+    auto* basePtr = reinterpret_cast<uint8_t*>(input);
+    T initialConstant = *reinterpret_cast<T*>(basePtr);
+
+    if (entryCount == 0)
+    {
+        *outputTyped = initialConstant;
+        return;
+    }
+
+    auto* entriesStart = basePtr + sizeof(T);
+    auto* entryPtr = entriesStart + (entryCount - 1) * entrySize;
+
+    // Walk backwards until we find the largest upToSamples < sampleCount
+    for (SizeT i = entryCount; i > 0; --i, entryPtr -= entrySize)
+    {
+        uint32_t upToSamples = *reinterpret_cast<uint32_t*>(entryPtr);
+        T value = *reinterpret_cast<T*>(entryPtr + sizeof(uint32_t));
+
+        if (sampleCount - 1 > upToSamples)
+        {
+            *outputTyped = value;
+            return;
+        }
+    }
+
+    // If all upToSamples are >= sampleCount - 1, use the initial constant
+    *outputTyped = initialConstant;
 }
 
 static DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType)

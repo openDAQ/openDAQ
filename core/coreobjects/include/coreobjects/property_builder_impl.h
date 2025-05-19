@@ -275,7 +275,7 @@ public:
         if (value != nullptr)
         {
             const auto valuePtr = BaseObjectPtr::Borrow(value);
-            if (valuePtr.assigned())
+            if (valuePtr.assigned() && !valuePtr.supportsInterface(IPropertyObject::Id))
                 if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
                 {
                     const auto err = freezable->freeze();

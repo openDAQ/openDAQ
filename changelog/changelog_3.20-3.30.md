@@ -7,7 +7,7 @@
 
 ## Python
 
-
+- [#807](https://github.com/openDAQ/openDAQ/pull/807) Enable Device operation mode switching in Python GUI Demo Application.
 
 ## Bug fixes
 

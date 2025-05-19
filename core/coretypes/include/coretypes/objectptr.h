@@ -1053,6 +1053,18 @@ bool operator==(ConstCharPtr lhs, const ObjectPtr<T>& rhs)
     return rhs == lhs;
 }
 
+template <class T, typename V, typename std::enable_if<is_ct_conv<V>::value, int>::type = 0>
+bool operator!=(const ObjectPtr<T>& lhs, V rhs)
+{
+    return !(lhs == rhs);
+}
+
+template <class T, typename V, typename std::enable_if<is_ct_conv<V>::value, int>::type = 0>
+bool operator!=(V lhs, const ObjectPtr<T>& rhs)
+{
+    return !(lhs == rhs);
+}
+
 template <class T>
 bool operator!=(const ObjectPtr<T>& lhs, ConstCharPtr rhs)
 {

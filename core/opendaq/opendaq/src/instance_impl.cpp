@@ -9,6 +9,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <opendaq/search_filter_factory.h>
 #include <opendaq/mirrored_device_config.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
@@ -830,7 +831,7 @@ void InstanceImpl::forEachComponent(const ComponentPtr& component, F&& callback)
         const auto folder = component.asPtrOrNull<IFolder>(true);
         if (folder.assigned())
         {
-            for (const auto item : folder.getItems())
+            for (const auto item : folder.getItems(search::Any()))
                 forEachComponent(item, std::forward<F>(callback));
         }
     }

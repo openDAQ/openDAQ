@@ -95,6 +95,52 @@ class BlockView(ttk.Frame):
                 self.label_icon.config(image=self.device_img)
                 self.cols = [0, 1]
                 self.rows = [0]
+
+                available_op_modes = []
+                op_modes_nums = list(self.node.available_operation_modes)
+                if 0 in op_modes_nums:
+                    available_op_modes.append("Unknown")
+                if 1 in op_modes_nums:
+                    available_op_modes.append("Idle")
+                if 2 in op_modes_nums:
+                    available_op_modes.append("Operation")
+                if 3 in op_modes_nums:
+                    available_op_modes.append("SafeOperation")
+
+                op_mode = self.node.operation_mode
+                mode_string = ""
+                if op_mode == daq.OperationModeType.Unknown:
+                    mode_string = "Unknown"
+                elif op_mode == daq.OperationModeType.Idle:
+                    mode_string = "Idle"
+                elif op_mode == daq.OperationModeType.Operation:
+                    mode_string = "Operation"
+                elif op_mode == daq.OperationModeType.SafeOperation:
+                    mode_string = "SafeOperation"
+
+                opt = tk.StringVar(value=mode_string)
+                def on_option_change(*args):
+                    var = opt.get()
+                    if var == "Unknown":
+                        self.node.operation_mode = daq.OperationModeType.Unknown
+                    elif var == "Idle":
+                        self.node.operation_mode = daq.OperationModeType.Idle
+                    elif var == "Operation":
+                        self.node.operation_mode = daq.OperationModeType.Operation
+                    elif var == "SafeOperation":
+                        self.node.operation_mode = daq.OperationModeType.SafeOperation
+
+                opt.trace_add("write", on_option_change)
+
+                combined = tk.Frame(self.expanded_frame)
+                combined.grid(row=1, column=0, padx=5, pady=5)
+
+                label = tk.Label(combined, text="Operation mode: ")
+                label.pack(side="left")
+                options = tk.OptionMenu(combined, opt, *available_op_modes)
+                options.pack(side="left")
+
+
             elif daq.IFunctionBlock.can_cast_from(self.node):
                 self.node = daq.IFunctionBlock.cast_from(self.node)
                 self.properties = PropertiesView(

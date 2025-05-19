@@ -4,10 +4,10 @@ To start working with openDAQ(TM), the requisite binaries are required. They can
 
 :note-caption: Note
 [NOTE]
-===
+====
 The .NET binaries are available from the Windows(TM) SDK packages, but they only contain the Windows(TM) libraries. +
       For both, Windows(TM) and Linux(TM) all binaries are available in the NuGet package, which is the recommended consumption method for .NET developers.  
-===
+====
 
 All commands in this guide use the .NET command-line interface (dotnet CLI) which is a cross-platform toolchain for developing, building, running, and publishing .NET applications.  
 
@@ -38,10 +38,10 @@ Linux::
 
 :note-caption: Note
 [NOTE]
-===
+====
 On Windows there is the https://learn.microsoft.com/en-us/windows/wsl/install[Windows Subsystem for Linux (WSL)], +
       where .NET projects can also be created (use an Ubuntu 22.04 distribution).
-===
+====
 
 --
 ====
@@ -71,11 +71,11 @@ dotnet add package openDAQ.Net
 
 :note-caption: Note
 [NOTE]
-===
+====
 Alternatively, the latest version of the .NET Bindings is available at https://docs-dev.opendaq.com/ and can be used via: +
       `dotnet add package openDAQ.Net --source path/to/folder --prerelease` +
       See also https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-add-package[Learn NET - dotnet add package]
-===
+====
 
 With this, we are ready to start developing: +
 We fill in our `Program.cs` executable code as follows (replacing the default content):
@@ -100,9 +100,9 @@ Console.ReadKey(intercept: true);
 
 :note-caption: Note
 [NOTE]
-===
+====
 When creating the openDAQ(TM) `instance`, we don't need to specify the root directory of our openDAQ(TM) Modules as they are conveniently being deployed by the NuGet package and found where they are.
-===
+====
 
 Now we can compile and run our program in our PowerShell(TM) or WSL instance from above.
 
@@ -113,10 +113,10 @@ dotnet run --no-restore
 
 :note-caption: Note
 [NOTE]
-===
+====
 `--no-restore` tells the compiler not to restore (NuGet) packages. They have been restored/installed already by the `dotnet add package` command above. +
       This is particularly useful if you are using a local package, as it cannot be found without specifying its location.
-===
+====
 
 With the `run` command the project is being built (when there was a change after the last run) and the resulting `quick_start.exe` is executed. +
 All binaries from the Nuget package will be copied to the target directory (which defaults to `./bin/Debug/net8.0`). These dependencies are also entered in the file `quick_start.deps.json` so that the executable can find the openDAQ(TM) SDK binaries during execution.  

@@ -20,13 +20,13 @@ When connecting to a device, it is possible to authenticate as one of the define
 
 :note-caption: Note
 [NOTE]
-===
+====
 The authentication and access level enforcement happens at the transport layer level. The openDAQ server authenticates the client, declining requests that the client
 does not have access to it.
-===
+====
 
 :note-caption: Note
 [NOTE]
-===
+====
 The access control system is available only over the openDAQ "Native protocol".
-===
+====

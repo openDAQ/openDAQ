@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#789](https://github.com/openDAQ/openDAQ/pull/789) Optimize Signal Packet Handling by Deferring Last Value Calculation
 - [#768](https://github.com/openDAQ/openDAQ/pull/768) Supporting creating empty error info. Add macroses to checking error code
 - [#771](https://github.com/openDAQ/openDAQ/pull/771) Improvements to device operation mode, including changes to the Device API for operation mode handling.
 - [#764](https://github.com/openDAQ/openDAQ/pull/764) Add support restoring device info fields
@@ -37,6 +38,9 @@
 
 ## Bug fixes
 
+- [#806](https://github.com/openDAQ/openDAQ/pull/806) Fix hidden components deserialization
+- [#794](https://github.com/openDAQ/openDAQ/pull/794) Small refactor/fixing of child object cloning logic. Ensure thread safety on core event enabling.
+- [#790](https://github.com/openDAQ/openDAQ/pull/790) Fix input port to signal notification
 - [#778](https://github.com/openDAQ/openDAQ/pull/778) Fixing calling remote function with enumeration inside
 - [#776](https://github.com/openDAQ/openDAQ/pull/776) Fixing restoring struct fields while loading configuration
 - [#757](https://github.com/openDAQ/openDAQ/pull/757) Device info obtained from device and discovery matching is changed from checking for connection string equality to SN + manufacturer equality.

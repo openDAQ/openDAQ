@@ -15,6 +15,9 @@ class Dialog(tk.Toplevel):
         self.configure(padx=10, pady=5)
         self.attributes('-topmost', True)
         self.transient(parent)
+        
+        # Bind Escape key to close the dialog
+        self.bind("<Escape>", lambda event: self.close())
 
     def center_window(self):
         main_window = self.parent.winfo_toplevel()
@@ -29,5 +32,9 @@ class Dialog(tk.Toplevel):
         self.center_window()
         if self.initial_update_func is not None:
             self.initial_update_func()
-        self.grab_set()
+        self.grab_set()         # Prevent interaction with other windows
+        self.focus_set()        # Ensure focus is on this dialog
         self.wait_window(self)
+        
+    def close(self):
+        self.destroy()

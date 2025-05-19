@@ -24,7 +24,7 @@
 #include <opendaq/module_ptr.h>
 #include <coretypes/common.h>
 
-    BEGIN_NAMESPACE_OPENDAQ
+BEGIN_NAMESPACE_OPENDAQ
 
 struct ModuleLibrary
 {
@@ -32,6 +32,6 @@ struct ModuleLibrary
     ModulePtr module;
 };
 
-ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
+ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
 
 END_NAMESPACE_OPENDAQ

@@ -76,4 +76,13 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
         },
         py::arg("context"),
         "Loads all modules from the directory path specified during manager construction. The Context is passed to all loaded modules for internal use.");
+    cls.def("load_module",
+        [](daq::IModuleManager *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& path)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
+            objectPtr.loadModule(getVariantValue<daq::IString*>(path));
+        },
+        py::arg("path"),
+        "Loads a module from the specified absolute filesystem path.");
 }

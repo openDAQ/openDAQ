@@ -221,7 +221,7 @@ void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& 
         return;
 
     OperationModeType modeType;
-    const ErrCode errCode = this->getOperationMode(&modeType);
+    const ErrCode errCode = this->getParentDeviceOperationMode(&modeType);
     if (errCode != OPENDAQ_SUCCESS)
         return;
 

@@ -333,6 +333,11 @@ ErrCode InstanceImpl::getOperationMode(OperationModeType* modeType)
     return rootDevice->getOperationMode(modeType);
 }
 
+ErrCode InstanceImpl::getParentDeviceOperationMode(OperationModeType* modeType)
+{
+    return rootDevice->getParentDeviceOperationMode(modeType);
+}
+
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
 {
     OPENDAQ_PARAM_NOT_NULL(currentRootDevice);

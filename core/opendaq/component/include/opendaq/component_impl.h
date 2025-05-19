@@ -96,7 +96,7 @@ public:
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
-    ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
+    ErrCode INTERFACE_FUNC getParentDeviceOperationMode(OperationModeType* modeType) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -650,14 +650,14 @@ ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs*
 }
 
 template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::getOperationMode(OperationModeType* modeType)
+ErrCode ComponentImpl<Intf, Intfs...>::getParentDeviceOperationMode(OperationModeType* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
 
     ComponentPtr parent;
     this->getParent(&parent);
     if (parent.assigned())
-        return parent->getOperationMode(modeType);
+        return parent->getParentDeviceOperationMode(modeType);
 
     *modeType = OperationModeType::Unknown;
     return OPENDAQ_IGNORED;

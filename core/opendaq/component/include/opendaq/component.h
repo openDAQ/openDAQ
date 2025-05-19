@@ -210,10 +210,10 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) = 0;
 
     /*!
-     * @brief Gets the operation mode of the device.
+     * @brief Gets the operation mode of the parent device. If the component is a device, the operation mode of the device is returned.
      * @param[out] modeType The current operation mode.
      */
-    virtual ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) = 0;
+    virtual ErrCode INTERFACE_FUNC getParentDeviceOperationMode(OperationModeType* modeType) = 0;
 };
 /*!@}*/
 

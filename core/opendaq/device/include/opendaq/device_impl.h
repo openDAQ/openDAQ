@@ -114,6 +114,7 @@ public:
     ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
+    ErrCode INTERFACE_FUNC getParentDeviceOperationMode(OperationModeType* modeType) override;
 
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
@@ -1209,6 +1210,12 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(OperationMode
     OPENDAQ_PARAM_NOT_NULL(modeType);
     *modeType = this->operationMode;
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getParentDeviceOperationMode(OperationModeType* modeType)
+{
+    return this->getOperationMode(modeType);
 }
 
 template <typename TInterface, typename... Interfaces>

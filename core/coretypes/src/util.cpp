@@ -34,12 +34,11 @@ daq::ErrCode PUBLIC_EXPORT daqInterfaceIdToString(const daq::IntfID& iid, daq::C
     }
 }
 
+static const std::regex guidRegex(R"(\{([\dA-Fa-f]{8})-([\dA-Fa-f]{4})-([\dA-Fa-f]{4})-([\dA-Fa-f]{2})([\dA-Fa-f]{2})-((?:[\dA-Fa-f]{2}){6})\})");
+
 extern "C"
 daq::ErrCode PUBLIC_EXPORT daqStringToInterfaceId(const std::string& guidStr, daq::IntfID& iid)
 {
-    std::regex guidRegex(
-        R"(\{([\dA-Fa-f]{8})-([\dA-Fa-f]{4})-([\dA-Fa-f]{4})-([\dA-Fa-f]{2})([\dA-Fa-f]{2})-((?:[\dA-Fa-f]{2}){6})\})");
-    
     std::smatch match;
     if (!std::regex_match(guidStr, match, guidRegex))
     {

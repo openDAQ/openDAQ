@@ -38,7 +38,8 @@
 
 ## Bug fixes
 
-- [#790](https://github.com/openDAQ/openDAQ/pull/794) Small refactor/fixing of child object cloning logic. Ensure thread safety on core event enabling.
+- [#806](https://github.com/openDAQ/openDAQ/pull/806) Fix hidden components deserialization
+- [#794](https://github.com/openDAQ/openDAQ/pull/794) Small refactor/fixing of child object cloning logic. Ensure thread safety on core event enabling.
 - [#790](https://github.com/openDAQ/openDAQ/pull/790) Fix input port to signal notification
 - [#778](https://github.com/openDAQ/openDAQ/pull/778) Fixing calling remote function with enumeration inside
 - [#776](https://github.com/openDAQ/openDAQ/pull/776) Fixing restoring struct fields while loading configuration

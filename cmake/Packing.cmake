@@ -153,6 +153,8 @@ set(COMPONENTS
     ws_stream_cl_module
     native_stream_srv_module
     native_stream_cl_module
+    new_ws_stream_srv_module
+    basic_csv_recorder_module
 )
 
 foreach(component IN LISTS COMPONENTS)

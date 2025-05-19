@@ -881,7 +881,7 @@ void ConfigProtocolClientComm::forEachComponent(const ComponentPtr& component, c
     const auto folder = component.asPtrOrNull<IFolder>(true);
     if (folder.assigned())
     {
-        for (const auto item : folder.getItems())
+        for (const auto item : folder.getItems(search::Any()))
             forEachComponent<Interface>(item, f);
     }
 }

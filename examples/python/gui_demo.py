@@ -300,20 +300,12 @@ class App(tk.Tk):
         skip = not self.context.view_hidden_components and not component.visible
 
         if daq.IChannel.can_cast_from(component):
-            channel = daq.IChannel.cast_from(component)
-            # component_name = channel.name
             icon = self.context.icons['channel']
         elif daq.ISignal.can_cast_from(component):
-            signal = daq.ISignal.cast_from(component)
-            # component_name = signal.name
             icon = self.context.icons['signal']
         elif daq.IFunctionBlock.can_cast_from(component):
-            function_block = daq.IFunctionBlock.cast_from(component)
-            # component_name = function_block.function_block_type.name
             icon = self.context.icons['function_block']
         elif daq.IInputPort.can_cast_from(component):
-            input_port = daq.IInputPort.cast_from(component)
-            # component_name = input_port.name
             icon = self.context.icons['input_port']
         elif daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
@@ -325,7 +317,6 @@ class App(tk.Tk):
             component_name = self.get_standard_folder_name(component_name)
         elif daq.ISyncComponent.can_cast_from(component):
             icon = self.context.icons['link']
-            component_name = self.get_standard_folder_name(component_name)
         else:  # skipping unknown type components
             skip = not show_unknown
 

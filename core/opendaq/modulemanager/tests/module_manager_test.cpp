@@ -107,22 +107,6 @@ TEST_F(ModuleManagerTest, AddDuplicateModule)
     ASSERT_THROW(manager.addModule(mock), DuplicateItemException);
 }
 
-TEST_F(ModuleManagerTest, LoadIndividualModule)
-{
-    auto manager = ModuleManager(SearchDir);
-
-    ASSERT_THROW(manager.loadModule(""), InvalidParameterException);
-    ASSERT_THROW(manager.loadModule(SearchDir + "/invalid.extention"), InvalidParameterException);
-
-    ASSERT_THROW_MSG(manager.loadModule(SearchDir + "/doesNotExist.module.so"),
-                     InvalidStateException,
-                     "ModuleManager in not initialized. Call loadModules(IContext*) first.");
-
-    auto context = Context(nullptr, Logger(), nullptr, manager, nullptr);
-
-    ASSERT_THROW(manager.loadModule(SearchDir), InvalidParameterException);
-}
-
 TEST_F(ModuleManagerTest, EnumDriver)
 {
     auto moduleManager = ModuleManager(SearchDir);

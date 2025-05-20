@@ -48,6 +48,7 @@ static constexpr char checkDependenciesFunc[] = "checkDependencies";
 
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
 static ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries);
+static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
@@ -283,7 +284,7 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
 
     if (const auto addedModule = getModuleIfAdded(fileSystemPath, libraries); addedModule.assigned())
     {
-        LOG_W(R"(Module at a given path "{}" is already added)", pathString)
+        LOG_W(R"(Module at a given path "{}" is already loaded and added)", pathString)
 
         *module = addedModule.addRefAndReturn();
         return OPENDAQ_IGNORED;
@@ -1596,10 +1597,10 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
     std::error_code errCode;
     if (!fs::exists(searchFolder, errCode))
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" does not exist.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, fmt::format(R"(The specified path "{}" does not exist.)", searchFolder));
 
     if (!fs::is_directory(searchFolder, errCode))
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" is not a folder.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, fmt::format(R"(The specified path "{}" is not a folder.)", searchFolder));
 
     fs::recursive_directory_iterator dirIterator(searchFolder);
 

@@ -32,6 +32,4 @@ struct ModuleLibrary
     ModulePtr module;
 };
 
-ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
-
 END_NAMESPACE_OPENDAQ

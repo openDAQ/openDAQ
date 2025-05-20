@@ -8,8 +8,9 @@
 
 #include <chrono>
 #include <thread>
-
 #include <opendaq/boost_dll.h>
+
+#include "mock/mock_module.h"
 
 using namespace daq;
 
@@ -44,6 +45,36 @@ protected:
     ModuleManagerPtr manager;
     ContextPtr context;
 };
+
+TEST_F(ModuleManagerInternalsTest, LoadModuleErrors)
+{
+    ASSERT_THROW_MSG(
+        this->manager.loadModule(""),
+        InvalidParameterException,
+        "Specified module path is empty"
+    );
+
+    ASSERT_THROW_MSG(
+        this->manager.loadModule(GetMockModulePath("/invalid.extention").string()),
+        InvalidParameterException,
+        R"(The openDAQ module file must have an extention ".module.so")"
+    );
+
+    fs::path modulePath = GetMockModulePath("/doesNotExist.module.so");
+    LOG_I("Load module: \"{}\"", modulePath.string());
+    ASSERT_THROW_MSG(
+        this->manager.loadModule(modulePath.string()),
+        InvalidParameterException,
+        fmt::format(R"(Specified module path "{}" does not exist)", modulePath.string())
+    );
+
+    auto manager = ModuleManager("[[none]]");
+    ASSERT_THROW_MSG(
+        manager.loadModule(GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME).string()),
+        InvalidStateException,
+        "ModuleManager in not initialized. Call loadModules(IContext*) first."
+    );
+}
 
 TEST_F(ModuleManagerInternalsTest, LoadEmptyDll)
 {
@@ -96,4 +127,49 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckSucceed)
         module = manager.loadModule(modulePath.string())
     );
     ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+}
+
+TEST_F(ModuleManagerInternalsTest, LoadModuleTwice1)
+{
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
+
+    manager.loadModule(modulePath.string());
+
+    ModulePtr module;
+    ASSERT_EQ(manager->loadModule(String(modulePath.string()), &module), OPENDAQ_IGNORED);
+    ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+}
+
+TEST_F(ModuleManagerInternalsTest, LoadModuleTwice2)
+{
+    fs::path modulesPath = exePath / fs::path(MODULE_TEST_DIR);
+    auto manager = ModuleManager(modulesPath.string());
+    manager.loadModules(NullContext());
+
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
+
+    ModulePtr module;
+    ASSERT_EQ(manager->loadModule(String(modulePath.string()), &module), OPENDAQ_IGNORED);
+    ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+}
+
+TEST_F(ModuleManagerInternalsTest, LoadModuleAfterAddedFromMemory)
+{
+    auto manager = ModuleManager("[[none]]");
+    manager.loadModules(NullContext());
+
+    auto mock = createWithImplementation<IModule, MockModuleImpl>();
+    ASSERT_NO_THROW(manager.addModule(mock));
+    ASSERT_EQ(manager.getModules().getCount(), 1u);
+    ASSERT_EQ(manager.getModules()[0], mock);
+
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
+
+    ModulePtr module;
+    ASSERT_NO_THROW(module = manager.loadModule(modulePath.string()));
+    ASSERT_EQ(manager.getModules().getCount(), 2u);
+    ASSERT_EQ(manager.getModules()[1], module);
 }

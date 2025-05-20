@@ -59,6 +59,10 @@ internal unsafe class RawBaseObject : RawIUnknown
     public new delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, ErrorCode> ToString; //new -> hides base member (inherited from Object)
 }
 
+//https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.safehandle?view=net-8.0
+//https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.criticalhandle?view=net-8.0
+//https://learn.microsoft.com/en-us/dotnet/framework/interop/consuming-unmanaged-dll-functions
+
 /// <summary>
 /// The base class for all SDK classes.
 /// </summary>
@@ -69,6 +73,9 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 {
     //wraps this managed object holding a handle to a resource that is passed to unmanaged code using platform invoke.
     private HandleRef _handleRef;
+
+    //lock object for _handleRef
+    private readonly object _handleRefLock = new object();
 
     //holds the function pointers to the C++ class
     internal RawBaseObject _virtualTable;
@@ -166,7 +173,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     {
         get
         {
-            if (_handleRef.Handle == IntPtr.Zero) //this.IsDisposed not usable here since flag set at the beginning of Dispose()
+            if (IsNativePointerZero()) //this.IsDisposed not usable here since flag set at the beginning of Dispose()
             {
                 throw new OpenDaqException(ErrorCode.OPENDAQ_ERR_INVALID_OPERATION, $"{this.GetType().Name} already disposed or 'stolen' through stealRef");
             }
@@ -221,6 +228,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 
     /// <summary>Increments the reference count for an interface on an object.</summary>
     /// <remarks>You should call this method whenever you make a copy of an interface pointer.</remarks>
+    /// <returns>Returns the new reference count of the object.</returns>
     int IUnknown.AddReference()
     {
 #if DEBUG && DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
@@ -252,6 +260,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 
     /// <summary>Decrements the reference count for an interface on an object.</summary>
     /// <remarks>Call this method when you no longer need to use an interface pointer.</remarks>
+    /// <returns>Returns the new reference count of the object.</returns>
     int IUnknown.ReleaseReference()
     {
 #if DEBUG && DEBUG_PRINT_ADD_AND_RELEASE_REFERENCE
@@ -358,7 +367,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     {
         IntPtr objPtr = ((IUnknown)this).QueryInterface<TObject>();
 
-        return BaseObject.CreateInstance<TObject>(objPtr, false);
+        return BaseObject.CreateInstance<TObject>(objPtr, incrementReference: false);
     }
 
     //no BorrowInterface() implementation here since it is not needed for managed objects (even dangerous to use it)
@@ -405,7 +414,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             return null;
         }
 
-        return BaseObject.CreateInstance<TObject>(objPtr, false);
+        return BaseObject.CreateInstance<TObject>(objPtr, incrementReference: false);
     }
 
     /// <summary>Casts this instance to <c>ListObject&lt;<typeparamref name="TValue"/>&gt;</c>.</summary>
@@ -416,7 +425,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         where TValue : BaseObject
     {
         if (this.GetType().Name.StartsWith(nameof(ListObject<BaseObject>))) //ToDo: perhaps also check item type being cast-able to TValue?
-            return new ListObject<TValue>(this.NativePointer, true);
+            return new ListObject<TValue>(this.NativePointer, incrementReference: true);
 
         return this.Cast<ListObject<TValue>>();
     }
@@ -431,9 +440,18 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         where TValue : BaseObject
     {
         if (this.GetType().Name.StartsWith(nameof(DictObject<BaseObject, BaseObject>))) //ToDo: perhaps also check key and item type being cast-able to TKey,TValue?
-            return new DictObject<TKey, TValue>(this.NativePointer, true);
+            return new DictObject<TKey, TValue>(this.NativePointer, incrementReference: true);
 
         return this.Cast<DictObject<TKey, TValue>>();
+    }
+
+    /// <summary>
+    /// Checks if the native pointer is zero.
+    /// </summary>
+    /// <returns><c>true</c> when the native pointer is zero; otherwise <c>false</c>.</returns>
+    private bool IsNativePointerZero()
+    {
+        return (_handleRef.Handle == IntPtr.Zero);
     }
 
     /// <summary>
@@ -442,8 +460,11 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     /// </summary>
     internal void SetNativePointerToZero()
     {
-        if (_handleRef.Handle !=  IntPtr.Zero)
-            _handleRef = new HandleRef(this, IntPtr.Zero);
+        lock (_handleRefLock)
+        {
+            if (!IsNativePointerZero())
+                _handleRef = new HandleRef(this, IntPtr.Zero);
+        }
     }
 
     /// <summary>Disposes all references held by the object.</summary>
@@ -616,15 +637,41 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
     public bool IsDisposed => _disposedValue;
 
     /// <summary>
-    /// Disposes resources of this instance.
+    /// Releases the reference to the object (reduce reference counter in SDK) and marking it as disposed.
     /// </summary>
     /// <param name="disposing">If set to <c>true</c> dispose also managed resources; otherwise only native resources will be freed.</param>
+    //according to https://learn.microsoft.com/en-us/dotnet/api/system.accessviolationexception?view=net-7.0#accessviolationexception-and-trycatch-blocks
+    //Win32 AccessViolationException can be caught by decorating this function with these attributes
+    //[HandleProcessCorruptedStateExceptions, SecurityCritical]
+    //but the former is marked "obsolete" and not doing anything
+    //=> if an object has already been destroyed in native code, there is no way to catch the exception or to find out if it has been destroyed already
+    //see also https://learn.microsoft.com/en-us/archive/msdn-magazine/2009/february/clr-inside-out-handling-corrupted-state-exceptions
+    //where they mention to compile C++ code with /EHa to catch C++ exceptions in C# code but that is not improving things
     protected virtual void Dispose(bool disposing)
     {
 #if DEBUG && DEBUG_PRINT_CREATE_AND_DISPOSE
         System.Diagnostics.Debug.Write($"----- Dispose({_name}) - ");
 #endif
         PrintReferenceCount(debugPrintOnly: true);
+
+        string typeName = this.GetType().Name;
+        if (typeName == "Instance")
+        {
+            //when the Instance object is destroyed, the SDK will destroy also the ModuleManager
+            //which will unload the loaded modules, thus renders all their objects invalid (no ReleaseReference() possible then)
+            //so we need to re-register the Instance finalizer that the ModuleManager will be destroyed last
+            //(so far this could be observed with OPC UA connections only)
+
+            int gcGeneration = GC.GetGeneration(this);
+            if (gcGeneration < GC.MaxGeneration)
+            {
+#if DEBUG && DEBUG_PRINT_CREATE_AND_DISPOSE
+                System.Diagnostics.Debug.Print($"++++> Re-register {typeName} for finalization");
+#endif
+                GC.ReRegisterForFinalize(this);
+                return;
+            }
+        }
 
         if (_disposedValue)
         {
@@ -638,21 +685,16 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
             // TODO: dispose managed state (managed objects)
         }
 
-        if (_handleRef.Handle == IntPtr.Zero)
+        if (IsNativePointerZero())
         {
             //already disposed or 'stolen' through stealRef
             return;
         }
 
-        //according to https://learn.microsoft.com/en-us/dotnet/api/system.accessviolationexception?view=net-7.0#accessviolationexception-and-trycatch-blocks
-        //Win32 AccessViolationException can be caught by decorating this function with these attributes
-        //[HandleProcessCorruptedStateExceptions, SecurityCritical]
-        //but the former is marked "obsolete" and not doing anything
-        //=> if an object has already been destroyed in native code, there is no way to catch the exception or to find out if it has been destroyed already
         try
         {
             //dispose all references held by the C++ object
-            //DisposeObject();
+            //DisposeObject(); //-> bad idea, as we might still have references to those objects in C# code, resulting in AccessViolation
 
             //release this reference, if it was the last reference the C++ object will be destroyed
             int refCount = ((IUnknown)this).ReleaseReference();
@@ -666,7 +708,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
         finally
         {
             //don't permit the handle to be used again
-            _handleRef = new HandleRef(this, IntPtr.Zero);
+            SetNativePointerToZero();
         }
     }
 
@@ -697,7 +739,7 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
 #if DEBUG
         string message;
 
-        if (_handleRef.Handle == IntPtr.Zero)
+        if (IsNativePointerZero())
         {
             message = "'{_name}' is IntPtr.Zero";
         }
@@ -715,6 +757,10 @@ public class BaseObject : IUnknown, IDisposable//, IEquatable<IBaseObject>
                 int referenceCount = ((IUnknown)this).ReleaseReference();
 
                 message = $"{referenceCount} references exist to '{_name}'";
+            }
+            catch (Exception ex)
+            {
+                message = $"### {ex.GetType().Name} - {ex.Message}";
             }
             finally
             {

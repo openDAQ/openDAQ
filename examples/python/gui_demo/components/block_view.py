@@ -13,7 +13,7 @@ from .attributes_dialog import AttributesDialog
 class BlockView(ttk.Frame):
 
     def __init__(self, parent, node, context=None, expanded=False, **kwargs):
-        ttk.Frame.__init__(self, parent, **kwargs)
+        ttk.Frame.__init__(self, parent, style="Custom.TFrame", **kwargs)
         self.parent = parent
         self.expanded = expanded
         self.node = node
@@ -133,7 +133,7 @@ class BlockView(ttk.Frame):
                 opt.trace_add("write", on_option_change)
 
                 combined = tk.Frame(self.expanded_frame)
-                combined.grid(row=1, column=0, padx=5, pady=5)
+                combined.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
                 label = tk.Label(combined, text="Operation mode: ")
                 label.pack(side="left")
@@ -173,7 +173,32 @@ class BlockView(ttk.Frame):
                 self.label_icon.config(image=self.component_img)
                 self.cols = [0]
                 self.rows = [0]
+
+        combined = tk.Frame(self.expanded_frame)
+        combined.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+
         self.on_expand()
+        self.status_message = tk.Message(combined, width=400)
+        self.status_message.pack(side="left")
+        self.change_status()
+
+    def change_status(self):
+        color = "light blue"
+        try:
+            status = self.node.status_container.get_status("ComponentStatus")
+            if status == daq.Enumeration(daq.String("ComponentStatusType"), daq.String("Ok"), self.node.context.type_manager):
+                color = "olive drab"
+            elif status == daq.Enumeration(daq.String("ComponentStatusType"), daq.String("Warning"), self.node.context.type_manager):
+                color = "gold"
+            else:
+                color = "red4"
+            if status and self.status_message:
+                self.status_message.config(text=self.node.status_container.get_status_message("ComponentStatus"))
+            else:
+                self.status_message.config(text="")
+        except:
+            pass
+        ttk.Style().configure("Custom.TFrame", background=color)
 
     def handle_expand_toggle(self):
         self.expanded = not self.expanded

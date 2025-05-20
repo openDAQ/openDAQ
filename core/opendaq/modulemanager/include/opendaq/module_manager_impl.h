@@ -45,7 +45,7 @@ public:
     ErrCode INTERFACE_FUNC getModules(IList** availableModules) override;
     ErrCode INTERFACE_FUNC addModule(IModule* module) override;
     ErrCode INTERFACE_FUNC loadModules(IContext* context) override;
-    ErrCode INTERFACE_FUNC loadModule(IString* path) override;
+    ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) override;
 
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;

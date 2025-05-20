@@ -81,8 +81,8 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
-            objectPtr.loadModule(getVariantValue<daq::IString*>(path));
+            return objectPtr.loadModule(getVariantValue<daq::IString*>(path)).detach();
         },
         py::arg("path"),
-        "Loads a module from the specified absolute filesystem path.");
+        "Loads and adds a single module from the given absolute file system path.");
 }

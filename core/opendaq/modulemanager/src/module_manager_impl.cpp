@@ -47,7 +47,7 @@ static constexpr char createModuleFactory[] = "createModule";
 static constexpr char checkDependenciesFunc[] = "checkDependencies";
 
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
-static bool isModuleLoaded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries);
+static ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
@@ -209,7 +209,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     bool modulesAdded = false;
     for (const auto& modulePath: modulesPath)
     {
-        if (isModuleLoaded(modulePath, libraries))
+        if (getModuleIfAdded(modulePath, libraries).assigned())
             continue;
 
         try
@@ -239,22 +239,27 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         return OPENDAQ_IGNORED;
 }
 
-bool isModuleLoaded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries)
+ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries)
 {
     auto iter = std::find_if(
         libraries.begin(),
         libraries.end(),
         [&fsPath](const ModuleLibrary& lib)
         {
-            return lib.handle.location() == fsPath;
+            return lib.handle.is_loaded() && lib.handle.location() == fsPath;
         }
     );
-    return iter != libraries.end();
+    if (iter != libraries.end())
+        return iter->module;
+    else
+        return nullptr;
 }
 
-ErrCode ModuleManagerImpl::loadModule(IString* path)
+ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
 {
     OPENDAQ_PARAM_NOT_NULL(path);
+    OPENDAQ_PARAM_NOT_NULL(module);
+
     auto pathString = StringPtr::Borrow(path).toStdString();
 
     if (pathString.empty())
@@ -276,20 +281,25 @@ ErrCode ModuleManagerImpl::loadModule(IString* path)
     if (!is_regular_file(fileSystemPath, errCode))
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" is not a file)", pathString));
 
-    if (isModuleLoaded(fileSystemPath, libraries))
+    if (const auto addedModule = getModuleIfAdded(fileSystemPath, libraries); addedModule.assigned())
     {
-        LOG_W(R"(Module at a given path "{}" is already loaded)", pathString)
+        LOG_W(R"(Module at a given path "{}" is already added)", pathString)
+
+        *module = addedModule.addRefAndReturn();
         return OPENDAQ_IGNORED;
     }
+
+    orphanedModules.tryUnload();
 
     try
     {
         libraries.push_back(loadModuleInternal(loggerComponent, fileSystemPath, context));
+        *module = libraries.back().module.addRefAndReturn();
     }
     catch (const daq::DaqException& e)
     {
         LOG_W(R"(Error loading module "{}": {} [{:#x}])", pathString, e.what(), e.getErrCode())
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch (const std::exception& e)
     {

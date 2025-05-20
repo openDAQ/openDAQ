@@ -55,12 +55,13 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleErrors)
     );
 
     ASSERT_THROW_MSG(
-        this->manager.loadModule(GetMockModulePath("/invalid.extention").string()),
+        this->manager.loadModule(GetMockModulePath("/invalid.ext").string()),
         InvalidParameterException,
-        R"(The openDAQ module file must have an extention ".module.so")"
+        fmt::format(R"(The openDAQ module file must have an extention "{}")", OPENDAQ_MODULE_SUFFIX)
     );
 
-    fs::path modulePath = GetMockModulePath("/doesNotExist.module.so");
+
+    fs::path modulePath = GetMockModulePath(fmt::format(R"(/doesNotExist{})", OPENDAQ_MODULE_SUFFIX));
     LOG_I("Load module: \"{}\"", modulePath.string());
     ASSERT_THROW_MSG(
         this->manager.loadModule(modulePath.string()),
@@ -85,7 +86,7 @@ TEST_F(ModuleManagerInternalsTest, LoadEmptyDll)
         auto module = manager.loadModule(modulePath.string()),
         ModuleNoEntryPointException,
         fmt::format("Module \"{}\" has no exported module factory.", fs::relative(modulePath).string())
-    )
+    );
 }
 
 TEST_F(ModuleManagerInternalsTest, LoadCrashingDll)
@@ -97,7 +98,7 @@ TEST_F(ModuleManagerInternalsTest, LoadCrashingDll)
         auto module = manager.loadModule(modulePath.string()),
         ModuleEntryPointFailedException,
         fmt::format("Library \"{}\" failed to create a Module.", fs::relative(modulePath).string())
-    )
+    );
 }
 
 TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
@@ -114,7 +115,7 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
             OPENDAQ_ERR_GENERALERROR,
             "Mock failure"
         )
-    )
+    );
 }
 
 TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckSucceed)
@@ -129,7 +130,7 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckSucceed)
     ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
 }
 
-TEST_F(ModuleManagerInternalsTest, LoadModuleTwice1)
+TEST_F(ModuleManagerInternalsTest, LoadSingleModuleTwice1)
 {
     fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
     LOG_I("Load module: \"{}\"", modulePath.string());
@@ -141,7 +142,7 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleTwice1)
     ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
 }
 
-TEST_F(ModuleManagerInternalsTest, LoadModuleTwice2)
+TEST_F(ModuleManagerInternalsTest, LoadSingleModuleTwice2)
 {
     fs::path modulesPath = exePath / fs::path(MODULE_TEST_DIR);
     auto manager = ModuleManager(modulesPath.string());
@@ -153,6 +154,26 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleTwice2)
     ModulePtr module;
     ASSERT_EQ(manager->loadModule(String(modulePath.string()), &module), OPENDAQ_IGNORED);
     ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+}
+
+TEST_F(ModuleManagerInternalsTest, LoadAllModulesTwice)
+{
+    auto ctx = NullContext();
+
+    fs::path modulesPath = exePath / fs::path(MODULE_TEST_DIR);
+    auto manager = ModuleManager(modulesPath.string());
+
+    manager.loadModules(ctx);
+    ASSERT_GT(manager.getModules().getCount(), 0u);
+
+    ASSERT_THROW_MSG(
+        manager.loadModules(NullContext()),
+        InvalidParameterException,
+        "Context cannot be changed after loading modules"
+    );
+
+    ASSERT_EQ(manager->loadModules(ctx), OPENDAQ_IGNORED);
+    ASSERT_GT(manager.getModules().getCount(), 0u);
 }
 
 TEST_F(ModuleManagerInternalsTest, LoadModuleAfterAddedFromMemory)

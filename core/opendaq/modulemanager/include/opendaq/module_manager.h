@@ -59,7 +59,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManager, IBaseObject)
      * @param[out] module The resulting loaded and added module object.
      *
      * This function should be used only after the default modules have been loaded using `loadModules`.
-     * The specified path must exist and reference a file with the `.module.so` extension.
+     * The specified path must exist and reference a file with the proper extension.
      */
     virtual ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) = 0;
 };

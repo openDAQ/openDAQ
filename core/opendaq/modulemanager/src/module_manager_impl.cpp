@@ -207,7 +207,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
     orphanedModules.tryUnload();
 
-    bool modulesAdded = false;
+    bool newModulesAdded = false;
     for (const auto& modulePath: modulesPath)
     {
         if (getModuleIfAdded(modulePath, libraries).assigned())
@@ -216,7 +216,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         try
         {
             libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
-            modulesAdded = true;
+            newModulesAdded = true;
         }
         catch (const daq::DaqException& e)
         {
@@ -234,7 +234,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
     modulesLoaded = true;
 
-    if (modulesAdded)
+    if (newModulesAdded)
         return OPENDAQ_SUCCESS;
     else
         return OPENDAQ_IGNORED;

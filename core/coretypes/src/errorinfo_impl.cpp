@@ -24,11 +24,20 @@ void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
 {
     if (errorInfo == nullptr)
     {
-        if (errorInfoList != nullptr && !errorInfoList->empty())
+        if (errorInfoList == nullptr)
+            return;
+
+        if (!errorInfoList->empty())
         {
             auto lastErrorInfo = errorInfoList->back();
             errorInfoList->pop_back();
             releaseRefIfNotNull(lastErrorInfo);
+        }
+
+        if (errorInfoList->empty())
+        {
+            delete errorInfoList;
+            errorInfoList = nullptr;
         }
         return;
     }
@@ -94,7 +103,6 @@ ErrorInfoImpl::ErrorInfoImpl()
     , fileName(nullptr)
     , line(-1)
     , frozen(False)
-    , childErrorInfoList(nullptr)
 {
 }
 
@@ -102,7 +110,12 @@ ErrorInfoImpl::~ErrorInfoImpl()
 {
     releaseRefIfNotNull(message);
     releaseRefIfNotNull(source);
-    releaseRefIfNotNull(childErrorInfoList);
+    if (childErrorInfoList != nullptr)
+    {
+        for (auto item : *childErrorInfoList)
+            releaseRefIfNotNull(item);
+        delete childErrorInfoList;
+    }
 }
 
 ErrCode ErrorInfoImpl::getMessage(IString** message)
@@ -197,9 +210,12 @@ ErrCode ErrorInfoImpl::extend(IErrorInfo* errorInfo)
         return OPENDAQ_IGNORED;
 
     if (childErrorInfoList == nullptr)
-        childErrorInfoList = ListWithElementType_Create(IErrorInfo::Id);
+        childErrorInfoList = new std::list<IErrorInfo*>();
 
-    return childErrorInfoList->pushBack(errorInfo);
+    childErrorInfoList->push_back(errorInfo);
+    errorInfo->addRef();
+
+    return OPENDAQ_SUCCESS;
 }
 
 std::ostringstream& CreateErrorMessage(std::ostringstream& ss, IErrorInfo* errorInfo)
@@ -250,41 +266,22 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
 
     if (childErrorInfoList != nullptr)
     {
-        SizeT count = 0;
-        childErrorInfoList->getCount(&count);
+        ss << "\nCaused by:";
 
-        if (count)
-            ss << "\nCaused by:";
-
-        for (SizeT i = 0; i < count; i++)
+        for (auto errorInfo : *childErrorInfoList)
         {
-            IBaseObject* errorInfoObject = nullptr;
-            childErrorInfoList->getItemAt(i, &errorInfoObject);
-
-            if (errorInfoObject == nullptr)
-                continue;
-
-            IErrorInfo* errorInfo = nullptr;
-            errorInfoObject->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-
-            if (errorInfo != nullptr)
+            IString* childMessage = nullptr;
+            errorInfo->getFormatMessage(&childMessage);
+            if (childMessage != nullptr)
             {
-                IString* childMessage = nullptr;
-                errorInfo->getFormatMessage(&childMessage);
-                if (childMessage != nullptr)
-                {
-                    ConstCharPtr childMsgCharPtr;
-                    childMessage->getCharPtr(&childMsgCharPtr);
+                ConstCharPtr childMsgCharPtr;
+                childMessage->getCharPtr(&childMsgCharPtr);
 
-                    if (childMsgCharPtr != nullptr)
-                        ss << "\n - " << childMsgCharPtr;
+                if (childMsgCharPtr != nullptr)
+                    ss << "\n - " << childMsgCharPtr;
 
-                    childMessage->releaseRef();
-                }
+                childMessage->releaseRef();
             }
-
-            if (errorInfoObject != nullptr)
-                errorInfoObject->releaseRef();
         }
     }
 

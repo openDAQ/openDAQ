@@ -51,7 +51,7 @@ private:
     ConstCharPtr fileName;
     Int line;
     Bool frozen;
-    IList* childErrorInfoList;
+    std::list<IErrorInfo*>* childErrorInfoList {nullptr};
 };
 
 class ErrorInfoHolder

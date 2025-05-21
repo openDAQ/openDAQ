@@ -6,6 +6,7 @@
 
 ## Python
 
+- [#811](https://github.com/openDAQ/openDAQ/pull/811) Add color coding and message display for Component statuses in Python GUI demo application.
 - [#807](https://github.com/openDAQ/openDAQ/pull/807) Enable Device operation mode switching in Python GUI Demo Application.
 
 ## Bug fixes

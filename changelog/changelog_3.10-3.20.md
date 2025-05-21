@@ -24,6 +24,7 @@
 
 ## Python
 
+- [#809](https://github.com/openDAQ/openDAQ/pull/809) Improve Python GUI app: set focus on the opened window. close the window on escape. Fix freezeing the app on calling func property with the args
 - [#729](https://github.com/openDAQ/openDAQ/pull/729) Improve Python GUI app: attributes dialog update, device info via generic properties treeview, metadata fields fix
 - [#690](https://github.com/openDAQ/openDAQ/pull/690) Enable Python wheels for MacOS
 - [#675](https://github.com/openDAQ/openDAQ/pull/675) Adds a command line option to specify an additional module load path when starting the Python GUI application.

@@ -32,9 +32,9 @@ class Dialog(tk.Toplevel):
     def show(self):
         self.wait_visibility()
         self.center_window()
+        self.focus_set()        # Ensure focus is on this dialog
         self.initial_update()
         self.grab_set()         # Prevent interaction with other windows
-        self.focus_set()        # Ensure focus is on this dialog
         self.wait_window(self)
         
     def close(self):

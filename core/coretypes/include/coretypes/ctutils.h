@@ -182,6 +182,18 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     }
 #endif
 
+inline std::string ErrorCodeMessage(ErrCode errCode)
+{
+    IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
+    std::string msg = fact->getExceptionMessage();
+
+    if (!msg.empty())
+        return msg;
+
+    std::stringstream ss;
+    ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
+    return ss.str();
+}
 
 inline void checkErrorInfo(ErrCode errCode, [[maybe_unused]] ConstCharPtr fileName, [[maybe_unused]] Int fileLine)
 {
@@ -202,7 +214,13 @@ inline void checkErrorInfo(ErrCode errCode, [[maybe_unused]] ConstCharPtr fileNa
         {
             if (errorInfo == nullptr)
             {
+                std::string message = ErrorCodeMessage(errCode);
+                IString* msg = nullptr;
+                createString(&msg, message.c_str());
                 errorInfo = lastErrorInfo;
+                errorInfo->setMessage(msg);
+                if (msg != nullptr)
+                    msg->releaseRef();
             }
             else
             {
@@ -273,19 +291,6 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
 {
     setErrorInfoWithSource(source, message, std::forward<Params>(params)...);
     return errCode;
-}
-
-inline std::string ErrorCodeMessage(ErrCode errCode)
-{
-    IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
-    std::string msg = fact->getExceptionMessage();
-
-    if (!msg.empty())
-        return msg;
-
-    std::stringstream ss;
-    ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
-    return ss.str();
 }
 
 #ifdef NDEBUG

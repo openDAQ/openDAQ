@@ -13,7 +13,7 @@ from .attributes_dialog import AttributesDialog
 class BlockView(ttk.Frame):
 
     def __init__(self, parent, node, context=None, expanded=False, **kwargs):
-        ttk.Frame.__init__(self, parent, style="Custom.TFrame", **kwargs)
+        ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.expanded = expanded
         self.node = node
@@ -178,7 +178,9 @@ class BlockView(ttk.Frame):
         combined.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 
         self.on_expand()
-        self.status_message = tk.Message(combined, width=400)
+        self.status_dot = tk.Frame(combined, width=10, height=10)
+        self.status_dot.pack(side="left")
+        self.status_message = tk.Message(combined, text="Status not set", width=400)
         self.status_message.pack(side="left")
         self.change_status()
 
@@ -192,13 +194,17 @@ class BlockView(ttk.Frame):
                 color = "gold"
             else:
                 color = "red4"
-            if status and self.status_message:
-                self.status_message.config(text=self.node.status_container.get_status_message("ComponentStatus"))
+            message = self.node.status_container.get_status_message("ComponentStatus")
+            if status and message and message != "":
+                self.status_message.config(text="Status: " + str(status) + " Message: " + message)
+            elif status:
+                self.status_message.config(text="Status: " + str(status))
             else:
                 self.status_message.config(text="")
         except:
             pass
-        ttk.Style().configure("Custom.TFrame", background=color)
+        self.status_dot.config(bg=color)
+
 
     def handle_expand_toggle(self):
         self.expanded = not self.expanded

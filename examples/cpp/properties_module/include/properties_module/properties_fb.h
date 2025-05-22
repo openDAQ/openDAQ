@@ -24,7 +24,7 @@ BEGIN_NAMESPACE_PROPERTIES_MODULE
 class PropertiesFb final : public FunctionBlock
 {
 public:
-    explicit PropertiesFb(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit PropertiesFb(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId);
     ~PropertiesFb() override = default;
 
     static FunctionBlockTypePtr CreateType();

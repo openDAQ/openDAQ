@@ -4,8 +4,8 @@
 #include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
-PropertiesFb::PropertiesFb(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+PropertiesFb::PropertiesFb(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+    : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
 }

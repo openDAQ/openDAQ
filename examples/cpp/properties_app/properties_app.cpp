@@ -1,5 +1,6 @@
 /**
  * Properties application
+ * (uses properties_module)
  */
 
 #include <opendaq/opendaq.h>

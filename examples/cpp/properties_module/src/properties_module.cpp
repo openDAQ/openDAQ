@@ -18,8 +18,8 @@ DictPtr<IString, IFunctionBlockType> PropertiesModule::onGetAvailableFunctionBlo
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
-    const auto typeScaling = PropertiesFb::CreateType();
-    types.set(typeScaling.getId(), typeScaling);
+    const auto propertiesType = PropertiesFb::CreateType();
+    types.set(propertiesType.getId(), propertiesType);
 
     return types;
 }
@@ -27,7 +27,7 @@ DictPtr<IString, IFunctionBlockType> PropertiesModule::onGetAvailableFunctionBlo
 FunctionBlockPtr PropertiesModule::onCreateFunctionBlock(const StringPtr& id,
                                                          const ComponentPtr& parent,
                                                          const StringPtr& localId,
-                                                         const PropertyObjectPtr& config)
+                                                         const PropertyObjectPtr& /*config*/)
 {
     if (id == PropertiesFb::CreateType().getId())
     {

@@ -1,7 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(OPENDAQ_EXAMPLES_VERSION ${OPENDAQ_PACKAGE_VERSION})
+file(READ "opendaq_examples_version" examples_version)
+string(STRIP ${examples_version} examples_version)
+
+string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" examples_version_major_minor_patch "${examples_version}")
+
+set(OPENDAQ_EXAMPLES_VERSION "${examples_version_major_minor_patch}")
+
 project(opendaq_examples VERSION ${OPENDAQ_EXAMPLES_VERSION})
+
+add_compile_definitions(MODULE_PATH="${OPENDAQ_MODULES_DIR}")
 
 option(OPENDAQ_CONSOLE_APP "Console application example." ON)
 option(OPENDAQ_DEVICE "Device example without a discovery server." ON)

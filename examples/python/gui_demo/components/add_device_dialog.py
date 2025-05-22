@@ -74,12 +74,10 @@ class AddDeviceDialog(Dialog):
         device_tree_frame.pack(fill=tk.BOTH, expand=True)
 
         add_device_frame = ttk.Frame(right_side_frame)
-        ttk.Label(add_device_frame, text='Connection string:').pack(
-            side=tk.LEFT)
+        ttk.Label(add_device_frame, text='Connection string:').pack(side=tk.LEFT)
         self.conn_string_entry = ttk.Entry(add_device_frame)
         self.conn_string_entry.bind('<Return>', self.handle_entry_enter)
-        self.conn_string_entry.pack(
-            side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+        self.conn_string_entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
         self.add_device_option = tk.StringVar(add_device_frame)
         add_device_options = ['no config', 'with config']
@@ -101,13 +99,12 @@ class AddDeviceDialog(Dialog):
 
         self.dialog_parent_device = None
 
-        self.initial_update_func = lambda: self.initial_update()
-
     def initial_update(self):
         self.update_parent_devices(
             self.parent_device_tree, '', self.context.instance)
         self.select_parent_device(
             self.context.instance.global_id)
+        self.conn_string_entry.focus_set()
 
     def select_parent_device(self, device_id: str):
         if self.parent_device_tree.exists(device_id):

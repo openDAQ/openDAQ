@@ -225,16 +225,6 @@ class App(tk.Tk):
         tree.tag_configure('error', foreground='red4')
         self.tree = tree
 
-        popup = tk.Menu(tree, tearoff=0)
-        popup.add_command(label='Remove')
-        popup.add_command(label='Begin update',
-                          command=self.handle_begin_update)
-        popup.add_command(label='End update', command=self.handle_end_update)
-        popup.add_command(label='Lock', command=self.handle_lock)
-        popup.add_command(label='Unlock', command=self.handle_unlock)
-        popup.add_command(label='Add Function block', command=self.handle_add_function_block_button_clicked)
-        self.tree_popup = popup
-
     def tree_update(self, new_selected_node=None):
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
@@ -313,20 +303,12 @@ class App(tk.Tk):
         skip = not self.context.view_hidden_components and not component.visible
 
         if daq.IChannel.can_cast_from(component):
-            channel = daq.IChannel.cast_from(component)
-            # component_name = channel.name
             icon = self.context.icons['channel']
         elif daq.ISignal.can_cast_from(component):
-            signal = daq.ISignal.cast_from(component)
-            # component_name = signal.name
             icon = self.context.icons['signal']
         elif daq.IFunctionBlock.can_cast_from(component):
-            function_block = daq.IFunctionBlock.cast_from(component)
-            # component_name = function_block.function_block_type.name
             icon = self.context.icons['function_block']
         elif daq.IInputPort.can_cast_from(component):
-            input_port = daq.IInputPort.cast_from(component)
-            # component_name = input_port.name
             icon = self.context.icons['input_port']
         elif daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
@@ -338,7 +320,6 @@ class App(tk.Tk):
             component_name = self.get_standard_folder_name(component_name)
         elif daq.ISyncComponent.can_cast_from(component):
             icon = self.context.icons['link']
-            component_name = self.get_standard_folder_name(component_name)
         else:  # skipping unknown type components
             skip = not show_unknown
 
@@ -469,46 +450,76 @@ class App(tk.Tk):
                 event.widget.selection_set(iid)
         else:
             event.widget.selection_set()
+            
+    def create_property_object_menu(self, node):
+        popup = tk.Menu(self.tree, tearoff=0)
+        
+        popup.add_command(label='Begin update', command=self.handle_begin_update)
+        popup.add_command(label='End update', command=self.handle_end_update)
+        
+        return popup
+    
+    def create_component_menu(self, node):
+        return self.create_property_object_menu(node)
+    
+    def create_function_block_menu(self, node):
+        popup = self.create_property_object_menu(node)
+        
+        if node.available_function_block_types:
+            popup.add_command(
+                label='Add Function block',
+                command=lambda: self.add_function_block_dialog_show(node)
+            )
+        if not daq.IChannel.can_cast_from(node):
+            popup.add_command(
+                label='Remove',
+                command=lambda: self.handle_tree_menu_remove_function_block(node)
+            )
+ 
+        return popup
+    
+    def create_device_menu(self, node):
+        popup = self.create_property_object_menu(node)
+        
+        popup.add_command(label='Lock', command=self.handle_lock)
+        popup.add_command(label='Unlock', command=self.handle_unlock)
+
+        if node.available_function_block_types:
+            popup.add_command(
+                label='Add Function block',
+                command=lambda: self.add_function_block_dialog_show(node)
+            )
+
+
+        if node.global_id != self.context.instance.global_id:
+            popup.add_command(
+                label='Remove',
+                command=lambda: self.handle_tree_menu_remove_device(node)
+            )
+
+        return popup        
 
     def handle_tree_right_button_release(self, event):
         iid = utils.treeview_get_first_selection(self.tree)
-
-        self.tree_popup.entryconfig('Lock', state=tk.DISABLED)
-        self.tree_popup.entryconfig('Unlock', state=tk.DISABLED)
-
-        self.tree_popup.entryconfig(
-            'Remove', state=tk.DISABLED, command=None
-        )
-        self.tree_popup.entryconfig(
-            'Add Function block', state=tk.DISABLED)
-
+        
+        node = None
         if iid:
             node = utils.find_component(iid, self.context.instance)
-            if node:
-                if daq.IFunctionBlock.can_cast_from(node):
-                    node = daq.IFunctionBlock.cast_from(node)
-                    if node.available_function_block_types:
-                        self.tree_popup.entryconfig(
-                            'Add Function block', state=tk.NORMAL, command=lambda: self.add_function_block_dialog_show(node))
-                    if not daq.IChannel.can_cast_from(node):
-                        self.tree_popup.entryconfig(
-                            'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_function_block(node))
-                elif daq.IDevice.can_cast_from(node):
-                    node = daq.IDevice.cast_from(node)
-                    if node.available_function_block_types:
-                        self.tree_popup.entryconfig(
-                            'Add Function block', state=tk.NORMAL, command=lambda: self.add_function_block_dialog_show(node))
+        
+        popup = None
+        if node:
+            if daq.IFunctionBlock.can_cast_from(node):
+                popup = self.create_function_block_menu(daq.IFunctionBlock.cast_from(node))
+            elif daq.IDevice.can_cast_from(node):
+                popup = self.create_device_menu(daq.IDevice.cast_from(node))
+                
+        if popup is None:
+            popup = self.create_property_object_menu(node)
 
-                    self.tree_popup.entryconfig('Lock', state=tk.ACTIVE)
-                    self.tree_popup.entryconfig('Unlock', state=tk.ACTIVE)
-
-                    if node.global_id != self.context.instance.global_id:
-                        self.tree_popup.entryconfig(
-                            'Remove', state=tk.NORMAL, command=lambda: self.handle_tree_menu_remove_device(node))
         try:
-            self.tree_popup.tk_popup(event.x_root, event.y_root, 0)
+            popup.tk_popup(event.x_root, event.y_root, 0)
         finally:
-            self.tree_popup.grab_release()
+            popup.grab_release()
 
     # MARK: - Right hand side panel
 

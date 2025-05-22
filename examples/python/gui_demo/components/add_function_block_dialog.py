@@ -77,8 +77,6 @@ class AddFunctionBlockDialog(Dialog):
         self.grid_columnconfigure(1, weight=2)
         self.grid_columnconfigure((0, 1), uniform='uniform')
 
-        self.initial_update_func = lambda: self.initial_update()
-
     def initial_update(self):
         self.update_dialog()
 

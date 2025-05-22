@@ -106,7 +106,6 @@ PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> declareISubscriptionEven
 PyDaqIntf<daq::IMirroredDevice, daq::IDevice> declareIMirroredDevice(pybind11::module_ m);
 PyDaqIntf<daq::IMirroredDeviceConfig, daq::IMirroredDevice> declareIMirroredDeviceConfig(pybind11::module_ m);
 PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> declareIComponentPrivate(pybind11::module_ m);
-PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::module_ m);
 PyDaqIntf<daq::IComponentStatusContainer, daq::IBaseObject> declareIComponentStatusContainer(pybind11::module_ m);
 PyDaqIntf<daq::IComponentStatusContainerPrivate, daq::IBaseObject> declareIComponentStatusContainerPrivate(pybind11::module_ m);
 PyDaqIntf<daq::IConnectionStatusContainerPrivate, daq::IBaseObject> declareIConnectionStatusContainerPrivate(pybind11::module_ m);
@@ -221,7 +220,6 @@ void defineIMirroredDevice(pybind11::module_ m, PyDaqIntf<daq::IMirroredDevice, 
 void defineIMirroredDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredDeviceConfig, daq::IMirroredDevice> cls);
 void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls);
 void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> cls);
-void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> cls);
 void defineIComponentStatusContainer(pybind11::module_ m, PyDaqIntf<daq::IComponentStatusContainer, daq::IBaseObject> cls);
 void defineIComponentStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentStatusContainerPrivate, daq::IBaseObject> cls);
 void defineIConnectionStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::IConnectionStatusContainerPrivate, daq::IBaseObject> cls);
@@ -236,3 +234,5 @@ void defineILogFileInfo(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfo, daq::I
 void defineILogFileInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfoBuilder, daq::IBaseObject> cls);
 void defineIModuleInfo(pybind11::module_ m, PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> cls);
 void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, daq::IBaseObject> cls);
+
+void defineComponentSearchFilterFactories(pybind11::module_ m);

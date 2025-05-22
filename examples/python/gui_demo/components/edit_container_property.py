@@ -195,6 +195,3 @@ class EditContainerPropertyDialog(Dialog):
         if self.property.value != self.data:
             self.property.value = self.data
             self.event_port.emit()
-
-    def close(self):
-        self.destroy()

@@ -4,6 +4,7 @@
 
 #include <thread>
 #include "docs_test_helpers.h"
+#include <testutils/test_helpers.h>
 
 using HowToTest = testing::Test;
 
@@ -46,7 +47,7 @@ TEST_F(HowToTest, AddFunctionBlock)
     InstancePtr instance = Instance();
 
     // Add simulated device
-    DevicePtr device = instance.addDevice("daqref://device0");
+    DevicePtr device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     // Get available Function Block types
     DictPtr<IString, IFunctionBlockType> functionBlockTypes = instance.getAvailableFunctionBlockTypes();
@@ -74,7 +75,7 @@ TEST_F(HowToTest, ConfigureFunctionBlock)
     InstancePtr instance = Instance();
 
     // Add simulated device
-    DevicePtr device = instance.addDevice("daqref://device0");
+    DevicePtr device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     // Add Function Block on the host computer
     FunctionBlockPtr functionBlock = instance.addFunctionBlock("RefFBModuleStatistics");
@@ -130,7 +131,10 @@ TEST_F(HowToTest, SaveLoadConfiguration)
 TEST_F(HowToTest, InstanceConfiguration)
 {
     InstanceBuilderPtr builder =
-        InstanceBuilder().setGlobalLogLevel(LogLevel::Info).setModulePath("").setSchedulerWorkerNum(1).setRootDevice("daqref://device0");
+        InstanceBuilder().setGlobalLogLevel(LogLevel::Info)
+                         .setModulePath("")
+                         .setSchedulerWorkerNum(1)
+                         .setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     InstancePtr instance = builder.build();
     daq::DevicePtr device = instance.getRootDevice();

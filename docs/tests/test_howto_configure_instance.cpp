@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <opendaq/opendaq.h>
+#include <testutils/test_helpers.h>
 
 using HowToConfigureInstance = testing::Test;
 
@@ -85,7 +86,7 @@ TEST_F(HowToConfigureInstance, InstanceBuilderDefaultRootDevice)
 
 TEST_F(HowToConfigureInstance, InstanceBuilderRootDevice)
 {
-    InstanceBuilderPtr instanceBuilder = InstanceBuilder().setRootDevice("daqref://device0");
+    InstanceBuilderPtr instanceBuilder = InstanceBuilder().setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     InstancePtr instance = instanceBuilder.build();
 }
 

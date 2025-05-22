@@ -3,6 +3,7 @@
 #include <thread>
 #include <opendaq/opendaq.h>
 #include "docs_test_helpers.h"
+#include <testutils/test_helpers.h>
 
 using ArchitectureTest = testing::Test;
 
@@ -133,7 +134,7 @@ TEST_F(ArchitectureTest, GetChannels)
 {
     InstancePtr instance = daq::Instance();
 
-    DevicePtr device = instance.addDevice("daqref://device0");
+    DevicePtr device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     ListPtr<IChannel> channels  = device.getChannels();
     ASSERT_GT(channels.getCount(), 0u);
 }
@@ -142,7 +143,7 @@ TEST_F(ArchitectureTest, GetChannels)
 TEST_F(ArchitectureTest, ConnectSignal)
 {
     InstancePtr instance = daq::Instance();
-    DevicePtr device = instance.addDevice("daqref://device0");
+    DevicePtr device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     FunctionBlockPtr fb = instance.addFunctionBlock("RefFBModuleStatistics");
     SignalPtr signal = device.getSignalsRecursive()[0];
     InputPortPtr inputPort = fb.getInputPorts()[0];
@@ -158,7 +159,7 @@ TEST_F(ArchitectureTest, ConnectSignal)
 TEST_F(ArchitectureTest, CreateFunctionBlock)
 {
     InstancePtr instance = daq::Instance();
-    DevicePtr device = instance.addDevice("daqref://device0");
+    DevicePtr device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     // doc code
     daq::FunctionBlockPtr fb = instance.addFunctionBlock("RefFBModuleStatistics");
     // function block appears under FunctionBlocks of the instance
@@ -171,7 +172,7 @@ TEST_F(ArchitectureTest, CreateFunctionBlock)
 TEST_F(ArchitectureTest, InputPortConnection)
 {
     InstancePtr instance = daq::Instance();
-    DevicePtr device = instance.addDevice("daqref://device0");
+    DevicePtr device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     SignalPtr signal = device.getSignalsRecursive()[0];
     FunctionBlockPtr fb = instance.addFunctionBlock("RefFBModuleStatistics");
     InputPortPtr inputPort = fb.getInputPorts()[0];
@@ -187,7 +188,7 @@ TEST_F(ArchitectureTest, InputPortConnection)
 TEST_F(ArchitectureTest, ConnectionDequeue)
 {
     InstancePtr instance = daq::Instance();
-    DevicePtr device = instance.addDevice("daqref://device0");
+    DevicePtr device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     SignalPtr signal = device.getSignalsRecursive()[0];
     FunctionBlockPtr fb = instance.addFunctionBlock("RefFBModuleStatistics");
     InputPortPtr inputPort = fb.getInputPorts()[0];

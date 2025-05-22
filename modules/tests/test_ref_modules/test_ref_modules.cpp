@@ -17,6 +17,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
+#include <testutils/test_helpers.h>
 
 using RefModulesTest = testing::Test;
 using namespace daq;
@@ -34,7 +35,7 @@ protected:
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimple)
 {
     const auto instance = Instance();
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
@@ -51,7 +52,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimple)
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererCANChannel)
 {
     const auto instance = Instance();
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device.setPropertyValue("EnableCANChannel", True);
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
@@ -69,7 +70,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererCANChannel)
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererNameChange)
 {
     const auto instance = Instance();
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
@@ -88,7 +89,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererNameChange)
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererRemoveDevice)
 {
     const auto instance = Instance();
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
@@ -108,7 +109,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimpleCounter)
 {
     const auto instance = Instance();
 
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
 
     const auto deviceChannel0 = device.getChannels()[0];
@@ -128,7 +129,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRenderer)
 {
     const auto instance = Instance();
 
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     const auto deviceChannel0 = device.getChannels()[0];
     const auto deviceChannel1 = device.getChannels()[1];
@@ -164,7 +165,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererInUpdate)
 {
     const auto instance = Instance();
 
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device.setPropertyValue("GlobalSampleRate", 25.0);
 
     const auto deviceChannel0 = device.getChannels()[0];
@@ -195,7 +196,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRenderer)
 {
     const auto instance = Instance();
 
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device.setPropertyValue("GlobalSampleRate", 10000);
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
@@ -231,7 +232,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRendererDeviceRemove)
 {
     const auto instance = Instance();
 
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
     const auto statisticsFb = instance.addFunctionBlock("RefFBModuleStatistics");
@@ -263,7 +264,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRendererDeviceRemove)
 TEST_F(RefModulesTest, DISABLED_RendererSync)
 {
     const auto instance = Instance();
-    const auto device = instance.addDevice("daqref://device0");
+    const auto device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     const auto deviceChannel0 = device.getChannels()[0];
     deviceChannel0.setPropertyValue("UseGlobalSampleRate", False);
     deviceChannel0.setPropertyValue("SampleRate", 100.0);
@@ -295,7 +296,7 @@ TEST_F(RefModulesTest, DISABLED_RendererSync)
     deviceChannel0.setPropertyValue("SampleRate", 5.0);
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-    const auto device1 = instance.addDevice("daqref://device1");
+    const auto device1 = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     const auto device1Channel0 = device1.getChannels()[1];
     device1Channel0.setPropertyValue("UseGlobalSampleRate", False);
     device1Channel0.setPropertyValue("SampleRate", 100.0);
@@ -315,7 +316,7 @@ TEST_F(RefModulesTest, DISABLED_RendererSync)
 TEST_F(InvertDestructOrderTest, InvertedDestructOrder)
 {
     auto instance = Instance();
-    auto device = instance.addDevice("daqref://device1");
+    auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     instance.release();
     device.release();
@@ -324,7 +325,7 @@ TEST_F(InvertDestructOrderTest, InvertedDestructOrder)
 TEST_F(RefModulesTest, FindComponentSignal)
 {
     auto instance = Instance("", "localInstance");
-    auto device = instance.addDevice("daqref://device1");
+    auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto comp = instance.findComponent("Dev/RefDev1/IO/AI/RefCh0/Sig/AI0");
     ASSERT_TRUE(comp.assigned());
@@ -334,7 +335,7 @@ TEST_F(RefModulesTest, FindComponentSignal)
 TEST_F(RefModulesTest, FindComponentSignalRelative)
 {
     auto instance = Instance("", "localInstance");
-    auto device = instance.addDevice("daqref://device1");
+    auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     auto ch = device.getChannels()[0];
 
     auto comp = ch.findComponent("Sig/AI0");
@@ -345,7 +346,7 @@ TEST_F(RefModulesTest, FindComponentSignalRelative)
 TEST_F(RefModulesTest, FindComponentChannel)
 {
     auto instance = Instance("", "localInstance");
-    auto device = instance.addDevice("daqref://device1");
+    auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto comp = instance.findComponent("Dev/RefDev1/IO/AI/RefCh0");
     ASSERT_TRUE(comp.assigned());
@@ -365,7 +366,7 @@ TEST_F(RefModulesTest, OptionViaConnectionString)
 TEST_F(RefModulesTest, FindComponentDevice)
 {
     auto instance = Instance("", "localInstance");
-    auto device = instance.addDevice("daqref://device1");
+    auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto comp = instance.findComponent("Dev/RefDev1");
     ASSERT_TRUE(comp.assigned());
@@ -376,7 +377,7 @@ TEST_F(RefModulesTest, DISABLED_RunDevicePowerReaderRenderer)
 {
     const auto instance = Instance();
 
-    const auto device0 = instance.addDevice("daqref://device0");
+    const auto device0 = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device0.setPropertyValue("GlobalSampleRate", 10000);
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
@@ -423,9 +424,9 @@ TEST_F(RefModulesTest, DISABLED_RunDevicePowerRenderer)
 {
     const auto instance = Instance();
 
-    const auto device0 = instance.addDevice("daqref://device0");
+    const auto device0 = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device0.setPropertyValue("GlobalSampleRate", 10000);
-    const auto device1 = instance.addDevice("daqref://device1");
+    const auto device1 = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device1.setPropertyValue("GlobalSampleRate", 10000);
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
@@ -468,7 +469,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceScalingRenderer)
 {
     const auto instance = Instance();
 
-    const auto device = instance.addDevice("daqref://device0");
+    const auto device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device.setPropertyValue("GlobalSampleRate", 1000);
 
     const auto deviceChannel = device.getChannels()[0];
@@ -508,10 +509,10 @@ TEST_F(RefModulesTest, SerializeDevicePower)
 {
     const auto instance = Instance();
 
-    const auto device0 = instance.addDevice("daqref://device0");
+    const auto device0 = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device0.setPropertyValue("GlobalSampleRate", 10000);
 
-    const auto device1 = instance.addDevice("daqref://device1");
+    const auto device1 = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device1.setPropertyValue("GlobalSampleRate", 10000);
 
     const auto powerFb = instance.addFunctionBlock("RefFBModulePower");
@@ -545,9 +546,9 @@ TEST_F(RefModulesTest, UpdateDevicePower)
 {
     auto instance = Instance();
 
-    auto device0 = instance.addDevice("daqref://device0");
+    auto device0 = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device0.setPropertyValue("GlobalSampleRate", 10000);
-    auto device1 = instance.addDevice("daqref://device1");
+    auto device1 = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     device1.setPropertyValue("GlobalSampleRate", 10000);
 
     auto powerFb = instance.addFunctionBlock("RefFBModulePower");
@@ -595,8 +596,8 @@ TEST_F(RefModulesTest, UpdateDevicePower)
 
     instance = Instance();
 
-    device0 = instance.addDevice("daqref://device0");
-    device1 = instance.addDevice("daqref://device1");
+    device0 = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
+    device1 = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     instance.loadConfiguration(configuration);
 
@@ -1138,7 +1139,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceScalingPerformanceTest)
 
     const auto instance = Instance();
 
-    const auto config = PropertyObject();
+    const auto config = test_helpers::createRefDeviceConfigWithRandomSerialNumber();
     config.addProperty(IntPropertyBuilder("NumberOfChannels", 200).build());
 
     const auto device = instance.addDevice("daqref://device0", config);
@@ -1233,7 +1234,7 @@ TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
     auto finally = CreateConfigFile(configFilename, options);
 
     const auto instance = InstanceBuilder().addConfigProvider(JsonConfigProvider(configFilename)).build();
-    const auto device = instance.addDevice("daqref://device1");
+    const auto device = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     Int numChannels = device.getPropertyValue("NumberOfChannels");
     ASSERT_EQ(numChannels, 5);

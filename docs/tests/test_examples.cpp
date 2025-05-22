@@ -2,6 +2,7 @@
 #include <thread>
 #include <opendaq/opendaq.h>
 #include "docs_test_helpers.h"
+#include <testutils/test_helpers.h>
 
 // The following examples correspond to the code examples published by openDAQ.
 
@@ -16,7 +17,7 @@ TEST_F(ExamplesTest, StreamReader)
 
     const InstancePtr instance = Instance();
     
-    DevicePtr device = instance.addDevice("daqref://device0");
+    DevicePtr device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     SignalPtr signal = device.getSignalsRecursive()[0];
 
     StreamReaderPtr reader = StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
@@ -41,7 +42,7 @@ TEST_F(ExamplesTest, FunctionBlock)
 	SKIP_TEST_MAC_CI;
 	
     const InstancePtr instance = Instance();
-    DevicePtr device = instance.addDevice("daqref://device0");
+    DevicePtr device = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
 
     const ChannelPtr sineChannel = device.getChannels()[0];

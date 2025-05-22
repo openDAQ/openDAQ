@@ -2,6 +2,7 @@
 #include <opendaq/opendaq.h>
 #include <thread>
 #include "docs_test_helpers.h"
+#include <testutils/test_helpers.h>
 
 using StreamingConfigTest = testing::Test;
 
@@ -185,7 +186,7 @@ TEST_F(StreamingConfigTest, ServerSideConfiguration)
 
     const InstancePtr instance = Instance();
 
-    instance.setRootDevice("daqref://device1");
+    instance.setRootDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     // Creates and registers a Server capability with the ID `OpenDAQLTStreaming` and the default port number 7414
     instance.addServer("OpenDAQLTStreaming", nullptr);

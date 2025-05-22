@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <opendaq/opendaq.h>
+#include <testutils/test_helpers.h>
 
 using HowToAccessControl = testing::Test;
 
@@ -79,7 +80,7 @@ TEST_F(HowToAccessControl, AddingProtectedObject)
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 
     instance.addStandardServers();
-    instance.addDevice("daqref://device0");
+    instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     //std::cin.get();
 }

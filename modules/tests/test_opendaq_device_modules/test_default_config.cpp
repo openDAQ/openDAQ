@@ -1,5 +1,6 @@
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
+#include <testutils/test_helpers.h>
 
 using ModulesDefaultConfigTest = testing::Test;
 
@@ -357,10 +358,12 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
 
 TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 {
+    auto serialNumber = test_helpers::createRandomString();
+    auto connectionString = "daq://openDAQ_" + serialNumber;
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_native"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", serialNumber));
 
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
@@ -373,13 +376,18 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
 
+    while(true);
+
     const auto instance = Instance();
     const auto config = instance.createDefaultAddDeviceConfig();
     const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
 
+    for (const auto & d : instance.getAvailableDevices())
+    std::cout << d.getConnectionString() << std::endl;
+
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01_native", config);
+        const auto device = instance.addDevice(connectionString, config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -415,10 +423,12 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 
 TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 {
+    auto serialNumber = test_helpers::createRandomString();
+    auto connectionString = "daq://openDAQ_" + serialNumber;
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_opcua"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", serialNumber));
 
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
@@ -437,7 +447,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01_opcua", config);
+        const auto device = instance.addDevice(connectionString, config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -475,10 +485,12 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 
 TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 {
+    auto serialNumber = test_helpers::createRandomString();
+    auto connectionString = "daq://openDAQ_" + serialNumber;
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_lt"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", serialNumber));
 
     const auto serverInstance = InstanceBuilder()
                                     .addDiscoveryServer("mdns")
@@ -496,7 +508,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01_lt", config);
+        const auto device = instance.addDevice(connectionString, config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();

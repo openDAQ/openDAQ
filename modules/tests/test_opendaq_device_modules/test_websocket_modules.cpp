@@ -1,5 +1,6 @@
 #include "test_helpers/test_helpers.h"
 #include <coreobjects/authentication_provider_factory.h>
+#include <testutils/test_helpers.h>
 
 using namespace daq;
 
@@ -46,7 +47,7 @@ public:
 
         auto instance = InstanceCustom(context, "local");
 
-        const auto refDevice = instance.addDevice("daqref://device1");
+        const auto refDevice = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
         instance.addServer("openDAQ LT Streaming", nullptr);
 
@@ -119,7 +120,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 TEST_F(WebsocketModulesTest, DiscoveringServer)
 {
     auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
-    server.addDevice("daqref://device1");
+    server.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     auto path = "/test/streaming_lt/discovery/";
@@ -176,7 +177,7 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
                                      .addConfigProvider(provider)
                                      .setDefaultRootDeviceInfo(rootInfo)
                                      .build();
-    instance.addDevice("daqref://device1");
+    instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     instance.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
 

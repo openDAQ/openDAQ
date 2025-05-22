@@ -8,6 +8,7 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/module_info_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <testutils/test_helpers.h>
 
 using OpcuaDeviceModulesTest = testing::Test;
 
@@ -24,7 +25,7 @@ static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authent
     auto instance = InstanceCustom(context, "local");
 
     const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
-    const auto refDevice = instance.addDevice("daqref://device1");
+    const auto refDevice = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
@@ -110,7 +111,7 @@ TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
 TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
 {
     auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
-    server.addDevice("daqref://device1");
+    server.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discoveryServer/";
@@ -160,7 +161,7 @@ TEST_F(OpcuaDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 
     auto provider = JsonConfigProvider(filename);
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
-    instance.addDevice("daqref://device1");
+    instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
 
@@ -804,7 +805,7 @@ TEST_F(OpcuaDeviceModulesTest, DISABLED_InputPort)
 TEST_F(OpcuaDeviceModulesTest, DISABLED_PublicProp)
 {
     auto server = Instance();
-    const auto refDevice = server.addDevice("daqref://device1");
+    const auto refDevice = server.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     refDevice.getSignals(search::Recursive(search::Visible()))[0].setPublic(false);
     auto id = refDevice.getSignals(search::Recursive(search::Visible()))[0].getLocalId();
     server.addServer("OpenDAQOPCUA", nullptr);
@@ -849,7 +850,7 @@ TEST_F(OpcuaDeviceModulesTest, DISABLED_ReferenceMethods)
 TEST_F(OpcuaDeviceModulesTest, DISABLED_DynamicSignalConfig)
 {
     auto server = CreateServerInstance();
-    auto serverDevice = server.addDevice("daqref://device0");
+    auto serverDevice = server.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     auto client = CreateClientInstance();
 
     auto clientSignals = client.getDevices()[0].getDevices()[0].getSignals(search::Recursive(search::Visible()));
@@ -870,7 +871,7 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
 
     auto instance = InstanceCustom(context, "local");
 
-    instance.setRootDevice("daqref://device1");
+    instance.setRootDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
     instance.addServer("OpenDAQOPCUA", nullptr);
@@ -889,7 +890,7 @@ TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
     auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
-    instance.setRootDevice("daqref://device1");
+    instance.setRootDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     instance.addServer("OpenDAQNativeStreaming", nullptr);
     instance.addServer("OpenDAQOPCUA", nullptr);
 
@@ -1071,7 +1072,7 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
 
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
 {
-    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    auto server = InstanceBuilder().setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber()).build();
     server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
     server.addServer("OpenDAQOPCUA", nullptr);
@@ -1118,7 +1119,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
         GTEST_SKIP() << "Ipv6 is disabled";
     }
 
-    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    auto server = InstanceBuilder().setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber()).build();
     server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
     server.addServer("OpenDAQOPCUA", nullptr);
@@ -1160,7 +1161,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
 
 TEST_F(OpcuaDeviceModulesTest, DISABLED_TestAddressInfoGatewayDevice)
 {
-    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    auto server = InstanceBuilder().setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber()).build();
     server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
     server.addServer("OpenDAQOPCUA", nullptr);

@@ -13,6 +13,7 @@
 #include <opendaq/instance_factory.h>
 #include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/user_factory.h>
+#include <testutils/test_helpers.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -25,7 +26,7 @@ public:
     {
         instance = Instance();
         // ReSharper disable once CppExpressionWithoutSideEffects
-        instance.addDevice("daqref://device0");
+        instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
         server = std::make_unique<ConfigProtocolServer>(instance.getRootDevice(), nullptr, anonymousUser, ClientType::Control);
 
@@ -63,7 +64,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
 {
     const auto instance = Instance();
     // ReSharper disable once CppExpressionWithoutSideEffects
-    instance.setRootDevice("daqref://device0");
+    instance.setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     ConfigProtocolServer server(instance, nullptr, anonymousUser, ClientType::Control);
 
     clientContext = NullContext();

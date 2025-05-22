@@ -4,6 +4,7 @@
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/user_factory.h>
 #include <opendaq/mock/mock_device_module.h>
+#include <testutils/test_helpers.h>
 
 using NativeStreamingModulesTest = testing::Test;
 
@@ -18,7 +19,7 @@ static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authent
 
     auto instance = InstanceCustom(context, "local");
 
-    const auto refDevice = instance.addDevice("daqref://device1");
+    const auto refDevice = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     instance.addServer("OpenDAQNativeStreaming", nullptr);
 
@@ -103,7 +104,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
     auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
                                    .build();
-    server.addDevice("daqref://device1");
+    server.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery/";
@@ -134,7 +135,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
 {
     auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
-                                   .setRootDevice("daqref://device0")
+                                   .setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber())
                                    .build();
 
     // set initial username and location

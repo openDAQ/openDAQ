@@ -23,6 +23,7 @@
 #include <coreobjects/property_factory.h>
 #include <chrono>
 #include <coretypes/filesystem.h>
+#include <testutils/test_helpers.h>
 
 using namespace daq;
 using RefDeviceModuleTest = testing::Test;
@@ -943,24 +944,24 @@ TEST_F(RefDeviceModuleTest, AddRemoveAddDevice)
 {
     const auto instance = Instance();
 
-    auto dev0 = instance.addDevice("daqref://device0");
-    auto dev1 = instance.addDevice("daqref://device1");
+    auto dev0 = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
+    auto dev1 = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     instance.removeDevice(dev0);
     instance.removeDevice(dev1);
 
     dev0.release();
     dev1.release();
 
-    ASSERT_NO_THROW(dev0 = instance.addDevice("daqref://device0"));
-    ASSERT_NO_THROW(dev1 = instance.addDevice("daqref://device1"));
+    ASSERT_NO_THROW(dev0 = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber()));
+    ASSERT_NO_THROW(dev1 = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber()));
     ASSERT_TRUE(dev0.assigned());
     ASSERT_TRUE(dev1.assigned());
 
     instance.removeDevice(dev0);
     instance.removeDevice(dev1);
 
-    ASSERT_NO_THROW(dev0 = instance.addDevice("daqref://device0"));
-    ASSERT_NO_THROW(dev1 = instance.addDevice("daqref://device1"));
+    ASSERT_NO_THROW(dev0 = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber()));
+    ASSERT_NO_THROW(dev1 = instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber()));
     ASSERT_TRUE(dev0.assigned());
     ASSERT_TRUE(dev1.assigned());
 }
@@ -982,7 +983,7 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
 {
     StringPtr loggerPath = "ref_device_simulator.log";
 
-    PropertyObjectPtr config = PropertyObject();
+    PropertyObjectPtr config = test_helpers::createRefDeviceConfigWithRandomSerialNumber();
     config.addProperty(BoolProperty("EnableLogging", true));
     config.addProperty(StringProperty("LoggingPath", loggerPath));
 

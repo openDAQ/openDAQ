@@ -15,6 +15,7 @@
 #include <opendaq/client_type.h>
 #include <opendaq/component_impl.h>
 #include <coreobjects/callable_info_factory.h>
+#include <testutils/test_helpers.h>
 
 using NativeDeviceModulesTest = testing::Test;
 
@@ -31,7 +32,7 @@ static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenti
     auto instance = InstanceCustom(context, "serverLocal");
 
     const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
-    const auto refDevice = instance.addDevice("daqref://device0");
+    const auto refDevice = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     refDevice.addProperty(IntProperty("CustomProp", 0));
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
@@ -63,7 +64,7 @@ static InstancePtr CreateUpdatedServerInstance()
     auto instance = InstanceCustom(context, "serverLocal");
 
     const auto statistics = instance.addFunctionBlock("RefFBModuleScaling");
-    const auto refDevice = instance.addDevice("daqref://device0");
+    const auto refDevice = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     refDevice.setPropertyValue("NumberOfChannels", 3);
 
     const auto testType = EnumerationType("TestEnumType", List<IString>("TestValue1", "TestValue2"));
@@ -691,7 +692,7 @@ TEST_F(NativeDeviceModulesTest, PartialSerializationPropertyObjectClass)
 TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 {
     auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
-    server.addDevice("daqref://device1");
+    server.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configuration/discovery/";
@@ -704,6 +705,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
     {
         for (const auto& capability : deviceInfo.getServerCapabilities())
         {
+            std::cout << capability.getConnectionString() << std::endl; 
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
 
@@ -725,7 +727,7 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
                                    .setDefaultRootDeviceLocalId("local")
                                    .setDefaultRootDeviceInfo(info)
                                    .build();
-    server.addDevice("daqref://device1");
+    server.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configuration/discovery/";
@@ -759,7 +761,7 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
     auto server = InstanceBuilder().addDiscoveryServer("mdns")
                                    .setDefaultRootDeviceLocalId("local")
                                    .build();
-    server.addDevice("daqref://device1");
+    server.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configuration/removeServer/";
@@ -1511,7 +1513,7 @@ TEST_F(NativeDeviceModulesTest, DISABLED_RendererSimple)
 TEST_F(NativeDeviceModulesTest, NotPublicSignals)
 {
     auto server = InstanceBuilder().setDefaultRootDeviceLocalId("customLocal").build();
-    auto serverDevice = server.addDevice("daqref://device1");
+    auto serverDevice = server.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     auto serverChannels = serverDevice.getChannels();
     ASSERT_TRUE(serverChannels.getCount() > 0);
@@ -1820,7 +1822,7 @@ TEST_P(AddComponentsTest, AddDevice)
         }
     };
 
-    const auto serverAddedDev = server.addDevice("daqref://device1");
+    const auto serverAddedDev = server.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     ASSERT_TRUE(addDevFuture.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
 
     auto clientAddedDev = client.getDevices()[0].getDevices()[1];
@@ -2267,7 +2269,7 @@ TEST_F(NativeDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
 
 TEST_F(NativeDeviceModulesTest, TestAddressInfoIPv4)
 {
-    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    auto server = InstanceBuilder().setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber()).build();
     server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
     server.addServer("OpenDAQOPCUA", nullptr);
@@ -2312,7 +2314,7 @@ TEST_F(NativeDeviceModulesTest, TestAddressInfoIPv6)
     if (test_helpers::Ipv6IsDisabled())
         return;
 
-    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    auto server = InstanceBuilder().setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber()).build();
     server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQOPCUA", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
@@ -2354,7 +2356,7 @@ TEST_F(NativeDeviceModulesTest, TestAddressInfoIPv6)
 
 TEST_F(NativeDeviceModulesTest, TestAddressInfoGatewayDevice)
 {
-    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    auto server = InstanceBuilder().setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber()).build();
     server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
     server.addServer("OpenDAQOPCUA", nullptr);
@@ -2527,7 +2529,7 @@ TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
     SKIP_TEST_MAC_CI;
 
     const auto server = Instance();
-    server.setRootDevice("daqref://device0");
+    server.setRootDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     server.addServer("OpenDAQNativeStreaming", nullptr);
 
     const auto client = Instance();
@@ -2673,7 +2675,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfigurationWithAnotherDevice)
     }
     
     auto restoredClient = Instance();
-    restoredClient.addDevice("daqref://device0");
+    restoredClient.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
 
@@ -2799,7 +2801,7 @@ TEST_F(NativeDeviceModulesTest, DISABLED_ClientSaveLoadRestoreServerConnectedToC
     {
         auto server = CreateServerInstanceWithEnabledLogFileInfo();
         auto client = CreateClientInstance();
-        auto clientRefDevice = client.addDevice("daqref://device1");
+        auto clientRefDevice = client.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
         auto clientRoot = client.getDevices()[0];
         auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics");
         fb.getInputPorts()[0].connect(clientRefDevice.getSignals(search::Recursive(search::Visible()))[0]);
@@ -2842,7 +2844,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
         auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
         auto client = CreateClientInstance();
         
-        auto deviceConfig = client.createDefaultAddDeviceConfig();
+        auto deviceConfig = test_helpers::createRefDeviceConfigWithRandomSerialNumber();
         deviceConfig.addProperty(StringProperty("TestKey", "TestValue"));
         client.getDevices()[0].addDevice("daqref://device1", deviceConfig);
         config = client.saveConfiguration();
@@ -3000,7 +3002,7 @@ InstancePtr CreateServerSimulator(const StringPtr& name)
                                      .addDiscoveryServer("mdns")
                                      .build();
 
-    instance.addDevice("daqref://device1");
+    instance.addDevice("daqref://device1", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     instance.addServer("OpenDAQNativeStreaming", nullptr)
             .enableDiscovery();
     return instance;
@@ -3154,7 +3156,7 @@ TEST_F(NativeC2DStreamingTest, ConnectSignalWithOldProtocolVersion)
     auto client = CreateClientInstance(1);
 
     const auto mirroredDevice = client.getDevices()[0];
-    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientRefDevice = client.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
     const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
 
@@ -3170,7 +3172,7 @@ TEST_F(NativeC2DStreamingTest, ConnectAndRead)
     auto client = CreateClientInstance();
 
     const auto mirroredDevice = client.getDevices()[0];
-    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientRefDevice = client.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
     const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
 
@@ -3256,7 +3258,7 @@ TEST_F(NativeC2DStreamingTest, ServerCoreEvents)
 
     auto client = CreateClientInstance();
     auto mirroredDevice = client.getDevices()[0];
-    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientRefDevice = client.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
     const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
 
@@ -3295,7 +3297,7 @@ TEST_F(NativeC2DStreamingTest, ClientLostConnection)
     ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
     const auto mirroredDevice = client.getDevices()[0];
-    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientRefDevice = client.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
     const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
 
@@ -3339,7 +3341,7 @@ TEST_F(NativeC2DStreamingTest, ServerLostConnection)
     auto client = CreateClientInstance();
 
     auto mirroredDevice = client.getDevices()[0];
-    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientRefDevice = client.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
     const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
     const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
 

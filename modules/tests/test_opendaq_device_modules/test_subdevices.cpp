@@ -1,7 +1,8 @@
 #include "test_helpers/test_helpers.h"
-#include <iostream>
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <testutils/test_helpers.h>
+
 
 using namespace daq;
 
@@ -207,7 +208,7 @@ public:
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, fmt::format("subdevice{}", leafDeviceIndex));
-        const auto refDevice = instance.addDevice("daqref://device0");
+        const auto refDevice = instance.addDevice("daqref://device0", test_helpers::createRefDeviceConfigWithRandomSerialNumber());
 
         auto structureProtocolType = std::get<0>(GetParam());
 

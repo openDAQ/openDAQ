@@ -103,6 +103,11 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto stru = StructBuilder("Struct", manager).set("Int", 100).set("String", "openDAQ").build();
     fb.setPropertyValue("Struct", stru);
 
+    // Struct modification via builder
+    StructPtr struMod = fb.getPropertyValue("Struct");
+    auto structBuild = StructBuilder(struMod).set("Int", 200).set("String", "openDAQ modified").build();
+    fb.setPropertyValue("Struct", structBuild);
+
     // Enumeration
     auto enumVal = Enumeration("Enum", "Third", manager);
     fb.setPropertyValue("Enum", enumVal);

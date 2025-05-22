@@ -191,9 +191,9 @@ class BlockView(ttk.Frame):
             if status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Ok'), self.node.context.type_manager):
                 color = 'olive drab'
             elif status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Warning'), self.node.context.type_manager):
-                color = 'gold'
+                color = 'orange'
             else:
-                color = 'red4'
+                color = 'red'
             message = self.node.status_container.get_status_message('ComponentStatus')
             if status and message and message != '':
                 self.status_message.config(text='Status: ' + str(status) + ' Message: ' + message)

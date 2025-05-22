@@ -221,8 +221,8 @@ class App(tk.Tk):
 
         parent_frame.add(frame)
         tree.tag_configure('ok', foreground='olive drab')
-        tree.tag_configure('warning', foreground='gold')
-        tree.tag_configure('error', foreground='red4')
+        tree.tag_configure('warning', foreground='orange')
+        tree.tag_configure('error', foreground='red')
         self.tree = tree
 
     def tree_update(self, new_selected_node=None):

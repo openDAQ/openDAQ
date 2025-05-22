@@ -81,8 +81,7 @@ ErrCode PropertyObjectClassBuilderImpl::addProperty(IProperty* property)
         auto defaultValue = p.asPtr<IPropertyInternal>().getDefaultValueUnresolved();
         if (auto freezable = defaultValue.asPtrOrNull<IFreezable>(); freezable.assigned())
         {
-            if (!freezable.isFrozen())
-                freezable.freeze();
+            freezable.freeze();
         }
 
         return OPENDAQ_SUCCESS;

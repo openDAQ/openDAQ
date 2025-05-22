@@ -65,7 +65,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     print(fb);
 
     // Make modifications
-    std::cout << "\nDuring setting property values:\n";
+    std::cout << "\nDuring setting property values:\n\n";
 
     // Bool
     fb.setPropertyValue("Bool", true);

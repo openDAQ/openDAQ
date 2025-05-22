@@ -590,6 +590,10 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     );
 }
 
+ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes, IDict* errorInfos)
+{
+    return OPENDAQ_SUCCESS;
+}
 
 ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {

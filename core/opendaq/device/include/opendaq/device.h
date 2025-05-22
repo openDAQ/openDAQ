@@ -39,6 +39,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IUser, UserPtr, "<coreobjects/user.h>")]
  * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  * [interfaceLibrary(ISearchFilter, "coretypes")]
+ * [interfaceSmartPtr(IErrorInfo, ObjectPtr<IErrorInfo>, "<coretypes/errorinfo.h>")]
  */
 
 /*!
@@ -374,6 +375,33 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param modeType The operation mode to set.
      */
     virtual ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) = 0;
+
+    // [templateType(devices, IString, IDevice)]
+    // [templateType(connectionArgs, IString, IPropertyObject)]
+    // [templateType(errCodes, IString, IInteger)]
+    // [templateType(errorInfos, IString, IErrorInfo)]
+    /*!
+     * @brief Connects to multiple devices in parallel using the provided connection strings and returns the connected devices.
+     * Each connection is established concurrently to improve performance when handling multiple devices.
+     *
+     * @param[out] devices A dictionary which maps each connection string to the corresponding added device object.
+     * If a device creation attempt fails, the value will be `nullptr` for that entry.
+     *
+     * @param connectionArgs A dictionary where each key is a connection string identifying the target device
+     * (e.g., IPv4/IPv6), and each value is a configuration object that customizes the connection.
+     * The configuration may specify parameters such as maximum sample rate, communication port, number of channels,
+     * or other device-specific settings. A `nullptr` value indicates that the default configuration should be used.
+     *
+     * @param[in,out] errCodes An optional dictionary to populate error codes for failed connections.
+     * For each failed connection, the key is the connection string, and the value contains error code.
+     *
+     * @param[in,out] errorInfos An optional dictionary to populate error info details for failed connections.
+     * For each failed connection, the key is the connection string, and the value contains error info object.
+     *
+     * @return OPENDAQ_INCOMPLETE_SUCCESS if at least one device was successfully added,
+     *         OPENDAQ_ERR_GENERALERROR if no devices were added.
+     */
+    virtual ErrCode INTERFACE_FUNC addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) = 0;
 };
 /*!@}*/
 

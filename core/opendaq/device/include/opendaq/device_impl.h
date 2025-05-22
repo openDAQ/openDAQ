@@ -82,6 +82,9 @@ public:
     virtual DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes();
     virtual DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config);
     virtual void onRemoveDevice(const DevicePtr& device);
+    virtual DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                                   DictPtr<IString, IInteger> errCodes,
+                                                   DictPtr<IString, IErrorInfo> errorInfos);
 
     virtual PropertyObjectPtr onCreateDefaultAddDeviceConfig();
 
@@ -140,6 +143,7 @@ public:
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
     ErrCode INTERFACE_FUNC addDevice(IDevice** device, IString* connectionString, IPropertyObject* config = nullptr) override;
+    ErrCode INTERFACE_FUNC addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) override;
     ErrCode INTERFACE_FUNC removeDevice(IDevice* device) override;
     ErrCode INTERFACE_FUNC getDevices(IList** subDevices, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
@@ -1299,6 +1303,32 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addDevice(IDevice** device, IS
 }
 
 template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes, IDict* errorInfos)
+{
+    OPENDAQ_PARAM_NOT_NULL(connectionArgs);
+    OPENDAQ_PARAM_NOT_NULL(devices);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    DictPtr<IString, IDevice> devicesDictPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddDevices, devicesDictPtr, connectionArgs, errCodes, errorInfos);
+
+    *devices = devicesDictPtr.detach();
+
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        for (const auto& [_, device] : devicesDictPtr)
+        {
+            if (!device.assigned())
+                return OPENDAQ_PARTIAL_SUCCESS;
+        }
+    }
+
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
 DevicePtr GenericDevice<TInterface, Interfaces...>::onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     if (!allowAddDevicesFromModules())
@@ -1379,6 +1409,58 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& device)
 {
     this->devices.removeItem(device);
+}
+
+template <typename TInterface, typename ... Interfaces>
+DictPtr<IString, IDevice> GenericDevice<TInterface, Interfaces...>::onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                                                                 DictPtr<IString, IInteger> errCodes,
+                                                                                 DictPtr<IString, IErrorInfo> errorInfos)
+{
+    if (!allowAddDevicesFromModules())
+        return nullptr;
+
+    auto lock = this->getRecursiveConfigLock();
+
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    auto createdDevices = managerUtils.createDevices(connectionArgs, errCodes, errorInfos);
+
+    auto addedDevices = Dict<IString, IDevice>();
+    for (const auto& [connectionString, device] : createdDevices)
+    {
+        addedDevices[connectionString] = nullptr;
+        if (device.assigned())
+        {
+            ErrCode errCode = OPENDAQ_SUCCESS;
+            ObjectPtr<IErrorInfo> errInfo = nullptr;
+            try
+            {
+                addSubDevice(device);
+                addedDevices[connectionString] = device;
+            }
+            catch (const DaqException& e)
+            {
+                errCode = errorFromException(e, this->getThisAsBaseObject());
+                daqGetErrorInfo(&errInfo);
+                daqClearErrorInfo();
+            }
+            catch (const std::exception& e)
+            {
+                errCode = DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+                daqGetErrorInfo(&errInfo);
+                daqClearErrorInfo();
+            }
+            catch (...)
+            {
+                errCode = OPENDAQ_ERR_GENERALERROR;
+            }
+            if (errCodes.assigned())
+                errCodes[connectionString] = errCode;
+            if (errorInfos.assigned())
+                errorInfos[connectionString] = errInfo;
+        }
+    }
+
+    return addedDevices;
 }
 
 template <typename TInterface, typename ... Interfaces>

@@ -21,6 +21,8 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceSmartPtr(IErrorInfo, ObjectPtr<IErrorInfo>, "<coretypes/errorinfo.h>")]
  */
 
 /*!
@@ -149,6 +151,35 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * @param device The device whose ServerCapabilities should be completed.
      */
     virtual ErrCode INTERFACE_FUNC completeDeviceCapabilities(IDevice* device) = 0;
+
+    // [templateType(devices, IString, IDevice)]
+    // [templateType(connectionArgs, IString, IPropertyObject)]
+    // [templateType(errCodes, IString, IInteger)]
+    // [templateType(errorInfos, IString, IErrorInfo)]
+    /*!
+     * @brief Creates multiple device objects in parallel using the specified connection strings. Each device is created concurrently.
+     * None of the created device object are automatically added as a sub-device of the caller, but only returned by reference.
+     *
+     * @param[out] devices A dictionary which maps each connection string to the corresponding created device object.
+     * If a device creation attempt fails, the value will be `nullptr` for that entry.
+     *
+     * @param connectionArgs A dictionary where each key is a connection string identifying the target device
+     * (e.g., IPv4/IPv6), and each value is a configuration object that customizes the connection.
+     * The configuration may specify parameters such as maximum sample rate, communication port, number of channels,
+     * or other device-specific settings. A `nullptr` value indicates that the default configuration should be used.
+     *
+     * @param parent The parent component/device to which the created devices attach.
+     *
+     * @param[in,out] errCodes An optional dictionary to populate error codes for failed connections.
+     * For each failed connection, the key is the connection string, and the value contains error code.
+     *
+     * @param[in,out] errorInfos An optional dictionary to populate error info details for failed connections.
+     * For each failed connection, the key is the connection string, and the value contains error info object.
+     *
+     * @return OPENDAQ_INCOMPLETE_SUCCESS if at least one device was successfully created,
+     *         OPENDAQ_ERR_GENERALERROR if no devices were created.
+     */
+    virtual ErrCode INTERFACE_FUNC createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) = 0;
 };
 /*!@}*/
 

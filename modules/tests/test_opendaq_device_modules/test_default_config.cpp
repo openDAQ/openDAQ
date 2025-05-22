@@ -376,8 +376,6 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
 
-    while(true);
-
     const auto instance = Instance();
     const auto config = instance.createDefaultAddDeviceConfig();
     const PropertyObjectPtr generalConfig = config.getPropertyValue("General");

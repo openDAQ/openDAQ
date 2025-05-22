@@ -1357,7 +1357,7 @@ TEST_F(NativeDeviceModulesTest, DeviceInfo)
     ASSERT_EQ(subDeviceInfo.getName(), "RefDev0");
     ASSERT_EQ(subDeviceInfo.getConnectionString(), "daqref://device0");
     ASSERT_EQ(subDeviceInfo.getModel(), "Reference device");
-    ASSERT_EQ(subDeviceInfo.getSerialNumber(), "DevSer0");
+    ASSERT_EQ(subDeviceInfo.getSerialNumber(), server.getDevices()[0].getInfo().getSerialNumber());
 }
 
 TEST_F(NativeDeviceModulesTest, ChannelProps)

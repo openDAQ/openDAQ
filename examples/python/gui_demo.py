@@ -220,9 +220,8 @@ class App(tk.Tk):
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
-        tree.tag_configure('ok', foreground='olive drab')
-        tree.tag_configure('warning', foreground='orange')
-        tree.tag_configure('error', foreground='red')
+        tree.tag_configure('warning', foreground=utils.StatusColor.WARNING.value)
+        tree.tag_configure('error', foreground=utils.StatusColor.ERROR.value)
         self.tree = tree
 
     def tree_update(self, new_selected_node=None):
@@ -327,11 +326,9 @@ class App(tk.Tk):
             status_string = None
             try:
                 status = component.status_container.get_status('ComponentStatus')
-                if status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Ok'), component.context.type_manager):
-                    status_string = 'ok'
-                elif status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Warning'), component.context.type_manager):
+                if status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Warning'), component.context.type_manager):
                     status_string = 'warning'
-                else:
+                elif status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Error'), component.context.type_manager):
                     status_string = 'error'
             except:
                 pass

@@ -3,12 +3,12 @@ from tkinter import ttk
 
 import opendaq as daq
 
+from .. import utils
 from ..event_port import EventPort
 from .input_ports_view import InputPortsView
 from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .attributes_dialog import AttributesDialog
-
 
 class BlockView(ttk.Frame):
 
@@ -185,15 +185,15 @@ class BlockView(ttk.Frame):
         self.change_status()
 
     def change_status(self):
-        color = 'light blue'
+        color = utils.StatusColor.NOT_SET.value
         try:
             status = self.node.status_container.get_status('ComponentStatus')
             if status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Ok'), self.node.context.type_manager):
-                color = 'olive drab'
+                color = utils.StatusColor.OK.value
             elif status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Warning'), self.node.context.type_manager):
-                color = 'orange'
-            else:
-                color = 'red'
+                color = utils.StatusColor.WARNING.value
+            elif status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Error'), self.node.context.type_manager):
+                color = utils.StatusColor.ERROR.value
             message = self.node.status_container.get_status_message('ComponentStatus')
             if status and message and message != '':
                 self.status_message.config(text='Status: ' + str(status) + ' Message: ' + message)

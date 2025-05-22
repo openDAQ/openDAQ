@@ -2,7 +2,7 @@
 
 ## Features
 
-
+- [#810](https://github.com/openDAQ/openDAQ/pull/810) Load individual modules.
 
 ## Python
 

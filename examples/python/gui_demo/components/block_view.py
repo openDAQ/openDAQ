@@ -99,46 +99,46 @@ class BlockView(ttk.Frame):
                 available_op_modes = []
                 op_modes_nums = list(self.node.available_operation_modes)
                 if 0 in op_modes_nums:
-                    available_op_modes.append("Unknown")
+                    available_op_modes.append('Unknown')
                 if 1 in op_modes_nums:
-                    available_op_modes.append("Idle")
+                    available_op_modes.append('Idle')
                 if 2 in op_modes_nums:
-                    available_op_modes.append("Operation")
+                    available_op_modes.append('Operation')
                 if 3 in op_modes_nums:
-                    available_op_modes.append("SafeOperation")
+                    available_op_modes.append('SafeOperation')
 
                 op_mode = self.node.operation_mode
-                mode_string = ""
+                mode_string = ''
                 if op_mode == daq.OperationModeType.Unknown:
-                    mode_string = "Unknown"
+                    mode_string = 'Unknown'
                 elif op_mode == daq.OperationModeType.Idle:
-                    mode_string = "Idle"
+                    mode_string = 'Idle'
                 elif op_mode == daq.OperationModeType.Operation:
-                    mode_string = "Operation"
+                    mode_string = 'Operation'
                 elif op_mode == daq.OperationModeType.SafeOperation:
-                    mode_string = "SafeOperation"
+                    mode_string = 'SafeOperation'
 
                 opt = tk.StringVar(value=mode_string)
                 def on_option_change(*args):
                     var = opt.get()
-                    if var == "Unknown":
+                    if var == 'Unknown':
                         self.node.operation_mode = daq.OperationModeType.Unknown
-                    elif var == "Idle":
+                    elif var == 'Idle':
                         self.node.operation_mode = daq.OperationModeType.Idle
-                    elif var == "Operation":
+                    elif var == 'Operation':
                         self.node.operation_mode = daq.OperationModeType.Operation
-                    elif var == "SafeOperation":
+                    elif var == 'SafeOperation':
                         self.node.operation_mode = daq.OperationModeType.SafeOperation
 
-                opt.trace_add("write", on_option_change)
+                opt.trace_add('write', on_option_change)
 
                 combined = tk.Frame(self.expanded_frame)
-                combined.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+                combined.grid(row=1, column=0, padx=5, pady=5, sticky='w')
 
-                label = tk.Label(combined, text="Operation mode: ")
-                label.pack(side="left")
+                label = tk.Label(combined, text='Operation mode: ')
+                label.pack(side='left')
                 options = tk.OptionMenu(combined, opt, *available_op_modes)
-                options.pack(side="left")
+                options.pack(side='left')
 
 
             elif daq.IFunctionBlock.can_cast_from(self.node):
@@ -175,35 +175,35 @@ class BlockView(ttk.Frame):
                 self.rows = [0]
 
         combined = tk.Frame(self.expanded_frame)
-        combined.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        combined.grid(row=2, column=0, padx=5, pady=5, sticky='w')
 
         self.on_expand()
-        self.status_dot = tk.Frame(combined, width=10, height=10)
-        self.status_dot.pack(side="left")
-        self.status_message = tk.Message(combined, text="Status not set", width=400)
-        self.status_message.pack(side="left")
+        self.status_square = tk.Frame(combined, width=10, height=10)
+        self.status_square.pack(side='left')
+        self.status_message = tk.Message(combined, text='Status not set', width=400)
+        self.status_message.pack(side='left')
         self.change_status()
 
     def change_status(self):
-        color = "light blue"
+        color = 'light blue'
         try:
-            status = self.node.status_container.get_status("ComponentStatus")
-            if status == daq.Enumeration(daq.String("ComponentStatusType"), daq.String("Ok"), self.node.context.type_manager):
-                color = "olive drab"
-            elif status == daq.Enumeration(daq.String("ComponentStatusType"), daq.String("Warning"), self.node.context.type_manager):
-                color = "gold"
+            status = self.node.status_container.get_status('ComponentStatus')
+            if status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Ok'), self.node.context.type_manager):
+                color = 'olive drab'
+            elif status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Warning'), self.node.context.type_manager):
+                color = 'gold'
             else:
-                color = "red4"
-            message = self.node.status_container.get_status_message("ComponentStatus")
-            if status and message and message != "":
-                self.status_message.config(text="Status: " + str(status) + " Message: " + message)
+                color = 'red4'
+            message = self.node.status_container.get_status_message('ComponentStatus')
+            if status and message and message != '':
+                self.status_message.config(text='Status: ' + str(status) + ' Message: ' + message)
             elif status:
-                self.status_message.config(text="Status: " + str(status))
+                self.status_message.config(text='Status: ' + str(status))
             else:
-                self.status_message.config(text="")
+                self.status_message.config(text='')
         except:
             pass
-        self.status_dot.config(bg=color)
+        self.status_square.config(bg=color)
 
 
     def handle_expand_toggle(self):

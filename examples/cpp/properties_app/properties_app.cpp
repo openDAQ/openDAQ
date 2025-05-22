@@ -11,13 +11,11 @@ using namespace daq;
 void printProperty(PropertyPtr property, size_t indent = 0)
 {
     std::cout << std::string(indent * 2, ' ');
-    std::cout << "Property: " << property.getName() << " ";
+    std::cout << "Property: " << property.getName() << " Visible: " << Boolean(property.getVisible()) << "\n";
     auto propObj = property.getValue().asPtrOrNull<IPropertyObject>();
     auto dictObj = property.getValue().asPtrOrNull<IDict>();
     if (propObj.assigned())
     {
-        std::cout << "\n";
-
         for (const auto& prop : propObj.getAllProperties())
         {
             printProperty(prop, indent + 1);
@@ -25,16 +23,14 @@ void printProperty(PropertyPtr property, size_t indent = 0)
     }
     else if (dictObj.assigned())
     {
-        std::cout << "\n";
-
         for (const auto& [key, value] : dictObj)
         {
-            std::cout << "  " << key << ": " << value << "\n";
+            std::cout << "  Key:" << key << " Value: " << value << "\n";
         }
     }
     else
     {
-        std::cout << property.getValue() << "\n";
+        std::cout << "  Value: " << property.getValue() << "\n";
     }
 }
 
@@ -146,6 +142,12 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("Object.InnerObject.Bool", True);
     fb.setPropertyValue("Object.Int", 987);
     fb.setPropertyValue("Object.Float", 4.44);
+
+    // Referenced Bool
+    fb.setPropertyValue("OtherVisible", true);
+
+    // Property visibility depending on Referenced Bool
+    fb.setPropertyValue("SometimeVisible", true);
 
     // Print after modifications
     std::cout << "\nAfter modifications:\n";

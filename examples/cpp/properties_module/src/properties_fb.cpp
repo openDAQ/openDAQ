@@ -137,6 +137,20 @@ void PropertiesFb::initProperties()
     objPtr.addProperty(objProp);
     propObj.getOnPropertyValueWrite("Int") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "Object.InnerObject.Int changed to: " << args.getValue() << "\n"; };
+
+    // Referenced Bool
+    auto otherVisible = BoolProperty("OtherVisible", False);
+    objPtr.addProperty(otherVisible);
+    objPtr.getOnPropertyValueWrite("OtherVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "OtherVisible changed to: " << args.getValue() << "\n"; };
+
+    // Property visibility depending on referenced Property
+    auto sometimeVisibleProperty = BoolPropertyBuilder("SometimeVisible", False)
+                                       .setVisible(EvalValue("$OtherVisible"))  // This will evaluate OtherVisible Property
+                                       .build();
+    objPtr.addProperty(sometimeVisibleProperty);
+    objPtr.getOnPropertyValueWrite("SometimeVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "SometimeVisible changed to: " << args.getValue() << "\n"; };
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

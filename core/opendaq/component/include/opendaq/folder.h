@@ -17,7 +17,7 @@
 #pragma once
 
 #include <opendaq/component.h>
-#include <opendaq/search_filter.h>
+#include <coretypes/search_filter.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,8 +31,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IComponent, GenericComponentPtr, "<opendaq/component_ptr.h>")]
  * [templated(defaultAliasName: FolderPtr)]
  * [interfaceSmartPtr(IFolder, GenericFolderPtr)]
+ * [interfaceLibrary(ISearchFilter, "coretypes")]
  */
-
 
 /*!
  * @brief Acts as a container for other components

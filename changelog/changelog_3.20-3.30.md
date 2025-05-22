@@ -11,6 +11,7 @@
 ## Bug fixes
 
 - [#781](https://github.com/openDAQ/openDAQ/pull/781) Fix how Lists are interpreted for Function Property in Python.
+- [#814](https://github.com/openDAQ/openDAQ/pull/814) Fixing assigning Correct Type Manager to Deserialized Property Object Classes on native client
 
 ## Misc
 

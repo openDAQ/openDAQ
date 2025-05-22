@@ -29,6 +29,8 @@ std::vector<MdnsDiscoveredDevice> DiscoveryClient::discoverMdnsDevices() const
         if (verifyDiscoveredDevice(device))
         {
             device.properties.erase("caps");
+            if (device.getPropertyOrDefault("sdkVersion").empty())
+                device.properties["sdkVersion"] = "<3.10.3";
             discovered.push_back(device);
         }
     }

@@ -28,6 +28,8 @@ option(OPENDAQ_CSV_WRITER "Example that connects to available devices, writing t
 option(OPENDAQ_STREAMING_CONFIG "Streaming configuration example that modifies the configuration of OpcUa enabled device" ON)
 option(OPENDAQ_RECONNECTION "Example on how to detect connection loss and reconnection" ON)
 option(OPENDAQ_IP_MODIFICATION "Example on how to modify IP configuration parameters of the openDAQ device" ON)
+option(OPENDAQ_PROPERTIES_MODULE "Example properties module" ON)
+option(OPENDAQ_PROPERTIES_APP "Example properties application" ON)
 
 if (OPENDAQ_CONSOLE_APP)
   add_subdirectory(console_application)
@@ -101,3 +103,13 @@ endif()
 if (OPENDAQ_IP_MODIFICATION)
   add_subdirectory(ip_modification)
 endif()
+
+if (OPENDAQ_PROPERTIES_MODULE)
+    add_subdirectory(properties_module)
+endif()
+
+if (OPENDAQ_PROPERTIES_APP)
+    add_subdirectory(properties_app)
+endif()
+
+

@@ -116,7 +116,6 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIMirroredDevice = declareIMirroredDevice(m);
     auto classIMirroredDeviceConfig = declareIMirroredDeviceConfig(m);
     auto classMockSignal = declareMockSignal(m);
-    auto classISearchFilter = declareISearchFilter(m);
     auto classIComponentPrivate = declareIComponentPrivate(m);
     auto classIComponentStatusContainer = declareIComponentStatusContainer(m);
     auto classIComponentStatusContainerPrivate = declareIComponentStatusContainerPrivate(m);
@@ -220,7 +219,6 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIMirroredDevice(m, classIMirroredDevice);
     defineIMirroredDeviceConfig(m, classIMirroredDeviceConfig);
     defineMockSignal(m, classMockSignal);
-    defineISearchFilter(m, classISearchFilter);
     defineIComponentPrivate(m, classIComponentPrivate);
     defineIComponentStatusContainer(m, classIComponentStatusContainer);
     defineIComponentStatusContainerPrivate(m, classIComponentStatusContainerPrivate);
@@ -234,6 +232,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIUpdateParameters(m, classIUpdateParameters);
     defineILogFileInfo(m, classILogFileInfo);
     defineILogFileInfoBuilder(m, classILogFileInfoBuilder);
+
+    defineComponentSearchFilterFactories(m);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
     m.def("NullContext", []() { return daq::NullContext().detach(); });

@@ -134,11 +134,11 @@ public:
 
         ConstCharPtr value;
         auto errCode = this->object->getCharPtr(&value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         SizeT size;
         errCode = this->object->getLength(&size);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return std::string_view(value, size);
     }
@@ -156,7 +156,7 @@ public:
 
         ConstCharPtr value;
         auto errCode = this->object->getCharPtr(&value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return value;
     }
@@ -177,9 +177,18 @@ public:
 
         SizeT size;
         auto errCode = this->object->getLength(&size);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return size;
+    }
+
+    /*!
+     * @brief Checks if the string is empty.
+     * @return True if the string is empty, false otherwise.
+     */
+    [[nodiscard]] bool empty() const
+    {
+        return getLength() == 0;
     }
 
     char operator[](std::size_t index) const

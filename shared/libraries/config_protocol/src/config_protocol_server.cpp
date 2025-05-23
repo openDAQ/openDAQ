@@ -314,7 +314,7 @@ StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
     }
     catch (const daq::DaqException& e)
     {
-        return prepareErrorResponse(e.getErrCode(), e.what(), this->serializer);
+        return prepareErrorResponse(e.getErrCode(), e.getErrorMessage(), this->serializer);
     }
     catch (const std::exception& e)
     {
@@ -347,6 +347,11 @@ void ConfigProtocolServer::processNoReplyRpc(const StringPtr& jsonStr)
         ParamsDictPtr funcParams = dictObj.getOrDefault("Params");
 
         callRpc(funcName, funcParams);
+    }
+    catch (const daq::DaqException& e)
+    {
+        auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolServer");
+        LOG_W("RPC call {} failed with: {}", funcName.assigned() ? funcName : "not recognized", e.getErrorMessage());
     }
     catch (const std::exception& e)
     {
@@ -497,7 +502,7 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
 CoreEventArgsPtr ConfigProtocolServer::processCoreEventArgs(const CoreEventArgsPtr& args)
 {
     BaseObjectPtr cloned;
-    checkErrorInfo(args.getParameters().asPtr<ICloneable>()->clone(&cloned));
+    DAQ_CHECK_ERROR_INFO(args.getParameters().asPtr<ICloneable>()->clone(&cloned));
     DictPtr<IString, IBaseObject> dict = cloned;
 
     if (dict.hasKey("Owner"))

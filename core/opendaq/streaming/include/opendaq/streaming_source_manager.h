@@ -236,7 +236,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
             }
             else if (errCode != OPENDAQ_ERR_DUPLICATEITEM)
             {
-                checkErrorInfo(errCode);
+                DAQ_CHECK_ERROR_INFO(errCode);
             }
             else
             {
@@ -449,7 +449,9 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
                                   streaming = managerUtils.createStreaming(connectionString, deviceConfig);
                                   return OPENDAQ_SUCCESS;
                               });
-        if (OPENDAQ_FAILED(errCode) || !streaming.assigned())
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+        if (!streaming.assigned())
             continue;
 
         const SizeT protocolPriority = protocolIt->second;

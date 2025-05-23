@@ -49,7 +49,7 @@ public:
 
         HandlerPtr handler;
         ErrCode err = createObjectForwarding<IEventHandler, EventHandlerImplType>(&handler, sub);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         eventPtr.addHandler(handler);
     }
@@ -68,7 +68,7 @@ public:
 
         HandlerPtr handler;
         ErrCode err = createObjectForwarding<IEventHandler, EventHandlerImplType>(&handler, sub);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         eventPtr.addHandler(handler);
     }
@@ -115,7 +115,7 @@ public:
 
         HandlerPtr handler;
         ErrCode err = createObjectForwarding<IEventHandler, EventHandlerImplType>(&handler, sub);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         eventPtr.removeHandler(handler);
     }
@@ -180,7 +180,7 @@ public:
 
         HandlerPtr handler;
         ErrCode err = createObjectForwarding<IEventHandler, EventHandlerImplType>(&handler, sub);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         eventPtr->muteListener(handler);
     }
@@ -205,7 +205,7 @@ public:
 
         HandlerPtr handler;
         ErrCode err = createObjectForwarding<IEventHandler, EventHandlerImplType>(&handler, sub);
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         eventPtr->unmuteListener(handler);
     }

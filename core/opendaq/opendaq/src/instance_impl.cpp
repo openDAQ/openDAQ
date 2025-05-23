@@ -21,7 +21,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 static StringPtr DefineLocalId(const StringPtr& localId);
 static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder);
-static std::string GetErrorMessage();
 
 InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     : context(std::move(context))
@@ -208,26 +207,6 @@ ErrCode InstanceImpl::addServer(IString* typeId, IPropertyObject* config, IServe
     return rootDevice->addServer(typeId, config, server);
 }
 
-std::string GetErrorMessage()
-{
-    std::string errorMessage;
-
-    ErrorInfoPtr errorInfo;
-    daqGetErrorInfo(&errorInfo);
-    if (errorInfo.assigned())
-    {
-        StringPtr message;
-        errorInfo->getMessage(&message);
-
-        if (message.assigned())
-        {
-            errorMessage = message.toStdString();
-        }
-    }
-
-    return errorMessage;
-}
-
 ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 {
     OPENDAQ_PARAM_NOT_NULL(standardServers);
@@ -241,10 +220,8 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     ServerPtr nativeStreamingServer;
     serverName = "OpenDAQNativeStreaming";
     errCode = addServer(serverName, nullptr, &nativeStreamingServer);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: [{:#x}])", serverName, errCode));
+
     serversPtr.pushBack(nativeStreamingServer);
 
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -252,20 +229,16 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     ServerPtr websocketServer;
     serverName = "OpenDAQLTStreaming";
     errCode = addServer(serverName, nullptr, &websocketServer);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: [{:#x}])", serverName, errCode));
+
     serversPtr.pushBack(websocketServer);
 #endif
 
     ServerPtr opcUaServer;
     serverName = "OpenDAQOPCUA";
     errCode = addServer(serverName, nullptr, &opcUaServer);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: [{:#x}])", serverName, errCode));
+
     serversPtr.pushBack(opcUaServer);
 
     *standardServers = serversPtr.detach();
@@ -605,7 +578,7 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
         {
             auto serializer = JsonSerializer(True);
 
-            checkErrorInfo(this->serializeForUpdate(serializer));
+            DAQ_CHECK_ERROR_INFO(this->serializeForUpdate(serializer));
 
             auto str = serializer.getOutput();
 

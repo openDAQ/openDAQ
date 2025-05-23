@@ -75,6 +75,7 @@ TEST_F(LoggerSinkTest, GetLevelNull)
     auto sink = StdOutLoggerSink();
 
     ASSERT_EQ(sink->getLevel(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerSinkTest, SetPatternNull)
@@ -82,6 +83,7 @@ TEST_F(LoggerSinkTest, SetPatternNull)
     auto sink = StdOutLoggerSink();
 
     ASSERT_EQ(sink->setPattern(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerSinkTest, SetLogOutputNull)
@@ -89,6 +91,7 @@ TEST_F(LoggerSinkTest, SetLogOutputNull)
     auto sink = StdOutLoggerSink();
 
     ASSERT_EQ(sink->shouldLog(LogLevel::Info, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerSinkTest, EqualsNull)

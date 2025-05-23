@@ -160,7 +160,8 @@ inline void ConfigClientSignalImpl::assignDomainSignal(const SignalPtr& domainSi
 
     this->coreEventMuted = true;
 
-    checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setDomainSignal(domainSignal));
+    const ErrCode errCode = SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setDomainSignal(domainSignal);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     if (relock)
         this->lockedAttributes.insert("DomainSignal");
@@ -183,7 +184,7 @@ inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
     }
     catch (const DaqException& e)
     {
-        LOG_W("getLastValue() RPC failed: {}", e.what());
+        LOG_W("getLastValue() RPC failed: {}", e.getErrorMessage());
     }
     catch (const std::exception& e)
     {
@@ -201,12 +202,14 @@ inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& arg
     if (attrName == "RelatedSignals")
     {
         const ListPtr<ISignal> relatedSignals = args.getParameters().get("RelatedSignals");
-        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setRelatedSignals(relatedSignals));
+        const ErrCode errCode = SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setRelatedSignals(relatedSignals);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
     else if (attrName == "DomainSignal")
     {
         const SignalPtr domainSignal = args.getParameters().get("DomainSignal");
-        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setDomainSignal(domainSignal));
+        const ErrCode errCode = SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setDomainSignal(domainSignal);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     if (relock)

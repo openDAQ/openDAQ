@@ -222,6 +222,8 @@ void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& 
 
     OperationModeType modeType;
     const ErrCode errCode = this->getOperationMode(&modeType);
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
     if (errCode != OPENDAQ_SUCCESS)
         return;
 
@@ -424,7 +426,7 @@ BaseObjectPtr FolderImpl<Intf, Intfs...>::DeserializeFolder(const SerializedObje
                     deserializeContext.getLocalId(),
                     className);
             }
-            checkErrorInfo(errCode);
+            DAQ_CHECK_ERROR_INFO(errCode);
 
             return typename InterfaceToSmartPtr<Interface>::SmartPtr();
         });

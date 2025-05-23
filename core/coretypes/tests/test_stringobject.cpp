@@ -101,7 +101,9 @@ TEST_F(StringObjectTest, Conversion)
 
     auto conv1 = PTR_CAST(String("a"), IConvertible);
     ASSERT_EQ(conv1->toInt(&valInt), OPENDAQ_ERR_CONVERSIONFAILED);
+    daqClearErrorInfo();
     ASSERT_EQ(conv1->toFloat(&valFloat), OPENDAQ_ERR_CONVERSIONFAILED);
+    daqClearErrorInfo();
 }
 
 TEST_F(StringObjectTest, BoolConversion)

@@ -72,7 +72,9 @@ TEST_F(LoggerTest, AddComponentNull)
 {
     auto logger = Logger();
     ASSERT_EQ(logger->addComponent(nullptr, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
     ASSERT_EQ(logger->addComponent(StringPtr("test"), nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
     ASSERT_THROW(logger.addComponent(nullptr), ArgumentNullException);
 }
 
@@ -93,7 +95,9 @@ TEST_F(LoggerTest, GetComponentNull)
 {
     auto logger = Logger();
     ASSERT_EQ(logger->getComponent(nullptr, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
     ASSERT_EQ(logger->getComponent(StringPtr("test"), nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
     ASSERT_THROW(logger.getComponent(nullptr), ArgumentNullException);
 }
 
@@ -102,6 +106,7 @@ TEST_F(LoggerTest, GetUnexistingComponent)
     auto logger = Logger();
     LoggerComponentPtr loggerComponent;
     ASSERT_EQ(logger->getComponent(StringPtr("notexisted"), &loggerComponent), OPENDAQ_ERR_NOTFOUND);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerTest, AddAndGetComponentValid)
@@ -120,7 +125,9 @@ TEST_F(LoggerTest, GetOrAddComponentNull)
 {
     auto logger = Logger();
     ASSERT_EQ(logger->getOrAddComponent(nullptr, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
     ASSERT_EQ(logger->getOrAddComponent(StringPtr("test"), nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
     ASSERT_THROW(logger.getOrAddComponent(nullptr), ArgumentNullException);
 }
 
@@ -165,12 +172,14 @@ TEST_F(LoggerTest, RemoveComponentNull)
 {
     auto logger = Logger();
     ASSERT_EQ(logger->removeComponent(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerTest, RemoveUnexistingComponent)
 {
     auto logger = Logger();
     ASSERT_EQ(logger->removeComponent(StringPtr("notexisted")), OPENDAQ_ERR_NOTFOUND);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerTest, RemoveComponentValid)
@@ -181,6 +190,7 @@ TEST_F(LoggerTest, RemoveComponentValid)
     ASSERT_NO_THROW(logger.removeComponent("test"));
     LoggerComponentPtr testComponent;
     ASSERT_EQ(logger->getComponent(StringPtr("test"), &testComponent), OPENDAQ_ERR_NOTFOUND);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerTest, AddComponentAfterRemove)
@@ -204,6 +214,7 @@ TEST_F(LoggerTest, GetLevelNull)
     auto logger = Logger();
 
     ASSERT_EQ(logger->getLevel(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerTest, SetLevel)
@@ -261,6 +272,7 @@ TEST_F(LoggerTest, GetComponentsNull)
 {
     auto logger = Logger();
     ASSERT_EQ(logger->getComponents(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerTest, Components)

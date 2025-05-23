@@ -61,7 +61,7 @@ EnumerationImpl::EnumerationImpl(const EnumerationTypePtr& type, const BaseObjec
         return;
     }
 
-    if  (const auto intValue = value.asPtrOrNull<IInteger>(); intValue.assigned())
+    if (const auto intValue = value.asPtrOrNull<IInteger>(); intValue.assigned())
     {
         for (const auto& fieldName: this->enumerationType.getEnumeratorNames())
             if (this->enumerationType.getEnumeratorIntValue(fieldName) == intValue)

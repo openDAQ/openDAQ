@@ -168,7 +168,7 @@ protected:
 
     void removed() override
     {
-        checkErrorInfo(stop());
+        DAQ_CHECK_ERROR_INFO(stop());
         Super::removed();
     }
 

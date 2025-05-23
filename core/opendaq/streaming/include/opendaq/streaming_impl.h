@@ -172,11 +172,11 @@ StreamingImpl<Interfaces...>::~StreamingImpl()
     {
         ErrCode errCode = removeStreamingSourceForAllSignals();
         removeAllSignalsInternal();
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
     catch (const DaqException& e)
     {
-        LOG_E("Failed to remove signals on streaming object destruction: {}", e.what());
+        LOG_E("Failed to remove signals on streaming object destruction: {}", e.getErrorMessage());
     }
 }
 

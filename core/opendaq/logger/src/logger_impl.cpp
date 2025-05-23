@@ -7,11 +7,9 @@
 #include <opendaq/logger_thread_pool_factory.h>
 #include <spdlog/async.h>
 #include <spdlog/spdlog.h>
-#include <functional>
 #include <utility>
 #include <coretypes/ctutils.h>
 #include <memory.h>
-#include <iostream>
 
 #include "opendaq/utils/thread_name.h"
 
@@ -73,7 +71,7 @@ ErrCode LoggerImpl::getOrAddComponent(IString* name, ILoggerComponent** componen
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
     }
 
-    if (StringPtr::Borrow(name).getLength() == 0)
+    if (StringPtr::Borrow(name).empty())
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Name can not be empty.");
     }
@@ -114,7 +112,7 @@ ErrCode LoggerImpl::addComponent(IString* name, ILoggerComponent** component)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Name can not be null.");
     }
 
-    if ( toStdString(name).empty() )
+    if (toStdString(name).empty() )
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Name can not be empty.");
     }

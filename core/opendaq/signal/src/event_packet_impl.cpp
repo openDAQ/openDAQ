@@ -46,7 +46,7 @@ ErrCode EventPacketImpl::equals(IBaseObject* other, Bool* equals) const
         [this, &other, &equals]()
         {
             const ErrCode errCode = Super::equals(other, equals);
-            checkErrorInfo(errCode);
+            DAQ_CHECK_ERROR_INFO(errCode);
 
             if (!(*equals))
                 return errCode;

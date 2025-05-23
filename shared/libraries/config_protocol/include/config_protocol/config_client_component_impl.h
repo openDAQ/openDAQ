@@ -309,22 +309,22 @@ void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPt
     if (attrName == "Active")
     {
         const Bool active = args.getParameters().get("Active");
-        checkErrorInfo(Impl::setActive(active));
+        DAQ_CHECK_ERROR_INFO(Impl::setActive(active));
     }
     else if (attrName == "Name")
     {
         const StringPtr name = args.getParameters().get("Name");
-        checkErrorInfo(Impl::setName(name));
+        DAQ_CHECK_ERROR_INFO(Impl::setName(name));
     }
     else if (attrName == "Description")
     {
         const StringPtr description = args.getParameters().get("Description");
-        checkErrorInfo(Impl::setDescription(description));
+        DAQ_CHECK_ERROR_INFO(Impl::setDescription(description));
     }
     else if (attrName == "Visible")
     {
         const Bool visible = args.getParameters().get("Visible");
-        checkErrorInfo(Impl::setVisible(visible));
+        DAQ_CHECK_ERROR_INFO(Impl::setVisible(visible));
     }
 
     if (relock)
@@ -335,7 +335,7 @@ template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::tagsChanged(const CoreEventArgsPtr& args)
 {
     TagsPtr tags;
-    checkErrorInfo(Impl::getTags(&tags));
+    DAQ_CHECK_ERROR_INFO(Impl::getTags(&tags));
     const TagsPtr newTags = args.getParameters().get("Tags");
     tags.asPtr<ITagsPrivate>().replace(newTags.getList());
 }
@@ -344,7 +344,7 @@ template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& args)
 {
     ComponentStatusContainerPtr statusContainer;
-    checkErrorInfo(Impl::getStatusContainer(&statusContainer));
+    DAQ_CHECK_ERROR_INFO(Impl::getStatusContainer(&statusContainer));
 
     const DictPtr<IString, IBaseObject> params = args.getParameters();
     StringPtr msg = params.getOrDefault("Message", "");

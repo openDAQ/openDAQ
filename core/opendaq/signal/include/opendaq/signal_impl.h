@@ -366,6 +366,11 @@ inline TypePtr SignalBase<TInterface, Interfaces...>::addToTypeManagerRecursivel
     {
         typeManager.addType(structType);
     }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_W("Couldn't add type {} to type manager: {}", structType.getName(), e.getErrorMessage());
+    }
     catch (const std::exception& e)
     {
         const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
@@ -414,6 +419,11 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
                     auto typeManager = this->context.getTypeManager();
                     addToTypeManagerRecursively(typeManager, dataDescriptor);
                 }
+            }
+            catch (const DaqException& e)
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+                LOG_W("There was an exception in setDescriptor method: {}", e.getErrorMessage());
             }
             catch (const std::exception& e)
             {
@@ -1103,12 +1113,9 @@ template <typename TInterface, typename ... Interfaces>
 void SignalBase<TInterface, Interfaces...>::disconnectInputPort(const ConnectionPtr& connection)
 {
     const auto inputPort = connection.getInputPort();
-    if (inputPort.assigned())
-    {
-        const auto inputPortPrivate = inputPort.template asPtrOrNull<IInputPortPrivate>(true);
+    const auto inputPortPrivate = inputPort.template asPtrOrNull<IInputPortPrivate>(true);
         if (inputPortPrivate.assigned())
             inputPortPrivate.disconnectWithoutSignalNotification();
-    }
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -1128,13 +1135,9 @@ void SignalBase<TInterface, Interfaces...>::removed()
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {
         auto sig = it->getRef();
-        if (sig.assigned())
-        {
-            auto sigPrivate = sig.template asPtrOrNull<ISignalPrivate>(true);
-            if (sigPrivate.assigned())
-                sigPrivate.clearDomainSignalWithoutNotification();
-        }
-
+        auto sigPrivate = sig.template asPtrOrNull<ISignalPrivate>(true);
+        if (sigPrivate.assigned())
+            sigPrivate.clearDomainSignalWithoutNotification();
     }
 
     domainSignalReferences.clear();
@@ -1271,6 +1274,8 @@ void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPac
     lastRawDataValue.resize(lastDataDescriptor.getSampleSize());
     void* rawValue = lastRawDataValue.data();
     const ErrCode errCode = packet->getRawLastValue(&rawValue);
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
     if (errCode != OPENDAQ_SUCCESS)
         lastDataDescriptor = nullptr;
 }

@@ -21,7 +21,6 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
-#include <optional>
 #include <map>
 #include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
@@ -185,7 +184,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         }
         catch (const daq::DaqException& e)
         {
-            LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.what(), e.getErrCode())
+            LOG_W(R"(Error scanning directory "{}": {} [{:#x}])", path, e.getErrorMessage(), e.getErrCode())
         }
         catch (const std::exception& e)
         {
@@ -209,7 +208,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         }
         catch (const daq::DaqException& e)
         {
-            LOG_W(R"(Error loading module "{}": {} [{:#x}])", modulePath.string(), e.what(), e.getErrCode())
+            LOG_W(R"(Error loading module "{}": {} [{:#x}])", modulePath.string(), e.getErrorMessage(), e.getErrCode())
         }
         catch (const std::exception& e)
         {
@@ -382,6 +381,10 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
         {
             LOG_I("{}: GetAvailableDevices not implemented", module.getModuleInfo().getName())
         }
+        catch (const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableDevices failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
+        }
         catch (const std::exception& e)
         {
             LOG_W("{}: GetAvailableDevices failed: {}", module.getModuleInfo().getName(), e.what())
@@ -397,7 +400,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
             // Group devices that have manufacturer, serial number and at least 1 server capability,
             // the rest use their connection string as key.
-            if (manufacturer.getLength() == 0 || serialNumber.getLength() == 0 || !deviceInfo.getServerCapabilities().getCount())
+            if (manufacturer.empty() || serialNumber.empty() || !deviceInfo.getServerCapabilities().getCount())
             {
                 groupedDevices.set(deviceInfo.getConnectionString(), deviceInfo);
             }
@@ -481,6 +484,10 @@ ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
         {
             LOG_I("{}: GetAvailableDeviceTypes not implemented", module.getModuleInfo().getName())
         }
+        catch ([[maybe_unused]] const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableDeviceTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
+        }
         catch ([[maybe_unused]] const std::exception& e)
         {
             LOG_W("{}: GetAvailableDeviceTypes failed: {}", module.getModuleInfo().getName(), e.what())
@@ -510,9 +517,9 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         const bool inputIsDefaultAddDeviceConfig = isDefaultAddDeviceConfig(inputConfig);
 
         if (inputIsDefaultAddDeviceConfig)
-            checkErrorInfo(inputConfig.asPtr<IPropertyObjectInternal>()->clone(&addDeviceConfig));
+            DAQ_CHECK_ERROR_INFO(inputConfig.asPtr<IPropertyObjectInternal>()->clone(&addDeviceConfig));
         else
-            checkErrorInfo(createDefaultAddDeviceConfig(&addDeviceConfig));
+            DAQ_CHECK_ERROR_INFO(createDefaultAddDeviceConfig(&addDeviceConfig));
 
 
         PropertyObjectPtr generalConfig =
@@ -526,7 +533,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         const auto [pureConnectionString, connectionStringOptions] = splitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
         auto connectionStringPtr = String(pureConnectionString);
 
-        if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
+        if (!connectionStringPtr.assigned() || connectionStringPtr.empty())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
         // Scan for devices if not yet done so, or timeout is exceeded
@@ -534,8 +541,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
         {
             const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
-            if (OPENDAQ_FAILED(errCode))
-                return DAQ_MAKE_ERROR_INFO(errCode, "Failed getting available devices");
+            OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
         }
 
         // Connection strings with the "daq" prefix automatically choose the best method of connection
@@ -558,7 +564,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
             const auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
-            checkErrorInfo(err);
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned())
@@ -609,6 +615,10 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
         catch (const NotImplementedException&)
         {
             LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getModuleInfo().getName())
+        }
+        catch ([[maybe_unused]] const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
@@ -721,6 +731,10 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         {
             LOG_I("{}: GetAvailableFunctionBlockTypes not implemented", module.getModuleInfo().getName())
         }
+        catch ([[maybe_unused]] const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
+        }
         catch ([[maybe_unused]] const std::exception& e)
         {
             LOG_W("{}: GetAvailableFunctionBlockTypes failed: {}", module.getModuleInfo().getName(), e.what())
@@ -813,6 +827,10 @@ ErrCode ModuleManagerImpl::getAvailableStreamingTypes(IDict** streamingTypes)
         catch (const NotImplementedException&)
         {
             LOG_I("{}: GetAvailableStreamingTypes not implemented", module.getModuleInfo().getName())
+        }
+        catch ([[maybe_unused]] const DaqException& e)
+        {
+            LOG_W("{}: GetAvailableStreamingTypes failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
@@ -1024,8 +1042,10 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
 
     DictPtr<IString, IDeviceType> types;
     const ErrCode err = module->getAvailableDeviceTypes(&types);
-    if (err != OPENDAQ_ERR_NOTIMPLEMENTED && OPENDAQ_FAILED(err))
-        throwExceptionFromErrorCode(err);
+    if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
+       daqClearErrorInfo();
+    else
+        DAQ_CHECK_ERROR_INFO(err);
 
     if (!types.assigned())
         return nullptr;
@@ -1060,7 +1080,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     StreamingPtr streaming = nullptr;
     PropertyObjectPtr inputConfig;
     if(config.assigned())
-        checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
+        DAQ_CHECK_ERROR_INFO(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
 
     for (const auto& library : libraries)
     {
@@ -1104,6 +1124,11 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         {
             streaming = module.createStreaming(connectionString, streamingTypeConfig);
         }
+        catch ([[maybe_unused]] const DaqException& e)
+        {
+            LOG_E("{}: createStreaming failed: {}", module.getModuleInfo().getName(), e.getErrorMessage())
+            throw;
+        }
         catch ([[maybe_unused]] const std::exception& e)
         {
             LOG_E("{}: createStreaming failed: {}", module.getModuleInfo().getName(), e.what())
@@ -1137,6 +1162,10 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
             catch (const NotImplementedException&)
             {
                 LOG_D("{}: completeServerCapability not implemented", module.getModuleInfo().getName());
+            }
+            catch ([[maybe_unused]] const DaqException& e)
+            {
+                LOG_W("{}: completeServerCapability failed: {}", module.getModuleInfo().getName(), e.getErrorMessage());
             }
             catch ([[maybe_unused]] const std::exception& e)
             {
@@ -1425,6 +1454,11 @@ void ModuleManagerImpl::mergeDiscoveryAndDeviceCapabilities(const DevicePtr& dev
                 {
                     capPtr = mergeDiscoveryAndDeviceCapability(capability, connectedDeviceInfo.getServerCapability(capId));
                 }
+                catch (const DaqException& e)
+                {
+                    capPtr = capability;
+                    LOG_W("{}: Failed to merge discovery and device server capability with ID {}: {}", discoveredDeviceInfo.getName(), capId, e.getErrorMessage())
+                }
                 catch ([[maybe_unused]] const std::exception& e)
                 {
                     capPtr = capability;
@@ -1506,10 +1540,10 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
     std::error_code errCode;
     if (!fs::exists(searchFolder, errCode))
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" does not exist.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path does not exist.");
 
     if (!fs::is_directory(searchFolder, errCode))
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" is not a folder.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path is not a folder.");
 
     fs::recursive_directory_iterator dirIterator(searchFolder);
 
@@ -1556,6 +1590,10 @@ static void printComponentTypes(Functor func, const std::string& kind, const Log
                 );
             }
         }
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Failed to enumerate module's supported {} types: {}", kind, e.getErrorMessage());
     }
     catch (const std::exception& e)
     {
@@ -1614,6 +1652,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
         ErrCode errCode = checkDeps(&errMsg);
         if (OPENDAQ_FAILED(errCode))
         {
+            daqClearErrorInfo();
             LOG_T("Failed to check dependencies for \"{}\".", relativePath);
 
             DAQ_THROW_EXCEPTION(ModuleIncompatibleDependenciesException,
@@ -1641,6 +1680,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
     ErrCode errCode = factory(&module, context);
     if (OPENDAQ_FAILED(errCode))
     {
+        daqClearErrorInfo();
         LOG_T("Failed creating module from \"{}\".", relativePath);
 
         DAQ_THROW_EXCEPTION(ModuleEntryPointFailedException, "Library \"{}\" failed to create a Module.", relativePath);

@@ -32,7 +32,6 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <coretypes/validation.h>
-#include <iostream>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
@@ -112,7 +111,7 @@ public:
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 
-        checkErrorInfo(validateDuringConstruction());
+        DAQ_CHECK_ERROR_INFO(validateDuringConstruction());
     }
 
     PropertyImpl(const StringPtr& name, const BaseObjectPtr& defaultValue, const BooleanPtr& visible)
@@ -129,8 +128,7 @@ public:
         this->valueType = ctBool;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // IntProperty()
@@ -140,8 +138,7 @@ public:
         this->valueType = ctInt;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // FloatProperty()
@@ -151,8 +148,7 @@ public:
         this->valueType = ctFloat;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // StringProperty()
@@ -162,8 +158,7 @@ public:
         this->valueType = ctString;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // ListProperty()
@@ -173,8 +168,7 @@ public:
         this->valueType = ctList;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // DictProperty()
@@ -184,8 +178,7 @@ public:
         this->valueType = ctDict;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // RatioProperty()
@@ -195,8 +188,7 @@ public:
         this->valueType = ctRatio;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // ObjectProperty()
@@ -209,8 +201,7 @@ public:
             this->defaultValue = PropertyObject().detach();
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // FunctionProperty()
@@ -232,8 +223,7 @@ public:
         }
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // ReferenceProperty()
@@ -243,8 +233,7 @@ public:
         this->refProp = referencedProperty;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // SelectionProperty()
@@ -255,8 +244,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // SparseSelectionProperty()
@@ -267,8 +255,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // StructProperty()
@@ -279,8 +266,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // EnumerationProperty()
@@ -291,8 +277,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
@@ -810,9 +795,9 @@ public:
 		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
 			        defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
                 else if (lock)
-                    checkErrorInfo(this->getDefaultValue(&defaultStruct));
+                    DAQ_CHECK_ERROR_INFO(this->getDefaultValue(&defaultStruct));
                 else
-                    checkErrorInfo(this->getDefaultValueNoLock(&defaultStruct));
+                    DAQ_CHECK_ERROR_INFO(this->getDefaultValueNoLock(&defaultStruct));
 
                 *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
 		        return OPENDAQ_SUCCESS;
@@ -1201,12 +1186,9 @@ public:
         {
             auto defaultValueObj = defaultValue;
 
-            if (defaultValueObj.assigned())
-            {
-                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
-                if (cloneableDefaultValue.assigned())
-                    defaultValueObj = cloneableDefaultValue.clone();
-            }
+            auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
+            if (cloneableDefaultValue.assigned())
+                defaultValueObj = cloneableDefaultValue.clone();
 
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
@@ -1401,16 +1383,13 @@ public:
 
         this->owner = owner;
 
-        if (this->defaultValue.assigned())
+        if (const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>(true); defaultValueObj.assigned())
         {
-            if (const auto defaultValueObj = this->defaultValue.asPtrOrNull<IPropertyObject>(true); defaultValueObj.assigned())
-            {
-                PermissionManagerPtr parentManager;
-                ErrCode err = owner->getPermissionManager(&parentManager);
-                OPENDAQ_RETURN_IF_FAILED(err);
+            PermissionManagerPtr parentManager;
+            ErrCode err = owner->getPermissionManager(&parentManager);
+            OPENDAQ_RETURN_IF_FAILED(err);
 
-                defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
-            }
+            defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
         }
 
         return OPENDAQ_SUCCESS;
@@ -1449,7 +1428,7 @@ private:
     PropertyPtr bindAndGetRefProp(bool lock)
     {
 	    PropertyPtr refPropPtr;
-	    checkErrorInfo(getReferencedPropertyInternal(&refPropPtr, lock));
+	    DAQ_CHECK_ERROR_INFO(getReferencedPropertyInternal(&refPropPtr, lock));
 	    if (!refPropPtr.assigned())
 		    return nullptr;
 		    
@@ -1459,9 +1438,6 @@ private:
     template <typename TPtr>
     TPtr bindAndGet(const BaseObjectPtr& metadata, bool lock) const
     {
-	    if (!metadata.assigned())
-		    return nullptr;
-		    
 	    auto eval = metadata.asPtrOrNull<IEvalValue>();
 	    if (!eval.assigned())
 		    return metadata;
@@ -1475,9 +1451,6 @@ private:
 
     BaseObjectPtr getUnresolved(const BaseObjectPtr& localMetadata) const
     {
-        if (!localMetadata.assigned())
-            return nullptr;
-
         if (const auto eval = localMetadata.asPtrOrNull<IEvalValue>(); eval.assigned())
         {
             const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;

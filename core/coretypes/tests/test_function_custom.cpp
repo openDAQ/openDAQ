@@ -16,6 +16,7 @@ TEST_F(CustomFunctionTest, Basic)
     });
     ErrCode err = funcObj->call(nullptr, nullptr);
     ASSERT_EQ(err, OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 
     IBaseObject* result;
     err = funcObj->call(nullptr, &result);
@@ -106,6 +107,7 @@ TEST_F(CustomFunctionTest, NullFuncExecuteErrorCode)
     ObjectPtr<IBaseObject> result;
     ErrCode err = nullFunc->call(nullptr, &result);
     ASSERT_EQ(err, OPENDAQ_ERR_NOTASSIGNED);
+    daqClearErrorInfo();
 }
 
 TEST_F(CustomFunctionTest, NullFuncExecuteThrows)

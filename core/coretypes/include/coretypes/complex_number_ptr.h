@@ -103,7 +103,7 @@ public:
         validateHasObject();
         Float value;
         auto errCode = this->object->getReal(&value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return value;
     }
 
@@ -116,7 +116,7 @@ public:
         validateHasObject();
         Float value;
         auto errCode = this->object->getImaginary(&value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return value;
     }
 
@@ -125,7 +125,7 @@ public:
         validateHasObject();
         ComplexFloat64 value;
         auto errCode = this->object->getValue(&value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return value;
     }
 

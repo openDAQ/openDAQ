@@ -55,7 +55,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
         if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
         {
             PropertyPtr prop;
-            checkErrorInfo(getProperty(propertyName, &prop));
+            DAQ_CHECK_ERROR_INFO(getProperty(propertyName, &prop));
             if (!protectedWrite)
             {
                 lastProcessDescription = "Checking existing property is read-only";
@@ -96,7 +96,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
         LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProcessDescription);
 
     if (errCode == OPENDAQ_ERR_NOTFOUND || errCode == OPENDAQ_ERR_ACCESSDENIED)
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format("Property \"{}\" not found or access denied", propertyNamePtr));
+        return DAQ_EXTEND_ERROR_INFO(errCode, fmt::format("Property \"{}\" not found or access denied", propertyNamePtr));
     else if (OPENDAQ_FAILED(errCode))
         daqClearErrorInfo();
 
@@ -312,7 +312,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
             continue;
 
         Bool hasProp;
-        daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
+        DAQ_CHECK_ERROR_INFO(Impl::hasProperty(propName, &hasProp));
         PropertyPtr prop;
         if (clientContext->getReferenceBrowser()->isSubtypeOf(typeId, referenceVariableTypeId))
         {
@@ -365,6 +365,11 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addProperties(const OpcUaNodeId& par
 
                 objectTypeIdMap.emplace(propName, childNodeId);
             }
+            catch (const DaqException& e)
+            {
+                LOG_W("Failed to add {} property on OpcUa client property object: {}", propName, e.getErrorMessage());
+                continue;
+            }
             catch (const std::exception& e)
             {
                 LOG_W("Failed to add {} property on OpcUa client property object: {}", propName, e.what());
@@ -404,7 +409,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::addMethodProperties(const OpcUaNodeI
             continue;
 
         Bool hasProp;
-        daq::checkErrorInfo(Impl::hasProperty(propName, &hasProp));
+        DAQ_CHECK_ERROR_INFO(Impl::hasProperty(propName, &hasProp));
 
         if (ref->nodeClass == UA_NODECLASS_METHOD)
         {
@@ -539,11 +544,11 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
     };
 
     for (const auto& val : orderedProperties)
-        daq::checkErrorInfo(addPropertyIgnoreDuplicates(val.second));
+        DAQ_CHECK_ERROR_INFO(addPropertyIgnoreDuplicates(val.second));
     for (const auto& val : unorderedProperties)
-        daq::checkErrorInfo(addPropertyIgnoreDuplicates(val));
+        DAQ_CHECK_ERROR_INFO(addPropertyIgnoreDuplicates(val));
     for (const auto& val : functionPropValues)
-        daq::checkErrorInfo(Impl::setProtectedPropertyValue(String(val.first), val.second));
+        DAQ_CHECK_ERROR_INFO(Impl::setProtectedPropertyValue(String(val.first), val.second));
 
 }
 

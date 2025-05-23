@@ -304,7 +304,7 @@ ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::get(const KeyPtr& key
 
     IBaseObject* obj;
     ErrCode errCode = this->object->get(key, &obj);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return ValuePtr(std::move(obj));
 }
@@ -324,7 +324,7 @@ ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getOrDefault(const Ke
         return defaultValue;
     }
 
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return ValuePtr(std::move(obj));
 }
@@ -345,7 +345,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryGet(const KeyPtr& key,
         return false;
     }
 
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return true;
 }
@@ -357,7 +357,7 @@ void DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::set(const KeyPtr& key, co
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     ErrCode errCode = this->object->set(key, value);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 }
 
 template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
@@ -368,7 +368,7 @@ ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::remove(const KeyPtr& 
 
     IBaseObject* obj;
     ErrCode errCode = this->object->remove(key, &obj);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return ValuePtr(std::move(obj));
 }
@@ -388,7 +388,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryRemove(const KeyPtr& k
         return false;
     }
 
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return true;
 }
@@ -400,7 +400,7 @@ void DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::deleteItem(const KeyPtr& 
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     ErrCode errCode = this->object->deleteItem(key);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 }
 
 template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
@@ -411,7 +411,7 @@ SizeT DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getCount() const
 
     SizeT size{};
     auto errCode = this->object->getCount(&size);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return size;
 }
@@ -423,7 +423,7 @@ void DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::clear()
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     ErrCode errCode = this->object->clear();
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 }
 
 template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
@@ -434,7 +434,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::hasKey(const KeyPtr& key)
 
     Bool keyExists = False;
     ErrCode errCode = this->object->hasKey(key, &keyExists);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return keyExists;
 }
@@ -447,7 +447,7 @@ ListPtr<KeyT, KeyPtr> DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getKeyLi
 
     IList* list;
     auto errCode = this->object->getKeyList(&list);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return ListPtr<KeyT, KeyPtr>(std::move(list));
 }
@@ -460,7 +460,7 @@ ListPtr<ValueT, ValuePtr> DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getV
 
     IList* list;
     auto errCode = this->object->getValueList(&list);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return ListPtr<ValueT, ValuePtr>(std::move(list));
 }
@@ -473,7 +473,7 @@ IterablePtr<KeyT, KeyPtr> DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getK
 
     IIterable* iterable;
     auto errCode = this->object->getKeys(&iterable);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return IterablePtr<KeyT, KeyPtr>::Adopt(iterable);
 }
@@ -486,7 +486,7 @@ IterablePtr<ValueT, ValuePtr> DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::
 
     IIterable* iterable;
     auto errCode = this->object->getValues(&iterable);
-    checkErrorInfo(errCode);
+    DAQ_CHECK_ERROR_INFO(errCode);
 
     return IterablePtr<ValueT, ValuePtr>::Adopt(iterable);
 }
@@ -503,7 +503,7 @@ IntfID DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getKeyInterfaceId() con
     if (elementType.assigned())
     {
         ErrCode errCode = elementType->getKeyInterfaceId(&id);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     return id;
@@ -521,7 +521,7 @@ IntfID DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getValueInterfaceId() c
     if (elementType.assigned())
     {
         ErrCode errCode = elementType->getValueInterfaceId(&id);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     return id;

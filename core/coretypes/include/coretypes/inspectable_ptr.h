@@ -54,13 +54,13 @@ public:
 
         SizeT count{};
         ErrCode errCode = object->getInterfaceIds(&count, nullptr);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         std::vector<IntfID> ids(count);
 
         IntfID* begin = ids.data();
         errCode = object->getInterfaceIds(&count, &begin);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return ids;
     }
@@ -77,7 +77,7 @@ public:
 
         daq::StringPtr name;
         auto errCode = this->object->getRuntimeClassName(&name);
-        daq::checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return name;
     }

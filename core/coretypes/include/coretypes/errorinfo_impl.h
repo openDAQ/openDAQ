@@ -19,6 +19,7 @@
 #include <coretypes/freezable.h>
 #include <coretypes/listobject.h>
 #include <coretypes/intfs.h>
+#include <list>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,31 +37,41 @@ public:
     ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) override;
     ErrCode INTERFACE_FUNC setFileLine(Int line) override;
     ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
+
+    ErrCode INTERFACE_FUNC extend(IErrorInfo* errorInfo) override;
+    ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
     
     ErrCode INTERFACE_FUNC freeze() override;
     ErrCode INTERFACE_FUNC isFrozen(Bool* frozen) const override;
 
 private:
+
     IString* message;
     IString* source;
     ConstCharPtr fileName;
     Int line;
     Bool frozen;
+    std::list<IErrorInfo*>* childErrorInfoList {nullptr};
 };
 
 class ErrorInfoHolder
 {
 public:
     ErrorInfoHolder() = default;
-#ifndef __MINGW32__
     ~ErrorInfoHolder();
-#endif
 
+    // adds the error ingo to the list of errors
     void setErrorInfo(IErrorInfo* errorInfo);
+
+    // extend the last error info with the new one (needed for building the error stack)
+    void extendErrorInfo(IErrorInfo* errorInfo);
+
+    // returns the last error info
     IErrorInfo* getErrorInfo() const;
+
     IList* getErrorInfoList();
 private:
-    IList* errorInfoList;
+    std::list<IErrorInfo*>* errorInfoList {nullptr};
 };
 
 END_NAMESPACE_OPENDAQ

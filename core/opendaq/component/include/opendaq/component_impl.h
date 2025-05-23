@@ -26,7 +26,6 @@
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
 #include <opendaq/folder_ptr.h>
-#include <mutex>
 #include <opendaq/component_keys.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/custom_log.h>
@@ -636,6 +635,11 @@ ErrCode ComponentImpl<Intf, Intfs...>::triggerComponentCoreEvent(ICoreEventArgs*
         const ComponentPtr thisPtr = this->template borrowPtr<ComponentPtr>();
         this->componentCoreEvent(thisPtr, argsPtr);
     }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        LOG_W("Component {} failed while triggering core event {} with: {}", this->localId, argsPtr.getEventName(), e.getErrorMessage());
+    }
     catch (const std::exception& e)
     {
         const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
@@ -793,7 +797,10 @@ ErrCode ComponentImpl<Intf, Intfs ...>::remove()
         activeChanged();
     }
 
-    this->disableCoreEventTrigger();
+    ErrCode errCode = this->disableCoreEventTrigger();
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
+    
     removed();
 
     return OPENDAQ_SUCCESS;
@@ -1186,6 +1193,11 @@ void ComponentImpl<Intf, Intfs...>::triggerCoreEvent(const CoreEventArgsPtr& arg
     {
         const ComponentPtr thisPtr = this->template borrowPtr<ComponentPtr>();
         this->coreEvent(thisPtr, args);
+    }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+        LOG_W("Component {} failed while triggering core event {} with: {}", this->localId, args.getEventName(), e.getErrorMessage());
     }
     catch (const std::exception& e)
     {

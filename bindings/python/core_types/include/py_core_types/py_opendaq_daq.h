@@ -142,7 +142,7 @@ auto convertFrom(daq::IBaseObject* baseObject)
     }
     else
     {
-        daq::checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     return intf;

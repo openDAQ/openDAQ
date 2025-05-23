@@ -23,7 +23,6 @@
 #include <coretypes/exceptions.h>
 #include <coretypes/inspectable.h>
 #include <coretypes/delegate.hpp>
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <string>
@@ -367,10 +366,8 @@ protected:
     template <typename... Params>
     ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, Params... params) const
     {
-        IBaseObject* thisBaseObject;
-        ErrCode err = this->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&thisBaseObject));
-        OPENDAQ_RETURN_IF_FAILED(err);
-
+        IBaseObject* thisBaseObject = nullptr;
+        this->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&thisBaseObject));
         setErrorInfoWithSource(thisBaseObject, message, std::forward<Params>(params)...);
         return errCode;
     }
@@ -385,7 +382,7 @@ protected:
     {
         Interface* thisInterface;
         auto err = this->borrowInterface(Interface::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return T<Interface>::Borrow(thisInterface);
     }
@@ -397,7 +394,7 @@ protected:
 
         Interface* thisInterface;
         auto err = this->borrowInterface(Interface::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return TPtr::Borrow(thisInterface);
     }
@@ -407,7 +404,7 @@ protected:
     {
         Intf* thisInterface;
         auto err = this->queryInterface(Intf::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return thisInterface;
     }
@@ -417,7 +414,7 @@ protected:
     {
         Intf* thisInterface;
         auto err = this->borrowInterface(Intf::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return thisInterface;
     }
@@ -429,7 +426,7 @@ protected:
 
         Interface* thisInterface;
         auto err = this->queryInterface(Interface::Id, reinterpret_cast<void**>(&thisInterface));
-        checkErrorInfo(err);
+        DAQ_CHECK_ERROR_INFO(err);
 
         return thisInterface;
     }

@@ -2,8 +2,8 @@
 
 ## Features
 
+- [#807](https://github.com/openDAQ/openDAQ/pull/807) Improved display of error info stack traces
 - [#788](https://github.com/openDAQ/openDAQ/pull/788) Component property search.
-
 
 ## Python
 

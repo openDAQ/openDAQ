@@ -6,7 +6,6 @@
 #include <coretypes/struct_type_factory.h>
 #include <coretypes/simple_type_factory.h>
 #include <opcuatms/converters/list_conversion_utils.h>
-#include <iostream>
 #include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS

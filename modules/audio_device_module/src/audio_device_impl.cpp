@@ -90,6 +90,11 @@ void AudioDeviceImpl::addData(const void* data, size_t sampleCount)
         channel.asPtr<IAudioChannel>()->addData(domainPacket, data, sampleCount);
         samplesCaptured += sampleCount;
     }
+    catch (const DaqException& e)
+    {
+        LOG_W("addData failed: {}", e.getErrorMessage());
+        throw;
+    }
     catch (const std::exception& e)
     {
         LOG_W("addData failed: {}", e.what());

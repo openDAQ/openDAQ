@@ -355,6 +355,10 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
                 }
             }
         }
+        catch (const DaqException& e)
+        {
+            LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->globalId, e.getErrorMessage());
+        }
         catch (const std::exception& e)
         {
             LOG_W("Failed to read device info attribute on OpcUa client device \"{}\": {}", this->globalId, e.what());
@@ -636,6 +640,10 @@ void TmsClientDeviceImpl::findAndCreateServerCapabilities(const DeviceInfoPtr& d
             else
                 unorderedCaps.emplace_back(capabilityCopy);
         }
+    }
+    catch (const DaqException& e)
+    {
+        LOG_W("Failed to find 'ServerCapabilities' OpcUA node on OpcUA client device \"{}\": {}", this->globalId, e.getErrorMessage());
     }
     catch (const std::exception& e)
     {

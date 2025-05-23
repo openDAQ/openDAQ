@@ -23,14 +23,14 @@ BEGIN_NAMESPACE_OPENDAQ
 inline EvalValuePtr EvalValue(const StringPtr& eval)
 {
     EvalValuePtr obj(EvalValue_Create(eval));
-    checkErrorInfo(obj->getParseErrorCode());
+    DAQ_CHECK_ERROR_INFO(obj->getParseErrorCode());
     return obj;
 }
 
 inline EvalValuePtr EvalValueFunc(const StringPtr& eval, const FunctionPtr& func)
 {
     EvalValuePtr obj(EvalValueFunc_Create(eval, func));
-    checkErrorInfo(obj->getParseErrorCode());
+    DAQ_CHECK_ERROR_INFO(obj->getParseErrorCode());
     return obj;
 }
 
@@ -38,7 +38,7 @@ template <typename... TArgs>
 EvalValuePtr EvalValue(StringPtr eval, TArgs&&... args)
 {
     EvalValuePtr obj(EvalValueArgs_Create(eval, List<IBaseObject>(std::forward<decltype(args)>(args)...)));
-    checkErrorInfo(obj->getParseErrorCode());
+    DAQ_CHECK_ERROR_INFO(obj->getParseErrorCode());
     return obj;
 }
 

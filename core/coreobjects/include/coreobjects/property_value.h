@@ -82,7 +82,7 @@ public:
             daqClearErrorInfo();
             return defaultValue;
         }
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return ptr;
     }
 
@@ -103,7 +103,7 @@ public:
     SmartPtr set(SmartPtr const& value)
     {
         ErrCode errCode = propObj->setPropertyValue(propName, value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return value;
     }
@@ -114,7 +114,7 @@ public:
         propObj->queryInterface(IPropertyObjectProtected::Id, reinterpret_cast<void**>(&protectedObj));
 
         ErrCode errCode = protectedObj->setProtectedPropertyValue(propName, value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return value;
     }
@@ -122,7 +122,7 @@ public:
     void clear() const
     {
         ErrCode errCode = propObj->clearPropertyValue(propName);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     template <typename TInterface, typename TPtr = typename InterfaceToSmartPtr<TInterface>::SmartPtr>
@@ -140,7 +140,7 @@ public:
     SmartPtr operator()(SmartPtr const& value)
     {
         ErrCode errCode = propObj->setPropertyValue(propName, value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return value;
     }
@@ -189,7 +189,7 @@ public:
     PropertyValue& operator=(SmartPtr const& value)
     {
         ErrCode errCode = propObj->setPropertyValue(propName, value);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return *this;
     }
@@ -214,7 +214,7 @@ public:
         SmartPtr value = ptr - 1;
         ErrCode errCode = propObj->setPropertyValue(propName, value);
 
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return *this;
     }
 
@@ -226,7 +226,7 @@ public:
 
         ErrCode errCode = propObj->setPropertyValue(propName, value);
 
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
         return *this;
     }
 
@@ -249,7 +249,7 @@ public:
     PropertyValue& operator=(U const& value)
     {
         ErrCode errCode = propObj->setPropertyValue(propName, Integer(static_cast<EnumType>(value)));
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return *this;
     }
@@ -263,7 +263,7 @@ private:
     {
         ObjectPtr<IBaseObject> ptr;
         ErrCode errCode = propObj->getPropertyValue(propName, &ptr);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return ptr;
     }

@@ -213,7 +213,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
             if (OPENDAQ_FAILED(err))
             {
                 connectionRef.release();
-                return DAQ_MAKE_ERROR_INFO(err);
+                return DAQ_EXTEND_ERROR_INFO(err);
             }
         }
 
@@ -230,10 +230,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
             {
                 events.listenerConnected(connection);
             }
-            catch (const DaqException& e)
+            catch (const NotImplementedException&)
             {
-                if (e.getErrCode() != OPENDAQ_ERR_NOTIMPLEMENTED)
-                    throw;
             }
         }
     }
@@ -270,12 +268,9 @@ void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr
     if (notifySignal)
     {
         const auto signal = connection.getSignal();
-        if (signal.assigned())
-        {
-            const SignalEventsPtr events = signal.asPtrOrNull<ISignalEvents>(true);
-            if (events.assigned())
-                events.listenerDisconnected(connection);
-        }
+        const SignalEventsPtr events = signal.asPtrOrNull<ISignalEvents>(true);
+        if (events.assigned())
+            events.listenerDisconnected(connection);
     }
 
     connection.release();
@@ -360,8 +355,9 @@ ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNo
         notifyMethod = PacketReadyNotification::SameThread;
     }
     else
+    {
         notifyMethod = method;
-
+    }
     return OPENDAQ_SUCCESS;
 }
 
@@ -377,6 +373,10 @@ void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedSameThread()
             {
                 listener.packetReceived(this->template thisInterface<IInputPort>());
             }
+            catch (const DaqException& e)
+            {
+                LOG_E("Input port notification failed: {}", e.getErrorMessage());
+            }
             catch (const std::exception& e)
             {
                 LOG_E("Input port notification failed: {}", e.what());
@@ -389,8 +389,8 @@ template <class... Interfaces>
 void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedScheduler()
 {
     const auto errCode = scheduler->scheduleWork(notifySchedulerCallback);
-    if (OPENDAQ_FAILED(errCode) && (errCode != OPENDAQ_ERR_SCHEDULER_STOPPED))
-        checkErrorInfo(errCode);
+    if (errCode != OPENDAQ_ERR_SCHEDULER_STOPPED)
+        DAQ_CHECK_ERROR_INFO(errCode);
 }
 
 template <class... Interfaces>
@@ -468,6 +468,10 @@ ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications
                 {
                     notify.packetReceived(port);
                 }
+                catch (const DaqException& e)
+                {
+                    LOG_E("Input port notification failed: {}", e.getErrorMessage());
+                }
                 catch (const std::exception& e)
                 {
                     LOG_E("Input port notification failed: {}", e.what());
@@ -530,12 +534,9 @@ void GenericInputPortImpl<Interfaces...>::finishUpdate()
 template <class... Interfaces>
 void GenericInputPortImpl<Interfaces...>::removed()
 {
-    if (customData.assigned())
-    {
-        auto customDataRemovable = customData.asPtrOrNull<IRemovable>();
-        if (customDataRemovable.assigned())
-            customDataRemovable.remove();
-    }
+    auto customDataRemovable = customData.asPtrOrNull<IRemovable>();
+    if (customDataRemovable.assigned())
+        customDataRemovable.remove();
 
     ConnectionPtr connection = getConnectionNoLock();
     connectionRef.release();

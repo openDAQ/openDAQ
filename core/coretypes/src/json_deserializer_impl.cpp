@@ -48,6 +48,10 @@ ErrCode JsonDeserializerImpl::DeserializeTagged(JsonValue& document, IBaseObject
     if (!constructedFromCallbackFactory)
     {
         errCode = daqGetSerializerFactory(typeId.data(), &factory);
+        if (errCode == OPENDAQ_ERR_FACTORY_NOT_REGISTERED)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
+        }
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = factory(jsonSerObj, context, factoryCallback, object);
@@ -189,17 +193,11 @@ ErrCode JsonDeserializerImpl::update(IUpdatable* updatable, IString* serialized,
     SizeT length;
     ErrCode err = serialized->getLength(&length);
 
-    if (!OPENDAQ_SUCCEEDED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     ConstCharPtr ptr;
     err = serialized->getCharPtr(&ptr);
-    if (!OPENDAQ_SUCCEEDED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     std::unique_ptr<char[]> buffer(new(std::nothrow) char[length + 1]);
     if (!buffer)
@@ -234,18 +232,11 @@ ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IStr
 
     SizeT length;
     ErrCode err = serialized->getLength(&length);
-
-    if (!OPENDAQ_SUCCEEDED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     ConstCharPtr ptr;
     err = serialized->getCharPtr(&ptr);
-    if (!OPENDAQ_SUCCEEDED(err))
-    {
-        return err;
-    }
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     std::unique_ptr<char[]> buffer(new(std::nothrow) char[length + 1]);
     if (!buffer)

@@ -49,7 +49,7 @@ ErrCode ValidatorImpl::validate(IBaseObject* propObj, IBaseObject* value)
 
 ErrCode ValidatorImpl::validateNoLock(IBaseObject* propObj, IBaseObject* value)
 {
-        try
+    try
     {
         Bool validated = false;
         this->value = value;

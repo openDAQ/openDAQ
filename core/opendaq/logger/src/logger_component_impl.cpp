@@ -18,7 +18,7 @@ static ILoggerThreadPoolPrivate::ThreadPoolPtr getThreadPool(const LoggerThreadP
 {
     ILoggerThreadPoolPrivate::ThreadPoolPtr threadPoolImpl;
     ErrCode err = threadPool.asPtr<ILoggerThreadPoolPrivate>()->getThreadPoolImpl(&threadPoolImpl);
-    checkErrorInfo(err);
+    DAQ_CHECK_ERROR_INFO(err);
 
     return threadPoolImpl;
 }
@@ -48,10 +48,6 @@ LoggerComponentImpl::LoggerComponentImpl(const StringPtr& name, const ListPtr<IL
     }
     for (const ObjectPtr<ILoggerSink>& sink : sinks)
     {
-        if(!sink.assigned())
-        {
-            DAQ_THROW_EXCEPTION(ArgumentNullException, "Sink must not be null");
-        }
         auto sinkPtr = sink.asPtrOrNull<ILoggerSinkBasePrivate>(true);
         if (sinkPtr == nullptr)
         {

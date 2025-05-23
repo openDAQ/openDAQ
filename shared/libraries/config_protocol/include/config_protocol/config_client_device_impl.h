@@ -253,7 +253,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
         if (this->clientComm->getProtocolVersion() < 12)
             *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
         else
-            checkErrorInfo(Super::getAvailableOperationModes(availableOpModes));   
+            DAQ_CHECK_ERROR_INFO(Super::getAvailableOperationModes(availableOpModes));   
     });
 }
 
@@ -285,7 +285,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
         if (this->clientComm->getProtocolVersion() < 12)
             *modeType = OperationModeTypeFromString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
         else
-            checkErrorInfo(Super::getOperationMode(modeType));   
+            DAQ_CHECK_ERROR_INFO(Super::getOperationMode(modeType));   
     });
 }
 
@@ -453,7 +453,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentAdded(const CoreEventA
 {
     const ComponentPtr comp = args.getParameters().get("Component");
     Bool hasItem{false};
-    checkErrorInfo(TDeviceBase::hasItem(comp.getLocalId(), &hasItem));
+    DAQ_CHECK_ERROR_INFO(TDeviceBase::hasItem(comp.getLocalId(), &hasItem));
     if (!hasItem)
     {
         this->clientComm->connectDomainSignals(comp);
@@ -467,7 +467,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::componentRemoved(const CoreEven
 {
     const StringPtr id = args.getParameters().get("Id");
     Bool hasItem{false};
-    checkErrorInfo(TDeviceBase::hasItem(id, &hasItem));
+    DAQ_CHECK_ERROR_INFO(TDeviceBase::hasItem(id, &hasItem));
     if (hasItem)
         this->removeComponentById(id);
 }
@@ -494,7 +494,7 @@ template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::connectionStatusChanged(const CoreEventArgsPtr& args)
 {
     ComponentStatusContainerPtr connectionStatusContainer;
-    checkErrorInfo(TDeviceBase::getConnectionStatusContainer(&connectionStatusContainer));
+    DAQ_CHECK_ERROR_INFO(TDeviceBase::getConnectionStatusContainer(&connectionStatusContainer));
     const auto parameters = args.getParameters();
     const StringPtr connectionString = parameters.get("ConnectionString");
     const StringPtr statusName = parameters.get("StatusName");

@@ -451,12 +451,12 @@ void MirroredSignalBase<Interfaces...>::onListenedStatusChanged(bool listened)
     if (this->listened)
     {
         if (streamed)
-            checkErrorInfo(subscribeInternal());
+            DAQ_CHECK_ERROR_INFO(subscribeInternal());
     }
     else
     {
         if (streamed)
-            checkErrorInfo(unsubscribeInternal());
+            DAQ_CHECK_ERROR_INFO(unsubscribeInternal());
     }
 }
 
@@ -615,12 +615,9 @@ EventPacketPtr MirroredSignalBase<Interfaces...>::createDataDescriptorChangedEve
             else
             {
                 const SignalPtr domain = this->onGetDomainSignal();
-                if (domain.assigned())
+                if (const auto mirroredDomain = domain.asPtrOrNull<IMirroredSignalPrivate>(); mirroredDomain.assigned())
                 {
-                    if (const auto mirroredDomain = domain.asPtrOrNull<IMirroredSignalPrivate>(); mirroredDomain.assigned())
-                    {
-                        mirroredDomain.setMirroredDataDescriptor(mirroredDomainDataDescriptor);
-                    }
+                    mirroredDomain.setMirroredDataDescriptor(mirroredDomainDataDescriptor);
                 }
             }
         }

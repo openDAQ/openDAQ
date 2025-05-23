@@ -34,7 +34,7 @@ ScalingImpl::ScalingImpl(SampleType inputType, ScaledSampleType outputType, Scal
     , ruleType(ruleType)
     , params(std::move(params))
 {
-    checkErrorInfo(verifyParametersInternal());
+    DAQ_CHECK_ERROR_INFO(verifyParametersInternal());
 
     if (params.supportsInterface<IFreezable>())
         params.freeze();
@@ -55,7 +55,7 @@ ScalingImpl::ScalingImpl(IScalingBuilder* scalingBuilder)
     this->ruleType = builderPtr.getScalingType();
     this->params = builderPtr.getParameters();
 
-    checkErrorInfo(verifyParametersInternal());
+    DAQ_CHECK_ERROR_INFO(verifyParametersInternal());
 
     if (params.supportsInterface<IFreezable>())
         params.freeze();

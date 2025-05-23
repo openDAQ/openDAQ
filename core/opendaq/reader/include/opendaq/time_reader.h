@@ -128,7 +128,7 @@ public:
             DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         auto errCode = this->object->readWithDomain(values, domain, count, timeoutMs, status);
-        daq::checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 };
 
@@ -179,7 +179,7 @@ public:
             DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         auto errCode = this->object->readWithDomain(values, domain, count, status);
-        daq::checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 };
 

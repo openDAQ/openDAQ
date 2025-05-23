@@ -354,6 +354,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
             {
                 ObjectPtr<IErrorInfo> errorInfo;
                 daqGetErrorInfo(&errorInfo);
+                daqClearErrorInfo();
                 StringPtr message;
                 if (errorInfo.assigned())
                     errorInfo->getMessage(&message);
@@ -361,6 +362,11 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
                 const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
                 LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), message.assigned() ? message: "Unknown error");
             }
+        }
+        catch (const DaqException& e)
+        {
+            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+            LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), e.getErrorMessage());
         }
         catch (const std::exception& e)
         {
@@ -504,6 +510,11 @@ void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationObject(const Base
         {
             handleNonComponentEvent(argsPtr);
         }
+        catch([[maybe_unused]] const DaqException& e)
+        {
+            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+            LOG_D("Failed to handle non-component event {}: {}", argsPtr.getEventName(), e.getErrorMessage());
+        }
         catch([[maybe_unused]] const std::exception& e)
         {
             const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
@@ -538,7 +549,7 @@ template<class TRootDeviceImpl>
 CoreEventArgsPtr ConfigProtocolClient<TRootDeviceImpl>::unpackCoreEvents(const CoreEventArgsPtr& args)
 {
     BaseObjectPtr cloned;
-    checkErrorInfo(args.getParameters().asPtr<ICloneable>()->clone(&cloned));
+    DAQ_CHECK_ERROR_INFO(args.getParameters().asPtr<ICloneable>()->clone(&cloned));
     DictPtr<IString, IBaseObject> dict = cloned;
 
     if (dict.hasKey("Signal"))

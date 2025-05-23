@@ -96,6 +96,7 @@ TEST_F(LoggerComponentTest, GetNameNull)
 {
     auto testLoggerComponent = LoggerComponent("test");
     ASSERT_EQ(testLoggerComponent->getName(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerComponentTest, SetPattern)
@@ -108,6 +109,7 @@ TEST_F(LoggerComponentTest, SetPatternNull)
 {
     auto loggerComponent = LoggerComponent("test");
     ASSERT_EQ(loggerComponent->setPattern(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerComponentTest, SimpleLog)
@@ -201,6 +203,7 @@ TEST_F(LoggerComponentTest, GetLevelNull)
     auto loggerComponent = LoggerComponent("test");
 
     ASSERT_EQ(loggerComponent->getLevel(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(LoggerComponentTest, SetLevel)
@@ -244,6 +247,7 @@ TEST_F(LoggerComponentTest, ShouldLogNullOutput)
     ErrCode err = loggerComponent->shouldLog(LogLevel::Critical, nullptr);
 
     ASSERT_EQ(err, OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 // Log levels tests

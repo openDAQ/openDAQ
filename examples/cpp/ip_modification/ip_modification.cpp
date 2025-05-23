@@ -17,6 +17,10 @@ void retrieveIpConfiguration(const daq::NetworkInterfacePtr& iface)
                   << "\n- gateway6: " << config.getPropertyValue("gateway6")
                   << std::endl;
     }
+    catch (const daq::DaqException& e)
+    {
+        std::cout << "Error: " << e.getErrorMessage() << std::endl;
+    }
     catch (const std::exception& e)
     {
         std::cout << "Error: " << e.what() << std::endl;
@@ -49,6 +53,11 @@ int main(int /*argc*/, const char* /*argv*/[])
             {
                 std::cout << "Device " << deviceInfo.getConnectionString() << " submitting new IP config..." << std::endl;
                 deviceInfo.getNetworkInterface("enp0s3").submitConfiguration(config);
+            }
+            catch (const DaqException& e)
+            {
+                std::cout << "Error: " << e.getErrorMessage() << std::endl;
+                return 0;
             }
             catch (const std::exception& e)
             {

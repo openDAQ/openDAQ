@@ -160,9 +160,8 @@ ErrCode GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::cl
 }
 
 template <class MainInterface, class... Interfaces>
-ErrCode INTERFACE_FUNC GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::queryInterface(
-    const IntfID& intfID,
-    void** obj)
+ErrCode INTERFACE_FUNC GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::queryInterface(const IntfID& intfID,
+                                                                                                            void** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
@@ -176,9 +175,8 @@ ErrCode INTERFACE_FUNC GenericComponentDeserializeContextImpl<MainInterface, Int
 }
 
 template <class MainInterface, class... Interfaces>
-ErrCode INTERFACE_FUNC GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::borrowInterface(
-    const IntfID& intfID,
-    void** obj) const
+ErrCode INTERFACE_FUNC GenericComponentDeserializeContextImpl<MainInterface, Interfaces...>::borrowInterface(const IntfID& intfID,
+                                                                                                             void** obj) const
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 

@@ -41,10 +41,6 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /*factoryCallback*/, IBaseObject** obj);
 
-    // IBaseObject
-    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
-    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
-
 protected:
     StringPtr referenceDomainId;
     IntegerPtr referenceDomainOffset;

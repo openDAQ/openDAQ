@@ -457,35 +457,6 @@ ErrCode ConnectionImpl::isRemote(Bool* remote)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ConnectionImpl::queryInterface(const IntfID& id, void** intf)
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IConnection::Id)
-    {
-        *intf = static_cast<IConnection*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::queryInterface(id, intf);
-}
-
-ErrCode ConnectionImpl::borrowInterface(const IntfID& id, void** intf) const
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IConnection::Id)
-    {
-        *intf = const_cast<IConnection*>(static_cast<const IConnection*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::borrowInterface(id, intf);
-}
-
 ErrCode ConnectionImpl::getSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);

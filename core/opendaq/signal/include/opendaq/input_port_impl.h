@@ -79,10 +79,6 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
-    // IBaseObject
-    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
-    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
-
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -576,37 +572,6 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::getSerializeId(Const
     *id = SerializeId();
 
     return OPENDAQ_SUCCESS;
-}
-
-template <class... Interfaces>
-ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::queryInterface(const IntfID& id, void** intf)
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IInputPort::Id)
-    {
-        *intf = static_cast<IInputPort*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::queryInterface(id, intf);
-}
-
-template <class... Interfaces>
-ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::borrowInterface(const IntfID& id, void** intf) const
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IInputPort::Id)
-    {
-        *intf = const_cast<IInputPort*>(static_cast<const IInputPort*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::borrowInterface(id, intf);
 }
 
 template <class... Interfaces>

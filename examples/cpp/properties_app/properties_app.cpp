@@ -198,9 +198,27 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Property visibility depending on Referenced Bool
     fb.setPropertyValue("SometimeVisible", true);
 
+    // Stubborn Int
+    fb.setPropertyValue("StubbornInt", 41);  // Will actually set the value to 43, due to getOnPropertyValueWrite callback in module
+
     // Print after modifications
     std::cout << "\nAfter modifications:\n";
     print(fb);
+
+    // Register callback for single property read
+    auto boolProp = fb.getProperty("Bool");
+    fb.getOnPropertyValueRead("Bool") +=
+        [](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& /*args*/) { std::cout << "Bool read\n"; };
+
+    // Register callback for any property read/writes
+    fb.getOnAnyPropertyValueRead() +=
+        [](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& /*args*/) { std::cout << "Something read\n"; };
+    fb.getOnAnyPropertyValueWrite() +=
+        [](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& /*args*/) { std::cout << "Something written\n"; };
+
+    // Test the previously registered callbacks
+    auto dummy = fb.getPropertyValue("Bool");
+    fb.setPropertyValue("Int", 3);
 
     // Gracefully exit
     std::cout << "Press \"enter\" to exit the application...\n";

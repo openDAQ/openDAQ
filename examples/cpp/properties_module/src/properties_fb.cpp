@@ -13,13 +13,13 @@ PropertiesFb::PropertiesFb(const ContextPtr& ctx, const ComponentPtr& par, const
 void PropertiesFb::initProperties()
 {
     // Bool
-    auto boolProp = BoolPropertyBuilder("Bool", False).setDescription("A very nice boolean").build();  //  description is optional
+    auto boolProp = BoolPropertyBuilder("Bool", False).setDescription("A very nice boolean").build();  //  Description is optional
     objPtr.addProperty(boolProp);
     objPtr.getOnPropertyValueWrite("Bool") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "Bool changed to: " << args.getValue() << "\n"; };
 
     // Int
-    auto intProp = IntPropertyBuilder("Int", 42).setUnit(Unit("Unit")).build();  // unit is optional
+    auto intProp = IntPropertyBuilder("Int", 42).setUnit(Unit("Unit")).build();  // Unit is optional
     objPtr.addProperty(intProp);
     objPtr.getOnPropertyValueWrite("Int") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "Int changed to: " << args.getValue() << "\n"; };
@@ -143,6 +143,15 @@ void PropertiesFb::initProperties()
     objPtr.addProperty(otherVisible);
     objPtr.getOnPropertyValueWrite("OtherVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "OtherVisible changed to: " << args.getValue() << "\n"; };
+
+    // Stubborn Int
+    auto stubbornProp = IntProperty("StubbornInt", 42);
+    objPtr.addProperty(stubbornProp);
+    objPtr.getOnPropertyValueWrite("StubbornInt") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    {
+        args.setValue(43);  // This will set the value to 43, even if the user tries to set it to something else
+        std::cout << "StubbornInt changed to: " << args.getValue() << "\n";
+    };
 
     // Property visibility depending on referenced Property
     auto sometimeVisibleProperty = BoolPropertyBuilder("SometimeVisible", False)

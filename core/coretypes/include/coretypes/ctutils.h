@@ -342,7 +342,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode extendErrorInfo(ErrCode /* errCode */, IBaseObject* source, ErrCode errCode, const std::string& message, Params... params)
     {
-        return extendErrorInfo(errCode, source, message, params);
+        return extendErrorInfo(errCode, source, message, std::forward<Params>(params)...);
     }
 
     template <typename... Params>

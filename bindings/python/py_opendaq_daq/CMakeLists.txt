@@ -12,6 +12,11 @@ target_link_libraries(${LIB_NAME}
         daq::py_opendaq
 )
 
+set_target_properties(py_core_types PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
+
 set_target_properties(${LIB_NAME}
     PROPERTIES
         OUTPUT_NAME "opendaq"

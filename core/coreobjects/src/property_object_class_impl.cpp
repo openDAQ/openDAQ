@@ -395,7 +395,7 @@ ErrCode PropertyObjectClassImpl::clone(IPropertyObjectClass** cloned, ITypeManag
         if (!managerPtr.assigned())
             managerPtr = this->manager.getRef();
 
-        auto builder = PropertyObjectClassBuilder(this->name, managerPtr);
+        auto builder = PropertyObjectClassBuilder(managerPtr, this->name);
         builder.setParentName(this->parent);
 
         for (const auto& [_, prop] : this->props)

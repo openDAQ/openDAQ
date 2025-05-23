@@ -185,15 +185,15 @@ class BlockView(ttk.Frame):
         self.change_status()
 
     def change_status(self):
-        color = utils.StatusColor.NOT_SET.value
+        color = utils.StatusColor.NOT_SET
         try:
             status = self.node.status_container.get_status('ComponentStatus')
             if status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Ok'), self.node.context.type_manager):
-                color = utils.StatusColor.OK.value
+                color = utils.StatusColor.OK
             elif status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Warning'), self.node.context.type_manager):
-                color = utils.StatusColor.WARNING.value
+                color = utils.StatusColor.WARNING
             elif status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Error'), self.node.context.type_manager):
-                color = utils.StatusColor.ERROR.value
+                color = utils.StatusColor.ERROR
             message = self.node.status_container.get_status_message('ComponentStatus')
             if status and message and message != '':
                 self.status_message.config(text='Status: ' + str(status) + ' Message: ' + message)

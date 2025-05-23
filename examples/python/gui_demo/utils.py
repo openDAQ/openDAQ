@@ -16,7 +16,7 @@ yes_no_inv = {
     'yes': True
 }
 
-class StatusColor(enum.Enum):
+class StatusColor(enum.StrEnum):
     OK = 'olive drab'
     WARNING = 'orange'
     ERROR = 'red'

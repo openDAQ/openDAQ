@@ -220,8 +220,8 @@ class App(tk.Tk):
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
-        tree.tag_configure('warning', foreground=utils.StatusColor.WARNING.value)
-        tree.tag_configure('error', foreground=utils.StatusColor.ERROR.value)
+        tree.tag_configure('warning', foreground=utils.StatusColor.WARNING)
+        tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         self.tree = tree
 
     def tree_update(self, new_selected_node=None):

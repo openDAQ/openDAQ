@@ -13,13 +13,13 @@ PropertiesFb::PropertiesFb(const ContextPtr& ctx, const ComponentPtr& par, const
 void PropertiesFb::initProperties()
 {
     // Bool
-    auto boolProp = BoolProperty("Bool", False);
+    auto boolProp = BoolPropertyBuilder("Bool", False).setDescription("A very nice boolean").build();  //  description is optional
     objPtr.addProperty(boolProp);
     objPtr.getOnPropertyValueWrite("Bool") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "Bool changed to: " << args.getValue() << "\n"; };
 
     // Int
-    auto intProp = IntProperty("Int", 42);
+    auto intProp = IntPropertyBuilder("Int", 42).setUnit(Unit("Unit")).build();  // unit is optional
     objPtr.addProperty(intProp);
     objPtr.getOnPropertyValueWrite("Int") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "Int changed to: " << args.getValue() << "\n"; };

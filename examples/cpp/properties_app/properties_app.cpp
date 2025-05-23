@@ -8,10 +8,59 @@
 
 using namespace daq;
 
+StringPtr coreTypeToString(CoreType coreType)
+{
+    switch (coreType)
+    {
+        case ctBool:
+            return "Bool";
+        case ctInt:
+            return "Int";
+        case ctFloat:
+            return "Float";
+        case ctString:
+            return "String";
+        case ctList:
+            return "List";
+        case ctDict:
+            return "Dict";
+        case ctRatio:
+            return "Ratio";
+        case ctProc:
+            return "Proc";
+        case ctObject:
+            return "Object";
+        case ctBinaryData:
+            return "BinaryData";
+        case ctFunc:
+            return "Func";
+        case ctComplexNumber:
+            return "ComplexNumber";
+        case ctStruct:
+            return "Struct";
+        case ctEnumeration:
+            return "Enumeration";
+        case ctUndefined:
+            return "Undefined";
+    }
+    return "Undefined";
+}
+
+void printMetadata(BaseObjectPtr obj, StringPtr name, size_t indent)
+{
+    std::cout << std::string(indent * 2, ' ') << name << ": " << obj << "\n";
+}
+
 void printProperty(PropertyPtr property, size_t indent = 0)
 {
-    std::cout << std::string(indent * 2, ' ');
-    std::cout << "Property: " << property.getName() << " Visible: " << Boolean(property.getVisible()) << "\n";
+    printMetadata(property.getName(), "Name", indent);
+    printMetadata(property.getDescription(), "Description", indent + 1);
+    printMetadata(coreTypeToString(property.getValueType()), "Value Type", indent + 1);
+    printMetadata(property.getDefaultValue(), "Default Value", indent + 1);
+    printMetadata(Boolean(property.getReadOnly()), "Read Only", indent + 1);
+    printMetadata(Boolean(property.getVisible()), "Visible", indent + 1);
+    printMetadata(property.getUnit(), "Unit", indent + 1);
+
     auto propObj = property.getValue().asPtrOrNull<IPropertyObject>();
     auto dictObj = property.getValue().asPtrOrNull<IDict>();
     if (propObj.assigned())
@@ -25,12 +74,12 @@ void printProperty(PropertyPtr property, size_t indent = 0)
     {
         for (const auto& [key, value] : dictObj)
         {
-            std::cout << "  Key:" << key << " Value: " << value << "\n";
+            std::cout << std::string(indent * 2, ' ') << "↳ Key:" << key << " Value: " << value << "\n";
         }
     }
     else
     {
-        std::cout << "  Value: " << property.getValue() << "\n";
+        std::cout << std::string(indent * 2, ' ') << "↳ Value: " << property.getValue() << "\n";
     }
 }
 

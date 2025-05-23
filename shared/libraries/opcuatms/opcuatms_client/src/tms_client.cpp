@@ -9,8 +9,6 @@
 #include <open62541/types_daqdevice_generated.h>
 #include <open62541/types_daqesp_generated.h>
 #include <open62541/types_daqhbk_generated.h>
-
-#include <iostream>
 #include <opcuatms_client/tms_attribute_collector.h>
 #include <opcuatms_client/objects/tms_client_device_factory.h>
 

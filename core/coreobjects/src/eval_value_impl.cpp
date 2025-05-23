@@ -110,7 +110,10 @@ void EvalValueImpl::onCreate()
     ConstCharPtr s;
     parseErrCode = eval->getCharPtr(&s);
     if (OPENDAQ_FAILED(parseErrCode))
+    {
+        daqClearErrorInfo();
         return;
+    }
 
     bool parsed = parseEvalValue(s, &params);
     resolveStatus = ResolveStatus::Unresolved;
@@ -243,7 +246,8 @@ int EvalValueImpl::resolveReferences(bool lock)
 
 ErrCode EvalValueImpl::checkParseAndResolve(bool lock)
 {
-    OPENDAQ_RETURN_IF_FAILED(parseErrCode);
+    if (OPENDAQ_FAILED(parseErrCode))
+        return DAQ_MAKE_ERROR_INFO(parseErrCode, parseErrMessage);
     int r = resolveReferences(lock);
     if (r != 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_RESOLVEFAILED);
@@ -850,7 +854,8 @@ ErrCode EvalValueImpl::cloneWithOwner(IPropertyObject* newOwner, IEvalValue** cl
 
 ErrCode EvalValueImpl::getParseErrorCode()
 {
-    OPENDAQ_RETURN_IF_FAILED(parseErrCode, parseErrMessage);
+    if (OPENDAQ_FAILED(parseErrCode))
+        return DAQ_MAKE_ERROR_INFO(parseErrCode, parseErrMessage);
     return OPENDAQ_SUCCESS;
 }
 
@@ -859,7 +864,8 @@ ErrCode EvalValueImpl::getPropertyReferences(IList** propertyReferences)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyReferences);
 
-    OPENDAQ_RETURN_IF_FAILED(parseErrCode, parseErrMessage);
+    if (OPENDAQ_FAILED(parseErrCode))
+        return DAQ_MAKE_ERROR_INFO(parseErrCode, parseErrMessage);
 
     if (this->propertyReferences)
     {

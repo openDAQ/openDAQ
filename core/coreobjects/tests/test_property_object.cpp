@@ -17,7 +17,6 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/listobject_factory.h>
-#include <thread>
 
 using namespace daq;
 
@@ -113,8 +112,10 @@ protected:
         objManager.removeType("BaseClass");
         objManager.removeType("Test");
 
-        objManager->removeType(String("Parent"));
-        objManager->removeType(String("Base"));
+        if (objManager.hasType("Parent"))
+            objManager.removeType("Parent");
+        if (objManager.hasType("Base"))
+            objManager.removeType("Base");
 
         propValue.release();
         propName.release();
@@ -438,6 +439,7 @@ TEST_F(PropertyObjectTest, EnumVisiblePropertyListNull)
     ErrCode errCode = propObj->getVisibleProperties(nullptr);
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 TEST_F(PropertyObjectTest, EnumVisiblePropertyWhenClassNull)
@@ -694,17 +696,6 @@ TEST_F(PropertyObjectTest, DISABLED_DictPropInvalidItemType)
     auto dict = Dict<IInteger, IInteger>();
     dict.set(1, 2);
     ASSERT_THROW(propObj.setPropertyValue("DictProp", dict), InvalidTypeException);
-}
-
-TEST_F(PropertyObjectTest, SquareBracketOperator)
-{
-    /*  auto propObj = PropertyObject(objManager, "Test");
-        propObj.setPropertyValue("Value", 1);
-        int a = propObj["Value"];
-        1 == propObj["Value"];*/
-
-    //  propObj["Values1"] = 2;
-    //  ASSERT_EQ(propObj["Value"], 1);
 }
 
 TEST_F(PropertyObjectTest, ChildPropSet)
@@ -1397,6 +1388,7 @@ TEST_F(PropertyObjectTest, PropertyValidateFailedEvalValue)
     
     ErrCode err = obj->setPropertyValue(String(propertyName), Floating(10.2));
     ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+    daqClearErrorInfo();
 
     ASSERT_THROW(obj.setPropertyValue(propertyName, 10.2), ValidateFailedException);
 }
@@ -1428,6 +1420,7 @@ TEST_F(PropertyObjectTest, PropertyWriteValidateEvalValueMultipleTimes)
 
     err = obj->setPropertyValue(String(propertyName), Floating(5.0));
     ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+    daqClearErrorInfo();
     ASSERT_THROW(obj.setPropertyValue(propertyName, 5), ValidateFailedException);
 }
 

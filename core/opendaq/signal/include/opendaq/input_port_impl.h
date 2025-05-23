@@ -389,7 +389,7 @@ template <class... Interfaces>
 void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedScheduler()
 {
     const auto errCode = scheduler->scheduleWork(notifySchedulerCallback);
-    if (OPENDAQ_FAILED(errCode) && (errCode != OPENDAQ_ERR_SCHEDULER_STOPPED))
+    if (errCode != OPENDAQ_ERR_SCHEDULER_STOPPED)
         DAQ_CHECK_ERROR_INFO(errCode);
 }
 

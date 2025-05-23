@@ -523,7 +523,8 @@ TEST_F(DictObjectTest, DeserializeKeyErrorJson)
 
     IDict* deserializedDict = nullptr;
     ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
-    ASSERT_NE(errCode, OPENDAQ_SUCCESS);
+    ASSERT_TRUE(OPENDAQ_FAILED(errCode));
+    daqClearErrorInfo();
 }
 
 TEST_F(DictObjectTest, DeserializeValueErrorJson)
@@ -533,7 +534,8 @@ TEST_F(DictObjectTest, DeserializeValueErrorJson)
 
     IDict* deserializedDict = nullptr;
     ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
-    ASSERT_NE(errCode, OPENDAQ_SUCCESS);
+    ASSERT_TRUE(OPENDAQ_FAILED(errCode));
+    daqClearErrorInfo();
 }
 
 TEST_F(DictObjectTest, CoreType)

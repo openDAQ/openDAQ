@@ -48,6 +48,10 @@ ErrCode JsonDeserializerImpl::DeserializeTagged(JsonValue& document, IBaseObject
     if (!constructedFromCallbackFactory)
     {
         errCode = daqGetSerializerFactory(typeId.data(), &factory);
+        if (errCode == OPENDAQ_ERR_FACTORY_NOT_REGISTERED)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
+        }
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = factory(jsonSerObj, context, factoryCallback, object);

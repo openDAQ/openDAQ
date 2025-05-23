@@ -32,6 +32,7 @@ TEST_F(BaseObjectTest, CreateNullParam)
 {
     ErrCode res = createBaseObject(nullptr);
     ASSERT_EQ(res, OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 }
 
 static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IBaseObject", "daq");
@@ -138,6 +139,7 @@ TEST_F(BaseObjectTest, ToString)
     daqFreeMemory(str);
 
     ASSERT_EQ(baseObject->toString(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
     ASSERT_EQ(baseObject->releaseRef(), 0);
 }
 
@@ -160,6 +162,7 @@ TEST_F(BaseObjectTest, QueryInterface)
     createBaseObject(&baseObject1);
 
     ASSERT_EQ(baseObject1->queryInterface(IBaseObject::Id, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 
     IBaseObject* baseObject2;
     ASSERT_EQ(baseObject1->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject2)), OPENDAQ_SUCCESS);
@@ -183,6 +186,7 @@ TEST_F(BaseObjectTest, BorrowInterface)
     createBaseObject(&baseObject1);
 
     ASSERT_EQ(baseObject1->borrowInterface(IBaseObject::Id, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
 
     IBaseObject* baseObject2;
     ASSERT_EQ(baseObject1->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject2)), OPENDAQ_SUCCESS);

@@ -26,7 +26,6 @@
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
 #include <opendaq/folder_ptr.h>
-#include <mutex>
 #include <opendaq/component_keys.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/custom_log.h>
@@ -798,7 +797,10 @@ ErrCode ComponentImpl<Intf, Intfs ...>::remove()
         activeChanged();
     }
 
-    this->disableCoreEventTrigger();
+    ErrCode errCode = this->disableCoreEventTrigger();
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
+    
     removed();
 
     return OPENDAQ_SUCCESS;

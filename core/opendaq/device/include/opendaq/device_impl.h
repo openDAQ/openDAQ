@@ -40,7 +40,6 @@
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/component_update_context_ptr.h>
 #include <set>
-#include <optional>
 #include <coreobjects/user_internal_ptr.h>
 #include <opendaq/device_private_ptr.h>
 #include <opendaq/user_lock_factory.h>
@@ -373,8 +372,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 
         if (OPENDAQ_FAILED(status))
         {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo);
+            if (errorInfo.assigned())
+                daqClearErrorInfo();
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
             OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            if (errorInfo.assigned())
+                daqSetErrorInfo(errorInfo);
             return DAQ_EXTEND_ERROR_INFO(status);
         }
     }
@@ -411,8 +416,15 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
 
         if (OPENDAQ_FAILED(status))
         {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo);
+            if (errorInfo.assigned())
+                daqClearErrorInfo();
+            
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
             OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            if (errorInfo.assigned())
+                daqSetErrorInfo(errorInfo);
             return DAQ_EXTEND_ERROR_INFO(status);
         }
     }

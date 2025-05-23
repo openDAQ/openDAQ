@@ -1643,10 +1643,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
         const auto propInternal = property.asPtr<IPropertyInternal>();
         res = propInternal->getDefaultValueNoLock(&value);
 
-        if (OPENDAQ_FAILED(res) || !value.assigned())
+        if (OPENDAQ_FAILED(res))
         {
             value = nullptr;
             daqClearErrorInfo();
+        }
+
+        if (!value.assigned())
+        {
             return OPENDAQ_SUCCESS;
         }
 
@@ -1745,10 +1749,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
             {
                 BaseObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
-                if (OPENDAQ_FAILED(err) || !obj.assigned())
-                    continue;
+                if (OPENDAQ_FAILED(err))
+                    daqClearErrorInfo();
 
-                this->propValues.insert(std::make_pair(val.first, obj));
+                if (obj.assigned())
+                    this->propValues.insert(std::make_pair(val.first, obj));
             }
         }
         else if (ct == ctObject)
@@ -1757,7 +1762,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
             {
                 PropertyObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
-                if (OPENDAQ_FAILED(err) || !obj.assigned())
+                if (OPENDAQ_FAILED(err))
+                    daqClearErrorInfo();
+                if (!obj.assigned())
                     continue;
 
                 auto it = this->propValues.find(val.first);
@@ -1983,17 +1990,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
 
         if (isChildProperty(propName))
         {
-            getProperty(propName, &prop);
-            if (!prop.assigned())
-                DAQ_THROW_EXCEPTION(NotFoundException, R"(Selection property "{}" not found)", propName);
-
+            ErrCode errCode = getProperty(propName, &prop);
+            OPENDAQ_RETURN_IF_FAILED(errCode, OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Selection property "{}" not found)", propName));
             valuePtr = prop.getValue();
         }
         else
         {
-            getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
-            if (!prop.assigned())
-                DAQ_THROW_EXCEPTION(NotFoundException, R"(Selection property "{}" not found)", propName);
+            ErrCode errCode = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+            OPENDAQ_RETURN_IF_FAILED(errCode, OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Selection property "{}" not found)", propName));
         }
 
         const auto propInternal = prop.asPtr<IPropertyInternal>();

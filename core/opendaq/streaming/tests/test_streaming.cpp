@@ -408,14 +408,22 @@ TEST_P(DirectSubscriptionTest, InvalidParameters)
     auto domainSignal = createAndAddSignal("DomainSignal");
 
     ASSERT_EQ(streamingPrivate->subscribeSignal(nullptr, domainSignal.getRemoteId()), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
     ASSERT_EQ(streamingPrivate->subscribeSignal(signal.getRemoteId(), signal.getRemoteId()), OPENDAQ_ERR_INVALIDPARAMETER);
+    daqClearErrorInfo();
     ASSERT_EQ(streamingPrivate->subscribeSignal("OtherSignalId", nullptr), OPENDAQ_ERR_NOTFOUND);
+    daqClearErrorInfo();
     ASSERT_EQ(streamingPrivate->subscribeSignal(signal.getRemoteId(), "OtherSignalId"), OPENDAQ_ERR_NOTFOUND);
+    daqClearErrorInfo();
 
     ASSERT_EQ(streamingPrivate->unsubscribeSignal(nullptr, domainSignal.getRemoteId()), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
     ASSERT_EQ(streamingPrivate->unsubscribeSignal(signal.getRemoteId(), signal.getRemoteId()), OPENDAQ_ERR_INVALIDPARAMETER);
+    daqClearErrorInfo();
     ASSERT_EQ(streamingPrivate->unsubscribeSignal("OtherSignalId", nullptr), OPENDAQ_ERR_NOTFOUND);
+    daqClearErrorInfo();
     ASSERT_EQ(streamingPrivate->unsubscribeSignal(signal.getRemoteId(), "OtherSignalId"), OPENDAQ_ERR_NOTFOUND);
+    daqClearErrorInfo();
 }
 
 TEST_P(DirectSubscriptionTest, InvalidState)

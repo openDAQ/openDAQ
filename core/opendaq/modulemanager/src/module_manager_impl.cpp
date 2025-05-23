@@ -21,7 +21,6 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
-#include <optional>
 #include <map>
 #include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
@@ -1043,8 +1042,10 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
 
     DictPtr<IString, IDeviceType> types;
     const ErrCode err = module->getAvailableDeviceTypes(&types);
-    if (err != OPENDAQ_ERR_NOTIMPLEMENTED && OPENDAQ_FAILED(err))
-        throwExceptionFromErrorCode(err);
+    if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
+       daqClearErrorInfo();
+    else
+        DAQ_CHECK_ERROR_INFO(err);
 
     if (!types.assigned())
         return nullptr;
@@ -1651,6 +1652,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
         ErrCode errCode = checkDeps(&errMsg);
         if (OPENDAQ_FAILED(errCode))
         {
+            daqClearErrorInfo();
             LOG_T("Failed to check dependencies for \"{}\".", relativePath);
 
             DAQ_THROW_EXCEPTION(ModuleIncompatibleDependenciesException,
@@ -1678,6 +1680,7 @@ ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::pa
     ErrCode errCode = factory(&module, context);
     if (OPENDAQ_FAILED(errCode))
     {
+        daqClearErrorInfo();
         LOG_T("Failed creating module from \"{}\".", relativePath);
 
         DAQ_THROW_EXCEPTION(ModuleEntryPointFailedException, "Library \"{}\" failed to create a Module.", relativePath);

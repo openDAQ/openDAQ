@@ -400,14 +400,19 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
 
 #define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode, ...)                  \
     do {                                                                                \
-        if ((errCode) == (expectedErrCode))                                             \
+        const ErrCode errCode_ = (errCode);                                             \
+        if ((errCode_) == (expectedErrCode))                                            \
             daqClearErrorInfo();                                                        \
-        else if (OPENDAQ_FAILED(errCode))                                               \
-            return DAQ_EXTEND_ERROR_INFO(errCode, ##__VA_ARGS__);   \
+        else if (OPENDAQ_FAILED(errCode_))                                              \
+            return DAQ_EXTEND_ERROR_INFO(errCode_, ##__VA_ARGS__);                      \
     } while (0)
 
-#define OPENDAQ_RETURN_IF_FAILED(errCode, ...) \
-    do { if (OPENDAQ_FAILED(errCode)) return DAQ_EXTEND_ERROR_INFO(errCode, ##__VA_ARGS__); } while (0)
+#define OPENDAQ_RETURN_IF_FAILED(errCode, ...)                                          \
+    do {                                                                                \
+        const ErrCode errCode_ = (errCode);                                             \
+        if (OPENDAQ_FAILED(errCode_))                                                   \
+            return DAQ_EXTEND_ERROR_INFO(errCode_, ##__VA_ARGS__);                      \
+    } while (0)
 
 #define OPENDAQ_PARAM_REQUIRE(cond) \
     do { if (!(cond)) return OPENDAQ_ERR_INVALIDPARAMETER; } while (0)

@@ -1274,6 +1274,8 @@ void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPac
     lastRawDataValue.resize(lastDataDescriptor.getSampleSize());
     void* rawValue = lastRawDataValue.data();
     const ErrCode errCode = packet->getRawLastValue(&rawValue);
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
     if (errCode != OPENDAQ_SUCCESS)
         lastDataDescriptor = nullptr;
 }

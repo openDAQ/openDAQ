@@ -1,8 +1,6 @@
 #ifndef __WIN_BCRYPT__H
 #define __WIN_BCRYPT__H
 
-#include <iostream>
-
 #include "crypt_blowfish.h"
 #include "./bcrypt.h"
 

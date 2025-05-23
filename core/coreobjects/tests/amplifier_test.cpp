@@ -763,15 +763,9 @@ TEST_F(STGAmplifierTest, Deserialize)
     auto deserializer = JsonDeserializer();
 
     BaseObjectPtr deserialized;
-    deserializer->deserialize(str, objManager, nullptr, &deserialized);
-
-    /*    ASSERT_FALSE(OPENDAQ_FAILED(errCode));
-
-        serializer.reset();
-        deserialized.serialize(serializer);
-
-        StringPtr str2 = serializer.toString();
-    */
+    ErrCode errCode = deserializer->deserialize(str, objManager, nullptr, &deserialized);
+    ASSERT_EQ(errCode, OPENDAQ_ERR_ALREADYEXISTS);
+    daqClearErrorInfo();
 }
 
 TEST_F(STGAmplifierTest, GetRefPropAfterChange)

@@ -354,6 +354,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
             {
                 ObjectPtr<IErrorInfo> errorInfo;
                 daqGetErrorInfo(&errorInfo);
+                daqClearErrorInfo();
                 StringPtr message;
                 if (errorInfo.assigned())
                     errorInfo->getMessage(&message);

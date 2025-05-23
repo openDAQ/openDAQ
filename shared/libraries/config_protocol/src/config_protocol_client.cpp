@@ -477,7 +477,9 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
     if (OPENDAQ_FAILED(errCode))
     {
         std::string msg = reply.getOrDefault("ErrorMessage", "");
-        throwExceptionFromErrorCode(errCode, msg);
+        if (!msg.empty())
+            DAQ_EXTEND_ERROR_INFO(errCode, msg);
+        DAQ_CHECK_ERROR_INFO(errCode);
     }
 
     return reply.getOrDefault("ReturnValue");

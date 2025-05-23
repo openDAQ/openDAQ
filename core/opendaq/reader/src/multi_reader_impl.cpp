@@ -13,7 +13,6 @@
 #include <fmt/ostream.h>
 #include <set>
 #include <chrono>
-#include <thread>
 #include <optional>
 
 using namespace std::chrono;
@@ -851,6 +850,7 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             ErrCode errCode = synchronize(availableSamples, syncStatus);
             if (OPENDAQ_FAILED(errCode))
             {
+                daqClearErrorInfo();
                 status = createReaderStatus();
                 return true;
             }
@@ -910,6 +910,8 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         ErrCode errCode = synchronize(availableSamples, syncStatus);
         if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
         {
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo();
             return createReaderStatus(eventPackets);
         }
 

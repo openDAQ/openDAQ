@@ -71,6 +71,7 @@ TEST_F(PropertyObjectClassManagerTest, FindNonExistentClass)
 {
     IType* propertyObjectClass;
     ASSERT_EQ(manager->getType(StringPtr("Test1"), &propertyObjectClass), OPENDAQ_ERR_NOTFOUND);
+    daqClearErrorInfo();
 }
 
 TEST_F(PropertyObjectClassManagerTest, ClassList)

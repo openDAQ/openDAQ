@@ -32,7 +32,6 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <coretypes/validation.h>
-#include <iostream>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
@@ -129,8 +128,7 @@ public:
         this->valueType = ctBool;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // IntProperty()
@@ -140,8 +138,7 @@ public:
         this->valueType = ctInt;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // FloatProperty()
@@ -151,8 +148,7 @@ public:
         this->valueType = ctFloat;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // StringProperty()
@@ -162,8 +158,7 @@ public:
         this->valueType = ctString;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // ListProperty()
@@ -173,8 +168,7 @@ public:
         this->valueType = ctList;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // DictProperty()
@@ -184,8 +178,7 @@ public:
         this->valueType = ctDict;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // RatioProperty()
@@ -195,8 +188,7 @@ public:
         this->valueType = ctRatio;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // ObjectProperty()
@@ -209,8 +201,7 @@ public:
             this->defaultValue = PropertyObject().detach();
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // FunctionProperty()
@@ -232,8 +223,7 @@ public:
         }
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // ReferenceProperty()
@@ -243,8 +233,7 @@ public:
         this->refProp = referencedProperty;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // SelectionProperty()
@@ -255,8 +244,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // SparseSelectionProperty()
@@ -267,8 +255,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // StructProperty()
@@ -279,8 +266,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     // EnumerationProperty()
@@ -291,8 +277,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        DAQ_CHECK_ERROR_INFO(err);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override

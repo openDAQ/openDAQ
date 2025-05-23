@@ -366,6 +366,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
             ErrCode errCode = readPacketData();
             if (OPENDAQ_FAILED(errCode))
             {
+                daqClearErrorInfo();
                 auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                 return BlockReaderStatus(nullptr, true, offset, writtenSamplesCount);
             }

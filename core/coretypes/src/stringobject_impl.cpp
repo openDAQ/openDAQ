@@ -169,10 +169,13 @@ ErrCode StringImpl::toBool(Bool* val)
     {
         Int intVal;
         ErrCode errCode = toInt(&intVal);
-        if (OPENDAQ_SUCCEEDED(errCode))
-            *val = intVal != 0 ? True : False;
-        else
+        if (OPENDAQ_FAILED(errCode))
+        {
+            daqClearErrorInfo();
             *val = False;
+        }
+        else
+            *val = intVal != 0 ? True : False;
     }
     return OPENDAQ_SUCCESS;
 }

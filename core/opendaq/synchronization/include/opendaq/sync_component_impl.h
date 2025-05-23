@@ -225,34 +225,42 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
     ErrCode err = this->getPropertyValue(str, &interfacesValue);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    Int selectedSource = 0;
-    getSelectedSource(&selectedSource);
-
     const auto InterfacesPtr = interfacesValue.asPtr<IPropertyObject>(true);
     Int idx = 0;
-    err = OPENDAQ_ERR_NOTFOUND;
     for (const auto& prop : InterfacesPtr.getAllProperties())
     {
-        Bool equals;
-        prop.getName()->equals(interfaceName, &equals);
+        Bool equals = false;
+        err = prop.getName()->equals(interfaceName, &equals);
+        if (OPENDAQ_FAILED(err))
+            daqClearErrorInfo();
+
         if (equals)
         {
+            Int selectedSource = 0;
+            err = getSelectedSource(&selectedSource);
+            if (OPENDAQ_FAILED(err))
+                daqClearErrorInfo();
+
             err = InterfacesPtr->removeProperty(interfaceName);
             OPENDAQ_RETURN_IF_FAILED(err);
 
             if (selectedSource == idx)
             {
-                setSelectedSource(0);
+                err = setSelectedSource(0);
+                if (OPENDAQ_FAILED(err))
+                    daqClearErrorInfo();
             }
             else if (selectedSource > idx)
             {
-                setSelectedSource(selectedSource - 1);
+                err = setSelectedSource(selectedSource - 1);
+                if (OPENDAQ_FAILED(err))
+                    daqClearErrorInfo();
             }
-            break;
+            return OPENDAQ_SUCCESS;
         }
         idx++;
     }
-    return err;
+    return  OPENDAQ_ERR_NOTFOUND;;
 }
 
 template <typename MainInterface, typename ... Interfaces>

@@ -106,7 +106,7 @@ public:
 
         Bool accepts;
         auto errCode = this->object->acceptsObject(obj, &accepts);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return accepts;
     }
@@ -123,7 +123,7 @@ public:
 
         Bool visit;
         auto errCode = this->object->visitChildren(obj, &visit);
-        checkErrorInfo(errCode);
+        DAQ_CHECK_ERROR_INFO(errCode);
 
         return visit;
     }

@@ -13,7 +13,9 @@ PropertiesFb::PropertiesFb(const ContextPtr& ctx, const ComponentPtr& par, const
 void PropertiesFb::initProperties()
 {
     // Bool
-    auto boolProp = BoolPropertyBuilder("Bool", False).setDescription("A very nice boolean").build();  //  Description is optional
+    auto boolProp = BoolPropertyBuilder("Bool", False)
+                        .setDescription("A very nice boolean")  //  Description is optional, without it, we could forego using the builder
+                        .build();
     objPtr.addProperty(boolProp);
     objPtr.getOnPropertyValueWrite("Bool") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "Bool changed to: " << args.getValue() << "\n"; };

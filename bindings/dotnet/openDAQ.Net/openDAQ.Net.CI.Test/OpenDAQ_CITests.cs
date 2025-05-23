@@ -1652,4 +1652,35 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Console.WriteLine($"-> returned \"{result}\"");
     }
+
+    [Test]
+    public void Test_0564_Search()
+    {
+        using var daqInstance = OpenDAQFactory.Instance(".");
+        using var device = ConnectFirstDaqRefDevice(daqInstance);
+        Assert.That(device, Is.Not.Null);
+
+        using var componentFilter = CoreTypesFactory.CreateRecursiveSearchFilter(OpenDAQFactory.CreateLocalIdSearchFilter("RefCh0"));
+        Assert.That(componentFilter, Is.Not.Null);
+
+        using var propertyFilter = CoreObjectsFactory.CreateNamePropertyFilter("^Amplitude$");
+        Assert.That(propertyFilter, Is.Not.Null);
+
+        var properties = device.FindProperties(propertyFilter, componentFilter);
+        ulong propertyCount = (ulong)properties.Count;
+        Console.WriteLine($"  found {propertyCount} properties");
+        Assert.That(propertyCount, Is.EqualTo(1));
+
+        using var property = properties[0];
+        Console.WriteLine($"Channel found property {property.Name} original value: {property.Value}");
+        property.Value = 7;
+
+        var components = device.GetItems(componentFilter);
+        ulong componentCount = (ulong)components.Count;
+        Console.WriteLine($"  found {componentCount} components");
+        Assert.That(componentCount, Is.EqualTo(1));
+
+        using var component = components[0];
+        Console.WriteLine($"Found component Amplitude property modified value: {component.GetPropertyValue("Amplitude")}");
+    }
 }

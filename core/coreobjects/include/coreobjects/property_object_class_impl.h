@@ -43,6 +43,7 @@ public:
     ErrCode INTERFACE_FUNC getProperty(IString* propertyName, IProperty** property) override;
     ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
     ErrCode INTERFACE_FUNC getProperties(Bool includeInherited, IList** properties) override;
+    ErrCode INTERFACE_FUNC clone(IPropertyObjectClass** cloned, ITypeManager* typeManager = nullptr) override;
 
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;

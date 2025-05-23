@@ -4,8 +4,10 @@
 #include <coreobjects/errors.h>
 #include <coreobjects/property_internal_ptr.h>
 
-#include "property_object_class_ptr.h"
-#include "coreobjects/property_object_class_factory.h"
+#include <coreobjects/property_object_class_builder.h>
+#include <coreobjects/property_object_internal.h>
+#include <property_object_class_ptr.h>
+#include <coreobjects/property_object_class_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 PropertyObjectClassImpl::PropertyObjectClassImpl(IPropertyObjectClassBuilder* builder)
@@ -19,11 +21,8 @@ PropertyObjectClassImpl::PropertyObjectClassImpl(IPropertyObjectClassBuilder* bu
     for (const auto& [name, prop] : props)
         this->props.emplace(name, prop);
 
-    const ListPtr<IString> customOrder = builderPtr.getPropertyOrder();
-    for (const auto& name : customOrder)
-        this->customOrder.push_back(name);
+    this->customOrder = builderPtr.getPropertyOrder().toVector();
 }
-
 
 ErrCode PropertyObjectClassImpl::getName(IString** typeName)
 {
@@ -378,15 +377,35 @@ ErrCode PropertyObjectClassImpl::getSerializeId(ConstCharPtr* id) const
 
 ErrCode PropertyObjectClassImpl::toString(CharPtr* str)
 {
-    if (str == nullptr)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter must not be null");
-    }
+    OPENDAQ_PARAM_NOT_NULL(str);
 
     std::ostringstream stream;
     stream << "PropertyObjectClass {" << name << "}";
 
     return daqDuplicateCharPtr(stream.str().c_str(), str);
+}
+
+ErrCode PropertyObjectClassImpl::clone(IPropertyObjectClass** cloned, ITypeManager* typeManager)
+{
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+
+    return daqTry([&]
+    {
+        TypeManagerPtr managerPtr(typeManager);
+        if (!managerPtr.assigned())
+            managerPtr = this->manager.getRef();
+
+        auto builder = PropertyObjectClassBuilder(managerPtr, this->name);
+        builder.setParentName(this->parent);
+
+        for (const auto& [_, prop] : this->props)
+            builder.addProperty(prop.asPtr<IPropertyInternal>(true).clone());
+
+        builder.setPropertyOrder(ListPtr<IString>::FromVector(this->customOrder));
+
+        PropertyObjectClassPtr clonedObj = builder.build();
+        *cloned = clonedObj.detach();
+    });
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

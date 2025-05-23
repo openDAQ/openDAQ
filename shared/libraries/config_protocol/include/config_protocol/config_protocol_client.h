@@ -29,6 +29,7 @@
 #include <set>
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
+#include <coreobjects/property_object_class_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -340,17 +341,21 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
 
     for (const auto& typeName : types)
     {
-        const auto type = typeManager.getType(typeName);
+        auto type = typeManager.getType(typeName);
         try
         {
-            ErrCode errCode = localTypeManager->addType(type);
-            if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
+            if (localTypeManager.hasType(typeName))
             {
-                daqClearErrorInfo();
                 const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-                LOG_D("Type {} already exists in local type manager", type.getName());
+                LOG_D("Type {} already exists in local type manager", typeName);
+                continue;
             }
-            else if (OPENDAQ_FAILED(errCode))
+
+            if (const auto typePtr = type.asPtrOrNull<IPropertyObjectClass>(true); typePtr.assigned())
+                type = typePtr.clone(localTypeManager);
+
+            const ErrCode errCode = localTypeManager->addType(type);
+            if (OPENDAQ_FAILED(errCode))
             {
                 ObjectPtr<IErrorInfo> errorInfo;
                 daqGetErrorInfo(&errorInfo);

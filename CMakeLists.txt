@@ -313,7 +313,7 @@ else()
     message(STATUS "Unit tests are DISABLED")
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 if (WIN32)
     set(MIN_WINDOWS_VERSION 0x0601)
@@ -429,7 +429,7 @@ endif()
 
 if (MSVC)
     # As above CMAKE_CXX_STANDARD but for VS
-    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++17>)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++20>)
 
     foreach (flag IN ITEMS
         # Set source and execution character sets to UTF-8

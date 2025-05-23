@@ -24,6 +24,8 @@
 #include <opendaq/component_impl.h>
 #include <opendaq/sync_component_ptr.h>
 #include <opendaq/sync_component_private.h>
+#include "coretypes/ctutils.h"
+#include "coretypes/errors.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -158,10 +160,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::checkClassNameIs
 
     TypePtr type;
     ErrCode errCode = manager->getType(className, &type);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return DAQ_EXTEND_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not registered in type manager.", className));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode, OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not registered in type manager.", className));
 
     if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
     {

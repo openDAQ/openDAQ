@@ -340,9 +340,22 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     }
 
     template <typename... Params>
+    ErrCode extendErrorInfo(ErrCode /* errCode */, IBaseObject* source, ErrCode errCode, const std::string& message, Params... params)
+    {
+        return extendErrorInfo(errCode, source, message, params);
+    }
+
+    template <typename... Params>
     ErrCode extendErrorInfo(ErrCode errCode, IBaseObject* /* source */)
     {
         return errCode;
+    }
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ErrCode oldErrCode, IBaseObject* source, ErrCode errCode)
+    {
+        const std::string msg = ErrorCodeMessage(errCode);
+        return extendErrorInfo(oldErrCode, source, errCode, msg);
     }
 
     #define DAQ_EXTEND_ERROR_INFO(errCode, ...) \
@@ -363,17 +376,29 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     }
 
     template <typename... Params>
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode /* errCode */, IBaseObject* source, ErrCode errCode, const std::string& message, Params... params)
+    {
+        return extendErrorInfo(fileName, fileLine, errCode, source, message, std::forward<Params>(params)...);
+    }
+
+    template <typename... Params>
     ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, IBaseObject* source)
     {
-        extendErrorInfo(fileName, fileLine, errCode, source, std::string());
-        return errCode;
+        return extendErrorInfo(fileName, fileLine, errCode, source, std::string());
+    }
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode oldErrCode, IBaseObject* source, ErrCode errCode)
+    {
+        const std::string msg = ErrorCodeMessage(errCode);
+        return extendErrorInfo(fileName, fileLine, oldErrCode, source, errCode, msg);
     }
 
     #define DAQ_EXTEND_ERROR_INFO(errCode, ...) \
         daq::extendErrorInfo(__FILE__, __LINE__, errCode, nullptr, ##__VA_ARGS__)
 #endif
 
-#define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode, ...)                       \
+#define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode, ...)                  \
     do {                                                                                \
         if ((errCode) == (expectedErrCode))                                             \
             daqClearErrorInfo();                                                        \

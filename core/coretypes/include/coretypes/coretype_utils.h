@@ -90,12 +90,10 @@ inline ErrCode read<ComplexFloat64>(ISerializedObject* serializedObj, ComplexFlo
     ErrCode status;
 
     status = serializedObj->readFloat("real"_daq, &valueOut.real);
-    if (OPENDAQ_FAILED(status))
-        return DAQ_EXTEND_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read real part of complex number");
+    OPENDAQ_RETURN_IF_FAILED(status, OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read real part of complex number");
 
     status = serializedObj->readFloat("imaginary"_daq, &valueOut.imaginary);
-    if (OPENDAQ_FAILED(status))
-        return DAQ_EXTEND_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read imaginary part of complex number");
+    OPENDAQ_RETURN_IF_FAILED(status, OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read imaginary part of complex number");
 
     return status;
 }

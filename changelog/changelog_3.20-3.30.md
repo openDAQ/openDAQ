@@ -2,7 +2,7 @@
 
 ## Features
 
-
+- [#807](https://github.com/openDAQ/openDAQ/pull/807) Improved display of error info stack traces
 
 ## Python
 

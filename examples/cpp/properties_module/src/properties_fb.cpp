@@ -144,6 +144,14 @@ void PropertiesFb::initProperties()
     objPtr.getOnPropertyValueWrite("OtherVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "OtherVisible changed to: " << args.getValue() << "\n"; };
 
+    // Property visibility depending on referenced Property
+    auto sometimeVisibleProperty = BoolPropertyBuilder("SometimeVisible", False)
+                                       .setVisible(EvalValue("$OtherVisible"))  // This will evaluate OtherVisible Property
+                                       .build();
+    objPtr.addProperty(sometimeVisibleProperty);
+    objPtr.getOnPropertyValueWrite("SometimeVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "SometimeVisible changed to: " << args.getValue() << "\n"; };
+
     // Stubborn Int
     auto stubbornProp = IntProperty("StubbornInt", 42);
     objPtr.addProperty(stubbornProp);
@@ -152,14 +160,6 @@ void PropertiesFb::initProperties()
         args.setValue(43);  // This will set the value to 43, even if the user tries to set it to something else
         std::cout << "StubbornInt changed to: " << args.getValue() << "\n";
     };
-
-    // Property visibility depending on referenced Property
-    auto sometimeVisibleProperty = BoolPropertyBuilder("SometimeVisible", False)
-                                       .setVisible(EvalValue("$OtherVisible"))  // This will evaluate OtherVisible Property
-                                       .build();
-    objPtr.addProperty(sometimeVisibleProperty);
-    objPtr.getOnPropertyValueWrite("SometimeVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "SometimeVisible changed to: " << args.getValue() << "\n"; };
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

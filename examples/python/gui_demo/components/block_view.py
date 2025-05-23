@@ -182,7 +182,23 @@ class BlockView(ttk.Frame):
         self.status_square.pack(side='left')
         self.status_message = tk.Message(combined, text='Status not set', width=400)
         self.status_message.pack(side='left')
+
+        container = self.node.status_container
+        if len(container.statuses.items()) > 0:
+            self.status_full_button = tk.Button(combined, text = 'Show all statuses', command=lambda: self.show_all_statuses(container))
+            self.status_full_button.pack(side='left')
+
         self.change_status()
+
+    def show_all_statuses(self, container):
+        statuses_string = ''
+        for k, v in container.statuses.items():
+            statuses_string = statuses_string + k + ': ' + str(v) + '\n'
+        if statuses_string != '':
+            window = tk.Tk()
+            window.title("All component statuses")
+            label = tk.Label(window, text=statuses_string, anchor='w', justify='left')
+            label.pack(expand=True, fill=tk.BOTH)
 
     def change_status(self):
         color = utils.StatusColor.NOT_SET

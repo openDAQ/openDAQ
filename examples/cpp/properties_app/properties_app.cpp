@@ -196,7 +196,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("OtherVisible", true);
 
     // Property visibility depending on Referenced Bool
-    fb.setPropertyValue("SometimeVisible", true);
+    fb.setPropertyValue("SometimesVisible", 2);
 
     // Stubborn Int
     fb.setPropertyValue("StubbornInt", 41);  // Will actually set the value to 43, due to getOnPropertyValueWrite callback in module

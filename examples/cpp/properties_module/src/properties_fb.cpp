@@ -112,7 +112,7 @@ void PropertiesFb::initProperties()
     { std::cout << "Function changed to: " << args.getValue() << "\n"; };
 
     // Selection
-    auto selectionProp = SelectionProperty("Selection", List<IString>("first", "second", "third"), 1);
+    auto selectionProp = SelectionProperty("Selection", List<IUnit>(Unit("FirstUnit"), Unit("SecondUnit"), Unit("ThirdUnit")), 1);
     objPtr.addProperty(selectionProp);
     objPtr.getOnPropertyValueWrite("Selection") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "Selection changed to: " << args.getValue() << "\n"; };
@@ -146,20 +146,21 @@ void PropertiesFb::initProperties()
     objPtr.getOnPropertyValueWrite("OtherVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "OtherVisible changed to: " << args.getValue() << "\n"; };
 
-    // Property visibility depending on referenced Property
-    auto sometimeVisibleProperty = BoolPropertyBuilder("SometimeVisible", False)
-                                       .setVisible(EvalValue("$OtherVisible"))  // This will evaluate OtherVisible Property
-                                       .build();
-    objPtr.addProperty(sometimeVisibleProperty);
-    objPtr.getOnPropertyValueWrite("SometimeVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "SometimeVisible changed to: " << args.getValue() << "\n"; };
+    // Property visibility depending on referenced Property, and using EvalValue syntax
+    auto sometimesVisibleProperty = IntPropertyBuilder("SometimesVisible", 3)
+                                        .setVisible(EvalValue("$OtherVisible"))  // This will evaluate OtherVisible Property
+                                        .setUnit(EvalValue("%Selection:SelectedValue"))
+                                        .build();
+    objPtr.addProperty(sometimesVisibleProperty);
+    objPtr.getOnPropertyValueWrite("SometimesVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "SometimesVisible changed to: " << args.getValue() << "\n"; };
 
     // Stubborn Int
     auto stubbornProp = IntProperty("StubbornInt", 42);
     objPtr.addProperty(stubbornProp);
     objPtr.getOnPropertyValueWrite("StubbornInt") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     {
-        args.setValue(43);  // This will set the value to 43, even if the user tries to set it to something else
+        args.setValue(43);  // This will set the value to 43, even if the user tried to set it to something else
         std::cout << "StubbornInt changed to: " << args.getValue() << "\n";
     };
 

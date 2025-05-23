@@ -160,6 +160,10 @@ void PropertiesFb::initProperties()
         args.setValue(43);  // This will set the value to 43, even if the user tries to set it to something else
         std::cout << "StubbornInt changed to: " << args.getValue() << "\n";
     };
+
+    // Read-only Int
+    auto readOnlyProp = IntPropertyBuilder("ReadOnlyInt", 42).setReadOnly(true).build();
+    objPtr.addProperty(readOnlyProp);
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

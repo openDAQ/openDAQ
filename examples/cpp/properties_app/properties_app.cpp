@@ -201,6 +201,16 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Stubborn Int
     fb.setPropertyValue("StubbornInt", 41);  // Will actually set the value to 43, due to getOnPropertyValueWrite callback in module
 
+    // Read-only Int
+    try
+    {
+        fb.setPropertyValue("ReadOnlyInt", 42);
+    }
+    catch (const std::exception& e)
+    {
+        std::cout << "Exception: " << e.what() << "\n";
+    }
+
     // Print after modifications
     std::cout << "\nAfter modifications:\n";
     print(fb);
@@ -217,7 +227,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         [](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& /*args*/) { std::cout << "Something written\n"; };
 
     // Test the previously registered callbacks
-    auto dummy = fb.getPropertyValue("Bool");
+    auto dummyBool = fb.getPropertyValue("Bool");
     fb.setPropertyValue("Int", 3);
 
     // Gracefully exit

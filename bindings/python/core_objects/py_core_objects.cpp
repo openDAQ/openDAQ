@@ -49,4 +49,6 @@ void wrapDaqComponentCoreObjects(pybind11::module_ m)
     defineIPermissionMaskBuilder(m, classIPermissionMaskBuilder);
     defineIPermissionManager(m, classIPermissionManager);
     defineIPermissions(m, classIPermissions);
+
+    definePropertySearchFilterFactories(m);
 }

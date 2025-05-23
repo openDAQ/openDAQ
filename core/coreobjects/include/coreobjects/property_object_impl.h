@@ -48,6 +48,7 @@
 #include <map>
 #include <thread>
 #include <utility>
+#include <coretypes/recursive_search_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -291,6 +292,7 @@ public:
 
     virtual ErrCode INTERFACE_FUNC getOnEndUpdate(IEvent** event) override;
     virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) override;
+    virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) override;
 
     // IPropertyObjectInternal
     virtual ErrCode INTERFACE_FUNC checkForReferences(IProperty* property, Bool* isReferenced) override;
@@ -2575,6 +2577,47 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPermissio
 
     *permissionManager = this->permissionManager.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* /*componentFilter*/)
+{
+    OPENDAQ_PARAM_NOT_NULL(properties);
+
+    if (propertyFilter)
+    {
+        return daqTry([&]
+        {
+            auto filterPtr = SearchFilterPtr::Borrow(propertyFilter);
+            ListPtr<IProperty> allProperties;
+            auto foundProperties = List<IProperty>();
+
+            ErrCode errCode = getPropertiesInternal(true, true, &allProperties);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+
+            for (const auto& property : allProperties)
+            {
+                if (filterPtr.acceptsObject(property))
+                    foundProperties.pushBack(property);
+
+                if (checkIsChildObjectProperty(property))
+                {
+                    if (auto childPropertyObject = property.getValue().asPtrOrNull<IPropertyObject>();
+                             childPropertyObject.assigned() && filterPtr.supportsInterface<IRecursiveSearch>())
+                    {
+                        for (const auto& foundChildProperty : childPropertyObject.findProperties(filterPtr))
+                            foundProperties.pushBack(foundChildProperty);
+                    }
+                }
+            }
+
+            *properties = foundProperties.detach();
+            return OPENDAQ_SUCCESS;
+        });
+    }
+
+    // If no filter is provided, only visible properties directly belonging to the current object are returned.
+    return getPropertiesInternal(false, true, properties);
 }
 
 template <typename PropObjInterface, typename... Interfaces>

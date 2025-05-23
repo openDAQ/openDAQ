@@ -231,4 +231,13 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         },
         py::return_value_policy::take_ownership,
         "Gets the permission manager of property object.");
+    cls.def("find_properties",
+        [](daq::IPropertyObject *object, daq::ISearchFilter* propertyFilter, daq::ISearchFilter* componentFilter)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            return objectPtr.findProperties(propertyFilter, componentFilter).detach();
+        },
+        py::arg("property_filter"), py::arg("component_filter") = nullptr,
+        "Retrieves a list of properties from the Property object that match the given property filter.");
 }

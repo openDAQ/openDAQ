@@ -181,6 +181,12 @@ MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
     sig2.setDomainSignal(sigDomain);
 
     createAndAddInputPort("ip", PacketReadyNotification::None);
+
+    auto hiddenInputPort = createAndAddInputPort("ip_hidden", PacketReadyNotification::None);
+    auto addedComponentPrivate = hiddenInputPort.asPtr<IComponentPrivate>(true);
+    addedComponentPrivate.unlockAttributes(List<IString>("Visible"));
+    hiddenInputPort.setVisible(false);
+    addedComponentPrivate.lockAttributes(List<IString>("Visible"));
 }
 
 DictPtr<IString, IFunctionBlockType> MockFb1Impl::onGetAvailableFunctionBlockTypes()
@@ -233,9 +239,15 @@ MockChannel1Impl::MockChannel1Impl(const ContextPtr& ctx, const ComponentPtr& pa
     objPtr.addProperty(BoolPropertyBuilder("TestStringPropWritten", false).setReadOnly(true).build());
     objPtr.getOnPropertyValueWrite("TestStringProp") +=
         [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("TestStringPropWritten", true); };
+
     const auto valueSig = createAndAddSignal("sig_ch");
     const auto domainSig = createAndAddSignal("sig_ch_time");
     valueSig.setDomainSignal(domainSig);
+
+    const auto hiddenValueSig = createAndAddSignal("sig_ch_hidden", nullptr, false);
+    const auto hiddenDomainSig = createAndAddSignal("sig_ch_time_hidden", nullptr, false);
+    hiddenValueSig.setDomainSignal(hiddenDomainSig);
+
     const auto childFb = createWithImplementation<IFunctionBlock, MockFb1Impl>(ctx, this->functionBlocks, "childFb");
     addNestedFunctionBlock(childFb);
 }
@@ -264,6 +276,7 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     addNestedFunctionBlock(fb);
 
     fb.getInputPorts()[0].connect(sig);
+    fb.getInputPorts(search::Not(search::Visible()))[0].connect(sig);
 
     setDeviceDomain(DeviceDomain(Ratio(1, 100), "N/A" , Unit("s", -1, "second", "time")));
 }

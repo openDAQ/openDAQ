@@ -65,9 +65,9 @@ in the 2nd parameter. The macro generates an interface ID that is used when quer
 
 :note-caption: Note
 [NOTE]
-===
+====
 INTERFACE_FUNC evaluates to `__stdcall` on Windows systems.
-===
+====
 
 [source,cpp]
 ----
@@ -95,10 +95,10 @@ that inherit the `IPropertyObject` interface.
 
 :note-caption: Note
 [NOTE]
-===
+====
 openDAQ(TM) creates interfaces for basic structures such as integers and floating point numbers to allow for them to be contained
 within openDAQ(TM) containers such as lists, dictionaries, and property objects.
-===
+====
 
 == Objects
 

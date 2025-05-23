@@ -40,6 +40,7 @@ else: # release
 new_antora_version = '\"' + new_antora_version + '\"'
 
 read_and_replace("opendaq_version", old_version, new_version)
+read_and_replace("examples/cpp/opendaq_examples_version", old_version, new_version)
 read_and_replace("docs/Antora/antora.yml", old_antora_version, new_antora_version)
 read_and_replace("docs/Antora-specs/antora.yml", old_antora_version, new_antora_version)
 print('Version bump finished!')

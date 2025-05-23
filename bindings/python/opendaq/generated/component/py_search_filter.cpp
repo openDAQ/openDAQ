@@ -28,18 +28,10 @@
 #include <pybind11/gil.h>
 
 #include "py_opendaq/py_opendaq.h"
-#include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
 
-PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::module_ m)
+void defineComponentSearchFilterFactories(pybind11::module_ m)
 {
-    return wrapInterface<daq::ISearchFilter, daq::IBaseObject>(m, "ISearchFilter");
-}
-
-void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> cls)
-{
-    cls.doc() = "Search filter that can be passed as an optional parameter to openDAQ tree traversal functions to filter out unwanted results. Allows for recursive searches.";
-
     m.def("VisibleSearchFilter", &daq::VisibleSearchFilter_Create);
     m.def("RequiredTagsSearchFilter", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& requiredTags){
         return daq::RequiredTagsSearchFilter_Create(getVariantValue<daq::IList*>(requiredTags));
@@ -53,30 +45,4 @@ void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq:
     m.def("LocalIdSearchFilter", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId){
         return daq::LocalIdSearchFilter_Create(getVariantValue<daq::IString*>(localId));
     }, py::arg("local_id"));
-
-    m.def("AnySearchFilter", &daq::AnySearchFilter_Create);
-    m.def("AndSearchFilter", &daq::AndSearchFilter_Create);
-    m.def("OrSearchFilter", &daq::OrSearchFilter_Create);
-    m.def("NotSearchFilter", &daq::NotSearchFilter_Create);
-    m.def("CustomSearchFilter", &daq::CustomSearchFilter_Create);
-    m.def("RecursiveSearchFilter", &daq::RecursiveSearchFilter_Create);
-
-    cls.def("accepts_component",
-        [](daq::ISearchFilter *object, daq::IComponent* component)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::SearchFilterPtr::Borrow(object);
-            return objectPtr.acceptsComponent(component);
-        },
-        py::arg("component"),
-        "Defines whether or not the component should be included in the search results");
-    cls.def("visit_children",
-        [](daq::ISearchFilter *object, daq::IComponent* component)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::SearchFilterPtr::Borrow(object);
-            return objectPtr.visitChildren(component);
-        },
-        py::arg("component"),
-        "Defines whether or not the children of said component should be traversed during a recursive search.");
 }

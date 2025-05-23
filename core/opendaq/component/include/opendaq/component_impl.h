@@ -25,7 +25,6 @@
 #include <coretypes/weakrefptr.h>
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
-#include <opendaq/search_filter_ptr.h>
 #include <opendaq/folder_ptr.h>
 #include <mutex>
 #include <opendaq/component_keys.h>
@@ -34,7 +33,7 @@
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <opendaq/deserialize_component_ptr.h>
 #include <coreobjects/core_event_args_impl.h>
-#include <opendaq/recursive_search_ptr.h>
+#include <coretypes/recursive_search_ptr.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>
@@ -48,6 +47,7 @@
 #include <opendaq/component_update_context_ptr.h>
 #include <opendaq/component_status_container_ptr.h>
 #include <opendaq/component_status_container_private_ptr.h>
+#include <opendaq/search_filter_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -97,6 +97,7 @@ public:
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
     ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
+    ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC lockAttributes(IList* attributes) override;
@@ -669,6 +670,55 @@ ErrCode ComponentImpl<Intf, Intfs...>::getOperationMode(OperationModeType* modeT
 }
 
 template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter)
+{
+    OPENDAQ_PARAM_NOT_NULL(properties);
+
+    auto lock = this->getRecursiveConfigLock();
+
+    return daqTry([&properties, &propertyFilter, &componentFilter, this]
+    {
+        auto componentFilterPtr = SearchFilterPtr::Borrow(componentFilter);
+        auto thisComponent = this->template borrowPtr<ComponentPtr>();
+        ListPtr<IProperty> foundProperties = List<IProperty>();
+
+        if (!componentFilterPtr.assigned() || componentFilterPtr.acceptsObject(thisComponent))
+        {
+            // searches only properties using base implementation simply ignoring component filter
+            ErrCode errCode = Super::findProperties(&foundProperties, propertyFilter, nullptr);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+
+        if (componentFilterPtr.assigned() && componentFilterPtr.supportsInterface<IRecursiveSearch>())
+        {
+            // searches for properties in each component found by input recursive filter
+            if (auto thisFolder = thisComponent.template asPtrOrNull<IFolder>(); thisFolder.assigned())
+            {
+                ListPtr<IComponent> foundChildComponents = thisFolder.getItems(componentFilter);
+                for (const auto& foundChildComponent : foundChildComponents)
+                {
+                    auto acceptFunc = Function(
+                        [id = foundChildComponent.getGlobalId()](const BaseObjectPtr& obj)
+                        {
+                            auto component = obj.template asPtr<IComponent>();
+                            if (component.getGlobalId() == id)
+                                return true;
+                            return false;
+                        }
+                    );
+                    // filter accepts only component itself
+                    for (const auto& property : foundChildComponent.findProperties(propertyFilter, search::Custom(acceptFunc)))
+                        foundProperties.pushBack(property);
+                }
+            }
+        }
+
+        *properties = foundProperties.detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::onOperationModeChanged(OperationModeType /* modeType */)
 {
 }
@@ -948,7 +998,7 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
 {
     tsl::ordered_set<ComponentPtr, ComponentHash, ComponentEqualTo> allItems;
     for (const auto& item : items)
-        if (searchFilter.acceptsComponent(item))
+        if (searchFilter.acceptsObject(item))
             allItems.insert(item);
 
     if (searchFilter.supportsInterface<IRecursiveSearch>())
@@ -965,8 +1015,8 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
     }
     
     ListPtr<IComponent> childList = List<IComponent>();
-    for (const auto& signal : allItems)
-        childList.pushBack(signal);
+    for (const auto& item : allItems)
+        childList.pushBack(item);
 
     return childList.detach();
 }

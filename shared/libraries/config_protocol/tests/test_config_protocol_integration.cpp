@@ -97,10 +97,18 @@ TEST_F(ConfigProtocolIntegrationTest, Connect)
 
 TEST_F(ConfigProtocolIntegrationTest, InputPortConnected)
 {
+    // visible input ports
     ASSERT_EQ(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal(),
               serverDevice.getDevices()[0].getSignals()[0]);
 
     ASSERT_EQ(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal(),
+              clientDevice.getDevices()[0].getSignals()[0]);
+
+    // hidden input ports
+    ASSERT_EQ(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts(search::Not(search::Visible()))[0].getSignal(),
+              serverDevice.getDevices()[0].getSignals()[0]);
+
+    ASSERT_EQ(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts(search::Not(search::Visible()))[0].getSignal(),
               clientDevice.getDevices()[0].getSignals()[0]);
 }
 
@@ -442,11 +450,19 @@ TEST_F(ConfigProtocolIntegrationTest, SetStructPropertyValue)
 
 TEST_F(ConfigProtocolIntegrationTest, DomainSignals)
 {
+    // visible signals
     ASSERT_EQ(serverDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
               serverDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
 
     ASSERT_EQ(clientDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
               clientDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
+
+    // hidden signals
+    ASSERT_EQ(serverDevice.getDevices()[0].getChannels()[0].getSignals(search::Not(search::Visible()))[0].getDomainSignal(),
+              serverDevice.getDevices()[0].getChannels()[0].getSignals(search::Not(search::Visible()))[1]);
+
+    ASSERT_EQ(clientDevice.getDevices()[0].getChannels()[0].getSignals(search::Not(search::Visible()))[0].getDomainSignal(),
+              clientDevice.getDevices()[0].getChannels()[0].getSignals(search::Not(search::Visible()))[1]);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdate)

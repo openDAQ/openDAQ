@@ -10,11 +10,13 @@ class Dialog(tk.Toplevel):
         self.title(title)
         self.parent = parent
         self.context = context
-        self.initial_update_func = None
 
         self.configure(padx=10, pady=5)
         self.attributes('-topmost', True)
         self.transient(parent)
+        
+        # Bind Escape key to close the dialog
+        self.bind("<Escape>", lambda event: self.close())
 
     def center_window(self):
         main_window = self.parent.winfo_toplevel()
@@ -23,11 +25,17 @@ class Dialog(tk.Toplevel):
         y = main_window.winfo_rooty() + main_window.winfo_height() // 2 - \
             self.winfo_height() // 2
         self.geometry(f'+{x}+{y}')
+        
+    def initial_update(self):
+        pass
 
     def show(self):
         self.wait_visibility()
         self.center_window()
-        if self.initial_update_func is not None:
-            self.initial_update_func()
-        self.grab_set()
+        self.focus_set()        # Ensure focus is on this dialog
+        self.initial_update()
+        self.grab_set()         # Prevent interaction with other windows
         self.wait_window(self)
+        
+    def close(self):
+        self.destroy()

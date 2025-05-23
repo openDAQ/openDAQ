@@ -9,6 +9,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <opendaq/search_filter_factory.h>
 #include <opendaq/mirrored_device_config.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
@@ -303,6 +304,11 @@ ErrCode InstanceImpl::setOperationModeRecursive(OperationModeType modeType)
 ErrCode InstanceImpl::getOperationMode(OperationModeType* modeType)
 {
     return rootDevice->getOperationMode(modeType);
+}
+
+ErrCode InstanceImpl::findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter)
+{
+    return rootDevice->findProperties(properties, propertyFilter, componentFilter);
 }
 
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
@@ -698,10 +704,7 @@ ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
 
 ErrCode InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
 {
-    OPENDAQ_PARAM_NOT_NULL(permissionManager);
-
-    *permissionManager = rootDevice.getPermissionManager().addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return rootDevice->getPermissionManager(permissionManager);
 }
 
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
@@ -801,7 +804,7 @@ void InstanceImpl::forEachComponent(const ComponentPtr& component, F&& callback)
         const auto folder = component.asPtrOrNull<IFolder>(true);
         if (folder.assigned())
         {
-            for (const auto item : folder.getItems())
+            for (const auto item : folder.getItems(search::Any()))
                 forEachComponent(item, std::forward<F>(callback));
         }
     }

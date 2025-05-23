@@ -82,10 +82,10 @@ Linux::
 
 :note-caption: Note
 [NOTE]
-===
+====
 Ninja is used as the default build system in the `"gcc/full"` preset. X11 is needed for data visualization.
 LLD speeds up the linker step when building openDAQ(TM).
-===
+====
 
 On Ubuntu and Debian distributions we can run the following terminal commands to install all requirements:
 

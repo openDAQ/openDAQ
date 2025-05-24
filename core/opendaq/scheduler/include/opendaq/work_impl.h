@@ -32,9 +32,6 @@ public:
 
     ErrCode INTERFACE_FUNC execute() override;
 
-    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
-    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
-
 private:
     Callback callback;
 };
@@ -55,37 +52,6 @@ template <class Callback>
 ErrCode INTERFACE_FUNC WorkImpl<Callback>::execute()
 {
     return daqTry([this] { callback(); });
-}
-
-template <class Callback>
-ErrCode INTERFACE_FUNC WorkImpl<Callback>::queryInterface(const IntfID& id, void** intf)
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IWork::Id)
-    {
-        *intf = static_cast<IWork*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::queryInterface(id, intf);
-}
-
-template <class Callback>
-ErrCode INTERFACE_FUNC WorkImpl<Callback>::borrowInterface(const IntfID& id, void** intf) const
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IWork::Id)
-    {
-        *intf = const_cast<IWork*>(static_cast<const IWork*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::borrowInterface(id, intf);
 }
 
 END_NAMESPACE_OPENDAQ

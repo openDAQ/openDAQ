@@ -179,6 +179,12 @@ void PropertiesFb::initProperties()
     objPtr.addProperty(validatedProp);
     objPtr.getOnPropertyValueWrite("ValidatedProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "ValidatedProp changed to: " << args.getValue() << "\n"; };
+
+    // Min and max Float
+    auto minMaxProp = FloatPropertyBuilder("MinMaxProp", 0.0).setMinValue(0.0).setMaxValue(100.0).build();
+    objPtr.addProperty(minMaxProp);
+    objPtr.getOnPropertyValueWrite("MinMaxProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "MinMaxProp changed to: " << args.getValue() << "\n"; };
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

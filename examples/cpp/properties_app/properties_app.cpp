@@ -226,6 +226,11 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cout << "Exception: " << e.what() << "\n";
     }
 
+    // Min and max Float
+    fb.setPropertyValue("MinMaxProp", 101.1);  // Will set to 100.0
+    fb.setPropertyValue("MinMaxProp", -1.1);   // Will set to 0.0
+    fb.setPropertyValue("MinMaxProp", 50.1);   // Will set to 50.1
+
     // Print after modifications
     std::cout << "\nAfter modifications:\n";
     print(fb);

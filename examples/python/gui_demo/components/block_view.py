@@ -193,7 +193,7 @@ class BlockView(ttk.Frame):
     def show_all_statuses(self, container):
         statuses_string = ''
         for k, v in container.statuses.items():
-            statuses_string = statuses_string + k + ': ' + str(v) + '\n'
+            statuses_string = statuses_string + k + ': ' + str(v) + ": " + container.get_status_message(k) +  '\n'
         if statuses_string != '':
             window = tk.Tk()
             window.title("All component statuses")

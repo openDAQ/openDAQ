@@ -1170,10 +1170,10 @@ Cpp::
 [source,cpp]
 ----
 auto propObj = PropertyObject();
-auto coercedProp = IntProperty("CoercedProp", 5).setCoercer(Coercer("if(Value < 10, Value, 10)"));
+auto coercedProp = IntPropertyBuilder("CoercedProp", 5).setCoercer(Coercer("if(Value < 10, Value, 10)"));
 propObj.addProperty(coercedProp.build());
 
-auto validatedProp = IntProperty("ValidatedProp", 5).setValidator(Validator("Value < 10"));
+auto validatedProp = IntPropertyBuilder("ValidatedProp", 5).setValidator(Validator("Value < 10"));
 propObj.addProperty(validatedProp.build());
 
 // Sets the value to 10

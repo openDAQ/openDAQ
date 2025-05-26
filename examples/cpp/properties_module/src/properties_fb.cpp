@@ -167,6 +167,18 @@ void PropertiesFb::initProperties()
     // Read-only Int
     auto readOnlyProp = IntPropertyBuilder("ReadOnlyInt", 42).setReadOnly(true).build();
     objPtr.addProperty(readOnlyProp);
+
+    // Coerced Int
+    auto coercedProp = IntPropertyBuilder("CoercedProp", 5).setCoercer(Coercer("if(Value > 10, 10, Value)")).build();
+    objPtr.addProperty(coercedProp);
+    objPtr.getOnPropertyValueWrite("CoercedProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "CoercedProp changed to: " << args.getValue() << "\n"; };
+
+    // Validated Int
+    auto validatedProp = IntPropertyBuilder("ValidatedProp", 42).setValidator(Validator("Value < 100")).build();
+    objPtr.addProperty(validatedProp);
+    objPtr.getOnPropertyValueWrite("ValidatedProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "ValidatedProp changed to: " << args.getValue() << "\n"; };
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

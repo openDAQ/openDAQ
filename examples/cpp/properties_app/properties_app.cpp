@@ -211,6 +211,21 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cout << "Exception: " << e.what() << "\n";
     }
 
+    // Coerced Int
+    fb.setPropertyValue("CoercedProp", 4);    // Will set to 4, no coercion
+    fb.setPropertyValue("CoercedProp", 142);  // Will set to 10, due to coercion
+
+    // Validated Int
+    fb.setPropertyValue("ValidatedProp", 43);  // Will set to 43
+    try
+    {
+        fb.setPropertyValue("ValidatedProp", 1000);  // Will fail, due to validation
+    }
+    catch (const std::exception& e)
+    {
+        std::cout << "Exception: " << e.what() << "\n";
+    }
+
     // Print after modifications
     std::cout << "\nAfter modifications:\n";
     print(fb);

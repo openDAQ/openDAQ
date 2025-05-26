@@ -44,14 +44,14 @@ void PropertiesFb::initProperties()
     objPtr.getOnPropertyValueWrite("Ratio") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "Ratio changed to: " << args.getValue() << "\n"; };
 
-    // List
+    // List (may contain other types)
     auto list = List<IInteger>();
     auto listProp = ListProperty("List", list);
     objPtr.addProperty(listProp);
     objPtr.getOnPropertyValueWrite("List") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "List changed to: " << args.getValue() << "\n"; };
 
-    // Dictionary
+    // Dictionary (associative array, key-value pairs, may contain other types)
     auto dict = Dict<IString, IString>();
     dict["key1"] = "Cheese";
     dict["key2"] = "Cake";
@@ -185,6 +185,12 @@ void PropertiesFb::initProperties()
     objPtr.addProperty(minMaxProp);
     objPtr.getOnPropertyValueWrite("MinMaxProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     { std::cout << "MinMaxProp changed to: " << args.getValue() << "\n"; };
+
+    // Suggested values Float
+    auto suggestedProp = FloatPropertyBuilder("SuggestedProp", 2.2).setSuggestedValues(List<IFloat>(1.1, 2.2, 3.3)).build();
+    objPtr.addProperty(suggestedProp);
+    objPtr.getOnPropertyValueWrite("SuggestedProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "SuggestedProp changed to: " << args.getValue() << "\n"; };
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

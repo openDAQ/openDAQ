@@ -231,6 +231,11 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("MinMaxProp", -1.1);   // Will set to 0.0
     fb.setPropertyValue("MinMaxProp", 50.1);   // Will set to 50.1
 
+    // Suggested values Float
+    auto suggested = fb.getProperty("SuggestedProp").getSuggestedValues();
+    auto selected = suggested[2].asPtrOrNull<IFloat>();
+    fb.setPropertyValue("SuggestedProp", selected);  // Will set to 3.3, because that's the third suggested value in the module
+
     // Print after modifications
     std::cout << "\nAfter modifications:\n";
     print(fb);

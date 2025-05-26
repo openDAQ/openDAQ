@@ -209,7 +209,7 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(result);
 
-        if constexpr (std::is_same_v<typename TFunctor::result_type, ErrCode>)
+        if constexpr (std::is_same_v<std::invoke_result_t<TFunctor, IBaseObject*, IBaseObject**>, ErrCode>)
         {
             return this->functor(args, result);
         }

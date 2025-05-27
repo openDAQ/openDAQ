@@ -4,11 +4,13 @@ import argparse
 import os
 import enum
 import sys
+import platform
 
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from tkinter.filedialog import asksaveasfile
+from tkinter.filedialog import askopenfilename
 import opendaq as daq
 from tkinter import messagebox
 
@@ -182,6 +184,8 @@ class App(tk.Tk):
                               command=self.handle_load_config_button_clicked)
         file_menu.add_command(label='Save configuration',
                               command=self.handle_save_config_button_clicked)
+        file_menu.add_command(label='Load module',
+                              command=self.handle_load_modules_button_clicked)
         file_menu.add_separator()
         file_menu.add_command(label='Exit', command=self.quit)
 
@@ -419,6 +423,29 @@ class App(tk.Tk):
         dialog = LoadInstanceConfigDialog(self, self.context)
         dialog.show()
         self.tree_update()
+
+    def handle_load_modules_button_clicked(self):
+        if platform.system() == 'Windows':
+            extension = '.module.dll'
+        else:
+            extension = '.module.so'
+
+        file_path = askopenfilename(
+            parent=self,
+            title='Load module',
+            defaultextension=extension,
+            filetypes=[('openDAQ module', f'*{extension}')]
+        )
+
+        if not file_path:
+            return
+
+        try:
+            self.context.instance.module_manager.load_module(file_path)
+            self.tree_update()
+        except Exception as e:
+            print('Load module failed:', e, file=sys.stderr)
+            utils.show_error('Load module failed', str(e), self)
 
     def handle_refresh_button_clicked(self):
         self.tree_update(self.context.selected_node)

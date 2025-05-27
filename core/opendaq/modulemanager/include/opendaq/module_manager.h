@@ -52,6 +52,16 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManager, IBaseObject)
      * @param context The Context containing the Logger, Scheduler, Property Object Class Manager and Module Manager
      */
     virtual ErrCode INTERFACE_FUNC loadModules(IContext* context) = 0;
+
+    /*!
+     * @brief Loads and adds a single module from the given absolute file system path.
+     * @param path The absolute path to the module file.
+     * @param[out] module The resulting loaded and added module object.
+     *
+     * This function should be used only after the default modules have been loaded using `loadModules`.
+     * The specified path must exist and reference a file with the proper extension.
+     */
+    virtual ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) = 0;
 };
 /*!@}*/
 

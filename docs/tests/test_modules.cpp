@@ -66,7 +66,6 @@ TEST_F(ModulesTest, CreateComponents)
     const auto context = Context(nullptr, Logger(), TypeManager(), ModuleManager(""), AuthenticationProvider(), Dict<IString, IBaseObject>());
 
     ModuleManagerPtr manager = context.asPtr<IContextInternal>().moveModuleManager();
-    manager.loadModules(context);
     ASSERT_GT(manager.getModules().getCount(), 0u);
 
     ModulePtr fbModule;
@@ -151,7 +150,6 @@ TEST_F(ModulesTest, CreateServer)
         Context(nullptr, Logger(), TypeManager(), ModuleManager(""), AuthenticationProvider(), Dict<IString, IBaseObject>());
 
     ModuleManagerPtr manager = context.asPtr<IContextInternal>().moveModuleManager();
-    manager.loadModules(NullContext());
     ASSERT_GT(manager.getModules().getCount(), 0u);
     
     ModulePtr serverModule;

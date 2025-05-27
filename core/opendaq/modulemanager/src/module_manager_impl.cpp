@@ -47,6 +47,8 @@ static constexpr char createModuleFactory[] = "createModule";
 static constexpr char checkDependenciesFunc[] = "checkDependencies";
 
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
+static ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries);
+static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : modulesLoaded(false)
@@ -144,25 +146,29 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 
 ErrCode ModuleManagerImpl::loadModules(IContext* context)
 {
-    if (modulesLoaded)
-        return OPENDAQ_SUCCESS;
-    
-    this->context = ContextPtr::Borrow(context);
-    logger = this->context.getLogger();
-    if (!logger.assigned())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
-
-    auto options = this->context.getOptions();
-    if (options.hasKey("ModuleManager"))
+    if (!modulesLoaded)
     {
-        DictPtr<IString, IBaseObject> inner = options.get("ModuleManager");
-        if (inner.hasKey("AddDeviceRescanTimer"))
-        {
-            this->rescanTimer = std::chrono::milliseconds(static_cast<int>(inner.get("AddDeviceRescanTimer")));
-        }
-    }
+        this->context = ContextPtr::Borrow(context);
+        logger = this->context.getLogger();
+        if (!logger.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Logger must not be null");
 
-    loggerComponent = this->logger.getOrAddComponent("ModuleManager");
+        auto options = this->context.getOptions();
+        if (options.hasKey("ModuleManager"))
+        {
+            DictPtr<IString, IBaseObject> inner = options.get("ModuleManager");
+            if (inner.hasKey("AddDeviceRescanTimer"))
+            {
+                this->rescanTimer = std::chrono::milliseconds(static_cast<int>(inner.get("AddDeviceRescanTimer")));
+            }
+        }
+
+        loggerComponent = this->logger.getOrAddComponent("ModuleManager");
+    }
+    else if (this->context != ContextPtr::Borrow(context))
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Context cannot be changed after loading modules");
+    }
 
     std::vector<std::string> paths;
     auto envPath = std::getenv("OPENDAQ_MODULES_PATH");
@@ -201,11 +207,16 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
     orphanedModules.tryUnload();
 
+    bool newModulesAdded = false;
     for (const auto& modulePath: modulesPath)
     {
+        if (getModuleIfAdded(modulePath, libraries).assigned())
+            continue;
+
         try
         {
-            libraries.push_back(loadModule(loggerComponent, modulePath, context));
+            libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
+            newModulesAdded = true;
         }
         catch (const daq::DaqException& e)
         {
@@ -222,6 +233,86 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     }
 
     modulesLoaded = true;
+
+    if (newModulesAdded)
+        return OPENDAQ_SUCCESS;
+    else
+        return OPENDAQ_IGNORED;
+}
+
+ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries)
+{
+    auto iter = std::find_if(
+        libraries.begin(),
+        libraries.end(),
+        [&fsPath](const ModuleLibrary& lib)
+        {
+            return lib.handle.is_loaded() && lib.handle.location() == fsPath;
+        }
+    );
+    if (iter != libraries.end())
+        return iter->module;
+    else
+        return nullptr;
+}
+
+ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
+{
+    OPENDAQ_PARAM_NOT_NULL(path);
+    OPENDAQ_PARAM_NOT_NULL(module);
+
+    auto pathString = StringPtr::Borrow(path).toStdString();
+
+    if (pathString.empty())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Specified module path is empty");
+
+    if (!boost::algorithm::ends_with(pathString, OPENDAQ_MODULE_SUFFIX))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
+                                   fmt::format(R"(The openDAQ module file must have an extention "{}")", OPENDAQ_MODULE_SUFFIX));
+
+    if (!modulesLoaded)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "ModuleManager in not initialized. Call loadModules(IContext*) first.");
+
+    std::error_code errCode;
+    fs::path fileSystemPath(pathString);
+
+    if (!fs::exists(fileSystemPath, errCode))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" does not exist)", pathString));
+
+    if (!is_regular_file(fileSystemPath, errCode))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" is not a file)", pathString));
+
+    if (const auto addedModule = getModuleIfAdded(fileSystemPath, libraries); addedModule.assigned())
+    {
+        LOG_W(R"(Module at a given path "{}" is already loaded and added)", pathString)
+
+        *module = addedModule.addRefAndReturn();
+        return OPENDAQ_IGNORED;
+    }
+
+    orphanedModules.tryUnload();
+
+    try
+    {
+        libraries.push_back(loadModuleInternal(loggerComponent, fileSystemPath, context));
+        *module = libraries.back().module.addRefAndReturn();
+    }
+    catch (const daq::DaqException& e)
+    {
+        LOG_W(R"(Error loading module "{}": {} [{:#x}])", pathString, e.what(), e.getErrCode())
+        return errorFromException(e);
+    }
+    catch (const std::exception& e)
+    {
+        LOG_W(R"(Error loading module "{}": {})", pathString, e.what())
+        return OPENDAQ_ERR_GENERALERROR;
+    }
+    catch (...)
+    {
+        LOG_W(R"(Unknown error occurred loading module "{}")", pathString)
+        return OPENDAQ_ERR_GENERALERROR;
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -1506,10 +1597,10 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
     std::error_code errCode;
     if (!fs::exists(searchFolder, errCode))
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" does not exist.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, fmt::format(R"(The specified path "{}" does not exist.)", searchFolder));
 
     if (!fs::is_directory(searchFolder, errCode))
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The specified path \"%s\" is not a folder.", searchFolder.c_str());
+        DAQ_THROW_EXCEPTION(InvalidParameterException, fmt::format(R"(The specified path "{}" is not a folder.)", searchFolder));
 
     fs::recursive_directory_iterator dirIterator(searchFolder);
 
@@ -1584,7 +1675,7 @@ static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
 #endif
 }
 
-ModuleLibrary loadModule(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
+ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
 {
     auto currDir = fs::current_path();
     auto relativePath = fs::proximate(path).string();

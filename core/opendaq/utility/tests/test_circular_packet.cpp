@@ -44,10 +44,10 @@ public:
 
     std::mutex* goForLock()
     {
-        return &flip;
+        return &mxFlip;
     }
 
-    daq::Packet getCP(size_t* sampleCount, size_t dataDescriptor);
+    daq::Packet getCreatePacket(size_t* sampleCount, size_t dataDescriptor);
 
 
     Packetet()
@@ -61,11 +61,10 @@ class daq::Packet
 {
 public:
     Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(void*, size_t)> callback)
+        : cb(std::move(callback)),
+          sampleAmount(desiredNumOfSamples),
+          assignedData(beginningOfData)
     {
-        cb = std::move(callback);
-        // Users code, users memory corruption problems
-        sampleAmount = desiredNumOfSamples;
-        assignedData = beginningOfData;
     }
 
     Packet()
@@ -79,22 +78,23 @@ public:
     {
         cb(assignedData, sampleAmount);
     }
-    size_t sampleAmount;
-    void* assignedData;
+
 
 private:
     std::function<void(void*, size_t)> cb;
+    size_t sampleAmount;
+    void* assignedData;
 };
 
 
-daq::Packet Packetet::getCP(size_t* sampleCount, size_t dataDescriptor)
+daq::Packet Packetet::getCreatePacket(size_t* sampleCount, size_t dataDescriptor)
 {
-    return cP(sampleCount, dataDescriptor);
+    return createPacket(sampleCount, dataDescriptor);
 }
 
 
 // This is a test function that was used to help gauge the behaviour of the buffer class
-daq::Packet daq::PacketBuffer::cP(size_t* sampleCount, size_t dataDescriptor)
+daq::Packet daq::PacketBuffer::createPacket(size_t* sampleCount, size_t dataDescriptor)
 {
     void* startOfSpace = nullptr;
     bufferReturnCodes::EReturnCodesPacketBuffer ret = this->Write(sampleCount, &startOfSpace);
@@ -127,9 +127,10 @@ std::tuple<daq::DataDescriptorPtr, daq::DataPacketPtr> generate_building_blocks(
     auto dimensions = daq::List<daq::IDimension>();
     dimensions.pushBack(daq::Dimension(daq::LinearDimensionRule(10, 10, 10)));
 
+    auto rule = daq::DataRule(daq::DataRuleType::Explicit, {});
 
-    auto descriptor =
-        daq::DataDescriptorBuilder()
+    auto descriptor = daq::DataDescriptorBuilder()
+        .setRule(rule)
         .setSampleType(daq::SampleType::Int8)
         .setDimensions(dimensions)
         .setUnit(daq::Unit("s", 10))
@@ -253,6 +254,27 @@ TEST_F(CircularPacketTest, ReadPartialWorkflow)
 }
 
 
+TEST_F(CircularPacketTest, TestLinearRuleFail)
+{
+    auto dimensions = daq::List<daq::IDimension>();
+    dimensions.pushBack(daq::Dimension(daq::LinearDimensionRule(10, 10, 10)));
+
+    auto const rule = daq::LinearDataRule(5, 10);
+
+    auto descriptor =
+        daq::DataDescriptorBuilder().setSampleType(daq::SampleType::Int8)
+                          .setRule(rule)
+                          .setDimensions(dimensions)
+                          .setUnit(daq::Unit("s", 10))
+                          .build();
+    daq::DataPacketPtr domain = daq::DataPacket(descriptor, 100, 0);
+
+    Packetet pb;
+    size_t sampleCount = 100;
+
+    ASSERT_ANY_THROW(pb.createPacket(&sampleCount, descriptor, domain));
+}
+
 // Considering that Packet is used nowhere but here, there is a good reason to simply get rid of it,
 // for it has no use outside of this custom test
 TEST_F(CircularPacketTest, TestMockPacket)
@@ -261,8 +283,8 @@ TEST_F(CircularPacketTest, TestMockPacket)
     size_t st = 8;
 
     {
-        daq::Packet pck = pb.getCP(&st, 10);
-        daq::Packet pck2 = pb.getCP(&st, 100);
+        daq::Packet pck = pb.getCreatePacket(&st, 10);
+        daq::Packet pck2 = pb.getCreatePacket(&st, 100);
     }
     ASSERT_EQ(pb.getReadPos(), pb.getWritePos());
 

@@ -80,7 +80,7 @@ public:
 
     // int => return code
 
-    PUBLIC_EXPORT size_t getAvailableSampleCount();
+    PUBLIC_EXPORT size_t getAvailableSampleCount() const;
 
     PUBLIC_EXPORT daq::DataPacketPtr createPacket(size_t* sampleCount,
                                                  daq::DataDescriptorPtr dataDescriptor,
@@ -92,7 +92,7 @@ public:
 
 protected:
     // This is a test function, it has no intended use outside of unit tests for internal logic of the buffer
-    Packet cP(size_t* sampleCount, size_t dataDescriptor);
+    Packet createPacket(size_t* sampleCount, size_t dataDescriptor);
 
     bufferReturnCodes::EReturnCodesPacketBuffer Write(size_t* sampleCount, void** memPos);
 
@@ -101,22 +101,22 @@ protected:
     void setWritePos(size_t offset);
     void setReadPos(size_t offset);
 
-    void* getWritePos();
-    void* getReadPos();
+    void* getWritePos() const;
+    void* getReadPos() const;
 
     void setIsFull(bool bState);
-    bool getIsFull();
+    bool getIsFull() const;
 
-    size_t getAdjustedSize();
+    size_t getAdjustedSize() const;
 
-    std::mutex flip;
+    std::mutex mxFlip;
     std::condition_variable cv;
 
     bool bIsFull;
     bool bUnderReset;
     size_t sizeOfMem;
     size_t sizeOfSample;
-    std::vector<std::any> data;
+    std::vector<uint8_t> data;
     void* writePos;
     void* readPos;
     // Out-of-scope packets (oos abbreviation)

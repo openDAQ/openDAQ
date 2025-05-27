@@ -33,6 +33,13 @@ PacketBufferInit::PacketBufferInit(const daq::DataDescriptorPtr& description, si
 }
 
 PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize, const ContextPtr ctx)
+    : bIsFull(false)
+    , bUnderReset(false)
+    , sizeOfMem(memSize)
+    , sizeOfSample(sampleSize)
+    , data(std::vector<uint8_t>(sizeOfMem*sizeOfSample))
+    , sizeAdjusted(0)
+    , bAdjustedSize(false)
 {
     if (ctx == nullptr)
     {
@@ -44,15 +51,8 @@ PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize, const ContextPtr c
     }
 
     loggerComponent = logger.getOrAddComponent("CircularBuffer");
-    sizeOfMem = memSize;
-    sizeOfSample = sampleSize;
-    data = std::vector<std::any>(sizeOfMem * sizeOfSample);
     writePos = &data;
     readPos = &data;
-    bIsFull = false;
-    bAdjustedSize = false;
-    bUnderReset = false;
-    sizeAdjusted = 0;
 }
 
 PacketBuffer::~PacketBuffer()
@@ -61,21 +61,17 @@ PacketBuffer::~PacketBuffer()
 }
 
 PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
+    : bIsFull(false)
+    , bUnderReset(false)
+    , sizeOfMem(instructions.sampleCount)
+    , sizeOfSample(instructions.desc.getRawSampleSize())
+    , data(std::vector<uint8_t>(sizeOfMem * sizeOfSample))
+    , logger(instructions.logger)
+    , sizeAdjusted(0)
+    , bAdjustedSize(false)
 {
-    logger = instructions.logger;
-    loggerComponent = logger.getOrAddComponent("CircularBuffer");
-    sizeOfSample = instructions.desc.getRawSampleSize();
-    sizeOfMem = instructions.sampleCount;
-    data = std::vector<std::any>(sizeOfMem * sizeOfSample);
     writePos = &data;
     readPos = &data;
-    bIsFull = false;
-    bUnderReset = false;
-    bAdjustedSize = false;
-    sizeAdjusted = 0;
-    // enumAdjustSize we will come back to this when,
-    // alternative implementation is made
-    // (for now we will ignore it)
 }
 
 
@@ -89,12 +85,12 @@ void PacketBuffer::setReadPos(size_t offset)
     readPos = (size_t*)readPos + sizeOfSample * offset;
 }
 
-void* PacketBuffer::getWritePos()
+void* PacketBuffer::getWritePos() const
 {
     return writePos;
 }
 
-void* PacketBuffer::getReadPos()
+void* PacketBuffer::getReadPos() const
 {
     return readPos;
 }
@@ -104,7 +100,7 @@ void PacketBuffer::setIsFull(bool bState)
     bIsFull = bState;
 }
 
-bool PacketBuffer::getIsFull()
+bool PacketBuffer::getIsFull() const
 {
     return bIsFull;
 }
@@ -114,7 +110,7 @@ bool PacketBuffer::isEmpty() const
     return writePos == readPos && !bIsFull;
 }
 
-size_t PacketBuffer::getAdjustedSize()
+size_t PacketBuffer::getAdjustedSize() const
 {
     if (bAdjustedSize)
         return sizeAdjusted;
@@ -190,16 +186,16 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCo
 bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOfDelegatedSpace, size_t sampleCount)
 {
     {
-        std::lock_guard<std::mutex> lock(flip);
+        std::lock_guard<std::mutex> lock(mxFlip);
         if (beginningOfDelegatedSpace != readPos)
         {
             // If the OOS packet falls into space between the beginning of memory and readPos
             // we can artificially add it at the end and simulate
             // an extension of the circular buffer up to the writePos
 
-            // |_____WP______RP___|-----SWP
-
-            if (beginningOfDelegatedSpace < readPos)
+            // |_____WritePos______ReadPos___|-----SimulatedWritePos
+            bool scenario = beginningOfDelegatedSpace < readPos;
+            if (scenario)
                 oos_packets.push(
                     std::make_pair(((uint8_t*) &data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) &data), sampleCount));
 
@@ -250,7 +246,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOf
    
 }
 
-size_t PacketBuffer::getAvailableSampleCount()
+size_t PacketBuffer::getAvailableSampleCount() const
 {
     auto ff_g = (uint8_t*) &data + sizeOfMem * sizeOfSample;
 
@@ -274,10 +270,15 @@ size_t PacketBuffer::getAvailableSampleCount()
 
 DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket)
 {
-    std::unique_lock<std::mutex> loa(flip);
+    if (dataDescriptor.getRule().getType() == daq::DataRuleType::Linear)
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Circular buffer does not support Linear Data Rule Type packets.");
+    }
+
+    std::unique_lock<std::mutex> lock(mxFlip);
     if (bUnderReset)
     {
-        LOG_D("Under ongoing reset, cannot create new packets\r\n")
+        LOG_D("Under ongoing reset, cannot create new packets")
         //std::cerr << "Under ongoing reset, cannot create new packets" << std::endl;
         //this->cv.wait(loa, [&] { return !bUnderReset; });
         return daq::DataPacketPtr();
@@ -297,9 +298,8 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     {
         if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize)
         {
-            LOG_D("The size of the packet is smaller than requested. It's so JOEVER\r\n")
+            LOG_D("The size of the packet is smaller than requested. It's so JOEVER")
         }
-            //std::cout << "The size of the packet is smaller than requested. It's so JOEVER " << std::endl;
 
         return daq::DataPacketWithExternalMemory(domainPacket, dataDescriptor, (uint64_t) *sampleCount, startOfSpace, deleter);
     }
@@ -307,11 +307,11 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     {
         if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory)
         {
-            LOG_W("We ran out of memory...\r\n")
+            LOG_W("We ran out of memory...")
         }
         else
         {
-            LOG_W("Something went very wrong... \r\n")
+            LOG_W("Something went very wrong...")
         }
         return daq::DataPacketPtr();
     }
@@ -319,11 +319,11 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
 
 int PacketBuffer::reset()
 {
-    std::unique_lock<std::mutex> lock(flip);
+    std::unique_lock<std::mutex> lock(mxFlip);
     bUnderReset = true;
     this->cv.wait(lock, [&]
             {
-                LOG_W("Calling the check in reset. \r\n")
+                LOG_W("Calling the check in reset.")
                 std::cerr << "Calling the check in reset. " << std::endl;
                 return ((readPos == writePos) && (!bIsFull));
             });
@@ -347,7 +347,7 @@ void PacketBuffer::resize(const PacketBufferInit& instructions)
 
     sizeOfSample = instructions.desc.getRawSampleSize();
     sizeOfMem = instructions.sampleCount;
-    data = std::vector<std::any>(sizeOfMem * sizeOfSample);
+    data = std::vector<uint8_t> (sizeOfMem * sizeOfSample);
     writePos = &data;
     readPos = &data;
     bIsFull = false;

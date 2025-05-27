@@ -848,7 +848,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyOrderChanged(const CoreEv
     }
     else
     {
-        DAQ_CHECK_ERROR_INFO(Impl::setPropertyOrder(orderedPropertyNames));
+        checkErrorInfo(Impl::setPropertyOrder(orderedPropertyNames));
     }
 }
 

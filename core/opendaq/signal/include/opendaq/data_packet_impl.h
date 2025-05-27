@@ -253,8 +253,6 @@ public:
     ErrCode INTERFACE_FUNC getRawValueByIndex(void** value, SizeT sampleIndex) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
-    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
-    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
 
     ErrCode INTERFACE_FUNC reuse(IDataDescriptor* newDescriptor,
                                  SizeT newSampleCount,
@@ -671,67 +669,6 @@ ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT s
     {
         *value = PacketDetails::buildObjectFromDescriptor(rawValueData, descriptor, typeManager).detach();
     });
-}
-
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::queryInterface(const IntfID& id, void** intf)
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IDataPacket::Id)
-    {
-        *intf = static_cast<IDataPacket*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IPacket::Id)
-    {
-        *intf = static_cast<IPacket*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IReusableDataPacket::Id)
-    {
-        *intf = static_cast<IReusableDataPacket*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::queryInterface(id, intf);
-}
-
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::borrowInterface(const IntfID& id, void** intf) const
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IDataPacket::Id)
-    {
-        *intf = const_cast<IDataPacket*>(static_cast<const IDataPacket*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IPacket::Id)
-    {
-        *intf = const_cast<IPacket*>(static_cast<const IPacket*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IReusableDataPacket::Id)
-    {
-        *intf = const_cast<IReusableDataPacket*>(static_cast<const IReusableDataPacket*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::borrowInterface(id, intf);
 }
 
 template <typename TInterface>

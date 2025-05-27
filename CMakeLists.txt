@@ -429,7 +429,7 @@ endif()
 
 if (MSVC)
     # As above CMAKE_CXX_STANDARD but for VS
-    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++23>)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++latest>)
 
     foreach (flag IN ITEMS
         # Set source and execution character sets to UTF-8

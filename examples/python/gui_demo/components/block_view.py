@@ -190,15 +190,28 @@ class BlockView(ttk.Frame):
 
         self.change_status()
 
+
     def show_all_statuses(self, container):
-        statuses_string = ''
+        window = tk.Toplevel()
+        window.title('All statuses')
+        window.geometry(f'{600}x{200}')
+
+        columns = ('Name', 'Status', 'Message')
+
+        tree = ttk.Treeview(window, columns=columns, show='headings')
+
+        scroll_bar = ttk.Scrollbar(window, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        for col in columns:
+            tree.heading(col, text=col, anchor='w')
+
         for k, v in container.statuses.items():
-            statuses_string = statuses_string + k + ': ' + v.name + ": " + container.get_status_message(k) +  '\n'
-        if statuses_string != '':
-            window = tk.Tk()
-            window.title("All component statuses")
-            label = tk.Label(window, text=statuses_string, anchor='w', justify='left')
-            label.pack(expand=True, fill=tk.BOTH)
+            tree.insert('', tk.END, values=(k, v.name, container.get_status_message(k)))
+
+        tree.pack(expand=True, fill='both')
+
 
     def change_status(self):
         color = utils.StatusColor.NOT_SET

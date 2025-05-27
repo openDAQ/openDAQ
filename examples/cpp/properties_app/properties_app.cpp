@@ -43,7 +43,7 @@ StringPtr coreTypeToString(CoreType coreType)
         case ctUndefined:
             return "Undefined";
     }
-    return "Undefined";
+    return "";
 }
 
 void printMetadata(BaseObjectPtr obj, StringPtr name, size_t indent)
@@ -54,8 +54,8 @@ void printMetadata(BaseObjectPtr obj, StringPtr name, size_t indent)
 void printProperty(PropertyPtr property, size_t indent = 0)
 {
     printMetadata(property.getName(), "Name", indent);
-    printMetadata(property.getDescription(), "Description", indent + 1);
     printMetadata(coreTypeToString(property.getValueType()), "Value Type", indent + 1);
+    printMetadata(property.getDescription(), "Description", indent + 1);
     printMetadata(property.getDefaultValue(), "Default Value", indent + 1);
     printMetadata(Boolean(property.getReadOnly()), "Read Only", indent + 1);
     printMetadata(Boolean(property.getVisible()), "Visible", indent + 1);
@@ -192,11 +192,15 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("Object.Int", 987);
     fb.setPropertyValue("Object.Float", 4.44);
 
-    // Referenced Bool
-    fb.setPropertyValue("OtherVisible", true);
-
-    // Property visibility depending on Referenced Bool
+    // Property visibility depending on another Property
     fb.setPropertyValue("SometimesVisible", 2);
+
+    // Referenced and reference Bool
+    fb.setPropertyValue("Reference", True);
+
+    // Check if Properties are referenced
+    std::cout << "Referenced is referenced: " << Boolean(fb.getProperty("Referenced").getIsReferenced()) << "\n";
+    std::cout << "Reference is referenced: " << Boolean(fb.getProperty("Reference").getIsReferenced()) << "\n";
 
     // Stubborn Int
     fb.setPropertyValue("StubbornInt", 41);  // Will actually set the value to 43, due to getOnPropertyValueWrite callback in module

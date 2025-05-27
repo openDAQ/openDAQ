@@ -141,14 +141,20 @@ void PropertiesFb::initProperties()
     { std::cout << "Object.InnerObject.Int changed to: " << args.getValue() << "\n"; };
 
     // Referenced Bool
-    auto otherVisible = BoolProperty("OtherVisible", False);
-    objPtr.addProperty(otherVisible);
-    objPtr.getOnPropertyValueWrite("OtherVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "OtherVisible changed to: " << args.getValue() << "\n"; };
+    auto referencedProp = BoolProperty("Referenced", False);
+    objPtr.addProperty(referencedProp);
+    objPtr.getOnPropertyValueWrite("Referenced") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "Referenced changed to: " << args.getValue() << "\n"; };
 
-    // Property visibility depending on referenced Property, and using EvalValue syntax
+    // Reference Bool
+    auto referenceProp = ReferenceProperty("Reference", EvalValue("%Referenced"));
+    objPtr.addProperty(referenceProp);
+    objPtr.getOnPropertyValueWrite("Reference") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << "Reference changed to: " << args.getValue() << "\n"; };
+
+    // Property visibility depending on another Property, and using EvalValue syntax
     auto sometimesVisibleProperty = IntPropertyBuilder("SometimesVisible", 3)
-                                        .setVisible(EvalValue("$OtherVisible"))  // This will evaluate OtherVisible Property
+                                        .setVisible(EvalValue("$Referenced"))  // This will evaluate referenced Property
                                         .setUnit(EvalValue("%Selection:SelectedValue"))
                                         .build();
     objPtr.addProperty(sometimesVisibleProperty);

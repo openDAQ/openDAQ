@@ -18,7 +18,6 @@
 #include <coretypes/listobject.h>
 #include <coreobjects/property.h>
 #include <coretypes/type_ptr.h>
-#include <coretypes/type_manager.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,9 +29,6 @@ struct IPropertyObjectClassBuilder;
  * @{
  */
 
-/*#
- * [interfaceSmartPtr(ITypeManager, TypeManagerPtr, "<coretypes/type_manager_ptr.h>")]
- */
 /*!
  * @brief Container of properties that can be used as a base class when instantiating a Property object.
  *

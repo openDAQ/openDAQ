@@ -90,13 +90,6 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectClass, IType)
      * not listed in the custom sorting order are listed at the end of the properties list, sorted in insertion order.
      */
     virtual ErrCode INTERFACE_FUNC getProperties(Bool includeInherited, IList** properties) = 0;
-
-    /*!
-     * @brief Clones the property object class.
-     * @param[out] cloned The cloned property object class.
-     * @param typeManager The type manager to use for the cloned property object class. if type manager is not provided, cloned class will store a type manager from the original class.
-     */
-    virtual ErrCode INTERFACE_FUNC clone(IPropertyObjectClass** cloned, ITypeManager* typeManager = nullptr) = 0;
 };
 
 /*!@}*/

@@ -26,10 +26,9 @@
 #include <config_protocol/config_client_object.h>
 #include <coretypes/cloneable.h>
 #include <coreobjects/core_event_args_factory.h>
-#include <set>
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
-#include <coreobjects/property_object_class_ptr.h>
+#include <coreobjects/property_object_class_internal_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -351,7 +350,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
                 continue;
             }
 
-            if (const auto typePtr = type.asPtrOrNull<IPropertyObjectClass>(true); typePtr.assigned())
+            if (const auto typePtr = type.asPtrOrNull<IPropertyObjectClassInternal>(true); typePtr.assigned())
                 type = typePtr.clone(localTypeManager);
 
             const ErrCode errCode = localTypeManager->addType(type);

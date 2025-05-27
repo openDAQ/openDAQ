@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#810](https://github.com/openDAQ/openDAQ/pull/810) Load individual modules.
 - [#788](https://github.com/openDAQ/openDAQ/pull/788) Component property search.
 - [#804](https://github.com/openDAQ/openDAQ/pull/804) Add example Properties module and application using said module showcasing all possible Property types.
 

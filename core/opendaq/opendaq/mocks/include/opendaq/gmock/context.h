@@ -40,7 +40,7 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
     MOCK_METHOD(daq::ErrCode, getModuleOptions, (daq::IString* moduleId, daq::IDict** options), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getDiscoveryServers, (daq::IDict** services), (override MOCK_CALL));
 
-    daq::ErrCode getModuleManager(daq::IBaseObject** manager) override
+    daq::ErrCode INTERFACE_FUNC getModuleManager(daq::IBaseObject** manager) override
     {
         *manager = moduleManager.addRefAndReturn();
         return OPENDAQ_SUCCESS;

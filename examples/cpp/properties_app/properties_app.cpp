@@ -8,7 +8,7 @@
 
 using namespace daq;
 
-StringPtr coreTypeToString(CoreType coreType)
+StringPtr coreTypeToString(const CoreType& coreType)
 {
     switch (coreType)
     {
@@ -46,12 +46,12 @@ StringPtr coreTypeToString(CoreType coreType)
     return "";
 }
 
-void printMetadata(BaseObjectPtr obj, StringPtr name, size_t indent)
+void printMetadata(const BaseObjectPtr& obj, const StringPtr& name, const size_t& indent)
 {
     std::cout << std::string(indent * 2, ' ') << name << ": " << obj << "\n";
 }
 
-void printProperty(PropertyPtr property, size_t indent = 0)
+void printProperty(const PropertyPtr& property, const size_t& indent = 0)
 {
     printMetadata(property.getName(), "Name", indent);
     printMetadata(coreTypeToString(property.getValueType()), "Value Type", indent + 1);
@@ -83,7 +83,7 @@ void printProperty(PropertyPtr property, size_t indent = 0)
     }
 }
 
-void print(FunctionBlockPtr fb)
+void print(const FunctionBlockPtr& fb)
 {
     // Get all Properties
     auto properties = fb.getAllProperties();

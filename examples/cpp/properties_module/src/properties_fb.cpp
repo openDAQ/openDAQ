@@ -4,10 +4,19 @@
 #include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
+
 PropertiesFb::PropertiesFb(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
+}
+
+void PropertiesFb::addPropertyAndCallback(const PropertyPtr& prop)
+{
+    objPtr.addProperty(prop);
+    auto name = prop.getName();
+    objPtr.getOnPropertyValueWrite(name) += [name](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << name << " changed to: " << args.getValue() << "\n"; };
 }
 
 void PropertiesFb::initProperties()
@@ -16,40 +25,28 @@ void PropertiesFb::initProperties()
     auto boolProp = BoolPropertyBuilder("Bool", False)
                         .setDescription("A very nice boolean")  //  Description is optional, without it, we could forego using the builder
                         .build();
-    objPtr.addProperty(boolProp);
-    objPtr.getOnPropertyValueWrite("Bool") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Bool changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(boolProp);
 
     // Int
     auto intProp = IntPropertyBuilder("Int", 42).setUnit(Unit("Unit")).build();  // Unit is optional
-    objPtr.addProperty(intProp);
-    objPtr.getOnPropertyValueWrite("Int") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Int changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(intProp);
 
     // Float
     auto floatProp = FloatProperty("Float", 7.2);
-    objPtr.addProperty(floatProp);
-    objPtr.getOnPropertyValueWrite("Float") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Float changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(floatProp);
 
     // String
     auto stringProp = StringProperty("String", "Hello World");
-    objPtr.addProperty(stringProp);
-    objPtr.getOnPropertyValueWrite("String") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "String changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(stringProp);
 
     // Ratio
     auto ratioProp = RatioProperty("Ratio", Ratio(1, 12));
-    objPtr.addProperty(ratioProp);
-    objPtr.getOnPropertyValueWrite("Ratio") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Ratio changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(ratioProp);
 
     // List (may contain other types)
     auto list = List<IInteger>();
     auto listProp = ListProperty("List", list);
-    objPtr.addProperty(listProp);
-    objPtr.getOnPropertyValueWrite("List") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "List changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(listProp);
 
     // Dictionary (associative array, key-value pairs, may contain other types)
     auto dict = Dict<IString, IString>();
@@ -57,8 +54,10 @@ void PropertiesFb::initProperties()
     dict["key2"] = "Cake";
     dict["key3"] = "Lady";
     auto dictProp = DictProperty("Dict", dict);
+
+    // This one has a special callback
     objPtr.addProperty(dictProp);
-    objPtr.getOnPropertyValueWrite("Dict") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    objPtr.getOnPropertyValueWrite("Dict") += [](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     {
         DictPtr<IString, IString> dict = args.getValue();
         std::cout << "Dict changed to: " << "\n";
@@ -73,9 +72,7 @@ void PropertiesFb::initProperties()
     manager.addType(StructType("Struct", List<IString>("Int", "String"), List<IType>(SimpleType(ctInt), SimpleType(ctString))));
     auto stru = StructBuilder("Struct", manager).set("Int", 42).set("String", "Flowers").build();
     auto structProp = StructProperty("Struct", stru);
-    objPtr.addProperty(structProp);
-    objPtr.getOnPropertyValueWrite("Struct") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Struct changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(structProp);
 
     // Enumeration
     auto enumNames = List<IString>();
@@ -85,22 +82,18 @@ void PropertiesFb::initProperties()
     manager.addType(EnumerationType("Enum", enumNames));
     auto enu = Enumeration("Enum", "Second", manager);
     auto enumProp = EnumerationProperty("Enum", enu);
-    objPtr.addProperty(enumProp);
-    objPtr.getOnPropertyValueWrite("Enum") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Enum changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(enumProp);
 
     // Procedure
     auto procProp = FunctionProperty("Procedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("a", ctInt))));
-    objPtr.addProperty(procProp);
+    addPropertyAndCallback(procProp);
     auto proc = Procedure([](IntegerPtr a) { std::cout << "Procedure called with: " << a << "\n"; });
     objPtr.setPropertyValue("Procedure", proc);
-    objPtr.getOnPropertyValueWrite("Procedure") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Procedure changed to: " << args.getValue() << "\n"; };
 
     // Function
     auto funProp =
         FunctionProperty("Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("a", ctInt), ArgumentInfo("b", ctInt))));
-    objPtr.addProperty(funProp);
+    addPropertyAndCallback(funProp);
     auto fun = Function(
         [](IntegerPtr a, IntegerPtr b)
         {
@@ -108,14 +101,10 @@ void PropertiesFb::initProperties()
             return a + b;
         });
     objPtr.setPropertyValue("Function", fun);
-    objPtr.getOnPropertyValueWrite("Function") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Function changed to: " << args.getValue() << "\n"; };
 
     // Selection
     auto selectionProp = SelectionProperty("Selection", List<IUnit>(Unit("FirstUnit"), Unit("SecondUnit"), Unit("ThirdUnit")), 1);
-    objPtr.addProperty(selectionProp);
-    objPtr.getOnPropertyValueWrite("Selection") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Selection changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(selectionProp);
 
     // Sparse selection
     auto selection = Dict<Int, IString>();
@@ -123,9 +112,7 @@ void PropertiesFb::initProperties()
     selection.set(5, "Second");
     selection.set(6, "Third");
     auto sparseProp = SparseSelectionProperty("Sparse", selection, 4);
-    objPtr.addProperty(sparseProp);
-    objPtr.getOnPropertyValueWrite("Sparse") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Sparse changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(sparseProp);
 
     // Object
     auto innerObj = PropertyObject();
@@ -136,33 +123,27 @@ void PropertiesFb::initProperties()
     propObj.addProperty(IntProperty("Int", 42));
     propObj.addProperty(FloatProperty("Float", 7.2));
     auto objProp = ObjectProperty("Object", propObj);
-    objPtr.addProperty(objProp);
-    propObj.getOnPropertyValueWrite("Int") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Object.InnerObject.Int changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(objProp);
 
     // Referenced Bool
     auto referencedProp = BoolProperty("Referenced", False);
-    objPtr.addProperty(referencedProp);
-    objPtr.getOnPropertyValueWrite("Referenced") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Referenced changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(referencedProp);
 
-    // Reference Bool
+    // Reference Bool, and using EvalValue syntax
     auto referenceProp = ReferenceProperty("Reference", EvalValue("%Referenced"));
-    objPtr.addProperty(referenceProp);
-    objPtr.getOnPropertyValueWrite("Reference") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Reference changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(referenceProp);
 
     // Property visibility depending on another Property, and using EvalValue syntax
     auto sometimesVisibleProperty = IntPropertyBuilder("SometimesVisible", 3)
                                         .setVisible(EvalValue("$Referenced"))  // This will evaluate referenced Property
                                         .setUnit(EvalValue("%Selection:SelectedValue"))
                                         .build();
-    objPtr.addProperty(sometimesVisibleProperty);
-    objPtr.getOnPropertyValueWrite("SometimesVisible") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "SometimesVisible changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(sometimesVisibleProperty);
 
     // Stubborn Int
     auto stubbornProp = IntProperty("StubbornInt", 42);
+
+    // This one has a special callback
     objPtr.addProperty(stubbornProp);
     objPtr.getOnPropertyValueWrite("StubbornInt") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
     {
@@ -173,30 +154,23 @@ void PropertiesFb::initProperties()
     // Read-only Int
     auto readOnlyProp = IntPropertyBuilder("ReadOnlyInt", 42).setReadOnly(true).build();
     objPtr.addProperty(readOnlyProp);
+    // No point in adding an on-write callback for a read-only property, as it cannot be changed by the user
 
     // Coerced Int
     auto coercedProp = IntPropertyBuilder("CoercedProp", 5).setCoercer(Coercer("if(Value > 10, 10, Value)")).build();
-    objPtr.addProperty(coercedProp);
-    objPtr.getOnPropertyValueWrite("CoercedProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "CoercedProp changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(coercedProp);
 
     // Validated Int
     auto validatedProp = IntPropertyBuilder("ValidatedProp", 42).setValidator(Validator("Value < 100")).build();
-    objPtr.addProperty(validatedProp);
-    objPtr.getOnPropertyValueWrite("ValidatedProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "ValidatedProp changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(validatedProp);
 
     // Min and max Float
     auto minMaxProp = FloatPropertyBuilder("MinMaxProp", 0.0).setMinValue(0.0).setMaxValue(100.0).build();
-    objPtr.addProperty(minMaxProp);
-    objPtr.getOnPropertyValueWrite("MinMaxProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "MinMaxProp changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(minMaxProp);
 
     // Suggested values Float
     auto suggestedProp = FloatPropertyBuilder("SuggestedProp", 2.2).setSuggestedValues(List<IFloat>(1.1, 2.2, 3.3)).build();
-    objPtr.addProperty(suggestedProp);
-    objPtr.getOnPropertyValueWrite("SuggestedProp") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << "SuggestedProp changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(suggestedProp);
 }
 
 FunctionBlockTypePtr PropertiesFb::CreateType()

@@ -507,7 +507,7 @@ ErrCode INTERFACE_FUNC deserializeList(ISerializedObject* ser, IBaseObject* cont
     {
         StringPtr str;
         ser->readString(String("itemIntfID"), &str);
-        daqStringToInterfaceId(str, id);
+        daqStringToInterfaceId(str.getCharPtr(), id);
     }
 
     SerializedListPtr list = nullptr;

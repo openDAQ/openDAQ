@@ -38,12 +38,13 @@ public:
     explicit PropertyObjectClassImpl(IPropertyObjectClassBuilder* builder);
 
     // IPropertyObjectClass
-
     ErrCode INTERFACE_FUNC getName(IString** typeName) override;
     ErrCode INTERFACE_FUNC getParentName(IString** parentName) override;
     ErrCode INTERFACE_FUNC getProperty(IString* propertyName, IProperty** property) override;
     ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
     ErrCode INTERFACE_FUNC getProperties(Bool includeInherited, IList** properties) override;
+
+    // IPropertyObjectClassInternal
     ErrCode INTERFACE_FUNC clone(IPropertyObjectClass** cloned, ITypeManager* typeManager = nullptr) override;
 
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;

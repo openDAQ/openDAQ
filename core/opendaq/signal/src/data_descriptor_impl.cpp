@@ -559,65 +559,6 @@ ErrCode DataDescriptorImpl::Deserialize(ISerializedObject* serialized, IBaseObje
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DataDescriptorImpl::queryInterface(const IntfID& id, void** intf)
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IScalingCalcPrivate::Id)
-    {
-        *intf = static_cast<IScalingCalcPrivate*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IDataRuleCalcPrivate::Id)
-    {
-        *intf = static_cast<IDataRuleCalcPrivate*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IDataDescriptor::Id)
-    {
-        *intf = static_cast<IDataDescriptor*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::queryInterface(id, intf);
-}
-
-ErrCode INTERFACE_FUNC DataDescriptorImpl::borrowInterface(const IntfID& id, void** intf) const
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IScalingCalcPrivate::Id)
-    {
-        *intf = const_cast<IScalingCalcPrivate*>(static_cast<const IScalingCalcPrivate*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IDataRuleCalcPrivate::Id)
-    {
-        *intf = const_cast<IDataRuleCalcPrivate*>(static_cast<const IDataRuleCalcPrivate*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IDataDescriptor::Id)
-    {
-        *intf = const_cast<IDataDescriptor*>(static_cast<const IDataDescriptor*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::borrowInterface(id, intf);
-}
-
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, DataDescriptor,
     IDataDescriptor, createDataDescriptorFromBuilder,

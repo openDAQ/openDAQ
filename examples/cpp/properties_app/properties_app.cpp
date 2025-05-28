@@ -61,6 +61,7 @@ void printProperty(const PropertyPtr& property, const size_t& indent = 0)
     printMetadata(Boolean(property.getVisible()), "Visible", indent + 1);
     printMetadata(property.getUnit(), "Unit", indent + 1);
 
+    // TODO: get CoreType instead of casting?
     auto propObj = property.getValue().asPtrOrNull<IPropertyObject>();
     auto dictObj = property.getValue().asPtrOrNull<IDict>();
     if (propObj.assigned())
@@ -74,12 +75,12 @@ void printProperty(const PropertyPtr& property, const size_t& indent = 0)
     {
         for (const auto& [key, value] : dictObj)
         {
-            std::cout << std::string(indent * 2, ' ') << "↳ Key:" << key << " Value: " << value << "\n";
+            std::cout << std::string(indent * 2, ' ') << "  Key:" << key << " Value: " << value << "\n";
         }
     }
     else
     {
-        std::cout << std::string(indent * 2, ' ') << "↳ Value: " << property.getValue() << "\n";
+        std::cout << std::string(indent * 2, ' ') << "  Value: " << property.getValue() << "\n";
     }
 }
 

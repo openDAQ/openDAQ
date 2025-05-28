@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <coretypes/common.h>
 
-#include "coretypes/ctutils.h"
+#include <coretypes/ctutils.h>
 
 using TypeNameTest = testing::Test;
 

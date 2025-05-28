@@ -24,7 +24,7 @@ TEST_F(LoggerSinkTest, CreateRotatingFileLoggerSink)
 
 TEST_F(LoggerSinkTest, CreateRotatingFileLoggerSinkUnicode)
 {
-    ASSERT_NO_THROW(RotatingFileLoggerSink(u8"🍌/test_log.log", 500, 1));
+    ASSERT_NO_THROW(RotatingFileLoggerSink("🍌/test_log.log", 500, 1));
 }
 
 TEST_F(LoggerSinkTest, CreateBasicFileLoggerSink)

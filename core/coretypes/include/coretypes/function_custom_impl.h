@@ -44,7 +44,7 @@ CustomFunctionImpl<TFunctor>::CustomFunctionImpl(TFunctor value)
 }
 
 template <typename TFunctor>
-ErrCode CustomFunctionImpl<TFunctor>::call(IBaseObject* params, IBaseObject** result)
+ErrCode CustomFunctionImpl<TFunctor>::call(daq::IBaseObject* params, daq::IBaseObject** result)
 {
     OPENDAQ_PARAM_NOT_NULL(result);
 

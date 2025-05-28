@@ -2203,6 +2203,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getAllProper
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating)
 {
+    auto lock = getRecursiveConfigLock();
     if (frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     

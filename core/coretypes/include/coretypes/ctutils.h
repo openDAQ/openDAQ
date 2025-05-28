@@ -631,7 +631,7 @@ inline bool validateTypeName(ConstCharPtr typeName)
         return false;
 
     for (size_t i = 1; typeName[i] != '\0'; ++i)
-        if (!(std::islower(typeName[i]) || std::isupper(typeName[i]) || std::isdigit(typeName[i]) || typeName[i] == '_'))
+        if (!(std::isalpha(typeName[i]) || std::isdigit(typeName[i]) || typeName[i] == '_'))
             return false;
 
     return true;

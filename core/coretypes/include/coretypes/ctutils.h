@@ -624,8 +624,17 @@ TPtr callNotNull(TPtr ptr, TFunc func)
 
 inline bool validateTypeName(ConstCharPtr typeName)
 {
-    const std::regex validatorRegex("^[a-zA-Z_]+[a-zA-Z0-9_]*$");
-    return std::regex_match(typeName, validatorRegex);
+    if (typeName == nullptr || typeName[0] == '\0')
+        return false;
+
+    if (!(std::islower(typeName[0]) || std::isupper(typeName[0]) || typeName[0] == '_'))
+        return false;
+
+    for (size_t i = 1; typeName[i] != '\0'; ++i)
+        if (!(std::islower(typeName[i]) || std::isupper(typeName[i]) || std::isdigit(typeName[i]) || typeName[i] == '_'))
+            return false;
+
+    return true;
 }
 
 template <typename T>

@@ -392,6 +392,21 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, CoreEventArgsTypeRemoved, ICoreEventArgs,
     IString*, typeName
 )
+
+/*!
+ * @brief Creates Core event args that property order of a component is changed.
+ * @param propOwner The property object that owns the properties whose order was changed.
+ * @param propertyOrder The list of property names in the new order.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ *
+ * The ID of the event is 190, and the event name is "PropertyOrderChanged".
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, CoreEventArgsPropertyOrderChanged, ICoreEventArgs,
+    IPropertyObject*, propOwner,
+    IList*, propertyOrder,
+    IString*, path
+)
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

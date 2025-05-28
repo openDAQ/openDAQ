@@ -192,7 +192,7 @@ inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 
 inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
-    return 14;
+    return 15;
 }
 
 }

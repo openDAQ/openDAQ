@@ -38,6 +38,7 @@
 
 ## Bug fixes
 
+- [#819](https://github.com/openDAQ/openDAQ/pull/819) Fix property order is preserved from server to client via the native protocol
 - [#806](https://github.com/openDAQ/openDAQ/pull/806) Fix hidden components deserialization
 - [#794](https://github.com/openDAQ/openDAQ/pull/794) Small refactor/fixing of child object cloning logic. Ensure thread safety on core event enabling.
 - [#790](https://github.com/openDAQ/openDAQ/pull/790) Fix input port to signal notification

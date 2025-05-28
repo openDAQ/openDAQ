@@ -473,6 +473,7 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::SignalConnected:
         case CoreEventId::ComponentAdded:
         case CoreEventId::AttributeChanged:
+        case CoreEventId::PropertyOrderChanged:
             packedEvent.pushBack(processCoreEventArgs(args));
             break;
         case CoreEventId::ComponentUpdateEnd:

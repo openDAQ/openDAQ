@@ -98,6 +98,7 @@ private:
     void propertyObjectUpdateEnd(const CoreEventArgsPtr& args);
     void propertyAdded(const CoreEventArgsPtr& args);
     void propertyRemoved(const CoreEventArgsPtr& args);
+    void propertyOrderChanged(const CoreEventArgsPtr& args);
     PropertyObjectPtr getObjectAtPath(const CoreEventArgsPtr& args);
     BaseObjectPtr getFullPropName(const std::string& propName) const;
 
@@ -338,6 +339,8 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getAllProperties(IList** prope
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* orderedPropertyNames)
 {
+    if (!deserializationComplete)
+        return Impl::setPropertyOrderInternal(orderedPropertyNames, true);
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
 }
 
@@ -352,7 +355,6 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
         clientComm->beginUpdate(remoteGlobalId, path);
     });
 }
-
 
 template <class Impl>
 ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
@@ -603,6 +605,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(co
         case CoreEventId::PropertyRemoved:
             propertyRemoved(args);
             break;
+        case CoreEventId::PropertyOrderChanged:
+            propertyOrderChanged(args);
+            break;
         default:
             break;
     }
@@ -828,6 +833,25 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyRemoved(const CoreEventAr
 }
 
 template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::propertyOrderChanged(const CoreEventArgsPtr& args)
+{
+    const auto params = args.getParameters();
+    const PropertyObjectPtr obj = getObjectAtPath(args);
+
+    const ListPtr<IString> orderedPropertyNames = params.get("PropertyOrder");
+
+    if (params.get("Path") != "")
+    {
+        ScopedRemoteUpdate update(obj);
+        obj.setPropertyOrder(orderedPropertyNames);
+    }
+    else
+    {
+        checkErrorInfo(Impl::setPropertyOrder(orderedPropertyNames));
+    }
+}
+
+template <class Impl>
 PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getObjectAtPath(const CoreEventArgsPtr& args)
 {
     const auto params = args.getParameters();
@@ -898,7 +922,7 @@ inline ErrCode ConfigClientPropertyObjectImpl::setProtectedPropertyValue(IString
 {
     if (remoteUpdating)
         return Impl::setProtectedPropertyValue(propertyName, value);
-    return Super::setProtectedPropertyValue(propertyName,value);
+    return Super::setProtectedPropertyValue(propertyName, value);
 }
 
 inline ErrCode ConfigClientPropertyObjectImpl::clearPropertyValue(IString* propertyName)

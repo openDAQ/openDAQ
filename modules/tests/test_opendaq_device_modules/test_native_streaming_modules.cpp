@@ -277,6 +277,20 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(NativeStreamingModulesTest, GetConnectedClientsInfo)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // one streaming connection
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_NE(serverSideClientsInfo[0].getHostName(), "");
+    ASSERT_TRUE(serverSideClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
+}
 
 TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 {
@@ -708,7 +722,7 @@ TEST_F(NativeStreamingModulesTest, RemoveSignals)
     ASSERT_EQ(clientSignals.getCount(), 3u);
 }
 
-TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
+TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -726,6 +740,27 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPort(), 7420);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://127.0.0.1/");
+}
+
+TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv6)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.ns://[::1]", nullptr);
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
+    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://[::1]");
 }
 
 TEST_F(NativeStreamingModulesTest, ProtectedSignals)
@@ -753,9 +788,14 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignals)
     {
         auto client = CreateClientInstance("opendaq", "opendaq");
         auto clientSignals = client.getSignalsRecursive(search::Any());
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
         ASSERT_EQ(clientSignals.getCount(), 3u);
         ASSERT_EQ(clientSignals[0].getName(), "AI1");
         ASSERT_EQ(clientSignals[1].getName(), "AI1Time");
+#else
+        ASSERT_EQ(clientSignals.getCount(), 5u);
+#endif
     }
 }
 
@@ -777,7 +817,12 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeDenied)
     test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     auto reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     ASSERT_FALSE(test_helpers::waitForAcknowledgement(signalSubscribeFuture, std::chrono::seconds(1)));
+#else
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture, std::chrono::seconds(1)));
+#endif
 }
 
 
@@ -841,7 +886,12 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalUnsubscribeDenied)
     test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     reader.release();
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     ASSERT_FALSE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture, std::chrono::seconds(1)));
+#else
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture, std::chrono::seconds(1)));
+#endif
 }
 
 TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)

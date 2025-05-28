@@ -29,6 +29,8 @@ std::vector<MdnsDiscoveredDevice> DiscoveryClient::discoverMdnsDevices() const
         if (verifyDiscoveredDevice(device))
         {
             device.properties.erase("caps");
+            if (device.getPropertyOrDefault("sdkVersion").empty())
+                device.properties["sdkVersion"] = "<3.10.3";
             discovered.push_back(device);
         }
     }
@@ -80,12 +82,16 @@ void addInfoProperty(PropertyObjectPtr& info, std::string propName, T propValue)
     }
 }
 
-void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info, const MdnsDiscoveredDevice& device)
+void DiscoveryClient::populateDiscoveredInfoProperties(PropertyObjectPtr& info,
+                                                       const MdnsDiscoveredDevice& device,
+                                                       const PropertyObjectPtr& defaultConnectedClientInfo = nullptr)
 {
     for (const auto& prop : device.properties)
     {
-        addInfoProperty(info, prop.first, prop.second);
+        if (prop.first.find(discovery_common::DiscoveryUtils::CONNECTED_CLIENT_INFO_KEY_PREFIX) == std::string::npos)
+            addInfoProperty(info, prop.first, prop.second);
     }
+    discovery_common::DiscoveryUtils::populateConnectedClientsInfo(info, defaultConnectedClientInfo, device.properties);
 }
 
 ErrCode DiscoveryClient::applyIpConfiguration(const StringPtr& manufacturer,

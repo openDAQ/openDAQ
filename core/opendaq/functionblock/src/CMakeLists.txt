@@ -5,11 +5,13 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_FunctionBlockType function_block_type.h)
     rtgen(SRC_FunctionBlockWrapper function_block_wrapper.h)
     rtgen(SRC_Channel channel.h)
-    
+    rtgen(SRC_Recorder recorder.h)
+
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_FunctionBlock_PublicHeaders}
         ${SRC_FunctionBlockType_PublicHeaders}
         ${SRC_Channel_PublicHeaders}
+        ${SRC_Recorder_PublicHeaders}
         ${SRC_FunctionBlockWrapper_PublicHeaders}
         PARENT_SCOPE
     )
@@ -18,6 +20,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_FunctionBlock_PrivateHeaders}
         ${SRC_FunctionBlockType_PrivateHeaders}
         ${SRC_Channel_PrivateHeaders}
+        ${SRC_Recorder_PrivateHeaders}
         ${SRC_FunctionBlockWrapper_PrivateHeaders}
         PARENT_SCOPE
     )
@@ -26,6 +29,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_FunctionBlock_Cpp}
         ${SRC_FunctionBlockType_Cpp}
         ${SRC_Channel_Cpp}
+        ${SRC_Recorder_Cpp}
         ${SRC_FunctionBlockWrapper_Cpp}
         PARENT_SCOPE
     )
@@ -58,6 +62,10 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/channel_impl.h
     )
     
+    source_group("function_block//recorder" FILES 
+        ${SDK_HEADERS_DIR}/recorder.h
+    )
+
     source_group("function_block//input_port" FILES 
         ${SDK_HEADERS_DIR}/function_block_input_port_impl.h
         ${SDK_HEADERS_DIR}/function_block_input_port_factory.h

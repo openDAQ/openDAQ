@@ -151,5 +151,22 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
         instance_builder.add_config_provider(config_provider)
         instance = instance_builder.build()
 
+    def test_search(self):
+        instance = opendaq.Instance()
+        device = instance.add_device('daqref://device0')
+
+        component_filter = opendaq.RecursiveSearchFilter(opendaq.LocalIdSearchFilter('RefCh0'))
+        self.assertTrue(component_filter is not None)
+
+        properties = device.find_properties(opendaq.NamePropertyFilter('^Amplitude$'), component_filter)
+        self.assertTrue(len(properties) == 1)
+        property = properties[0]
+        print('Property: ', property.name, ', Value:', property.value)
+        property.value = 7
+
+        components = device.get_items(component_filter)
+        self.assertTrue(len(components) == 1)
+        print('Property Amplitude new value:', property.value)
+
 if __name__ == '__main__':
     unittest.main()

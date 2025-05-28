@@ -15,6 +15,7 @@
 #include <coreobjects/user_factory.h>
 #include <config_protocol/exceptions.h>
 #include <testutils/testutils.h>
+#include <opendaq/recorder_ptr.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -96,10 +97,18 @@ TEST_F(ConfigProtocolIntegrationTest, Connect)
 
 TEST_F(ConfigProtocolIntegrationTest, InputPortConnected)
 {
+    // visible input ports
     ASSERT_EQ(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal(),
               serverDevice.getDevices()[0].getSignals()[0]);
 
     ASSERT_EQ(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].getSignal(),
+              clientDevice.getDevices()[0].getSignals()[0]);
+
+    // hidden input ports
+    ASSERT_EQ(serverDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts(search::Not(search::Visible()))[0].getSignal(),
+              serverDevice.getDevices()[0].getSignals()[0]);
+
+    ASSERT_EQ(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts(search::Not(search::Visible()))[0].getSignal(),
               clientDevice.getDevices()[0].getSignals()[0]);
 }
 
@@ -441,11 +450,19 @@ TEST_F(ConfigProtocolIntegrationTest, SetStructPropertyValue)
 
 TEST_F(ConfigProtocolIntegrationTest, DomainSignals)
 {
+    // visible signals
     ASSERT_EQ(serverDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
               serverDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
 
     ASSERT_EQ(clientDevice.getDevices()[0].getChannels()[0].getSignals()[0].getDomainSignal(),
               clientDevice.getDevices()[0].getChannels()[0].getSignals()[1]);
+
+    // hidden signals
+    ASSERT_EQ(serverDevice.getDevices()[0].getChannels()[0].getSignals(search::Not(search::Visible()))[0].getDomainSignal(),
+              serverDevice.getDevices()[0].getChannels()[0].getSignals(search::Not(search::Visible()))[1]);
+
+    ASSERT_EQ(clientDevice.getDevices()[0].getChannels()[0].getSignals(search::Not(search::Visible()))[0].getDomainSignal(),
+              clientDevice.getDevices()[0].getChannels()[0].getSignals(search::Not(search::Visible()))[1]);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdate)
@@ -875,4 +892,23 @@ TEST_F(ConfigProtocolIntegrationTest, FunctionBlockTypesModuleInfo)
     ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5);
     ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6);
     ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, RecorderFunctionBlock)
+{
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+
+    const auto recorderFb = clientSubDevice.addFunctionBlock("mockrecorder1");
+    const RecorderPtr recorderPtr = recorderFb.asPtrOrNull<IRecorder>();
+
+    ASSERT_TRUE(recorderPtr.assigned());
+    ASSERT_FALSE(recorderPtr.getIsRecording());
+
+    ASSERT_NO_THROW(recorderPtr.startRecording());
+    ASSERT_TRUE(recorderPtr.getIsRecording());
+    ASSERT_THROW(recorderPtr.startRecording(), InvalidStateException);
+
+    ASSERT_NO_THROW(recorderPtr.stopRecording());
+    ASSERT_FALSE(recorderPtr.getIsRecording());
+    ASSERT_THROW(recorderPtr.stopRecording(), InvalidStateException);
 }

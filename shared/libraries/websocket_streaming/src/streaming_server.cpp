@@ -121,6 +121,16 @@ void StreamingServer::onStopSignalsRead(const OnStopSignalsReadCallback& callbac
     onStopSignalsReadCallback = callback;
 }
 
+void StreamingServer::onClientConnected(const OnClientConnectedCallback& callback)
+{
+    clientConnectedHandler = callback;
+}
+
+void StreamingServer::onClientDisconnected(const OnClientDisconnectedCallback& callback)
+{
+    clientDisconnectedHandler = callback;
+}
+
 void StreamingServer::broadcastPacket(const std::string& signalId, const PacketPtr& packet)
 {
     std::scoped_lock lock(sync);
@@ -271,6 +281,9 @@ void StreamingServer::removeClient(const std::string& clientId)
 {
     LOG_I("client with id {} disconnected", clientId);
 
+    if (clientDisconnectedHandler)
+        clientDisconnectedHandler(clientId);
+
     auto signalsToStopRead = List<ISignal>();
     {
         std::scoped_lock lock(sync);
@@ -302,6 +315,9 @@ void StreamingServer::onAcceptInternal(const daq::stream::StreamPtr& stream)
 
     auto clientId = stream->endPointUrl();
     LOG_I("New client connected. Stream Id: {}", clientId);
+
+    if (clientConnectedHandler)
+        clientConnectedHandler(clientId, stream->remoteHost());
     {
         std::scoped_lock lock(sync);
         clients.insert({clientId, {writer, std::unordered_map<std::string, OutputSignalBasePtr>()}});

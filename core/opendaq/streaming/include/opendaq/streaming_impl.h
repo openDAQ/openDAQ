@@ -198,10 +198,7 @@ ErrCode StreamingImpl<Interfaces...>::setActive(Bool active)
         return OPENDAQ_IGNORED;
 
     const ErrCode errCode = wrapHandler(this, &Self::onSetActive, active);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     std::scoped_lock lock(sync);
     this->isActive = active;
@@ -259,10 +256,7 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
             }
 
             ErrCode errCode = wrapHandler(this, &Self::onAddSignal, mirroredSignal);
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
+            OPENDAQ_RETURN_IF_FAILED(errCode);
 
             auto signalItem = std::make_pair(0, WeakRefPtr<IMirroredSignalConfig>(mirroredSignal));
             streamingSignalsItems.insert({signalIdKey, signalItem});
@@ -274,10 +268,7 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
                        auto thisPtr = this->template borrowPtr<StreamingPtr>();
                        mirroredSignal.template asPtr<IMirroredSignalPrivate>().addStreamingSource(thisPtr);
                    });
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -304,10 +295,7 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
                    {
                        mirroredSignalToRemove.template asPtr<IMirroredSignalPrivate>().removeStreamingSource(connectionString);
                    });
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         auto signalRemoteId = mirroredSignalToRemove.getRemoteId();
         auto signalGlobalId = mirroredSignalToRemove.getGlobalId();
@@ -356,10 +344,7 @@ template <typename... Interfaces>
 ErrCode StreamingImpl<Interfaces...>::removeAllSignals()
 {
     ErrCode errCode = removeStreamingSourceForAllSignals();
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     std::scoped_lock lock(sync);
     for (const auto& [_, signalItem] : streamingSignalsItems)
@@ -367,10 +352,7 @@ ErrCode StreamingImpl<Interfaces...>::removeAllSignals()
         if (auto mirroredSignal = signalItem.second.getRef(); mirroredSignal.assigned())
         {
             errCode = wrapHandler(this, &Self::onRemoveSignal, mirroredSignal);
-            if (OPENDAQ_FAILED(errCode))
-            {
-                return errCode;
-            }
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
     }
 
@@ -437,8 +419,7 @@ ErrCode StreamingImpl<Interfaces...>::doSubscribeSignal(const StringPtr& signalR
     if (!skipSubscribeRequest)
     {
         ErrCode errCode = wrapHandler(this, &Self::onSubscribeSignal, signalId);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -470,13 +451,11 @@ ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const StringPtr& signalRem
     if (domainSignalRemoteId.assigned() && !skipDomainSignalSubscribe)
     {
         ErrCode errCode = doSubscribeSignal(domainSignalRemoteId);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     ErrCode errCode = doSubscribeSignal(signalRemoteId);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
 }
@@ -529,8 +508,7 @@ ErrCode StreamingImpl<Interfaces...>::doUnsubscribeSignal(const StringPtr& signa
     if (!skipUnsubscribeRequest)
     {
         ErrCode errCode = wrapHandler(this, &Self::onUnsubscribeSignal, signalId);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -562,13 +540,11 @@ ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const StringPtr& signalR
     if (domainSignalRemoteId.assigned() && !skipDomainSignalSubscribe)
     {
         ErrCode errCode = doUnsubscribeSignal(domainSignalRemoteId);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     ErrCode errCode = doUnsubscribeSignal(signalRemoteId);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
 }
@@ -650,10 +626,7 @@ ErrCode StreamingImpl<Interfaces...>::removeStreamingSourceForAllSignals()
                    {
                        signal.template asPtr<IMirroredSignalPrivate>().removeStreamingSource(connectionString);
                    });
-        if (OPENDAQ_FAILED(errCode))
-        {
-            return errCode;
-        }
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     return OPENDAQ_SUCCESS;

@@ -58,12 +58,8 @@ public:
 
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* /*id*/) const override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
-
-    // IUnknown
-    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
-    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
 
 protected:
     V value;
@@ -93,6 +89,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equals(IBaseObject* other, Bool* 
 
         if (OPENDAQ_FAILED(err))
         {
+            daqClearErrorInfo();
             return OPENDAQ_SUCCESS;
         }
 
@@ -194,18 +191,15 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
     {
         IConvertible* convObj;
         err = obj->borrowInterface(IConvertible::Id, reinterpret_cast<void**>(&convObj));
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         err = CoreTypeHelper<V>::FromConvertible(otherValue, convObj);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
     else
     {
         err = typeObj->getValue(&otherValue);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     if (value > otherValue)
@@ -219,66 +213,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
 template <class V, class Intf, class ... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::serialize(ISerializer* serializer)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
-}
-
-template <class V, class Intf, class ... Intfs>
-ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::queryInterface(const IntfID& id, void** intf)
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == Intf::Id)
-    {
-        *intf = static_cast<Intf*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == ICoreType::Id)
-    {
-        *intf = static_cast<ICoreType*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IConvertible::Id)
-    {
-        *intf = static_cast<IConvertible*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::queryInterface(id, intf);
-}
-
-template <class V, class Intf, class ... Intfs>
-ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::borrowInterface(const IntfID& id, void** intf) const
-{
-    if (id == Intf::Id)
-    {
-        *intf = const_cast<Intf*>(static_cast<const Intf*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == ICoreType::Id)
-    {
-        *intf = const_cast<ICoreType*>(static_cast<const ICoreType*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (id == IConvertible::Id)
-    {
-        *intf = const_cast<IConvertible*>(static_cast<const IConvertible*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::borrowInterface(id, intf);
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 END_NAMESPACE_OPENDAQ

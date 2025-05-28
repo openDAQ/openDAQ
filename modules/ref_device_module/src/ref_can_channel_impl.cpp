@@ -111,8 +111,8 @@ void RefCANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size
     }
 
 
-    valueSignal.sendPacket(dataPacket);
     timeSignal.sendPacket(domainPacket);
+    valueSignal.sendPacket(dataPacket);
 }
 
 void RefCANChannelImpl::buildSignalDescriptors()
@@ -169,6 +169,12 @@ std::string RefCANChannelImpl::getEpoch()
 RatioPtr RefCANChannelImpl::getResolution()
 {
     return Ratio(1, 1000000);
+}
+
+void RefCANChannelImpl::activeChanged()
+{
+    for (const auto& signal : this->signals.getItems())
+        signal.setActive(this->active);
 }
 
 END_NAMESPACE_REF_DEVICE_MODULE

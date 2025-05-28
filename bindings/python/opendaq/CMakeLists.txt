@@ -31,6 +31,7 @@ set(SRC_Cpp
     generated/device/py_device_info_config.cpp
     generated/device/py_network_interface.cpp
     generated/device/py_server_capability.cpp
+    generated/device/py_connected_client_info.cpp
     generated/device/py_device_type.cpp
     generated/device/py_address_info.cpp
     generated/device/py_address_info_builder.cpp
@@ -40,6 +41,7 @@ set(SRC_Cpp
     generated/functionblock/py_channel.cpp
     generated/functionblock/py_function_block.cpp
     generated/functionblock/py_function_block_type.cpp
+    generated/functionblock/py_recorder.cpp
     generated/logger/py_logger.cpp
     generated/logger/py_logger_component.cpp
     generated/logger/py_logger_sink.cpp

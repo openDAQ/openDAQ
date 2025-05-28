@@ -76,35 +76,6 @@ ErrCode PacketReaderImpl::getEmpty(Bool* empty)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketReaderImpl::queryInterface(const IntfID& id, void** intf)
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IInputPortNotifications::Id)
-    {
-        *intf = static_cast<IInputPortNotifications*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::queryInterface(id, intf);
-}
-
-ErrCode PacketReaderImpl::borrowInterface(const IntfID& id, void** intf) const
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IInputPortNotifications::Id)
-    {
-        *intf = const_cast<IInputPortNotifications*>(static_cast<const IInputPortNotifications*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::borrowInterface(id, intf);
-}
-
 ErrCode PacketReaderImpl::setOnDataAvailable(IProcedure* callback)
 {
     std::scoped_lock lock(mutex);
@@ -131,8 +102,7 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
     OPENDAQ_PARAM_NOT_NULL(allPackets);
 
     ErrCode errCode = createListWithElementType(allPackets, IPacket::Id);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     std::scoped_lock lock(mutex);
 
@@ -141,8 +111,7 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
 
     SizeT size{};
     errCode = connection->getPacketCount(&size);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     auto readPackets = ListPtr<IPacket>::Borrow(*allPackets);
     for (std::size_t i = 0u; i < size; ++i)

@@ -39,10 +39,12 @@ PyDaqIntf<daq::IDeviceInfo, daq::IPropertyObject> declareIDeviceInfo(pybind11::m
 PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> declareIDeviceInfoConfig(pybind11::module_ m);
 PyDaqIntf<daq::INetworkInterface, daq::IBaseObject> declareINetworkInterface(pybind11::module_ m);
 PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m);
+PyDaqIntf<daq::IConnectedClientInfo, daq::IPropertyObject> declareIConnectedClientInfo(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::module_ m);
 PyDaqIntf<daq::IChannel, daq::IFunctionBlock> declareIChannel(pybind11::module_ m);
 PyDaqIntf<daq::IFunctionBlock, daq::IFolder> declareIFunctionBlock(pybind11::module_ m);
 PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> declareIFunctionBlockType(pybind11::module_ m);
+PyDaqIntf<daq::IRecorder, daq::IBaseObject> declareIRecorder(pybind11::module_ m);
 PyDaqIntf<daq::ILogger, daq::IBaseObject> declareILogger(pybind11::module_ m);
 PyDaqIntf<daq::ILoggerComponent, daq::IBaseObject> declareILoggerComponent(pybind11::module_ m);
 PyDaqIntf<daq::ILoggerSink, daq::IBaseObject> declareILoggerSink(pybind11::module_ m);
@@ -104,7 +106,6 @@ PyDaqIntf<daq::ISubscriptionEventArgs, daq::IEventArgs> declareISubscriptionEven
 PyDaqIntf<daq::IMirroredDevice, daq::IDevice> declareIMirroredDevice(pybind11::module_ m);
 PyDaqIntf<daq::IMirroredDeviceConfig, daq::IMirroredDevice> declareIMirroredDeviceConfig(pybind11::module_ m);
 PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> declareIComponentPrivate(pybind11::module_ m);
-PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::module_ m);
 PyDaqIntf<daq::IComponentStatusContainer, daq::IBaseObject> declareIComponentStatusContainer(pybind11::module_ m);
 PyDaqIntf<daq::IComponentStatusContainerPrivate, daq::IBaseObject> declareIComponentStatusContainerPrivate(pybind11::module_ m);
 PyDaqIntf<daq::IConnectionStatusContainerPrivate, daq::IBaseObject> declareIConnectionStatusContainerPrivate(pybind11::module_ m);
@@ -147,10 +148,12 @@ void defineIDeviceInfo(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfo, daq::IPr
 void defineIDeviceInfoConfig(pybind11::module_ m, PyDaqIntf<daq::IDeviceInfoConfig, daq::IDeviceInfo> cls);
 void defineINetworkInterface(pybind11::module_ m, PyDaqIntf<daq::INetworkInterface, daq::IBaseObject> cls);
 void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> cls);
+void defineIConnectedClientInfo(pybind11::module_ m, PyDaqIntf<daq::IConnectedClientInfo, daq::IPropertyObject> cls);
 void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::IComponentType> cls);
 void defineIChannel(pybind11::module_ m, PyDaqIntf<daq::IChannel, daq::IFunctionBlock> cls);
 void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, daq::IFolder> cls);
 void defineIFunctionBlockType(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> cls);
+void defineIRecorder(pybind11::module_ m, PyDaqIntf<daq::IRecorder, daq::IBaseObject> cls);
 void defineILogger(pybind11::module_ m, PyDaqIntf<daq::ILogger, daq::IBaseObject> cls);
 void defineILoggerComponent(pybind11::module_ m, PyDaqIntf<daq::ILoggerComponent, daq::IBaseObject> cls);
 void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBaseObject> cls);
@@ -217,7 +220,6 @@ void defineIMirroredDevice(pybind11::module_ m, PyDaqIntf<daq::IMirroredDevice, 
 void defineIMirroredDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredDeviceConfig, daq::IMirroredDevice> cls);
 void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls);
 void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> cls);
-void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> cls);
 void defineIComponentStatusContainer(pybind11::module_ m, PyDaqIntf<daq::IComponentStatusContainer, daq::IBaseObject> cls);
 void defineIComponentStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentStatusContainerPrivate, daq::IBaseObject> cls);
 void defineIConnectionStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::IConnectionStatusContainerPrivate, daq::IBaseObject> cls);
@@ -232,3 +234,5 @@ void defineILogFileInfo(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfo, daq::I
 void defineILogFileInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfoBuilder, daq::IBaseObject> cls);
 void defineIModuleInfo(pybind11::module_ m, PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> cls);
 void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, daq::IBaseObject> cls);
+
+void defineComponentSearchFilterFactories(pybind11::module_ m);

@@ -101,8 +101,7 @@ BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& glob
     auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetPropertyValue", dict);
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
-    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext, nullptr, nullptr, nullptr, nullptr);
-
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
     return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
 }
 
@@ -159,7 +158,8 @@ BaseObjectPtr ConfigProtocolClientComm::callProperty(const std::string& globalId
     auto callPropertyRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "CallProperty", dict);
     const auto callPropertyRpcReplyPacketBuffer = sendRequestCallback(callPropertyRpcRequestPacketBuffer);
 
-    const auto result = parseRpcOrRejectReply(callPropertyRpcReplyPacketBuffer.parseRpcRequestOrReply());
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
+    const auto result = parseRpcOrRejectReply(callPropertyRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
     return result;
 }
 
@@ -319,6 +319,26 @@ StringPtr ConfigProtocolClientComm::getOperationMode(const std::string& globalId
     return sendComponentCommand(globalId, ClientCommand("GetOperationMode", 9));
 }
 
+PropertyObjectPtr ConfigProtocolClientComm::getComponentConfig(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetComponentConfig", 13));
+}
+
+void ConfigProtocolClientComm::startRecording(const std::string& globalId)
+{
+    sendComponentCommand(globalId, ClientCommand("StartRecording", 14));
+}
+
+void ConfigProtocolClientComm::stopRecording(const std::string& globalId)
+{
+    sendComponentCommand(globalId, ClientCommand("StopRecording", 14));
+}
+
+BooleanPtr ConfigProtocolClientComm::getIsRecording(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetIsRecording", 14));
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
 {
     auto dict = Dict<IString, IBaseObject>();
@@ -326,7 +346,7 @@ BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId
     auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetLastValue", dict);
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
-    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext, nullptr, nullptr, nullptr, nullptr);
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
     return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
 }
 
@@ -411,15 +431,35 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
     ParamsDictPtr reply;
     try
     {
-        ComponentDeserializeCallback customDeviceDeserilazeCallback = isGetRootDeviceReply ? rootDeviceDeserializeCallback : nullptr;
         const auto deserializer = JsonDeserializer();
-        reply = deserializer.deserialize(
-            jsonReply,
-            context,
-            [this, &customDeviceDeserilazeCallback](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
-            {
-                return deserializeConfigComponent(typeId, object, context, factoryCallback, customDeviceDeserilazeCallback);
-            });
+        if (isGetRootDeviceReply && this->rootDeviceDeserializeCallback)
+        {
+            bool rootDeviceDeserialized = false;
+            reply = deserializer.deserialize(
+                jsonReply,
+                context,
+                [this, &rootDeviceDeserialized](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
+                {
+                    if (!rootDeviceDeserialized && (typeId == "Device" || typeId == "Instance"))
+                    {
+                        rootDeviceDeserialized = true;
+                        BaseObjectPtr obj;
+                        checkErrorInfo(this->rootDeviceDeserializeCallback(object, context, factoryCallback, &obj));
+                        return obj;
+                    }
+                    return deserializeConfigComponent(typeId, object, context, factoryCallback);
+                });
+        }
+        else
+        {
+            reply = deserializer.deserialize(
+                jsonReply,
+                context,
+                [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
+                {
+                    return deserializeConfigComponent(typeId, object, context, factoryCallback);
+                });
+        }
     }
     catch (const std::exception& e)
     {
@@ -442,8 +482,7 @@ BaseObjectPtr ConfigProtocolClientComm::parseRpcOrRejectReply(const StringPtr& j
 BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringPtr& typeId,
                                                                    const SerializedObjectPtr& serObj,
                                                                    const BaseObjectPtr& context,
-                                                                   const FunctionPtr& factoryCallback,
-                                                                   ComponentDeserializeCallback deviceDeserialzeCallback)
+                                                                   const FunctionPtr& factoryCallback)
 {
     if (typeId == "Folder")
     {
@@ -504,10 +543,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     if (typeId == "Device" || typeId == "Instance")
     {
         BaseObjectPtr obj;
-        if (deviceDeserialzeCallback)
-            checkErrorInfo(deviceDeserialzeCallback(serObj, context, factoryCallback, &obj));
-        else
-            checkErrorInfo(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        checkErrorInfo(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 
@@ -831,8 +867,7 @@ BaseObjectPtr ConfigProtocolClientComm::sendComponentCommandInternal(const Clien
         remoteGlobalId = temp.toStdString();
     }
 
-    const auto deserializeContext = createDeserializeContext(remoteGlobalId, daqContext, nullptr, parentComponent, nullptr, nullptr);
-
+    const auto deserializeContext = createDeserializeContext(remoteGlobalId, daqContext, nullptr, parentComponent);
     return parseRpcOrRejectReply(sendCommandRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext, isGetRootDeviceCommand);
 }
 
@@ -846,7 +881,7 @@ void ConfigProtocolClientComm::forEachComponent(const ComponentPtr& component, c
     const auto folder = component.asPtrOrNull<IFolder>(true);
     if (folder.assigned())
     {
-        for (const auto item : folder.getItems())
+        for (const auto item : folder.getItems(search::Any()))
             forEachComponent<Interface>(item, f);
     }
 }

@@ -69,11 +69,7 @@ private:
     void cancelPendingConfigRequests(const DaqException& e);
     void processConfigPacket(config_protocol::PacketBuffer&& packet);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
-    void componentAdded(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
-    void enableStreamingForComponent(const ComponentPtr& component);
-    void tryAddSignalToStreaming(const SignalPtr& signal, const StreamingPtr& streaming);
-    void setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming);
     void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
     void tryConfigProtocolReconnect();
 
@@ -125,13 +121,26 @@ public:
     // ISerializable
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
+
 protected:
     void removed() override;
+    bool isAddedToLocalComponentTree() override;
 
 private:
     void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);
 
     std::shared_ptr<NativeDeviceHelper> deviceHelper;
+};
+
+class ConnectionStringUtils
+{
+public:
+    static StringPtr GetHostType(const StringPtr& url);
+    static StringPtr GetHost(const StringPtr& url);
+    static StringPtr GetPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
+    static StringPtr GetPath(const StringPtr& url);
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

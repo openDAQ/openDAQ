@@ -63,6 +63,13 @@ TEST_F(OpcuaDeviceModulesTest, ConnectAndDisconnect)
     server.detach();
 }
 
+TEST_F(OpcuaDeviceModulesTest, FailedToSetAsRoot)
+{
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    ASSERT_THROW(client.setRootDevice("daq.opcua://127.0.0.1"), InvalidParameterException);
+}
+
 TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 {
     if (test_helpers::Ipv6IsDisabled())
@@ -231,7 +238,14 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
         GTEST_SKIP() << "Ipv6 is disabled";
     }
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo)
+                                     .addDiscoveryServer("mdns")
+                                     .build();
+
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discoveryReachabilityAfterConnectIPv6/";
     serverConfig.setPropertyValue("Path", path);
@@ -239,8 +253,8 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
 
     auto client = Instance();
-    // client.getAvailableDevices();
-    DevicePtr device = client.addDevice(std::string("daq.opcua://[::1]") + path);
+    StringPtr deviceConnectionString = std::string("daq.opcua://[::1]") + path;
+    DevicePtr device = client.addDevice(deviceConnectionString);
 
     ASSERT_TRUE(device.assigned());
 
@@ -253,23 +267,26 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
             break;
 
         ASSERT_EQ(capability.getProtocolName(), "OpenDAQOPCUA");
-        // const auto ipv4Info = capability.getAddressInfo()[0];
-        const auto ipv6Info = capability.getAddressInfo()[0];
 
-        // ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-        ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-        
-        // ASSERT_EQ(ipv4Info.getType(), "IPv4");
-        ASSERT_EQ(ipv6Info.getType(), "IPv6");
+        auto addressInfos = capability.getAddressInfo();
+        auto addresses = capability.getAddresses();
+        for (size_t i = 0; i < addressInfos.getCount(); ++i)
+        {
+            const auto& info = addressInfos[i];
+            if (info.getType() != "IPv6")
+                continue;
 
-        // ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-        ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[0]);
-        
-        // ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-        ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[0]);
-        return;
+            if (info.getConnectionString() != deviceConnectionString)
+                continue;
+
+            ASSERT_EQ(info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            ASSERT_EQ(info.getConnectionString(), capability.getConnectionStrings()[i]);
+            ASSERT_EQ(info.getAddress(), addresses[i]);
+            return;
+        }
     }
-    ASSERT_TRUE(false) << "Device not found"; 
+
+    ASSERT_TRUE(false) << "OpcUa streaming capability with connection string " << deviceConnectionString << " not found";
 }
 
 #endif
@@ -299,7 +316,11 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         GTEST_SKIP() << "Ipv6 is disabled";
     }
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("TestSerial");
+
+    auto instance = InstanceBuilder().setDefaultRootDeviceInfo(deviceInfo).addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discoveryReachabilityAfterConnect/";
     serverConfig.setPropertyValue("Path", path);
@@ -366,6 +387,22 @@ TEST_F(OpcuaDeviceModulesTest, TestProtocolVersion)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(OpcuaDeviceModulesTest, GetConnectedClientsInfo)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // one config connection
+    auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
+    ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQOPCUA");
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(serverSideClientsInfo[0].getHostName(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getAddress(), "");
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
+}
+
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
 {
     SKIP_TEST_MAC_CI;
@@ -383,6 +420,23 @@ TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(fbs.getCount(), 1u);
     auto channels = client.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 2u);
+}
+
+TEST_F(OpcuaDeviceModulesTest, DeviceComponentConfig)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto localOpcuaDevice = client.getDevices()[0];
+    auto nestedOpcuaDevice = localOpcuaDevice.getDevices()[0];
+
+    // config automatically set by local ModuleManager when device created
+    ASSERT_TRUE(localOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    ASSERT_THROW(localOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), AlreadyExistsException);
+
+    // for nested device config cannot be overriden locally
+    ASSERT_TRUE(nestedOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    ASSERT_THROW(nestedOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), InvalidOperationException);
 }
 
 TEST_F(OpcuaDeviceModulesTest, RemoveDevice)
@@ -517,7 +571,7 @@ TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)
     auto daqDevice = client.getDevices()[0];
 
     ASSERT_EQ(daqDevice.getAvailableDevices().getCount(), 0u);
-    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 10u);
+    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 11u);
     ASSERT_THROW(daqDevice.addDevice("daqref://device0"),
                  opcua::OpcUaClientCallNotAvailableException);  // Are these the correct errors to return?
 
@@ -974,7 +1028,7 @@ TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
     }
 }
 
-TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
+TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -992,6 +1046,27 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfo)
     ASSERT_EQ(connectionInfo.getPort(), 4840);
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://127.0.0.1");
+}
+
+TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = Instance();
+    client.addDevice("daq.opcua://[::1]");
+
+    auto devices = client.getDevices();
+    ASSERT_EQ(devices.getCount(), 1u);
+
+    auto connectionInfo = devices[0].getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), "OpenDAQOPCUAConfiguration");
+    ASSERT_EQ(connectionInfo.getProtocolName(), "OpenDAQOPCUA");
+    ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
+    ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
+    ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
+    ASSERT_EQ(connectionInfo.getPort(), 4840);
+    ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
+    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://[::1]");
 }
 
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
@@ -1158,6 +1233,47 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceUserNameLocation)
     }
 }
 
+TEST_F(OpcuaDeviceModulesTest, SaveLoadDeviceInfo)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstance();
+        auto client = CreateClientInstance();
+
+        auto serverDevice = server.getDevices()[0];
+        auto clientDevice = client.getDevices()[0].getDevices()[0];
+        auto deviceInfo = clientDevice.getInfo();
+
+        // as opcua server was run before, the new property would not be visible 
+        // serverDevice.getInfo().addProperty(StringProperty("ServerCustomProperty", "defaultValue"));
+
+        deviceInfo.setPropertyValue("userName", "testUser");
+        deviceInfo.setPropertyValue("location", "testLocation");
+
+        // this property is a local client property and will be visible only in the current client
+        // the same is after restoring the property, as addint property is happening only on local machine
+        deviceInfo.addProperty(StringProperty("ClientCustomProperty", "defaultValue"));
+        deviceInfo.setPropertyValue("ClientCustomProperty", "newValue");
+
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstance();
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto clientDevice = restoredClient.getDevices()[0].getDevices()[0];
+    auto deviceInfo = clientDevice.getInfo();
+
+    // ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
+    // ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
+
+    ASSERT_TRUE(deviceInfo.hasProperty("ClientCustomProperty"));
+    ASSERT_EQ(deviceInfo.getProperty("ClientCustomProperty").getDefaultValue(), "defaultValue");
+    ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
+}
+
 class TestDevice : public daq::Device
 {
 public:
@@ -1227,36 +1343,36 @@ public:
             *device = daq::createWithImplementation<daq::IDevice, TestDevice>(ctx, parent, config).detach();
             return OPENDAQ_SUCCESS;
         }
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     daq::ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(daq::IDict**) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
     daq::ErrCode INTERFACE_FUNC createFunctionBlock(daq::IFunctionBlock**, daq::IString*, daq::IComponent*, daq::IString*, daq::IPropertyObject*) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
     daq::ErrCode INTERFACE_FUNC getAvailableServerTypes(daq::IDict**) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
     daq::ErrCode INTERFACE_FUNC createServer(daq::IServer**, daq::IString*, daq::IDevice*, daq::IPropertyObject*) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
     daq::ErrCode INTERFACE_FUNC createStreaming(daq::IStreaming**, daq::IString*, daq::IPropertyObject*) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
     daq::ErrCode INTERFACE_FUNC getAvailableStreamingTypes(daq::IDict**) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
     daq::ErrCode INTERFACE_FUNC completeServerCapability(daq::Bool*, daq::IServerCapability*, daq::IServerCapabilityConfig*) override
     {
-        return OPENDAQ_ERR_NOTIMPLEMENTED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
 
 private:
@@ -1314,55 +1430,91 @@ TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    test_helpers::checkDeviceOperationMode(server, "Operation");
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation");
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
 
     ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
     ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
 
     // setting the operation mode for server root device
-    ASSERT_NO_THROW(server.setOperationModeRecursive("Idle"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+    ASSERT_NO_THROW(server.setOperationModeRecursive(daq::OperationModeType::Idle));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 
     // setting the operation mode for server sub device
-    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive("SafeOperation"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "SafeOperation", true);
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "SafeOperation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
 
     // setting the operation mode for client sub device
-    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive("Operation"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
 
     // setting the operation mode for client device not recursively
-    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode("SafeOperation"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "SafeOperation", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Operation", true);
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::SafeOperation));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Operation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "SafeOperation");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Operation");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
 
     // setting the operation mode for client device
-    ASSERT_NO_THROW(client.setOperationModeRecursive("Idle"));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), "Idle", true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], "Idle", true);
+    ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], "Idle");
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], "Idle");
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+}
+
+TEST_F(OpcuaDeviceModulesTest, SaveLoadFunctionBlockConfig)
+{
+    StringPtr config;
+    {
+        auto server = CreateServerInstance();
+        auto client = CreateClientInstance();
+        auto clientRoot = client.getDevices()[0].getDevices()[0];
+
+        PropertyObjectPtr fbConfig = PropertyObject();
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+
+        auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
+
+        fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+        ASSERT_TRUE(fbConfig.assigned());
+        ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+        ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
+        config = client.saveConfiguration();
+    }
+
+    auto server = CreateServerInstance();
+    
+    auto restoredClient = Instance();
+    ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
+
+    auto clientRoot = restoredClient.getDevices()[0].getDevices()[0];
+    
+    ASSERT_EQ(clientRoot.getFunctionBlocks().getCount(), 1u);
+
+    auto fb = clientRoot.getFunctionBlocks()[0];
+    auto fbConfig = fb.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(fbConfig.assigned());
+    ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
+    ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }

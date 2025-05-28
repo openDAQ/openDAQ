@@ -20,11 +20,15 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
-         WORKING_DIRECTORY bin
+         WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
 target_link_libraries(${TEST_APP} PRIVATE daq::opendaq_mocks
 )
+
+if (MSVC)
+    target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
 
 if (OPENDAQ_ENABLE_COVERAGE)
     setup_target_for_coverage(${TEST_APP}coverage ${TEST_APP} ${TEST_APP}coverage)

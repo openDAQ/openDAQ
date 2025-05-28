@@ -144,13 +144,13 @@ public:
      * Call this method to reduce stored rational number to the lowest terms possible.
      * Example: 10/100 is reduced to 1/10.
      */
-    RatioPtr simplify()
+    RatioPtr simplify() const
     {
         if (this->object == nullptr)
             DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         RatioPtr simplifiedRatio;
-        auto errCode = this->object->simplify(&simplifiedRatio);
+        const auto errCode = this->object->simplify(&simplifiedRatio);
         checkErrorInfo(errCode);
         return simplifiedRatio;
     }

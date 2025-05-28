@@ -7,7 +7,7 @@ BEGIN_NAMESPACE_OPENDAQ
 template <typename TWriter>
 JsonSerializerImpl<TWriter>::JsonSerializerImpl()
     : writer(buffer)
-    , version(2)
+    , version(3)
 {
 }
 
@@ -25,11 +25,7 @@ ErrCode JsonSerializerImpl<TWriter>::startTaggedObject(ISerializable* serializab
 
     ConstCharPtr id;
     ErrCode errCode = serializable->getSerializeId(&id);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     writer.StartObject();
     writer.Key("__type");
@@ -75,7 +71,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyRaw(ConstCharPtr string, SizeT length)
 
     if (length <= 0)
     {
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     writer.Key(string, static_cast<rapidjson::SizeType>(length));
@@ -88,15 +84,11 @@ ErrCode JsonSerializerImpl<TWriter>::key(ConstCharPtr string)
 {
     SizeT length;
     ErrCode errCode = getCharLen(string, length);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (length == 0)
     {
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     writer.Key(string, static_cast<rapidjson::SizeType>(length));
@@ -111,10 +103,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyStr(IString* name)
 
     ConstCharPtr str;
     ErrCode errCode = name->getCharPtr(&str);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     OPENDAQ_PARAM_NOT_NULL(str);
 
@@ -123,7 +112,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyStr(IString* name)
 
     if (length == 0)
     {
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
 
     writer.Key(str, static_cast<rapidjson::SizeType>(length));
@@ -254,7 +243,7 @@ ErrCode PUBLIC_EXPORT createJsonSerializer(ISerializer** jsonSerializer, Bool pr
 
     if (!object)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
 
     object->addRef();
@@ -280,7 +269,7 @@ ErrCode PUBLIC_EXPORT createJsonSerializerWithVersion(ISerializer** jsonSerializ
 
     if (!object)
     {
-        return OPENDAQ_ERR_NOMEMORY;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
     }
 
     object->addRef();

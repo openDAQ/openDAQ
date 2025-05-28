@@ -64,8 +64,9 @@
     }                                                                                               \
     catch (const EXCEPTION_TYPE& e)                                                                 \
     {                                                                                               \
-        ASSERT_TRUE(std::string(e.what()).find(message) == 0) << "Expected exception " << message << std::endl  \
-                                                              << "Actually throws " << e.what() << ".";         \
+        ASSERT_TRUE(std::string(e.what()).find(message) != std::string::npos)                       \
+            << "Expected exception " << message << std::endl                                        \
+            << "Actually throws " << e.what() << ".";                                               \
     }                                                                                               \
     catch (const std::exception& e)                                                                 \
     {                                                                                               \

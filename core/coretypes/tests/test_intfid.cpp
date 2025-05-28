@@ -261,6 +261,12 @@ TEST_F(IntfIdTest, VersionInfoString)
     ASSERT_EQ(daqInterfaceIdString<IVersionInfo>(), "{5951D4D2-35EB-513C-B67D-89DABC6BE3BF}");
 }
 
+TEST_F(IntfIdTest, TestInterfaceToStringConversionFail)
+{
+    IntfID id;
+    ASSERT_EQ(daqStringToInterfaceId("{5951D4D2-35EB-X13C-B67D-89DABC6BE3BF}", id), OPENDAQ_ERR_INVALIDPARAMETER);
+}
+
 TEST_F(IntfIdTest, TestInterfaceToStringConversion)
 {
     auto testInterfaceToStringConversion = [](const IntfID& iidIn)

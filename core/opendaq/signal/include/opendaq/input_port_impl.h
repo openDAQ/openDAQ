@@ -79,10 +79,6 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
-    // IBaseObject
-    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
-    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
-
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -121,7 +117,7 @@ private:
     WeakRefPtr<IPropertyObject> owner;
 
     ErrCode canConnectSignal(ISignal* signal) const;
-    void disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal);
+    void disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent);
     void notifyPacketEnqueuedSameThread();
     void notifyPacketEnqueuedScheduler();
     void finishUpdate();
@@ -153,8 +149,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::acceptsSignal(ISignal* signal, Bool
     OPENDAQ_PARAM_NOT_NULL(signal);
 
     const auto err = canConnectSignal(signal);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(err);
 
     if (listenerRef.assigned())
     {
@@ -185,8 +180,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
     try
     {
         auto err = canConnectSignal(signal);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         auto signalPtr = SignalPtr::Borrow(signal);
 
@@ -198,6 +192,11 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
             if (this->isComponentRemoved)
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
 
+            {
+                ConnectionPtr oldConnection = connectionRef.assigned() ? connectionRef.getRef() : nullptr;
+                connectionRef.release();
+                disconnectSignalInternal(std::move(oldConnection), false, true, false);
+            }
             connectionRef = connection;
 
             if (listenerRef.assigned())
@@ -210,7 +209,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
             if (OPENDAQ_FAILED(err))
             {
                 connectionRef.release();
-                return err;
+                return DAQ_MAKE_ERROR_INFO(err);
             }
         }
 
@@ -244,7 +243,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -259,7 +258,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
 }
 
 template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal)
+void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent)
 {
     if (!connection.assigned())
         return;
@@ -287,7 +286,7 @@ void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr
         }
     }
 
-    if (!this->coreEventMuted && this->coreEvent.assigned())
+    if (!this->coreEventMuted && this->coreEvent.assigned() && triggerCoreEvent)
     {
         const auto args =
             createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::SignalDisconnected, Dict<IString, IBaseObject>());
@@ -309,7 +308,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnect()
                 connectionRef.release();
             }
 
-            disconnectSignalInternal(std::move(connection), true, true);
+            disconnectSignalInternal(std::move(connection), true, true, true);
             return OPENDAQ_SUCCESS;
         });
 }
@@ -513,7 +512,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification
             }
 
             // disconnectWithoutSignalNotification is meant to be called from signal, so don't notify it
-            disconnectSignalInternal(std::move(connection), true, false);
+            disconnectSignalInternal(std::move(connection), true, false, true);
             return OPENDAQ_SUCCESS;
         });
 }
@@ -538,7 +537,7 @@ void GenericInputPortImpl<Interfaces...>::removed()
     connectionRef.release();
 
     // remove is meant to be called from listener, so don't notify it
-    disconnectSignalInternal(std::move(connection), false, true);
+    disconnectSignalInternal(std::move(connection), false, true, true);
 }
 
 template <class... Interfaces>
@@ -573,37 +572,6 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::getSerializeId(Const
     *id = SerializeId();
 
     return OPENDAQ_SUCCESS;
-}
-
-template <class... Interfaces>
-ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::queryInterface(const IntfID& id, void** intf)
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IInputPort::Id)
-    {
-        *intf = static_cast<IInputPort*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::queryInterface(id, intf);
-}
-
-template <class... Interfaces>
-ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::borrowInterface(const IntfID& id, void** intf) const
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IInputPort::Id)
-    {
-        *intf = const_cast<IInputPort*>(static_cast<const IInputPort*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::borrowInterface(id, intf);
 }
 
 template <class... Interfaces>

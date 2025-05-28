@@ -123,17 +123,19 @@ struct SupportsInterface;
 template <>
 struct SupportsInterface<Details::EndTag>
 {
-    static bool Check(const IntfID& id, void** intf, void* object, bool addRef)
+    template <class TMainInterface, bool AddRef, class This>
+    static bool Check(const IntfID& id, void** intf, This object)
     {
         if (IUnknown::Id == id)
         {
-            auto obj = dynamic_cast<IUnknown*>(static_cast<IBaseObject*>(object));
-            if (addRef)
+            using RawT = std::remove_const_t<std::remove_pointer_t<This>>;
+            const auto obj = static_cast<IUnknown*>(static_cast<TMainInterface*>(const_cast<RawT*>(object)));
+            if constexpr (AddRef)
             {
                 obj->addRef();
             }
 
-            *intf = obj;
+            *intf = static_cast<void*>(obj);
             return true;
         }
 
@@ -155,23 +157,33 @@ struct SupportsInterface
 {
     using Interface = typename TArgs::Head;
 
-    static bool Check(const IntfID& id, void** intf, void* object, bool addRef)
+    template <class TMainInterface, bool AddRef, class This>
+    static bool Check(const IntfID& id, void** intf, This object)
     {
-        [[maybe_unused]] Interface* ptr = nullptr;
-
-        auto intfId = Interface::Id;
+        const auto intfId = Interface::Id;
         if (intfId == id)
         {
-            auto obj = dynamic_cast<Interface*>(static_cast<IBaseObject*>(object));
-            if (addRef)
+            using RawT = std::remove_const_t<std::remove_pointer_t<This>>;
+
+            Interface* obj;
+            if constexpr (std::is_base_of_v<Interface, TMainInterface>)
+            {
+                obj = static_cast<Interface*>(static_cast<TMainInterface*>(const_cast<RawT*>(object)));
+            }
+            else
+            {
+                obj = static_cast<Interface*>(const_cast<RawT*>(object));
+            }
+
+            if constexpr (AddRef)
             {
                 obj->addRef();
             }
 
-            *intf = obj;
+            *intf = static_cast<void*>(obj);
             return true;
         }
-        return SupportsInterface<typename TArgs::Tail>::Check(id, intf, object, addRef);
+        return SupportsInterface<typename TArgs::Tail>::template Check<TMainInterface, AddRef, This>(id, intf, object);
     }
 
     static void AddInterfaceIds(IntfID* ids)
@@ -242,7 +254,7 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(intf);
 
-        if (InterfaceIds::Check(id, intf, (void*) this, true))
+        if (InterfaceIds::template Check<MainInterface, true>(id, intf, this))
         {
             return OPENDAQ_SUCCESS;
         }
@@ -254,7 +266,7 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(intf);
 
-        if (InterfaceIds::Check(id, intf, (void*) this, false))
+        if (InterfaceIds::template Check<MainInterface, false>(id, intf, this))
         {
             return OPENDAQ_SUCCESS;
         }
@@ -369,8 +381,7 @@ protected:
     {
         IBaseObject* thisBaseObject;
         ErrCode err = this->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&thisBaseObject));
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         setErrorInfoWithSource(thisBaseObject, message, std::forward<Params>(params)...);
         return errCode;

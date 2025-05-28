@@ -16,7 +16,6 @@
 #include <opendaq/address_info_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/thread_name.h>
-#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace discovery;
@@ -356,16 +355,11 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!context.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
-    auto host = GetHost(connectionString);
-    auto port = GetPort(connectionString, deviceConfig);
-    auto path = GetPath(connectionString);
+    auto host = ConnectionStringUtils::GetHost(connectionString);
+    auto port = ConnectionStringUtils::GetPort(connectionString, deviceConfig);
+    auto path = ConnectionStringUtils::GetPath(connectionString);
 
     DevicePtr device;
-    StringPtr protocolId;
-    StringPtr protocolName;
-    StringPtr protocolPrefix;
-    ProtocolType protocolType = ProtocolType::Unknown;
-    std::string protocolVersionStr;
     if (nativeType == NativeType::streaming)
     {
         std::string localId;
@@ -388,42 +382,32 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             addStreamingProcessingContext(connectionString),
             initTimeout
         );
-        protocolId = NativeStreamingDeviceTypeId;
-        protocolName = "OpenDAQNativeStreaming";
-        protocolPrefix = "daq.ns";
-        protocolType = ProtocolType::Streaming;
+
+        // Set the connection info for the device
+        ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+
+        const auto addressInfo = AddressInfoBuilder().setAddress(host)
+                                     .setReachabilityStatus(AddressReachabilityStatus::Reachable)
+                                     .setType(ConnectionStringUtils::GetHostType(connectionString))
+                                     .setConnectionString(connectionString)
+                                     .build();
+
+        connectionInfo.setProtocolId(NativeStreamingDeviceTypeId)
+            .setProtocolName("OpenDAQNativeStreaming")
+            .setProtocolType(ProtocolType::Streaming)
+            .setConnectionType("TCP/IP")
+            .addAddress(host)
+            .setPort(std::stoi(port.toStdString()))
+            .setPrefix("daq.ns")
+            .setConnectionString(connectionString)
+            .addAddressInfo(addressInfo)
+            .freeze();
     }
     else if (nativeType == NativeType::config)
     {
         uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
         device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion);
-        protocolId = NativeConfigurationDeviceTypeId;
-        protocolName = "OpenDAQNativeConfiguration";
-        protocolPrefix = "daq.nd";
-        protocolType = ProtocolType::ConfigurationAndStreaming;
-        protocolVersionStr = std::to_string(protocolVersion);
     }
-
-    // Set the connection info for the device
-    ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
-    
-    const auto addressInfo = AddressInfoBuilder().setAddress(host)
-                                                 .setReachabilityStatus(AddressReachabilityStatus::Reachable)
-                                                 .setType(GetHostType(connectionString))
-                                                 .setConnectionString(connectionString)
-                                                 .build();
-
-    connectionInfo.setProtocolId(protocolId)
-                  .setProtocolName(protocolName)
-                  .setProtocolType(protocolType)
-                  .setConnectionType("TCP/IP")
-                  .addAddress(host)
-                  .setPort(std::stoi(port.toStdString()))
-                  .setPrefix(protocolPrefix)
-                  .setConnectionString(connectionString)
-                  .setProtocolVersion(protocolVersionStr)
-                  .addAddressInfo(addressInfo)
-                  .freeze();
 
     return device;
 }
@@ -616,9 +600,9 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
 
     PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming) : createConnectionDefaultConfig(NativeType::streaming);
 
-    StringPtr host = GetHost(connectionString);
-    StringPtr port = GetPort(connectionString, parsedConfig);
-    StringPtr path = GetPath(connectionString);
+    StringPtr host = ConnectionStringUtils::GetHost(connectionString);
+    StringPtr port = ConnectionStringUtils::GetPort(connectionString, parsedConfig);
+    StringPtr path = ConnectionStringUtils::GetPath(connectionString);
 
     PropertyObjectPtr transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
     Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
@@ -632,9 +616,6 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     if (target.getProtocolId() != "OpenDAQNativeStreaming" &&
         target.getProtocolId() != "OpenDAQNativeConfiguration")
         return false;
-    
-    if (target.getConnectionString().getLength() != 0)
-        return true;
 
     if (source.getConnectionType() != "TCP/IP")
         return false;
@@ -661,14 +642,22 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     }
     
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
+    const auto targetAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)
     {
         const auto address = addrInfo.getAddress();
-        const auto prefix = target.getProtocolId() == "OpenDAQNativeStreaming" ? NativeStreamingPrefix : NativeConfigurationDevicePrefix;
-        
-        StringPtr connectionString = CreateUrlConnectionString(prefix, address, port, path);
+        if (auto it = std::find(targetAddress.begin(), targetAddress.end(), address); it != targetAddress.end())
+            continue;
+
+        const auto prefix = target.getPrefix();
+        StringPtr connectionString;
+        if (source.getPrefix() == prefix)
+            connectionString = addrInfo.getConnectionString();
+        else
+            connectionString = CreateUrlConnectionString(prefix, address, port, path);
+
         const auto targetAddrInfo = AddressInfoBuilder()
-                                        .setAddress(addrInfo.getAddress())
+                                        .setAddress(address)
                                         .setReachabilityStatus(addrInfo.getReachabilityStatus())
                                         .setType(addrInfo.getType())
                                         .setConnectionString(connectionString)
@@ -731,80 +720,6 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
         .build();
 }
 
-StringPtr NativeStreamingClientModule::GetHostType(const StringPtr& url)
-{
-	std::string urlString = url.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
-	std::smatch match;
-
-	if (std::regex_search(urlString, match, regexIpv6Hostname))
-		return String("IPv6");
-	if (std::regex_search(urlString, match, regexIpv4Hostname))
-		return String("IPv4");
-	DAQ_THROW_EXCEPTION(InvalidParameterException, "Host type not found in url: {}", url);
-}
-
-StringPtr NativeStreamingClientModule::GetHost(const StringPtr& url)
-{
-    std::string urlString = url.toStdString();
-
-    auto regexIpv6Hostname = std::regex(R"(^(.*://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9]+)?\])(?::(\d+))?(/.*)?$)");
-    auto regexIpv4Hostname = std::regex(R"(^(.*://)([^:/\s]+))");
-    std::smatch match;
-
-    if (std::regex_search(urlString, match, regexIpv6Hostname))
-        return String(match[2]);
-    if (std::regex_search(urlString, match, regexIpv4Hostname))
-        return String(match[2]);
-    DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
-}
-
-StringPtr NativeStreamingClientModule::GetPort(const StringPtr& url, const PropertyObjectPtr& config)
-{
-    std::string outPort;
-    std::string urlString = url.toStdString();
-
-    auto regexPort = std::regex(":(\\d+)");
-    std::smatch match;
-
-    std::string host = GetHost(url).toStdString();
-    std::string suffix = urlString.substr(urlString.find(host) + host.size());
-
-    if (std::regex_search(suffix, match, regexPort))
-        outPort = match[1];
-    else
-        outPort = "7420";
-
-    if (config.assigned())
-    {
-        std::string ctxPort = config.getPropertyValue("Port");
-        if (ctxPort != "7420")
-            outPort = ctxPort;
-    }
-
-    return outPort;
-}
-
-StringPtr NativeStreamingClientModule::GetPath(const StringPtr& url)
-{
-    std::string urlString = url.toStdString();
-
-    std::string host = GetHost(url).toStdString();
-    std::string suffix = urlString.substr(urlString.find(host) + host.size());
-    auto pos = suffix.find("/");
-
-    if (pos != std::string::npos)
-    {
-        return String(suffix.substr(pos));
-    }
-    else
-    {
-        return String("/");
-    }
-}
-
 bool NativeStreamingClientModule::validateTransportLayerConfig(const PropertyObjectPtr& config)
 {
     return config.hasProperty("MonitoringEnabled") &&
@@ -841,9 +756,9 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
 {
     try
     {
-        auto host = GetHost(connectionString);
-        auto port = GetPort(connectionString);
-        auto path = GetPath(connectionString);
+        auto host = ConnectionStringUtils::GetHost(connectionString);
+        auto port = ConnectionStringUtils::GetPort(connectionString);
+        auto path = ConnectionStringUtils::GetPath(connectionString);
         return true;
     }
     catch(...)
@@ -854,38 +769,24 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-
     auto cap = ServerCapability(NativeConfigurationDeviceTypeId, "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming);
 
     SetupProtocolAddresses(discoveredDevice, cap, "daq.nd");
     cap.setCoreEventsEnabled(true);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createDeviceType());
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createDeviceType());
 }
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    PropertyObjectPtr deviceInfo = DeviceInfo("");
-    DiscoveryClient::populateDiscoveredInfoProperties(deviceInfo, discoveredDevice);
-
     auto cap = ServerCapability(NativeStreamingDeviceTypeId, "OpenDAQNativeStreaming", ProtocolType::Streaming);
 
     SetupProtocolAddresses(discoveredDevice, cap, "daq.ns");
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
 
-    deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
-    deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
-    deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(createPseudoDeviceType());
-
-    return deviceInfo;
+    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createPseudoDeviceType());
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

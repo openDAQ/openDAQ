@@ -45,6 +45,7 @@ public:
     ErrCode INTERFACE_FUNC getModules(IList** availableModules) override;
     ErrCode INTERFACE_FUNC addModule(IModule* module) override;
     ErrCode INTERFACE_FUNC loadModules(IContext* context) override;
+    ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) override;
 
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
@@ -57,22 +58,25 @@ public:
     ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr) override;
     ErrCode INTERFACE_FUNC changeIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config) override;
+    ErrCode INTERFACE_FUNC completeDeviceCapabilities(IDevice* device) override;
 
 private:
     
-    static void populateDeviceConfigFromConnStrOptions(const PropertyObjectPtr& devConfig,
-                                                       const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
-    static PropertyObjectPtr populateDeviceConfig(const PropertyObjectPtr& config,
-                                                  const DeviceTypePtr& deviceType,
-                                                  const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions);
+    static void populateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
+                                                           const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
+    static PropertyObjectPtr populateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
+                                                      const PropertyObjectPtr& inputConfig,
+                                                      const DeviceTypePtr& deviceType,
+                                                      const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions);
 
     std::string getPrefixFromConnectionString(std::string connectionString) const;
     static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> splitConnectionStringAndOptions(const std::string& connectionString);
 
-    DeviceInfoPtr getDiscoveredDeviceInfo(const StringPtr& inputConnectionString, bool useSmartConnection) const;
+    DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
+    DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
     static StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                                   const DeviceInfoPtr& discoveredDeviceInfo,
-                                                  const PropertyObjectPtr& config,
+                                                  const PropertyObjectPtr& generalConfig,
                                                   const LoggerComponentPtr& loggerComponent);
     DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
@@ -82,7 +86,7 @@ private:
     static StringPtr convertIfOldIdFB(const StringPtr& id);
     static StringPtr convertIfOldIdProtocol(const StringPtr& id);
     
-    static void copyGeneralProperties(const PropertyObjectPtr& general, const PropertyObjectPtr& tartgetObj);
+    static void copyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig);
     static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
 
     static ServerCapabilityPtr mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
@@ -91,24 +95,15 @@ private:
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
     static void setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info);
-    static PropertyObjectPtr populateGeneralConfig(const PropertyObjectPtr& config);
-    static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
+    static PropertyObjectPtr populateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig);
 
-    AddressInfoPtr findStreamingAddress(const ListPtr<IAddressInfo>& availableAddresses,
-                                              const AddressInfoPtr& deviceConnectionAddress,
-                                              const StringPtr& primaryAddressType);
-    static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
-    static bool isValidConnectionAddressType(const StringPtr& connectionAddressType);
-    void configureStreamings(const MirroredDeviceConfigPtr& topDevice, const PropertyObjectPtr& streamingConfig);
-    void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device,
-                                  const PropertyObjectPtr& generalConfig,
-                                  const PropertyObjectPtr& config,
-                                  const AddressInfoPtr& deviceConnectionAddress);
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;
 
     static PropertyObjectPtr createGeneralConfig();
+    static void overrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
+    void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);
 
     bool modulesLoaded;
     std::vector<std::string> paths;

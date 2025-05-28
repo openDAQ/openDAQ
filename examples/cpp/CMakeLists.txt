@@ -1,7 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(OPENDAQ_EXAMPLES_VERSION ${OPENDAQ_PACKAGE_VERSION})
+file(READ "opendaq_examples_version" examples_version)
+string(STRIP ${examples_version} examples_version)
+
+string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" examples_version_major_minor_patch "${examples_version}")
+
+set(OPENDAQ_EXAMPLES_VERSION "${examples_version_major_minor_patch}")
+
 project(opendaq_examples VERSION ${OPENDAQ_EXAMPLES_VERSION})
+
+add_compile_definitions(MODULE_PATH="${OPENDAQ_MODULES_DIR}")
 
 option(OPENDAQ_CONSOLE_APP "Console application example." ON)
 option(OPENDAQ_DEVICE "Device example without a discovery server." ON)
@@ -16,7 +24,7 @@ option(OPENDAQ_READER_BASICS "Reader basics example that uses manually generated
 option(OPENDAQ_READER_WITH_TIME_STAMPS "Time Reader example that uses manually generated data." ON)
 option(OPENDAQ_EMPTY_EXAMPLE "Empty example source for user examples." ON)
 option(OPENDAQ_FUNCTION_BLOCK "Function block example using an averager and renderer" ON)
-option(OPENDAQ_CSV_WRITER "Example that connects to availble devices, writing their data to a .csv file" ON)
+option(OPENDAQ_CSV_WRITER "Example that connects to available devices, writing their data to a .csv file" ON)
 option(OPENDAQ_STREAMING_CONFIG "Streaming configuration example that modifies the configuration of OpcUa enabled device" ON)
 option(OPENDAQ_RECONNECTION "Example on how to detect connection loss and reconnection" ON)
 option(OPENDAQ_IP_MODIFICATION "Example on how to modify IP configuration parameters of the openDAQ device" ON)

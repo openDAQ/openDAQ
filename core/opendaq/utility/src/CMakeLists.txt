@@ -47,6 +47,7 @@ set(SRC_PublicHeaders_Component
 
 set(SRC_PrivateLinkLibraries_Component
     $<BUILD_INTERFACE:Boost::algorithm>
+    $<BUILD_INTERFACE:daq::opendaq_utils>
     PARENT_SCOPE
 )
 

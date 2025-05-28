@@ -281,21 +281,48 @@ namespace test_helpers
 
     
     [[maybe_unused]]
-    static void checkDeviceOperationMode(const daq::DevicePtr& device, const std::string& expected, bool isServer = false)
+    static void checkDeviceOperationMode(const daq::DevicePtr& device, OperationModeType expected, bool isServer = false)
     {
         ASSERT_EQ(device.getOperationMode(), expected);
-        bool active = expected != "Idle";
+        bool active = expected != OperationModeType::Idle;
         std::string messagePrefix = isServer ? "Server: " : "Client: ";
 
-        for (const auto& fb: device.getFunctionBlocks())
-        {
-            for (const auto& sig: fb.getSignals())
-                ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking fb signal " << sig.getGlobalId() << " for mode " << expected;
-        }
         for (const auto& ch: device.getChannels())
         {
+            ASSERT_EQ(ch.getActive(), active) << messagePrefix << "Checking ch " << ch.getGlobalId() << " for mode " << static_cast<int>(expected);
             for (const auto& sig: ch.getSignals())
-                ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking ch signal " << sig.getGlobalId() << " for mode " << expected;
+                ASSERT_EQ(sig.getActive(), active) << messagePrefix << "Checking ch signal " << sig.getGlobalId() << " for mode " << static_cast<int>(expected);
+        }
+    }
+
+    [[maybe_unused]]
+    static void testPropObjsEquality(const PropertyObjectPtr& configA, const PropertyObjectPtr& configB, std::string path = "")
+    {
+        auto allPropsA = configA.getAllProperties();
+        auto allPropsB = configB.getAllProperties();
+        ASSERT_EQ(allPropsA.getCount(), allPropsB.getCount())
+            << "\"" << path << "\" count of properties differs: A - " << allPropsA.getCount() << "; B - " << allPropsB.getCount();
+        for (const auto& propA : allPropsA)
+        {
+            StringPtr propName = propA.getName();
+            ASSERT_TRUE(configB.hasProperty(propName))
+                << "\"" << path << "\" A property \"" << propName << "\" missing in B";
+            ASSERT_EQ(configB.getProperty(propName).getValueType(), propA.getValueType())
+                << "\"" << path << "\" property \"" << propName << "\" type in A - " << propA.getValueType()
+                << " doesn't equal to type in B - " << configB.getProperty(propName).getValueType();
+
+            auto propValueA = propA.getValue();
+            auto propValueB = configB.getPropertyValue(propName);
+            if (propValueA.supportsInterface<IPropertyObject>())
+            {
+                testPropObjsEquality(propValueA, propValueB, path + (path.empty() ? "" : ".") + propName.toStdString());
+            }
+            else
+            {
+                ASSERT_TRUE(BaseObjectPtr::Equals(propValueA, propValueB))
+                    << "\"" << path << "\" property \"" << propName << "\" value in A \"" << propValueA
+                    << "\" doesn't equal to value in B \"" << propValueB << "\"";
+            }
         }
     }
 }

@@ -9,6 +9,8 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <opendaq/search_filter_factory.h>
+#include <opendaq/mirrored_device_config.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/device_private.h>
 
@@ -241,8 +243,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &nativeStreamingServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
     }
     serversPtr.pushBack(nativeStreamingServer);
 
@@ -253,8 +254,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &websocketServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
     }
     serversPtr.pushBack(websocketServer);
 #endif
@@ -264,8 +264,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &opcUaServer);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_E(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode);
-        return errCode;
+        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
     }
     serversPtr.pushBack(opcUaServer);
 
@@ -284,27 +283,27 @@ ErrCode InstanceImpl::getServers(IList** instanceServers)
     return rootDevice->getServers(instanceServers);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::lock()
+ErrCode InstanceImpl::lock()
 {
     return rootDevice->lock();
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::unlock()
+ErrCode InstanceImpl::unlock()
 {
     return rootDevice->unlock();
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::isLocked(Bool* locked)
+ErrCode InstanceImpl::isLocked(Bool* locked)
 {
     return rootDevice->isLocked(locked);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getLogFileInfos(IList** logFileInfos)
+ErrCode InstanceImpl::getLogFileInfos(IList** logFileInfos)
 {
     return rootDevice->getLogFileInfos(logFileInfos);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getLog(IString** log, IString* id, Int size, Int offset)
+ErrCode InstanceImpl::getLog(IString** log, IString* id, Int size, Int offset)
 {
     return rootDevice->getLog(log, id, size, offset);
 }
@@ -319,19 +318,24 @@ ErrCode InstanceImpl::getAvailableOperationModes(IList** availableOpModes)
     return rootDevice->getAvailableOperationModes(availableOpModes);
 }
 
-ErrCode InstanceImpl::setOperationMode(IString* modeType)
+ErrCode InstanceImpl::setOperationMode(OperationModeType modeType)
 {
     return rootDevice->setOperationMode(modeType);
 }
 
-ErrCode InstanceImpl::setOperationModeRecursive(IString* modeType)
+ErrCode InstanceImpl::setOperationModeRecursive(OperationModeType modeType)
 {
     return rootDevice->setOperationModeRecursive(modeType);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getOperationMode(IString** modeType)
+ErrCode InstanceImpl::getOperationMode(OperationModeType* modeType)
 {
     return rootDevice->getOperationMode(modeType);
+}
+
+ErrCode InstanceImpl::findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter)
+{
+    return rootDevice->findProperties(properties, propertyFilter, componentFilter);
 }
 
 ErrCode InstanceImpl::getRootDevice(IDevice** currentRootDevice)
@@ -361,6 +365,9 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot set root device if servers are already added");
 
     const auto newRootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, config);
+
+    if (newRootDevice.supportsInterface<IMirroredDeviceConfig>())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Cannot set mirrored device as root device");
 
     this->rootDevice = newRootDevice;
     rootDeviceSet = true;
@@ -435,7 +442,7 @@ ErrCode InstanceImpl::setActive(Bool active)
     return rootDevice->setActive(active);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getParent(IComponent** parent)
+ErrCode InstanceImpl::getParent(IComponent** parent)
 {
     OPENDAQ_PARAM_NOT_NULL(parent);
 
@@ -504,7 +511,7 @@ ErrCode InstanceImpl::getItem(IString* localId, IComponent** item)
     return rootDevice->getItem(localId, item);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::isEmpty(Bool* empty)
+ErrCode InstanceImpl::isEmpty(Bool* empty)
 {
     return rootDevice->isEmpty(empty);
 }
@@ -514,7 +521,7 @@ ErrCode InstanceImpl::hasItem(IString* localId, Bool* value)
     return rootDevice->hasItem(localId, value);
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::findComponent(IString* id, IComponent** outComponent)
+ErrCode InstanceImpl::findComponent(IString* id, IComponent** outComponent)
 {
     return rootDevice->findComponent(id, outComponent);
 }
@@ -722,12 +729,9 @@ ErrCode InstanceImpl::getOnEndUpdate(IEvent** event)
     return rootDevice->endUpdate();
 }
 
-ErrCode INTERFACE_FUNC InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
+ErrCode InstanceImpl::getPermissionManager(IPermissionManager** permissionManager)
 {
-    OPENDAQ_PARAM_NOT_NULL(permissionManager);
-
-    *permissionManager = rootDevice.getPermissionManager().addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return rootDevice->getPermissionManager(permissionManager);
 }
 
 ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
@@ -761,7 +765,7 @@ ErrCode InstanceImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, I
     OPENDAQ_PARAM_NOT_NULL(serialized);
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode InstanceImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
@@ -827,7 +831,7 @@ void InstanceImpl::forEachComponent(const ComponentPtr& component, F&& callback)
         const auto folder = component.asPtrOrNull<IFolder>(true);
         if (folder.assigned())
         {
-            for (const auto item : folder.getItems())
+            for (const auto item : folder.getItems(search::Any()))
                 forEachComponent(item, std::forward<F>(callback));
         }
     }

@@ -241,8 +241,7 @@ inline ErrCode TagsImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
 
     ObjectPtr<ITagsPrivate> tags;
     auto errCode = createObject<ITagsPrivate, TagsImpl>(&tags, triggerCoreEvent);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
 
@@ -250,8 +249,7 @@ inline ErrCode TagsImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
     for (const auto& tag : list)
     {
         errCode = tags->add(tag);
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     *obj = tags.detach();

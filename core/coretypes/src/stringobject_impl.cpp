@@ -86,11 +86,7 @@ ErrCode StringImpl::equals(IBaseObject* other, Bool* equal) const
     {
         SizeT otherLength;
         auto err = otherString->getLength(&otherLength);
-
-        if (OPENDAQ_FAILED(err))
-        {
-            return OPENDAQ_SUCCESS;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         if (otherLength != length)
         {
@@ -99,11 +95,7 @@ ErrCode StringImpl::equals(IBaseObject* other, Bool* equal) const
 
         ConstCharPtr otherValue;
         err = otherString->getCharPtr(&otherValue);
-
-        if (OPENDAQ_FAILED(err))
-        {
-            return OPENDAQ_SUCCESS;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         if (otherValue == nullptr)
         {
@@ -144,9 +136,9 @@ ErrCode StringImpl::toFloat(Float* val)
         *val = std::stod(std::string(str));
         return OPENDAQ_SUCCESS;
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return OPENDAQ_ERR_CONVERSIONFAILED;
+        return errorFromException(e, nullptr, OPENDAQ_ERR_CONVERSIONFAILED);
     }
 }
 
@@ -157,9 +149,9 @@ ErrCode StringImpl::toInt(Int* val)
         *val = std::stoll(std::string(str));
         return OPENDAQ_SUCCESS;
     }
-    catch (const std::exception&)
+    catch (const std::exception& e)
     {
-        return OPENDAQ_ERR_CONVERSIONFAILED;
+        return errorFromException(e, nullptr, OPENDAQ_ERR_CONVERSIONFAILED);
     }
 }
 
@@ -204,15 +196,13 @@ ErrCode StringImpl::compareTo(IBaseObject* obj)
     if (OPENDAQ_FAILED(err))
     {
         err = obj->toString(&otherValueOwned);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
         otherValue = otherValueOwned;
     }
     else
     {
         err = otherString->getCharPtr(&otherValue);
-        if (OPENDAQ_FAILED(err))
-            return err;
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     int r = strcmp(str, otherValue);
@@ -231,18 +221,14 @@ ErrCode StringImpl::compareTo(IBaseObject* obj)
 
 ErrCode StringImpl::getSerializeId(ConstCharPtr* /*id*/) const
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 ErrCode StringImpl::serialize(ISerializer* serializer)
 {
     SizeT length;
     ErrCode errCode = getLength(&length);
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return errCode;
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->writeString(str, length);
 

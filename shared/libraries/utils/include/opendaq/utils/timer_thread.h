@@ -52,14 +52,12 @@ public:
 
     /**
      * @brief Initializes a new instance of the TimerThread class with default 1000 milliseconds period.
-     * @param name a thread name.
      * @param intervalMs a interval in milliseconds.
      * @param callback a callback function you want the TimerThread to execute.
      * @param delayMs start delay (amount of time before first execution) in milliseconds. If negative, then the interval time is used for start delay.
      * @param timerMode a timer mode.
      */
-    explicit TimerThread(const std::string& name,
-                         int intervalMs = 1000,
+    explicit TimerThread(int intervalMs = 1000,
                          CallbackFunction callback = nullptr,
                          int delayMs = -1,
                          TimerMode timerMode = TimerMode::FixedDelay);
@@ -72,8 +70,7 @@ public:
      * @param delay start delay (amount of time before first execution) in microseconds. If empty, then the interval time is used for start delay.
      * @param timerMode a timer mode.
      */
-    explicit TimerThread(const std::string& name,
-                         std::chrono::microseconds interval,
+    explicit TimerThread(std::chrono::microseconds interval,
                          CallbackFunction callback = nullptr,
                          std::optional<std::chrono::microseconds> delay = std::nullopt,
                          TimerMode timerMode = TimerMode::FixedDelay);
@@ -148,8 +145,10 @@ protected:
     void execute() override;
     virtual void executeTimerCallback();
 
+    virtual void threadEnter();
+    virtual void threadLeave();
+
 private:
-    std::string name;
     std::mutex terminateMutex;
     std::condition_variable doTerminate;
     std::atomic<int64_t> noOfCallbacks{0};
@@ -157,6 +156,53 @@ private:
     std::atomic<std::chrono::microseconds> delayMcs;
     TimerMode timerMode;
     CallbackFunction callback;
+};
+
+/**
+ * @brief Provides a mechanism for executing a method on a thread pool thread at specified intervals.
+ *
+ * The name assigned is visible to debuggers and resource monitors.
+ */
+class NamedTimerThread : public TimerThread
+{
+public:
+    using CallbackFunction = std::function<void(void)>;
+
+    /**
+     * @brief Initializes a new instance of the TimerThread class with default 1000 milliseconds period.
+     * @param name a name of the thread visible in debuggers and resource monitors.
+     * @param intervalMs a interval in milliseconds.
+     * @param callback a callback function you want the TimerThread to execute.
+     * @param delayMs start delay (amount of time before first execution) in milliseconds. If negative, then the interval time is used for
+     * start delay.
+     * @param timerMode a timer mode.
+     */
+    NamedTimerThread(std::string name,
+                     int intervalMs = 1000,
+                     CallbackFunction callback = nullptr,
+                     int delayMs = -1,
+                     TimerMode timerMode = TimerMode::FixedDelay);
+
+    /**
+     * @brief Initializes a new instance of the TimerThread class.
+     * @param name a name of the thread visible in debuggers and resource monitors.
+     * @param interval a interval in microseconds.
+     * @param callback a callback function you want the TimerThread to execute.
+     * @param delay start delay (amount of time before first execution) in microseconds. If empty, then the interval time is used for start
+     * delay.
+     * @param timerMode a timer mode.
+     */
+    NamedTimerThread(std::string name,
+                     std::chrono::microseconds interval,
+                     CallbackFunction callback = nullptr,
+                     std::optional<std::chrono::microseconds> delay = std::nullopt,
+                     TimerMode timerMode = TimerMode::FixedDelay);
+
+protected:
+    void threadEnter() override;
+
+private:
+    std::string name;
 };
 
 END_NAMESPACE_UTILS

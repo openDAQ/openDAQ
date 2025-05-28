@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/component_ptr.h>
-#include <opendaq/search_filter_ptr.h>
+#include <coretypes/search_filter_ptr.h>
 #include <coretypes/intfs.h>
 #include <gmock/gmock.h>
 #include <coretypes/gmock/mock_ptr.h>
@@ -50,6 +50,7 @@ struct MockGenericComponent : GenericPropertyObjectImpl<TInterface>
     MOCK_METHOD(daq::ErrCode, getOnComponentCoreEvent, (IEvent** event), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, findComponent, (IString* id, IComponent** outComponent), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getStatusContainer, (daq::IComponentStatusContainer** statusContainer), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getOperationMode, (daq::OperationModeType* modeType), (override MOCK_CALL));
 
     MockGenericComponent()
         : GenericPropertyObjectImpl<TInterface>()
@@ -65,8 +66,8 @@ struct MockSearchFilter : daq::ImplementationOf<daq::ISearchFilter>
         testing::StrictMock<MockSearchFilter>
     > Strict;
 
-    MOCK_METHOD(daq::ErrCode, acceptsComponent, (daq::IComponent* component, daq::Bool* accepts), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, visitChildren, (daq::IComponent* component, daq::Bool* visit), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, acceptsObject, (daq::IBaseObject* obj, daq::Bool* accepts), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, visitChildren, (daq::IBaseObject* obj, daq::Bool* visit), (override MOCK_CALL));
 };
 
 struct MockComponent: MockGenericComponent<MockComponent, IComponent>

@@ -92,4 +92,19 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
         },
         py::arg("mode_type"),
         "Notifies component about the change of the operation mode.");
+    cls.def_property("component_config",
+        [](daq::IComponentPrivate *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
+            return objectPtr.getComponentConfig().detach();
+        },
+        [](daq::IComponentPrivate *object, daq::IPropertyObject* config)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
+            objectPtr.setComponentConfig(config);
+        },
+        py::return_value_policy::take_ownership,
+        "Retrieves the configuration which was used to create the component. / Sets the configuration which was used to create the component.");
 }

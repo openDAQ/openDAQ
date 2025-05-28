@@ -13,8 +13,9 @@
 #include <memory.h>
 #include <iostream>
 
-BEGIN_NAMESPACE_OPENDAQ
+#include "opendaq/utils/thread_name.h"
 
+BEGIN_NAMESPACE_OPENDAQ
 LoggerImpl::LoggerImpl(const ListPtr<ILoggerSink>& sinksList, LogLevel level)
     : threadPool(LoggerThreadPool())
     , level(level)
@@ -39,7 +40,8 @@ LoggerImpl::LoggerImpl(const ListPtr<ILoggerSink>& sinksList, LogLevel level)
 
     using namespace std::chrono_literals;
     auto callback = [this]() { this->flush(); };
-    periodicFlushWorker = std::make_unique<LoggerFlushWorker>(callback, 5s);
+    auto initThread = []() { utils::setThreadName("LogPerWorker"); };
+    periodicFlushWorker = std::make_unique<LoggerFlushWorker>(initThread, callback, 5s);
 }
 
 ErrCode LoggerImpl::setLevel(LogLevel level)
@@ -127,7 +129,7 @@ ErrCode LoggerImpl::addComponent(IString* name, ILoggerComponent** component)
         {
             return DAQ_MAKE_ERROR_INFO(
                 OPENDAQ_ERR_ALREADYEXISTS,
-                ("Can't add LoggerComponent with already existsted name ["+toStdString(name)+"]").c_str()
+                "Can't add LoggerComponent with already existent name [" + toStdString(name) + "]"
             );
         }
     }

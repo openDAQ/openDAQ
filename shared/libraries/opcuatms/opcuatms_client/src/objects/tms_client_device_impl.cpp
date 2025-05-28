@@ -26,7 +26,6 @@
 #include <opcuatms/converters/property_object_conversion_utils.h>
 #include <opcuatms_client/objects/tms_client_function_block_type_factory.h>
 #include <opendaq/device_domain_factory.h>
-#include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/address_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
@@ -104,7 +103,7 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
                                  nodeId,
                                  {{"UserName", "userName"}, {"Location", "location"}})
     , logger(ctx.getLogger())
-    , loggerComponent( this->logger.assigned()
+    , loggerComponent(this->logger.assigned()
                           ? this->logger.getOrAddComponent("TmsClientDevice")
                           : throw ArgumentNullException("Logger must not be null"))
 {
@@ -119,12 +118,16 @@ TmsClientDeviceImpl::TmsClientDeviceImpl(const ContextPtr& ctx,
     findAndCreateInputsOutputs();
     findAndCreateCustomComponents();
     findAndCreateSyncComponent();
+
+    // for the root device the client side local config object is used
+    if (!isRootDevice)
+        this->componentConfig = this->findAndCreateComponentConfig();
 }
 
 ErrCode TmsClientDeviceImpl::getDomain(IDeviceDomain** deviceDomain)
 {
     if (this->isComponentRemoved)
-        return OPENDAQ_ERR_COMPONENT_REMOVED;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
     fetchTimeDomain();
     return Super::getDomain(deviceDomain);
@@ -139,21 +142,22 @@ ErrCode TmsClientDeviceImpl::getAvailableOperationModes(IList** availableOpModes
 
     const auto nodeId = getNodeId("OperationModeOptions");
     auto opModesNodeStrList = VariantConverter<IString>::ToDaqList(client->readValue(nodeId));
-    *availableOpModes = opModesNodeStrList.detach();
+    auto convertedOpModes = List<IInteger>();
+    for (const auto& opMode : opModesNodeStrList)
+        convertedOpModes.pushBack(static_cast<Int>(OperationModeTypeFromString(opMode)));
+
+    *availableOpModes = convertedOpModes.detach();
 
     return OPENDAQ_SUCCESS;
-
 }
 
-ErrCode TmsClientDeviceImpl::setOperationMode(IString* modeType)
+ErrCode TmsClientDeviceImpl::setOperationMode(OperationModeType modeType)
 {
-    OPENDAQ_PARAM_NOT_NULL(modeType);
-
     if (!this->hasReference("OperationMode"))
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
     
     const auto nodeId = getNodeId("OperationMode");
-    const auto modeTypeStr = StringPtr::Borrow(modeType).toStdString();
+    const auto modeTypeStr = OperationModeTypeToString(modeType);
 
     const auto variant = VariantConverter<IString>::ToVariant(String(modeTypeStr), nullptr, daqContext);
     client->writeValue(nodeId, variant);   
@@ -161,14 +165,21 @@ ErrCode TmsClientDeviceImpl::setOperationMode(IString* modeType)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TmsClientDeviceImpl::setOperationModeRecursive(IString* modeType)
+ErrCode TmsClientDeviceImpl::setOperationModeRecursive(OperationModeType modeType)
 {
-    OPENDAQ_PARAM_NOT_NULL(modeType);
-    const auto modeTypeStr = "Recursive" + StringPtr::Borrow(modeType).toStdString();
-    return this->setOperationMode(String(modeTypeStr));
+    if (!this->hasReference("OperationMode"))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+    
+    const auto nodeId = getNodeId("OperationMode");
+    const auto modeTypeStr = "Recursive" + OperationModeTypeToString(modeType);
+
+    const auto variant = VariantConverter<IString>::ToVariant(String(modeTypeStr), nullptr, daqContext);
+    client->writeValue(nodeId, variant);   
+
+    return OPENDAQ_SUCCESS;
 }
 
-ErrCode TmsClientDeviceImpl::getOperationMode(IString** modeType)
+ErrCode TmsClientDeviceImpl::getOperationMode(OperationModeType* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
 
@@ -178,7 +189,7 @@ ErrCode TmsClientDeviceImpl::getOperationMode(IString** modeType)
     const auto nodeId = getNodeId("OperationMode");
     const auto variant = client->readValue(nodeId);
 
-    *modeType = VariantConverter<IString>::ToDaqObject(variant, daqContext).detach();
+    *modeType = OperationModeTypeFromString(VariantConverter<IString>::ToDaqObject(variant, daqContext));
     
     return OPENDAQ_SUCCESS;
 }
@@ -649,6 +660,11 @@ void TmsClientDeviceImpl::removed()
     Super::removed();
 }
 
+bool TmsClientDeviceImpl::isAddedToLocalComponentTree()
+{
+    return this->clientContext->getRootDevice() == this->thisPtr<DevicePtr>();
+}
+
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
 {
     std::map<uint32_t, ComponentPtr> orderedComponents;
@@ -748,21 +764,6 @@ FunctionBlockPtr TmsClientDeviceImpl::onAddFunctionBlock(const StringPtr& typeId
 
     auto clientFunctionBlock = TmsClientFunctionBlock(context, this->functionBlocks, localId, clientContext, fbNodeId);
     addNestedFunctionBlock(clientFunctionBlock);
-
-    auto fbSignals = clientFunctionBlock.getSignals(search::Recursive(search::Any()));
-    auto deviceStreamingSources = this->thisPtr<MirroredDevicePtr>().getStreamingSources();
-    for (const auto& streaming : deviceStreamingSources)
-    {
-        streaming.addSignals(fbSignals);
-    }
-    if (deviceStreamingSources.getCount() > 0)
-    {
-        for (const auto& signal : fbSignals)
-        {
-            if (signal.getPublic())
-                signal.asPtr<IMirroredSignalConfig>().setActiveStreamingSource(deviceStreamingSources[0].getConnectionString());
-        }
-    }
 
     return clientFunctionBlock;
 }

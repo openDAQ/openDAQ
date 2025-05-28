@@ -35,7 +35,7 @@ ErrCode write(ISerializer* serializer, const T& value)
 template <typename T>
 ErrCode read(ISerializedObject* serializedObj, T& valueOut)
 {
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 template <typename T>
@@ -88,11 +88,11 @@ inline ErrCode read<ComplexFloat64>(ISerializedObject* serializedObj, ComplexFlo
 
     status = serializedObj->readFloat("real"_daq, &valueOut.real);
     if (OPENDAQ_FAILED(status))
-        return status;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read real part of complex number");
 
     status = serializedObj->readFloat("imaginary"_daq, &valueOut.imaginary);
     if (OPENDAQ_FAILED(status))
-        return status;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read imaginary part of complex number");
 
     return status;
 }

@@ -148,8 +148,7 @@ ErrCode ReferenceDomainInfoImpl::Deserialize(ISerializedObject* serialized, IBas
 
     ReferenceDomainInfoBuilderPtr dataDescriptor;
     auto errCode = createObject<IReferenceDomainInfoBuilder, ReferenceDomainInfoBuilderImpl>(&dataDescriptor);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
 
@@ -180,35 +179,6 @@ ErrCode ReferenceDomainInfoImpl::Deserialize(ISerializedObject* serialized, IBas
     *obj = dataDescriptor.build().as<IBaseObject>();
 
     return OPENDAQ_SUCCESS;
-}
-
-ErrCode ReferenceDomainInfoImpl::queryInterface(const IntfID& id, void** intf)
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IReferenceDomainInfo::Id)
-    {
-        *intf = static_cast<IReferenceDomainInfo*>(this);
-        this->addRef();
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::queryInterface(id, intf);
-}
-
-ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::borrowInterface(const IntfID& id, void** intf) const
-{
-    OPENDAQ_PARAM_NOT_NULL(intf);
-
-    if (id == IReferenceDomainInfo::Id)
-    {
-        *intf = const_cast<IReferenceDomainInfo*>(static_cast<const IReferenceDomainInfo*>(this));
-
-        return OPENDAQ_SUCCESS;
-    }
-
-    return Super::borrowInterface(id, intf);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

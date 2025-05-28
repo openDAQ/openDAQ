@@ -27,6 +27,7 @@ set(TEST_SOURCES test_property.cpp
                  test_permission_manager.cpp
                  test_permissions_builder.cpp
                  test_permission_mask_builder.cpp
+                 test_property_search.cpp
 )
 
 set(TEST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/coreobjects_test.h
@@ -62,7 +63,7 @@ target_include_directories(${TEST_APP} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inclu
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
-         WORKING_DIRECTORY bin
+         WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
 if(OPENDAQ_ENABLE_COVERAGE)

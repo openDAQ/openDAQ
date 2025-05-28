@@ -25,7 +25,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-enum class ReadStatus : uint32_t
+enum class ReadStatus : EnumType
 {
     Ok = 0,
     Event,

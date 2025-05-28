@@ -88,10 +88,14 @@ source_group("property" FILES ${SDK_HEADERS_DIR}/property.h
                               ${SDK_HEADERS_DIR}/callable_info_factory.h
                               ${SDK_HEADERS_DIR}/callable_info_impl.h
                               ${SDK_HEADERS_DIR}/callable_info.h
+                              ${SDK_HEADERS_DIR}/search_filter.h
+                              ${SDK_HEADERS_DIR}/search_filter_impl.h
+                              ${SDK_HEADERS_DIR}/search_filter_factory.h
                               property_impl.cpp
                               property_builder_impl.cpp
                               argument_info_impl.cpp
                               callable_info_impl.cpp
+                              search_filter_impl.cpp
 )
 
 source_group("property_object" FILES ${SDK_HEADERS_DIR}/property_object.h
@@ -213,6 +217,7 @@ set(SRC_Cpp version.cpp
             permissions_impl.cpp
             permissions_builder_impl.cpp
             permission_mask_builder_impl.cpp
+            search_filter_impl.cpp
 )
 
 set(SRC_PublicHeaders coreobjects.h
@@ -260,6 +265,8 @@ set(SRC_PublicHeaders coreobjects.h
                       permission_mask_builder.h
                       permission_mask_builder_factory.h
                       object_lock_guard.h
+                      search_filter.h
+                      search_filter_factory.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -287,6 +294,7 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        permissions_impl.h
                        permissions_builder_impl.h
                        permission_mask_builder_impl.h
+                       search_filter_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
@@ -358,6 +366,13 @@ target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
 
                                               $<INSTALL_INTERFACE:include>
 )
+
+if (OPENDAQ_ENABLE_ACCESS_CONTROL)
+    message(STATUS "Access control enabled")
+    target_compile_definitions(${LIB_NAME} PUBLIC OPENDAQ_ENABLE_ACCESS_CONTROL)
+else()
+    message(STATUS "Access control disabled")
+endif()
 
 target_compile_definitions(${LIB_NAME} PRIVATE BUILDING_SHARED_LIBRARY
                                        INTERFACE OPENDAQ_LINKS_CORE_OBJECTS

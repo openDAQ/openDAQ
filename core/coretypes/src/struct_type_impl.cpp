@@ -121,15 +121,13 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
     ErrCode errCode = this->names->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializable->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (defaultValues.assigned() && !defaultValues.empty())
     {
@@ -137,30 +135,26 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
         errCode = this->defaultValues->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
-            return OPENDAQ_ERR_NOT_SERIALIZABLE;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = serializable->serialize(serializer);
 
-        if (OPENDAQ_FAILED(errCode))
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
     serializer->key("types");
     errCode = this->types->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return OPENDAQ_ERR_NOT_SERIALIZABLE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializable->serialize(serializer);
 
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     
     serializer->endObject();
 
@@ -185,23 +179,19 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
 {
     StringPtr typeName;
     ErrCode errCode = ser->readString("typeName"_daq, &typeName);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr types;
     errCode = ser->readObject("types"_daq, context, factoryCallback, &types);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr defaultValues;
     errCode = ser->readObject("defaultValues"_daq, context, factoryCallback, &defaultValues);
-    if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTFOUND)
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
 
     BaseObjectPtr names;
     errCode = ser->readObject("names"_daq, context, factoryCallback, &names);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     try
     {
@@ -210,8 +200,7 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
             createStructType(&structType, typeName, names.asPtr<IList>(), defaultValues.asPtr<IList>(), types.asPtr<IList>());
         else
             createStructTypeNoDefaults(&structType, typeName, names.asPtr<IList>(), types.asPtr<IList>());
-
-
+        
         TypeManagerPtr typeManager;
         if (context)
         {
@@ -219,7 +208,8 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
         }
         if (typeManager.assigned())
         {
-            typeManager.addType(structType);
+            errCode = typeManager->addType(structType);
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_RESERVED_TYPE_NAME);
         }
         *obj = structType.detach();
     }
@@ -229,7 +219,7 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;

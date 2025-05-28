@@ -1,12 +1,12 @@
 set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(MODULE_NAME module_manager)
 
-##############################
-# DLL Test
-
 set(TEST_MOCKS mock/mock_module.h
                mock/mock_module.cpp
 )
+
+##############################
+# DLL Test
 
 set(TEST_SOURCES test_check_dependencies.cpp
                  module_manager_test.cpp
@@ -39,6 +39,7 @@ set(TEST_SOURCES_INTERNAL test_module_manager_internals.cpp
 opendaq_prepare_internal_runner(TEST_APP_INTERNAL FOR ${MODULE_NAME}
                            SOURCES
                                test_app.cpp
+                               ${TEST_MOCKS}
                                ${TEST_SOURCES_INTERNAL}
 )
 
@@ -95,12 +96,12 @@ set_target_properties(${TEST_APP_INTERNAL}
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
-         WORKING_DIRECTORY bin
+         WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
 add_test(NAME ${TEST_APP_INTERNAL}
         COMMAND $<TARGET_FILE_NAME:${TEST_APP_INTERNAL}>
-        WORKING_DIRECTORY bin
+        WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP_INTERNAL}>
 )
 
 if (OPENDAQ_ENABLE_COVERAGE)

@@ -1,5 +1,15 @@
 = Measure a single value
 
+:note-caption: Learning Outcomes
+[NOTE]
+====
+By the end of this guide, learners will be able to:
+
+- 🎯 Retrieve latest signal values.
+- 🧬 Work with complex types like structs and lists.
+- 📄 Use code examples.
+====
+
 openDAQ(TM) offers a variety of solutions for reading Signal values, including Readers. 
 
 However, for developers requiring access to only the most recent value, the Signal interface provides a method for doing just that.
@@ -80,6 +90,7 @@ var mySampleType = mySignal.Descriptor.SampleType;
 
 If the underlying type of the openDAQ(TM) Base object-type value we get from the method call is an openDAQ(TM) Struct object-type, the Signal's Data Descriptor has Struct Fields.
 
+:note-caption: Structs
 [NOTE]
 ====
 All Structs and their respective Struct Fields have their names set.
@@ -158,7 +169,7 @@ long myInt = myStruct.Get("MyInt32");
 double myFloat = myStruct.Get("MyFloat64");
 ----
 ====
-
+:note-caption: Nested Structs
 [NOTE]
 ====
 Structs can be nested within the Data Descriptor.
@@ -169,6 +180,7 @@ Structs can be nested within the Data Descriptor.
 
 It's possible for a value of a Signal to be a List.
 
+:note-caption: Dimensions
 [NOTE]
 ====
 Dimensions of the Data Descriptor for Lists contain exactly one dimension.
@@ -219,6 +231,7 @@ var myItem = myList.GetItemAt(1);
 
 In the above example, the item's underlying type will depend upon Signal Data Descriptor's Sample Type.
 
+:note-caption: Lists and Nested Strcuts
 [NOTE]
 ====
 Lists may contain (nested) Structs.

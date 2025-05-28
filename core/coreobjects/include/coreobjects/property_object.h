@@ -19,6 +19,7 @@
 #include <coretypes/type_manager.h>
 #include <coretypes/event.h>
 #include <coreobjects/permission_manager.h>
+#include <coretypes/search_filter.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,6 +34,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * [templated(defaultAliasName: PropertyObjectPtr)]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr)]
  * [interfaceSmartPtr(IPermissionManager, PermissionManagerPtr, "<coreobjects/permission_manager_ptr.h>")]
+ * [interfaceLibrary(ISearchFilter, "coretypes")]
  */
 
 /*!
@@ -127,7 +129,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * @retval OPENDAQ_ERR_INVALIDPARAMETER if attempting to get a value at an index of a non-list Property.
      * @retval OPENDAQ_ERR_OUTOFRANGE if attempting to get a value of a list Property at an out-of-bounds index.
      *
-     * The value is retrieved from a local dictionary of Property values where they are stored when set. If a a value is not
+     * The value is retrieved from a local dictionary of Property values where they are stored when set. If a value is not
      * present under the `propertyName` key, the default value of the corresponding Property is returned. If said property
      * is not part of the Property object, an error occurs.
      *
@@ -375,6 +377,21 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * @param[out] permissionManager The permission manager of property object.
      */
     virtual ErrCode INTERFACE_FUNC getPermissionManager(IPermissionManager** permissionManager) = 0;
+
+    // [elementType(properties, IProperty)]
+    /*!
+     * @brief Retrieves a list of properties from the Property object that match the given property filter.
+     * @param propertyFilter A filter used to select relevant properties. Can include a recursive wrapper
+     * to search thru nested property objects.
+     * @param componentFilter An optional filter to determine which components' properties are included in the search.
+     * A recursive wrapper can be used to enable tree-traversal search.
+     * @param[out] properties The list containing the matching properties.
+     *
+     * If the propertyFilter is nullptr, only the visible properties directly associated with the current object are retrieved.
+     * When searching for properties within a component, if no componentFilter is provided, only the current component is searched.
+     * If a componentFilter is provided but the current component does not match it, the result will be an empty list.
+     */
+    virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) = 0;
 };
 
 /*!@}*/

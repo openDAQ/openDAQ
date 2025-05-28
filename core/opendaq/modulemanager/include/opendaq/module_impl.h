@@ -31,6 +31,10 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/module_info_factory.h>
 #include <opendaq/component_type_private.h>
+#include <opendaq/component_private_ptr.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include <coreobjects/property_object_protected_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class Module : public ImplementationOf<IModule>
@@ -101,8 +105,7 @@ public:
 
         DictPtr<IString, IDeviceType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
-        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr deviceType;
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);
@@ -165,8 +168,7 @@ public:
         
         DictPtr<IString, IComponentType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
-        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr type;
         if (types.assigned())
@@ -174,6 +176,9 @@ public:
 
         FunctionBlockPtr block;
         errCode = wrapHandlerReturn(this, &Module::onCreateFunctionBlock, block, id, parent, localId, mergeConfig(config, type));
+
+        if (const auto& componentPrivate = block.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+            componentPrivate.setComponentConfig(config);
 
         *functionBlock = block.detach();
         return errCode;
@@ -215,9 +220,8 @@ public:
 
         DictPtr<IString, IComponentType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
-        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-            return errCode;
-        
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
+
         ComponentTypePtr type;
         if (types.assigned())
             type = types.getOrDefault(serverTypeId);
@@ -243,8 +247,7 @@ public:
         
         DictPtr<IString, IStreamingType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
-        if (OPENDAQ_FAILED(errCode) && errCode != OPENDAQ_ERR_NOTIMPLEMENTED)
-            return errCode;
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
         ComponentTypePtr streamingType;
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);
@@ -398,6 +401,22 @@ protected:
                   ? this->logger.getOrAddComponent(this->moduleInfo.getName().assigned() ? this->moduleInfo.getName() : "UnknownModule")
                   : throw ArgumentNullException("Logger must not be null"))
     {
+    }
+
+    template <typename PopulatePropertiesFunc, typename DiscoveredDeviceT>
+    static DeviceInfoPtr populateDiscoveredDeviceInfo(PopulatePropertiesFunc populateProperties,
+                                                      const DiscoveredDeviceT& discoveredDevice,
+                                                      const ServerCapabilityPtr& cap,
+                                                      const DeviceTypePtr& deviceType)
+    {
+        PropertyObjectPtr deviceInfo = DeviceInfo("");
+        populateProperties(deviceInfo, discoveredDevice, ConnectedClientInfo());
+
+        deviceInfo.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+        deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", cap.getConnectionString());
+        deviceInfo.asPtr<IDeviceInfoConfig>().setDeviceType(deviceType);
+
+        return deviceInfo;
     }
 
 private:

@@ -1,3 +1,4 @@
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 cmake_minimum_required(VERSION 3.24)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_FOLDER "${CMAKE_FOLDER}/openDAQ")
@@ -9,7 +10,10 @@ set(SDK_OPTION_PREFIX OPENDAQ)
 
 file(READ "opendaq_version" package_version)
 string(STRIP ${package_version} package_version)
-set(OPENDAQ_PACKAGE_VERSION "${package_version}")
+
+string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" package_version_major_minor_patch "${package_version}")
+
+set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}")
 
 set(CMAKE_MESSAGE_CONTEXT ${SDK_NAME})
 set(CMAKE_MESSAGE_CONTEXT_SHOW ON CACHE BOOL "Show CMake message context")
@@ -122,6 +126,7 @@ option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" 
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
 option(OPENDAQ_ALWAYS_FETCH_DEPENDENCIES "Ignore any installed libraries and always build all dependencies from source" ON)
+option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 cmake_dependent_option(OPCUA_ENABLE_ENCRYPTION "Enable OpcUa encryption" OFF "OPENDAQ_ENABLE_OPCUA" OFF)
@@ -170,6 +175,7 @@ option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
 option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
+option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder module" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
 

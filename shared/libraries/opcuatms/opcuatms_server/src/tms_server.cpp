@@ -46,20 +46,53 @@ void TmsServer::start()
     if (!context.assigned())
         DAQ_THROW_EXCEPTION(InvalidStateException, "Context is not set.");
 
+    auto info = device.getInfo();
+    if (info.hasServerCapability("OpenDAQOPCUAConfiguration"))
+        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQOPCUAConfiguration server capability.", info.getName()));
+
     server = std::make_shared<OpcUaServer>();
     server->setPort(opcUaPort);
     server->setAuthenticationProvider(context.getAuthenticationProvider());
+    server->setClientConnectedHandler(
+        [this](const std::string& clientId)
+        {
+            const auto loggerComponent = context.getLogger().getOrAddComponent("TmsServer");
+            LOG_I("New client connected, ID: {}", clientId);
+            SizeT clientNumber = 0;
+            if (device.assigned() && !device.isRemoved())
+            {
+                device.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
+                    &clientNumber,
+                    ConnectedClientInfo("", ProtocolType::Configuration, "OpenDAQOPCUA", "", ""));
+            }
+            registeredClientIds.insert({clientId, clientNumber});
+        }
+    );
+    server->setClientDisconnectedHandler(
+        [this](const std::string& clientId)
+        {
+            if (auto it = registeredClientIds.find(clientId); it != registeredClientIds.end())
+            {
+                const auto loggerComponent = context.getLogger().getOrAddComponent("TmsServer");
+                LOG_I("Client disconnected, ID: {}", clientId);
+                if (device.assigned() && !device.isRemoved() && it->second != 0)
+                {
+                    device.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(it->second);
+                }
+                registeredClientIds.erase(it);
+            }
+        }
+    );
     server->prepare();
 
     tmsContext = std::make_shared<TmsServerContext>(context, device);
-    auto signals = device.getSignals();
 
     auto serverCapability = ServerCapability("OpenDAQOPCUAConfiguration", "OpenDAQOPCUA", ProtocolType::Configuration);
     serverCapability.setPrefix("daq.opcua");
     serverCapability.setConnectionType("TCP/IP");
     serverCapability.setPort(opcUaPort);
     serverCapability.addProperty(StringProperty("Path", opcUaPath == "/" ? "" : opcUaPath));
-    device.getInfo().asPtr<IDeviceInfoInternal>().addServerCapability(serverCapability);
+    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapability);
 
     tmsDevice = std::make_unique<TmsServerDevice>(device, server, context, tmsContext);
     tmsDevice->registerOpcUaNode(OpcUaNodeId(NAMESPACE_DI, UA_DIID_DEVICESET));
@@ -70,6 +103,20 @@ void TmsServer::start()
 
 void TmsServer::stop()
 {
+    if (device.assigned() && !device.isRemoved())
+    {
+        const auto info = device.getInfo();
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+        if (info.hasServerCapability("OpenDAQOPCUAConfiguration"))
+            infoInternal.removeServerCapability("OpenDAQOPCUAConfiguration");
+        for (const auto& [_, clientNumber] : registeredClientIds)
+        {
+            if (clientNumber != 0)
+                infoInternal.removeConnectedClient(clientNumber);
+        }
+    }
+    registeredClientIds.clear();
+
     if (server)
         server->stop();
     

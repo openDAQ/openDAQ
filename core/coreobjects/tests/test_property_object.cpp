@@ -750,6 +750,36 @@ TEST_F(PropertyObjectTest, NestedChildPropSet)
     ASSERT_EQ(childObj3.getPropertyValue("IntProperty"), 3);
 }
 
+TEST_F(PropertyObjectTest, NestedChildPropHasProperty)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    auto defaultObj1 = PropertyObject(objManager, "Test");
+    auto defaultObj2 = PropertyObject(objManager, "Test");
+    auto defaultObj3 = PropertyObject(objManager, "Test");
+
+    const auto childProp3 = ObjectProperty("Child", defaultObj3);
+    defaultObj2.addProperty(childProp3);
+    
+    const auto childProp2 = ObjectProperty("Child", defaultObj2);
+    defaultObj1.addProperty(childProp2);
+
+    const auto childProp1 = ObjectProperty("Child", defaultObj1);
+    propObj.addProperty(childProp1);
+
+    const PropertyObjectPtr childObj1 = propObj.getPropertyValue("Child");
+    const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("Child");
+
+    ASSERT_THROW(propObj.hasProperty("Child.IntProperty.Foo"), InvalidTypeException);
+    ASSERT_THROW(propObj.hasProperty("Child.WrongChild.IntProperty"), NotFoundException);
+
+    ASSERT_TRUE(propObj.hasProperty("Child.IntProperty"));
+    ASSERT_TRUE(propObj.hasProperty("Child.Child.IntProperty"));
+    ASSERT_TRUE(propObj.hasProperty("Child.Child.Child.IntProperty"));
+
+    ASSERT_TRUE(childObj2.hasProperty("IntProperty"));
+    ASSERT_TRUE(childObj2.hasProperty("Child.IntProperty"));
+}
+
 TEST_F(PropertyObjectTest, ChildPropGet)
 {
     auto propObj = PropertyObject(objManager, "Test");

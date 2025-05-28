@@ -302,10 +302,11 @@ ErrCode FunctionBlockWrapperImpl::setPropertyValue(IString* propertyName, IBaseO
         {
             auto valuePtr = BaseObjectPtr::Borrow(value);
 
-            StringPtr childName;
-            StringPtr subName;
-            if (isChildProperty(propertyNameStr, childName, subName))
+            if (isChildProperty(propertyNameStr))
             {
+                StringPtr childName;
+                StringPtr subName;
+                splitOnFirstDot(propertyNameStr, childName, subName);
                 if (!isPropertyVisible(childName))
                     DAQ_THROW_EXCEPTION(NotFoundException);
             }
@@ -345,7 +346,7 @@ ErrCode FunctionBlockWrapperImpl::getPropertyValue(IString* propertyName, IBaseO
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertyValue(propertyName, value);
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 ErrCode FunctionBlockWrapperImpl::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
@@ -357,7 +358,7 @@ ErrCode FunctionBlockWrapperImpl::getPropertySelectionValue(IString* propertyNam
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertySelectionValue(propertyName, value);
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 ErrCode FunctionBlockWrapperImpl::clearPropertyValue(IString* propertyName)
@@ -369,7 +370,7 @@ ErrCode FunctionBlockWrapperImpl::clearPropertyValue(IString* propertyName)
     if (isPropertyVisible(propertyName))
         return functionBlock->clearPropertyValue(propertyName);
 
-    return OPENDAQ_ERR_NOTFOUND;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 ErrCode FunctionBlockWrapperImpl::hasProperty(IString* propertyName, Bool* hasProperty)
@@ -436,12 +437,12 @@ ErrCode FunctionBlockWrapperImpl::getProperty(IString* propertyName, IProperty**
 
 ErrCode FunctionBlockWrapperImpl::addProperty(IProperty* property)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode FunctionBlockWrapperImpl::removeProperty(IString* propertyName)
 {
-    return OPENDAQ_ERR_ACCESSDENIED;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
 ErrCode FunctionBlockWrapperImpl::getProperties(const ListPtr<IProperty>& innerProperties, IList** properties)

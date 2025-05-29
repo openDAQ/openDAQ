@@ -1313,19 +1313,20 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addDevices(IDict** devices, ID
 
     DictPtr<IString, IDevice> devicesDictPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddDevices, devicesDictPtr, connectionArgs, errCodes, errorInfos);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *devices = devicesDictPtr.detach();
 
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        for (const auto& [_, device] : devicesDictPtr)
-        {
-            if (!device.assigned())
-                return OPENDAQ_PARTIAL_SUCCESS;
-        }
-    }
-
-    return errCode;
+    SizeT addedDevicesCount = 0;
+    for (const auto& [_, device] : devicesDictPtr)
+        if (device.assigned())
+            ++addedDevicesCount;
+    if (addedDevicesCount == devicesDictPtr.getCount())
+        return OPENDAQ_SUCCESS;
+    else if (addedDevicesCount == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "No devices were added");
+    else
+        return OPENDAQ_PARTIAL_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -644,11 +644,13 @@ ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs,
         }
     }
 
+    SizeT createdDevicesCount = 0;
     for (auto& [futureResult, connectionString] : deviceCreationResults)
     {
         try
         {
             devicesDictPtr[connectionString] = futureResult.get();
+            ++createdDevicesCount;
             if (errCodesDictPtr.assigned())
                 errCodesDictPtr[connectionString] = OPENDAQ_SUCCESS;
             if (errorInfosDictPtr.assigned())
@@ -673,10 +675,14 @@ ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs,
                 errorInfosDictPtr[connectionString] = nullptr;
         }
     }
-
     *devices = devicesDictPtr.detach();
 
-    return OPENDAQ_SUCCESS;
+    if (createdDevicesCount == devicesDictPtr.getCount())
+        return OPENDAQ_SUCCESS;
+    else if (createdDevicesCount == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "No devices were created");
+    else
+        return OPENDAQ_PARTIAL_SUCCESS;
 }
 
 ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)

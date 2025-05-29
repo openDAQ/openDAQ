@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 enum class PropertyEventType : EnumType
 {
-    Update,
+    Update = 0,
     Clear,
     Read
 };

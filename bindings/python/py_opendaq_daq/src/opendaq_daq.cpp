@@ -4,6 +4,15 @@
 #include "py_core_types/py_core_types.h"
 #include "py_opendaq/py_opendaq.h"
 #include "py_opendaq/py_packet_buffer.h"
+#include "py_core_types/py_event_queue.h"
+
+struct CleanupOnExit 
+{
+    ~CleanupOnExit()
+    {
+        daq::clearPythonEventQueue();
+    }
+};
 
 PYBIND11_MODULE(opendaq, m)
 {
@@ -15,6 +24,8 @@ PYBIND11_MODULE(opendaq, m)
     m.def("get_tracked_object_count", &daqGetTrackedObjectCount);
     m.def("print_tracked_objects", &daqPrintTrackedObjects);
     m.def("clear_error_info", &daqClearErrorInfo);
+    m.def("process_events_from_queue", &daq::processPythonEventFromQueue);
+    m.add_object("_cleanup", py::cast(new CleanupOnExit(), py::return_value_policy::take_ownership));
 
     // wrap individual components
     

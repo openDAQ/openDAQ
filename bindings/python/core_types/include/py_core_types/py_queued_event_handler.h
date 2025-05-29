@@ -1,0 +1,42 @@
+/*
+ * Copyright 2022-2025 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+#include <pybind11/pybind11.h>
+
+#include <coretypes/common.h>
+#include <coretypes/intfs.h>
+#include <coretypes/objectptr.h>
+#include "py_core_types/queued_event_handler.h"
+
+BEGIN_NAMESPACE_OPENDAQ
+
+class PyQueuedEventHandler : public daq::ImplementationOf<daq::IQueuedEventHandler>
+{
+public:
+    using Subscription = pybind11::object;
+
+    explicit PyQueuedEventHandler(Subscription sub);
+
+    daq::ErrCode INTERFACE_FUNC handleEvent(daq::IBaseObject* sender, daq::IEventArgs* eventArgs) override;
+
+    void dispatch(const daq::ObjectPtr<daq::IBaseObject>& sender, const daq::ObjectPtr<daq::IEventArgs>& eventArgs);
+
+private:
+    Subscription subscription;
+};
+
+END_NAMESPACE_OPENDAQ

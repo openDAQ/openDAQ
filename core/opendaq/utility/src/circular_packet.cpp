@@ -298,7 +298,7 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     {
         if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize)
         {
-            LOG_D("The size of the packet is smaller than requested. It's so JOEVER")
+            LOG_W("The size of the packet is smaller than requested. It's so JOEVER")
         }
 
         return daq::DataPacketWithExternalMemory(domainPacket, dataDescriptor, (uint64_t) *sampleCount, startOfSpace, deleter);
@@ -307,11 +307,11 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     {
         if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory)
         {
-            LOG_W("We ran out of memory...")
+            LOG_E("We ran out of memory...")
         }
         else
         {
-            LOG_W("Something went very wrong...")
+            LOG_E("Something went very wrong...")
         }
         return daq::DataPacketPtr();
     }
@@ -323,7 +323,7 @@ int PacketBuffer::reset()
     bUnderReset = true;
     this->cv.wait(lock, [&]
             {
-                LOG_W("Calling the check in reset.")
+                LOG_D("Calling the check in reset.")
                 std::cerr << "Calling the check in reset. " << std::endl;
                 return ((readPos == writePos) && (!bIsFull));
             });

@@ -97,6 +97,7 @@ protected:
     bufferReturnCodes::EReturnCodesPacketBuffer Write(size_t* sampleCount, void** memPos);
 
     bufferReturnCodes::EReturnCodesPacketBuffer Read(void* beginningOfDelegatedSpace, size_t sampleCount);
+
     // Testing methods
     void setWritePos(size_t offset);
     void setReadPos(size_t offset);

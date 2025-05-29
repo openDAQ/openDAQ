@@ -90,17 +90,29 @@ void PropertiesFb::initProperties()
     auto proc = Procedure([](IntegerPtr a) { std::cout << "Procedure called with: " << a << "\n"; });
     objPtr.setPropertyValue("Procedure", proc);
 
-    // Function
+    // Protected nested Function
+    auto funObj = PropertyObject();
     auto funProp =
         FunctionProperty("Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("a", ctInt), ArgumentInfo("b", ctInt))));
-    addPropertyAndCallback(funProp);
+    funObj.addProperty(funProp);
+    auto permissions = PermissionsBuilder()
+                           .inherit(false)
+                           .assign("everyone", PermissionMaskBuilder().read())
+                           .assign("admin", PermissionMaskBuilder().read().write().execute())
+                           .build();
+    funObj.getPermissionManager().setPermissions(permissions);
+    auto funObjProp = ObjectProperty("FunctionObject", funObj);
     auto fun = Function(
         [](IntegerPtr a, IntegerPtr b)
         {
             std::cout << "Function called\n";
             return a + b;
         });
-    objPtr.setPropertyValue("Function", fun);
+    funObj.setPropertyValue("Function", fun);  // Set the Function in the ObjectProperty
+    auto name = funProp.getName();
+    funProp.getOnPropertyValueWrite() += [name](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    { std::cout << name << " changed to: " << args.getValue() << "\n"; };
+    addPropertyAndCallback(funObjProp);
 
     // Selection
     auto selectionProp = SelectionProperty("Selection", List<IUnit>(Unit("FirstUnit"), Unit("SecondUnit"), Unit("ThirdUnit")), 1);

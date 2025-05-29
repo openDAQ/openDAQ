@@ -200,7 +200,6 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
     // collect all relevant streaming sources for the component by retrieving sources from itself and all its ancestor devices
     // from top to the bottom
     auto allStreamingSources = List<IStreaming>();
-    StreamingPtr activeStreamingSource;
     for (const auto& ancestorDevice : ancestorDevices)
     {
         if (auto mirroredDevice = ancestorDevice.asPtrOrNull<IMirroredDevice>(); mirroredDevice.assigned())
@@ -208,18 +207,13 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
             auto streamingSources = mirroredDevice.getStreamingSources();
             for (const auto& streaming : streamingSources)
                 allStreamingSources.pushBack(streaming);
-
-            // streaming sources were created and ordered by priority on the device connection, cache the highest-priority
-            // source from the deepest in-tree ancestor or top device if no MinHops enabled to be active for signals of new component
-            if (!streamingSources.empty())
-                activeStreamingSource = streamingSources[0];
         }
     }
 
-    if (!activeStreamingSource.assigned() || allStreamingSources.empty())
+    if (allStreamingSources.empty())
         return;
 
-    auto setupStreamingForSignal = [this, allStreamingSources, activeStreamingSource](const SignalPtr& signal)
+    auto setupStreamingForSignal = [this, allStreamingSources](const SignalPtr& signal)
     {
         if (!signal.getPublic())
             return;
@@ -245,8 +239,21 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
         auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
         if (!mirroredSignalConfigPtr.getActiveStreamingSource().assigned())
         {
-            LOG_D("Set active streaming source \"{}\" for signal \"{}\"", activeStreamingSource.getConnectionString(), signal.getGlobalId());
-            mirroredSignalConfigPtr.setActiveStreamingSource(activeStreamingSource.getConnectionString());
+            // streaming sources were created and ordered by priority on the device connection, cache the highest-priority
+            // source from the deepest in-tree ancestor or top device if no MinHops enabled to be active for signals of new component
+            auto signalStreamingSources = mirroredSignalConfigPtr.getStreamingSources();
+            for (const auto& streaming : allStreamingSources)
+            {
+                auto connectionString = streaming.getConnectionString();
+
+                auto it = std::find(signalStreamingSources.begin(), signalStreamingSources.end(), connectionString);
+                if (it != signalStreamingSources.end())
+                {
+                    mirroredSignalConfigPtr.setActiveStreamingSource(connectionString);
+                    break;
+                }
+            }
+
         }
     };
 

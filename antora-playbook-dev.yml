@@ -10,6 +10,7 @@ asciidoc:
     docs-website: https://{docs-prefix}.opendaq.com/
   extensions:
     - "@asciidoctor/tabs"
+    - "@antora/lunr-extension" 
 
 antora:
   extensions:

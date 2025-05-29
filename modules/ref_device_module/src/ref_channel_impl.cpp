@@ -5,6 +5,7 @@
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/unit_factory.h>
 #include <coretypes/procedure_factory.h>
+#include <opendaq/circular_packet.h>
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/data_rule_factory.h>
@@ -49,6 +50,14 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     resetCounter();
     createSignals();
     buildSignalDescriptors();
+    packetBufferSetup();
+}
+
+void RefChannelImpl::packetBufferSetup()
+{
+    std::cout << (globalSampleRate) << std::endl;
+    if (bUseOfBuffer)
+        pb = std::make_unique<daq::PacketBuffer>((size_t) packetSize, (size_t)16384, nullptr);
 }
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
@@ -341,7 +350,19 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
     }
     else
     {
-        dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+        if (bUseOfBuffer) // Here I need to create a PacketBufferInit that will allow to correctly toggle
+        {
+            dataPacket = pb->createPacket((size_t*) &newSamples, valueSignal.getDescriptor(), domainPacket);
+        }
+        else
+        {
+            dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+        }
+
+        if (dataPacket == nullptr)
+        {
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "We have created an empty packet, OH NO");
+        }
 
         double* buffer;
 

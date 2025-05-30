@@ -76,7 +76,8 @@ DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
      * @retval OPENDAQ_ERR_NOINTERFACE if a signal on the list is not a mirrored signal.
      *
      * After a signal is added to the Streaming, the Streaming automatically appears in the list of
-     * available streaming sources of a signal.
+     * available streaming sources of a signal. Some signals, however, may be silently ignored
+     * without triggering an error - for example, private signals are excluded by default.
      */
     virtual ErrCode INTERFACE_FUNC addSignals(IList* signals) = 0;
 

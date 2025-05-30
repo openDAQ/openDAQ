@@ -4,10 +4,12 @@ set(SRC_Headers
     include/py_opendaq/py_opendaq.h
     include/py_opendaq/py_packet_buffer.h
     include/py_context/py_context.h
+    include/py_context/py_context_impl.h
 )
 
 set(SRC_Cpp
     py_opendaq.cpp
+    src/py_context_impl.cpp
     generated/opendaq/py_instance.cpp
     generated/opendaq/py_instance_builder.cpp
     generated/opendaq/py_config_provider.cpp

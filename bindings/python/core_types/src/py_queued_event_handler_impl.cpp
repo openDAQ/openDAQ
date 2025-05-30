@@ -24,7 +24,7 @@
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_event_queue.h"
 
-daq::EventHandlerPtr<> createQueuedEventHandler(pybind11::object eventHandler) 
+daq::ObjectPtr<daq::IPythonQueuedEventHandler> createQueuedEventHandler(pybind11::object eventHandler) 
 {
     daq::ObjectPtr<daq::IPythonQueuedEventHandler> eventHandlerPtr;
     const daq::ErrCode err = daq::createObjectForwarding<daq::IPythonQueuedEventHandler, daq::PyQueuedEventHandler>(&eventHandlerPtr, eventHandler);

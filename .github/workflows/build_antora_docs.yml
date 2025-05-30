@@ -20,20 +20,29 @@ jobs:
           node-version: '16'
 
       - name: Install Antora
-        run: npm i antora
+        run: npm i antora vinyl
+
+      - name: Clone ASAM Antora extensions
+        run: |
+          git clone https://code.asam.net/common/asam-antora-extensions.git asam-antora-extensions
+
+      - name: Patch ASAM extension to fix vinyl resolution
+        run: |
+          sed -i "s|require('vinyl')|require(require.resolve(\"vinyl\", { paths: [process.cwd()] }))|" asam-antora-extensions/core/file.js
 
       - name: Install Antora extensions, etc.
         run: |
           npm i @asciidoctor/tabs
           npm i @springio/antora-extensions
-          npm install vinyl
 
-      - name: Clone asam-antora-extensions
-        run: git clone https://code.asam.net/common/asam-antora-extensions.git asam-antora-extensions
 
-      - name: Run Antora
-        run: >
-          npx antora antora-playbook.yml
+
+      - name: Patch ASAM extension to fix vinyl resolution
+        run: |
+          sed -i 's|require(\'vinyl\')|require(require.resolve("vinyl", { paths: [process.cwd()] }))|' asam-antora-extensions/core/file.js
+
+      - name: Install vinyl and run Antora
+        run: npx antora antora-playbook.yml
 
       - name: Compress Documentation
         working-directory: ${{ env.site_path }}

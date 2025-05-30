@@ -3,6 +3,7 @@ set(LIB_NAME py_opendaq)
 set(SRC_Headers
     include/py_opendaq/py_opendaq.h
     include/py_opendaq/py_packet_buffer.h
+    include/py_context/py_context.h
 )
 
 set(SRC_Cpp

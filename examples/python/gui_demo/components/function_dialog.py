@@ -100,17 +100,13 @@ class FunctionDialog(Dialog):
     def exec_clicked(self):
         ret = None
         try:
-            list = daq.List()
+            args = []
             if self.node.callable_info.arguments:
                 for argument in self.node.callable_info.arguments:
-                    list.push_back(self.create_argument(argument.Type,
+                    args.append(self.create_argument(argument.Type,
                                 self.arguments[argument.Name].get()))
-            if len(list) == 0:
-                ret = self.function()
-            elif len(list) == 1:
-                ret = self.function(list[0])
-            else:
-                ret = self.function(list)
+
+            ret = self.function(*args)
         except (Exception, ValueError) as e:
             ret = e
         self.return_value.set(str(ret))

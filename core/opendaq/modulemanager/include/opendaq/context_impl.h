@@ -26,17 +26,20 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ContextImpl : public ImplementationOf<IContext, IContextInternal>
+template <typename MainInterface, typename ... Interfaces>
+class GenericContextImpl : public ImplementationOf<MainInterface, IContextInternal, Interfaces...>
 {
 public:
-    explicit ContextImpl(SchedulerPtr scheduler,
+    using Self = GenericContextImpl<MainInterface, Interfaces...>;
+
+    explicit GenericContextImpl(SchedulerPtr scheduler,
                          LoggerPtr logger,
                          TypeManagerPtr typeManager,
                          ModuleManagerPtr moduleManager,
                          AuthenticationProviderPtr authenticationProvider,
                          DictPtr<IString, IBaseObject> options,
                          DictPtr<IString, IDiscoveryServer> discoveryServices);
-    ~ContextImpl();
+    ~GenericContextImpl();
 
     ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler) override;
     ErrCode INTERFACE_FUNC getLogger(ILogger** logger) override;
@@ -63,5 +66,7 @@ private:
     DictPtr<IString, IBaseObject> options;
     DictPtr<IString, IDiscoveryServer> discoveryServers;
 };
+
+using ContextImpl = GenericContextImpl<IContext>;
 
 END_NAMESPACE_OPENDAQ

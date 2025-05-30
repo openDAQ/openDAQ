@@ -13,13 +13,14 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ContextImpl::ContextImpl(SchedulerPtr scheduler,
-                         LoggerPtr logger,
-                         TypeManagerPtr typeManager,
-                         ModuleManagerPtr moduleManager,
-                         AuthenticationProviderPtr authenticationProvider,
-                         DictPtr<IString, IBaseObject> options,
-                         DictPtr<IString, IDiscoveryServer> discoveryServices)
+template <typename MainInterface, typename ... Interfaces>
+GenericContextImpl<MainInterface, Interfaces...>::GenericContextImpl(SchedulerPtr scheduler,
+                                                                     LoggerPtr logger,
+                                                                     TypeManagerPtr typeManager,
+                                                                     ModuleManagerPtr moduleManager,
+                                                                     AuthenticationProviderPtr authenticationProvider,
+                                                                     DictPtr<IString, IBaseObject> options,
+                                                                     DictPtr<IString, IDiscoveryServer> discoveryServices)
     : logger(std::move(logger))
     , scheduler(std::move(scheduler))
     , moduleManager(std::move(moduleManager))
@@ -66,17 +67,19 @@ ContextImpl::ContextImpl(SchedulerPtr scheduler,
 
     if (this->typeManager.assigned())
         this->typeManager.asPtr<ITypeManagerPrivate>()->setCoreEventCallback(typeManagerCallback);
-    Event(this->coreEvent) += event(&ContextImpl::componentCoreEventCallback);
+    Event(this->coreEvent) += event(this, &Self::componentCoreEventCallback);
 
     registerOpenDaqTypes();
 }
 
-ContextImpl::~ContextImpl()
+template <typename MainInterface, typename ... Interfaces>
+GenericContextImpl<MainInterface, Interfaces...>::~GenericContextImpl()
 {
-    Event(this->coreEvent) -= event(&ContextImpl::componentCoreEventCallback);
+    Event(this->coreEvent) -= event(this, &Self::componentCoreEventCallback);
 }
 
-ErrCode ContextImpl::getScheduler(IScheduler** scheduler)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::getScheduler(IScheduler** scheduler)
 {
     OPENDAQ_PARAM_NOT_NULL(scheduler);
 
@@ -85,7 +88,8 @@ ErrCode ContextImpl::getScheduler(IScheduler** scheduler)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ContextImpl::getLogger(ILogger** logger)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::getLogger(ILogger** logger)
 {
     OPENDAQ_PARAM_NOT_NULL(logger);
 
@@ -94,7 +98,8 @@ ErrCode ContextImpl::getLogger(ILogger** logger)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ContextImpl::getModuleManager(IBaseObject** manager)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::getModuleManager(IBaseObject** manager)
 {
     OPENDAQ_PARAM_NOT_NULL(manager);
 
@@ -102,7 +107,7 @@ ErrCode ContextImpl::getModuleManager(IBaseObject** manager)
         {
             if (this->moduleManagerWeakRef.assigned())
             {
-                *manager = moduleManagerWeakRef.getRef().asPtr<IBaseObject>().detach();
+                *manager = moduleManagerWeakRef.getRef().template asPtr<IBaseObject>().detach();
             }
             else
             {
@@ -112,7 +117,8 @@ ErrCode ContextImpl::getModuleManager(IBaseObject** manager)
         });
 }
 
-ErrCode ContextImpl::getTypeManager(ITypeManager** manager)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::getTypeManager(ITypeManager** manager)
 {
     OPENDAQ_PARAM_NOT_NULL(manager);
 
@@ -121,7 +127,8 @@ ErrCode ContextImpl::getTypeManager(ITypeManager** manager)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC ContextImpl::getAuthenticationProvider(IAuthenticationProvider** authenticationProvider)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::getAuthenticationProvider(IAuthenticationProvider** authenticationProvider)
 {
     OPENDAQ_PARAM_NOT_NULL(authenticationProvider);
 
@@ -129,7 +136,8 @@ ErrCode INTERFACE_FUNC ContextImpl::getAuthenticationProvider(IAuthenticationPro
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ContextImpl::getOnCoreEvent(IEvent** event)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::getOnCoreEvent(IEvent** event)
 {
     OPENDAQ_PARAM_NOT_NULL(event);
 
@@ -137,7 +145,8 @@ ErrCode ContextImpl::getOnCoreEvent(IEvent** event)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ContextImpl::moveModuleManager(IModuleManager** manager)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::moveModuleManager(IModuleManager** manager)
 {
     OPENDAQ_PARAM_NOT_NULL(manager);
 
@@ -154,7 +163,8 @@ ErrCode ContextImpl::moveModuleManager(IModuleManager** manager)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ContextImpl::getOptions(IDict** options)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::getOptions(IDict** options)
 {
     OPENDAQ_PARAM_NOT_NULL(options);
 
@@ -168,7 +178,8 @@ ErrCode ContextImpl::getOptions(IDict** options)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ContextImpl::getModuleOptions(IString* moduleId, IDict** options)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::getModuleOptions(IString* moduleId, IDict** options)
 {
     OPENDAQ_PARAM_NOT_NULL(moduleId);
     OPENDAQ_PARAM_NOT_NULL(options);
@@ -191,7 +202,8 @@ ErrCode ContextImpl::getModuleOptions(IString* moduleId, IDict** options)
     return OPENDAQ_SUCCESS;
 }
 
-void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
+template <typename MainInterface, typename ... Interfaces>
+void GenericContextImpl<MainInterface, Interfaces...>::componentCoreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
     if (!component.assigned())
         return;
@@ -213,7 +225,8 @@ void ContextImpl::componentCoreEventCallback(ComponentPtr& component, CoreEventA
 
 }
 
-ErrCode ContextImpl::getDiscoveryServers(IDict** servers)
+template <typename MainInterface, typename ... Interfaces>
+ErrCode GenericContextImpl<MainInterface, Interfaces...>::getDiscoveryServers(IDict** servers)
 {
     OPENDAQ_PARAM_NOT_NULL(servers);
     if (!this->discoveryServers.assigned())
@@ -225,7 +238,8 @@ ErrCode ContextImpl::getDiscoveryServers(IDict** servers)
     return OPENDAQ_SUCCESS;
 }
 
-void ContextImpl::registerOpenDaqTypes()
+template <typename MainInterface, typename ... Interfaces>
+void GenericContextImpl<MainInterface, Interfaces...>::registerOpenDaqTypes()
 {
     if (typeManager == nullptr)
         return;

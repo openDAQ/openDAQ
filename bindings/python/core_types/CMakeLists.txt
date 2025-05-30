@@ -1,7 +1,7 @@
 set(LIB_NAME py_core_types)
 
 set(SRC_Headers
-    include/py_core_types/queued_event_handler.h
+    include/py_core_types/py_queued_event_handler.h
     include/py_core_types/py_core_types.h
     #
     include/py_core_types/py_base_object.h
@@ -10,7 +10,7 @@ set(SRC_Headers
     include/py_core_types/py_list_object.h
     include/py_core_types/py_procedure.h
     include/py_core_types/py_function.h
-    include/py_core_types/py_queued_event_handler.h
+    include/py_core_types/py_queued_event_handler_impl.h
     include/py_core_types/py_event_queue.h
 )
 
@@ -35,7 +35,7 @@ set(SRC_Cpp
     src/py_dict.cpp
     src/py_procedure.cpp
     src/py_function.cpp
-    src/py_queued_event_handler.cpp
+    src/py_queued_event_handler_impl.cpp
     src/py_event_queue.cpp
     #
     generated/py_event_handler.cpp

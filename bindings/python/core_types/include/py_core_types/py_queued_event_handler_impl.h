@@ -15,13 +15,30 @@
  */
 
 #pragma once
-#include <coretypes/event_handler.h>
+#include <pybind11/pybind11.h>
+
+#include <coretypes/common.h>
+#include <coretypes/intfs.h>
+#include <coretypes/objectptr.h>
+#include "py_core_types/py_queued_event_handler.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// workaround to have a separate interface for the queued event handler
-DECLARE_OPENDAQ_INTERFACE(IQueuedEventHandler, IEventHandler)
+class PyQueuedEventHandler : public daq::ImplementationOf<daq::IPythonQueuedEventHandler>
 {
+public:
+    using Subscription = pybind11::object;
+
+    explicit PyQueuedEventHandler(Subscription sub);
+
+    // IEventHandler
+    ErrCode INTERFACE_FUNC handleEvent(IBaseObject* sender, IEventArgs* eventArgs) override;
+
+    // IPythonQueuedEventHandler
+    ErrCode INTERFACE_FUNC dispatch(IBaseObject* sender, IEventArgs* eventArgs) override;
+
+private:
+    Subscription subscription;
 };
 
 END_NAMESPACE_OPENDAQ

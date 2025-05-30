@@ -5,7 +5,7 @@
 #include <coretypes/event_handler.h>
 #include <coretypes/event_handler_ptr.h>
 
-#include "py_core_types/py_queued_event_handler.h"
+#include "py_core_types/py_queued_event_handler_impl.h"
 #include "py_core_types/py_event_queue.h"
 
 #include <queue>
@@ -20,23 +20,19 @@ namespace
     std::mutex callbackQueueMutex;
 }
 
-void enqueuePythonEvent(PyQueuedEventHandler* eventHandler, daq::ObjectPtr<daq::IBaseObject> sender, daq::ObjectPtr<daq::IEventArgs> eventArgs)
+void enqueuePythonEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::ObjectPtr<daq::IBaseObject> sender, daq::ObjectPtr<daq::IEventArgs> eventArgs)
 {
     if (eventHandler == nullptr)
         return;
 
-    IEventHandler* eventHandlerInterface;
-    const auto err = eventHandler->borrowInterface(IEventHandler::Id, reinterpret_cast<void**>(&eventHandlerInterface));
-    checkErrorInfo(err);
-    EventHandlerPtr eventHandlerPtr = eventHandlerInterface;
+    daq::ObjectPtr<daq::IPythonQueuedEventHandler> eventHandlerPtr = eventHandler;
 
     std::lock_guard<std::mutex> lock(callbackQueueMutex);
-    callbackQueue.push([eventHandler
-                        , eventHandlerPtr = std::move(eventHandlerPtr)
+    callbackQueue.push([eventHandlerPtr = std::move(eventHandlerPtr)
                         , sender = std::move(sender)
                         , eventArgs = std::move(eventArgs)] 
     {
-        eventHandler->dispatch(sender, eventArgs);
+        eventHandlerPtr->dispatch(sender, eventArgs);
     });
 }
 

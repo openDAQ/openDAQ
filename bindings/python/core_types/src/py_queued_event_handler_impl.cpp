@@ -19,24 +19,25 @@
 
 #include <coretypes/objectptr.h>
 
-#include "py_core_types/py_queued_event_handler.h"
+#include "py_core_types/py_queued_event_handler_impl.h"
+#include "coretypes/errors.h"
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_event_queue.h"
 
 daq::EventHandlerPtr<> createQueuedEventHandler(pybind11::object eventHandler) 
 {
-    daq::ObjectPtr<daq::IQueuedEventHandler> eventHandlerPtr;
-    const daq::ErrCode err = daq::createObjectForwarding<daq::IQueuedEventHandler, daq::PyQueuedEventHandler>(&eventHandlerPtr, eventHandler);
+    daq::ObjectPtr<daq::IPythonQueuedEventHandler> eventHandlerPtr;
+    const daq::ErrCode err = daq::createObjectForwarding<daq::IPythonQueuedEventHandler, daq::PyQueuedEventHandler>(&eventHandlerPtr, eventHandler);
     daq::checkErrorInfo(err);
     return eventHandlerPtr;
 }
 
-PyDaqIntf<daq::IQueuedEventHandler, daq::IEventHandler> declareIQueuedEventHandler(pybind11::module_ m)
+PyDaqIntf<daq::IPythonQueuedEventHandler, daq::IEventHandler> declareIPythonQueuedEventHandler(pybind11::module_ m)
 {
-    return wrapInterface<daq::IQueuedEventHandler, daq::IEventHandler>(m, "IQueuedEventHandler");
+    return wrapInterface<daq::IPythonQueuedEventHandler, daq::IEventHandler>(m, "IPythonQueuedEventHandler");
 }
 
-void defineIQueuedEventHandler(pybind11::module_ m, PyDaqIntf<daq::IQueuedEventHandler, daq::IEventHandler> cls)
+void defineIPythonQueuedEventHandler(pybind11::module_ m, PyDaqIntf<daq::IPythonQueuedEventHandler, daq::IEventHandler> cls)
 {
     cls.doc() = "";
 
@@ -51,11 +52,11 @@ daq::PyQueuedEventHandler::PyQueuedEventHandler(pybind11::object sub)
 
 daq::ErrCode daq::PyQueuedEventHandler::handleEvent(daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
 {
-    enqueuePythonEvent(this, sender, eventArgs);
+    enqueuePythonEvent(this->thisInterface(), sender, eventArgs);
     return OPENDAQ_SUCCESS;
 }
 
-void daq::PyQueuedEventHandler::dispatch(const daq::ObjectPtr<daq::IBaseObject>& sender, const daq::ObjectPtr<daq::IEventArgs>& eventArgs)
+daq::ErrCode daq::PyQueuedEventHandler::dispatch(daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
 {
     pybind11::gil_scoped_acquire gil;
     try
@@ -68,6 +69,8 @@ void daq::PyQueuedEventHandler::dispatch(const daq::ObjectPtr<daq::IBaseObject>&
     }
     catch (const pybind11::error_already_set& e)
     {
-        pybind11::print("Python callback error:", e.what());
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Python callback error: %s", e.what());
     }
+
+    return OPENDAQ_SUCCESS;
 }

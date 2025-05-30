@@ -25,18 +25,18 @@
 
 daq::EventHandlerPtr<> createQueuedEventHandler(pybind11::object eventHandler) 
 {
-    daq::IQueuedEventHandler* eventHandlerInterface;
-    const daq::ErrCode err = daq::createObjectForwarding<daq::IQueuedEventHandler, daq::PyQueuedEventHandler>(&eventHandlerInterface, eventHandler);
+    daq::ObjectPtr<daq::IQueuedEventHandler> eventHandlerPtr;
+    const daq::ErrCode err = daq::createObjectForwarding<daq::IQueuedEventHandler, daq::PyQueuedEventHandler>(&eventHandlerPtr, eventHandler);
     daq::checkErrorInfo(err);
-    return eventHandlerInterface;
+    return eventHandlerPtr;
 }
 
-PyDaqIntf<daq::IQueuedEventHandler, daq::IBaseObject> declareIQueuedEventHandler(pybind11::module_ m)
+PyDaqIntf<daq::IQueuedEventHandler, daq::IEventHandler> declareIQueuedEventHandler(pybind11::module_ m)
 {
-    return wrapInterface<daq::IQueuedEventHandler, daq::IBaseObject>(m, "IQueuedEventHandler");
+    return wrapInterface<daq::IQueuedEventHandler, daq::IEventHandler>(m, "IQueuedEventHandler");
 }
 
-void defineIQueuedEventHandler(pybind11::module_ m, PyDaqIntf<daq::IQueuedEventHandler, daq::IBaseObject> cls)
+void defineIQueuedEventHandler(pybind11::module_ m, PyDaqIntf<daq::IQueuedEventHandler, daq::IEventHandler> cls)
 {
     cls.doc() = "";
 
@@ -44,7 +44,6 @@ void defineIQueuedEventHandler(pybind11::module_ m, PyDaqIntf<daq::IQueuedEventH
         return createQueuedEventHandler(eventHandler).detach();
     }, py::arg("event_handler"));
 }
-
 
 daq::PyQueuedEventHandler::PyQueuedEventHandler(pybind11::object sub)
     : subscription(std::move(sub))

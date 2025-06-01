@@ -179,10 +179,20 @@ daq::ErrCode MockModuleInternal::getAvailableDeviceTypes(daq::IDict** deviceType
 }
 
 daq::ErrCode MockModuleInternal::createDevice(daq::IDevice** device,
-                                              daq::IString* /*connectionString*/,
+                                              daq::IString* connectionString,
                                               daq::IComponent* /*parent*/,
                                               daq::IPropertyObject* /*config*/)
 {
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
+
+    StringPtr connectionStringPtr = StringPtr::Borrow(connectionString);
+    if (connectionStringPtr == "daqmock://invalid_arg")
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT);
+    else if (connectionStringPtr == "daqmock://not_found")
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+    else if (connectionStringPtr == "daqmock://general_error")
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "abc123");
+
     *device = DevicePtr();
     return OPENDAQ_SUCCESS;
 }
@@ -223,4 +233,25 @@ TEST_F(ModuleManagerTest, TestRescanTimer2)
     std::this_thread::sleep_for(1s);
     utils.createDevice("daqmock", nullptr);
     ASSERT_EQ(impl->scanCount, 2);
+}
+
+TEST_F(ModuleManagerTest, ParallelDeviceCreationSuccess)
+{
+    auto manager = ModuleManager("[[none]]");
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 10}})}});
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
+
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+
+    auto connectionArgs = Dict<IString, IPropertyObject>({{"daqmock://1", nullptr}, {"daqmock://2", nullptr}});
+    DictPtr<IString, IDevice> devices;
+    ASSERT_NO_THROW(devices = utils.createDevices(connectionArgs, nullptr));
+    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_EQ(impl->scanCount, 1);
+
+    devices = Dict<IString, IDevice>();
+    ASSERT_EQ(utils->createDevices(&devices, connectionArgs, nullptr), OPENDAQ_SUCCESS);
 }

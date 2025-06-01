@@ -596,10 +596,14 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes, IDict* errorInfos)
 {
     OPENDAQ_PARAM_NOT_NULL(devices);
+    OPENDAQ_PARAM_NOT_NULL(connectionArgs);
 
     DictPtr<IString, IPropertyObject> connectionArgsDictPtr = DictPtr<IString, IPropertyObject>::Borrow(connectionArgs);
     DictPtr<IString, IInteger> errCodesDictPtr = DictPtr<IString, IInteger>::Borrow(errCodes);
     DictPtr<IString, IErrorInfo> errorInfosDictPtr = DictPtr<IString, IErrorInfo>::Borrow(errorInfos);
+
+    if (connectionArgsDictPtr.getCount() == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "None connection argument provided");
 
     auto saveErrCode = [&errCodesDictPtr](const StringPtr& connectionString, ErrCode errCode)
     {
@@ -631,6 +635,7 @@ ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs,
                 std::async([this, connectionString = connectionString, config = config, parent = parent]()
                            {
                                DevicePtr device;
+                               LOG_D("Run create device \"{}\" asynchronously", connectionString)
                                checkErrorInfo(this->createDevice(&device, connectionString, parent, config));
                                return device;
                            });
@@ -649,6 +654,7 @@ ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs,
     {
         try
         {
+            LOG_D("Getting async create device \"{}\" result ...", connectionString)
             devicesDictPtr[connectionString] = futureResult.get();
             ++createdDevicesCount;
             if (errCodesDictPtr.assigned())
@@ -677,7 +683,7 @@ ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs,
     }
     *devices = devicesDictPtr.detach();
 
-    if (createdDevicesCount == devicesDictPtr.getCount())
+    if (createdDevicesCount == connectionArgsDictPtr.getCount())
         return OPENDAQ_SUCCESS;
     else if (createdDevicesCount == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "No devices were created");

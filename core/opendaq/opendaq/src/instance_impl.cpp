@@ -23,43 +23,26 @@ static StringPtr DefineLocalId(const StringPtr& localId);
 static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder);
 static std::string GetErrorMessage();
 
-InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
+InstanceImpl::InstanceImpl(ContextPtr context,
+                           const StringPtr& localId,
+                           const DeviceInfoPtr& rootDeviceInfo,
+                           const StringPtr& rootDeviceConnectionString,
+                           const PropertyObjectPtr& rootDeviceConfig)
     : context(std::move(context))
     , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
     , rootDeviceSet(false)
 {
     loggerComponent = this->context.getLogger().addComponent("Instance");
-    auto instanceId = DefineLocalId(localId);
-    rootDevice = Client(this->context, instanceId);
-    rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-
-    const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
-    if (devicePrivate.assigned())
-        devicePrivate->setAsRoot();
-}
-
-InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
-    : context(ContextFromInstanceBuilder(instanceBuilder))
-    , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
-    , rootDeviceSet(false)
-{
-    const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
-    loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
-
-    auto connectionString = builderPtr.getRootDevice();
-    auto rootDeviceConfig = builderPtr.getRootDeviceConfig();
-
-    if (connectionString.assigned() && connectionString.getLength())
+    if (rootDeviceConnectionString.assigned() && rootDeviceConnectionString.getLength())
     {
-        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, rootDeviceConfig);
-        LOG_I("Root device set to {}", connectionString)
+        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(rootDeviceConnectionString, nullptr, rootDeviceConfig);
+        LOG_I("Root device set to {}", rootDeviceConnectionString)
         rootDeviceSet = true;
     }
     else
     {
-        auto localId = builderPtr.getDefaultRootDeviceLocalId();
         auto instanceId = DefineLocalId(localId);
-        rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
+        rootDevice = Client(this->context, instanceId, rootDeviceInfo);
     }
 
     const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
@@ -70,6 +53,16 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
         discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);
 
     rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    
+}
+
+InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
+    : InstanceImpl(ContextFromInstanceBuilder(instanceBuilder), 
+                   InstanceBuilderPtr::Borrow(instanceBuilder).getDefaultRootDeviceLocalId(),
+                   InstanceBuilderPtr::Borrow(instanceBuilder).getDefaultRootDeviceInfo(),
+                   InstanceBuilderPtr::Borrow(instanceBuilder).getRootDevice(),
+                   InstanceBuilderPtr::Borrow(instanceBuilder).getRootDeviceConfig())
+{
 }
 
 InstanceImpl::~InstanceImpl()
@@ -86,7 +79,7 @@ static StringPtr DefineLocalId(const StringPtr& localId)
     return "openDAQDevice";
 }
 
-static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
+DiscoveryServerPtr InstanceImpl::createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
 {
     if (serviceName == "mdns")
         return MdnsDiscoveryServer(logger);
@@ -136,7 +129,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
     for (const auto& serverName : builderPtr.getDiscoveryServers())
     {
-        auto server = createDiscoveryServer(serverName, logger);
+        auto server = InstanceImpl::createDiscoveryServer(serverName, logger);
         if (server.assigned())
             discoveryServers.set(serverName, server);
     }

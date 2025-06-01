@@ -39,7 +39,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIInstanceBuilder = declareIInstanceBuilder(m);
     auto classIConfigProvider = declareIConfigProvider(m);
     auto classIInstance = declareIInstance(m);
+    // auto classIInstance = declareIPythonInstance(m);
     auto classIContext = declareIContext(m);
+    auto classIPythonContext = declareIPythonContext(m);
     auto classIDeviceDomain = declareIDeviceDomain(m);
     auto classIDeviceInfo = declareIDeviceInfo(m);
     auto classIDeviceInfoConfig = declareIDeviceInfoConfig(m);
@@ -143,6 +145,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIInstance(m, classIInstance);
     defineIConfigProvider(m, classIConfigProvider);
     defineIContext(m, classIContext);
+    // defineIPythonContext(m, classIPythonContext);
     defineIDeviceDomain(m, classIDeviceDomain);
     defineIDeviceInfo(m, classIDeviceInfo);
     defineIDeviceInfoConfig(m, classIDeviceInfoConfig);

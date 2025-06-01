@@ -16,30 +16,17 @@
 
 #pragma once
 
-#include <opendaq/context_impl.h>
-#include "py_context/py_context.h"
-#include "py_core_types/py_queued_event_handler.h"
-
-#include <queue>
-#include <mutex>
-#include <functional>
-
+#include <opendaq/instance_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PythonContextImpl: public GenericContextImpl<IPythonContext>
+class PythonInstanceImpl: public InstanceImpl
 {
 public:
-    using Super = GenericContextImpl<IPythonContext>;
+    using Super = InstanceImpl;
     using Super::Super;
 
-    ErrCode INTERFACE_FUNC setEventToQueue(IPythonQueuedEventHandler* eventHandler, IBaseObject* sender, IEventArgs* eventArgs) override;
-    ErrCode INTERFACE_FUNC processEventsFromQueue() override;
-
-private:
-    using callbackT = std::function<ErrCode()>;
-    std::queue<callbackT> callbackQueue;
-    std::mutex callbackQueueMutex;
+    explicit PythonInstanceImpl(IInstanceBuilder* instanceBuilder);
 };
 
 END_NAMESPACE_OPENDAQ

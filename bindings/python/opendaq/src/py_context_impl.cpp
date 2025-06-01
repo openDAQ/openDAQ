@@ -41,9 +41,11 @@ ErrCode PythonContextImpl::processEventsFromQueue()
     return OPENDAQ_SUCCESS;
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY(
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY,
     PythonContext,
+    IContext,
+    createContext,
     IScheduler*, Scheduler,
     ILogger*, Logger,
     ITypeManager*, typeManager,
@@ -55,18 +57,22 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
 
 END_NAMESPACE_OPENDAQ
 
-// PyDaqIntf<daq::IPythonContext, daq::IContext> declareIPythonContext(pybind11::module_ m)
-// {
-//     return wrapInterface<daq::IPythonContext, daq::IContext>(m, "IPythonContext");
-// }
+PyDaqIntf<daq::IPythonContext, daq::IContext> declareIPythonContext(pybind11::module_ m)
+{
+    return wrapInterface<daq::IPythonContext, daq::IContext>(m, "IPythonContext");
+}
 
-// void defineIPythonContext(pybind11::module_ m, PyDaqIntf<daq::IPythonContext, daq::IContext> cls)
-// {
-//     cls.doc() = "The Context serves as a container for the Scheduler and Logger. It originates at the instance, and is passed to the root device, which forwards it to components such as function blocks and signals.";
+void defineIPythonContext(pybind11::module_ m, PyDaqIntf<daq::IPythonContext, daq::IContext> cls)
+{
+    cls.def("setEventToQueue", [](daq::IPythonContext* context, daq::IPythonQueuedEventHandler* eventHandler, daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
+    {
+        py::gil_scoped_release release;
+        daq::checkErrorInfo(context->setEventToQueue(eventHandler, sender, eventArgs));
+    });
 
-
-//     m.def("Context", [](daq::IScheduler* Scheduler, daq::ILogger* Logger, daq::ITypeManager* typeManager, daq::IModuleManager* moduleManager, daq::IAuthenticationProvider* authenticationProvider, std::variant<daq::IDict*, py::dict>& options, std::variant<daq::IDict*, py::dict>& discoveryServers){
-//         return daq::Context_Create(Scheduler, Logger, typeManager, moduleManager, authenticationProvider, getVariantValue<daq::IDict*>(options), getVariantValue<daq::IDict*>(discoveryServers));
-//     }, py::arg("scheduler"), py::arg("logger"), py::arg("type_manager"), py::arg("module_manager"), py::arg("authentication_provider"), py::arg("options"), py::arg("discovery_servers"));
-
-// }
+    cls.def("processEventsFromQueue", [](daq::IPythonContext* context)
+    {
+        py::gil_scoped_release release;
+        daq::checkErrorInfo(context->processEventsFromQueue());
+    });
+}

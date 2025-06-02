@@ -20,12 +20,6 @@
 #include <pybind11/pybind11.h>
 #include "py_core_types/py_queued_event_handler.h"
 
-BEGIN_NAMESPACE_OPENDAQ
-
-class PyQueuedEventHandler;
-
 void enqueuePythonEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::IBaseObject* sender, daq::IEventArgs* eventArgs);
 void processPythonEventFromQueue();
 void clearPythonEventQueue();
-
-END_NAMESPACE_OPENDAQ

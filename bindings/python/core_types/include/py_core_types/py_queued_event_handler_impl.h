@@ -15,30 +15,62 @@
  */
 
 #pragma once
-#include <pybind11/pybind11.h>
-
-#include <coretypes/common.h>
-#include <coretypes/intfs.h>
-#include <coretypes/objectptr.h>
 #include "py_core_types/py_queued_event_handler.h"
+#include "py_base_object.h"
+#include "py_core_types/py_event_queue.h"
+#include "py_core_types/py_converter.h"
 
-BEGIN_NAMESPACE_OPENDAQ
 
-class PyQueuedEventHandler : public daq::ImplementationOf<daq::IPythonQueuedEventHandler>
+template <class F>
+class PyQueuedEventHandlerImpl : public PyObjectImpl<pybind11::object, daq::IPythonQueuedEventHandler>
 {
 public:
-    using Subscription = pybind11::object;
-
-    explicit PyQueuedEventHandler(Subscription sub);
+    using Super = PyObjectImpl<pybind11::object, daq::IPythonQueuedEventHandler>;
+    using Super::Super;
 
     // IEventHandler
-    ErrCode INTERFACE_FUNC handleEvent(IBaseObject* sender, IEventArgs* eventArgs) override;
+    daq::ErrCode INTERFACE_FUNC handleEvent(daq::IBaseObject* sender, daq::IEventArgs* eventArgs) override;
 
     // IPythonQueuedEventHandler
-    ErrCode INTERFACE_FUNC dispatch(IBaseObject* sender, IEventArgs* eventArgs) override;
+    daq::ErrCode INTERFACE_FUNC dispatch(daq::IBaseObject* sender, daq::IEventArgs* eventArgs) override;
 
-private:
-    Subscription subscription;
 };
 
-END_NAMESPACE_OPENDAQ
+template <class F>
+daq::ErrCode PyQueuedEventHandlerImpl<F>::handleEvent(daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
+{
+    enqueuePythonEvent(this->borrowInterface<daq::IPythonQueuedEventHandler>(), sender, eventArgs);
+    return OPENDAQ_SUCCESS;
+}
+
+template <class F>
+daq::ErrCode PyQueuedEventHandlerImpl<F>::dispatch(daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
+{
+    pybind11::gil_scoped_acquire gil;
+    auto senderObj = baseObjectToPyObject(sender);
+    auto eventArgsObj = baseObjectToPyObject(eventArgs);
+    auto args = pybind11::make_tuple(senderObj, eventArgsObj);
+
+    auto result = PyObject_CallObject(pyObject.ptr(), args.ptr());
+    if (!result)
+        throw pybind11::error_already_set();
+   
+    return OPENDAQ_SUCCESS;
+}
+
+template <class F>
+daq::IPythonQueuedEventHandler* PyQueuedEventHandler_Create(const pybind11::object& obj)
+{
+    auto procObj = new PyQueuedEventHandlerImpl<F>(obj);
+    procObj->addRef();
+    return procObj;
+}
+
+template <class F>
+daq::IPythonQueuedEventHandler* PyQueuedEventHandler_Create(pybind11::object&& obj)
+{
+    auto procObj = new PyQueuedEventHandlerImpl<F>(std::move(obj));
+    procObj->addRef();
+    return procObj;
+}
+

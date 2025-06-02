@@ -39,8 +39,10 @@ public:
     {
         try
         {
-            ObjectPtr<IBaseObject> senderPtr(sender);
-            ObjectPtr<IEventArgs> eventArgsPtr(eventArgs);
+            if(sender)
+                sender->addRef();
+            if(eventArgs)
+                eventArgs->addRef();
             subscription(sender, eventArgs);
         }
         catch (const DaqException& e)

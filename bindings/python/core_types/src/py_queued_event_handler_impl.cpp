@@ -14,23 +14,8 @@
  * limitations under the License.
  */
 
-#include <pybind11/gil.h>
-#include <pybind11/functional.h>
-
-#include <coretypes/objectptr.h>
-
 #include "py_core_types/py_queued_event_handler_impl.h"
-#include "coretypes/errors.h"
 #include "py_core_types/py_core_types.h"
-#include "py_core_types/py_event_queue.h"
-
-daq::ObjectPtr<daq::IPythonQueuedEventHandler> createQueuedEventHandler(pybind11::object eventHandler) 
-{
-    daq::ObjectPtr<daq::IPythonQueuedEventHandler> eventHandlerPtr;
-    const daq::ErrCode err = daq::createObjectForwarding<daq::IPythonQueuedEventHandler, daq::PyQueuedEventHandler>(&eventHandlerPtr, eventHandler);
-    daq::checkErrorInfo(err);
-    return eventHandlerPtr;
-}
 
 PyDaqIntf<daq::IPythonQueuedEventHandler, daq::IEventHandler> declareIPythonQueuedEventHandler(pybind11::module_ m)
 {
@@ -41,36 +26,9 @@ void defineIPythonQueuedEventHandler(pybind11::module_ m, PyDaqIntf<daq::IPython
 {
     cls.doc() = "";
 
-    m.def("QueuedEventHandler", [](pybind11::object eventHandler){
-        return createQueuedEventHandler(eventHandler).detach();
+    m.def("QueuedEventHandler", [](const pybind11::object& object)
+    {
+        return PyQueuedEventHandler_Create<PyConverter>(object);
     }, py::arg("event_handler"));
 }
 
-daq::PyQueuedEventHandler::PyQueuedEventHandler(pybind11::object sub)
-    : subscription(std::move(sub))
-{}
-
-daq::ErrCode daq::PyQueuedEventHandler::handleEvent(daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
-{
-    enqueuePythonEvent(this->thisInterface(), sender, eventArgs);
-    return OPENDAQ_SUCCESS;
-}
-
-daq::ErrCode daq::PyQueuedEventHandler::dispatch(daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
-{
-    pybind11::gil_scoped_acquire gil;
-    try
-    {
-        auto senderObj = baseObjectToPyObject(sender);
-        auto eventArgsObj = baseObjectToPyObject(eventArgs);
-        auto args = pybind11::make_tuple(senderObj, eventArgsObj);
-
-        subscription(*args);
-    }
-    catch (const pybind11::error_already_set& e)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Python callback error: %s", e.what());
-    }
-
-    return OPENDAQ_SUCCESS;
-}

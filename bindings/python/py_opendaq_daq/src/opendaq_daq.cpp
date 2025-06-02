@@ -16,9 +16,10 @@ PYBIND11_MODULE(opendaq, m)
 
     m.def("get_tracked_object_count", &daqGetTrackedObjectCount);
     m.def("print_tracked_objects", &daqPrintTrackedObjects);
+    m.def("clear_tracked_objects", &daqClearTrackedObjects);
     m.def("clear_error_info", &daqClearErrorInfo);
-    m.def("process_events_from_queue", &daq::processPythonEventFromQueue);
-    m.def("clear_event_queue", &daq::clearPythonEventQueue);
+    m.def("process_events_from_queue", &processPythonEventFromQueue);
+    m.def("clear_event_queue", &clearPythonEventQueue);
 
     // wrap individual components
     

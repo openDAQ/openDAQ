@@ -12,7 +12,6 @@
 #include <mutex>
 #include <functional>
 
-BEGIN_NAMESPACE_OPENDAQ
 
 namespace
 {
@@ -60,5 +59,3 @@ void clearPythonEventQueue()
     std::lock_guard<std::mutex> lock(callbackQueueMutex);
     callbackQueue = {};
 }
-
-END_NAMESPACE_OPENDAQ

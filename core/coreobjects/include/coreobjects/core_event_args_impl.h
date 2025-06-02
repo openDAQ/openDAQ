@@ -67,6 +67,8 @@ namespace core_event_args_impl
                 return "ConnectionStatusChanged";
             case CoreEventId::DeviceOperationModeChanged:
                 return "DeviceOperationModeChanged";
+            case CoreEventId::PropertyOrderChanged:
+                return "PropertyOrderChanged";
             default:
                 break;
         }
@@ -241,6 +243,8 @@ inline bool CoreEventArgsImpl::validateParameters() const
                    && parameters.hasKey("Message");
         case CoreEventId::DeviceOperationModeChanged:
             return parameters.hasKey("OperationMode");
+        case CoreEventId::PropertyOrderChanged:
+            return parameters.hasKey("PropertyOrder") && parameters.hasKey("Path");
         default:
             break;
     }

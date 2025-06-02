@@ -29,6 +29,7 @@ rtgen(SRC_PropertyObject property_object.h)
 rtgen(SRC_PropertyObjectInternal property_object_internal.h)
 rtgen(SRC_PropertyObjectClass property_object_class.h)
 rtgen(SRC_PropertyObjectClassBuilder property_object_class_builder.h)
+rtgen(SRC_PropertyObjectClassInternal property_object_class_internal.h INTERNAL)
 rtgen(SRC_PropertyObjectProtected property_object_protected.h)
 rtgen(SRC_CallableInfo callable_info.h)
 rtgen(SRC_ArgumentInfo argument_info.h)
@@ -114,6 +115,7 @@ source_group("property_object_class" FILES ${SDK_HEADERS_DIR}/property_object_cl
                                            ${SDK_HEADERS_DIR}/property_object_class_factory.h
                                            ${SDK_HEADERS_DIR}/property_object_class_impl.h
                                            ${SDK_HEADERS_DIR}/property_object_class_builder_impl.h
+                                           ${SDK_HEADERS_DIR}/property_object_class_internal.h
                                            property_object_class_impl.cpp
                                            property_object_class_builder_impl.cpp
 )
@@ -307,6 +309,7 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_PropertyObjectProtected}
                                ${SRC_PropertyObjectClass}
                                ${SRC_PropertyObjectClassBuilder}
+                               ${SRC_PropertyObjectClassInternal}
                                ${SRC_PropertyObjectInternal}
                                ${SRC_PropertyObject_PublicHeaders}
                                ${SRC_Ownable}

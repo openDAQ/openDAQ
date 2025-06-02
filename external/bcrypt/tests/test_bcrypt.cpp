@@ -158,14 +158,14 @@ TEST_F(BcryptTest, GenerateCheckLong)
 TEST_F(BcryptTest, GenerateCheckUnicode)
 {
     {
-        auto password = u8"open 🦆";
+        std::string password = "open 🦆";
         auto hash = BCrypt::generateHash(password);
         ASSERT_TRUE(BCrypt::validatePassword(password, hash));
         ASSERT_FALSE(BCrypt::validatePassword("open", hash));
     }
 
     {
-        auto password = u8"choco 🍌";
+        std::string password = "choco 🍌";
         auto hash = BCrypt::generateHash(password);
         ASSERT_TRUE(BCrypt::validatePassword(password, hash));
         ASSERT_FALSE(BCrypt::validatePassword("choco 🍌🍌", hash));

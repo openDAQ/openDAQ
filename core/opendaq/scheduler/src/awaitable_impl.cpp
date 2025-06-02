@@ -40,7 +40,7 @@ ErrCode AwaitableImpl<TReturn>::wait()
 }
 
 template <typename TReturn>
-ErrCode AwaitableImpl<TReturn>::getResult(IBaseObject** result)
+ErrCode AwaitableImpl<TReturn>::getResult(daq::IBaseObject** result)
 {
     OPENDAQ_PARAM_NOT_NULL(result);
 

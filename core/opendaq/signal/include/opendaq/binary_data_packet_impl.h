@@ -188,7 +188,7 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawDataSize(SizeT* rawDataSize)
 }
 
 template <bool ExternalMemory>
-inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
+inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue(daq::IBaseObject** value, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
@@ -197,7 +197,7 @@ inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue
     return OPENDAQ_IGNORED;
 }
 template <bool ExternalMemory>
-ErrCode BinaryDataPacketImpl<ExternalMemory>::getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager)
+ErrCode BinaryDataPacketImpl<ExternalMemory>::getValueByIndex(daq::IBaseObject** value, SizeT index, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 

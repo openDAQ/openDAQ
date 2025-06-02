@@ -394,6 +394,7 @@ protected:
     ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
+    ErrCode setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating = false);
 
     // Serialization
 
@@ -413,6 +414,11 @@ protected:
                                            const BaseObjectPtr& context,
                                            const FunctionPtr& factoryCallback,
                                            PropertyObjectPtr& propObjPtr);
+
+    static void DeserializePropertyOrder(const SerializedObjectPtr& serialized,
+                                         const BaseObjectPtr& context,
+                                         const FunctionPtr& factoryCallback,
+                                         PropertyObjectPtr& propObjPtr);
 
     // Child property handling - Used when a property is queried in the "parent.child" format
     bool isChildProperty(const StringPtr& name) const;
@@ -2195,21 +2201,27 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getAllProper
 }
 
 template <class PropObjInterface, typename... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyOrder(IList* orderedPropertyNames)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating)
 {
+    auto lock = getRecursiveConfigLock();
     if (frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
-    customOrder.clear();
     if (orderedPropertyNames != nullptr)
-    {
-        for (auto&& propName : ListPtr<IString>::Borrow(orderedPropertyNames))
-        {
-            customOrder.emplace_back(propName);
-        }
-    }
+        customOrder = ListPtr<IString>::Borrow(orderedPropertyNames).toVector();
+    else
+        customOrder.clear();
+
+    if (!isUpdating)
+        triggerCoreEventInternal(CoreEventArgsPropertyOrderChanged(objPtr, orderedPropertyNames, path));
 
     return OPENDAQ_SUCCESS;
+}
+
+template <class PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyOrder(IList* orderedPropertyNames)
+{
+    return setPropertyOrderInternal(orderedPropertyNames);
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -2901,7 +2913,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
         property.serialize(serializer);
         return OPENDAQ_SUCCESS;
     });
-
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -2963,8 +2974,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
 
         auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-        checkErrorInfo(serializer->key("properties"));
-        checkErrorInfo(serializer->startList());
+        if (!customOrder.empty())
+        {
+            serializerPtr.key("propertyOrder");
+            serializerPtr.startList();
+            for (const auto& group : customOrder)
+                group.serialize(serializer);
+            serializerPtr.endList();
+        }
+
+        serializerPtr.key("properties");
+        serializerPtr.startList();
         for (const auto& prop : localProperties)
         {
             if (!hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
@@ -2972,7 +2992,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
 
             checkErrorInfo(serializeProperty(prop.second, serializer));
         }
-        checkErrorInfo(serializer->endList());
+        serializerPtr.endList();
 
         return OPENDAQ_SUCCESS;
     });
@@ -3027,6 +3047,8 @@ PropertyObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::De
 
     PropertyObjectPtr propObjPtr = f(serialized, context, className);
 
+    DeserializePropertyOrder(serialized, context, factoryCallback, propObjPtr);
+
     DeserializeLocalProperties(serialized, context, factoryCallback, propObjPtr);
 
     DeserializePropertyValues(serialized, context, factoryCallback, propObjPtr);
@@ -3051,17 +3073,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(
     OPENDAQ_PARAM_NOT_NULL(serialized);
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([&serialized, &context, &factoryCallback, &obj]() {
+    return daqTry([&serialized, &context, &factoryCallback, &obj]
+    {
         *obj = DeserializePropertyObject(serialized,
                                          context,
                                          factoryCallback,
-                                         [](const SerializedObjectPtr&, const BaseObjectPtr& context, const StringPtr& className) {
-                                             const TypeManagerPtr objManager = context.asOrNull<ITypeManager>();
-                                             if (objManager.assigned())
-                                                 return PropertyObject(objManager, className);
-                                             return PropertyObject();
-                                         })
-                   .detach();
+                                         [](const SerializedObjectPtr&, const BaseObjectPtr& context, const StringPtr& className) 
+                                            {
+                                                const TypeManagerPtr objManager = context.asOrNull<ITypeManager>();
+                                                if (objManager.assigned())
+                                                    return PropertyObject(objManager, className);
+                                                return PropertyObject();
+                                            }).detach();
     });
 }
 
@@ -3087,6 +3110,25 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProp
         const auto propValue = propValues.readObject(key, context, factoryCallback);
         protectedPropObjPtr.setProtectedPropertyValue(key, propValue);
     }
+}
+
+template <class PropObjInterface, class... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializePropertyOrder(const SerializedObjectPtr& serialized,
+                                                                                          const BaseObjectPtr& context,
+                                                                                          const FunctionPtr& /*factoryCallback*/,
+                                                                                          PropertyObjectPtr& propObjPtr)
+{
+    const auto keyStr = String("propertyOrder");
+    const auto hasKey = serialized.hasKey(keyStr);
+
+    if (!IsTrue(hasKey))
+        return;
+
+    const auto propertyOrder = serialized.readList<IString>(keyStr, context);
+    if (!propertyOrder.assigned())
+        return;
+
+    propObjPtr.setPropertyOrder(propertyOrder.toVector());
 }
 
 template <class PropObjInterface, class... Interfaces>

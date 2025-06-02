@@ -109,7 +109,7 @@ GenericContextImpl<MainInterface, Interfaces...>::GenericContextImpl(SchedulerPt
     {
         this->moduleManagerWeakRef = this->moduleManager;
         // Have to increment the ref-count with `thisInterface()` so passing it to the module doesn't crash
-        checkErrorInfo(this->moduleManager.asPtr<IModuleManager>()->loadModules(this->thisInterface()));
+        checkErrorInfo(this->moduleManager.template asPtr<IModuleManager>()->loadModules(this->thisInterface()));
 
         // manually remove the reference count without deleting the object (as reference count should drop to 0)
         this->internalReleaseRef();
@@ -133,7 +133,7 @@ GenericContextImpl<MainInterface, Interfaces...>::GenericContextImpl(SchedulerPt
     };
 
     if (this->typeManager.assigned())
-        this->typeManager.asPtr<ITypeManagerPrivate>()->setCoreEventCallback(typeManagerCallback);
+        this->typeManager.template asPtr<ITypeManagerPrivate>()->setCoreEventCallback(typeManagerCallback);
     Event(this->coreEvent) += event(this, &Self::componentCoreEventCallback);
 
     registerOpenDaqTypes();

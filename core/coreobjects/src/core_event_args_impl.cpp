@@ -49,6 +49,13 @@ ErrCode PUBLIC_EXPORT createCoreEventArgsTypeRemoved(ICoreEventArgs** objTmp, IS
     return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::TypeRemoved, dict);
 }
 
+extern "C"
+ErrCode PUBLIC_EXPORT createCoreEventArgsPropertyOrderChanged(ICoreEventArgs** objTmp, IPropertyObject* propOwner, IList* propertyOrder, IString* path)
+{
+    const auto dict = Dict<IString, IBaseObject>({{"Owner", propOwner}, {"PropertyOrder", propertyOrder}, {"Path", path}});
+    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::PropertyOrderChanged, dict);
+}
+
 #endif
 
 END_NAMESPACE_OPENDAQ

@@ -24,7 +24,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 class PyQueuedEventHandler;
 
-void enqueuePythonEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::ObjectPtr<daq::IBaseObject>sender, daq::ObjectPtr<daq::IEventArgs> eventArgs);
+void enqueuePythonEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::IBaseObject* sender, daq::IEventArgs* eventArgs);
 void processPythonEventFromQueue();
 void clearPythonEventQueue();
 

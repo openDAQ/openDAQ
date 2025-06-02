@@ -20,19 +20,21 @@ namespace
     std::mutex callbackQueueMutex;
 }
 
-void enqueuePythonEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::ObjectPtr<daq::IBaseObject> sender, daq::ObjectPtr<daq::IEventArgs> eventArgs)
+void enqueuePythonEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
 {
     if (eventHandler == nullptr)
         return;
 
-    daq::ObjectPtr<daq::IPythonQueuedEventHandler> eventHandlerPtr = eventHandler;
+    daq::ObjectPtr<daq::IPythonQueuedEventHandler> eventHandlerPtr(eventHandler);
+    daq::ObjectPtr<daq::IBaseObject> senderPtr(sender);
+    daq::ObjectPtr<daq::IEventArgs> eventArgsPtr(eventArgs);
 
     std::lock_guard<std::mutex> lock(callbackQueueMutex);
-    callbackQueue.push([eventHandlerPtr = std::move(eventHandlerPtr)
-                        , sender = std::move(sender)
-                        , eventArgs = std::move(eventArgs)] 
+    callbackQueue.push([eventHandler = std::move(eventHandlerPtr),
+                        sender = std::move(senderPtr),
+                        eventArgs = std::move(eventArgsPtr)] 
     {
-        eventHandlerPtr->dispatch(sender, eventArgs);
+        eventHandler->dispatch(sender, eventArgs);
     });
 }
 

@@ -22,21 +22,14 @@
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/device_private.h>
-#include <opendaq/discovery_server_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-
-class InstanceImpl : public ImplementationOfWeak<IInstance, ISerializable, IUpdatable>
+class InstanceImpl final : public ImplementationOfWeak<IInstance, ISerializable, IUpdatable>
 {
 public:
-    explicit InstanceImpl(ContextPtr context,
-                 const StringPtr& localId,
-                 const DeviceInfoPtr& rootDeviceInfo = nullptr,
-                 const StringPtr& rootDeviceConnectionString = nullptr,
-                 const PropertyObjectPtr& rootDeviceConfig = nullptr);
+    explicit InstanceImpl(ContextPtr context, const StringPtr& localId);
     explicit InstanceImpl(IInstanceBuilder* instanceBuilder);
-
     ~InstanceImpl() override;
 
     // IInstance
@@ -172,9 +165,7 @@ public:
     ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC updateEnded(IBaseObject* context) override;
 
-    static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger);
-
-protected:
+private:
     DevicePtr rootDevice;
     ContextPtr context;
     ModuleManagerPtr moduleManager;

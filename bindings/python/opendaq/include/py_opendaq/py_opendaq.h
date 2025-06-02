@@ -20,7 +20,6 @@
 #include <opendaq/opendaq.h>
 #include <py_core_types/py_opendaq_daq.h>
 #include <py_opendaq/py_mock_signal.h>
-#include "py_context/py_context.h"
 
 void wrapDaqComponentOpenDaq(pybind11::module_ m);
 
@@ -28,7 +27,6 @@ PyDaqIntf<daq::IInstance, daq::IDevice> declareIInstance(pybind11::module_ m);
 PyDaqIntf<daq::IInstanceBuilder, daq::IBaseObject> declareIInstanceBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IConfigProvider, daq::IBaseObject> declareIConfigProvider(pybind11::module_ m);
 PyDaqIntf<daq::IContext, daq::IBaseObject> declareIContext(pybind11::module_ m);
-PyDaqIntf<daq::IPythonContext, daq::IContext> declareIPythonContext(pybind11::module_ m);
 PyDaqIntf<daq::IRemovable, daq::IBaseObject> declareIRemovable(pybind11::module_ m);
 PyDaqIntf<daq::IComponent, daq::IPropertyObject> declareIComponent(pybind11::module_ m);
 PyDaqIntf<daq::IFolder, daq::IComponent> declareIFolder(pybind11::module_ m);
@@ -138,7 +136,6 @@ void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice
 void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder, daq::IBaseObject> cls);
 void defineIConfigProvider(pybind11::module_ m, PyDaqIntf<daq::IConfigProvider, daq::IBaseObject> cls);
 void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObject> cls);
-void defineIPythonContext(pybind11::module_ m, PyDaqIntf<daq::IPythonContext, daq::IContext> cls);
 void defineIRemovable(pybind11::module_ m, PyDaqIntf<daq::IRemovable, daq::IBaseObject> cls);
 void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IPropertyObject> cls);
 void defineIFolder(pybind11::module_ m, PyDaqIntf<daq::IFolder, daq::IComponent> cls);

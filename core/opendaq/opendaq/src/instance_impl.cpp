@@ -23,26 +23,43 @@ static StringPtr DefineLocalId(const StringPtr& localId);
 static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder);
 static std::string GetErrorMessage();
 
-InstanceImpl::InstanceImpl(ContextPtr context,
-                           const StringPtr& localId,
-                           const DeviceInfoPtr& rootDeviceInfo,
-                           const StringPtr& rootDeviceConnectionString,
-                           const PropertyObjectPtr& rootDeviceConfig)
+InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     : context(std::move(context))
     , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
     , rootDeviceSet(false)
 {
     loggerComponent = this->context.getLogger().addComponent("Instance");
-    if (rootDeviceConnectionString.assigned() && rootDeviceConnectionString.getLength())
+    auto instanceId = DefineLocalId(localId);
+    rootDevice = Client(this->context, instanceId);
+    rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
+    if (devicePrivate.assigned())
+        devicePrivate->setAsRoot();
+}
+
+InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
+    : context(ContextFromInstanceBuilder(instanceBuilder))
+    , moduleManager(this->context.assigned() ? this->context.asPtr<IContextInternal>().moveModuleManager() : nullptr)
+    , rootDeviceSet(false)
+{
+    const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+    loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
+
+    auto connectionString = builderPtr.getRootDevice();
+    auto rootDeviceConfig = builderPtr.getRootDeviceConfig();
+
+    if (connectionString.assigned() && connectionString.getLength())
     {
-        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(rootDeviceConnectionString, nullptr, rootDeviceConfig);
-        LOG_I("Root device set to {}", rootDeviceConnectionString)
+        rootDevice = moduleManager.asPtr<IModuleManagerUtils>().createDevice(connectionString, nullptr, rootDeviceConfig);
+        LOG_I("Root device set to {}", connectionString)
         rootDeviceSet = true;
     }
     else
     {
+        auto localId = builderPtr.getDefaultRootDeviceLocalId();
         auto instanceId = DefineLocalId(localId);
-        rootDevice = Client(this->context, instanceId, rootDeviceInfo);
+        rootDevice = Client(this->context, instanceId, builderPtr.getDefaultRootDeviceInfo());
     }
 
     const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
@@ -53,16 +70,6 @@ InstanceImpl::InstanceImpl(ContextPtr context,
         discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);
 
     rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-    
-}
-
-InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
-    : InstanceImpl(ContextFromInstanceBuilder(instanceBuilder), 
-                   InstanceBuilderPtr::Borrow(instanceBuilder).getDefaultRootDeviceLocalId(),
-                   InstanceBuilderPtr::Borrow(instanceBuilder).getDefaultRootDeviceInfo(),
-                   InstanceBuilderPtr::Borrow(instanceBuilder).getRootDevice(),
-                   InstanceBuilderPtr::Borrow(instanceBuilder).getRootDeviceConfig())
-{
 }
 
 InstanceImpl::~InstanceImpl()
@@ -79,7 +86,7 @@ static StringPtr DefineLocalId(const StringPtr& localId)
     return "openDAQDevice";
 }
 
-DiscoveryServerPtr InstanceImpl::createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
+static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
 {
     if (serviceName == "mdns")
         return MdnsDiscoveryServer(logger);
@@ -129,7 +136,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
     for (const auto& serverName : builderPtr.getDiscoveryServers())
     {
-        auto server = InstanceImpl::createDiscoveryServer(serverName, logger);
+        auto server = createDiscoveryServer(serverName, logger);
         if (server.assigned())
             discoveryServers.set(serverName, server);
     }
@@ -593,19 +600,18 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
 
-    return daqTry(
-        [this, &configuration]()
-        {
-            auto serializer = JsonSerializer(True);
+    return daqTry([this, &configuration]()
+    {
+        auto serializer = JsonSerializer(True);
 
-            checkErrorInfo(this->serializeForUpdate(serializer));
+        checkErrorInfo(this->serializeForUpdate(serializer));
 
-            auto str = serializer.getOutput();
+        auto str = serializer.getOutput();
 
-            *configuration = str.detach();
+        *configuration = str.detach();
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode InstanceImpl::loadConfiguration(IString* configuration, IUpdateParameters* config)
@@ -734,9 +740,10 @@ ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
 
 ErrCode InstanceImpl::serialize(ISerializer* serializer)
 {
-    return daqTry([this, &serializer] {
-            rootDevice.asPtr<ISerializable>(true).serialize(serializer);
-        });
+    return daqTry([this, &serializer] 
+    {
+        return rootDevice.asPtr<ISerializable>(true)->serialize(serializer);
+    });
 }
 
 ErrCode InstanceImpl::getSerializeId(ConstCharPtr* id) const

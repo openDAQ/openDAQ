@@ -616,6 +616,22 @@ class TestPropertySystem(opendaq_test.TestCase):
         
         self.assertEqual(property_object.get_property_value('property1'), 'newValue')
         self.assertEqual(property_object.get_property_value('property2'), 'newValue')
+        
+    def test_complex_queue_events(self):
+        property_object = opendaq.PropertyObject()
+        property_object.add_property(opendaq.StringProperty('property1', 'defaultValue', True))
+        property_object.add_property(opendaq.StringProperty('property2', 'defaultValue', True))
+        
+        def on_write_handler(sender, args):
+            property_object.set_property_value('property2', args.value)
+
+        property_object.get_on_property_value_write('property1') + opendaq.QueuedEventHandler(on_write_handler)
+        property_object.set_property_value('property1', 'newValue')
+        
+        opendaq.process_events_from_queue()
+        
+        self.assertEqual(property_object.get_property_value('property1'), 'newValue')
+        self.assertEqual(property_object.get_property_value('property2'), 'newValue')
 
 if __name__ == '__main__':
     unittest.main()

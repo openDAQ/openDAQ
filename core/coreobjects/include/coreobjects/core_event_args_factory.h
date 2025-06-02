@@ -119,6 +119,20 @@ inline CoreEventArgsPtr CoreEventArgsTypeRemoved(const StringPtr& typeName)
     return obj;
 }
 
+/*!
+ * @brief Creates Core event args that are passed as argument when the property order of a component is changed.
+ * @param propOwner The property object that owns the properties whose order was changed.
+ * @param propertyOrder The list of property names in the new order.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties. Eg. "child1.child2".
+ *
+ * The ID of the event is 190, and the event name is "PropertyOrderChanged".
+ */
+inline CoreEventArgsPtr CoreEventArgsPropertyOrderChanged(const PropertyObjectPtr& propOwner, const ListPtr<IString>& propertyOrder, const StringPtr& path)
+{
+    CoreEventArgsPtr obj(CoreEventArgsPropertyOrderChanged_Create(propOwner, propertyOrder, path));
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

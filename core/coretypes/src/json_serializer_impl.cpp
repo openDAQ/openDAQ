@@ -193,7 +193,7 @@ ErrCode JsonSerializerImpl<TWriter>::writeString(ConstCharPtr string, SizeT leng
 }
 
 template <typename TWriter>
-ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::getUser(IBaseObject** user)
+ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::getUser(daq::IBaseObject** user)
 {
     OPENDAQ_PARAM_NOT_NULL(user);
 
@@ -202,7 +202,7 @@ ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::getUser(IBaseObject** user)
 }
 
 template <typename TWriter>
-ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::setUser(IBaseObject* user)
+ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::setUser(daq::IBaseObject* user)
 {
     this->userContext = user;
     return OPENDAQ_SUCCESS;

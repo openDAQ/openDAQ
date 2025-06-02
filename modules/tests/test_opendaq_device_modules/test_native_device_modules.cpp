@@ -137,7 +137,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 14);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 15);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -3472,3 +3472,71 @@ TEST_F(NativeDeviceModulesTest, TestEnumerationPropertyRemote)
     ASSERT_EQ(result.getValue(), "Successful");
 }
 
+TEST_F(NativeDeviceModulesTest, TestPropertyOrderOnClient)
+{
+    const InstancePtr server = Instance();
+    server.addServer("OpenDAQNativeStreaming", nullptr);
+
+    server.addProperty(StringProperty("Property1", ""));
+    server.addProperty(StringProperty("Property2", ""));
+
+    auto propertyOrder = List<IString>("Property2", "Property1");
+    server.setPropertyOrder(propertyOrder);
+
+    // check that on server side the order is correct
+    {
+        const auto props = server.getVisibleProperties();
+        for (SizeT i = 0; i < propertyOrder.getCount(); ++i)
+            ASSERT_EQ(propertyOrder[i], props[i].getName());
+    }
+
+    const InstancePtr client = Instance();
+    auto clientDevice = client.addDevice("daq.nd://127.0.0.1");
+
+    // Check that the property order is preserved on the client side as well
+    {
+        const auto props = clientDevice.getVisibleProperties();
+        for (SizeT i = 0; i < propertyOrder.getCount(); ++i)
+            ASSERT_EQ(propertyOrder[i], props[i].getName());
+    }
+
+    std::promise<void> propertyOrderChangedPromise;
+    std::future<void> propertyOrderChangedFuture = propertyOrderChangedPromise.get_future();
+    clientDevice.getOnComponentCoreEvent() += [&propertyOrderChangedPromise](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)    
+    {
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::PropertyOrderChanged)
+            propertyOrderChangedPromise.set_value();
+    };
+
+    // change the property order on the server side
+    propertyOrder = List<IString>("Property1", "Property2");
+    server.setPropertyOrder(propertyOrder);
+    ASSERT_EQ(propertyOrderChangedFuture.wait_for(std::chrono::seconds(3)), std::future_status::ready);
+
+    {
+        const auto props = server.getVisibleProperties();
+        for (SizeT i = 0; i < propertyOrder.getCount(); ++i)
+            ASSERT_EQ(propertyOrder[i], props[i].getName());
+    }
+
+    {
+        const auto props = clientDevice.getVisibleProperties();
+        for (SizeT i = 0; i < propertyOrder.getCount(); ++i)
+            ASSERT_EQ(propertyOrder[i], props[i].getName());
+    }
+
+    // changing the property order on the client side is forbidden
+    ASSERT_THROW(clientDevice.setPropertyOrder(List<IString>("Property2", "Property1")), InvalidOperationException);
+
+    {
+        const auto props = server.getVisibleProperties();
+        for (SizeT i = 0; i < propertyOrder.getCount(); ++i)
+            ASSERT_EQ(propertyOrder[i], props[i].getName());
+    }
+
+    {
+        const auto props = clientDevice.getVisibleProperties();
+        for (SizeT i = 0; i < propertyOrder.getCount(); ++i)
+            ASSERT_EQ(propertyOrder[i], props[i].getName());
+    }
+}

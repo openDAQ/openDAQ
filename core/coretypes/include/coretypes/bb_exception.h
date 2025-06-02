@@ -25,7 +25,7 @@ class DaqException : public std::runtime_error
 public:
     template <typename... Params>
     explicit DaqException(ErrCode errCode, const std::string& format, Params&&... params)
-        : DaqException(false, errCode, fmt::format(format, std::forward<Params>(params)...))
+        : DaqException(false, errCode, fmt::format(fmt::runtime(format), std::forward<Params>(params)...))
     {
     }
 
@@ -66,7 +66,7 @@ protected:
 
     template <typename... Params>
     explicit DaqException(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& format, Params&&... params)
-        : DaqException(false, errCode, fmt::format(format, std::forward<Params>(params)...), fileName, fileLine)
+        : DaqException(false, errCode, fmt::format(fmt::runtime(format), std::forward<Params>(params)...), fileName, fileLine)
     {
     }
 

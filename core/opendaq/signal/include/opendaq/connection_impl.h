@@ -68,10 +68,6 @@ public:
     // IConnectionInternal
     ErrCode INTERFACE_FUNC enqueueLastDescriptor() override;
 
-    // IBaseObject
-    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
-    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
-
     [[nodiscard]] const std::deque<PacketPtr>& getPackets() const noexcept;
 
 #ifdef OPENDAQ_THREAD_SAFE

@@ -4,11 +4,13 @@ import argparse
 import os
 import enum
 import sys
+import platform
 
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from tkinter.filedialog import asksaveasfile
+from tkinter.filedialog import askopenfilename
 import opendaq as daq
 from tkinter import messagebox
 
@@ -182,6 +184,8 @@ class App(tk.Tk):
                               command=self.handle_load_config_button_clicked)
         file_menu.add_command(label='Save configuration',
                               command=self.handle_save_config_button_clicked)
+        file_menu.add_command(label='Load module',
+                              command=self.handle_load_modules_button_clicked)
         file_menu.add_separator()
         file_menu.add_command(label='Exit', command=self.quit)
 
@@ -220,6 +224,8 @@ class App(tk.Tk):
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
+        tree.tag_configure('warning', foreground=utils.StatusColor.WARNING)
+        tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         self.tree = tree
 
     def tree_update(self, new_selected_node=None):
@@ -321,8 +327,20 @@ class App(tk.Tk):
             skip = not show_unknown
 
         if not skip:
+            status_string = None
+            try:
+                status = component.status_container.get_status('ComponentStatus')
+                if status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Warning'), component.context.type_manager):
+                    status_string = 'warning'
+                elif status == daq.Enumeration(daq.String('ComponentStatusType'), daq.String('Error'), component.context.type_manager):
+                    status_string = 'error'
+            except:
+                pass
+
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
-                             text=component_name, open=True, values=(component_node_id,))
+                             text=component_name, open=True, values=(component_node_id,), tags=(status_string,))
+
+
 
     def get_standard_folder_name(self, component):
         if component == 'Sig':
@@ -419,6 +437,29 @@ class App(tk.Tk):
         dialog = LoadInstanceConfigDialog(self, self.context)
         dialog.show()
         self.tree_update()
+
+    def handle_load_modules_button_clicked(self):
+        if platform.system() == 'Windows':
+            extension = '.module.dll'
+        else:
+            extension = '.module.so'
+
+        file_path = askopenfilename(
+            parent=self,
+            title='Load module',
+            defaultextension=extension,
+            filetypes=[('openDAQ module', f'*{extension}')]
+        )
+
+        if not file_path:
+            return
+
+        try:
+            self.context.instance.module_manager.load_module(file_path)
+            self.tree_update()
+        except Exception as e:
+            print('Load module failed:', e, file=sys.stderr)
+            utils.show_error('Load module failed', str(e), self)
 
     def handle_refresh_button_clicked(self):
         self.tree_update(self.context.selected_node)
@@ -734,16 +775,27 @@ class App(tk.Tk):
         for node in self.tree.get_children():
             self._set_node_update_status_recursive(node)
 
+    def add_tag_and_configure(self, node, tag, color):
+        current_tags = set(self.tree.item(node, 'tags'))
+        current_tags.add(tag)
+        self.tree.tag_configure(tag, foreground=color)
+        self.tree.item(node, tags=tuple(current_tags))
+
+    def remove_tag(self, node, tag):
+        current_tags = set(self.tree.item(node, 'tags'))
+        if tag in current_tags:
+            current_tags.remove(tag)
+        self.tree.item(node, tags=tuple(current_tags))
+
     def _set_node_update_status_recursive(self, node):
-        color = 'red'
         node_obj = utils.find_component(node, self.context.instance)
         node_text = self.get_standard_folder_name(node_obj.name)
         if node_obj.updating:
-            self.tree.item(node, tags=('selected',),
-                           text=node_text + ' [*]')
-            self.tree.tag_configure('selected', foreground=color)
+            self.add_tag_and_configure(node, 'selected', 'red')
+            self.tree.item(node, text=node_text + ' [*]')
+
         else:
-            self.tree.item(node, tags=())
+            self.remove_tag(node, 'selected')
         children = self.tree.get_children(node)
         for child in children:
             self._set_node_update_status_recursive(child)
@@ -753,7 +805,6 @@ class App(tk.Tk):
             self._set_node_lock_status_recursive(node)
 
     def _set_node_lock_status_recursive(self, node, parent_locked=False):
-        color = 'gray'
         component = utils.find_component(node, self.context.instance)
 
         if daq.IDevice.can_cast_from(component):
@@ -766,17 +817,16 @@ class App(tk.Tk):
             locked = parent_locked
 
         if locked:
-            self.tree.item(node, tags=('locked',))
-            self.tree.tag_configure('locked', foreground=color)
+            self.add_tag_and_configure(node, 'locked', 'gray')
         else:
-            self.tree.item(node, tags=())
+            self.remove_tag(node, 'locked')
 
         children = self.tree.get_children(node)
         for child in children:
             self._set_node_lock_status_recursive(child, locked)
             
     def _load_config(self, config):
-        file = open(config, "r")
+        file = open(config, 'r')
         if file is None:
             return
         config_string = file.read()

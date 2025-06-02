@@ -3,6 +3,8 @@
 #include <fmt/format.h>
 #include <regex>
 
+#include "coretypes/ctutils.h"
+
 extern "C"
 daq::ErrCode PUBLIC_EXPORT daqInterfaceIdToString(const daq::IntfID& iid, daq::CharPtr dest)
 {
@@ -34,37 +36,89 @@ daq::ErrCode PUBLIC_EXPORT daqInterfaceIdToString(const daq::IntfID& iid, daq::C
     }
 }
 
-static const std::regex guidRegex(R"(\{([\dA-Fa-f]{8})-([\dA-Fa-f]{4})-([\dA-Fa-f]{4})-([\dA-Fa-f]{2})([\dA-Fa-f]{2})-((?:[\dA-Fa-f]{2}){6})\})");
-
-extern "C"
-daq::ErrCode PUBLIC_EXPORT daqStringToInterfaceId(const std::string& guidStr, daq::IntfID& iid)
+namespace detail
 {
-    std::smatch match;
-    if (!std::regex_match(guidStr, match, guidRegex))
+
+uint32_t hexStringToUint32(const char* hexStr, size_t length)
+{
+    if (hexStr == nullptr || length == 0)
     {
-        return OPENDAQ_ERR_GENERALERROR; // Invalid format
+        throw std::invalid_argument("Empty or null input string");
     }
 
+    uint32_t result = 0;
+
+    for (size_t i = 0; i < length; ++i)
+    {
+        char c = hexStr[i];
+        uint32_t digit;
+
+        if (c >= '0' && c <= '9')
+        {
+            digit = c - '0';
+        }
+        else if (c >= 'a' && c <= 'f')
+        {
+            digit = c - 'a' + 10;
+        }
+        else if (c >= 'A' && c <= 'F')
+        {
+            digit = c - 'A' + 10;
+        }
+        else
+        {
+            throw std::invalid_argument("Invalid hexadecimal character");
+        }
+
+        if (result > (std::numeric_limits<uint32_t>::max() - digit) / 16)
+        {
+            throw std::overflow_error("uint32_t overflow");
+        }
+
+        result = result * 16 + digit;
+    }
+
+    return result;
+}
+
+}
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT daqStringToInterfaceId(daq::ConstCharPtr guidStr, daq::IntfID& iid)
+{
     try
     {
-        iid.Data1 = std::stoul(match[1].str(), nullptr, 16);
-        iid.Data2 = static_cast<uint16_t>(std::stoul(match[2].str(), nullptr, 16));
-        iid.Data3 = static_cast<uint16_t>(std::stoul(match[3].str(), nullptr, 16));
+        const auto len = std::strlen(guidStr);
+        if (len != 38)
+            return OPENDAQ_ERR_INVALIDPARAMETER;
 
-        // First two bytes of Data4
-        iid.Data4[0] = static_cast<uint8_t>(std::stoul(match[4].str(), nullptr, 16));
-        iid.Data4[1] = static_cast<uint8_t>(std::stoul(match[5].str(), nullptr, 16));
+        if (guidStr[0] != '{' || guidStr[len - 1] != '}')
+            return OPENDAQ_ERR_INVALIDPARAMETER;
 
-        // Last six bytes of Data4
-        std::string lastPart = match[6].str();
-        for (size_t i = 0; i < 6; ++i)
-        {
-            iid.Data4[2 + i] = static_cast<uint8_t>(std::stoul(lastPart.substr(i * 2, 2), nullptr, 16));
-        }
+        iid.Data1 = detail::hexStringToUint32(guidStr + 1, 8);
+        if (guidStr[9] != '-')
+            return OPENDAQ_ERR_INVALIDPARAMETER;
+        iid.Data2 = static_cast<uint16_t>(detail::hexStringToUint32(guidStr + 10, 4));
+        if (guidStr[14] != '-')
+            return OPENDAQ_ERR_INVALIDPARAMETER;
+        iid.Data3 = static_cast<uint16_t>(detail::hexStringToUint32(guidStr + 15, 4));
+        if (guidStr[19] != '-')
+            return OPENDAQ_ERR_INVALIDPARAMETER;
+
+        iid.Data4[0] = static_cast<uint8_t>(detail::hexStringToUint32(guidStr + 20, 2));
+        iid.Data4[1] = static_cast<uint8_t>(detail::hexStringToUint32(guidStr + 22, 2));
+        if (guidStr[24] != '-')
+            return OPENDAQ_ERR_INVALIDPARAMETER;
+        iid.Data4[2] = static_cast<uint8_t>(detail::hexStringToUint32(guidStr + 25, 2));
+        iid.Data4[3] = static_cast<uint8_t>(detail::hexStringToUint32(guidStr + 27, 2));
+        iid.Data4[4] = static_cast<uint8_t>(detail::hexStringToUint32(guidStr + 29, 2));
+        iid.Data4[5] = static_cast<uint8_t>(detail::hexStringToUint32(guidStr + 31, 2));
+        iid.Data4[6] = static_cast<uint8_t>(detail::hexStringToUint32(guidStr + 33, 2));
+        iid.Data4[7] = static_cast<uint8_t>(detail::hexStringToUint32(guidStr + 35, 2));
     }
     catch (...)
     {
-        return OPENDAQ_ERR_GENERALERROR; // Conversion error
+        return OPENDAQ_ERR_INVALIDPARAMETER;  // Conversion error
     }
 
     return OPENDAQ_SUCCESS;

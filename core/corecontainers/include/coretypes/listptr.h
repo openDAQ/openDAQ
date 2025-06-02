@@ -288,7 +288,7 @@ public:
     /*!
      * @brief Returns a copy of list as std::vector.
      */
-    std::vector<TValuePtr> toVector()
+    std::vector<TValuePtr> toVector() const
     {
         return std::vector<TValuePtr>(begin(), end());
     }

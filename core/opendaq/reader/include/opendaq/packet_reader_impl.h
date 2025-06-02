@@ -41,10 +41,6 @@ public:
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
     ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
 
-    // IBaseObject
-    ErrCode INTERFACE_FUNC queryInterface(const IntfID& id, void** intf) override;
-    ErrCode INTERFACE_FUNC borrowInterface(const IntfID& id, void** intf) const override;
-
 private:
     std::mutex mutex;
     InputPortConfigPtr port;

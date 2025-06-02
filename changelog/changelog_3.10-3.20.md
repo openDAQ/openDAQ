@@ -20,7 +20,7 @@
 - [#605](https://github.com/openDAQ/openDAQ/pull/605) Add support for View Only client to the openDAQ Native configuration protocol.
 - [#704](https://github.com/openDAQ/openDAQ/pull/704) Support setting operation mode for the device which notifies all sub components
 - [#697](https://github.com/openDAQ/openDAQ/pull/697) [#783](https://github.com/openDAQ/openDAQ/pull/783) Added `IRecorder` interface and the `basic_csv_recorder_module`.
-- [#743](https://github.com/openDAQ/openDAQ/pull/743) Include experimental high-performance implementation of WebSocket Streaming Server; also adds CAN streaming capability to the client when used with the new server.
+- [#743](https://github.com/openDAQ/openDAQ/pull/743) [#813](https://github.com/openDAQ/openDAQ/pull/813) Include experimental high-performance implementation of WebSocket Streaming Server; also adds CAN streaming capability to the client when used with the new server.
 
 ## Python
 
@@ -39,6 +39,9 @@
 
 ## Bug fixes
 
+- [#823](https://github.com/openDAQ/openDAQ/pull/823) Fix property order is preserved from server to client via the native protocol
+- [#821](https://github.com/openDAQ/openDAQ/pull/821) Fix CPP 20 and 23 compatibility issues
+- [#816](https://github.com/openDAQ/openDAQ/pull/816) Fix registering the new property object class with the type manager on the native client.
 - [#806](https://github.com/openDAQ/openDAQ/pull/806) Fix hidden components deserialization
 - [#794](https://github.com/openDAQ/openDAQ/pull/794) Small refactor/fixing of child object cloning logic. Ensure thread safety on core event enabling.
 - [#790](https://github.com/openDAQ/openDAQ/pull/790) Fix input port to signal notification

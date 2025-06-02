@@ -486,7 +486,7 @@ ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* cont
     {
         StringPtr str;
         ser->readString(String("keyIntfID"), &str);
-        daqStringToInterfaceId(str, keyId);
+        daqStringToInterfaceId(str.getCharPtr(), keyId);
     }
     
     hasKey = false;
@@ -496,7 +496,7 @@ ErrCode INTERFACE_FUNC deserializeDict(ISerializedObject* ser, IBaseObject* cont
     {
         StringPtr str;
         ser->readString(String("valueIntfID"), &str);
-        daqStringToInterfaceId(str, valueId);
+        daqStringToInterfaceId(str.getCharPtr(), valueId);
     }
 
     SerializedListPtr list = nullptr;

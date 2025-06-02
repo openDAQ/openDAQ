@@ -31,16 +31,21 @@ ComponentPtr ComponentFinderRootDevice::findComponentInternal(const ComponentPtr
     if (!folder.assigned())
         return nullptr;
 
-    if (folder.hasItem(startStr))
+    ComponentPtr subComponent;
+    const auto errCode = folder->getItem(String(startStr), &subComponent);
+    if (OPENDAQ_SUCCEEDED(errCode))
     {
-        auto subComponent = folder.getItem(startStr);
         if (hasSubComponentStr)
             return findComponentInternal(subComponent, restStr);
-
-        return subComponent;
     }
+    else if (errCode == OPENDAQ_ERR_NOTFOUND)
+    {
+        daqClearErrorInfo();
+    }
+    else
+        checkErrorInfo(errCode);
 
-    return nullptr;
+    return subComponent;
 }
 
 ComponentPtr ComponentFinderRootDevice::findComponent(const std::string& globalId)
@@ -473,6 +478,7 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::SignalConnected:
         case CoreEventId::ComponentAdded:
         case CoreEventId::AttributeChanged:
+        case CoreEventId::PropertyOrderChanged:
             packedEvent.pushBack(processCoreEventArgs(args));
             break;
         case CoreEventId::ComponentUpdateEnd:

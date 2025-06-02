@@ -207,9 +207,7 @@ public:
     ErrCode INTERFACE_FUNC call([[maybe_unused]] IBaseObject* args,
                                 [[maybe_unused]] IBaseObject** result) override
     {
-        OPENDAQ_PARAM_NOT_NULL(result);
-
-        if constexpr (std::is_same_v<typename TFunctor::result_type, ErrCode>)
+        if constexpr (std::is_invocable_r_v<ErrCode, TFunctor, IBaseObject*, IBaseObject**>)
         {
             return this->functor(args, result);
         }

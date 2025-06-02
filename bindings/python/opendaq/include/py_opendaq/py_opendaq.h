@@ -25,7 +25,6 @@
 void wrapDaqComponentOpenDaq(pybind11::module_ m);
 
 PyDaqIntf<daq::IInstance, daq::IDevice> declareIInstance(pybind11::module_ m);
-PyDaqIntf<daq::IInstance, daq::IDevice> declareIPythonInstance(pybind11::module_ m);
 PyDaqIntf<daq::IInstanceBuilder, daq::IBaseObject> declareIInstanceBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IConfigProvider, daq::IBaseObject> declareIConfigProvider(pybind11::module_ m);
 PyDaqIntf<daq::IContext, daq::IBaseObject> declareIContext(pybind11::module_ m);

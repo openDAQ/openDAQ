@@ -41,6 +41,7 @@ ErrCode PythonContextImpl::processEventsFromQueue()
     return OPENDAQ_SUCCESS;
 }
 
+// patch to override the default Context factory
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY,
     PythonContext,

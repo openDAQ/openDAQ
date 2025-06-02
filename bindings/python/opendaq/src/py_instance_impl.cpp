@@ -71,9 +71,22 @@ PythonInstanceImpl::PythonInstanceImpl(IInstanceBuilder* instanceBuilder)
 {
 }
 
-END_NAMESPACE_OPENDAQ
+// patch to override the default Context factory
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY,
+    PythonInstance,
+    IInstance,
+    createInstance,
+    IContext*, context,
+    IString*, localId
+)
 
-PyDaqIntf<daq::IInstance, daq::IDevice> declareIPythonInstance(pybind11::module_ m)
-{
-    return wrapInterface<daq::IInstance, daq::IDevice>(m, "IInstance");
-}
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, 
+    PythonInstance,
+    IInstance,
+    createInstanceFromBuilder,
+    IInstanceBuilder*, builder
+)
+
+END_NAMESPACE_OPENDAQ

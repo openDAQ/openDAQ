@@ -195,3 +195,18 @@
  * @ingroup opendaq
  * @defgroup opendaq_components_search_filter Components Search Filter
  */
+
+/*!
+ * @ingroup opendaq
+ * @defgroup opendaq_update_parameters Update Parameters
+ */
+
+/*!
+ * @ingroup opendaq
+ * @defgroup opendaq_log_file_info Log File Info
+ */
+
+/*!
+ * @ingroup opendaq
+ * @defgroup opendaq_sync_component Sync Component
+ */

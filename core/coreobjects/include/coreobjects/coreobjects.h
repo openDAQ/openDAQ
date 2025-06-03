@@ -92,3 +92,8 @@
  * @ingroup coreobjects
  * @defgroup objects_security Security
  */
+
+/*!
+ * @ingroup coreobjects
+ * @defgroup objects_lock_guard Lock Guard
+ */

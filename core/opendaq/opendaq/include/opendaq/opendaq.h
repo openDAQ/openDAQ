@@ -190,3 +190,8 @@
  * @ingroup opendaq
  * @defgroup opendaq_streamings Streamings
  */
+
+/*!
+ * @ingroup opendaq
+ * @defgroup opendaq_components_search_filter Components search filter
+ */

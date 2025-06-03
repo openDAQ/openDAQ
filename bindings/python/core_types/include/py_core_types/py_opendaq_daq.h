@@ -114,7 +114,7 @@ auto castFrom(daq::IBaseObject* baseObject)
 template <class Interface>
 bool canCastFrom(daq::IBaseObject* baseObject)
 {
-    return daq::BaseObjectPtr::Borrow(baseObject).asPtrOrNull<Interface>(true).assigned();
+    return daq::BaseObjectPtr::Borrow(baseObject).supportsInterface<Interface>();
 }
 
 template <class Interface>

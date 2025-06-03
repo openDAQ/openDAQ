@@ -34,6 +34,8 @@ public:
     // IPythonQueuedEventHandler
     daq::ErrCode INTERFACE_FUNC dispatch(daq::IBaseObject* sender, daq::IEventArgs* eventArgs) override;
 
+    daq::ErrCode INTERFACE_FUNC toString(daq::CharPtr* str) override;
+
 };
 
 template <class F>
@@ -55,6 +57,19 @@ daq::ErrCode PyQueuedEventHandlerImpl<F>::dispatch(daq::IBaseObject* sender, daq
     if (!result)
         throw pybind11::error_already_set();
    
+    return OPENDAQ_SUCCESS;
+}
+
+template <class F>
+daq::ErrCode PyQueuedEventHandlerImpl<F>::toString(daq::CharPtr* str)
+{
+    OPENDAQ_PARAM_NOT_NULL(str);
+
+    std::ostringstream os;
+    os << "PyQueuedEventHandler<" << std::string(pybind11::repr(pyObject)) << ">(" << this->getReferenceCount() << " references)";   
+    std::string str1 = os.str();
+    *str = new char[str1.size() + 1];
+    std::strcpy(*str, str1.c_str());
     return OPENDAQ_SUCCESS;
 }
 

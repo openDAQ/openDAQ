@@ -87,3 +87,8 @@
  * @brief Core objects error codes
  * @}
  */
+
+/*!
+ * @ingroup coreobjects
+ * @defgroup objects_security Security
+ */

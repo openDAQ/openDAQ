@@ -56,7 +56,7 @@ daq::ErrCode PyQueuedEventHandlerImpl<F>::dispatch(daq::IBaseObject* sender, daq
     auto result = PyObject_CallObject(pyObject.ptr(), args.ptr());
     if (!result)
         throw pybind11::error_already_set();
-   
+
     return OPENDAQ_SUCCESS;
 }
 

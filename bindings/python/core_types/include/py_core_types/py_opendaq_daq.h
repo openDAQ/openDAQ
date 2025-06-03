@@ -43,7 +43,8 @@ public:
     InterfaceWrapper(const InterfaceWrapper& other)
         : intf(other.intf)
     {
-        intf->addRef();
+        if (intf != nullptr) 
+            intf->addRef();
     }
 
     InterfaceWrapper(InterfaceWrapper&& other)
@@ -106,9 +107,11 @@ void registerClassConverter()
 PYBIND11_DECLARE_HOLDER_TYPE(T, InterfaceWrapper<T>, true);
 
 template <class Interface>
-auto castFrom(daq::IBaseObject* baseObject)
+py::object castFrom(daq::IBaseObject* baseObject)
 {
-    return daq::BaseObjectPtr::Borrow(baseObject).as<Interface>();
+    Interface* iface = daq::BaseObjectPtr::Borrow(baseObject).as<Interface>();
+    InterfaceWrapper<Interface> wrappedInterface(iface);  // must increment reference
+    return py::cast(wrappedInterface, py::return_value_policy::take_ownership);
 }
 
 template <class Interface>

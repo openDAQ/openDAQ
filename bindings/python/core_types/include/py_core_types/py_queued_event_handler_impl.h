@@ -88,4 +88,3 @@ daq::IPythonQueuedEventHandler* PyQueuedEventHandler_Create(pybind11::object&& o
     procObj->addRef();
     return procObj;
 }
-

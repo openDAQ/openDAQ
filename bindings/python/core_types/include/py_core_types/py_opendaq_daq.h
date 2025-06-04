@@ -109,8 +109,10 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, InterfaceWrapper<T>, true);
 template <class Interface>
 py::object castFrom(daq::IBaseObject* baseObject)
 {
+    // The first rule of Fight Club is: never return a raw pointer to an interface, 
+    // because pybind might find an existing wrapper for it instead of creating a new one, which can lead to a reference count leak.
     Interface* iface = daq::BaseObjectPtr::Borrow(baseObject).as<Interface>();
-    InterfaceWrapper<Interface> wrappedInterface(iface);  // must increment reference
+    InterfaceWrapper<Interface> wrappedInterface(iface);
     return py::cast(wrappedInterface, py::return_value_policy::take_ownership);
 }
 
@@ -121,16 +123,18 @@ bool canCastFrom(daq::IBaseObject* baseObject)
 }
 
 template <class Interface>
-auto convertFrom(daq::IBaseObject* baseObject)
+py::object convertFrom(daq::IBaseObject* baseObject)
 {
-    Interface* intf;
+    // The first rule of Fight Club is: never return a raw pointer to an interface, 
+    // because pybind might find an existing wrapper for it instead of creating a new one, which can lead to a reference count leak.
+    Interface* intf = nullptr;
     const daq::ErrCode err = baseObject->queryInterface(Interface::Id, reinterpret_cast<void**>(&intf));
     if constexpr (std::is_same<Interface, daq::IString>::value)
     {
         if (OPENDAQ_FAILED(err))
         {
             const auto str = daq::getString(baseObject);
-            return daq::String_Create(str.c_str());
+            intf = daq::String_Create(str.c_str());
         }
     }
     else if constexpr (daq::Is_ct_conv<typename daq::IntfToCoreType<Interface>::CoreType>::value)
@@ -140,7 +144,7 @@ auto convertFrom(daq::IBaseObject* baseObject)
         if (OPENDAQ_FAILED(err))
         {
             auto value = daq::getValueFromConvertible<Type>(baseObject);
-            return daq::CoreTypeHelper<Type>::Create(value);
+            intf = daq::CoreTypeHelper<Type>::Create(value);
         }
     }
     else
@@ -148,7 +152,8 @@ auto convertFrom(daq::IBaseObject* baseObject)
         daq::checkErrorInfo(err);
     }
 
-    return intf;
+    InterfaceWrapper<Interface> wrappedInterface(intf);
+    return py::cast(wrappedInterface, py::return_value_policy::take_ownership);
 }
 
 template <class Interface, class ParentInterface = daq::IBaseObject>

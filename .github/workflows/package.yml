@@ -170,8 +170,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu 20.04 gcc-10 Release x86_64
-            image: ubuntu:20.04
+          - name: Ubuntu 22.04 gcc-10 Release x86_64
+            image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON
@@ -180,8 +180,8 @@ jobs:
             apt_packages: g++-10
             cc: gcc-10
             cxx: g++-10
-          - name: Ubuntu 20.04 gcc-10 Release arm64
-            image: ubuntu:20.04
+          - name: Ubuntu 22.04 gcc-10 Release arm64
+            image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_defines:
@@ -275,7 +275,7 @@ jobs:
           retention-days: 7
 
       - name: Upload API reference
-        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: API Reference
@@ -283,14 +283,14 @@ jobs:
           retention-days: 7
 
       - name: Upload temporary package for simulator
-        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_package_artifact }}
           path: ${{ env.package_path_rel }}
 
       - name: Upload simulator app
-        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_app_artifact }}
@@ -298,7 +298,7 @@ jobs:
 
       - name: Upload binaries for .NET Bindings NuGet package
         # "There can be only one."
-        if: ${{ matrix.name == 'Ubuntu 20.04 gcc-10 Release x86_64' }}
+        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.linux_x64_artifact }}

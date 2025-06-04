@@ -20,6 +20,8 @@
 #include <opendaq/scheduler_factory.h>
 #include <thread>
 
+#include "coreobjects/property_factory.h"
+
 using SignalTest = testing::Test;
 
 using namespace daq;
@@ -1920,4 +1922,30 @@ TEST_F(SignalTest, GetLastValueStructDoublyNested)
 
     // Check fifth (doubly nested) member
     ASSERT_FLOAT_EQ(doublyNestedPtr.get("DoublyNestedFloat32"), 6.66f);
+}
+
+TEST_F(SignalTest, SetDomainDescriptorUnderLock)
+{
+    auto context = NullContext();
+    auto desc = DataDescriptorBuilder().build();
+    auto desc1 = DataDescriptorBuilder().setSampleType(SampleType::Int16).build();
+
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto domainSignal = Signal(context, nullptr, "domainSig");
+
+    signal.setDescriptor(desc);
+    domainSignal.setDescriptor(desc);
+    signal.setDomainSignal(domainSignal);
+
+    signal.addProperty(IntProperty("Test", 0));
+    signal.getOnPropertyValueWrite("Test") += [&domainSignal, &desc, &desc1](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+    {
+        if (static_cast<int>(args.getValue()) % 2 == 0)
+            ASSERT_NO_THROW(domainSignal.setDescriptor(desc1));
+        else
+            ASSERT_NO_THROW(domainSignal.setDescriptor(desc));
+    };
+
+    for (int i = 0; i < 10; ++i)
+        signal.setPropertyValue("Test", i);
 }

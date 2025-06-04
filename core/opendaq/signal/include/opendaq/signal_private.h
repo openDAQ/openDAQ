@@ -53,6 +53,12 @@ DECLARE_OPENDAQ_INTERFACE(ISignalPrivate, IBaseObject)
      * @param[out] keepLastValue True if enabled.
      */
     virtual ErrCode INTERFACE_FUNC getKeepLastValue(Bool* keepLastValue) = 0;
+
+    /*!
+     * @brief Sends a packet through all connections of the signal, acquiring a recursive lock instead of an acquisition lock.
+     * @param packet The packet to be sent.
+     */
+    virtual ErrCode INTERFACE_FUNC sendPacketRecursiveLock(IPacket* packet) = 0;
 };
 /*!@}*/
 

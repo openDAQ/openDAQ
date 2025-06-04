@@ -66,6 +66,7 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
     MOCK_METHOD(daq::ErrCode, clearDomainSignalWithoutNotification, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, enableKeepLastValue, (daq::Bool enabled), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getKeepLastValue, (daq::Bool* keepLastValue), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, sendPacketRecursiveLock, (daq::IPacket* packet), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, remove, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, isRemoved, (daq::Bool* removed), (override MOCK_CALL));
